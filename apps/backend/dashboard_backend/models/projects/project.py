@@ -96,9 +96,17 @@ class Project(Base):
         backref='project',
         cascade="all, delete-orphan"
     )
+    documents = relationship(
+        'Document',
+        secondary='document_to_project',
+        back_populates='projects'
+    )
+    operational_points = relationship(
+        'OperationalPoint',
+        secondary='project_to_operation_point',
+        back_populates='projects'
+    )
     project_progress = relationship('ProjectProgress', backref='project', cascade="all, delete-orphan")
-    documents = relationship('Document', backref='project', cascade="all, delete-orphan")
-    operational_points = relationship('ProjectToOperationalPoint', backref='project', cascade="all, delete-orphan")
     superior_project = relationship('Project', remote_side='Project.id')
 
     # indexes

@@ -10,20 +10,19 @@
 
 ## Project Implementation
 - [ ] Implement project data model to models.py
-  -  [x] Project
-  -  [x] ProjectGroup
-  -  [x] project_to_project_group
+  - [x] ProjectGroup
+  - [x] project_to_project_group
   - [x] Budget
   - [x] FinVe
   - [x] Text
   - [x] TextType
   - [x] text_to_project
   - [x] BvwpData
+  - [x] project_to_section_of_line
+  - [x] project_to_operational_point
+  - [x] document
+  - [x] document_to_project
   - [ ] ProjectProgress
-  - [ ] project_to_section_of_line
-  - [ ] project_to_operational_point
-  - [ ] Document
-  - [ ] document_to_project
   - [ ] ProjectPhase
   - [ ] ProjectUpdateSource
 - [ ] check all relationships

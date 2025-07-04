@@ -29,7 +29,7 @@ the tables are sorted by groups
   - ProjectProgress: tracks the progress state of a project, including date and source information
   - project_to_section_of_line: many-to-many link between Project and SectionOfLine
   - project_to_operational_point: many-to-many link between Project and OperationalPoint
-  - Document: metadata for files (e.g. PDFs, maps) linked to projects
+  - document: metadata for files (e.g. PDFs, maps) linked to projects
   - document_to_project: many-to-many link between Document and Project
   - ProjectPhase: structured timeline of milestone events (e.g. planning, approval, construction)
   - ProjectUpdateSource: tracks sources and content of automated data updates to projects

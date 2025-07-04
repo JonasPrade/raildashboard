@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey
+from sqlalchemy.orm import relationship
 from dashboard_backend.models.base import Base
 
 
@@ -16,6 +17,13 @@ class OperationalPoint(Base):
     validity_date_end = Column(Date)
     railway_location = Column(String)
     railway_location_km = Column(Float)
+
+    # relationships
+    projects = relationship(
+        'Project',
+        secondary='project_to_operation_point',
+        back_populates='operational_points'
+    )
 
     def __repr__(self):
         return f"<OperationalPoint(op_id={self.op_id}, name={self.name})>"

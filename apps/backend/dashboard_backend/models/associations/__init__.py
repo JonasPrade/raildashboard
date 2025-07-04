@@ -1,3 +1,7 @@
 from .project_to_project_group import ProjectToProjectGroup
 from .finve_to_project import FinveToProject
 from .text_to_project import TextToProject
+from .project_to_section_of_line import ProjectToSectionOfLine
+from .project_to_operation_point import ProjectToOperationPoint
+from .document_to_projects import DocumentToProject
+
