@@ -21,8 +21,9 @@ the tables are sorted by groups
   - project_to_project_group: many-to-many link between Project and ProjectGroup
   - Budget: assigned or expected budget values linked to a project
   - FinVe: financial commitments (Verpflichtungsermächtigungen) associated with a project
-  - Text: descriptive or contextual content (e.g. sources, explanations)
-  - TextType: classification of text content (e.g. source, summary, quote)
+  - finve_to_project: many-to-many link between FinVe and Project
+  - ProjectText: descriptive or contextual content (e.g. sources, explanations)
+  - ProjectTextType: classification of text content (e.g. source, summary, quote)
   - text_to_project: many-to-many link between Text and Project
   - BvwpData: optional extended metadata for projects listed in the Federal Transport Infrastructure Plan (BVWP)
   - ProjectProgress: tracks the progress state of a project, including date and source information
