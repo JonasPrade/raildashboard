@@ -1,1 +1,6 @@
 .venv
+alembic/__pycache__/
+alembic/versions/*.pyc
+/.env
+/.env.test
+/.env.production
