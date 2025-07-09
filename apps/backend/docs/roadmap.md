@@ -2,7 +2,7 @@
 
 ## RINF Implementation
 - [ ] Implement RINF data model to models.py
-  -   [ ] Create models for PlatformEdge, Tunnel, Bridge, Siding, SpecialArea, RailwayLocation
+	- [ ] Use XML Schema to create the fitting models.py
 - [ ] Implement RINF data import
   - [ ] Use the serialization possibilites of RINF (https://data-interop.era.europa.eu/vocabulary)
   - [ ] Add import of border points .csv (https://www.era.europa.eu/domains/registers/rinf_en)
@@ -38,3 +38,6 @@
 ## Additional Features 
 - [ ] Netzzustandsbericht
 - [ ] Beschleunigungskommission Schiene
+- [ ] User Verification
+- [ ] Möglichkeit für Celery Tasks entwickeln
+	- wird später fürs Routing benötigt
