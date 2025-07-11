@@ -91,10 +91,10 @@ class Project(Base):
         secondary='finve_to_project',
         backref='projects'
     )
-    project_texts = relationship(
-        'ProjectToText',
-        backref='project',
-        cascade="all, delete-orphan"
+    texts = relationship(
+        'ProjectText',
+        secondary='text_to_project',
+        backref='projects',
     )
     documents = relationship(
         'Document',
@@ -106,7 +106,7 @@ class Project(Base):
         secondary='project_to_operation_point',
         back_populates='projects'
     )
-    project_progress = relationship('ProjectProgress', backref='project', cascade="all, delete-orphan")
+    # project_progress = relationship('ProjectProgress', backref='project', cascade="all, delete-orphan")
     superior_project = relationship('Project', remote_side='Project.id')
 
     # indexes

@@ -13,8 +13,4 @@ class Finve(Base):
     cost_estimate_original = Column(Integer)
     temporary_finve_number = Column(Boolean, default=False)  # if true the finve number is not known yet
 
-    projects = relationship(
-        'ProjectContent',
-        secondary="finve_to_project",
-        backref=backref('finve', lazy=True)
-    )
+

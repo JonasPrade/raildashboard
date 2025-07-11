@@ -1,3 +1,4 @@
+
 # Data Models
 
 ## Overview
@@ -38,5 +39,6 @@ the tables are sorted by groups
   - ChangeLogEntry: detailed per-field changes linked to ChangeLog
 
 ## RailwayInfrastructure
+[[RINF Railway Infrastructure Data]]
 The RailwayInfrastructure bases on the RINF data model of ERA (https://rinf.era.europa.eu/rinf/)
 the documentation is https://www.era.europa.eu/sites/default/files/2025-03/rinf_application_guide_3.1.0.pdf?t=1751549631

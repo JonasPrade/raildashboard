@@ -10,11 +10,5 @@ class ProjectTextType(Base):
     name = Column(String(100), nullable=False, unique=True)
 
 
-    project_texts = relationship(
-        'ProjectText',
-        back_populates='text_type',
-        lazy=True
-    )
-
     def __repr__(self):
         return f"<ProjectTextType(id={self.id}, name='{self.name}')>"

@@ -98,7 +98,7 @@ class Budget(Base):
     next_years_891_21 = Column(Integer)
     next_years_861_01 = Column(Integer)
 
-    finve = relationship("FinVe", backref=backref("budgets"))
+    finve = relationship("Finve", backref=backref("budgets"))
     __table_args__ = (
         Index('budgets_year_and_finve_uindex', "budget_year", "fin_ve", unique=True),
     )

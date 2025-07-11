@@ -4,3 +4,4 @@ alembic/versions/*.pyc
 /.env
 /.env.test
 /.env.production
+/data/rinf_era/

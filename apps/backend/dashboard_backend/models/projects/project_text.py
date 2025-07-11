@@ -15,7 +15,8 @@ class ProjectText(Base):
     created_at = Column(Integer, nullable=False, default=0)
     updated_at = Column(Integer, nullable=False, default=0)
 
-    text_type = relationship("ProjectTextType", backref="project_texts", lazy=True)
+    text_type = relationship("ProjectTextType", backref="project_texts")
+    # projects = relationship("ProjectTextType", backref="texts", lazy=True)
 
     def __repr__(self):
         return f"<ProjectText(id={self.id}, header='{self.header}', type={self.type})>"
