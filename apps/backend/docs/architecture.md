@@ -37,3 +37,6 @@ The backend of the rail dashboard is modular and follows a classical layered arc
 - Configures global middleware (e.g., CORS, logging)
 
 This layered model allows each component to be tested, adapted, and extended independently. It promotes maintainability, reusability, and clear responsibilities in the project.
+
+## Data
+Alle changable data is in a separate folder ("data")

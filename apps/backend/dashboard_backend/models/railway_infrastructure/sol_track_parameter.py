@@ -13,5 +13,6 @@ class SOLTrackParameter(Base):
     optional_value = Column(String)
     track_id = Column(Integer, ForeignKey('sol_track.id'))
     manual_added = Column(Boolean, default=False)
+
     track = relationship('SOLTrack', back_populates='parameters')
 
