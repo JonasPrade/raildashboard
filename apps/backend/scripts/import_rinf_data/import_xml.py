@@ -26,9 +26,9 @@ import sys
 import logging
 import argparse
 from xml.etree import ElementTree as ET
-from rinf_xml_parser import parse_rinf_operational_points_to_object, parse_rinf_sections_of_line_to_object
+from .rinf_xml_parser import parse_rinf_operational_points_to_object, parse_rinf_sections_of_line_to_object
 
-from config import OUTPUT_DIR
+from .config import OUTPUT_DIR
 from dashboard_backend.database import Session
 from dashboard_backend.models.railway_infrastructure import OperationalPoint, SectionOfLine, SOLTrackParameter, SOLTrack
 
@@ -38,6 +38,9 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s"
 )
 logger = logging.getLogger(__name__)
+
+print(f"Aktuelles Arbeitsverzeichnis: {os.getcwd()}")
+print(f"Python-Suchpfad: {sys.path}")
 
 def import_xml(xml_file_path: str) -> ET.ElementTree:
     try:
@@ -50,9 +53,9 @@ def import_xml(xml_file_path: str) -> ET.ElementTree:
     return root
 
 
-def import_xml_country(country_string: str, clear_tables: bool = False):
+def import_xml_country(country_string: str, clear_tables: bool = False, output_dir: str = OUTPUT_DIR) -> None:
     # read the XML file
-    xml_file_path = os.path.abspath(f'{OUTPUT_DIR}/xml_countries/rinf_{country_string}.xml')
+    xml_file_path = os.path.abspath(f'{output_dir}/xml_countries/rinf_{country_string}.xml')
     if not os.path.exists(xml_file_path):
         logger.error(f"XML file for country {country_string} does not exist at {xml_file_path}")
         raise FileNotFoundError(f"XML file for country {country_string} does not exist at {xml_file_path}")

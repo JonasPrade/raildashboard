@@ -1,10 +1,8 @@
 from xml.etree import ElementTree as ET
 from typing import List
-from dashboard_backend.schemas.railway_infrastructure import OperationalPointSchema, SectionOfLineSchema, \
-    SOLTrackParameterSchema
-from dashboard_backend.schemas.railway_infrastructure.sol_track import SOLTrackSchema
+from dashboard_backend.schemas.railway_infrastructure import SOLTrackSchema, OperationalPointSchema, SectionOfLineSchema, SOLTrackParameterSchema
 from dashboard_backend.models.railway_infrastructure import OperationalPoint, SectionOfLine, SOLTrack, SOLTrackParameter
-from filter_duplicate_ops import filter_duplicate_ops
+from .filter_duplicate_ops import filter_duplicate_ops
 
 def parse_rinf_operational_points_to_object(root: ET.Element) -> List[OperationalPointSchema]:
     operational_points = []

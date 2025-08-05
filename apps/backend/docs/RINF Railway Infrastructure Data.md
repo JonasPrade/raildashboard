@@ -55,10 +55,3 @@ https://data-interop.era.europa.eu/vocabulary
 
 
 
-
-- [ ] Implement RINF data model to models.py
-	- [ ] Use XML Schema to create the fitting models.py
-- [ ] Implement RINF data import
-  - [ ] Use the serialization possibilites of RINF 
-  - [ ] Add import of border points .csv (https://www.era.europa.eu/domains/registers/rinf_en)
-- [ ] Add source ERA to web interface Datenquelle: European Union Agency for Railways (ERA), RINF Register, abgerufen am [Datum]

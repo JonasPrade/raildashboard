@@ -3,8 +3,28 @@
 ## RINF Implementation
 [[RINF Railway Infrastructure Data]]
 
+- [x] Implement RINF data model to models.py
+	- [x] Use XML Schema to create the fitting models.py
+- [x] Implement RINF data import
+  - [x] Use the serialization possibilites of RINF 
+  - [x] Add import of border points .csv (https://www.era.europa.eu/domains/registers/rinf_en)
+- [ ] Add source ERA to web interface Datenquelle: European Union Agency for Railways (ERA), RINF Register, abgerufen am [Datum] -> this is something for frontend
 
-## Project Implementation
+## Routing
+[[Routing]]
+- [x] Routing Algorithmen
+	- hier sollte ich überlegen mit PostGIS/pgRouting zu arbeiten
+- [ ] implementation of the pgRouting
+	- Should be possible with via Routings -> in-between-stops
+- [x] Implement test possibilites
+- [ ] add possibility for API Usage
+- [ ] Achte darauf dass das ein celery task sein wird
+
+## Tests
+- [ ] Implement test infrastructure
+- [ ] create example DB-data
+
+## DB Structure
 - [ ] Implement project data model to models.py
   - [x] ProjectGroup
   - [x] project_to_project_group
@@ -22,6 +42,7 @@
   - [ ] ProjectPhase
   - [ ] ProjectUpdateSource
 - [ ] check all relationships
+
 
 ## Database Transfer
 The aim is to transfer the existing project database to the new system
@@ -54,5 +75,3 @@ The aim is to transfer the existing project database to the new system
 		- Implementierung eines `/refresh`-Endpunkts zur Generierung neuer Access Tokens.
 - [ ] Möglichkeit für Celery Tasks entwickeln
 	- wird später fürs Routing benötigt
-- [ ] Routing Algorithmen
-	- hier sollte ich überlegen mit PostGIS/pgRouting zu arbeiten
