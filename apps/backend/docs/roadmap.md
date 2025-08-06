@@ -50,19 +50,9 @@ The aim is to transfer the existing project database to the new system.
 
 I will transfer all data to csv and then write import skripts. So in case of a new build i have the data available.
 
-- [ ] project data
-	- [ ] project_groups
-	- [ ] projectcontent_to_group
-	- [ ] projectcontent_to_lines
-	- [ ] projectcontent_to_railwaystations
-	- [ ] project_content
-		- this is the new `project` table
-		- save the id as `id_old`
-		- [ ] the superior project id has to be changed to the new id
-			- save old id
-			- after commit reconstruct to new id
-		- the bvwp data gets ignored -> will be implemented later
-		- [ ] some project_id are double?? -> correct that
+[[Transfer DB for Project]]
+
+
 
 Which data have to be transfered. It will be clustered to pragmatic usage:
 - bks -> will be done later, no prority
@@ -74,15 +64,7 @@ Which data have to be transfered. It will be clustered to pragmatic usage:
 	- finve
 	- finve_to_projectcontent
 - project data
-	- project_groups
-	- projectcontent_to_group
-	- projectcontent_to_lines -> how can i transfer that to ERA data?
-	- projectcontent_to_railwaystations -> how can i transfer that?
-	- projects -> is not needed anymore
-	- projects_contents -> is `projects`in the new database
-		- i should keep the old id of that so i can match between the db
-		- if the transfer ist completely finished, the old_id can be deleted
-	- projects_content_progress -> is empty -> ignore that
+	- _needed tables and actions is_
 - the infrastructure data will not be transfered
 	- railway_lines
 	- railway_nodes
