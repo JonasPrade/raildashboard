@@ -295,7 +295,6 @@ def import_project_content_old_db(filepath_csv: str, clear_db: bool = False):
         df[col] = df[col].replace({pd.NA: False})
         df[col] = df[col].where(pd.notnull(df[col]), False)
 
-
     # check for str columns that should be converted to str
     str_columns = ['name', 'project_number', 'description']
     for col in str_columns:

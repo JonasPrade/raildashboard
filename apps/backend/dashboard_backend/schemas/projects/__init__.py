@@ -1,1 +1,2 @@
 from .project_schema import ProjectSchema
+from .project_group_schema import ProjectGroupSchema

@@ -1,0 +1,16 @@
+id,name,description,public,color,plot_only_superior_projects,short_name
+1,BVWP 2030,Bundesverkehrswegeplan 2030,false,#FF7E1E,true,BVWP 2030
+2,Deutschlandtakt,Deutschlandtaktinfrastrukturliste,false,#FF7E1E,true,Deutschlandtakt
+3,GVFG,Gemeindeverkehrsfinanzierungsgesetz,false,#FF7E1E,true,GVFG
+4,Test,Testprojekte,false,#FF7E1E,true,Test
+5,Elektrische Güterbahn,Gutachten 2020 elektrische Güterbahn,true,#E01A8A,true,El. Güterbahn
+6,Hochleistungskorridorsanierung,"Korridore, die mittels Vollsperrung umfassend saniert werden sollen",true,#2962CA,true,HLK
+7,BSWAG 2023,Bundesschienenwegeausbaugesetz Änderung 2023,false,#005F6A,true,BSWAG 2023
+8,Kleine und mittlere Maßnahmen - Seehafen-Hinterlandverkehr III,Kleine und mittlere Maßnahmen für den Seehafen-Hinterlandverkehr,true,#013b24,true,KMM Seehafen
+9,Kleine und mittlere Maßnahmen – Erste Etappe Deutschlandtakt,Kleine und mittlere Maßnahmen für die erste Etappe des Deutschlandtakts 2026 - 2030,true,#0b8c6e,true,KMM DTakt
+10,Überlastete Schienenwege,Überlastete Schienenwege nach §55 Eisenbahnregulierungsgesetz,true,#9e08a1,true,ÜLS
+11,Kleine und mittlere Maßnahmen - Überlastete Schienenwege,Kleine und mittlere Maßnahmen zur Entlastung überlasteter Schienenwege,true,#a41d04,false,KMM ÜLS
+12,BSWAG 2023 fest disponiert,Anlage des Bundesschienenwegeausbaugesetz – fest disponierte Projekte,true,#077f8c,true,BSWAG FD
+13,BSWAG 2023 vordringlicher Bedarf,Anlage des Bundesschienenwegeausbaugesetz – vordringlicher Bedarf,true,#006B40,false,BSWAG VB
+14,BSWAG 2023 potentieller Bedarf,Anlage des Bundesschienenwegeausbaugesetz – potentieller Bedarf,true,#002B6B,false,BSWAG PB
+15,Eigenwirtschaftliche Projekte DB,Eigenwirtschaftliche Projekte der DB AG,true,#ed8f0c,false,DB EW
