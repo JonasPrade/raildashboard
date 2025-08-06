@@ -317,7 +317,7 @@ def import_project_content_old_db(filepath_csv: str, clear_db: bool = False):
         # import the row to the schema
         try:
             data = ProjectSchema(**row.to_dict())
-            project = Project(**data.dict(exclude_unset=True))
+            project = Project(**data.model_dump(exclude_unset=True))
             session.add(project)
         except ValidationError as e:
             logging.error(f"Validation error for row with old_id {row['old_id']} and name {row['name']}: {e}")
