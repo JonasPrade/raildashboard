@@ -46,10 +46,61 @@
 
 
 ## Database Transfer
-The aim is to transfer the existing project database to the new system
-- [ ] find solution
+The aim is to transfer the existing project database to the new system.
 
-Which data to i have to transfer
+I will transfer all data to csv and then write import skripts. So in case of a new build i have the data available.
+
+- [ ] project data
+	- [ ] project_groups
+	- [ ] projectcontent_to_group
+	- [ ] projectcontent_to_lines
+	- [ ] projectcontent_to_railwaystations
+	- [ ] project_content
+		- this is the new `project` table
+		- save the id as `id_old`
+		- [ ] the superior project id has to be changed to the new id
+			- save old id
+			- after commit reconstruct to new id
+		- the bvwp data gets ignored -> will be implemented later
+		- [ ] some project_id are double?? -> correct that
+
+Which data have to be transfered. It will be clustered to pragmatic usage:
+- bks -> will be done later, no prority
+	- bks_action
+	- bks_cluster
+	- bks_handlungsfeld
+- finve and budgets  -> i prefer to make that complete new and import it from origin
+	- budgets
+	- finve
+	- finve_to_projectcontent
+- project data
+	- project_groups
+	- projectcontent_to_group
+	- projectcontent_to_lines -> how can i transfer that to ERA data?
+	- projectcontent_to_railwaystations -> how can i transfer that?
+	- projects -> is not needed anymore
+	- projects_contents -> is `projects`in the new database
+		- i should keep the old id of that so i can match between the db
+		- if the transfer ist completely finished, the old_id can be deleted
+	- projects_content_progress -> is empty -> ignore that
+- the infrastructure data will not be transfered
+	- railway_lines
+	- railway_nodes
+	- railway_points
+	- railway_route -> there I should think about
+	- railway_stations
+	- railway_tunnels
+- all d-takt data will be ignored
+- all masterarbeit staff will be ignored
+- texts -> no transfer 
+	- texts
+	- text_types
+	- texts_to_project
+
+>[!question]
+>How do i transfer the additional infrastructure that is not part of ERA data
+>- all new build infrastructure for D-Takt etc.
+
 
 ## Change Tracking
 - [ ] Implement change tracking data model to models.py
@@ -65,7 +116,11 @@ Which data to i have to transfer
 - [ ] Haushaltsberichte Tabelle VE
 	- PDF Verarbeitung
 	- Konvertierung in lesbares Format
+	- will be made complete new -> for backup there is the old data available
 - [ ] Beschleunigungskommission Schiene
+	- the table data is available -> just needs an data transfer and ggf. update
+- [ ] BVWP data
+	- data is available at old database -> can be imported 
 - [ ] User Verification
 	- Einführung eines Authentifizierungssystems basierend auf **OAuth2 und JWT (JSON Web Tokens)**.
 	- Neue Datenbanktabelle `users` zur Speicherung von Benutzerdaten (mit gehashten Passwörtern).

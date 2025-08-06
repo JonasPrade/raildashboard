@@ -9,9 +9,12 @@ class Settings(BaseSettings):
     database_url: str  # expects DATABASE_URL in .env
     environment: str = "development"
     debug: bool = False
+    rinf_api_url: str
+    rinf_username: str
+    rinf_password: str
 
     model_config = SettingsConfigDict(
-        env_file=f".env.{os.getenv('ENVIRONMENT', 'development')}",
+        env_file=f".env{'.' + os.getenv('ENVIRONMENT') if os.getenv('ENVIRONMENT') else ''}",
         case_sensitive=False
     )
 

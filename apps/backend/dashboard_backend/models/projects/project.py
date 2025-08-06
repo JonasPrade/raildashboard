@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Index, String, Float, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, Index, String, Float, Boolean, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from geoalchemy2 import Geometry
 
@@ -9,9 +9,11 @@ class Project(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
-    project_number = Column(String, unique=True, nullable=False)
+    project_number = Column(String, nullable=True)
     superior_project_id = Column(Integer, ForeignKey('project.id', onupdate='CASCADE',
                                                                       ondelete='CASCADE'))
+    old_id = Column(Integer, nullable=True)  # for old projects that have been migrated
+    superior_project_old_id = Column(Integer, nullable=True)  # for old projects that have been migrated
     description = Column(String, nullable=True)
     justification = Column(String, nullable=True)
 
@@ -72,7 +74,7 @@ class Project(Base):
     tilting = Column(Boolean, default=False)
 
     # some additionale fields for Geojson and centroid to avoid anoying calculations
-    geojson_representation = Column(String)  # storing the GeoJSON as a text field
+    geojson_representation = Column(Text)  # storing the GeoJSON as a text field
     centroid = Column(Geometry('POINT'))  # storing the centroid as a point geometry
 
     # Relationships
