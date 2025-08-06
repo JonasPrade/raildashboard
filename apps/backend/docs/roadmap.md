@@ -14,15 +14,15 @@
 [[Routing]]
 - [x] Routing Algorithmen
 	- hier sollte ich überlegen mit PostGIS/pgRouting zu arbeiten
-- [ ] implementation of the pgRouting
+- [x] implementation of the pgRouting
 	- Should be possible with via Routings -> in-between-stops
 - [x] Implement test possibilites
-- [ ] add possibility for API Usage
-- [ ] Achte darauf dass das ein celery task sein wird
+- [x] add possibility for API Usage
+- [x] Achte darauf dass das ein celery task sein wird
 
 ## Tests
-- [ ] Implement test infrastructure
-- [ ] create example DB-data
+- [x] Implement test infrastructure
+- [x] create example DB-data
 
 ## DB Structure
 - [ ] Implement project data model to models.py
@@ -42,11 +42,14 @@
   - [ ] ProjectPhase
   - [ ] ProjectUpdateSource
 - [ ] check all relationships
+	- are they unique
 
 
 ## Database Transfer
 The aim is to transfer the existing project database to the new system
 - [ ] find solution
+
+Which data to i have to transfer
 
 ## Change Tracking
 - [ ] Implement change tracking data model to models.py
@@ -74,4 +77,4 @@ The aim is to transfer the existing project database to the new system
 		- Neue Datenbanktabelle `refresh_tokens` zur serverseitigen Verwaltung der Refresh Tokens (für Widerruf und Einmalnutzung).
 		- Implementierung eines `/refresh`-Endpunkts zur Generierung neuer Access Tokens.
 - [ ] Möglichkeit für Celery Tasks entwickeln
-	- wird später fürs Routing benötigt
+	- könnte ggf fürs Routing Sinn machen
