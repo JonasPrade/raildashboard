@@ -108,6 +108,13 @@ class Project(Base):
         secondary='project_to_operation_point',
         back_populates='projects'
     )
+
+    sections_of_lines = relationship(
+        'SectionOfLine',
+        secondary='project_to_section_of_line',
+        back_populates='projects'
+    )
+
     # project_progress = relationship('ProjectProgress', backref='project', cascade="all, delete-orphan")
     superior_project = relationship('Project', remote_side='Project.id')
 

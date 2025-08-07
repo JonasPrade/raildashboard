@@ -38,8 +38,9 @@ def parse_rinf_sections_of_line_to_object(root: ET.Element) -> List[SectionOfLin
             'sol_op_start': section.find('SOLOPStart').get('Value'),
             'sol_op_end': section.find('SOLOPEnd').get('Value'),
             'sol_length': float(section.find('SOLLength').get('Value')),
-            'sol_nature': section.find('SOLNature').get('OptionalValue')
+            'sol_nature': section.find('SOLNature').get('Value')
         }
+
         tracks = parse_rinf_sol_track_to_object(section)
         section_info['tracks'] = tracks if tracks else []
 

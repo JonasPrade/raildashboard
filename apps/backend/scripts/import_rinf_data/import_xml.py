@@ -26,9 +26,9 @@ import sys
 import logging
 import argparse
 from xml.etree import ElementTree as ET
-from .rinf_xml_parser import parse_rinf_operational_points_to_object, parse_rinf_sections_of_line_to_object
+from scripts.import_rinf_data.rinf_xml_parser import parse_rinf_operational_points_to_object, parse_rinf_sections_of_line_to_object
 
-from .config import OUTPUT_DIR
+from scripts.import_rinf_data.config import OUTPUT_DIR
 from dashboard_backend.database import Session
 from dashboard_backend.models.railway_infrastructure import OperationalPoint, SectionOfLine, SOLTrackParameter, SOLTrack
 
@@ -98,13 +98,20 @@ def import_xml_country(country_string: str, clear_tables: bool = False, output_d
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Import RINF XML data for a specific country.")
-    parser.add_argument("country_code", type=str, help="The country code to import (e.g., 'DE').")
-    parser.add_argument("--clear", action="store_true", help="Clear the relevant database tables before importing.")
-    args = parser.parse_args()
+    if len(sys.argv) == 1:
+        country_code = "DE"
+        clear = False
+        logging.warning(f"No country code provided. Defaulting to 'DE'. Use --help for usage instructions.")
+    else:
+        parser = argparse.ArgumentParser(description="Import RINF XML data for a specific country.")
+        parser.add_argument("country_code", type=str, help="The country code to import (e.g., 'DE').")
+        parser.add_argument("--clear", action="store_true", help="Clear the relevant database tables before importing.")
+        args = parser.parse_args()
+        country_code = args.country_code
+        clear = args.clear
 
     try:
-        import_xml_country(args.country_code, args.clear)
+        import_xml_country(country_code, clear)
     except Exception as e:
         logger.error(f"Import failed: {e}")
         sys.exit(1)

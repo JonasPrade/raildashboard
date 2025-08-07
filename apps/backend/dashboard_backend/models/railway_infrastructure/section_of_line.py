@@ -20,6 +20,12 @@ class SectionOfLine(Base):
     op_start = relationship('OperationalPoint', foreign_keys=[sol_op_start])
     op_end = relationship('OperationalPoint', foreign_keys=[sol_op_end])
 
+    projects = relationship(
+        'Project',
+        secondary='project_to_section_of_line',
+        back_populates='sections_of_lines'
+    )
+
     def __repr__(self):
             return f"<SectionOfLine(solim_code={self.solim_code}, length={self.sol_length})>"
 

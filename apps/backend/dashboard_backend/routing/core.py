@@ -7,7 +7,7 @@ from dashboard_backend.models.railway_infrastructure import OperationalPoint, Se
 # Konfigurieren des Loggings
 logger = logging.getLogger(__name__)
 
-def find_route_in_db(db: Session, start_op_id: str, end_op_id: str) -> list:
+def find_route_section_of_lines(db: Session, start_op_id: str, end_op_id: str) -> list[int]:
     """
     Findet die kürzeste Route zwischen zwei Betriebspunkten mithilfe von pgRouting (pgr_dijkstra).
     Die Funktion baut die Graphentopologie zur Laufzeit aus den Tabellen 'operational_point' und 'section_of_line' auf.

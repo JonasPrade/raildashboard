@@ -14,7 +14,7 @@ The aim is to generate the structure of the table automated from the
 - Siding: auxiliary tracks linked to OPs (era:Siding)
 - SpecialArea: restricted or functional areas (era:SpecialArea)
 - RailwayLocation: position along track in kilometers (era:RailwayLocation)
-### Import of RINF Data
+### How To Import of RINF Data
 
 This process describes how to download the RINF data and import it into the local database.
 
@@ -53,5 +53,14 @@ This process describes how to download the RINF data and import it into the loca
 ### Structure of XML Schema
 https://data-interop.era.europa.eu/vocabulary
 
+## GeoData
+
+>[!important]
+>It seems like DE does not provide Geo-Data
+>Therefore it is not realy usable for the dashboard (for now)
+>CH for example seems to have provided Geo-Data. *seufz*
 
 
+## Problems with Import
+- [ ] SOL Track not imported
+- [ ] SOL Track Paraemter not imported

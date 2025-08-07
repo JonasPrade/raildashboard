@@ -10,6 +10,10 @@ def import_project_group(filepath_csv: str, session: Session, clear_db: bool = F
     if clear_db:
         session.query(ProjectGroup).delete()
 
+    df.rename(columns={
+        "id": "id_old"
+    }, inplace=True)
+
     for _, row in df.iterrows():
         try:
             data = ProjectGroupSchema(**row.to_dict())

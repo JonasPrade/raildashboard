@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, ANY
-from dashboard_backend.routing.core import find_route_in_db
+from dashboard_backend.routing.core import find_route_section_of_lines
 from dashboard_backend.models.railway_infrastructure import OperationalPoint, SectionOfLine
 
 def test_load_infra(db_session):
@@ -20,7 +20,7 @@ def test_find_route_in_db(db_session):
     start_op = "ATWs"
     end_op = "ATSb"
 
-    result = find_route_in_db(db_session, start_op, end_op)
+    result = find_route_section_of_lines(db_session, start_op, end_op)
 
     assert isinstance(result, list)
     assert len(result) > 0
@@ -32,5 +32,5 @@ def test_false_start_operational_point(db_session):
     :return:
     """
     with pytest.raises(ValueError):
-        find_route_in_db(db_session, "NON_EXISTENT_OP", "ATSb")
+        find_route_section_of_lines(db_session, "NON_EXISTENT_OP", "ATSb")
 
