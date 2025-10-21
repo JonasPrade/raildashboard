@@ -2,17 +2,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from dashboard_backend.routing.schemas import RouteRequest, RouteResponse
-from dashboard_backend.database import Session as DBSession
+from dashboard_backend.database import get_db
 from dashboard_backend.routing.core import find_route_section_of_lines
 
 router = APIRouter()
-
-def get_db():
-    db = DBSession()
-    try:
-        yield db
-    finally:
-        db.close()
 
 @router.post("/", response_model=RouteResponse)
 def get_route(request: RouteRequest, db: Session = Depends(get_db)):

@@ -1,5 +1,7 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, field_serializer, model_serializer
 from typing import Optional, Any
+from ..utils import nan_to_none
+
 
 class ProjectSchema(BaseModel):
     id: Optional[int] = None
@@ -64,8 +66,21 @@ class ProjectSchema(BaseModel):
     simultaneous_train_entries: Optional[bool] = False
     tilting: Optional[bool] = False
 
-    geojson_representation: Optional[str]
-    centroid: Optional[Any]  # Für Geo-Daten, ggf. anpassen
+    geojson_representation: Optional[str] = None
+    centroid: Optional[Any]  = None # Für Geo-Daten, ggf. anpassen
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("centroid")
+    def serialize_centroid(self, v):
+        if v is None:
+            return None
+        from geoalchemy2.shape import to_shape
+        from shapely.geometry import mapping
+        return nan_to_none(mapping(to_shape(v)))  # sanitize coords
+
+    @model_serializer(mode="wrap")
+    def ser(self, serializer):
+        # post-process the whole dict to replace any NaN in floats/lists/dicts
+        data = serializer(self)
+        return nan_to_none(data)

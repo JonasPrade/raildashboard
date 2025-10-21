@@ -61,13 +61,13 @@ def find_route_section_of_lines(db: Session, start_op_id: str, end_op_id: str) -
         ORDER BY di.path_seq;
     """)
 
-    logger.info(f"Searche route from {start_op_id} to {end_op_id}")
+    logger.debug(f"Searche route from {start_op_id} to {end_op_id}")
     result = db.execute(sql_query, {"start_op_id": start_op_id, "end_op_id": end_op_id})
     section_ids = [row[0] for row in result.fetchall()]
 
     if not section_ids:
-        logger.info(f"Keine Route zwischen {start_op_id} und {end_op_id} gefunden.")
+        logger.debug(f"Keine Route zwischen {start_op_id} und {end_op_id} gefunden.")
         return []
 
-    logger.info(f"Route mit {len(section_ids)} Segmenten gefunden.")
+    logger.debug(f"Route mit {len(section_ids)} Segmenten gefunden.")
     return section_ids
