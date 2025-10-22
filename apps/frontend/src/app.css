@@ -1,0 +1,15 @@
+/* Self-hosted fonts */
+@font-face {
+    font-family: "Work Sans";
+    src: url("/fonts/work-sans/WorkSans-VariableFont_wght") format("ttf");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: "Work Sans";
+    src: url("/fonts/inter/Inter-Variablefont_opsz,wght") format("ttf");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
