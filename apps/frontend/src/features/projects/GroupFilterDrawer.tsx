@@ -1,4 +1,4 @@
-import { Drawer, Stack, Button, Group, MultiSelect, Badge, CloseButton } from "@mantine/core";
+import { Alert, Drawer, Stack, Button, Group, MultiSelect, Badge, CloseButton, Loader } from "@mantine/core";
 import { useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 
@@ -12,20 +12,10 @@ export type ProjectGroupOption = {
 type Props = {
     opened: boolean;
     onClose: () => void;
-    groups?: ProjectGroupOption[]; // später via API reinreichen
+    groups?: ProjectGroupOption[];
     loading?: boolean;
     error?: string;
 };
-
-// Fallback bis API angebunden ist
-const FALLBACK_GROUPS: ProjectGroupOption[] = [
-    { id: 1, name: "Ausbau",   color: "#22c55e" },
-    { id: 2, name: "Neubau",   color: "#60a5fa" },
-    { id: 3, name: "Knoten",   color: "#a78bfa" },
-    { id: 4, name: "Korridor", color: "#f59e0b" },
-    { id: 5, name: "Bahnhof",  color: "#f97316" },
-    { id: 6, name: "Digital",  color: "#94a3b8" }
-];
 
 type SelectedGroupPillProps = {
     group: ProjectGroupOption;
@@ -71,7 +61,7 @@ function SelectedGroupPill({ group, onRemove, disabled }: SelectedGroupPillProps
 export default function GroupFilterDrawer({
                                               opened,
                                               onClose,
-                                              groups = FALLBACK_GROUPS,
+                                              groups = [],
                                               loading = false,
                                               error
                                           }: Props) {
@@ -79,6 +69,10 @@ export default function GroupFilterDrawer({
 
     // Local (pending) selection stored as number[] because we want to store IDs as numbers
     const [pending, setPending] = useState<number[]>([]);
+
+    useEffect(() => {
+        setPending((prev) => prev.filter((value) => groups.some((group) => group.id === value)));
+    }, [groups]);
 
     // When the drawer opens, sync pending selection from the current URL
     useEffect(() => {
@@ -117,6 +111,11 @@ export default function GroupFilterDrawer({
     return (
         <Drawer opened={opened} onClose={onClose} title="Projektgruppen" position="right" size="sm">
             <Stack>
+                {error && (
+                    <Alert color="red" variant="light" title="Projektgruppen konnten nicht geladen werden">
+                        {error}
+                    </Alert>
+                )}
 
                 <MultiSelect
                     data={data}
@@ -125,7 +124,9 @@ export default function GroupFilterDrawer({
                     searchable
                     clearable
                     placeholder="Gruppen wählen…"
-                    nothingFoundMessage={loading ? "Lade…" : error ? "Fehler" : "Keine Treffer"}
+                    nothingFoundMessage={loading ? "Lade…" : error ? "Fehler beim Laden" : "Keine Treffer"}
+                    disabled={loading && groups.length === 0}
+                    rightSection={loading ? <Loader size="xs" /> : undefined}
                     renderOption={({ option }) => {
                         const anyOpt = option as unknown as { label: string; color?: string; count?: number };
                         return (
@@ -166,7 +167,7 @@ export default function GroupFilterDrawer({
                     <Button variant="default" onClick={onClose}>
                         Abbrechen
                     </Button>
-                    <Button color="petrol" onClick={apply}>
+                    <Button color="petrol" onClick={apply} disabled={loading}>
                         Übernehmen
                     </Button>
                 </Group>
