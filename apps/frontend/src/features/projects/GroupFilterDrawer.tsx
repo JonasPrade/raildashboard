@@ -1,4 +1,4 @@
-import { Drawer, Stack, Button, Group, MultiSelect, Badge, CloseButton, type MultiSelectProps } from "@mantine/core";
+import { Drawer, Stack, Button, Group, MultiSelect, Badge, CloseButton } from "@mantine/core";
 import { useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 
@@ -27,40 +27,45 @@ const FALLBACK_GROUPS: ProjectGroupOption[] = [
     { id: 6, name: "Digital",  color: "#94a3b8" }
 ];
 
-function SelectedValue(
-  props: MultiSelectProps & { groups: ProjectGroupOption[] }
-) {
-  const { value, label, onRemove, disabled, groups } = props;
-  const g = groups.find((gr) => String(gr.id) === value);
+type SelectedGroupPillProps = {
+    group: ProjectGroupOption;
+    onRemove: () => void;
+    disabled?: boolean;
+};
 
-  return (
-    <Group gap={6} wrap="nowrap" style={{
-      border: "1px solid #2a3550",
-      borderRadius: 8,
-      padding: "2px 6px",
-      background: "#142030"
-    }}>
-      <span
-        aria-hidden
-        style={{
-          width: 8,
-          height: 8,
-          borderRadius: 999,
-          background: g?.color ?? "#ccc",
-          display: "inline-block"
-        }}
-      />
-      <span style={{ fontSize: 12 }}>{label}</span>
-      {!disabled && (
-        <CloseButton
-          aria-label="Remove"
-          onClick={onRemove}
-          size="xs"
-          variant="subtle"
-        />)
-      }
-    </Group>
-  );
+function SelectedGroupPill({ group, onRemove, disabled }: SelectedGroupPillProps) {
+    return (
+        <Group
+            gap={6}
+            wrap="nowrap"
+            style={{
+                border: "1px solid #2a3550",
+                borderRadius: 8,
+                padding: "2px 6px",
+                background: "#142030"
+            }}
+        >
+            <span
+                aria-hidden
+                style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 999,
+                    background: group.color,
+                    display: "inline-block"
+                }}
+            />
+            <span style={{ fontSize: 12 }}>{group.name}</span>
+            {!disabled && (
+                <CloseButton
+                    aria-label={`Gruppe ${group.name} entfernen`}
+                    onClick={onRemove}
+                    size="xs"
+                    variant="subtle"
+                />
+            )}
+        </Group>
+    );
 }
 
 export default function GroupFilterDrawer({
@@ -92,6 +97,10 @@ export default function GroupFilterDrawer({
         count: g.count
     }));
 
+    function removeFromPending(id: number) {
+        setPending((prev) => prev.filter((value) => value !== id));
+    }
+
     function apply() {
         setParams((p) => {
             if (pending.length === 0) p.delete("group"); // "Alle"
@@ -100,6 +109,10 @@ export default function GroupFilterDrawer({
         });
         onClose();
     }
+
+    const selectedGroups = pending
+        .map((id) => groups.find((group) => group.id === id))
+        .filter((group): group is ProjectGroupOption => Boolean(group));
 
     return (
         <Drawer opened={opened} onClose={onClose} title="Projektgruppen" position="right" size="sm">
@@ -113,9 +126,6 @@ export default function GroupFilterDrawer({
                     clearable
                     placeholder="Gruppen wählen…"
                     nothingFoundMessage={loading ? "Lade…" : error ? "Fehler" : "Keine Treffer"}
-                    valueComponent={(valueProps) => (
-                      <SelectedValue {...valueProps} groups={groups} />
-                    )}
                     renderOption={({ option }) => {
                         const anyOpt = option as unknown as { label: string; color?: string; count?: number };
                         return (
@@ -138,6 +148,19 @@ export default function GroupFilterDrawer({
                         );
                     }}
                 />
+
+                {selectedGroups.length > 0 && (
+                    <Group gap={8} wrap="wrap">
+                        {selectedGroups.map((group) => (
+                            <SelectedGroupPill
+                                key={group.id}
+                                group={group}
+                                onRemove={() => removeFromPending(group.id)}
+                                disabled={loading}
+                            />
+                        ))}
+                    </Group>
+                )}
 
                 <Group justify="space-between" mt="md">
                     <Button variant="default" onClick={onClose}>
