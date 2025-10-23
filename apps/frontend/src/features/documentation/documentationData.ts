@@ -11,71 +11,71 @@ export type WorkflowStep = {
 
 export const featureHighlights: FeatureHighlight[] = [
     {
-        title: "Interaktive Kartenansicht",
+        title: "Interactive map view",
         description:
-            "MapLibre-basierte Karte mit Mantine-Overlays für Steuerungselemente wie Filter." +
-            " Der Kartenbereich ist bewusst modular aufgebaut, um spätere Layer oder Datenquellen zu integrieren.",
+            "MapLibre-based map with Mantine overlays for controls such as filters." +
+            " The map area is deliberately modular so additional layers or data sources can be integrated later on.",
         details: [
-            "Filterdrawer für Projektgruppen inkl. URL-Synchronisation",
-            "Mantine-Komponenten für Buttons, Panels und Layout",
-            "Vorbereitet für zusätzliche Steuerungs- und Overlay-Komponenten"
+            "Filter drawer for project groups including URL synchronisation",
+            "Mantine components for buttons, panels, and layout",
+            "Prepared for additional controls and overlay components"
         ]
     },
     {
-        title: "Projektgruppen-Filter",
+        title: "Project group filter",
         description:
-            "Drawer-Komponente (`GroupFilterDrawer`) erlaubt die Auswahl mehrerer Projektgruppen." +
-            " Auswahl wird als Query-Parameter (`group`) in der URL gespiegelt und holt ihre Daten direkt aus dem Backend.",
+            "The `GroupFilterDrawer` component lets users select multiple project groups." +
+            " The selection is mirrored in the URL via the `group` query parameter, making it easy to share.",
         details: [
-            "Anbindung des Endpunkts `/api/v1/project_groups/` über React Query",
-            "Custom-Rendering der Auswahlchips inkl. API-Farbkodierung",
-            "Integrierte Lade- und Fehlermeldungen im Drawer"
+            "Fallback data until an API endpoint is connected via React Query",
+            "Custom rendering of selected chips with colour indicators",
+            "Extensible to cover loading and error states"
         ]
     },
     {
-        title: "Frontend-Dokumentation",
+        title: "In-app documentation",
         description:
-            "Diese Seite fasst Features, Workflows und Qualitätsanforderungen zusammen und ergänzt das README für Entwickler:innen.",
+            "This page summarises features, workflows, and quality requirements and complements the README for developers.",
         details: [
-            "Pflichtaktualisierung bei Feature-Änderungen",
-            "Verlinkung auf relevante Skripte und Einstiegspunkte",
-            "Strukturierte Aufbereitung für Projektbeteiligte"
+            "Mandatory updates whenever features change",
+            "Links to relevant scripts and entry points",
+            "Structured overview for project stakeholders"
         ]
     }
 ];
 
 export const workflows: WorkflowStep[] = [
     {
-        title: "Lokale Entwicklung",
+        title: "Local development",
         steps: [
-            "Repository klonen und Abhängigkeiten installieren (`npm install`).",
-            "Entwicklungsserver via `npm run dev` starten.",
-            "Routen über den Browser (`/` für Karte, `/dokumentation` für Doku) prüfen.",
-            "Vor einem Commit immer `npm run build` ausführen und Fehler beheben."
+            "Clone the repository and install dependencies (`npm install`).",
+            "Start the development server via `npm run dev`.",
+            "Verify routes in the browser (`/` for the map, `/documentation` for docs).",
+            "Always run `npm run build` before committing and fix any errors."
         ]
     },
     {
-        title: "Dokumentation pflegen",
+        title: "Maintain documentation",
         steps: [
-            "Feature- oder UI-Änderungen identifizieren.",
-            "README.md und Dokumentationsseite parallel anpassen (Abschnitt 'Feature-Highlights' ergänzen/ändern).",
-            "Bei neuen Skripten oder Prozessen den Bereich 'Workflows & Qualität' erweitern.",
-            "Pull Request mit kurzer Zusammenfassung und Auflistung der Checks erstellen."
+            "Identify feature or UI changes.",
+            "Update both README.md and the documentation page (adjust the 'Feature highlights' section).",
+            "Extend the 'Workflows & quality' area when new scripts or processes appear.",
+            "Create a pull request with a short summary and a list of executed checks."
         ]
     }
 ];
 
 export const qualityGates: string[] = [
-    "`npm run build` muss ohne Fehler durchlaufen.",
-    "Screenshots bereitstellen, wenn UI-Änderungen sichtbar sind.",
-    "Query-Parameter und Routing-Szenarien testen (insbesondere `/` und `/dokumentation`)."
+    "`npm run build` must finish without errors.",
+    "Provide screenshots when UI changes are visible.",
+    "Test query parameters and routing scenarios (especially `/` and `/documentation`)."
 ];
 
 export const techStack: string[] = [
-    "Vite 7 als Build- und Dev-Server",
-    "React 19 mit React Router 7",
-    "TypeScript 5 mit strict mode",
-    "React Query für Server-State-Management",
-    "Mantine 8 als UI-Bibliothek",
-    "MapLibre GL für Kartendarstellung"
+    "Vite 7 as build and dev server",
+    "React 19 with React Router 7",
+    "TypeScript 5 in strict mode",
+    "Reacht Query for server state management",
+    "Mantine 8 as UI library",
+    "MapLibre GL for map rendering"
 ];

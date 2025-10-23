@@ -13,7 +13,7 @@ export function Header() {
 
     return (
         <Group justify="space-between" px="md" py="xs">
-            <Title order={2}>Dashboard Schienenprojekte</Title>
+            <Title order={2}>Railway projects dashboard</Title>
             <Group gap="xs">
                 <NavLink
                     to="/"
@@ -23,16 +23,16 @@ export function Header() {
                         backgroundColor: isActive ? "rgba(17, 34, 64, 0.08)" : "transparent"
                     })}
                 >
-                    Karte
+                    Map
                 </NavLink>
                 <NavLink
-                    to="/dokumentation"
+                    to="/documentation"
                     style={({ isActive }) => ({
                         ...baseStyle,
                         backgroundColor: isActive ? "rgba(17, 34, 64, 0.08)" : "transparent"
                     })}
                 >
-                    Dokumentation
+                    Documentation
                 </NavLink>
             </Group>
         </Group>

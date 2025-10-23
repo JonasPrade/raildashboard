@@ -3,10 +3,10 @@ import { useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 export type ProjectGroupOption = {
-    id: number;         // URL-Wert (?group=<id[,id2,...]>)
-    name: string;       // Anzeigename
-    color: string;      // HEX/RGB für Farbpunkt
-    count?: number;     // optional: Anzahl Projekte
+    id: number;         // URL value (?group=<id[,id2,...]>)
+    name: string;       // Display label
+    color: string;      // HEX/RGB for the colour dot
+    count?: number;     // optional: number of projects
 };
 
 type Props = {
@@ -48,7 +48,7 @@ function SelectedGroupPill({ group, onRemove, disabled }: SelectedGroupPillProps
             <span style={{ fontSize: 12 }}>{group.name}</span>
             {!disabled && (
                 <CloseButton
-                    aria-label={`Gruppe ${group.name} entfernen`}
+                    aria-label={`Remove group ${group.name}`}
                     onClick={onRemove}
                     size="xs"
                     variant="subtle"
@@ -67,7 +67,7 @@ export default function GroupFilterDrawer({
                                           }: Props) {
     const [params, setParams] = useSearchParams();
 
-    // Local (pending) selection stored as number[] because we want to store IDs as numbers
+    // Local (pending) selection stored as number[] because we want to keep IDs numeric
     const [pending, setPending] = useState<number[]>([]);
 
     useEffect(() => {
@@ -97,7 +97,7 @@ export default function GroupFilterDrawer({
 
     function apply() {
         setParams((p) => {
-            if (pending.length === 0) p.delete("group"); // "Alle"
+            if (pending.length === 0) p.delete("group"); // "All"
             else p.set("group", pending.join(","));
             return p;
         });
@@ -109,7 +109,7 @@ export default function GroupFilterDrawer({
         .filter((group): group is ProjectGroupOption => Boolean(group));
 
     return (
-        <Drawer opened={opened} onClose={onClose} title="Projektgruppen" position="right" size="sm">
+        <Drawer opened={opened} onClose={onClose} title="Project groups" position="right" size="sm">
             <Stack>
                 {error && (
                     <Alert color="red" variant="light" title="Projektgruppen konnten nicht geladen werden">
@@ -165,7 +165,7 @@ export default function GroupFilterDrawer({
 
                 <Group justify="space-between" mt="md">
                     <Button variant="default" onClick={onClose}>
-                        Abbrechen
+                        Cancel
                     </Button>
                     <Button color="petrol" onClick={apply} disabled={loading}>
                         Übernehmen

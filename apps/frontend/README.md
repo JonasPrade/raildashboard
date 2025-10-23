@@ -1,20 +1,21 @@
-# Schienendashboard Frontend
+# Railway Dashboard Frontend
 
-Dieses Projekt implementiert das React-Frontend für das Schienendashboard. Es basiert auf [Vite](https://vitejs.dev/), [TypeScript](https://www.typescriptlang.org/) und [Mantine](https://mantine.dev/) und liefert eine modulare Oberfläche für die Visualisierung von Bahnprojekten.
+This project implements the React frontend for the railway dashboard. It is built with [Vite](https://vitejs.dev/), [TypeScript](https://www.typescriptlang.org/), and [Mantine](https://mantine.dev/) to provide a modular interface for visualising rail infrastructure projects.
 
-## Schnellstart
+## Quick start
 
 ```bash
 npm install
 npm run dev
 ```
 
-* `npm run dev` startet die Entwicklungsumgebung (Vite Dev-Server).
-* `npm run build` führt den TypeScript-Check (`tsc`) aus und erzeugt anschließend den Produktions-Build.
-* `npm run preview` startet einen lokalen Server, um den Build zu überprüfen.
+* `npm run dev` starts the development environment (Vite dev server).
+* `npm run build` runs the TypeScript check (`tsc`) and creates the production build.
+* `npm run preview` starts a local server to inspect the build output.
 
-> **Hinweis:** Die Skripte `npm run gen:api` und `npm run gen:zod` generieren Client-Code aus einem OpenAPI-Schema. Sie setzen einen laufenden Backend-Endpunkt unter `http://127.0.0.1:8000/openapi.json` voraus.
+> **Note:** The scripts `npm run gen:api` and `npm run gen:zod` generate client code from an OpenAPI schema. They require a backend endpoint to be available at `http://127.0.0.1:8000/openapi.json`.
 
+## Project structure
 ## Konfiguration
 
 Standardmäßig kommuniziert das Frontend mit einem Backend unter `http://localhost:8000`. Über die Umgebungsvariable `VITE_API_BASE_URL` (z. B. in einer `.env`-Datei im Projektwurzelverzeichnis) kann eine alternative Basis-URL hinterlegt werden.
@@ -22,43 +23,42 @@ Standardmäßig kommuniziert das Frontend mit einem Backend unter `http://localh
 ## Projektstruktur
 
 ```
-├── public/                # Statische Assets (Fonts, Favicons, …)
+├── public/                # Static assets (fonts, favicons, …)
 ├── src/
-│   ├── components/        # Wiederverwendbare UI-Bausteine (z. B. Header)
-│   ├── features/          # Fachliche Feature-Module (Map, Projekte, Dokumentation …)
-│   ├── lib/               # Hilfsfunktionen & Infrastruktur
-│   ├── shared/            # Module, die von mehreren Features genutzt werden
-│   ├── theme.ts           # Mantine-Theme-Konfiguration
-│   └── router.tsx         # Routen-Definitionen
-├── README.md              # Dieses Dokument
-├── AGENT.MD               # Entwicklungsrichtlinien für Beitragende
-└── package.json           # npm-Skripte und Abhängigkeiten
+│   ├── components/        # Reusable UI building blocks (e.g. header)
+│   ├── features/          # Domain-specific feature modules (map, projects, documentation …)
+│   ├── lib/               # Utilities and infrastructure
+│   ├── shared/            # Modules shared across features
+│   ├── theme.ts           # Mantine theme configuration
+│   └── router.tsx         # Route definitions
+├── README.md              # This document
+├── AGENT.MD               # Contribution guidelines
+└── package.json           # npm scripts and dependencies
 ```
 
-## Entwicklungskonventionen
+## Development conventions
 
-* **TypeScript strikt halten:** Neue Module sollen Typsicherheit konsequent nutzen (keine `any`-Typen).
-* **Feature-Folder-Struktur:** Funktionsbereiche (z. B. Karte, Projekte, Dokumentation) liegen in eigenen Ordnern unter `src/features`.
-* **Getrennte Zuständigkeiten:** UI-Komponenten in `components/`, technische Hilfen in `lib/`, globale Typen in `types.ts` bzw. `shared/`.
-* **Server State via React Query:** API-Aufrufe kapseln wir in `shared/api/` und verwenden React Query für Caching, Fehler- und Ladezustände.
-* **Mantine-Komponenten:** Für Layout- und UI-Aufgaben bevorzugt Mantine verwenden und auf konsistente Theme-Farben achten (`theme.ts`).
-* **Routing:** Neue Seiten als untergeordnete Routen des `Layout` in `router.tsx` anlegen.
-* **Dokumentation aktuell halten:** Inhaltliche oder visuelle Änderungen an Features müssen in der Entwickler- und Nutzerdokumentation (README, Dokumentationsseite im Frontend) nachvollzogen werden.
+* **Stay strict with TypeScript:** New modules should embrace type safety (avoid `any`).
+* **Feature folder structure:** Functional areas (e.g. map, projects, documentation) live in dedicated folders under `src/features`.
+* **Separation of concerns:** Put UI components in `components/`, technical helpers in `lib/`, and global types in `types.ts` or `shared/`.
+* **Mantine components:** Prefer Mantine for layout and UI work, and keep theme colours consistent (`theme.ts`).
+* **Routing:** Register new pages as children of the shared `Layout` component in `router.tsx`.
+* **Keep documentation current:** Any functional or visual change must be reflected in both developer- and user-facing docs (README, in-app documentation page).
 
-## Dokumentation im Frontend
+## Documentation inside the app
 
-Über `/dokumentation` steht eine eingebettete Dokumentationsseite zur Verfügung. Sie beschreibt zentrale Features, Workflows und Qualitätsanforderungen. Jede Änderung am Funktionsumfang muss hier nachvollzogen werden.
+Navigate to `/documentation` to access the embedded documentation page. It outlines the key features, workflows, and quality requirements. Update this page whenever the functional scope changes.
 
-## Qualitätschecks
+## Quality checks
 
-Vor einem Commit sollten mindestens folgende Prüfungen laufen:
+Run at least the following check before committing:
 
 ```bash
 npm run build
 ```
 
-Optional ergänzt ihr projektspezifische Tests oder Linter, sobald verfügbar. Bitte die Ergebnisse im Pull Request dokumentieren.
+Feel free to add project-specific tests or linters as they become available. Document the executed checks in the pull request.
 
-## Lizenz
+## Licence
 
-Dieses Projekt ist derzeit intern. Ergänzt eine Lizenzdatei, sobald das Projekt veröffentlicht wird.
+The project is currently internal. Add a licence file once the project is ready for public release.
