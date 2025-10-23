@@ -25,11 +25,11 @@ export const featureHighlights: FeatureHighlight[] = [
         title: "Projektgruppen-Filter",
         description:
             "Drawer-Komponente (`GroupFilterDrawer`) erlaubt die Auswahl mehrerer Projektgruppen." +
-            " Auswahl wird als Query-Parameter (`group`) in der URL gespiegelt und ist damit shareable.",
+            " Auswahl wird als Query-Parameter (`group`) in der URL gespiegelt und holt ihre Daten direkt aus dem Backend.",
         details: [
-            "Fallback-Daten bis zur Anbindung eines API-Endpunkts",
-            "Custom-Rendering der Auswahlchips mit Farbpunkt",
-            "Erweiterbar für Lade- und Fehlerzustände"
+            "Anbindung des Endpunkts `/api/v1/project_groups/` über React Query",
+            "Custom-Rendering der Auswahlchips inkl. API-Farbkodierung",
+            "Integrierte Lade- und Fehlermeldungen im Drawer"
         ]
     },
     {
@@ -75,6 +75,7 @@ export const techStack: string[] = [
     "Vite 7 als Build- und Dev-Server",
     "React 19 mit React Router 7",
     "TypeScript 5 mit strict mode",
+    "React Query für Server-State-Management",
     "Mantine 8 als UI-Bibliothek",
     "MapLibre GL für Kartendarstellung"
 ];

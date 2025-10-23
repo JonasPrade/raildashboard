@@ -15,6 +15,10 @@ npm run dev
 
 > **Hinweis:** Die Skripte `npm run gen:api` und `npm run gen:zod` generieren Client-Code aus einem OpenAPI-Schema. Sie setzen einen laufenden Backend-Endpunkt unter `http://127.0.0.1:8000/openapi.json` voraus.
 
+## Konfiguration
+
+Standardmäßig kommuniziert das Frontend mit einem Backend unter `http://localhost:8000`. Über die Umgebungsvariable `VITE_API_BASE_URL` (z. B. in einer `.env`-Datei im Projektwurzelverzeichnis) kann eine alternative Basis-URL hinterlegt werden.
+
 ## Projektstruktur
 
 ```
@@ -36,6 +40,7 @@ npm run dev
 * **TypeScript strikt halten:** Neue Module sollen Typsicherheit konsequent nutzen (keine `any`-Typen).
 * **Feature-Folder-Struktur:** Funktionsbereiche (z. B. Karte, Projekte, Dokumentation) liegen in eigenen Ordnern unter `src/features`.
 * **Getrennte Zuständigkeiten:** UI-Komponenten in `components/`, technische Hilfen in `lib/`, globale Typen in `types.ts` bzw. `shared/`.
+* **Server State via React Query:** API-Aufrufe kapseln wir in `shared/api/` und verwenden React Query für Caching, Fehler- und Ladezustände.
 * **Mantine-Komponenten:** Für Layout- und UI-Aufgaben bevorzugt Mantine verwenden und auf konsistente Theme-Farben achten (`theme.ts`).
 * **Routing:** Neue Seiten als untergeordnete Routen des `Layout` in `router.tsx` anlegen.
 * **Dokumentation aktuell halten:** Inhaltliche oder visuelle Änderungen an Features müssen in der Entwickler- und Nutzerdokumentation (README, Dokumentationsseite im Frontend) nachvollzogen werden.
