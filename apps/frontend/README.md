@@ -16,6 +16,11 @@ npm run dev
 > **Note:** The scripts `npm run gen:api` and `npm run gen:zod` generate client code from an OpenAPI schema. They require a backend endpoint to be available at `http://127.0.0.1:8000/openapi.json`.
 
 ## Project structure
+## Konfiguration
+
+Standardmäßig kommuniziert das Frontend mit einem Backend unter `http://localhost:8000`. Über die Umgebungsvariable `VITE_API_BASE_URL` (z. B. in einer `.env`-Datei im Projektwurzelverzeichnis) kann eine alternative Basis-URL hinterlegt werden.
+
+## Projektstruktur
 
 ```
 ├── public/                # Static assets (fonts, favicons, …)

@@ -27,7 +27,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "The `GroupFilterDrawer` component lets users select multiple project groups." +
             " The selection is mirrored in the URL via the `group` query parameter, making it easy to share.",
         details: [
-            "Fallback data until an API endpoint is connected",
+            "Fallback data until an API endpoint is connected via React Query",
             "Custom rendering of selected chips with colour indicators",
             "Extensible to cover loading and error states"
         ]
@@ -75,6 +75,7 @@ export const techStack: string[] = [
     "Vite 7 as build and dev server",
     "React 19 with React Router 7",
     "TypeScript 5 in strict mode",
+    "Reacht Query for server state management",
     "Mantine 8 as UI library",
     "MapLibre GL for map rendering"
 ];
