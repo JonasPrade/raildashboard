@@ -3,28 +3,28 @@ import { useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 export type ProjectGroupOption = {
-    id: number;         // URL-Wert (?group=<id[,id2,...]>)
-    name: string;       // Anzeigename
-    color: string;      // HEX/RGB für Farbpunkt
-    count?: number;     // optional: Anzahl Projekte
+    id: number;         // URL value (?group=<id[,id2,...]>)
+    name: string;       // Display label
+    color: string;      // HEX/RGB for the colour dot
+    count?: number;     // optional: number of projects
 };
 
 type Props = {
     opened: boolean;
     onClose: () => void;
-    groups?: ProjectGroupOption[]; // später via API reinreichen
+    groups?: ProjectGroupOption[]; // to be provided by the API later on
     loading?: boolean;
     error?: string;
 };
 
-// Fallback bis API angebunden ist
+// Fallback data until the API is connected
 const FALLBACK_GROUPS: ProjectGroupOption[] = [
-    { id: 1, name: "Ausbau",   color: "#22c55e" },
-    { id: 2, name: "Neubau",   color: "#60a5fa" },
-    { id: 3, name: "Knoten",   color: "#a78bfa" },
-    { id: 4, name: "Korridor", color: "#f59e0b" },
-    { id: 5, name: "Bahnhof",  color: "#f97316" },
-    { id: 6, name: "Digital",  color: "#94a3b8" }
+    { id: 1, name: "Expansion", color: "#22c55e" },
+    { id: 2, name: "New construction", color: "#60a5fa" },
+    { id: 3, name: "Junction", color: "#a78bfa" },
+    { id: 4, name: "Corridor", color: "#f59e0b" },
+    { id: 5, name: "Station", color: "#f97316" },
+    { id: 6, name: "Digital", color: "#94a3b8" }
 ];
 
 type SelectedGroupPillProps = {
@@ -58,7 +58,7 @@ function SelectedGroupPill({ group, onRemove, disabled }: SelectedGroupPillProps
             <span style={{ fontSize: 12 }}>{group.name}</span>
             {!disabled && (
                 <CloseButton
-                    aria-label={`Gruppe ${group.name} entfernen`}
+                    aria-label={`Remove group ${group.name}`}
                     onClick={onRemove}
                     size="xs"
                     variant="subtle"
@@ -77,7 +77,7 @@ export default function GroupFilterDrawer({
                                           }: Props) {
     const [params, setParams] = useSearchParams();
 
-    // Local (pending) selection stored as number[] because we want to store IDs as numbers
+    // Local (pending) selection stored as number[] because we want to keep IDs numeric
     const [pending, setPending] = useState<number[]>([]);
 
     // When the drawer opens, sync pending selection from the current URL
@@ -103,7 +103,7 @@ export default function GroupFilterDrawer({
 
     function apply() {
         setParams((p) => {
-            if (pending.length === 0) p.delete("group"); // "Alle"
+            if (pending.length === 0) p.delete("group"); // "All"
             else p.set("group", pending.join(","));
             return p;
         });
@@ -115,7 +115,7 @@ export default function GroupFilterDrawer({
         .filter((group): group is ProjectGroupOption => Boolean(group));
 
     return (
-        <Drawer opened={opened} onClose={onClose} title="Projektgruppen" position="right" size="sm">
+        <Drawer opened={opened} onClose={onClose} title="Project groups" position="right" size="sm">
             <Stack>
 
                 <MultiSelect
@@ -124,8 +124,8 @@ export default function GroupFilterDrawer({
                     onChange={(vals) => setPending(vals.map(Number))}
                     searchable
                     clearable
-                    placeholder="Gruppen wählen…"
-                    nothingFoundMessage={loading ? "Lade…" : error ? "Fehler" : "Keine Treffer"}
+                    placeholder="Select groups…"
+                    nothingFoundMessage={loading ? "Loading…" : error ? "Error" : "No matches"}
                     renderOption={({ option }) => {
                         const anyOpt = option as unknown as { label: string; color?: string; count?: number };
                         return (
@@ -164,10 +164,10 @@ export default function GroupFilterDrawer({
 
                 <Group justify="space-between" mt="md">
                     <Button variant="default" onClick={onClose}>
-                        Abbrechen
+                        Cancel
                     </Button>
                     <Button color="petrol" onClick={apply}>
-                        Übernehmen
+                        Apply
                     </Button>
                 </Group>
             </Stack>

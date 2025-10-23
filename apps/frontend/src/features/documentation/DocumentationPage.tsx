@@ -5,19 +5,19 @@ export default function DocumentationPage() {
     return (
         <Stack gap="xl" p="xl" maw={960} mx="auto">
             <Stack gap="xs">
-                <Title order={1}>Schienendashboard – Funktions- & Entwicklerdokumentation</Title>
+                <Title order={1}>Railway dashboard – feature & developer documentation</Title>
                 <Text c="dimmed">
-                    Diese Seite ergänzt das <Anchor component="a" href="/README.md" target="_blank">README</Anchor> und
-                    beschreibt die derzeit verfügbaren Features, Workflows und Qualitätsanforderungen des Frontends.
-                    Aktualisiert die Inhalte, sobald sich Funktionen, Skripte oder Integrationspunkte ändern.
+                    This page complements the <Anchor component="a" href="/README.md" target="_blank">README</Anchor> and
+                    outlines the currently available features, workflows, and quality requirements of the frontend.
+                    Refresh the content whenever functionality, scripts, or integration points change.
                 </Text>
             </Stack>
 
             <Card withBorder shadow="sm" radius="md" padding="xl">
                 <Stack gap="sm">
                     <Group justify="space-between" align="flex-start">
-                        <Title order={2}>Technologie-Stack</Title>
-                        <Badge color="petrol" variant="light">Stand: {new Date().getFullYear()}</Badge>
+                        <Title order={2}>Technology stack</Title>
+                        <Badge color="petrol" variant="light">Updated: {new Date().getFullYear()}</Badge>
                     </Group>
                     <List spacing="xs">
                         {techStack.map((entry) => (
@@ -28,7 +28,7 @@ export default function DocumentationPage() {
             </Card>
 
             <Stack gap="md">
-                <Title order={2}>Feature-Highlights</Title>
+                <Title order={2}>Feature highlights</Title>
                 {featureHighlights.map((feature) => (
                     <Card key={feature.title} withBorder radius="md" padding="lg" shadow="xs">
                         <Stack gap="xs">
@@ -48,7 +48,7 @@ export default function DocumentationPage() {
                 ))}
             </Stack>
 
-            <Divider label="Workflows & Qualität" labelPosition="center" my="lg" />
+            <Divider label="Workflows & quality" labelPosition="center" my="lg" />
 
             <Stack gap="lg">
                 {workflows.map((workflow) => (
@@ -67,9 +67,9 @@ export default function DocumentationPage() {
                 <Card withBorder radius="md" padding="lg" shadow="xs">
                     <Stack gap="xs">
                         <Group gap="xs">
-                            <Title order={3}>Qualitätsanforderungen</Title>
+                            <Title order={3}>Quality requirements</Title>
                             <Badge color="green" variant="light">
-                                verpflichtend
+                                mandatory
                             </Badge>
                         </Group>
                         <List spacing="xs">
@@ -83,22 +83,22 @@ export default function DocumentationPage() {
 
             <Card withBorder radius="md" padding="lg">
                 <Stack gap="xs">
-                    <Title order={3}>Weiterführende Ressourcen</Title>
+                    <Title order={3}>Further resources</Title>
                     <List spacing="xs">
                         <List.Item>
                             <Anchor component="a" href="/README.md" target="_blank" rel="noopener noreferrer">
-                                Projekt-README öffnen
+                                Open the project README
                             </Anchor>
                         </List.Item>
                         <List.Item>
                             <Text span fw={500}>
-                                Routenübersicht:
+                                Routes:
                             </Text>{" "}
-                            <Text span>/ (Kartenansicht), /dokumentation (diese Seite)</Text>
+                            <Text span>/ (map view), /documentation (this page)</Text>
                         </List.Item>
                         <List.Item>
                             <Text span fw={500}>
-                                Skripte:
+                                Scripts:
                             </Text>{" "}
                             <Text span>`npm run dev`, `npm run build`, `npm run preview`, `npm run gen:api`, `npm run gen:zod`</Text>
                         </List.Item>

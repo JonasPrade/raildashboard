@@ -23,7 +23,7 @@ export const router = createBrowserRouter([
         element: <Layout />,
         children: [
             { index: true, element: <MapPage /> },
-            { path: "dokumentation", element: <DocumentationPage /> }
+            { path: "documentation", element: <DocumentationPage /> }
         ]
     }
 ]);

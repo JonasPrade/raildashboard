@@ -14,7 +14,7 @@ export default function MapControls({ onOpenFilters }: { onOpenFilters: () => vo
             <Paper p="xs" radius="md" shadow="sm" withBorder>
                 <Group gap="xs">
                     <Button size="sm" color="petrol" onClick={onOpenFilters}>
-                        Projektgruppen
+                        Project groups
                     </Button>
                     {/* space for more controls later: locate, layers, etc. */}
                 </Group>
