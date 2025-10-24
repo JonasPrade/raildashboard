@@ -134,6 +134,46 @@ const ProjectGroupSchema = z
     projects: z.array(ProjectSchema).optional(),
   })
   .passthrough();
+const UserRole = z.enum(["viewer", "editor", "admin"]);
+const UserRead = z
+  .object({
+    username: z.string().min(3).max(50),
+    role: UserRole,
+    id: z.number().int(),
+    created_at: z.string().datetime({ offset: true }),
+  })
+  .passthrough();
+const UserCreate = z
+  .object({
+    username: z.string().min(3).max(50),
+    role: UserRole,
+    password: z.string().min(8).max(128),
+  })
+  .passthrough();
+const Waypoint = z
+  .object({
+    lat: z.number().gte(-90).lte(90),
+    lon: z.number().gte(-180).lte(180),
+  })
+  .passthrough();
+const RouteIn = z
+  .object({
+    waypoints: z.array(Waypoint).min(2),
+    profile: z.string().optional().default("rail_default"),
+    options: z.object({}).partial().passthrough().optional(),
+  })
+  .passthrough();
+const RouteOut = z
+  .object({
+    route_id: z.string().uuid(),
+    project_id: z.string().uuid(),
+    distance_m: z.number(),
+    duration_ms: z.number().int(),
+    bbox: z.array(z.number()),
+    geom_geojson: z.object({}).partial().passthrough(),
+    details: z.object({}).partial().passthrough(),
+  })
+  .passthrough();
 
 export const schemas = {
   RouteRequest,
@@ -142,6 +182,12 @@ export const schemas = {
   HTTPValidationError,
   ProjectSchema,
   ProjectGroupSchema,
+  UserRole,
+  UserRead,
+  UserCreate,
+  Waypoint,
+  RouteIn,
+  RouteOut,
 };
 
 const endpoints = makeApi([
@@ -204,6 +250,63 @@ const endpoints = makeApi([
   },
   {
     method: "post",
+    path: "/api/v1/projects/:project_id/routes",
+    alias: "create_route_api_v1_projects__project_id__routes_post",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: RouteIn,
+      },
+      {
+        name: "project_id",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: RouteOut,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/projects/:project_id/routes",
+    alias: "list_routes_api_v1_projects__project_id__routes_get",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "project_id",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+      {
+        name: "limit",
+        type: "Query",
+        schema: z.number().int().gte(1).lte(100).optional().default(50),
+      },
+      {
+        name: "offset",
+        type: "Query",
+        schema: z.number().int().gte(0).optional().default(0),
+      },
+    ],
+    response: z.array(RouteOut),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "post",
     path: "/api/v1/route/",
     alias: "get_route_api_v1_route__post",
     requestFormat: "json",
@@ -215,6 +318,55 @@ const endpoints = makeApi([
       },
     ],
     response: RouteResponse,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/routes/:route_id",
+    alias: "get_route_api_v1_routes__route_id__get",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "route_id",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: RouteOut,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/users/",
+    alias: "list_users_api_v1_users__get",
+    requestFormat: "json",
+    response: z.array(UserRead),
+  },
+  {
+    method: "post",
+    path: "/api/v1/users/",
+    alias: "create_user_api_v1_users__post",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: UserCreate,
+      },
+    ],
+    response: UserRead,
     errors: [
       {
         status: 422,

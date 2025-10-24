@@ -92,6 +92,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/users/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Users */
+        get: operations["list_users_api_v1_users__get"];
+        put?: never;
+        /** Create User */
+        post: operations["create_user_api_v1_users__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/routes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Routes */
+        get: operations["list_routes_api_v1_projects__project_id__routes_get"];
+        put?: never;
+        /** Create Route */
+        post: operations["create_route_api_v1_projects__project_id__routes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/routes/{route_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Route */
+        get: operations["get_route_api_v1_routes__route_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -392,6 +445,48 @@ export interface components {
             /** Centroid */
             centroid?: unknown | null;
         };
+        /** RouteIn */
+        RouteIn: {
+            /** Waypoints */
+            waypoints: components["schemas"]["Waypoint"][];
+            /**
+             * Profile
+             * @default rail_default
+             * @constant
+             */
+            profile: "rail_default";
+            /** Options */
+            options?: {
+                [key: string]: unknown;
+            };
+        };
+        /** RouteOut */
+        RouteOut: {
+            /**
+             * Route Id
+             * Format: uuid
+             */
+            route_id: string;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Distance M */
+            distance_m: number;
+            /** Duration Ms */
+            duration_ms: number;
+            /** Bbox */
+            bbox: number[];
+            /** Geom Geojson */
+            geom_geojson: {
+                [key: string]: unknown;
+            };
+            /** Details */
+            details: {
+                [key: string]: unknown;
+            };
+        };
         /** RouteRequest */
         RouteRequest: {
             /** Start Op */
@@ -404,6 +499,32 @@ export interface components {
             /** Sectionofline Ids */
             sectionofline_ids: number[];
         };
+        /** UserCreate */
+        UserCreate: {
+            /** Username */
+            username: string;
+            role: components["schemas"]["UserRole"];
+            /** Password */
+            password: string;
+        };
+        /** UserRead */
+        UserRead: {
+            /** Username */
+            username: string;
+            role: components["schemas"]["UserRole"];
+            /** Id */
+            id: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * UserRole
+         * @enum {string}
+         */
+        UserRole: "viewer" | "editor" | "admin";
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -412,6 +533,13 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /** Waypoint */
+        Waypoint: {
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
         };
     };
     responses: never;
@@ -544,6 +672,159 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_users_api_v1_users__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRead"][];
+                };
+            };
+        };
+    };
+    create_user_api_v1_users__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_routes_api_v1_projects__project_id__routes_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RouteOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_route_api_v1_projects__project_id__routes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RouteIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RouteOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_route_api_v1_routes__route_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                route_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RouteOut"];
                 };
             };
             /** @description Validation Error */
