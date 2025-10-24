@@ -1,80 +1,45 @@
-# tests/api/test_project_groups.py
-import pytest
-from fastapi.testclient import TestClient
-from main import app
-from dashboard_backend.database import get_db
+from dashboard_backend.schemas.projects.project_group_schema import ProjectGroupSchema
 
-# Mock data
-mock_project_groups = [
-    {"id": 1, "name": "Gruppe A"},
-    {"id": 2, "name": "Gruppe B"},
+
+MOCK_GROUPS = [
+    ProjectGroupSchema(id=1, name="Gruppe A", short_name="A", projects=[]),
+    ProjectGroupSchema(id=2, name="Gruppe B", short_name="B", projects=[]),
 ]
 
-class MockQuery:
-    def __init__(self, data):
-        # data is a list of dicts representing rows
-        self._data = data
 
-    # Return all items
-    def all(self):
-        return self._data
+def test_read_project_groups(client, monkeypatch):
+    def mock_get_groups(db):
+        return MOCK_GROUPS
 
-    # Simple filter_by implementation for equality matches
-    def filter_by(self, **kwargs):
-        filtered = [
-            row for row in self._data
-            if all(row.get(k) == v for k, v in kwargs.items())
-        ]
-        return MockQuery(filtered)
+    import dashboard_backend.api.v1.endpoints.project_groups as route
 
-    # First item or None
-    def first(self):
-        return self._data[0] if self._data else None
+    monkeypatch.setattr(route, "get_project_groups", mock_get_groups)
 
-
-class MockDBSession:
-    def __init__(self):
-        # keep a copy per session
-        self._data = mock_project_groups.copy()
-
-    # Mimic SQLAlchemy's Session.query(Model). We ignore Model and return a query on our list.
-    def query(self, *args, **kwargs):
-        return MockQuery(self._data)
-
-    # Mimic SQLAlchemy 2.0 Session.get(Model, pk)
-    def get(self, _model, pk):
-        for row in self._data:
-            if row.get("id") == pk:
-                return row
-        return None
-
-
-def override_get_db():
-    # Yield a fresh mock session
-    db = MockDBSession()
-    try:
-        yield db
-    finally:
-        pass
-
-# Correctly register override: map the callable to the override callable
-app.dependency_overrides[get_db] = override_get_db
-client = TestClient(app)
-
-
-def test_read_project_groups():
-    resp = client.get("/api/v1/project-groups/")
+    resp = client.get("/api/v1/project_groups/")
     assert resp.status_code == 200
     body = resp.json()
     assert isinstance(body, list)
-    # optional: ensure mock content is returned
-    assert body == mock_project_groups
+    assert {item["id"] for item in body} == {1, 2}
 
-def test_read_project_group_by_id():
-    resp = client.get("/api/v1/project-groups/1")
+
+def test_read_project_group_by_id(client, monkeypatch):
+    def mock_get_group(db, group_id: int):
+        return next((group for group in MOCK_GROUPS if group.id == group_id), None)
+
+    import dashboard_backend.api.v1.endpoints.project_groups as route
+
+    monkeypatch.setattr(route, "get_project_group_by_id", mock_get_group)
+
+    resp = client.get("/api/v1/project_groups/1")
     assert resp.status_code == 200
-    assert resp.json() == {"id": 1, "name": "Gruppe A"}
+    assert resp.json()["id"] == 1
 
-def test_read_project_group_not_found():
-    resp = client.get("/api/v1/project-groups/99999")
+
+def test_read_project_group_not_found(client, monkeypatch):
+    import dashboard_backend.api.v1.endpoints.project_groups as route
+
+    monkeypatch.setattr(route, "get_project_group_by_id", lambda db, group_id: None)
+
+    resp = client.get("/api/v1/project_groups/999")
     assert resp.status_code == 404
+

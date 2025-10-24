@@ -107,16 +107,10 @@ Which data have to be transfered. It will be clustered to pragmatic usage:
 	- the table data is available -> just needs an data transfer and ggf. update
 - [ ] BVWP data
 	- data is available at old database -> can be imported 
-- [ ] User Verification
-	- Einführung eines Authentifizierungssystems basierend auf **OAuth2 und JWT (JSON Web Tokens)**.
-	- Neue Datenbanktabelle `users` zur Speicherung von Benutzerdaten (mit gehashten Passwörtern).
-	- Verwendung von `passlib` für sicheres Passwort-Hashing (Bcrypt).
-	- FastAPI-Abhängigkeiten (`OAuth2PasswordBearer`) zur Integration der Authentifizierung in API-Endpunkte
-	- Implementierung von **Rollenmanagement** (z.B. `is_admin`) für den Zugriff auf geschützte Routen.
-	- Refresh-System für Tokens
-		- Einführung von **Access Tokens (kurzfristig)** und **Refresh Tokens (langfristig)** für verbesserte Sicherheit und Benutzerfreundlichkeit.
-		- Neue Datenbanktabelle `refresh_tokens` zur serverseitigen Verwaltung der Refresh Tokens (für Widerruf und Einmalnutzung).
-		- Implementierung eines `/refresh`-Endpunkts zur Generierung neuer Access Tokens.
+- [x] User Verification
+        - Einführung einer schlanken HTTP-Basic-Authentifizierung mit PBKDF2-gehashten Passwörtern.
+        - Rollenmodell (`viewer`, `editor`, `admin`) mit automatischer Absicherung aller Nicht-GET-Endpunkte.
+        - Administrations-Endpunkte zur Benutzerverwaltung sowie ein CLI-Skript zur initialen Benutzeranlage.
 - [ ] Möglichkeit für Celery Tasks entwickeln
 	- könnte ggf fürs Routing Sinn machen
 - [ ] Connection with openstreetmap data

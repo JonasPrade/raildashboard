@@ -3,6 +3,7 @@ import os
 import pytest
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker
 
 load_dotenv(dotenv_path='env.test', override=True)
@@ -35,9 +36,18 @@ def setup_database(request):
     load_dotenv(".env.test")
     if 'test' not in settings.database_url:
         raise ValueError("the test database URL must contain 'test' to avoid accidental data loss")
-    Base.metadata.create_all(bind=test_engine)
+    try:
+        Base.metadata.create_all(bind=test_engine)
+    except OperationalError as exc:
+        if "RecoverGeometryColumn" in str(exc):
+            pytest.skip("SpatiaLite extension not available for geometry-enabled tables")
+        raise
     yield
-    Base.metadata.drop_all(bind=test_engine)
+    try:
+        Base.metadata.drop_all(bind=test_engine)
+    except OperationalError as exc:
+        if "CheckSpatialIndex" not in str(exc):
+            raise
 
 
 @pytest.fixture(scope="function")

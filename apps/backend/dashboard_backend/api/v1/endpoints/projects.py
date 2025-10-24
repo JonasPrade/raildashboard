@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import Depends, HTTPException
 from dashboard_backend.schemas.projects import ProjectSchema
 from dashboard_backend.database import get_db
 from sqlalchemy.orm import Session
 from dashboard_backend.crud.projects.projects import get_projects, get_project_by_id
+from dashboard_backend.routing.auth_router import AuthRouter
 
-router = APIRouter()
+router = AuthRouter()
 
 @router.get("/", response_model=list[ProjectSchema])
 def read_all_projects(db: Session = Depends(get_db)):

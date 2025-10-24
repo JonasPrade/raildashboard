@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
 from dashboard_backend.crud.projects.project_groups import (
     get_project_groups,
@@ -6,8 +6,9 @@ from dashboard_backend.crud.projects.project_groups import (
 )
 from dashboard_backend.database import get_db
 from dashboard_backend.schemas.projects import ProjectGroupSchema
+from dashboard_backend.routing.auth_router import AuthRouter
 
-router = APIRouter()
+router = AuthRouter()
 
 @router.get("/", response_model=list[ProjectGroupSchema])
 def read_project_groups(db: Session = Depends(get_db)):
