@@ -1,33 +1,126 @@
-## Backend Schienendashboard
+# Schienendashboard Backend
 
+The Schienendashboard project aggregates nationwide railway infrastructure and project information. This repository contains the FastAPI backend together with the database schema and import utilities that ingest project and infrastructure data from sources such as ERA RINF.
 
+## Key Features
+- **FastAPI REST API:** Exposes endpoints for projects, infrastructure objects, and routing information under `/api/v1`.
+- **PostgreSQL/PostGIS storage:** Persists geometries and metadata for railway infrastructure in a spatial database.
+- **Import and ETL tooling:** Scripts under `scripts/` assist with loading external datasets, e.g. ERA RINF XML or legacy databases.
+- **Modular architecture:** Clear separation of API, database models, CRUD layer, and schemas simplifies maintenance and feature work.
 
-# Schienendashboard – Backend
+## Project Structure
+```
+.
+├── main.py                     # FastAPI application and router registration
+├── dashboard_backend/
+│   ├── api/                    # Routers, endpoints, and response models
+│   ├── core/                   # Configuration (environment variables, settings)
+│   ├── crud/                   # Database access layer
+│   ├── models/                 # SQLAlchemy models
+│   ├── routing/                # Routing-related services
+│   └── schemas/                # Pydantic schemas for requests/responses
+├── scripts/                    # Data imports and generators
+├── alembic/                    # Database migrations
+├── docs/                       # Project and domain documentation
+└── tests/                      # Pytest suites
+```
+See `docs/architecture.md` and `docs/index.md` for more architectural background.
 
-Dies ist das Backend des Schienendashboards. Es stellt eine REST-API zur Verfügung, über die laufende Schienenprojekte in Deutschland abgerufen werden können.
+## Prerequisites
+- Python 3.11 (or newer)
+- PostgreSQL with the PostGIS extension
+- Local `.env` file that provides database credentials and optional RINF access tokens
 
-## Features
+## Installation
+1. Clone the repository and change into the project directory.
+2. Create and activate a virtual environment (`python -m venv .venv && source .venv/bin/activate`).
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-- FastAPI-basierte Web-API
-- PostgreSQL + PostGIS für Geodaten
-- Strukturierte Projekt- und Geometrieverwaltung
-- Erweiterbar für RailML-Parser, Dokumente, Metadaten
-- HTTP-Basic-Authentifizierung mit Rollenmodell (viewer, editor, admin)
+## Configuration
+Application settings are read via Pydantic Settings from a `.env` file in the project root. Important variables include:
 
-## Additional Files for Using the API
+| Variable        | Description                                                      |
+|-----------------|------------------------------------------------------------------|
+| `DATABASE_URL`  | PostgreSQL connection string pointing to the PostGIS database    |
+| `RINF_API_URL`  | Base URL of the ERA RINF API                                     |
+| `RINF_USERNAME` | Username for ERA RINF                                            |
+| `RINF_PASSWORD` | Password for ERA RINF                                            |
+| `ENVIRONMENT`   | Optional: selects alternative `.env` files (e.g. `.env.test`)    |
+| `OSM_PBF_DIR`   | Optional: directory containing `<COUNTRY>.osm.pbf` extracts for offline OSM imports |
+| `USE_GEOMETRY`  | Optional: set to `0` to skip geometry creation during OSM offline imports |
 
-## Authentifizierung und Benutzer
-
-Alle nicht-`GET`-Endpunkte der API verlangen eine HTTP-Basic-Authentifizierung.
-Die hinterlegte Rollenlogik unterscheidet zwischen `viewer`, `editor` und
-`admin`. Administratoren können neue Benutzer über den Endpunkt
-`/api/v1/users/` anlegen.
-
-Für die initiale Einrichtung steht ein Hilfsskript zur Verfügung:
-
+## Database Migrations
+Alembic revisions live in `alembic/versions`. Apply schema changes with:
 ```bash
-python scripts/create_initial_user.py --username admin --role admin
+alembic upgrade head
+```
+During development, create new revisions via `alembic revision --autogenerate -m "Description"`.
+
+## Running the Application
+After configuring the environment, start the development server with:
+```bash
+uvicorn main:app --reload
+```
+Interactive API documentation is available at `http://localhost:8000/docs`.
+
+## Testing
+Pytest drives automated tests:
+```bash
+pytest
+```
+For database-dependent tests use a dedicated test database and set `ENVIRONMENT=test` so that `.env.test` is picked up.
+
+## Data Imports
+The `scripts/` directory contains helpers for ingesting external data sources:
+- `import_rinf_data/import_xml.py`: Parses ERA RINF XML files and loads them into the database.
+- `import_old_db/`: Utilities for migrating legacy datasets.
+- `generate_rinf_models/`: Generators for models and schemas derived from RINF structures.
+- `import_osm_railways.py`: Imports OpenStreetMap railway data either offline from `.osm.pbf` extracts or via the Overpass API.
+
+### Offline OpenStreetMap workflow
+Offline imports rely on the PostGIS-enabled database so that geometries can be stored and spatial indexes remain valid. Prepare the Geofabrik extracts and import them as follows:
+
+1. Download the `.osm.pbf` extract for the target country from [Geofabrik](https://www.geofabrik.de/data/download.html) and place it inside `data/osm/` (or any custom directory referenced by `OSM_PBF_DIR`). Example for Germany:
+   ```bash
+   mkdir -p data/osm
+   wget https://download.geofabrik.de/europe/germany-latest.osm.pbf -O data/osm/DE.osm.pbf
+   ```
+2. Install the optional high-performance parser dependency that accelerates `pyosmium` (already compatible with Python 3.11+):
+   Not needed each time, just if not installed
+   ```bash
+   pip install python-rapidjson
+   ```
+   This step is optional but recommended for large extracts.
+3. Ensure the PostGIS database is available (the script connects via `DATABASE_URL`) and run the importer from the repository root:
+   Not needed each time, just if not installed
+   ```bash
+   # Uses data/osm/DE.osm.pbf automatically
+   python scripts/import_osm_railways.py DE --cleanup-existing
+   ```
+4. When maintaining multiple country extracts, repeat the download/import cycle per ISO 3166-1 alpha-2 country code (e.g. `AT`, `CH`).
+
+Additional flags:
+- `--track-types`: restrict the railway types to import (default: `rail`, `light_rail`, `subway`, `tram`).
+- `--use-overpass`: fall back to the legacy Overpass import if an offline extract is unavailable.
+- `--cleanup-existing`: remove prior OSM entries for the country before importing (useful for full refreshes).
+
+The script looks up PBF files in `OSM_PBF_DIR` (default: `data/osm`) when `--pbf-path` is omitted. Override the environment variable to point at a shared network drive or cache directory as needed.
+
+Run other scripts from within the virtual environment, for example:
+```bash
+python scripts/import_rinf_data/import_xml.py --help
 ```
 
-Das Skript fragt das Passwort interaktiv ab und legt den Benutzer direkt in der
-konfigurierten Datenbank an.
+## Contributing
+- Follow the existing module layout (`api`, `crud`, `models`, `schemas`).
+- Introduce new groups of database tables in dedicated subdirectories (e.g. `osmr`, `eba_data`, `project_data`) to keep the structure discoverable.
+- Add meaningful tests for new functionality.
+- Update the README and relevant files in `docs/` whenever setup steps or data flows change.
+- Consult `agent.md` before making substantial changes.
+
+## Further Documentation
+The `docs/` directory contains domain knowledge (e.g. the RINF data model), architecture decisions, and roadmaps. Review the relevant documents whenever introducing new features or import paths.
+
