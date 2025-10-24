@@ -22,7 +22,7 @@
             }
           },
           {
-            "id": "752ad507fb42b602",
+            "id": "93a540cdc2d38328",
             "type": "leaf",
             "state": {
               "type": "markdown",
@@ -34,23 +34,9 @@
               "icon": "lucide-file",
               "title": "roadmap Backend"
             }
-          },
-          {
-            "id": "db03ad30d265c871",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Transfer DB for Project.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "Transfer DB for Project"
-            }
           }
         ],
-        "currentTab": 2
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -124,7 +110,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Transfer DB for Project.md",
+                "file": "roadmap Backend.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -134,7 +120,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Rückverweise für Transfer DB for Project"
+              "title": "Rückverweise für roadmap Backend"
             }
           },
           {
@@ -172,22 +158,20 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Transfer DB for Project.md",
+                "file": "Open Street Map Daten für Routing und Projekte nutzen.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Gliederung von Transfer DB for Project"
+              "title": "Gliederung von Open Street Map Daten für Routing und Projekte nutzen"
             }
           }
-        ],
-        "currentTab": 3
+        ]
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -201,13 +185,15 @@
       "table-editor-obsidian:Advanced Tables Toolbar": false
     }
   },
-  "active": "db03ad30d265c871",
+  "active": "93a540cdc2d38328",
   "lastOpenFiles": [
-    "Connection between DB Open Data and ERA Rinf.md",
-    "Transfer DB for Project.md",
-    "RINF Railway Infrastructure Data.md",
-    "roadmap Backend.md",
+    "user_management.md",
     "index.md",
+    "Open Street Map Daten für Routing und Projekte nutzen.md",
+    "roadmap Backend.md",
+    "Transfer DB for Project.md",
+    "Connection between DB Open Data and ERA Rinf.md",
+    "RINF Railway Infrastructure Data.md",
     "roadmap Frontend.md",
     "OpenStreetMap Data.md",
     "architecture.md",
