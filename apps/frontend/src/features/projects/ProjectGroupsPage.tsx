@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
     Alert,
     Badge,
@@ -176,9 +177,17 @@ export default function ProjectGroupsPage() {
 
 function ProjectCard({ project }: { project: Project }) {
     const lengthValue = typeof project.length === "number" ? `${project.length.toLocaleString("de-DE")}` : null;
+    const hasProjectId = typeof project.id === "number" && Number.isFinite(project.id);
+    const cardProps = hasProjectId
+        ? ({
+              component: Link,
+              to: `/projects/${project.id}`,
+              style: { textDecoration: "none" },
+          } as const)
+        : ({} as const);
 
     return (
-        <Card withBorder shadow="xs" radius="md" padding="lg">
+        <Card withBorder shadow="xs" radius="md" padding="lg" {...cardProps}>
             <Stack gap="sm">
                 <Stack gap={4}>
                     <Title order={4}>{project.name}</Title>
