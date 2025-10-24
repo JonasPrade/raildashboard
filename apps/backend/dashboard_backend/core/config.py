@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     routing_base_url: str = "http://localhost:8989"
     routing_timeout_seconds: float = 20.0
     graph_version: str = "unknown"
+    backend_cors_origins: list[str] = ["http://localhost:5173"]
 
     model_config = SettingsConfigDict(
         env_file=f".env{'.' + os.getenv('ENVIRONMENT') if os.getenv('ENVIRONMENT') else ''}",
