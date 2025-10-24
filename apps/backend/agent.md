@@ -21,4 +21,9 @@ These guidelines apply to the entire repository and are intended for all future 
 - Add new import scripts under `scripts/` and expose a CLI via `argparse`.
 - Document new import paths in `docs/` and include a short example in the README.
 
+## DB Connection
+- there is a DB which is Postgres with Postgis extension enabled.
+- Use SQLAlchemy ORM for all DB interactions.
+- Use only Postgres and no SQLite for develompenet
+
 Thank you for contributing to the project!
