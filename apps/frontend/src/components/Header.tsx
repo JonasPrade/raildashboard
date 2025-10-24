@@ -34,6 +34,15 @@ export function Header() {
                 >
                     Documentation
                 </NavLink>
+                <NavLink
+                    to="/projects"
+                    style={({ isActive }) => ({
+                        ...baseStyle,
+                        backgroundColor: isActive ? "rgba(17, 34, 64, 0.08)" : "transparent"
+                    })}
+                >
+                    Projekte
+                </NavLink>
             </Group>
         </Group>
     );
