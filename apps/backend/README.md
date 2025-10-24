@@ -4,6 +4,8 @@ The Schienendashboard project aggregates nationwide railway infrastructure and p
 
 ## Key Features
 - **FastAPI REST API:** Exposes endpoints for projects, infrastructure objects, and routing information under `/api/v1`.
+- **Routing microservice integration:** Computes rail routes via a dedicated microservice, caches the geometry in PostGIS, and
+  exposes CRUD-style APIs for reuse.
 - **PostgreSQL/PostGIS storage:** Persists geometries and metadata for railway infrastructure in a spatial database.
 - **Import and ETL tooling:** Scripts under `scripts/` assist with loading external datasets, e.g. ERA RINF XML or legacy databases.
 - **Modular architecture:** Clear separation of API, database models, CRUD layer, and schemas simplifies maintenance and feature work.
@@ -48,6 +50,9 @@ Application settings are read via Pydantic Settings from a `.env` file in the pr
 | `RINF_API_URL`  | Base URL of the ERA RINF API                                     |
 | `RINF_USERNAME` | Username for ERA RINF                                            |
 | `RINF_PASSWORD` | Password for ERA RINF                                            |
+| `ROUTING_BASE_URL` | Base URL of the routing microservice (e.g. GraphHopper)          |
+| `ROUTING_TIMEOUT_SECONDS` | Optional: request timeout for the routing client (default `20`) |
+| `GRAPH_VERSION` | Identifier for the routing graph build used for caching           |
 | `ENVIRONMENT`   | Optional: selects alternative `.env` files (e.g. `.env.test`)    |
 | `OSM_PBF_DIR`   | Optional: directory containing `<COUNTRY>.osm.pbf` extracts for offline OSM imports |
 | `USE_GEOMETRY`  | Optional: set to `0` to skip geometry creation during OSM offline imports |
@@ -65,6 +70,17 @@ After configuring the environment, start the development server with:
 uvicorn main:app --reload
 ```
 Interactive API documentation is available at `http://localhost:8000/docs`.
+
+## Routing API
+The backend persists rail routes that are computed via the routing microservice. The following REST endpoints are available:
+
+- `POST /api/v1/projects/{project_id}/routes`: triggers the routing microservice, stores the result in PostGIS, and returns the
+  persisted route. Identical waypoint/profile/option combinations reuse the cached record.
+- `GET /api/v1/projects/{project_id}/routes`: lists previously computed routes for a project with optional pagination
+  parameters `limit` and `offset`.
+- `GET /api/v1/routes/{route_id}`: retrieves the details of a stored route, including bounding box and GeoJSON geometry.
+
+Routes are hashed with the routing graph version to keep the cache consistent with the deployed microservice.
 
 ## Testing
 Pytest drives automated tests:

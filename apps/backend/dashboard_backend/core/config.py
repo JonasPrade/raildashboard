@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     rinf_api_url: str
     rinf_username: str
     rinf_password: str
+    routing_base_url: str = "http://localhost:8989"
+    routing_timeout_seconds: float = 20.0
+    graph_version: str = "unknown"
 
     model_config = SettingsConfigDict(
         env_file=f".env{'.' + os.getenv('ENVIRONMENT') if os.getenv('ENVIRONMENT') else ''}",

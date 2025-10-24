@@ -39,7 +39,8 @@ def setup_database(request):
     try:
         Base.metadata.create_all(bind=test_engine)
     except OperationalError as exc:
-        if "RecoverGeometryColumn" in str(exc):
+        message = str(exc)
+        if "RecoverGeometryColumn" in message or "CreateSpatialIndex" in message:
             pytest.skip("SpatiaLite extension not available for geometry-enabled tables")
         raise
     yield
