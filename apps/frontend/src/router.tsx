@@ -4,6 +4,7 @@ import { Header } from "./components/Header";
 import MapPage from "./features/map/MapPage";
 import DocumentationPage from "./features/documentation/DocumentationPage";
 import ProjectGroupsPage from "./features/projects/ProjectGroupsPage";
+import ProjectDetail from "./features/projects/ProjectDetail";
 
 function Layout() {
     return (
@@ -25,7 +26,8 @@ export const router = createBrowserRouter([
         children: [
             { index: true, element: <MapPage /> },
             { path: "documentation", element: <DocumentationPage /> },
-            { path: "projects", element: <ProjectGroupsPage /> }
+            { path: "projects", element: <ProjectGroupsPage /> },
+            { path: "projects/:projectId", element: <ProjectDetail /> }
         ]
     }
 ]);
