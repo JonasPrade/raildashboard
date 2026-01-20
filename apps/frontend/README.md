@@ -18,9 +18,11 @@ npm run dev
 > **Note:** The scripts `npm run gen:api` and `npm run gen:zod` generate client code from an OpenAPI schema. They require a backend endpoint to be available at `http://127.0.0.1:8000/openapi.json`.
 
 ## Project structure
-## Konfiguration
+## Configuration
 
-Standardmäßig kommuniziert das Frontend mit einem Backend unter `http://localhost:8000`. Über die Umgebungsvariable `VITE_API_BASE_URL` (z. B. in einer `.env`-Datei im Projektwurzelverzeichnis) kann eine alternative Basis-URL hinterlegt werden.
+The frontend talks to a backend at `http://localhost:8000` by default. Use `VITE_API_BASE_URL` (for example in a `.env` file at the project root) to override the API base URL.
+
+The map view expects a raster tile URL provided via `REACT_APP_TILE_LAYER_URL`. The Vite configuration accepts both `VITE_` and `REACT_APP_` prefixes, so either environment prefix can be used if you decide to migrate to `VITE_TILE_LAYER_URL` later.
 
 ## Projektstruktur
 
