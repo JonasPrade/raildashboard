@@ -5,6 +5,7 @@ import type { components } from "./types.gen";
 
 export type Project = components["schemas"]["ProjectSchema"];
 export type ProjectGroup = components["schemas"]["ProjectGroupSchema"];
+export type ProjectRoute = components["schemas"]["RouteOut"];
 
 export type ProjectUpdatePayload = {
     name: string;
@@ -40,6 +41,21 @@ export function useProjectGroups() {
         queryKey: ["projectGroups"],
         queryFn: () => api<ProjectGroup[]>("/api/v1/project_groups/"),
     });
+}
+
+export const projectRoutesQueryKey = (projectId: number) => ["projectRoutes", projectId];
+
+export const getProjectRoutesQueryOptions = (projectId: number) => ({
+    queryKey: projectRoutesQueryKey(projectId),
+    enabled: Number.isFinite(projectId),
+    queryFn: () =>
+        api<ProjectRoute[]>("/api/v1/projects/:project_id/routes", {
+            params: { path: { project_id: projectId } },
+        }),
+});
+
+export function useProjectRoutes(projectId: number) {
+    return useQuery(getProjectRoutesQueryOptions(projectId));
 }
 
 export function updateProject(id: number, payload: ProjectUpdatePayload) {
