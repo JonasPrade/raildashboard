@@ -32,7 +32,7 @@ function SelectedGroupPill({ group, onRemove, disabled }: SelectedGroupPillProps
                 border: "1px solid #2a3550",
                 borderRadius: 8,
                 padding: "2px 6px",
-                background: "#142030"
+                background: "#f8fafc"
             }}
         >
             <span
@@ -45,7 +45,7 @@ function SelectedGroupPill({ group, onRemove, disabled }: SelectedGroupPillProps
                     display: "inline-block"
                 }}
             />
-            <span style={{ fontSize: 12, color: "#f8fafc" }}>{group.name}</span>
+            <span style={{ fontSize: 12, color: "black" }}>{group.name}</span>
             {!disabled && (
                 <CloseButton
                     aria-label={`Remove group ${group.name}`}
