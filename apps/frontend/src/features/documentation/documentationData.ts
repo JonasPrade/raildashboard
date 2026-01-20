@@ -14,11 +14,11 @@ export const featureHighlights: FeatureHighlight[] = [
         title: "Interactive map view",
         description:
             "MapLibre-based map with Mantine overlays for controls such as filters." +
-            " The map area is deliberately modular so additional layers or data sources can be integrated later on.",
+            " The base map uses a configurable raster tile source so additional layers or data sources can be integrated later on.",
         details: [
             "Filter drawer for project groups including URL synchronisation",
             "Mantine components for buttons, panels, and layout",
-            "Prepared for additional controls and overlay components"
+            "Raster tiles configured via the REACT_APP_TILE_LAYER_URL environment variable"
         ]
     },
     {

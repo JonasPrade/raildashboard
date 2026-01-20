@@ -5,6 +5,7 @@ import { Notifications } from "@mantine/notifications";
 import { QueryClientProvider } from "@tanstack/react-query";
 import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
+import "maplibre-gl/dist/maplibre-gl.css";
 
 import { theme } from "./theme";
 import { router } from "./router";
