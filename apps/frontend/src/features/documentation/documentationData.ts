@@ -20,6 +20,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Mantine components for buttons, panels, and layout",
             "Project route geometries rendered from each project's `geojson_representation` field",
             "Hover interactions that highlight routes and show pointer feedback",
+            "Route click popover with project title and direct navigation action",
             "Raster tiles configured via the REACT_APP_TILE_LAYER_URL environment variable"
         ]
     },
