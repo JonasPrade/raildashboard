@@ -18,6 +18,8 @@ export const featureHighlights: FeatureHighlight[] = [
         details: [
             "Filter drawer for project groups including URL synchronisation",
             "Mantine components for buttons, panels, and layout",
+            "Project route geometries rendered from the `/api/v1/projects/:project_id/routes` endpoint",
+            "Hover interactions that highlight routes and show pointer feedback",
             "Raster tiles configured via the REACT_APP_TILE_LAYER_URL environment variable"
         ]
     },

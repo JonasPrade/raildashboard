@@ -22,7 +22,7 @@ npm run dev
 
 The frontend talks to a backend at `http://localhost:8000` by default. Use `VITE_API_BASE_URL` (for example in a `.env` file at the project root) to override the API base URL.
 
-The map view expects a raster tile URL provided via `REACT_APP_TILE_LAYER_URL`. The Vite configuration accepts both `VITE_` and `REACT_APP_` prefixes, so either environment prefix can be used if you decide to migrate to `VITE_TILE_LAYER_URL` later.
+The map view expects a raster tile URL provided via `REACT_APP_TILE_LAYER_URL`. The Vite configuration accepts both `VITE_` and `REACT_APP_` prefixes, so either environment prefix can be used if you decide to migrate to `VITE_TILE_LAYER_URL` later. The map loads project routes from `/api/v1/projects/:project_id/routes` and syncs selected project groups via the `group` query parameter.
 
 ## Projektstruktur
 
