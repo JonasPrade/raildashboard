@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Button, Paper, Stack, Text } from "@mantine/core";
 import maplibregl from "maplibre-gl";
-import { useQueries } from "@tanstack/react-query";
-
-import { getProjectRoutesQueryOptions } from "../../shared/api/queries";
+import { useNavigate } from "react-router-dom";
 
 const tileLayerUrl = import.meta.env.REACT_APP_TILE_LAYER_URL as string | undefined;
 const tileAttribution =
@@ -110,11 +109,22 @@ type Props = {
     projects: MapViewProject[];
 };
 
+type SelectedProject = {
+    id: number;
+    name: string;
+    x: number;
+    y: number;
+};
+
 export default function MapView({ projects }: Props) {
     const mapContainerRef = useRef<HTMLDivElement | null>(null);
     const mapInstanceRef = useRef<maplibregl.Map | null>(null);
     const hoverFeatureIdRef = useRef<string | number | null>(null);
+    const overlayRef = useRef<HTMLDivElement | null>(null);
+    const ignoreOutsideClickRef = useRef(false);
     const [isMapReady, setIsMapReady] = useState(false);
+    const [selectedProject, setSelectedProject] = useState<SelectedProject | null>(null);
+    const navigate = useNavigate();
 
     const featureCollection = useMemo<GeoJSONFeatureCollection>(() => {
         const features = projects.flatMap((project) => {
@@ -226,8 +236,46 @@ export default function MapView({ projects }: Props) {
             }
         });
 
+        const handleProjectClick = (
+            event: maplibregl.MapMouseEvent & maplibregl.EventData,
+        ) => {
+            const feature = event.features?.[0];
+            if (!feature || !isRecord(feature.properties)) return;
+
+            const projectIdValue = feature.properties.projectId;
+            const projectNameValue = feature.properties.name;
+            const projectId =
+                typeof projectIdValue === "number" ? projectIdValue : Number(projectIdValue);
+
+            if (!Number.isFinite(projectId) || typeof projectNameValue !== "string") {
+                return;
+            }
+
+            ignoreOutsideClickRef.current = true;
+            setSelectedProject({
+                id: projectId,
+                name: projectNameValue,
+                x: event.point.x,
+                y: event.point.y,
+            });
+        };
+
+        const handleMapClick = (event: maplibregl.MapMouseEvent & maplibregl.EventData) => {
+            const features = mapInstance.queryRenderedFeatures(event.point, {
+                layers: ["project-routes-line"],
+            });
+            if (features.length === 0) {
+                setSelectedProject(null);
+            }
+        };
+
+        mapInstance.on("click", "project-routes-line", handleProjectClick);
+        mapInstance.on("click", handleMapClick);
+
         return () => {
             mapInstance.getCanvas().style.cursor = "";
+            mapInstance.off("click", "project-routes-line", handleProjectClick);
+            mapInstance.off("click", handleMapClick);
             mapInstance.remove();
         };
     }, [tileLayerUrl]);
@@ -240,6 +288,36 @@ export default function MapView({ projects }: Props) {
         if (!source) return;
         source.setData(featureCollection);
     }, [featureCollection, isMapReady]);
+
+    useEffect(() => {
+        if (!selectedProject) return undefined;
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                setSelectedProject(null);
+            }
+        };
+
+        const handleOutsideClick = (event: MouseEvent) => {
+            if (ignoreOutsideClickRef.current) {
+                ignoreOutsideClickRef.current = false;
+                return;
+            }
+            const overlayNode = overlayRef.current;
+            if (overlayNode && event.target instanceof Node && overlayNode.contains(event.target)) {
+                return;
+            }
+            setSelectedProject(null);
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        document.addEventListener("mousedown", handleOutsideClick);
+
+        return () => {
+            window.removeEventListener("keydown", handleKeyDown);
+            document.removeEventListener("mousedown", handleOutsideClick);
+        };
+    }, [selectedProject]);
 
     if (!tileLayerUrl) {
         return (
@@ -264,5 +342,38 @@ export default function MapView({ projects }: Props) {
         );
     }
 
-    return <div ref={mapContainerRef} style={{ height: "800px" }} />;
+    return (
+        <div style={{ height: "800px", position: "relative" }}>
+            <div ref={mapContainerRef} style={{ height: "100%" }} />
+            {selectedProject && (
+                <Paper
+                    ref={overlayRef}
+                    shadow="md"
+                    p="md"
+                    radius="md"
+                    style={{
+                        position: "absolute",
+                        left: selectedProject.x,
+                        top: selectedProject.y,
+                        transform: "translate(-50%, calc(-100% - 12px))",
+                        minWidth: "220px",
+                        zIndex: 10,
+                    }}
+                >
+                    <Stack gap="xs">
+                        <Text fw={600}>{selectedProject.name}</Text>
+                        <Button
+                            size="xs"
+                            onClick={() => {
+                                navigate(`/projects/${selectedProject.id}`);
+                                setSelectedProject(null);
+                            }}
+                        >
+                            Auswählen
+                        </Button>
+                    </Stack>
+                </Paper>
+            )}
+        </div>
+    );
 }
