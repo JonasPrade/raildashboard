@@ -2,6 +2,8 @@
 
 This project implements the React frontend for the railway dashboard. It is built with [Vite](https://vitejs.dev/), [TypeScript](https://www.typescriptlang.org/), and [Mantine](https://mantine.dev/) to provide a modular interface for visualising rail infrastructure projects.
 
+> **Language note:** The codebase and developer-facing documentation are written in English, but the website UI content should be presented in German.
+
 ## Quick start
 
 ```bash
