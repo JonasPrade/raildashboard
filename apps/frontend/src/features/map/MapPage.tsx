@@ -49,12 +49,20 @@ export default function MapPage() {
     }, [data, selectedGroupIds]);
 
     const selectedProjects = useMemo(() => {
-        const projectMap = new Map<number, { id: number; name: string; groupColor?: string }>();
+        const projectMap = new Map<
+            number,
+            { id: number; name: string; groupColor?: string; geojson_representation?: string | null }
+        >();
         selectedGroups.forEach((group) => {
             const groupColor = group.color?.trim().length ? group.color : DEFAULT_GROUP_COLOR;
             group.projects?.filter(hasNumericProjectId).forEach((project) => {
                 if (!projectMap.has(project.id)) {
-                    projectMap.set(project.id, { id: project.id, name: project.name, groupColor });
+                    projectMap.set(project.id, {
+                        id: project.id,
+                        name: project.name,
+                        groupColor,
+                        geojson_representation: project.geojson_representation,
+                    });
                 }
             });
         });

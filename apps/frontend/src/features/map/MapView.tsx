@@ -12,6 +12,7 @@ type MapViewProject = {
     id: number;
     name: string;
     groupColor?: string;
+    geojson_representation?: string | null;
 };
 
 type GeoJSONGeometry = {
@@ -96,6 +97,15 @@ const createFeaturesFromGeoJson = (
     return [];
 };
 
+const parseProjectGeojson = (geojsonRepresentation?: string | null) => {
+    if (!geojsonRepresentation) return null;
+    try {
+        return JSON.parse(geojsonRepresentation) as unknown;
+    } catch {
+        return null;
+    }
+};
+
 type Props = {
     projects: MapViewProject[];
 };
@@ -106,25 +116,18 @@ export default function MapView({ projects }: Props) {
     const hoverFeatureIdRef = useRef<string | number | null>(null);
     const [isMapReady, setIsMapReady] = useState(false);
 
-    const routeQueries = useQueries({
-        queries: projects.map((project) => getProjectRoutesQueryOptions(project.id)),
-    });
-
     const featureCollection = useMemo<GeoJSONFeatureCollection>(() => {
-        const features = routeQueries.flatMap((query, index) => {
-            const project = projects[index];
-            if (!project || !query.data) return [];
-            return query.data.flatMap((route, routeIndex) =>
-                createFeaturesFromGeoJson(
-                    route.geom_geojson,
-                    {
-                        projectId: project.id,
-                        name: project.name,
-                        groupColor: project.groupColor,
-                        routeId: route.route_id,
-                    },
-                    `${project.id}-${route.route_id ?? routeIndex}`,
-                ),
+        const features = projects.flatMap((project) => {
+            const geojson = parseProjectGeojson(project.geojson_representation);
+            if (!geojson) return [];
+            return createFeaturesFromGeoJson(
+                geojson,
+                {
+                    projectId: project.id,
+                    name: project.name,
+                    groupColor: project.groupColor,
+                },
+                `${project.id}`,
             );
         });
 
@@ -132,7 +135,7 @@ export default function MapView({ projects }: Props) {
             type: "FeatureCollection",
             features,
         };
-    }, [projects, routeQueries]);
+    }, [projects]);
 
     useEffect(() => {
         if (!tileLayerUrl || !mapContainerRef.current) {
