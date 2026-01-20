@@ -45,7 +45,7 @@ function SelectedGroupPill({ group, onRemove, disabled }: SelectedGroupPillProps
                     display: "inline-block"
                 }}
             />
-            <span style={{ fontSize: 12 }}>{group.name}</span>
+            <span style={{ fontSize: 12, color: "#f8fafc" }}>{group.name}</span>
             {!disabled && (
                 <CloseButton
                     aria-label={`Remove group ${group.name}`}
@@ -109,7 +109,7 @@ export default function GroupFilterDrawer({
         .filter((group): group is ProjectGroupOption => Boolean(group));
 
     return (
-        <Drawer opened={opened} onClose={onClose} title="Project groups" position="right" size="sm">
+        <Drawer opened={opened} onClose={apply} title="Projektgruppen" position="right" size="sm">
             <Stack>
                 {error && (
                     <Alert color="red" variant="light" title="Projektgruppen konnten nicht geladen werden">
@@ -165,7 +165,7 @@ export default function GroupFilterDrawer({
 
                 <Group justify="space-between" mt="md">
                     <Button variant="default" onClick={onClose}>
-                        Cancel
+                        Abbrechen
                     </Button>
                     <Button color="petrol" onClick={apply} disabled={loading}>
                         Übernehmen
