@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
+import { useQueries } from "@tanstack/react-query";
+
+import { getProjectRoutesQueryOptions } from "../../shared/api/queries";
 
 const tileLayerUrl = import.meta.env.REACT_APP_TILE_LAYER_URL as string | undefined;
 const tileAttribution =
