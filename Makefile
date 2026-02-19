@@ -7,9 +7,9 @@ FRONTEND_DIR := apps/frontend
 VENV         := $(BACKEND_DIR)/.venv
 PYTHON       := $(VENV)/bin/python
 PIP          := $(VENV)/bin/pip
-UVICORN      := $(VENV)/bin/uvicorn
-PYTEST       := $(VENV)/bin/pytest
-ALEMBIC      := $(VENV)/bin/alembic
+UVICORN      := .venv/bin/uvicorn
+PYTEST       := .venv/bin/pytest
+ALEMBIC      := .venv/bin/alembic
 
 .PHONY: help install install-backend install-frontend \
         dev dev-backend dev-frontend \
