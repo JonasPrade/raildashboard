@@ -26,12 +26,12 @@ The Schienendashboard project aggregates nationwide railway infrastructure and p
 ├── docs/                       # Project and domain documentation
 └── tests/                      # Pytest suites
 ```
-See `docs/architecture.md` and `docs/index.md` for more architectural background.
+See `docs/architecture.md` (repo root) for architectural background and `docs/roadmap.md` (repo root) for the project roadmap. Backend-specific implementation details remain in `docs/` (this directory).
 
 ## Prerequisites
 - Python 3.11 (or newer)
 - PostgreSQL with the PostGIS extension
-- Local `.env` file that provides database credentials and optional RINF access tokens
+- `.env` file in the repository root (copy from `.env.example` in repo root)
 
 ## Installation
 1. Clone the repository and change into the project directory.
@@ -42,7 +42,7 @@ See `docs/architecture.md` and `docs/index.md` for more architectural background
    ```
 
 ## Configuration
-Application settings are read via Pydantic Settings from a `.env` file in the project root. Important variables include:
+Application settings are read via Pydantic Settings from a `.env` file in the **repository root** (not in this directory). Important variables include:
 
 | Variable        | Description                                                      |
 |-----------------|------------------------------------------------------------------|
@@ -140,5 +140,6 @@ Consult **`AGENT.md`** at the repository root before making substantial changes.
 - Update this README and relevant files in `docs/` whenever setup steps or data flows change.
 
 ## Further Documentation
-The `docs/` directory contains domain knowledge (e.g. the RINF data model), architecture decisions, and roadmaps. Review the relevant documents whenever introducing new features or import paths.
+Project-wide documentation (architecture, data models, roadmap) lives in `docs/` at the repository root.
+This directory's `docs/` folder contains backend-specific implementation details (RINF import, data mapping, routing, user management). Review the relevant documents whenever introducing new features or import paths.
 

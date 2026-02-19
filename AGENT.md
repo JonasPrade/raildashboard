@@ -159,7 +159,8 @@ Or from the repository root: `make gen-api`.
 - Keep `apps/backend/README.md` up to date for backend-specific setup, routing API, and data imports.
 - Keep `apps/frontend/README.md` up to date for frontend-specific setup and project structure.
 - Update `apps/frontend/src/features/documentation/DocumentationPage.tsx` (the in-app docs) whenever the user-facing feature scope changes.
-- Backend domain knowledge, architecture decisions, and roadmaps live in `apps/backend/docs/`.
+- Project-wide architecture, data models, and the roadmap live in `docs/` (repo root).
+- Backend-specific implementation details (RINF import, routing, data mapping) live in `apps/backend/docs/`.
 
 ---
 

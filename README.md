@@ -10,6 +10,7 @@ A web application that aggregates nationwide railway infrastructure and project 
 ├── apps/
 │   ├── backend/   # FastAPI + SQLAlchemy + PostGIS
 │   └── frontend/  # React + Vite + Mantine + MapLibre
+├── docs/          # Project-wide documentation (architecture, models, roadmap)
 ├── AGENT.md       # Contributor guidelines (read before making changes)
 ├── Makefile       # Common development commands
 ├── .env.example   # Environment variable reference
@@ -28,7 +29,7 @@ A web application that aggregates nationwide railway infrastructure and project 
 
 ```bash
 # Copy and fill in the environment file
-cp .env.example apps/backend/.env
+cp .env.example .env
 
 # Install all dependencies and start both services
 make install
@@ -41,7 +42,7 @@ See `Makefile` for the full list of available targets.
 
 ## Configuration
 
-All runtime configuration is managed through a `.env` file in `apps/backend/`. A reference file with all supported variables lives at `.env.example` in the repository root.
+All runtime configuration is managed through a single `.env` file in the repository root. A reference file with all supported variables lives at `.env.example`.
 
 | Variable | Used by | Description |
 |---|---|---|
