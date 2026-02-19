@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import {
     Alert,
     Badge,
@@ -22,23 +22,25 @@ const hasNumericId = (
 
 export default function ProjectGroupsPage() {
     const { data, isLoading, isError, error } = useProjectGroups();
-    const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
+    const [searchParams, setSearchParams] = useSearchParams();
 
     const groups = useMemo(() => (data ?? []).filter(hasNumericId), [data]);
 
-    useEffect(() => {
-        if (groups.length === 0) {
-            setSelectedGroupId(null);
-            return;
-        }
+    const selectedGroupId = useMemo(() => {
+        const param = searchParams.get("group");
+        if (!param) return null;
+        const id = Number(param.split(",")[0]);
+        return Number.isFinite(id) ? id : null;
+    }, [searchParams]);
 
-        setSelectedGroupId((prev) => {
-            if (prev !== null && groups.some((group) => group.id === prev)) {
-                return prev;
-            }
-            return groups[0]!.id;
-        });
-    }, [groups]);
+    useEffect(() => {
+        if (groups.length === 0) return;
+        if (selectedGroupId !== null && groups.some((g) => g.id === selectedGroupId)) return;
+        setSearchParams((prev) => {
+            prev.set("group", String(groups[0]!.id));
+            return prev;
+        }, { replace: true });
+    }, [groups, selectedGroupId, setSearchParams]);
 
     const selectedGroup = selectedGroupId
         ? groups.find((group) => group.id === selectedGroupId)
@@ -50,6 +52,14 @@ export default function ProjectGroupsPage() {
         value: String(group.id),
         label: group.name,
     }));
+
+    const handleGroupChange = (value: string | null) => {
+        setSearchParams((prev) => {
+            if (value) prev.set("group", value);
+            else prev.delete("group");
+            return prev;
+        });
+    };
 
     const errorMessage = isError
         ? error instanceof Error
@@ -73,7 +83,7 @@ export default function ProjectGroupsPage() {
                         placeholder="Projektgruppe wählen"
                         data={selectData}
                         value={selectedGroupId !== null ? String(selectedGroupId) : null}
-                        onChange={(value) => setSelectedGroupId(value ? Number(value) : null)}
+                        onChange={handleGroupChange}
                         disabled={isLoading && groups.length === 0}
                         rightSection={isLoading ? <Loader size="xs" /> : undefined}
                         nothingFoundMessage={isLoading ? "Lade…" : "Keine Projektgruppen gefunden"}

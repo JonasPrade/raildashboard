@@ -222,6 +222,9 @@ export default function ProjectDetail() {
                         </Text>
                     </Stack>
                     <Group gap="sm">
+                        <Button variant="default" component={Link} to="/">
+                            Zur Karte
+                        </Button>
                         <Button variant="default" component={Link} to="/projects">
                             Zur Projektübersicht
                         </Button>

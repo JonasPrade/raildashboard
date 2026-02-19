@@ -1,4 +1,16 @@
 # Roadmap
+Goal look at `architecture.md`
+
+## Short-Term-Features
+Frontend-Fix:
+- [ ] Don't forget the selected Groups when changig to Projects. Speichere die gesuchten Projektgruppen im local Storage des Browers und greife immer darauf zurück, sobald Gruppen gesucht werden
+- [ ] Mache Karte und Projekte als Kippschalter in der UI, sodass ich immer zwischen Karte oder Liste wählen. Benenne dafür die "Projekte" zu "Liste" um. 
+- [ ] Zwischen den einzelnen Abschnitten werden dünne Lücken angezeigt. Diese sollen möglichst verbunden werden, da das die Darstellung stört.
+- [ ] Füge eine Option bei Karte und Liste ein. Diese soll auswählbar machen, ob nur ranghöchste Projekte angezeigt werden. Das sind Projekte, die keine superior projects haben.
+
+## Mid-Termin Features
+- [ ] Use the service in backend for routing with GrassHopper to generate Routes. The Routes should be suggested in frontend. If accepted the should be added to the specific Project
+- [ ]  
 
 ## Backend
 
@@ -13,7 +25,6 @@ See `apps/backend/docs/RINF Railway Infrastructure Data.md` for import details.
 - [x] Implement RINF data import
     - [x] Use the serialization possibilities of RINF
     - [x] Add import of border points .csv
-- [ ] The RINF Data should be removed completely from project -> not needed anymore
 
 ### Routing
 
@@ -24,7 +35,7 @@ See `apps/backend/docs/Routing.md` for implementation details.
 - [x] Implement test possibilities
 - [x] Add possibility for API usage
 
-### Tests
+### Testsq
 
 - [x] Implement test infrastructure
 - [x] Create example DB data
@@ -80,10 +91,16 @@ Data to transfer (prioritised):
 - [ ] Celery task queue (potentially for routing)
 - [ ] OpenStreetMap data connection (broad coverage, but complex for routing queries)
 - [ ] DB OpenData connection (https://www.govdata.de/suche/daten/schienennetz-deutsche-bahnddea3)
+- [ ] Benutzer mit verschiedenen Arbeitsrechten -> Bearbeitung nur nach Login und wenn Bearbeitungsrechte vorliegen
 
 ---
 
 ## Frontend
 
-- [ ] Add ERA data source attribution to web interface:
-  *Datenquelle: European Union Agency for Railways (ERA), RINF Register, abgerufen am [Datum]*
+
+
+## Finished
+Frontend-Fix
+
+- [x] Dicke der Linien auf Karte einstellbar machen und standardmäßig dicker
+- [x] In Projektansicht oben neben Button "Zur Projektübersicht" einen Button einfügen, der zurück zur Karte führt

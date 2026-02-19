@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Container } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useSearchParams } from "react-router-dom";
@@ -15,10 +15,15 @@ const hasNumericId = (
 const hasNumericProjectId = (project: Project): project is Project & { id: number } =>
     typeof project.id === "number";
 
+const DEFAULT_LINE_WIDTH = 4;
+const DEFAULT_POINT_SIZE = 5;
+
 export default function MapPage() {
     const [opened, { open, close }] = useDisclosure(false);
     const { data, isLoading, isError, error } = useProjectGroups();
     const [searchParams] = useSearchParams();
+    const [lineWidth, setLineWidth] = useState(DEFAULT_LINE_WIDTH);
+    const [pointSize, setPointSize] = useState(DEFAULT_POINT_SIZE);
 
     const projectGroupOptions = useMemo<ProjectGroupOption[]>(() => {
         if (!data) return [];
@@ -78,8 +83,8 @@ export default function MapPage() {
     return (
         <>
             <Container size="xl" style={{ height: "100%", position: "relative" }}>
-                <MapView projects={selectedProjects} />
-                <MapControls onOpenFilters={open} />
+                <MapView projects={selectedProjects} lineWidth={lineWidth} pointSize={pointSize} />
+                <MapControls onOpenFilters={open} lineWidth={lineWidth} onLineWidthChange={setLineWidth} pointSize={pointSize} onPointSizeChange={setPointSize} />
             </Container>
             <GroupFilterDrawer
                 opened={opened}

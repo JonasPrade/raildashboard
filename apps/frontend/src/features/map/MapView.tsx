@@ -33,6 +33,8 @@ type GeoJSONFeatureCollection = {
     features: GeoJSONFeature[];
 };
 
+// ── type guards ──────────────────────────────────────────────────────────────
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === "object" && value !== null;
 
@@ -45,56 +47,50 @@ const isFeature = (value: unknown): value is { type: "Feature"; geometry: unknow
 const isGeometry = (value: unknown): value is GeoJSONGeometry =>
     isRecord(value) && typeof value.type === "string" && "coordinates" in value;
 
-const createFeaturesFromGeoJson = (
-    geojson: unknown,
-    baseProperties: Record<string, unknown>,
-    idPrefix: string,
-): GeoJSONFeature[] => {
+const isNumberArray = (v: unknown): v is number[] =>
+    Array.isArray(v) && v.every((n) => typeof n === "number");
+
+const isCoordArray = (v: unknown): v is number[][] =>
+    Array.isArray(v) && v.every(isNumberArray);
+
+const isCoordArrayArray = (v: unknown): v is number[][][] =>
+    Array.isArray(v) && v.every(isCoordArray);
+
+// ── geometry extractors ──────────────────────────────────────────────────────
+
+/** Recursively collect all LineString coordinate arrays from any GeoJSON value. */
+const extractLineCoordinates = (geojson: unknown): number[][][] => {
     if (isFeatureCollection(geojson)) {
-        return geojson.features
-            .map((feature, index) => {
-                if (!isFeature(feature)) return null;
-                const properties = isRecord(feature.properties)
-                    ? { ...feature.properties, ...baseProperties }
-                    : baseProperties;
-                return {
-                    ...feature,
-                    id: feature.id ?? `${idPrefix}-collection-${index}`,
-                    type: "Feature",
-                    geometry: isGeometry(feature.geometry) ? feature.geometry : null,
-                    properties,
-                };
-            })
-            .filter((feature): feature is GeoJSONFeature => Boolean(feature));
+        return geojson.features.flatMap((f) => (isFeature(f) ? extractLineCoordinates(f) : []));
     }
-
     if (isFeature(geojson)) {
-        return [
-            {
-                ...geojson,
-                id: geojson.id ?? `${idPrefix}-feature`,
-                type: "Feature",
-                geometry: isGeometry(geojson.geometry) ? geojson.geometry : null,
-                properties: isRecord(geojson.properties)
-                    ? { ...geojson.properties, ...baseProperties }
-                    : baseProperties,
-            },
-        ];
+        return extractLineCoordinates(geojson.geometry);
     }
-
     if (isGeometry(geojson)) {
-        return [
-            {
-                id: `${idPrefix}-geometry`,
-                type: "Feature",
-                geometry: geojson,
-                properties: baseProperties,
-            },
-        ];
+        const coords = geojson.coordinates;
+        if (geojson.type === "LineString" && isCoordArray(coords)) return [coords];
+        if (geojson.type === "MultiLineString" && isCoordArrayArray(coords)) return coords;
     }
-
     return [];
 };
+
+/** Recursively collect all Point coordinates from any GeoJSON value. */
+const extractPointCoordinates = (geojson: unknown): number[][] => {
+    if (isFeatureCollection(geojson)) {
+        return geojson.features.flatMap((f) => (isFeature(f) ? extractPointCoordinates(f) : []));
+    }
+    if (isFeature(geojson)) {
+        return extractPointCoordinates(geojson.geometry);
+    }
+    if (isGeometry(geojson)) {
+        const coords = geojson.coordinates;
+        if (geojson.type === "Point" && isNumberArray(coords)) return [coords];
+        if (geojson.type === "MultiPoint" && isCoordArray(coords)) return coords;
+    }
+    return [];
+};
+
+// ── GeoJSON parsing ──────────────────────────────────────────────────────────
 
 const parseProjectGeojson = (geojsonRepresentation?: string | null) => {
     if (!geojsonRepresentation) return null;
@@ -105,8 +101,46 @@ const parseProjectGeojson = (geojsonRepresentation?: string | null) => {
     }
 };
 
+// ── feature builders (one feature per project) ───────────────────────────────
+
+const BASE_PROJECT_PROPERTIES = (project: MapViewProject) => ({
+    projectId: project.id,
+    name: project.name,
+    groupColor: project.groupColor,
+});
+
+const createProjectLineFeature = (project: MapViewProject): GeoJSONFeature | null => {
+    const geojson = parseProjectGeojson(project.geojson_representation);
+    if (!geojson) return null;
+    const lines = extractLineCoordinates(geojson);
+    if (lines.length === 0) return null;
+    return {
+        id: project.id,
+        type: "Feature",
+        geometry: { type: "MultiLineString", coordinates: lines },
+        properties: BASE_PROJECT_PROPERTIES(project),
+    };
+};
+
+const createProjectPointFeature = (project: MapViewProject): GeoJSONFeature | null => {
+    const geojson = parseProjectGeojson(project.geojson_representation);
+    if (!geojson) return null;
+    const points = extractPointCoordinates(geojson);
+    if (points.length === 0) return null;
+    return {
+        id: project.id,
+        type: "Feature",
+        geometry: { type: "MultiPoint", coordinates: points },
+        properties: BASE_PROJECT_PROPERTIES(project),
+    };
+};
+
+// ── component ────────────────────────────────────────────────────────────────
+
 type Props = {
     projects: MapViewProject[];
+    lineWidth?: number;
+    pointSize?: number;
 };
 
 type SelectedProject = {
@@ -116,7 +150,7 @@ type SelectedProject = {
     y: number;
 };
 
-export default function MapView({ projects }: Props) {
+export default function MapView({ projects, lineWidth = 4, pointSize = 5 }: Props) {
     const mapContainerRef = useRef<HTMLDivElement | null>(null);
     const mapInstanceRef = useRef<maplibregl.Map | null>(null);
     const hoverFeatureIdRef = useRef<string | number | null>(null);
@@ -126,26 +160,21 @@ export default function MapView({ projects }: Props) {
     const [selectedProject, setSelectedProject] = useState<SelectedProject | null>(null);
     const navigate = useNavigate();
 
-    const featureCollection = useMemo<GeoJSONFeatureCollection>(() => {
-        const features = projects.flatMap((project) => {
-            const geojson = parseProjectGeojson(project.geojson_representation);
-            if (!geojson) return [];
-            return createFeaturesFromGeoJson(
-                geojson,
-                {
-                    projectId: project.id,
-                    name: project.name,
-                    groupColor: project.groupColor,
-                },
-                `${project.id}`,
-            );
-        });
+    // One MultiLineString feature per project
+    const lineFeatureCollection = useMemo<GeoJSONFeatureCollection>(() => ({
+        type: "FeatureCollection",
+        features: projects
+            .map(createProjectLineFeature)
+            .filter((f): f is GeoJSONFeature => f !== null),
+    }), [projects]);
 
-        return {
-            type: "FeatureCollection",
-            features,
-        };
-    }, [projects]);
+    // One MultiPoint feature per project (only when the GeoJSON contains points)
+    const pointFeatureCollection = useMemo<GeoJSONFeatureCollection>(() => ({
+        type: "FeatureCollection",
+        features: projects
+            .map(createProjectPointFeature)
+            .filter((f): f is GeoJSONFeature => f !== null),
+    }), [projects]);
 
     useEffect(() => {
         if (!tileLayerUrl || !mapContainerRef.current) {
@@ -165,10 +194,11 @@ export default function MapView({ projects }: Props) {
                     },
                     "project-routes": {
                         type: "geojson",
-                        data: {
-                            type: "FeatureCollection",
-                            features: [],
-                        },
+                        data: { type: "FeatureCollection", features: [] },
+                    },
+                    "project-points": {
+                        type: "geojson",
+                        data: { type: "FeatureCollection", features: [] },
                     },
                 },
                 layers: [
@@ -181,14 +211,34 @@ export default function MapView({ projects }: Props) {
                         id: "project-routes-line",
                         type: "line",
                         source: "project-routes",
+                        layout: {
+                            "line-cap": "round",
+                            "line-join": "round",
+                        },
                         paint: {
                             "line-color": ["coalesce", ["get", "groupColor"], "#2563eb"],
                             "line-width": [
                                 "case",
                                 ["boolean", ["feature-state", "hover"], false],
-                                6,
-                                2,
+                                8,
+                                4,
                             ],
+                        },
+                    },
+                    {
+                        id: "project-points-circle",
+                        type: "circle",
+                        source: "project-points",
+                        paint: {
+                            "circle-color": ["coalesce", ["get", "groupColor"], "#2563eb"],
+                            "circle-radius": [
+                                "case",
+                                ["boolean", ["feature-state", "hover"], false],
+                                8,
+                                5,
+                            ],
+                            "circle-stroke-width": 1.5,
+                            "circle-stroke-color": "#ffffff",
                         },
                     },
                 ],
@@ -203,38 +253,69 @@ export default function MapView({ projects }: Props) {
             setIsMapReady(true);
         });
 
-        mapInstance.on("mousemove", "project-routes-line", (event) => {
-            const feature = event.features?.[0];
-            if (!feature || feature.id === undefined || feature.id === null) {
+        // Single map-level mousemove: checks both project layers for smooth
+        // transitions between lines and points of the same project.
+        const handleMouseMove = (event: maplibregl.MapMouseEvent & maplibregl.EventData) => {
+            const features = mapInstance.queryRenderedFeatures(event.point, {
+                layers: ["project-routes-line", "project-points-circle"],
+            });
+            const feature = features[0];
+            const newId = feature?.id !== undefined && feature?.id !== null ? feature.id : null;
+
+            if (newId === null) {
+                mapInstance.getCanvas().style.cursor = "";
+                if (hoverFeatureIdRef.current !== null) {
+                    mapInstance.setFeatureState(
+                        { source: "project-routes", id: hoverFeatureIdRef.current },
+                        { hover: false },
+                    );
+                    mapInstance.setFeatureState(
+                        { source: "project-points", id: hoverFeatureIdRef.current },
+                        { hover: false },
+                    );
+                    hoverFeatureIdRef.current = null;
+                }
                 return;
             }
 
             mapInstance.getCanvas().style.cursor = "pointer";
 
-            if (hoverFeatureIdRef.current !== null && hoverFeatureIdRef.current !== feature.id) {
+            if (hoverFeatureIdRef.current !== null && hoverFeatureIdRef.current !== newId) {
                 mapInstance.setFeatureState(
                     { source: "project-routes", id: hoverFeatureIdRef.current },
                     { hover: false },
                 );
+                mapInstance.setFeatureState(
+                    { source: "project-points", id: hoverFeatureIdRef.current },
+                    { hover: false },
+                );
             }
 
-            hoverFeatureIdRef.current = feature.id;
-            mapInstance.setFeatureState(
-                { source: "project-routes", id: feature.id },
-                { hover: true },
-            );
-        });
+            if (hoverFeatureIdRef.current !== newId) {
+                hoverFeatureIdRef.current = newId;
+                mapInstance.setFeatureState({ source: "project-routes", id: newId }, { hover: true });
+                mapInstance.setFeatureState({ source: "project-points", id: newId }, { hover: true });
+            }
+        };
 
-        mapInstance.on("mouseleave", "project-routes-line", () => {
+        // Clear hover when mouse leaves the map canvas entirely
+        const handleMouseLeaveCanvas = () => {
             mapInstance.getCanvas().style.cursor = "";
             if (hoverFeatureIdRef.current !== null) {
                 mapInstance.setFeatureState(
                     { source: "project-routes", id: hoverFeatureIdRef.current },
                     { hover: false },
                 );
+                mapInstance.setFeatureState(
+                    { source: "project-points", id: hoverFeatureIdRef.current },
+                    { hover: false },
+                );
                 hoverFeatureIdRef.current = null;
             }
-        });
+        };
+
+        mapInstance.on("mousemove", handleMouseMove);
+        mapInstance.getCanvas().addEventListener("mouseleave", handleMouseLeaveCanvas);
 
         const handleProjectClick = (
             event: maplibregl.MapMouseEvent & maplibregl.EventData,
@@ -262,7 +343,7 @@ export default function MapView({ projects }: Props) {
 
         const handleMapClick = (event: maplibregl.MapMouseEvent & maplibregl.EventData) => {
             const features = mapInstance.queryRenderedFeatures(event.point, {
-                layers: ["project-routes-line"],
+                layers: ["project-routes-line", "project-points-circle"],
             });
             if (features.length === 0) {
                 setSelectedProject(null);
@@ -270,24 +351,56 @@ export default function MapView({ projects }: Props) {
         };
 
         mapInstance.on("click", "project-routes-line", handleProjectClick);
+        mapInstance.on("click", "project-points-circle", handleProjectClick);
         mapInstance.on("click", handleMapClick);
 
         return () => {
             mapInstance.getCanvas().style.cursor = "";
+            mapInstance.getCanvas().removeEventListener("mouseleave", handleMouseLeaveCanvas);
+            mapInstance.off("mousemove", handleMouseMove);
             mapInstance.off("click", "project-routes-line", handleProjectClick);
+            mapInstance.off("click", "project-points-circle", handleProjectClick);
             mapInstance.off("click", handleMapClick);
             mapInstance.remove();
         };
     }, [tileLayerUrl]);
 
+    // Update both GeoJSON sources whenever project data changes
     useEffect(() => {
         if (!isMapReady) return;
         const mapInstance = mapInstanceRef.current;
         if (!mapInstance) return;
-        const source = mapInstance.getSource("project-routes") as maplibregl.GeoJSONSource | undefined;
-        if (!source) return;
-        source.setData(featureCollection);
-    }, [featureCollection, isMapReady]);
+        const lineSource = mapInstance.getSource("project-routes") as maplibregl.GeoJSONSource | undefined;
+        const pointSource = mapInstance.getSource("project-points") as maplibregl.GeoJSONSource | undefined;
+        if (lineSource) lineSource.setData(lineFeatureCollection);
+        if (pointSource) pointSource.setData(pointFeatureCollection);
+    }, [lineFeatureCollection, pointFeatureCollection, isMapReady]);
+
+    // Update line-width expression when the slider changes
+    useEffect(() => {
+        if (!isMapReady) return;
+        const mapInstance = mapInstanceRef.current;
+        if (!mapInstance) return;
+        mapInstance.setPaintProperty("project-routes-line", "line-width", [
+            "case",
+            ["boolean", ["feature-state", "hover"], false],
+            lineWidth + 4,
+            lineWidth,
+        ]);
+    }, [lineWidth, isMapReady]);
+
+    // Update circle-radius expression when the point size slider changes
+    useEffect(() => {
+        if (!isMapReady) return;
+        const mapInstance = mapInstanceRef.current;
+        if (!mapInstance) return;
+        mapInstance.setPaintProperty("project-points-circle", "circle-radius", [
+            "case",
+            ["boolean", ["feature-state", "hover"], false],
+            pointSize + 3,
+            pointSize,
+        ]);
+    }, [pointSize, isMapReady]);
 
     useEffect(() => {
         if (!selectedProject) return undefined;
