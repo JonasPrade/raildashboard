@@ -1,106 +1,100 @@
 # Roadmap
-Goal look at `architecture.md`
 
-## Short-Term-Features
-Frontend-Fix:
-- [ ] Don't forget the selected Groups when changig to Projects. Speichere die gesuchten Projektgruppen im local Storage des Browers und greife immer darauf zurück, sobald Gruppen gesucht werden
-- [ ] Mache Karte und Projekte als Kippschalter in der UI, sodass ich immer zwischen Karte oder Liste wählen. Benenne dafür die "Projekte" zu "Liste" um. 
-- [ ] Zwischen den einzelnen Abschnitten werden dünne Lücken angezeigt. Diese sollen möglichst verbunden werden, da das die Darstellung stört.
-- [ ] Füge eine Option bei Karte und Liste ein. Diese soll auswählbar machen, ob nur ranghöchste Projekte angezeigt werden. Das sind Projekte, die keine superior projects haben.
-
-## Mid-Termin Features
-- [ ] Use the service in backend for routing with GrassHopper to generate Routes. The Routes should be suggested in frontend. If accepted the should be added to the specific Project
-- [ ]  
-
-## Backend
-
-### RINF Implementation
-
-> **Note:** ERA data has no geo data → project geometries are less complete than initially expected.
-
-See `apps/backend/docs/RINF Railway Infrastructure Data.md` for import details.
-
-- [x] Implement RINF data model to models.py
-    - [x] Use XML Schema to create the fitting models.py
-- [x] Implement RINF data import
-    - [x] Use the serialization possibilities of RINF
-    - [x] Add import of border points .csv
-
-### Routing
-
-See `apps/backend/docs/Routing.md` for implementation details.
-
-- [x] Routing algorithm
-- [x] Implementation of pgRouting
-- [x] Implement test possibilities
-- [x] Add possibility for API usage
-
-### Testsq
-
-- [x] Implement test infrastructure
-- [x] Create example DB data
-
-### DB Structure
-
-- [ ] Implement project data model to models.py
-    - [x] ProjectGroup
-    - [x] project_to_project_group
-    - [x] Budget
-    - [x] FinVe
-    - [x] Text
-    - [x] TextType
-    - [x] text_to_project
-    - [x] BvwpData
-    - [x] project_to_section_of_line
-    - [x] project_to_operational_point
-    - [x] document
-    - [x] document_to_project
-    - [ ] ProjectProgress
-    - [ ] ProjectPhase
-    - [ ] ProjectUpdateSource
-- [ ] Check all relationships (uniqueness)
-
-### Database Transfer
-
-Transfer of existing project database to the new system via CSV export + import scripts.
-
-See `apps/backend/docs/Transfer DB for Project.md` and `apps/backend/docs/Connection between DB Open Data and ERA Rinf.md`.
-
-Data to transfer (prioritised):
-- **bks** – lower priority
-- **finve and budgets** – rebuild from scratch via original source
-- **project data** – primary transfer target
-- **infrastructure data** – not transferred (railway_lines, railway_nodes, etc.)
-- **d-takt data** – ignored
-- **texts** – no transfer
-
-### Change Tracking
-
-- [ ] Implement change tracking data model
-    - [ ] ChangeLog
-    - [ ] ChangeLogEntry
-- [ ] Implement change tracking logic (per-field change entries)
-
-### Additional Backend Features
-
-- [ ] Netzzustandsbericht (PDF processing)
-- [ ] Haushaltsberichte Tabelle VE (PDF processing + conversion)
-- [ ] Beschleunigungskommission Schiene (data transfer + update)
-- [ ] BVWP data import from legacy database
-- [x] User authentication (HTTP Basic Auth, PBKDF2, roles: viewer / editor / admin)
-- [ ] Celery task queue (potentially for routing)
-- [ ] OpenStreetMap data connection (broad coverage, but complex for routing queries)
-- [ ] DB OpenData connection (https://www.govdata.de/suche/daten/schienennetz-deutsche-bahnddea3)
-- [ ] Benutzer mit verschiedenen Arbeitsrechten -> Bearbeitung nur nach Login und wenn Bearbeitungsrechte vorliegen
+Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`.
 
 ---
 
-## Frontend
+## Short-Term Features
 
+### Frontend
 
+- [ ] **Gruppen-Persistenz zwischen Karte und Liste**
+  Gruppenfilter wird als URL-Param gespeichert (`?group=id1,id2`). Beim Wechsel zwischen Karte und Liste bleibt der aktive Filter erhalten. *(Aktuelle Implementierung: URL-Params — kein localStorage nötig.)*
+
+- [ ] **Karte/Liste als Tab-Toggle auf einer Seite**
+  Karte und Projektliste werden auf derselben Route (`/`) zusammengeführt. Ein Tab-Toggle (`Karte` | `Liste`) auf der Seite steuert die aktive Ansicht. Aktive Ansicht wird im URL-Param gespeichert (`?view=map` oder `?view=list`), damit Links auf eine bestimmte Ansicht zeigen können. Die Navigation "Projekte" im Header entfällt bzw. wird Teil des Toggles. Bisherige Route `/projects` wird auf `/?view=list` weitergeleitet.
+
+- [ ] **Nur ranghöchste Projekte anzeigen** *(Karte + Liste)*
+  Toggle/Checkbox in der Filterleiste: "Nur übergeordnete Projekte". Filtert auf Projekte, bei denen `superior_project_id IS NULL`. Default: alle Projekte anzeigen.
+
+---
+
+## Mid-Term Features
+
+- [ ] **Routenvorschlag per GrassHopper** *(Backend + Frontend)*
+  Im Backend existiert bereits ein Routing-Microservice (GrassHopper/pgRouting). Ablauf:
+  1. Nutzer öffnet ein Projekt und wählt "Route berechnen"
+  2. Start- und Endpunkt werden aus bekannten **OperationalPoints** (Dropdown, durchsuchbar) gewählt
+  3. Backend berechnet Route und gibt GeoJSON zurück
+  4. Frontend zeigt die vorgeschlagene Route als Vorschau auf der Karte an
+  5. Nutzer akzeptiert → Route wird als `geojson_representation` des Projekts gespeichert (PATCH)
+  6. Nutzer lehnt ab → Vorschau wird verworfen
+
+- [ ] **Login-UI + Rollenbasierte Bearbeitung** *(Frontend)*
+  Das Backend hat bereits HTTP Basic Auth mit Rollen (viewer / editor / admin).
+  Fehlend im Frontend:
+  - Login-Dialog oder Login-Seite (Eingabe von Username + Passwort, Token/Session im Browser speichern)
+  - Bearbeiten-Button in `ProjectDetail` und andere Schreiboperationen nur sichtbar/aktiv, wenn Nutzer eingeloggt ist und die Rolle `editor` oder `admin` hat
+  - Logout-Möglichkeit im Header
+
+- [ ] **User-Management-Seite** *(Frontend + Backend)*
+  Nur für Admins zugänglich. Ermöglicht:
+  - Nutzer anlegen (Name, Passwort, Rolle)
+  - Nutzer bearbeiten (Rolle ändern, Passwort zurücksetzen)
+  - Nutzer deaktivieren/löschen
+  Backend-Endpunkte für User-CRUD müssen ggf. noch ergänzt werden.
+
+- [ ] **Change Tracking** *(Backend + Frontend)*
+  Datenmodell existiert (`ChangeLog`, `ChangeLogEntry`), Logik fehlt noch.
+  - Backend: Bei jedem PATCH auf ein Projekt werden geänderte Felder als `ChangeLogEntry` geschrieben (vorher/nachher per Feld)
+  - Frontend: Pro Projekt eine "Versionshistorie"-Ansicht (Timeline) mit Datum, Feld, altem/neuem Wert und Nutzer
+  - Revert-Funktion: Einzelne Felder auf einen früheren Stand zurücksetzen (nur editor/admin)
+
+- [ ] **ProjectProgress** *(Backend + Frontend)*
+  Fortschrittsstand eines Projekts (Planungs-, Genehmigungs-, Bauphase). Speist sich aus mehreren Quellen (z. B. Bundestag-Drucksachen, Pressemitteilungen, manuelle Eingabe). Benötigt Validierungslogik für Konflikte zwischen Quellen.
+  - Backend: `ProjectProgress`-Modell implementieren (Status, Datum, Quelle, Kommentar)
+  - Frontend: Zeitleiste/Meilenstein-Ansicht in `ProjectDetail`
+
+---
+
+## Long-Term Features
+
+- [ ] **Netzzustandsbericht** — PDF-Import, Extraktion relevanter Kennzahlen in die Datenbank
+- [ ] **Haushaltsberichte Tabelle VE** — PDF-Import und Konvertierung in `FinVe`-Einträge
+- [ ] **Beschleunigungskommission Schiene** — Datentransfer aus öffentlichen Quellen + automatische Updates
+- [ ] **BVWP-Datenimport** — Übernahme aus Legacy-Datenbank
+- [x] **User Authentication** — HTTP Basic Auth, PBKDF2, Rollen: viewer / editor / admin
+- [ ] **Celery Task Queue** — Für lang laufende Tasks (Routing, PDF-Verarbeitung)
+- [ ] **OpenStreetMap-Anbindung** — Breite Abdeckung, aber komplex für Routing-Anfragen
+- [ ] **DB OpenData** — Schienennetz Deutsche Bahn ([GovData](https://www.govdata.de/suche/daten/schienennetz-deutsche-bahnddea3))
+- [ ] **RINF-Daten evaluieren** — Für Bahnhofs-/Stationsverbindungen ggf. weiterhin benötigt
+- [ ] **GeoLine-Erstellung** — Möglichkeit, neue Streckengeometrien zu erzeugen, wenn vorhandene unvollständig/ungültig sind. Ansatz noch offen (Zeichentool auf Karte vs. automatische Vervollständigung).
+
+---
+
+## Database Transfer
+
+Bestehende Daten aus der alten Datenbank können per CSV-Export + Importscript übernommen werden.
+
+Siehe `apps/backend/docs/Transfer DB for Project.md` und `apps/backend/docs/Connection between DB Open Data and ERA Rinf.md`.
+
+Priorität:
+- **project data** — primäres Transferziel
+- **finve and budgets** — aus Originalquellen neu aufbauen
+- **bks** — niedrige Priorität
+- **infrastructure data** — wird nicht übertragen
+- **d-takt data** — ignoriert
+- **texts** — kein Transfer
+
+---
 
 ## Finished
-Frontend-Fix
 
-- [x] Dicke der Linien auf Karte einstellbar machen und standardmäßig dicker
-- [x] In Projektansicht oben neben Button "Zur Projektübersicht" einen Button einfügen, der zurück zur Karte führt
+- [x] Dicke der Linien auf Karte einstellbar, standardmäßig dicker (4 px)
+- [x] Größe der Punkte auf Karte einstellbar
+- [x] In Projektansicht Button "Zur Karte" neben "Zur Projektübersicht"
+- [x] Lücken zwischen Liniensegmenten behoben (MultiLineString + `line-cap: round`)
+- [x] Punkte aus GeoJSON auf Karte dargestellt (separater Circle-Layer)
+- [x] Gruppen-Persistenz über URL-Params beim Wechsel zwischen Karte und Projektliste
+- [x] User Authentication (HTTP Basic Auth, PBKDF2, Rollen: viewer / editor / admin)
+- [x] Routing-Algorithmus implementiert (pgRouting / GrassHopper-Microservice)
