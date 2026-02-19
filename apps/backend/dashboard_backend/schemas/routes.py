@@ -17,6 +17,23 @@ class RouteIn(BaseModel):
     options: Dict[str, Any] = Field(default_factory=dict)
 
 
+class RoutePreviewOut(BaseModel):
+    """GeoJSON Feature returned by the calculate endpoint (not yet persisted)."""
+
+    type: Literal["Feature"] = "Feature"
+    geometry: Dict[str, Any]
+    properties: Dict[str, Any]
+
+
+class RouteConfirmIn(BaseModel):
+    """Body for the confirm endpoints (add or replace).
+
+    The frontend sends back the GeoJSON Feature it received from /routes/calculate.
+    """
+
+    feature: Dict[str, Any]
+
+
 class RouteOut(BaseModel):
     route_id: UUID
     project_id: UUID

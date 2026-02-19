@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from typing import Any, Dict, List
 from uuid import UUID
 
 from fastapi import Depends, HTTPException, Query
@@ -13,7 +13,12 @@ from dashboard_backend.database import get_db
 from dashboard_backend.dependencies.routes import get_route_service
 from dashboard_backend.models.routes import Route
 from dashboard_backend.routing.auth_router import AuthRouter
-from dashboard_backend.schemas.routes import RouteIn, RouteOut
+from dashboard_backend.schemas.routes import (
+    RouteConfirmIn,
+    RouteIn,
+    RouteOut,
+    RoutePreviewOut,
+)
 from dashboard_backend.services.exceptions import RoutingNoPathError, RoutingUpstreamError
 from dashboard_backend.services.route_service import RouteService
 
@@ -41,24 +46,77 @@ def _to_route_out(route: Route) -> RouteOut:
 
 
 @router.post(
-    "/projects/{project_id}/routes",
-    response_model=RouteOut,
-    status_code=201,
+    "/routes/calculate",
+    response_model=RoutePreviewOut,
 )
-async def create_route(
-    project_id: UUID,
+async def calculate_route(
     request: RouteIn,
-    db: Session = Depends(get_db),
     service: RouteService = Depends(get_route_service),
-) -> RouteOut:
+) -> Dict[str, Any]:
+    """Calculate a route and return it as a GeoJSON Feature preview.
+
+    Nothing is saved to the database. The frontend can evaluate the result
+    and then call the confirm endpoint to persist it.
+    """
     waypoints = [waypoint.model_dump() for waypoint in request.waypoints]
 
     try:
-        route = await service.create_and_store(db, project_id, waypoints, request.profile, request.options)
+        feature = await service.calculate_only(waypoints, request.profile, request.options)
     except RoutingNoPathError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     except RoutingUpstreamError as error:
         raise HTTPException(status_code=502, detail=str(error)) from error
+
+    return feature
+
+
+@router.post(
+    "/projects/{project_id}/routes",
+    response_model=RouteOut,
+    status_code=201,
+)
+async def confirm_route(
+    project_id: UUID,
+    request: RouteConfirmIn,
+    db: Session = Depends(get_db),
+    service: RouteService = Depends(get_route_service),
+) -> RouteOut:
+    """Confirm a calculated route and add it to the project.
+
+    The frontend sends back the GeoJSON Feature it received from /routes/calculate.
+    The route is persisted to the database and linked to the given project.
+    """
+    try:
+        route = service.confirm_and_store(db, project_id, request.feature)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+    return _to_route_out(route)
+
+
+@router.put(
+    "/projects/{project_id}/routes/{route_id}",
+    response_model=RouteOut,
+)
+async def replace_route(
+    project_id: UUID,
+    route_id: UUID,
+    request: RouteConfirmIn,
+    db: Session = Depends(get_db),
+    service: RouteService = Depends(get_route_service),
+) -> RouteOut:
+    """Confirm a calculated route and replace an existing one in the project.
+
+    The frontend sends back the GeoJSON Feature it received from /routes/calculate.
+    The existing route (identified by route_id) is updated in-place.
+    """
+    try:
+        route = service.confirm_and_replace(db, project_id, route_id, request.feature)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+    if route is None:
+        raise HTTPException(status_code=404, detail="route not found")
 
     return _to_route_out(route)
 
