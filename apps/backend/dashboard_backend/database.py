@@ -1,14 +1,9 @@
-from dotenv import load_dotenv
-import os
-
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-load_dotenv()
+from dashboard_backend.core.config import settings
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-engine = create_engine(DATABASE_URL)
+engine = create_engine(settings.database_url)
 Session = sessionmaker(autocommit=False, bind=engine)
 
 def get_db():
@@ -17,4 +12,3 @@ def get_db():
         yield db
     finally:
         db.close()
-

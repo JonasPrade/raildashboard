@@ -2,8 +2,10 @@ import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
 
-# Select the correct .env file depending on the environment
-# env_file = '.env.test' if os.getenv("ENVIRONMENT") == 'test' else '.env'
+# Repo root is 4 levels up from this file:
+# dashboard_backend/core/config.py -> core -> dashboard_backend -> backend -> apps -> repo root
+_REPO_ROOT = Path(__file__).parents[4]
+_ENV_SUFFIX = f".{os.getenv('ENVIRONMENT')}" if os.getenv('ENVIRONMENT') else ""
 
 class Settings(BaseSettings):
     # Explicitly map environment variable names for clarity
@@ -20,8 +22,9 @@ class Settings(BaseSettings):
     backend_cors_origins: list[str] = ["http://localhost:5173"]
 
     model_config = SettingsConfigDict(
-        env_file=f".env{'.' + os.getenv('ENVIRONMENT') if os.getenv('ENVIRONMENT') else ''}",
-        case_sensitive=False
+        env_file=str(_REPO_ROOT / f".env{_ENV_SUFFIX}"),
+        case_sensitive=False,
+        extra="ignore"
     )
 
 settings = Settings()
