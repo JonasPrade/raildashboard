@@ -131,11 +131,13 @@ python scripts/import_rinf_data/import_xml.py --help
 ```
 
 ## Contributing
+
+Consult **`AGENT.md`** at the repository root before making substantial changes. Backend-specific reminders are in `agent.md` (this directory).
+
 - Follow the existing module layout (`api`, `crud`, `models`, `schemas`).
-- Introduce new groups of database tables in dedicated subdirectories (e.g. `osmr`, `eba_data`, `project_data`) to keep the structure discoverable.
+- Introduce new groups of database tables in dedicated subdirectories (e.g. `osmr`, `eba_data`, `project_data`).
 - Add meaningful tests for new functionality.
-- Update the README and relevant files in `docs/` whenever setup steps or data flows change.
-- Consult `agent.md` before making substantial changes.
+- Update this README and relevant files in `docs/` whenever setup steps or data flows change.
 
 ## Further Documentation
 The `docs/` directory contains domain knowledge (e.g. the RINF data model), architecture decisions, and roadmaps. Review the relevant documents whenever introducing new features or import paths.

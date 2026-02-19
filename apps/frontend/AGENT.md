@@ -1,6 +1,10 @@
-# Contributor guide
+# Contributor Guide – Frontend
 
-> **Default language:** English. Please write code comments, documentation, commit messages, and discussions in English.
+> The authoritative contributor guide is **`AGENT.md` at the repository root**. Read that first.
+
+This file contains frontend-specific details that complement the root guide.
+
+> **Default language:** English. Write code, comments, documentation, and commit messages in English. UI strings are in German.
 
 ## Project structure
 

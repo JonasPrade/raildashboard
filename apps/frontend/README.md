@@ -66,3 +66,7 @@ Feel free to add project-specific tests or linters as they become available. Doc
 ## Licence
 
 The project is currently internal. Add a licence file once the project is ready for public release.
+
+---
+
+See the **repository root** for the project-wide `README.md`, `AGENT.md`, `Makefile`, and `.env.example`.
