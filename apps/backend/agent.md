@@ -1,29 +1,25 @@
-# Contributor Guidance for Schienendashboard Backend
+# Contributor Guidance – Backend
 
-These guidelines apply to the entire repository and are intended for all future changes.
+> The authoritative contributor guide is **`AGENT.md` at the repository root**. Read that first.
 
-## Code & Architecture
-- Prefer type hints in new or modified Python functions.
-- Maintain the separation of concerns between `api`, `schemas`, `crud`, and `models`. New endpoints require matching schema and CRUD updates.
-- Create a dedicated Alembic migration for every database model change.
-- When introducing a new group of related database tables, place the models inside a new subdirectory (e.g. `osmr`, `eba_data`, `project_data`) so that domain boundaries stay clear.
+This file contains backend-specific reminders that complement the root guide.
 
-## Documentation
-- Update the README and relevant files under `docs/` whenever setup steps, import flows, or domain models change.
-- Provide examples and background information in English going forward.
+## Architecture quick reference
 
-## Tests & Quality Assurance
-- Run `pytest` whenever Python code changes. Pure documentation or text-only changes are exempt.
-- Summarize in the PR or commit message which tests were executed and highlight any manual steps.
-- Extend or adjust the tests in `tests/api/` immediately whenever you add or modify API routes.
+| Layer | Location | Responsibility |
+|---|---|---|
+| Routers | `dashboard_backend/api/v1/endpoints/` | HTTP endpoints, request validation |
+| Schemas | `dashboard_backend/schemas/` | Pydantic request/response models |
+| CRUD | `dashboard_backend/crud/` | Database queries via SQLAlchemy |
+| Models | `dashboard_backend/models/` | SQLAlchemy ORM models |
+| Services | `dashboard_backend/services/` | Business logic, external client calls |
 
-## Data Imports
-- Add new import scripts under `scripts/` and expose a CLI via `argparse`.
-- Document new import paths in `docs/` and include a short example in the README.
+## Key rules
 
-## DB Connection
-- there is a DB which is Postgres with Postgis extension enabled.
-- Use SQLAlchemy ORM for all DB interactions.
-- Use only Postgres and no SQLite for develompenet
-
-Thank you for contributing to the project!
+- Use **type hints** in all new or modified Python functions.
+- Use **SQLAlchemy ORM** for all database interactions – never raw SQL, never SQLite.
+- The database is **PostgreSQL with PostGIS**. Geometry columns require PostGIS.
+- Group related tables in a dedicated subdirectory (e.g. `models/osmr/`, `models/eba_data/`).
+- Create a **dedicated Alembic migration** for every model change.
+- Run `pytest` for every Python change; extend `tests/api/` when adding or changing routes.
+- New import scripts go under `scripts/` with an `argparse` CLI; document them in `docs/` and `README.md`.
