@@ -185,7 +185,7 @@ export default function ProjectGroupsPage() {
     );
 }
 
-function ProjectCard({ project }: { project: Project }) {
+export function ProjectCard({ project }: { project: Project }) {
     const lengthValue = typeof project.length === "number" ? `${project.length.toLocaleString("de-DE")}` : null;
     const hasProjectId = typeof project.id === "number" && Number.isFinite(project.id);
     const cardProps = hasProjectId

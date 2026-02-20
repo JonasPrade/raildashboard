@@ -223,10 +223,10 @@ export default function ProjectDetail() {
                         </Text>
                     </Stack>
                     <Group gap="sm">
-                        <Button variant="default" component={Link} to={searchParams.get("group") ? `/?group=${searchParams.get("group")}` : "/"}>
+                        <Button variant="default" component={Link} to={`/?view=map${searchParams.get("group") ? `&group=${searchParams.get("group")}` : ""}`}>
                             Zur Karte
                         </Button>
-                        <Button variant="default" component={Link} to={searchParams.get("group") ? `/projects?group=${searchParams.get("group")}` : "/projects"}>
+                        <Button variant="default" component={Link} to={`/?view=list${searchParams.get("group") ? `&group=${searchParams.get("group")}` : ""}`}>
                             Zur Projektübersicht
                         </Button>
                         <Button onClick={() => setEditOpened(true)}>Bearbeiten</Button>

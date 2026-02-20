@@ -1,9 +1,8 @@
-import { createBrowserRouter, Outlet } from "react-router-dom";
+import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 import { AppShell } from "@mantine/core";
 import { Header } from "./components/Header";
 import MapPage from "./features/map/MapPage";
 import DocumentationPage from "./features/documentation/DocumentationPage";
-import ProjectGroupsPage from "./features/projects/ProjectGroupsPage";
 import ProjectDetail from "./features/projects/ProjectDetail";
 
 function Layout() {
@@ -26,7 +25,7 @@ export const router = createBrowserRouter([
         children: [
             { index: true, element: <MapPage /> },
             { path: "documentation", element: <DocumentationPage /> },
-            { path: "projects", element: <ProjectGroupsPage /> },
+            { path: "projects", element: <Navigate to="/?view=list" replace /> },
             { path: "projects/:projectId", element: <ProjectDetail /> }
         ]
     }
