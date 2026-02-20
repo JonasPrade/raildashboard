@@ -58,7 +58,41 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 ## Long-Term Features
 
 - [ ] **Netzzustandsbericht** — PDF-Import, Extraktion relevanter Kennzahlen in die Datenbank
-- [ ] **Haushaltsberichte Tabelle VE** — PDF-Import und Konvertierung in `FinVe`-Einträge
+- [ ] **Haushaltsberichte Tabelle VE** *(Backend + Frontend)*
+  Jährlicher Import der Anlage VWIB, Teil B (Bundeshaushalt) als PDF.
+  Die Tabelle enthält alle Bedarfsplanmaßnahmen des Schienenwegeinvestitionsprogramms
+  mit FinVe-Nummern, Kostenschätzungen und Jahresansätzen je Haushaltskonto.
+
+  **Zweistufiger Ablauf:**
+
+  1. **Verarbeitung (Parse-Schritt):**
+     - `POST /api/v1/import/haushalt/parse` nimmt PDF + Haushaltsjahr entgegen
+     - Backend extrahiert Tabellenzeilen (`pdfplumber` / `pymupdf`), trennt
+       Hauptzeilen (FinVe-Einträge) von Titelunterzeilen (891 01, 891 52 etc.)
+     - Gleicht jede FinVe-Nummer gegen bestehende `Finve`-Einträge in der DB ab:
+       - **Vorhanden:** Änderungen werden als Update-Vorschlag markiert
+       - **Neu:** FinVe wird als neu zu erstellen markiert; die Projektzuordnung
+         (`finve_to_project`) bleibt zunächst leer und muss im Frontend manuell
+         hergestellt werden (ein oder mehrere Projekte)
+     - Nicht zuordenbare Zeilen (fehlende/unklare FinVe-Nummer) werden als
+       `unmatched_rows` zurückgegeben und können im Review-Schritt manuell
+       einer bestehenden FinVe zugewiesen werden
+     - Für große Dokumente: asynchron via Celery Task Queue, Polling über
+       `GET /api/v1/import/haushalt/status/{task_id}`
+
+  2. **Freigabe (Confirm-Schritt):**
+     - `POST /api/v1/import/haushalt/confirm` nimmt den (ggf. manuell korrigierten)
+       Vorschlag entgegen und schreibt `Finve`- und `Budget`-Einträge transaktional
+     - Nur für Rollen `editor` / `admin`
+     - Import wird im ChangeLog protokolliert (Nutzer, Zeitstempel, Haushaltsjahr)
+
+  **Frontend:** Review-Seite zeigt Vorschau der Änderungen (neue/geänderte FinVes,
+  neue Budget-Zeilen, ungematchte Einträge). Für neue FinVes, die noch keinem Projekt
+  zugeordnet sind, bietet die UI eine Auswahl bestehender Projekte an (Mehrfachauswahl).
+  Erst nach manueller Prüfung wird Confirm ausgelöst.
+
+  **Abhängigkeiten:** Celery Task Queue (für asynchronen Parse-Schritt),
+  ChangeLog-Infrastruktur (für Protokollierung).
 - [ ] **Beschleunigungskommission Schiene** — Datentransfer aus öffentlichen Quellen + automatische Updates
 - [ ] **BVWP-Datenimport** — Übernahme aus Legacy-Datenbank
 - [x] **User Authentication** — HTTP Basic Auth, PBKDF2, Rollen: viewer / editor / admin
