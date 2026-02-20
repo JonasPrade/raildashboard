@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Paper, Stack, Text } from "@mantine/core";
 import maplibregl from "maplibre-gl";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 const tileLayerUrl = import.meta.env.REACT_APP_TILE_LAYER_URL as string | undefined;
 const tileAttribution =
@@ -159,6 +159,7 @@ export default function MapView({ projects, lineWidth = 4, pointSize = 5 }: Prop
     const [isMapReady, setIsMapReady] = useState(false);
     const [selectedProject, setSelectedProject] = useState<SelectedProject | null>(null);
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
 
     // One MultiLineString feature per project
     const lineFeatureCollection = useMemo<GeoJSONFeatureCollection>(() => ({
@@ -478,7 +479,8 @@ export default function MapView({ projects, lineWidth = 4, pointSize = 5 }: Prop
                         <Button
                             size="xs"
                             onClick={() => {
-                                navigate(`/projects/${selectedProject.id}`);
+                                const groupParam = searchParams.get("group");
+                                navigate(`/projects/${selectedProject.id}${groupParam ? `?group=${groupParam}` : ""}`);
                                 setSelectedProject(null);
                             }}
                         >

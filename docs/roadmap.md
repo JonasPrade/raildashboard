@@ -8,8 +8,6 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 
 ### Frontend
 
-- [ ] **Gruppen-Persistenz zwischen Karte und Liste**
-  Gruppenfilter wird als URL-Param gespeichert (`?group=id1,id2`). Beim Wechsel zwischen Karte und Liste bleibt der aktive Filter erhalten. *(Aktuelle Implementierung: URL-Params — kein localStorage nötig.)*
 
 - [ ] **Karte/Liste als Tab-Toggle auf einer Seite**
   Karte und Projektliste werden auf derselben Route (`/`) zusammengeführt. Ein Tab-Toggle (`Karte` | `Liste`) auf der Seite steuert die aktive Ansicht. Aktive Ansicht wird im URL-Param gespeichert (`?view=map` oder `?view=list`), damit Links auf eine bestimmte Ansicht zeigen können. Die Navigation "Projekte" im Header entfällt bzw. wird Teil des Toggles. Bisherige Route `/projects` wird auf `/?view=list` weitergeleitet.
@@ -98,3 +96,6 @@ Priorität:
 - [x] Gruppen-Persistenz über URL-Params beim Wechsel zwischen Karte und Projektliste
 - [x] User Authentication (HTTP Basic Auth, PBKDF2, Rollen: viewer / editor / admin)
 - [x] Routing-Algorithmus implementiert (pgRouting / GrassHopper-Microservice)
+
+- [x] **Gruppen-Persistenz zwischen Karte und Liste**
+  Gruppenfilter wird als URL-Param gespeichert (`?group=id1,id2`). Beim Wechsel zwischen Karte und Liste bleibt der aktive Filter erhalten. *(Aktuelle Implementierung: URL-Params — kein localStorage nötig.)*

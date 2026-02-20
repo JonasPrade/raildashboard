@@ -1,9 +1,8 @@
 import { Group, Title } from "@mantine/core";
-import { NavLink, useLocation, useSearchParams } from "react-router-dom";
+import { NavLink, useSearchParams } from "react-router-dom";
 import type { CSSProperties } from "react";
 
 export function Header() {
-    const { pathname } = useLocation();
     const [searchParams] = useSearchParams();
 
     const baseStyle: CSSProperties = {
@@ -14,16 +13,17 @@ export function Header() {
         fontWeight: 500
     };
 
-    // When navigating from the map, carry the active group filter to the projects page
+    // Carry the active group filter when switching between map and projects
     const groupParam = searchParams.get("group");
-    const projectsTo = pathname === "/" && groupParam ? `/projects?group=${groupParam}` : "/projects";
+    const mapTo = groupParam ? `/?group=${groupParam}` : "/";
+    const projectsTo = groupParam ? `/projects?group=${groupParam}` : "/projects";
 
     return (
         <Group justify="space-between" px="md" py="xs">
             <Title order={2}>Schienenprojekte-Dashboard</Title>
             <Group gap="xs">
                 <NavLink
-                    to="/"
+                    to={mapTo}
                     end
                     style={({ isActive }) => ({
                         ...baseStyle,

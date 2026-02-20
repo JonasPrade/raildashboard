@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
     Alert,
     Badge,
@@ -97,6 +97,7 @@ function createUpdatePayload(values: ProjectEditFormValues): ProjectUpdatePayloa
 export default function ProjectDetail() {
     const params = useParams<RouteParams>();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const queryClient = useQueryClient();
     const [editOpened, setEditOpened] = useState(false);
     const projectId = Number(params.projectId);
@@ -222,10 +223,10 @@ export default function ProjectDetail() {
                         </Text>
                     </Stack>
                     <Group gap="sm">
-                        <Button variant="default" component={Link} to="/">
+                        <Button variant="default" component={Link} to={searchParams.get("group") ? `/?group=${searchParams.get("group")}` : "/"}>
                             Zur Karte
                         </Button>
-                        <Button variant="default" component={Link} to="/projects">
+                        <Button variant="default" component={Link} to={searchParams.get("group") ? `/projects?group=${searchParams.get("group")}` : "/projects"}>
                             Zur Projektübersicht
                         </Button>
                         <Button onClick={() => setEditOpened(true)}>Bearbeiten</Button>
