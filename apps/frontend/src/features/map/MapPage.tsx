@@ -11,6 +11,7 @@ import {
     Select,
     SimpleGrid,
     Stack,
+    Switch,
     Text,
     Title,
 } from "@mantine/core";
@@ -41,6 +42,14 @@ export default function MapPage() {
     const [pointSize, setPointSize] = useState(DEFAULT_POINT_SIZE);
 
     const view = searchParams.get("view") ?? "map";
+    const onlySuperior = searchParams.get("only_superior") !== "false"; // default true
+
+    const handleOnlySuperiorChange = (checked: boolean) => {
+        setSearchParams((prev) => {
+            prev.set("only_superior", String(checked));
+            return prev;
+        });
+    };
 
     // --- Shared: all groups with numeric ids ---
     const groups = useMemo(() => (data ?? []).filter(hasNumericId), [data]);
@@ -74,7 +83,7 @@ export default function MapPage() {
     const selectedProjects = useMemo(() => {
         const projectMap = new Map<
             number,
-            { id: number; name: string; groupColor?: string; geojson_representation?: string | null }
+            { id: number; name: string; groupColor?: string; geojson_representation?: string | null; superior_project_id?: number | null }
         >();
         selectedGroups.forEach((group) => {
             const groupColor = group.color?.trim().length ? group.color : DEFAULT_GROUP_COLOR;
@@ -85,12 +94,16 @@ export default function MapPage() {
                         name: project.name,
                         groupColor,
                         geojson_representation: project.geojson_representation,
+                        superior_project_id: project.superior_project_id,
                     });
                 }
             });
         });
-        return Array.from(projectMap.values());
-    }, [selectedGroups]);
+        const allProjects = Array.from(projectMap.values());
+        return onlySuperior
+            ? allProjects.filter((p) => p.superior_project_id == null)
+            : allProjects;
+    }, [selectedGroups, onlySuperior]);
 
     // --- List tab: single-group selection (first entry in ?group) ---
     const selectedGroupId = useMemo(() => {
@@ -152,7 +165,10 @@ export default function MapPage() {
         const selectedGroup = selectedGroupId
             ? groups.find((group) => group.id === selectedGroupId)
             : undefined;
-        const projects = (selectedGroup?.projects ?? []).filter(Boolean) as Project[];
+        const rawProjects = (selectedGroup?.projects ?? []).filter(Boolean) as Project[];
+        const projects = onlySuperior
+            ? rawProjects.filter((p) => p.superior_project_id == null)
+            : rawProjects;
         const selectData = groups.map((group) => ({
             value: String(group.id),
             label: group.name,
@@ -247,11 +263,20 @@ export default function MapPage() {
                         <Stack gap="md">
                             <Group justify="space-between" align="center">
                                 <Title order={3}>Projekte</Title>
-                                <Text size="sm" c="dimmed">
-                                    {projects.length === 1
-                                        ? "1 Projekt in dieser Gruppe"
-                                        : `${projects.length} Projekte in dieser Gruppe`}
-                                </Text>
+                                <Group gap="md">
+                                    <Switch
+                                        label="Nur Hauptprojekte"
+                                        checked={onlySuperior}
+                                        onChange={(e) => handleOnlySuperiorChange(e.currentTarget.checked)}
+                                        size="sm"
+                                    />
+                                    <Text size="sm" c="dimmed">
+                                        {projects.length === 1 ? "1 Projekt" : `${projects.length} Projekte`}
+                                        {onlySuperior && rawProjects.length !== projects.length
+                                            ? ` (von ${rawProjects.length})`
+                                            : " in dieser Gruppe"}
+                                    </Text>
+                                </Group>
                             </Group>
 
                             {projects.length === 0 ? (
@@ -289,6 +314,8 @@ export default function MapPage() {
                         onLineWidthChange={setLineWidth}
                         pointSize={pointSize}
                         onPointSizeChange={setPointSize}
+                        onlySuperior={onlySuperior}
+                        onOnlySuperiorChange={handleOnlySuperiorChange}
                     />
                 </Box>
             </Container>
