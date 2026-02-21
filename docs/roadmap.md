@@ -6,10 +6,6 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 
 ## Short-Term Features
 
-### Frontend
-
-
-- [ ] **Die Anzeige bei Auswahl eines Projektes in der Karte soll nicht nur den Namen und mehr Informationen, sondern die wichtigsten Informationen des Projektes anzeigen, nämlich die Projektnummer sowie die Beschreibung.** 
 
 ---
 
@@ -24,19 +20,44 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
   5. Nutzer akzeptiert → Route wird als `geojson_representation` des Projekts gespeichert (PATCH)
   6. Nutzer lehnt ab → Vorschau wird verworfen
 
-- [ ] **Login-UI + Rollenbasierte Bearbeitung** *(Frontend)*
-  Das Backend hat bereits HTTP Basic Auth mit Rollen (viewer / editor / admin).
-  Fehlend im Frontend:
-  - Login-Dialog oder Login-Seite (Eingabe von Username + Passwort, Token/Session im Browser speichern)
-  - Bearbeiten-Button in `ProjectDetail` und andere Schreiboperationen nur sichtbar/aktiv, wenn Nutzer eingeloggt ist und die Rolle `editor` oder `admin` hat
-  - Logout-Möglichkeit im Header
+### Benutzerverwaltung *(geordnete Implementierungsschritte)*
 
-- [ ] **User-Management-Seite** *(Frontend + Backend)*
-  Nur für Admins zugänglich. Ermöglicht:
-  - Nutzer anlegen (Name, Passwort, Rolle)
-  - Nutzer bearbeiten (Rolle ändern, Passwort zurücksetzen)
-  - Nutzer deaktivieren/löschen
-  Backend-Endpunkte für User-CRUD müssen ggf. noch ergänzt werden.
+- [ ] **Schritt 1: Login-UI** *(Frontend)*
+  Das Backend hat bereits HTTP Basic Auth mit Rollen (viewer / editor / admin).
+  Die App bleibt für alle Nutzer vollständig lesbar — Login ist nur für Schreiboperationen nötig.
+  - „Anmelden"-Button im Header öffnet Login-Formular (Modal)
+  - Credentials im React-Context vorhalten; `Authorization`-Header wird bei API-Requests mitgesendet
+  - API-Interceptor: bei 401/403 → Login-Modal öffnen (kein Zwangs-Redirect für Lesezugriff)
+  - Nach erfolgreichem Login: Header zeigt Nutzername + „Abmelden"-Button
+
+- [ ] **Schritt 2: Rollenbasierte Bearbeitung** *(Frontend)*
+  Abhängigkeit: Schritt 1 abgeschlossen.
+  - „Bearbeiten"-Button in `ProjectDetail` und alle anderen Schreiboperationen nur sichtbar/aktiv
+    für eingeloggte Nutzer mit Rolle `editor` oder `admin`
+  - Nicht eingeloggte Nutzer sehen alle Daten uneingeschränkt, aber keine Bearbeitungs-Controls
+  - Admin-Bereich im Header nur für `admin` sichtbar
+
+- [ ] **Schritt 3: Passwort zurücksetzen per E-Mail** *(Backend + Frontend)*
+  Abhängigkeit: Schritt 1 abgeschlossen.
+  Backend:
+  - Feld `email` zum User-Modell ergänzen + Migration
+  - Tabelle `password_reset_token` (Token, User-ID, Ablaufzeitpunkt) + Migration
+  - SMTP-Konfiguration in Settings (Host, Port, Credentials)
+  - `POST /api/v1/auth/request-reset` — nimmt E-Mail, sendet Reset-Link per Mail
+  - `POST /api/v1/auth/reset-password` — nimmt Token + neues Passwort, invalidiert Token
+  Frontend:
+  - „Passwort vergessen?"-Link im Login-Modal → E-Mail-Eingabeformular
+  - Reset-Formular (neues Passwort, Token aus URL-Param des Mail-Links)
+
+- [ ] **Schritt 4: User-Management-Seite** *(Backend + Frontend)*
+  Abhängigkeit: Schritte 1 + 2 abgeschlossen. Nur für Admins zugänglich.
+  Backend (fehlende Endpunkte ergänzen):
+  - `PUT /api/v1/users/{id}` — Rolle, E-Mail oder Passwort ändern
+  - `DELETE /api/v1/users/{id}` — Nutzer löschen
+  Frontend:
+  - Seite `/admin/users`: Tabelle aller Nutzer (Name, Rolle, E-Mail, erstellt am)
+  - Nutzer anlegen (Name, E-Mail, Rolle, initiales Passwort oder Reset-Link versenden)
+  - Rolle ändern / Passwort zurücksetzen / Nutzer löschen
 
 - [ ] **Change Tracking** *(Backend + Frontend)*
   Datenmodell existiert (`ChangeLog`, `ChangeLogEntry`), Logik fehlt noch.
@@ -91,7 +112,7 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
   ChangeLog-Infrastruktur (für Protokollierung).
 - [ ] **Beschleunigungskommission Schiene** — Datentransfer aus öffentlichen Quellen + automatische Updates
 - [ ] **BVWP-Datenimport** — Übernahme aus Legacy-Datenbank
-- [x] **User Authentication** — HTTP Basic Auth, PBKDF2, Rollen: viewer / editor / admin
+- [x] **Backend-Authentifizierung** — HTTP Basic Auth, PBKDF2, Rollen: viewer / editor / admin (Frontend-Integration steht noch aus, siehe Mid-Term)
 - [ ] **Celery Task Queue** — Für lang laufende Tasks (Routing, PDF-Verarbeitung)
 - [ ] **OpenStreetMap-Anbindung** — Breite Abdeckung, aber komplex für Routing-Anfragen
 - [ ] **DB OpenData** — Schienennetz Deutsche Bahn ([GovData](https://www.govdata.de/suche/daten/schienennetz-deutsche-bahnddea3))
@@ -124,7 +145,7 @@ Priorität:
 - [x] Lücken zwischen Liniensegmenten behoben (MultiLineString + `line-cap: round`)
 - [x] Punkte aus GeoJSON auf Karte dargestellt (separater Circle-Layer)
 - [x] Gruppen-Persistenz über URL-Params beim Wechsel zwischen Karte und Projektliste
-- [x] User Authentication (HTTP Basic Auth, PBKDF2, Rollen: viewer / editor / admin)
+- [x] Backend-Authentifizierung (HTTP Basic Auth, PBKDF2, Rollen: viewer / editor / admin)
 - [x] Routing-Algorithmus implementiert (pgRouting / GrassHopper-Microservice)
 
 - [x] **Gruppen-Persistenz zwischen Karte und Liste**
@@ -139,3 +160,6 @@ Priorität:
 
 - [x] **Nur ranghöchste Projekte anzeigen** *(Karte + Liste)*
   Toggle/Checkbox in der Filterleiste: "Nur übergeordnete Projekte". Filtert auf Projekte, bei denen `superior_project_id IS NULL`. Default: alle Projekte anzeigen.
+
+
+- [x] **Die Anzeige bei Auswahl eines Projektes in der Karte soll nicht nur den Namen und mehr Informationen, sondern die wichtigsten Informationen des Projektes anzeigen, nämlich die Projektnummer sowie die Beschreibung.** 
