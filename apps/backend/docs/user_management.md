@@ -1,42 +1,103 @@
-# Benutzerverwaltung und Rollen
+# User management
 
-Die API verwendet HTTP Basic Authentication. Für alle HTTP-Methoden außer `GET`
-ist eine gültige Anmeldung erforderlich. Abhängig von der Rolle des angemeldeten
-Kontos werden zusätzliche Berechtigungen überprüft.
+The API uses HTTP Basic Authentication. All HTTP methods except `GET` require a
+valid login. Additional permission checks depend on the role of the authenticated
+account.
 
-## Rollenübersicht
+---
 
-| Rolle  | Beschreibung | Zugriffsrechte |
-|--------|--------------|----------------|
-| viewer | Lesender Zugriff auf veröffentlichte Daten. | Darf alle `GET`-Endpunkte aufrufen sowie berechnete Antworten (z. B. Routing) abrufen, sofern die Anfrage keine Änderungen an Daten auslöst. |
-| editor | Erweiterter Zugriff für redaktionelle Änderungen. | Darf zusätzliche schreibende Endpunkte (z. B. zum Pflegen von Projektdaten) verwenden. |
-| admin  | Vollzugriff inklusive Benutzerverwaltung. | Darf Benutzer anlegen, Rollen vergeben und sämtliche Endpunkte nutzen. |
+## Roles
 
-Nicht-`GET`-Endpunkte prüfen automatisch, ob eine Authentifizierung vorhanden ist.
-Spezielle Endpunkte (z. B. die Benutzerverwaltung) fordern darüber hinaus eine
-konkrete Rolle an.
+| Role   | Description | Access |
+|--------|-------------|--------|
+| `viewer` | Read-only access to published data. | All `GET` endpoints. |
+| `editor` | Extended access for editorial changes. | Additional write endpoints (e.g. project data). |
+| `admin`  | Full access including user management. | All endpoints; may create users, assign roles, delete users. |
 
-## Benutzer anlegen
+Non-`GET` endpoints automatically verify that authentication is present.
+Specific endpoints (e.g. user management) additionally require a particular role.
 
-Für den initialen Aufbau steht das Skript `scripts/create_initial_user.py`
-zur Verfügung. Es legt per Kommandozeile einen neuen Benutzer an. Typische
-Verwendung zum Erstellen eines Administrators:
+---
+
+## CLI commands (via `make`)
+
+All user management operations are available as Make targets from the **repo root**.
+The backend `.venv` must exist (`make install` if not).
+
+### List all users
 
 ```bash
-python scripts/create_initial_user.py --username admin --role admin
+make list-users
 ```
 
-Das Skript fragt das Passwort interaktiv ab. Weitere Benutzer lassen sich
-anschließend über den geschützten API-Endpunkt `/api/v1/users/` anlegen
-(nur für Administratoren).
+Output example:
 
-## Authentifizierung in Anfragen
+```
+Username  Role
+--------  ----
+admin     admin
+alice     editor
+bob       viewer
+```
 
-* Für Tests oder Skripte kann das Authorization-Header-Feld im Basic-Format
-  verwendet werden: `Authorization: Basic <base64(username:password)>`.
-* API-Clients sollten Passwörter sicher speichern und nur TLS-gesicherte
-  Verbindungen verwenden.
+### Create a new user
 
-Weitere Details zur Einbindung in Tests und Services finden sich in den
-API-spezifischen Modulen (`dashboard_backend/core/security.py`).
+```bash
+make create-user USERNAME=alice ROLE=editor
+```
 
+Valid roles: `viewer`, `editor`, `admin`.
+
+The script prompts for a password interactively (twice for confirmation).
+It exits with an error if a user with that username already exists.
+
+### Change a user's password
+
+```bash
+make change-password USERNAME=alice
+```
+
+The script prompts for the new password interactively (twice for confirmation).
+It exits with an error if the user does not exist.
+
+---
+
+## Initial setup
+
+When deploying for the first time, create the first admin account:
+
+```bash
+make create-user USERNAME=admin ROLE=admin
+```
+
+Because no admin exists yet, no authenticated session is required — the script
+connects directly to the database.
+
+---
+
+## API endpoints (admin only)
+
+After logging in as an admin, users can also be managed via the REST API:
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/v1/users/` | List all users |
+| `POST` | `/api/v1/users/` | Create a new user |
+
+These endpoints require the `admin` role. Use the CLI scripts above for
+password changes, as no update endpoint exists yet.
+
+---
+
+## Authentication in requests
+
+Use HTTP Basic Auth with every write request:
+
+```
+Authorization: Basic <base64(username:password)>
+```
+
+API clients should store credentials securely and only use TLS-secured
+connections in production.
+
+For tests, `tests/api/conftest.py` provides the `basic_auth_header()` helper.

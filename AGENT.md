@@ -45,6 +45,9 @@ make dev                      # start backend (port 8000) + frontend (port 5173)
 | `make lint` | Run all linters |
 | `make migrate` | Apply all pending Alembic migrations |
 | `make migrate-create MSG='...'` | Create a new Alembic revision |
+| `make list-users` | List all users with their roles |
+| `make create-user USERNAME=… ROLE=…` | Create a new user (`viewer`/`editor`/`admin`) |
+| `make change-password USERNAME=…` | Change an existing user's password |
 | `make gen-api` | Regenerate frontend API client (backend must be running) |
 | `make build` | Production build |
 | `make clean` | Remove build artifacts and caches |
@@ -61,7 +64,22 @@ Copy `.env.example` to `.env` and fill in values. Required variables:
 | `ROUTING_BASE_URL` | Backend | GraphHopper instance URL |
 | `RINF_API_URL` / `RINF_USERNAME` / `RINF_PASSWORD` | Backend | ERA RINF API credentials |
 
-For tests, set `ENVIRONMENT=test` — the backend then loads `.env.test`.
+> ⚠️ **Never modify or overwrite `.env`.** It contains personal local settings. Only read from it.
+
+### Test environment setup
+
+`make test-backend` sets `ENVIRONMENT=test` automatically, which tells the backend to load `.env.test` instead of `.env`. There are two files to create (both are gitignored):
+
+| File | Loaded by | Setup |
+|---|---|---|
+| `.env.test` (repo root) | pydantic settings via `config.py` | `cp .env.test.example .env.test` |
+| `apps/backend/env.test` (no dot!) | `tests/db_related_tests/conftest.py` directly | `cp apps/backend/env.test.example apps/backend/env.test` |
+
+In both files, set `DATABASE_URL` to the test database connection string. The URL **must contain the word `test`** — the test suite enforces this to prevent accidental writes to a production database.
+
+**Test database tiers:**
+- `tests/api/` — SQLite in-memory, no setup needed, runs without `.env.test`
+- `tests/db_related_tests/` — real PostgreSQL + PostGIS, requires both files above
 
 ---
 

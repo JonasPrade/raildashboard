@@ -28,3 +28,10 @@ def create_user(db: Session, user_in: UserCreate, password_hasher: Callable[[str
 def count_users(db: Session) -> int:
     return db.query(User).count()
 
+
+def update_password(db: Session, user: User, new_hashed_password: str) -> User:
+    user.hashed_password = new_hashed_password
+    db.commit()
+    db.refresh(user)
+    return user
+

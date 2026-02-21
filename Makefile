@@ -17,6 +17,7 @@ ALEMBIC      := .venv/bin/alembic
         test test-backend test-frontend \
         lint lint-frontend \
         migrate migrate-create \
+        list-users create-user change-password \
         gen-api \
         clean clean-backend clean-frontend
 
@@ -52,6 +53,13 @@ help:
 	@echo "    migrate            Apply all pending Alembic migrations"
 	@echo "    migrate-create     Create a new Alembic revision"
 	@echo "                       Usage: make migrate-create MSG='your message'"
+	@echo ""
+	@echo "  User management"
+	@echo "    list-users         List all users with their roles"
+	@echo "    create-user        Create a new user"
+	@echo "                       Usage: make create-user USERNAME=admin ROLE=admin"
+	@echo "    change-password    Change password for an existing user"
+	@echo "                       Usage: make change-password USERNAME=admin"
 	@echo ""
 	@echo "  Code generation"
 	@echo "    gen-api            Regenerate frontend API client from OpenAPI schema"
@@ -109,7 +117,7 @@ build-frontend:
 test: test-backend test-frontend
 
 test-backend:
-	cd $(BACKEND_DIR) && $(PYTEST)
+	cd $(BACKEND_DIR) && ENVIRONMENT=test $(PYTEST)
 
 test-frontend:
 	npm --prefix $(FRONTEND_DIR) run test
@@ -130,6 +138,24 @@ migrate:
 migrate-create:
 	@if [ -z "$(MSG)" ]; then echo "Usage: make migrate-create MSG='your message'"; exit 1; fi
 	cd $(BACKEND_DIR) && $(ALEMBIC) revision --autogenerate -m "$(MSG)"
+
+# ---------------------------------------------------------------------------
+# User management
+# ---------------------------------------------------------------------------
+
+list-users:
+	cd $(BACKEND_DIR) && PYTHONPATH=. .venv/bin/python scripts/list_users.py
+
+# Usage: make create-user USERNAME=admin ROLE=admin
+create-user:
+	@if [ -z "$(USERNAME)" ]; then echo "Usage: make create-user USERNAME=<name> ROLE=<viewer|editor|admin>"; exit 1; fi
+	@if [ -z "$(ROLE)" ]; then echo "Usage: make create-user USERNAME=<name> ROLE=<viewer|editor|admin>"; exit 1; fi
+	cd $(BACKEND_DIR) && PYTHONPATH=. .venv/bin/python scripts/create_initial_user.py --username $(USERNAME) --role $(ROLE)
+
+# Usage: make change-password USERNAME=admin
+change-password:
+	@if [ -z "$(USERNAME)" ]; then echo "Usage: make change-password USERNAME=<name>"; exit 1; fi
+	cd $(BACKEND_DIR) && PYTHONPATH=. .venv/bin/python scripts/change_password.py --username $(USERNAME)
 
 # ---------------------------------------------------------------------------
 # Code generation
