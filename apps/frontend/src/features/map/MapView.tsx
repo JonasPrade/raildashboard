@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Paper, Stack, Text } from "@mantine/core";
+import { Badge, Button, Group, Paper, Stack, Text } from "@mantine/core";
 import maplibregl from "maplibre-gl";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -12,6 +12,12 @@ type MapViewProject = {
     name: string;
     groupColor?: string;
     geojson_representation?: string | null;
+    description?: string | null;
+    project_number?: string | null;
+    length?: number | null;
+    elektrification?: boolean | null;
+    second_track?: boolean | null;
+    new_station?: boolean | null;
 };
 
 type GeoJSONGeometry = {
@@ -107,6 +113,12 @@ const BASE_PROJECT_PROPERTIES = (project: MapViewProject) => ({
     projectId: project.id,
     name: project.name,
     groupColor: project.groupColor,
+    description: project.description ?? null,
+    project_number: project.project_number ?? null,
+    length: project.length ?? null,
+    elektrification: project.elektrification ?? false,
+    second_track: project.second_track ?? false,
+    new_station: project.new_station ?? false,
 });
 
 const createProjectLineFeature = (project: MapViewProject): GeoJSONFeature | null => {
@@ -146,6 +158,12 @@ type Props = {
 type SelectedProject = {
     id: number;
     name: string;
+    description: string | null;
+    project_number: string | null;
+    length: number | null;
+    elektrification: boolean;
+    second_track: boolean;
+    new_station: boolean;
     x: number;
     y: number;
 };
@@ -333,10 +351,29 @@ export default function MapView({ projects, lineWidth = 4, pointSize = 5 }: Prop
                 return;
             }
 
+            const description = typeof feature.properties.description === "string"
+                ? feature.properties.description
+                : null;
+            const project_number = typeof feature.properties.project_number === "string"
+                ? feature.properties.project_number
+                : null;
+            const length = typeof feature.properties.length === "number"
+                ? feature.properties.length
+                : null;
+            const elektrification = feature.properties.elektrification === true;
+            const second_track = feature.properties.second_track === true;
+            const new_station = feature.properties.new_station === true;
+
             ignoreOutsideClickRef.current = true;
             setSelectedProject({
                 id: projectId,
                 name: projectNameValue,
+                description,
+                project_number,
+                length,
+                elektrification,
+                second_track,
+                new_station,
                 x: event.point.x,
                 y: event.point.y,
             });
@@ -470,12 +507,47 @@ export default function MapView({ projects, lineWidth = 4, pointSize = 5 }: Prop
                         left: selectedProject.x,
                         top: selectedProject.y,
                         transform: "translate(-50%, calc(-100% - 12px))",
-                        minWidth: "220px",
+                        minWidth: "260px",
+                        maxWidth: "320px",
                         zIndex: 10,
                     }}
                 >
                     <Stack gap="xs">
+                        {selectedProject.project_number && (
+                            <Text size="xs" c="dimmed">
+                                {selectedProject.project_number}
+                            </Text>
+                        )}
                         <Text fw={600}>{selectedProject.name}</Text>
+                        {selectedProject.description && (
+                            <Text size="xs" c="dimmed" lineClamp={3}>
+                                {selectedProject.description}
+                            </Text>
+                        )}
+                        {(selectedProject.length != null || selectedProject.elektrification || selectedProject.second_track || selectedProject.new_station) && (
+                            <Group gap={4} wrap="wrap">
+                                {selectedProject.length != null && (
+                                    <Badge variant="light" color="blue" size="xs">
+                                        {selectedProject.length.toLocaleString("de-DE")} km
+                                    </Badge>
+                                )}
+                                {selectedProject.elektrification && (
+                                    <Badge variant="light" color="green" size="xs">
+                                        Elektrifizierung
+                                    </Badge>
+                                )}
+                                {selectedProject.second_track && (
+                                    <Badge variant="light" color="teal" size="xs">
+                                        Zweigleisig
+                                    </Badge>
+                                )}
+                                {selectedProject.new_station && (
+                                    <Badge variant="light" color="violet" size="xs">
+                                        Neuer Bahnhof
+                                    </Badge>
+                                )}
+                            </Group>
+                        )}
                         <Button
                             size="xs"
                             onClick={() => {

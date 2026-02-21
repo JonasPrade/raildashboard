@@ -83,7 +83,7 @@ export default function MapPage() {
     const selectedProjects = useMemo(() => {
         const projectMap = new Map<
             number,
-            { id: number; name: string; groupColor?: string; geojson_representation?: string | null; superior_project_id?: number | null }
+            { id: number; name: string; groupColor?: string; geojson_representation?: string | null; superior_project_id?: number | null; description?: string | null; project_number?: string | null; length?: number | null; elektrification?: boolean | null; second_track?: boolean | null; new_station?: boolean | null }
         >();
         selectedGroups.forEach((group) => {
             const groupColor = group.color?.trim().length ? group.color : DEFAULT_GROUP_COLOR;
@@ -95,6 +95,12 @@ export default function MapPage() {
                         groupColor,
                         geojson_representation: project.geojson_representation,
                         superior_project_id: project.superior_project_id,
+                        description: project.description,
+                        project_number: project.project_number,
+                        length: project.length,
+                        elektrification: project.elektrification,
+                        second_track: project.second_track,
+                        new_station: project.new_station,
                     });
                 }
             });
@@ -186,18 +192,28 @@ export default function MapPage() {
                     </Stack>
 
                     <Stack gap="sm">
-                        <Select
-                            label="Projektgruppe"
-                            placeholder="Projektgruppe wählen"
-                            data={selectData}
-                            value={selectedGroupId !== null ? String(selectedGroupId) : null}
-                            onChange={handleGroupChange}
-                            disabled={isLoading && groups.length === 0}
-                            rightSection={isLoading ? <Loader size="xs" /> : undefined}
-                            nothingFoundMessage={isLoading ? "Lade…" : "Keine Projektgruppen gefunden"}
-                            searchable
-                            clearable
-                        />
+                        <Group align="flex-end" gap="md">
+                            <Select
+                                label="Projektgruppe"
+                                placeholder="Projektgruppe wählen"
+                                data={selectData}
+                                value={selectedGroupId !== null ? String(selectedGroupId) : null}
+                                onChange={handleGroupChange}
+                                disabled={isLoading && groups.length === 0}
+                                rightSection={isLoading ? <Loader size="xs" /> : undefined}
+                                nothingFoundMessage={isLoading ? "Lade…" : "Keine Projektgruppen gefunden"}
+                                searchable
+                                clearable
+                                style={{ flex: 1 }}
+                            />
+                            <Switch
+                                label="Nur Hauptprojekte"
+                                checked={onlySuperior}
+                                onChange={(e) => handleOnlySuperiorChange(e.currentTarget.checked)}
+                                size="sm"
+                                pb={6}
+                            />
+                        </Group>
                         {errorMessage && (
                             <Alert color="red" variant="light" title="Projektgruppen konnten nicht geladen werden">
                                 {errorMessage}
@@ -263,20 +279,12 @@ export default function MapPage() {
                         <Stack gap="md">
                             <Group justify="space-between" align="center">
                                 <Title order={3}>Projekte</Title>
-                                <Group gap="md">
-                                    <Switch
-                                        label="Nur Hauptprojekte"
-                                        checked={onlySuperior}
-                                        onChange={(e) => handleOnlySuperiorChange(e.currentTarget.checked)}
-                                        size="sm"
-                                    />
-                                    <Text size="sm" c="dimmed">
-                                        {projects.length === 1 ? "1 Projekt" : `${projects.length} Projekte`}
-                                        {onlySuperior && rawProjects.length !== projects.length
-                                            ? ` (von ${rawProjects.length})`
-                                            : " in dieser Gruppe"}
-                                    </Text>
-                                </Group>
+                                <Text size="sm" c="dimmed">
+                                    {projects.length === 1 ? "1 Projekt" : `${projects.length} Projekte`}
+                                    {onlySuperior && rawProjects.length !== projects.length
+                                        ? ` (von ${rawProjects.length})`
+                                        : " in dieser Gruppe"}
+                                </Text>
                             </Group>
 
                             {projects.length === 0 ? (

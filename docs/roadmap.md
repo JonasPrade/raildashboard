@@ -9,9 +9,6 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 ### Frontend
 
 
-- [ ] **Nur ranghöchste Projekte anzeigen** *(Karte + Liste)*
-  Toggle/Checkbox in der Filterleiste: "Nur übergeordnete Projekte". Filtert auf Projekte, bei denen `superior_project_id IS NULL`. Default: alle Projekte anzeigen.
-
 - [ ] **Die Anzeige bei Auswahl eines Projektes in der Karte soll nicht nur den Namen und mehr Informationen, sondern die wichtigsten Informationen des Projektes anzeigen, nämlich die Projektnummer sowie die Beschreibung.** 
 
 ---
@@ -137,3 +134,8 @@ Priorität:
 
 - [x] **Karte/Liste als Tab-Toggle auf einer Seite**
   Karte und Projektliste werden auf derselben Route (`/`) zusammengeführt. Ein Tab-Toggle (`Karte` | `Liste`) auf der Seite steuert die aktive Ansicht. Aktive Ansicht wird im URL-Param gespeichert (`?view=map` oder `?view=list`), damit Links auf eine bestimmte Ansicht zeigen können. Die Navigation "Projekte" im Header entfällt bzw. wird Teil des Toggles. Bisherige Route `/projects` wird auf `/?view=list` weitergeleitet.
+
+
+
+- [x] **Nur ranghöchste Projekte anzeigen** *(Karte + Liste)*
+  Toggle/Checkbox in der Filterleiste: "Nur übergeordnete Projekte". Filtert auf Projekte, bei denen `superior_project_id IS NULL`. Default: alle Projekte anzeigen.
