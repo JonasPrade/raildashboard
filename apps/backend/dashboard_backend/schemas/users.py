@@ -28,3 +28,11 @@ class UserRead(UserBase):
     class Config:
         from_attributes = True
 
+
+class UserUpdate(BaseModel):
+    role: UserRole
+
+
+class UserPasswordUpdate(BaseModel):
+    password: str = Field(min_length=8, max_length=128)
+

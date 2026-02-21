@@ -1,9 +1,12 @@
+import { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
-import { AppShell } from "@mantine/core";
+import { AppShell, Loader, Group } from "@mantine/core";
 import { Header } from "./components/Header";
 import MapPage from "./features/map/MapPage";
 import DocumentationPage from "./features/documentation/DocumentationPage";
 import ProjectDetail from "./features/projects/ProjectDetail";
+
+const UsersPage = lazy(() => import("./features/admin/UsersPage"));
 
 function Layout() {
     return (
@@ -26,7 +29,15 @@ export const router = createBrowserRouter([
             { index: true, element: <MapPage /> },
             { path: "documentation", element: <DocumentationPage /> },
             { path: "projects", element: <Navigate to="/?view=list" replace /> },
-            { path: "projects/:projectId", element: <ProjectDetail /> }
+            { path: "projects/:projectId", element: <ProjectDetail /> },
+            {
+                path: "admin",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <UsersPage />
+                    </Suspense>
+                ),
+            },
         ]
     }
 ]);

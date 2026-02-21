@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "./client";
 import type { components } from "./types.gen";
@@ -6,6 +6,7 @@ import type { components } from "./types.gen";
 export type Project = components["schemas"]["ProjectSchema"];
 export type ProjectGroup = components["schemas"]["ProjectGroupSchema"];
 export type ProjectRoute = components["schemas"]["RouteOut"];
+export type User = components["schemas"]["UserRead"];
 
 export type ProjectUpdatePayload = {
     name: string;
@@ -64,5 +65,68 @@ export function updateProject(id: number, payload: ProjectUpdatePayload) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
         params: { path: { project_id: id } },
+    });
+}
+
+// ---------------------------------------------------------------------------
+// User management hooks (admin only)
+// ---------------------------------------------------------------------------
+
+export function useUsers() {
+    return useQuery({
+        queryKey: ["users"],
+        queryFn: () => api<User[]>("/api/v1/users/"),
+    });
+}
+
+export function useCreateUser() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (payload: { username: string; password: string; role: string }) =>
+            api<User>("/api/v1/users/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["users"] });
+        },
+    });
+}
+
+export function useUpdateUserRole() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ userId, role }: { userId: number; role: string }) =>
+            api<User>(`/api/v1/users/${userId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ role }),
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["users"] });
+        },
+    });
+}
+
+export function useDeleteUser() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (userId: number) =>
+            api<void>(`/api/v1/users/${userId}`, { method: "DELETE" }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["users"] });
+        },
+    });
+}
+
+export function useSetUserPassword() {
+    return useMutation({
+        mutationFn: ({ userId, password }: { userId: number; password: string }) =>
+            api<void>(`/api/v1/users/${userId}/password`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ password }),
+            }),
     });
 }

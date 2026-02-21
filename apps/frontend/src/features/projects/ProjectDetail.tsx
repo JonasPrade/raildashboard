@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useAuth } from "../../lib/auth";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
     Alert,
@@ -100,6 +101,8 @@ export default function ProjectDetail() {
     const [searchParams] = useSearchParams();
     const queryClient = useQueryClient();
     const [editOpened, setEditOpened] = useState(false);
+    const { user } = useAuth();
+    const canEdit = user !== null && (user.role === "editor" || user.role === "admin");
     const projectId = Number(params.projectId);
 
     const isInvalidId = Number.isNaN(projectId);
@@ -229,7 +232,9 @@ export default function ProjectDetail() {
                         <Button variant="default" component={Link} to={`/?view=list${searchParams.get("group") ? `&group=${searchParams.get("group")}` : ""}`}>
                             Zur Projektübersicht
                         </Button>
-                        <Button onClick={() => setEditOpened(true)}>Bearbeiten</Button>
+                        {canEdit && (
+                            <Button onClick={() => setEditOpened(true)}>Bearbeiten</Button>
+                        )}
                     </Group>
                 </Group>
 

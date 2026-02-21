@@ -11,6 +11,7 @@ import { theme } from "./theme";
 import { router } from "./router";
 import "./app.css";
 import { queryClient } from "./lib/query";
+import { AuthProvider } from "./lib/auth";
 
 const root = document.getElementById("app");
 if (!root) throw new Error("Root element #app not found");
@@ -18,8 +19,10 @@ if (!root) throw new Error("Root element #app not found");
 createRoot(root).render(
     <MantineProvider theme={theme} defaultColorScheme="light">
         <QueryClientProvider client={queryClient}>
-            <Notifications />
-            <RouterProvider router={router} />
+            <AuthProvider>
+                <Notifications />
+                <RouterProvider router={router} />
+            </AuthProvider>
         </QueryClientProvider>
     </MantineProvider>
 );
