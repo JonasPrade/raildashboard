@@ -1,24 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Badge, Button, Group, Paper, Stack, Text } from "@mantine/core";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Button, Paper, Stack } from "@mantine/core";
 import maplibregl from "maplibre-gl";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import type { Project } from "../../shared/api/queries";
+import ProjectSummaryCard from "../projects/ProjectSummaryCard";
 
 const tileLayerUrl = import.meta.env.REACT_APP_TILE_LAYER_URL as string | undefined;
 const tileAttribution =
     'Kartenhintergrund: <a href="https://www.bkg.bund.de" target="_blank" rel="noopener noreferrer">Bundesamt für Kartographie und Geodäsie</a>';
 
-type MapViewProject = {
-    id: number;
-    name: string;
-    groupColor?: string;
-    geojson_representation?: string | null;
-    description?: string | null;
-    project_number?: string | null;
-    length?: number | null;
-    elektrification?: boolean | null;
-    second_track?: boolean | null;
-    new_station?: boolean | null;
-};
+export type MapViewProject = Omit<Project, "id"> & { id: number; groupColor?: string };
 
 type GeoJSONGeometry = {
     type: string;
@@ -109,16 +100,11 @@ const parseProjectGeojson = (geojsonRepresentation?: string | null) => {
 
 // ── feature builders (one feature per project) ───────────────────────────────
 
+// Only store the minimal properties needed for map styling in GeoJSON.
+// Full project data is looked up from projectsRef on click.
 const BASE_PROJECT_PROPERTIES = (project: MapViewProject) => ({
     projectId: project.id,
-    name: project.name,
     groupColor: project.groupColor,
-    description: project.description ?? null,
-    project_number: project.project_number ?? null,
-    length: project.length ?? null,
-    elektrification: project.elektrification ?? false,
-    second_track: project.second_track ?? false,
-    new_station: project.new_station ?? false,
 });
 
 const createProjectLineFeature = (project: MapViewProject): GeoJSONFeature | null => {
@@ -153,31 +139,34 @@ type Props = {
     projects: MapViewProject[];
     lineWidth?: number;
     pointSize?: number;
+    height?: number;
+    /** Klick-Interaktion (Popup + Navigation) aktivieren. Standard: true */
+    clickable?: boolean;
 };
 
 type SelectedProject = {
-    id: number;
-    name: string;
-    description: string | null;
-    project_number: string | null;
-    length: number | null;
-    elektrification: boolean;
-    second_track: boolean;
-    new_station: boolean;
+    project: MapViewProject;
     x: number;
     y: number;
 };
 
-export default function MapView({ projects, lineWidth = 4, pointSize = 5 }: Props) {
+export default function MapView({ projects, lineWidth = 4, pointSize = 5, height = 800, clickable = true }: Props) {
     const mapContainerRef = useRef<HTMLDivElement | null>(null);
     const mapInstanceRef = useRef<maplibregl.Map | null>(null);
     const hoverFeatureIdRef = useRef<string | number | null>(null);
     const overlayRef = useRef<HTMLDivElement | null>(null);
     const ignoreOutsideClickRef = useRef(false);
+    // Keep a ref so the click handler (inside the init useEffect) always sees
+    // the current project list without needing it as a dependency.
+    const projectsRef = useRef<MapViewProject[]>(projects);
     const [isMapReady, setIsMapReady] = useState(false);
     const [selectedProject, setSelectedProject] = useState<SelectedProject | null>(null);
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
+
+    useEffect(() => {
+        projectsRef.current = projects;
+    }, [projects]);
 
     // One MultiLineString feature per project
     const lineFeatureCollection = useMemo<GeoJSONFeatureCollection>(() => ({
@@ -343,40 +332,15 @@ export default function MapView({ projects, lineWidth = 4, pointSize = 5 }: Prop
             if (!feature || !isRecord(feature.properties)) return;
 
             const projectIdValue = feature.properties.projectId;
-            const projectNameValue = feature.properties.name;
             const projectId =
                 typeof projectIdValue === "number" ? projectIdValue : Number(projectIdValue);
+            if (!Number.isFinite(projectId)) return;
 
-            if (!Number.isFinite(projectId) || typeof projectNameValue !== "string") {
-                return;
-            }
-
-            const description = typeof feature.properties.description === "string"
-                ? feature.properties.description
-                : null;
-            const project_number = typeof feature.properties.project_number === "string"
-                ? feature.properties.project_number
-                : null;
-            const length = typeof feature.properties.length === "number"
-                ? feature.properties.length
-                : null;
-            const elektrification = feature.properties.elektrification === true;
-            const second_track = feature.properties.second_track === true;
-            const new_station = feature.properties.new_station === true;
+            const project = projectsRef.current.find((p) => p.id === projectId);
+            if (!project) return;
 
             ignoreOutsideClickRef.current = true;
-            setSelectedProject({
-                id: projectId,
-                name: projectNameValue,
-                description,
-                project_number,
-                length,
-                elektrification,
-                second_track,
-                new_station,
-                x: event.point.x,
-                y: event.point.y,
-            });
+            setSelectedProject({ project, x: event.point.x, y: event.point.y });
         };
 
         const handleMapClick = (event: maplibregl.MapMouseEvent & maplibregl.EventData) => {
@@ -388,9 +352,11 @@ export default function MapView({ projects, lineWidth = 4, pointSize = 5 }: Prop
             }
         };
 
-        mapInstance.on("click", "project-routes-line", handleProjectClick);
-        mapInstance.on("click", "project-points-circle", handleProjectClick);
-        mapInstance.on("click", handleMapClick);
+        if (clickable) {
+            mapInstance.on("click", "project-routes-line", handleProjectClick);
+            mapInstance.on("click", "project-points-circle", handleProjectClick);
+            mapInstance.on("click", handleMapClick);
+        }
 
         return () => {
             mapInstance.getCanvas().style.cursor = "";
@@ -470,6 +436,39 @@ export default function MapView({ projects, lineWidth = 4, pointSize = 5 }: Prop
         };
     }, [selectedProject]);
 
+    // Clamp popup within the map container so it's never cut off at the edges.
+    // useLayoutEffect runs synchronously after DOM layout but before browser paint,
+    // so there's no visible flash.
+    useLayoutEffect(() => {
+        if (!selectedProject || !overlayRef.current || !mapContainerRef.current) return;
+
+        const overlay = overlayRef.current;
+        const container = mapContainerRef.current;
+
+        // Reset to default (above the click point, centered) so getBoundingClientRect
+        // reflects the natural position we're correcting from.
+        overlay.style.transform = "translate(-50%, calc(-100% - 12px))";
+
+        const overlayRect = overlay.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const padding = 8;
+
+        // Horizontal correction: shift left/right if the popup overflows the container.
+        let dx = 0;
+        if (overlayRect.right > containerRect.right - padding) {
+            dx = containerRect.right - padding - overlayRect.right;
+        } else if (overlayRect.left < containerRect.left + padding) {
+            dx = containerRect.left + padding - overlayRect.left;
+        }
+
+        // Vertical correction: if the popup overflows the top, flip it below the click point.
+        const flipBelow = overlayRect.top < containerRect.top + padding;
+
+        overlay.style.transform = flipBelow
+            ? `translate(calc(-50% + ${dx}px), 12px)`
+            : `translate(calc(-50% + ${dx}px), calc(-100% - 12px))`;
+    }, [selectedProject]);
+
     if (!tileLayerUrl) {
         return (
             <div
@@ -494,7 +493,7 @@ export default function MapView({ projects, lineWidth = 4, pointSize = 5 }: Prop
     }
 
     return (
-        <div style={{ height: "800px", position: "relative" }}>
+        <div style={{ height: `${height}px`, position: "relative" }}>
             <div ref={mapContainerRef} style={{ height: "100%" }} />
             {selectedProject && (
                 <Paper
@@ -508,51 +507,17 @@ export default function MapView({ projects, lineWidth = 4, pointSize = 5 }: Prop
                         top: selectedProject.y,
                         transform: "translate(-50%, calc(-100% - 12px))",
                         minWidth: "260px",
-                        maxWidth: "320px",
+                        maxWidth: "340px",
                         zIndex: 10,
                     }}
                 >
-                    <Stack gap="xs">
-                        {selectedProject.project_number && (
-                            <Text size="xs" c="dimmed">
-                                {selectedProject.project_number}
-                            </Text>
-                        )}
-                        <Text fw={600}>{selectedProject.name}</Text>
-                        {selectedProject.description && (
-                            <Text size="xs" c="dimmed" lineClamp={3}>
-                                {selectedProject.description}
-                            </Text>
-                        )}
-                        {(selectedProject.length != null || selectedProject.elektrification || selectedProject.second_track || selectedProject.new_station) && (
-                            <Group gap={4} wrap="wrap">
-                                {selectedProject.length != null && (
-                                    <Badge variant="light" color="blue" size="xs">
-                                        {selectedProject.length.toLocaleString("de-DE")} km
-                                    </Badge>
-                                )}
-                                {selectedProject.elektrification && (
-                                    <Badge variant="light" color="green" size="xs">
-                                        Elektrifizierung
-                                    </Badge>
-                                )}
-                                {selectedProject.second_track && (
-                                    <Badge variant="light" color="teal" size="xs">
-                                        Zweigleisig
-                                    </Badge>
-                                )}
-                                {selectedProject.new_station && (
-                                    <Badge variant="light" color="violet" size="xs">
-                                        Neuer Bahnhof
-                                    </Badge>
-                                )}
-                            </Group>
-                        )}
+                    <Stack gap="sm">
+                        <ProjectSummaryCard project={selectedProject.project} />
                         <Button
                             size="xs"
                             onClick={() => {
                                 const groupParam = searchParams.get("group");
-                                navigate(`/projects/${selectedProject.id}${groupParam ? `?group=${groupParam}` : ""}`);
+                                navigate(`/projects/${selectedProject.project.id}${groupParam ? `?group=${groupParam}` : ""}`);
                                 setSelectedProject(null);
                             }}
                         >

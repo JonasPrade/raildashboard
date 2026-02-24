@@ -6,7 +6,6 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 
 ## Short-Term Features
 
-
 ---
 
 ## Mid-Term Features
@@ -22,7 +21,7 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 
 ### Benutzerverwaltung *(geordnete Implementierungsschritte)*
 
-- [ ] **Schritt 1: Login-UI** *(Frontend)*
+- [x] **Schritt 1: Login-UI** *(Frontend)*
   Das Backend hat bereits HTTP Basic Auth mit Rollen (viewer / editor / admin).
   Die App bleibt für alle Nutzer vollständig lesbar — Login ist nur für Schreiboperationen nötig.
   - „Anmelden"-Button im Header öffnet Login-Formular (Modal)
@@ -30,7 +29,7 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
   - API-Interceptor: bei 401/403 → Login-Modal öffnen (kein Zwangs-Redirect für Lesezugriff)
   - Nach erfolgreichem Login: Header zeigt Nutzername + „Abmelden"-Button
 
-- [ ] **Schritt 2: Rollenbasierte Bearbeitung** *(Frontend)*
+- [x] **Schritt 2: Rollenbasierte Bearbeitung** *(Frontend)*
   Abhängigkeit: Schritt 1 abgeschlossen.
   - „Bearbeiten"-Button in `ProjectDetail` und alle anderen Schreiboperationen nur sichtbar/aktiv
     für eingeloggte Nutzer mit Rolle `editor` oder `admin`
@@ -39,6 +38,7 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 
 - [ ] **Schritt 3: Passwort zurücksetzen per E-Mail** *(Backend + Frontend)*
   Abhängigkeit: Schritt 1 abgeschlossen.
+  → Vollständiger technischer Plan: [`docs/email_password_reset_plan.md`](email_password_reset_plan.md)
   Backend:
   - Feld `email` zum User-Modell ergänzen + Migration
   - Tabelle `password_reset_token` (Token, User-ID, Ablaufzeitpunkt) + Migration
@@ -49,7 +49,7 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
   - „Passwort vergessen?"-Link im Login-Modal → E-Mail-Eingabeformular
   - Reset-Formular (neues Passwort, Token aus URL-Param des Mail-Links)
 
-- [ ] **Schritt 4: User-Management-Seite** *(Backend + Frontend)*
+- [x] **Schritt 4: User-Management-Seite** *(Backend + Frontend)*
   Abhängigkeit: Schritte 1 + 2 abgeschlossen. Nur für Admins zugänglich.
   Backend (fehlende Endpunkte ergänzen):
   - `PUT /api/v1/users/{id}` — Rolle, E-Mail oder Passwort ändern
@@ -58,6 +58,8 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
   - Seite `/admin/users`: Tabelle aller Nutzer (Name, Rolle, E-Mail, erstellt am)
   - Nutzer anlegen (Name, E-Mail, Rolle, initiales Passwort oder Reset-Link versenden)
   - Rolle ändern / Passwort zurücksetzen / Nutzer löschen
+
+### Weitere
 
 - [ ] **Change Tracking** *(Backend + Frontend)*
   Datenmodell existiert (`ChangeLog`, `ChangeLogEntry`), Logik fehlt noch.
@@ -69,6 +71,8 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
   Fortschrittsstand eines Projekts (Planungs-, Genehmigungs-, Bauphase). Speist sich aus mehreren Quellen (z. B. Bundestag-Drucksachen, Pressemitteilungen, manuelle Eingabe). Benötigt Validierungslogik für Konflikte zwischen Quellen.
   - Backend: `ProjectProgress`-Modell implementieren (Status, Datum, Quelle, Kommentar)
   - Frontend: Zeitleiste/Meilenstein-Ansicht in `ProjectDetail`
+– [ ] **Anzeige der BVWP-Daten** Für einige Projekte liegen BVWP-Daten vor, diese sind vollständig und übersichtlich darzustellen
+- [ ] **Anzeige Texte und Kommentare:**
 
 ---
 
@@ -118,6 +122,7 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 - [ ] **DB OpenData** — Schienennetz Deutsche Bahn ([GovData](https://www.govdata.de/suche/daten/schienennetz-deutsche-bahnddea3))
 - [ ] **RINF-Daten evaluieren** — Für Bahnhofs-/Stationsverbindungen ggf. weiterhin benötigt
 - [ ] **GeoLine-Erstellung** — Möglichkeit, neue Streckengeometrien zu erzeugen, wenn vorhandene unvollständig/ungültig sind. Ansatz noch offen (Zeichentool auf Karte vs. automatische Vervollständigung).
+- [ ] **Automatisierung Preisniveau** Ein Tool das ermöglicht, Preise gemäß der Inflation/Baukostenentwicklung auf das aktuelle Jahr zu berechnen und so die Vergleichbarkeit zu verbessern
 
 ---
 
@@ -147,6 +152,14 @@ Priorität:
 - [x] Gruppen-Persistenz über URL-Params beim Wechsel zwischen Karte und Projektliste
 - [x] Backend-Authentifizierung (HTTP Basic Auth, PBKDF2, Rollen: viewer / editor / admin)
 - [x] Routing-Algorithmus implementiert (pgRouting / GrassHopper-Microservice)
+- [x] Stelle sicher, dass properties of project im Browser bei den Projekten angezeigt werden. Aktuell ist das nur für ausgewählte der Fall. Finde einen guten Weg, die Darstellung properties flexibel ergänzt werden kann.
+- [x] Stelle zudem ergänzend dar, welchen Train Kategorien (Verkehrsarten) ein Projekt dient
+- [x] Zeige Projekteigenschaften auch in der Projektdarstellung auf der Karte an. Stelle sicher dass diese Kurzansicht der Projekte als Komponente definiert wird, da sie demnächst auch an anderer Stelle angezeigt wird.
+- [x] Stelle bei jedem Projekt alle zugeordneten Unterprojekte mit der Kurzansicht Projekt dar.
+- [x] Stelle bei jedem Projekt das übergeordnete Projekt mit der Kurzansicht Projekt dar
+- [x] Zeige bei jedem Projekt die Karte mit dem Projekt. Wenn es Unterprojekte gibt, zeige diese auf der Karte. Die Karte soll sich gleich verhalten wie die Übersichtskarte, allerdings nur mit den genannten Variantne (entweder Projekt anziehen oder die Unterprojekte. Die sind dann auch anklickbar zu machen)
+- [x] Stelle (sofern breit genug) Projektdetails + Beschreibung neben der Karte dar (Karte rechts und zwei/Drittel der Breite)
+
 
 - [x] **Gruppen-Persistenz zwischen Karte und Liste**
   Gruppenfilter wird als URL-Param gespeichert (`?group=id1,id2`). Beim Wechsel zwischen Karte und Liste bleibt der aktive Filter erhalten. *(Aktuelle Implementierung: URL-Params — kein localStorage nötig.)*

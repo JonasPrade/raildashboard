@@ -7,6 +7,7 @@ import {
     Button,
     Card,
     Container,
+    Grid,
     Group,
     Loader,
     Stack,
@@ -21,64 +22,91 @@ import {
     type ProjectUpdatePayload,
     updateProject,
     useProject,
+    useProjects,
 } from "../../shared/api/queries";
 import ProjectEdit, { type ProjectEditFormValues } from "./ProjectEdit";
+import ProjectSummaryCard from "./ProjectSummaryCard";
+import MapView, { type MapViewProject } from "../map/MapView";
 
 type RouteParams = {
     projectId?: string;
 };
 
-const featureLabels: Array<{ key: keyof Project; label: string }> = [
-    { key: "elektrification", label: "Elektrifizierung" },
-    { key: "second_track", label: "Zweigleisiger Ausbau" },
-    { key: "third_track", label: "Dreigleisiger Ausbau" },
-    { key: "fourth_track", label: "Viergleisiger Ausbau" },
-    { key: "new_station", label: "Neuer Bahnhof" },
-    { key: "platform", label: "Plattformen" },
-    { key: "junction_station", label: "Knotenbahnhof" },
-    { key: "overtaking_station", label: "Überholbahnhof" },
-    { key: "etcs", label: "ETCS" },
-    { key: "increase_speed", label: "Geschwindigkeitsanhebung" },
-    { key: "effects_passenger_long_rail", label: "Fernverkehr" },
-    { key: "effects_passenger_local_rail", label: "Nahverkehr" },
-    { key: "effects_cargo_rail", label: "Güterverkehr" },
-];
+import { trainCategoryLabels, featureGroups } from "./projectFeatureConfig";
 
-const detailRows: Array<{ label: string; getValue: (project: Project) => string }> = [
+// ── Detail rows (Projektstammdaten) ──────────────────────────────────────────
+// getValue returning null → Zeile wird nicht dargestellt
+
+const detailRows: Array<{ label: string; getValue: (project: Project) => string | null }> = [
     {
         label: "Projektnummer",
-        getValue: (project) => project.project_number ?? "–",
+        getValue: (project) => project.project_number ?? null,
     },
     {
         label: "Länge",
         getValue: (project) =>
             project.length !== null && project.length !== undefined
                 ? `${project.length.toLocaleString("de-DE")} km`
-                : "–",
+                : null,
     },
     {
         label: "Übergeordnetes Projekt",
         getValue: (project) =>
             project.superior_project_id !== null && project.superior_project_id !== undefined
                 ? String(project.superior_project_id)
-                : "–",
+                : null,
     },
     {
         label: "Ehemalige ID",
-        getValue: (project) => (project.old_id ? String(project.old_id) : "–"),
+        getValue: (project) => (project.old_id ? String(project.old_id) : null),
     },
     {
         label: "Ehemalige ID des übergeordneten Projekts",
         getValue: (project) =>
-            project.superior_project_old_id ? String(project.superior_project_old_id) : "–",
+            project.superior_project_old_id ? String(project.superior_project_old_id) : null,
     },
     {
-        label: "Beschreibung",
-        getValue: (project) => project.description ?? "Keine Beschreibung hinterlegt.",
+        label: "Neue Vmax",
+        getValue: (project) =>
+            project.increase_speed && project.new_vmax !== null && project.new_vmax !== undefined
+                ? `${project.new_vmax} km/h`
+                : null,
     },
     {
-        label: "Begründung",
-        getValue: (project) => project.justification ?? "Keine Begründung hinterlegt.",
+        label: "ETCS-Level",
+        getValue: (project) =>
+            project.etcs && project.etcs_level !== null && project.etcs_level !== undefined
+                ? String(project.etcs_level)
+                : null,
+    },
+    {
+        label: "Anzahl Knotenbahnhöfe",
+        getValue: (project) =>
+            project.junction_station &&
+            project.number_junction_station !== null &&
+            project.number_junction_station !== undefined
+                ? String(project.number_junction_station)
+                : null,
+    },
+    {
+        label: "Anzahl Überholbahnhöfe",
+        getValue: (project) =>
+            project.overtaking_station &&
+            project.number_overtaking_station !== null &&
+            project.number_overtaking_station !== undefined
+                ? String(project.number_overtaking_station)
+                : null,
+    },
+    {
+        label: "Anzahl Tankstellen",
+        getValue: (project) =>
+            (project.filling_stations_efuel ||
+                project.filling_stations_h2 ||
+                project.filling_stations_diesel) &&
+            project.filling_stations_count !== null &&
+            project.filling_stations_count !== undefined
+                ? String(project.filling_stations_count)
+                : null,
     },
 ];
 
@@ -108,6 +136,7 @@ export default function ProjectDetail() {
     const isInvalidId = Number.isNaN(projectId);
 
     const { data, isLoading, isError, error } = useProject(projectId);
+    const { data: allProjects } = useProjects();
 
     const mutation = useMutation({
         mutationFn: (values: ProjectEditFormValues) => updateProject(projectId, createUpdatePayload(values)),
@@ -142,11 +171,43 @@ export default function ProjectDetail() {
             : "Die Änderungen konnten nicht gespeichert werden."
         : undefined;
 
-    const featureBadges = useMemo(() => {
-        if (!project) {
-            return [];
+    // Übergeordnetes Projekt (falls vorhanden)
+    const superiorProject = useMemo(() => {
+        if (!project?.superior_project_id || !allProjects) return null;
+        return allProjects.find((p) => p.id === project.superior_project_id) ?? null;
+    }, [project, allProjects]);
+
+    // Unterprojekte (Projekte die dieses als superior haben)
+    const subProjects = useMemo(() => {
+        if (!project?.id || !allProjects) return [];
+        return allProjects.filter(
+            (p) => p.superior_project_id === project.id && typeof p.id === "number",
+        );
+    }, [project, allProjects]);
+
+    // Projekte für die Detailkarte: Unterprojekte wenn vorhanden, sonst das Projekt selbst
+    const MAP_COLOR = "#2563eb";
+    const mapProjects = useMemo((): MapViewProject[] => {
+        if (subProjects.length > 0) {
+            return subProjects
+                .filter((p): p is typeof p & { id: number } => typeof p.id === "number")
+                .map((p) => ({ ...p, id: p.id, groupColor: MAP_COLOR }));
         }
-        return featureLabels.filter(({ key }) => Boolean(project[key]));
+        if (project && typeof project.id === "number") {
+            return [{ ...project, id: project.id, groupColor: MAP_COLOR }];
+        }
+        return [];
+    }, [project, subProjects]);
+
+    // Nur Gruppen mit mindestens einem aktiven Feature
+    const activeFeatureGroups = useMemo(() => {
+        if (!project) return [];
+        return featureGroups
+            .map((group) => ({
+                groupLabel: group.groupLabel,
+                activeFeatures: group.features.filter(({ key }) => Boolean(project[key])),
+            }))
+            .filter(({ activeFeatures }) => activeFeatures.length > 0);
     }, [project]);
 
     if (isInvalidId) {
@@ -208,6 +269,10 @@ export default function ProjectDetail() {
         );
     }
 
+    const visibleDetailRows = detailRows
+        .map(({ label, getValue }) => ({ label, value: getValue(project) }))
+        .filter(({ value }) => value !== null) as Array<{ label: string; value: string }>;
+
     return (
         <Container size="lg" py="xl">
             <Stack gap="xl">
@@ -238,36 +303,170 @@ export default function ProjectDetail() {
                     </Group>
                 </Group>
 
-                <Card withBorder radius="md" padding="lg" shadow="xs">
-                    <Stack gap="sm">
-                        <Title order={4}>Projektdetails</Title>
-                        <Stack gap={8}>
-                            {detailRows.map(({ label, getValue }) => (
-                                <DetailRow key={label} label={label} value={getValue(project)} />
-                            ))}
-                        </Stack>
-                    </Stack>
-                </Card>
+                {/* Zweispaltiges Layout: Details/Beschreibung links, Karte rechts */}
+                {mapProjects.length > 0 ? (
+                    <Grid gutter="md" align="stretch">
+                        <Grid.Col span={{ base: 12, md: 4 }}>
+                            <Stack gap="md" style={{ height: "100%" }}>
+                                {visibleDetailRows.length > 0 && (
+                                    <Card withBorder radius="md" padding="lg" shadow="xs">
+                                        <Stack gap="sm">
+                                            <Title order={4}>Projektdetails</Title>
+                                            <Stack gap={8}>
+                                                {visibleDetailRows.map(({ label, value }) => (
+                                                    <DetailRow key={label} label={label} value={value} />
+                                                ))}
+                                            </Stack>
+                                        </Stack>
+                                    </Card>
+                                )}
+                                {project.description && project.description.trim() !== "" && (
+                                    <Card withBorder radius="md" padding="lg" shadow="xs">
+                                        <Stack gap="sm">
+                                            <Title order={4}>Beschreibung</Title>
+                                            <Text size="sm">{project.description}</Text>
+                                        </Stack>
+                                    </Card>
+                                )}
+                            </Stack>
+                        </Grid.Col>
+                        <Grid.Col span={{ base: 12, md: 8 }}>
+                            <Card withBorder radius="md" padding="lg" shadow="xs" style={{ height: "100%" }}>
+                                <Stack gap="sm" style={{ height: "100%" }}>
+                                    <Title order={4}>
+                                        {subProjects.length > 0 ? "Karte – Unterprojekte" : "Karte"}
+                                    </Title>
+                                    <div style={{ flex: 1, minHeight: 400 }}>
+                                        <MapView
+                                            projects={mapProjects}
+                                            height={500}
+                                            clickable={subProjects.length > 0}
+                                        />
+                                    </div>
+                                </Stack>
+                            </Card>
+                        </Grid.Col>
+                    </Grid>
+                ) : (
+                    <>
+                        {visibleDetailRows.length > 0 && (
+                            <Card withBorder radius="md" padding="lg" shadow="xs">
+                                <Stack gap="sm">
+                                    <Title order={4}>Projektdetails</Title>
+                                    <Stack gap={8}>
+                                        {visibleDetailRows.map(({ label, value }) => (
+                                            <DetailRow key={label} label={label} value={value} />
+                                        ))}
+                                    </Stack>
+                                </Stack>
+                            </Card>
+                        )}
+                        {project.description && project.description.trim() !== "" && (
+                            <Card withBorder radius="md" padding="lg" shadow="xs">
+                                <Stack gap="sm">
+                                    <Title order={4}>Beschreibung</Title>
+                                    <Text size="sm">{project.description}</Text>
+                                </Stack>
+                            </Card>
+                        )}
+                    </>
+                )}
 
+                {/* Verkehrsarten */}
                 <Card withBorder radius="md" padding="lg" shadow="xs">
                     <Stack gap="sm">
-                        <Title order={4}>Merkmale</Title>
-                        {featureBadges.length === 0 ? (
-                            <Text size="sm" c="dimmed">
-                                Für dieses Projekt sind keine besonderen Merkmale hinterlegt.
-                            </Text>
-                        ) : (
-                            <Group gap="xs">
-                                {featureBadges.map(({ key, label }) => (
-                                    <Badge key={String(key)} variant="light" color="blue">
+                        <Title order={4}>Verkehrsarten</Title>
+                        <Group gap="xs">
+                            {trainCategoryLabels.map(({ key, label, color }) => {
+                                const isActive = Boolean(project[key]);
+                                return (
+                                    <Badge
+                                        key={String(key)}
+                                        variant={isActive ? "light" : "outline"}
+                                        color={isActive ? color : "gray"}
+                                    >
                                         {label}
                                     </Badge>
-                                ))}
-                            </Group>
-                        )}
+                                );
+                            })}
+                        </Group>
                     </Stack>
                 </Card>
 
+                {/* Merkmale – nur wenn mindestens eine Gruppe aktiv */}
+                {activeFeatureGroups.length > 0 && (
+                    <Card withBorder radius="md" padding="lg" shadow="xs">
+                        <Stack gap="sm">
+                            <Title order={4}>Merkmale</Title>
+                            <Stack gap="md">
+                                {activeFeatureGroups.map(({ groupLabel, activeFeatures }) => (
+                                    <Stack key={groupLabel} gap={6}>
+                                        <Text size="xs" fw={600} c="dimmed" tt="uppercase" lts={0.5}>
+                                            {groupLabel}
+                                        </Text>
+                                        <Group gap="xs">
+                                            {activeFeatures.map(({ key, label }) => (
+                                                <Badge key={String(key)} variant="light" color="blue">
+                                                    {label}
+                                                </Badge>
+                                            ))}
+                                        </Group>
+                                    </Stack>
+                                ))}
+                            </Stack>
+                        </Stack>
+                    </Card>
+                )}
+
+                {/* Übergeordnetes Projekt */}
+                {superiorProject && (
+                    <Card withBorder radius="md" padding="lg" shadow="xs">
+                        <Stack gap="sm">
+                            <Title order={4}>Übergeordnetes Projekt</Title>
+                            <Card withBorder radius="sm" padding="md">
+                                <Stack gap="sm">
+                                    <ProjectSummaryCard project={superiorProject} />
+                                    <Button
+                                        size="xs"
+                                        variant="light"
+                                        component={Link}
+                                        to={`/projects/${superiorProject.id}`}
+                                    >
+                                        Zum Projekt
+                                    </Button>
+                                </Stack>
+                            </Card>
+                        </Stack>
+                    </Card>
+                )}
+
+                {/* Unterprojekte */}
+                {subProjects.length > 0 && (
+                    <Card withBorder radius="md" padding="lg" shadow="xs">
+                        <Stack gap="sm">
+                            <Title order={4}>Unterprojekte ({subProjects.length})</Title>
+                            <Stack gap="sm">
+                                {subProjects.map((sub) => (
+                                    <Card key={sub.id} withBorder radius="sm" padding="md">
+                                        <Stack gap="sm">
+                                            <ProjectSummaryCard project={sub} />
+                                            <Button
+                                                size="xs"
+                                                variant="light"
+                                                component={Link}
+                                                to={`/projects/${sub.id}`}
+                                            >
+                                                Zum Projekt
+                                            </Button>
+                                        </Stack>
+                                    </Card>
+                                ))}
+                            </Stack>
+                        </Stack>
+                    </Card>
+                )}
+
+                {/* Begründung */}
                 {project.justification && project.justification.trim() !== "" && (
                     <Card withBorder radius="md" padding="lg" shadow="xs">
                         <Stack gap="sm">
@@ -277,14 +476,6 @@ export default function ProjectDetail() {
                     </Card>
                 )}
 
-                {project.description && project.description.trim() !== "" && (
-                    <Card withBorder radius="md" padding="lg" shadow="xs">
-                        <Stack gap="sm">
-                            <Title order={4}>Beschreibung</Title>
-                            <Text size="sm">{project.description}</Text>
-                        </Stack>
-                    </Card>
-                )}
             </Stack>
 
             <ProjectEdit
@@ -314,4 +505,3 @@ function DetailRow({ label, value }: DetailRowProps) {
         </Group>
     );
 }
-

@@ -21,7 +21,7 @@ import { useSearchParams } from "react-router-dom";
 import GroupFilterDrawer, { type ProjectGroupOption } from "../projects/GroupFilterDrawer";
 import { ProjectCard } from "../projects/ProjectGroupsPage";
 import MapControls from "./MapControls";
-import MapView from "./MapView";
+import MapView, { type MapViewProject } from "./MapView";
 import { useProjectGroups, type ProjectGroup, type Project } from "../../shared/api/queries";
 
 const DEFAULT_GROUP_COLOR = "#2563eb";
@@ -81,27 +81,12 @@ export default function MapPage() {
     }, [groups, selectedGroupIds]);
 
     const selectedProjects = useMemo(() => {
-        const projectMap = new Map<
-            number,
-            { id: number; name: string; groupColor?: string; geojson_representation?: string | null; superior_project_id?: number | null; description?: string | null; project_number?: string | null; length?: number | null; elektrification?: boolean | null; second_track?: boolean | null; new_station?: boolean | null }
-        >();
+        const projectMap = new Map<number, MapViewProject>();
         selectedGroups.forEach((group) => {
             const groupColor = group.color?.trim().length ? group.color : DEFAULT_GROUP_COLOR;
             group.projects?.filter(hasNumericProjectId).forEach((project) => {
                 if (!projectMap.has(project.id)) {
-                    projectMap.set(project.id, {
-                        id: project.id,
-                        name: project.name,
-                        groupColor,
-                        geojson_representation: project.geojson_representation,
-                        superior_project_id: project.superior_project_id,
-                        description: project.description,
-                        project_number: project.project_number,
-                        length: project.length,
-                        elektrification: project.elektrification,
-                        second_track: project.second_track,
-                        new_station: project.new_station,
-                    });
+                    projectMap.set(project.id, { ...project, id: project.id, groupColor });
                 }
             });
         });
