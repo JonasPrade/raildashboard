@@ -27,6 +27,7 @@ import {
 import ProjectEdit, { type ProjectEditFormValues } from "./ProjectEdit";
 import ProjectSummaryCard from "./ProjectSummaryCard";
 import MapView, { type MapViewProject } from "../map/MapView";
+import ProjectHistorySection from "../changelog/ProjectHistorySection";
 
 type RouteParams = {
     projectId?: string;
@@ -475,6 +476,11 @@ export default function ProjectDetail() {
                         </Stack>
                     </Card>
                 )}
+
+                {/* Versionshistorie */}
+                <Card withBorder radius="md" padding="lg" shadow="xs">
+                    <ProjectHistorySection projectId={projectId} canEdit={canEdit} />
+                </Card>
 
             </Stack>
 

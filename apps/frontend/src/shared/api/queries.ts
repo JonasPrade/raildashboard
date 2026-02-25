@@ -69,6 +69,52 @@ export function updateProject(id: number, payload: ProjectUpdatePayload) {
 }
 
 // ---------------------------------------------------------------------------
+// Change tracking
+// ---------------------------------------------------------------------------
+
+export type ChangeLogEntry = {
+    id: number;
+    field_name: string;
+    old_value: string | null;
+    new_value: string | null;
+};
+
+export type ChangeLog = {
+    id: number;
+    project_id: number;
+    user_id: number | null;
+    username_snapshot: string | null;
+    timestamp: string;
+    action: string;
+    entries: ChangeLogEntry[];
+};
+
+export function useProjectChangelog(projectId: number) {
+    return useQuery({
+        queryKey: ["project-changelog", projectId],
+        enabled: Number.isFinite(projectId),
+        queryFn: () => api<ChangeLog[]>(`/api/v1/projects/${projectId}/changelog`),
+    });
+}
+
+export function useRevertProjectField(projectId: number) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (changelogEntryId: number) =>
+            api<Project>(`/api/v1/projects/${projectId}/changelog/revert`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ changelog_entry_id: changelogEntryId }),
+            }),
+        onSuccess: (updatedProject) => {
+            queryClient.setQueryData(["project", projectId], updatedProject);
+            queryClient.invalidateQueries({ queryKey: ["projects"] });
+            queryClient.invalidateQueries({ queryKey: ["project-changelog", projectId] });
+        },
+    });
+}
+
+// ---------------------------------------------------------------------------
 // User management hooks (admin only)
 // ---------------------------------------------------------------------------
 
