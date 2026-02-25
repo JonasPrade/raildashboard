@@ -325,6 +325,23 @@ export default function MapView({ projects, lineWidth = 4, pointSize = 5, height
         mapInstance.on("mousemove", handleMouseMove);
         mapInstance.getCanvas().addEventListener("mouseleave", handleMouseLeaveCanvas);
 
+        return () => {
+            mapInstance.getCanvas().style.cursor = "";
+            mapInstance.getCanvas().removeEventListener("mouseleave", handleMouseLeaveCanvas);
+            mapInstance.off("mousemove", handleMouseMove);
+            mapInstance.remove();
+        };
+    }, [tileLayerUrl]);
+
+    // Register click handlers separately so they re-run when `clickable` changes.
+    // This is needed because `clickable` may start as false (data not yet loaded)
+    // and become true later once sub-projects are available.
+    useEffect(() => {
+        if (!isMapReady) return undefined;
+        const mapInstance = mapInstanceRef.current;
+        if (!mapInstance) return undefined;
+        if (!clickable) return undefined;
+
         const handleProjectClick = (
             event: maplibregl.MapMouseEvent & maplibregl.EventData,
         ) => {
@@ -352,22 +369,16 @@ export default function MapView({ projects, lineWidth = 4, pointSize = 5, height
             }
         };
 
-        if (clickable) {
-            mapInstance.on("click", "project-routes-line", handleProjectClick);
-            mapInstance.on("click", "project-points-circle", handleProjectClick);
-            mapInstance.on("click", handleMapClick);
-        }
+        mapInstance.on("click", "project-routes-line", handleProjectClick);
+        mapInstance.on("click", "project-points-circle", handleProjectClick);
+        mapInstance.on("click", handleMapClick);
 
         return () => {
-            mapInstance.getCanvas().style.cursor = "";
-            mapInstance.getCanvas().removeEventListener("mouseleave", handleMouseLeaveCanvas);
-            mapInstance.off("mousemove", handleMouseMove);
             mapInstance.off("click", "project-routes-line", handleProjectClick);
             mapInstance.off("click", "project-points-circle", handleProjectClick);
             mapInstance.off("click", handleMapClick);
-            mapInstance.remove();
         };
-    }, [tileLayerUrl]);
+    }, [isMapReady, clickable]);
 
     // Update both GeoJSON sources whenever project data changes
     useEffect(() => {
