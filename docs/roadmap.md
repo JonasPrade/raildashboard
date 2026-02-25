@@ -61,7 +61,7 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 
 ### Weitere
 
-- [ ] **Change Tracking** *(Backend + Frontend)*
+- [x] **Change Tracking** *(Backend + Frontend)*
   Datenmodell existiert (`ChangeLog`, `ChangeLogEntry`), Logik fehlt noch.
   - Backend: Bei jedem PATCH auf ein Projekt werden geänderte Felder als `ChangeLogEntry` geschrieben (vorher/nachher per Feld)
   - Frontend: Pro Projekt eine "Versionshistorie"-Ansicht (Timeline) mit Datum, Feld, altem/neuem Wert und Nutzer
