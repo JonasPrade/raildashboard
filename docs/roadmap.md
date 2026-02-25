@@ -59,13 +59,49 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
   - Nutzer anlegen (Name, E-Mail, Rolle, initiales Passwort oder Reset-Link versenden)
   - Rolle ändern / Passwort zurücksetzen / Nutzer löschen
 
-### Weitere
+### Change Tracking
 
-- [x] **Change Tracking** *(Backend + Frontend)*
-  Datenmodell existiert (`ChangeLog`, `ChangeLogEntry`), Logik fehlt noch.
-  - Backend: Bei jedem PATCH auf ein Projekt werden geänderte Felder als `ChangeLogEntry` geschrieben (vorher/nachher per Feld)
-  - Frontend: Pro Projekt eine "Versionshistorie"-Ansicht (Timeline) mit Datum, Feld, altem/neuem Wert und Nutzer
-  - Revert-Funktion: Einzelne Felder auf einen früheren Stand zurücksetzen (nur editor/admin)
+- [ ] **Change Tracking** *(Backend + Frontend)*
+  Ermöglicht nachzuvollziehen, wer wann welche Felder eines Projekts geändert hat, und einzelne Felder auf frühere Werte zurückzusetzen.
+  Hinweis: Datenmodell existiert noch nicht (Verzeichnis `change_tracking/` ist leer); PATCH-Endpunkt für Projekte fehlt ebenfalls noch.
+
+  - [ ] **Schritt 1: Datenmodell + Migration** *(Backend)*
+    Fundament für alle weiteren Schritte.
+    - `ChangeLog`-Tabelle: `id`, `project_id` (FK→projects), `user_id` (FK→users), `created_at`, optionales `note`-Feld
+    - `ChangeLogEntry`-Tabelle: `id`, `changelog_id` (FK→changelog), `field_name`, `old_value` (TEXT, nullable), `new_value` (TEXT, nullable)
+    - Alembic-Migration erstellen und anwenden
+
+  - [ ] **Schritt 2: PATCH-Endpunkt für Projekte** *(Backend)*
+    Voraussetzung für Schritt 3 – ohne PATCH-Endpunkt können keine Änderungen ausgelöst werden.
+    - `PATCH /api/v1/projects/{project_id}` — nimmt alle Projektfelder als optional entgegen
+    - Vergleicht alten und neuen Wert je Feld; schreibt für jedes geänderte Feld einen `ChangeLogEntry`
+    - Erstellt einen übergeordneten `ChangeLog`-Eintrag mit Zeitstempel + eingeloggtem Nutzer
+    - Erfordert Rolle `editor` oder `admin`
+
+  - [ ] **Schritt 3: GET-Endpunkt für Changelog** *(Backend)*
+    Macht die History über die API abrufbar.
+    - `GET /api/v1/projects/{project_id}/changelog` — gibt alle `ChangeLog`-Einträge mit zugehörigen `ChangeLogEntry`-Zeilen zurück
+    - Öffentlich lesbar (kein Login erforderlich)
+    - Pydantic-Schemas für Response-Serialisierung
+
+  - [ ] **Schritt 4: Projekt bearbeiten** *(Frontend)*
+    Erste sichtbare Funktion für Nutzer mit Schreibrechten.
+    - „Bearbeiten"-Button in `ProjectDetail` (nur für `editor` / `admin` sichtbar)
+    - Bearbeitungsformular mit allen relevanten Feldern
+    - Speichern-Aktion ruft `PATCH /api/v1/projects/{id}` auf
+
+  - [ ] **Schritt 5: Versionshistorie** *(Frontend)*
+    Zeigt allen Nutzern, wer wann was geändert hat.
+    - Neuer Abschnitt „Versionshistorie" in `ProjectDetail`
+    - Timeline-Ansicht: Datum, Nutzername, Liste der geänderten Felder mit altem → neuem Wert
+
+  - [ ] **Schritt 6: Revert-Funktion** *(Frontend)*
+    Erlaubt das Zurücksetzen einzelner Felder auf einen früheren Stand.
+    - Pro `ChangeLogEntry`: Button „Zurücksetzen auf [alter Wert]" (nur für `editor` / `admin`)
+    - Sendet `PATCH` mit dem alten Wert des jeweiligen Felds
+
+### Weiteres
+- [ ] **Automatisiertes Backup Datenkbank** Erstelle mir gute Maßnahmen zum Backup Datenbanken, möglichst auch über einfache Command-Zeile
 
 - [ ] **ProjectProgress** *(Backend + Frontend)*
   Fortschrittsstand eines Projekts (Planungs-, Genehmigungs-, Bauphase). Speist sich aus mehreren Quellen (z. B. Bundestag-Drucksachen, Pressemitteilungen, manuelle Eingabe). Benötigt Validierungslogik für Konflikte zwischen Quellen.
