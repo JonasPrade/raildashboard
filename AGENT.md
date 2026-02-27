@@ -45,6 +45,10 @@ make dev                      # start backend (port 8000) + frontend (port 5173)
 | `make lint` | Run all linters |
 | `make migrate` | Apply all pending Alembic migrations |
 | `make migrate-create MSG='...'` | Create a new Alembic revision |
+| `make backup-db` | Create a `pg_dump` of the configured database |
+| `make backup-db ENV_FILE=.env.prod` | Same, but reads a different env file |
+| `make restore-db BACKUP=backups/file.dump` | Restore a dump (prompts for confirmation) |
+| `make list-backups` | List all local dump files with size and date |
 | `make list-users` | List all users with their roles |
 | `make create-user USERNAME=… ROLE=…` | Create a new user (`viewer`/`editor`/`admin`) |
 | `make change-password USERNAME=…` | Change an existing user's password |
@@ -267,6 +271,7 @@ npm run test        # Vitest unit/integration tests
 - Keep `README.md` (root) up to date for project-wide setup and workflow changes.
 - Keep `apps/backend/README.md` up to date for backend-specific setup, routing API, and data imports.
 - Keep `apps/frontend/README.md` up to date for frontend-specific setup and project structure.
+- Keep `docs/production_setup.md` up to date for production deployment, backup system, and server configuration.
 - Update `apps/frontend/src/features/documentation/DocumentationPage.tsx` (the in-app docs) whenever the user-facing feature scope changes.
 - Project-wide architecture, data models, and the roadmap live in `docs/` (repo root).
 - Backend-specific implementation details live in `apps/backend/docs/`.

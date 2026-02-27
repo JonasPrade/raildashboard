@@ -92,10 +92,9 @@ See `apps/frontend/README.md` for the full frontend reference (project structure
 ## Database migrations
 
 ```bash
-cd apps/backend
-alembic upgrade head
+make migrate
 # Create a new migration after model changes:
-alembic revision --autogenerate -m "Description"
+make migrate-create MSG="Description"
 ```
 
 ## API code generation
@@ -121,6 +120,10 @@ make test-frontend
 ## Data imports
 
 Scripts for importing external data sources live in `apps/backend/scripts/`. See `apps/backend/README.md` for details on ERA RINF XML, OpenStreetMap, and legacy database imports.
+
+## Deployment
+
+For production setup (server configuration, systemd services, automated backups, nginx reverse proxy, update procedures), see [`docs/production_setup.md`](docs/production_setup.md).
 
 ## Contributing
 
