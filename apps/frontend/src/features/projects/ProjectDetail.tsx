@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useAuth } from "../../lib/auth";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
@@ -30,6 +30,7 @@ import ProjectSummaryCard from "./ProjectSummaryCard";
 import MapView, { type MapViewProject } from "../map/MapView";
 import ProjectHistorySection from "../changelog/ProjectHistorySection";
 import ProjectTextsSection from "./ProjectTextsSection";
+import { ProjectTableOfContents, type TocSection } from "./ProjectTableOfContents";
 
 type RouteParams = {
     projectId?: string;
@@ -171,6 +172,14 @@ export default function ProjectDetail() {
     const [editOpened, setEditOpened] = useState(false);
     const [subProjectsOpen, setSubProjectsOpen] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
+
+    // Section refs for the table of contents
+    const detailsRef = useRef<HTMLDivElement>(null);
+    const textsRef = useRef<HTMLDivElement>(null);
+    const justificationRef = useRef<HTMLDivElement>(null);
+    const superiorRef = useRef<HTMLDivElement>(null);
+    const subProjectsRef = useRef<HTMLDivElement>(null);
+    const historyRef = useRef<HTMLDivElement>(null);
     const { user } = useAuth();
     const canEdit = user !== null && (user.role === "editor" || user.role === "admin");
     const projectId = Number(params.projectId);
@@ -315,6 +324,41 @@ export default function ProjectDetail() {
         .map(({ label, getValue }) => ({ label, value: getValue(project) }))
         .filter(({ value }) => value !== null) as Array<{ label: string; value: string }>;
 
+    const tocSections: TocSection[] = [
+        { id: "details", label: "Projektdetails", ref: detailsRef, visible: true },
+        { id: "texts", label: "Texte", ref: textsRef, visible: true },
+        {
+            id: "justification",
+            label: "Begründung",
+            ref: justificationRef,
+            visible: !!(project.justification?.trim()),
+        },
+        {
+            id: "superior",
+            label: "Übergeordnetes Projekt",
+            ref: superiorRef,
+            visible: !!superiorProject,
+        },
+        {
+            id: "subprojects",
+            label: `Unterprojekte (${subProjects.length})`,
+            ref: subProjectsRef,
+            visible: subProjects.length > 0,
+            isCollapsible: true,
+            isOpen: subProjectsOpen,
+            onOpen: () => setSubProjectsOpen(true),
+        },
+        {
+            id: "history",
+            label: "Versionshistorie",
+            ref: historyRef,
+            visible: user !== null,
+            isCollapsible: true,
+            isOpen: historyOpen,
+            onOpen: () => setHistoryOpen(true),
+        },
+    ];
+
     return (
         <Container size="lg" py="xl">
             <Stack gap="xl">
@@ -346,6 +390,7 @@ export default function ProjectDetail() {
                 </Group>
 
                 {/* Zweispaltiges Layout: Details/Beschreibung links, Karte rechts */}
+                <div ref={detailsRef}>
                 {mapProjects.length > 0 ? (
                     <Grid gutter="md" align="stretch">
                         <Grid.Col span={{ base: 12, md: 4 }}>
@@ -481,22 +526,28 @@ export default function ProjectDetail() {
                         )}
                     </>
                 )}
+                </div>
 
                 {/* Texte */}
-                <ProjectTextsSection projectId={projectId} canEdit={canEdit} />
+                <div ref={textsRef}>
+                    <ProjectTextsSection projectId={projectId} canEdit={canEdit} />
+                </div>
 
                 {/* Begründung */}
                 {project.justification && project.justification.trim() !== "" && (
+                    <div ref={justificationRef}>
                     <Card withBorder radius="md" padding="lg" shadow="xs">
                         <Stack gap="sm">
                             <Title order={4}>Begründung</Title>
                             <Text size="sm">{project.justification}</Text>
                         </Stack>
                     </Card>
+                    </div>
                 )}
 
                 {/* Übergeordnetes Projekt */}
                 {superiorProject && (
+                    <div ref={superiorRef}>
                     <Card withBorder radius="md" padding="lg" shadow="xs">
                         <Stack gap="sm">
                             <Title order={4}>Übergeordnetes Projekt</Title>
@@ -515,10 +566,12 @@ export default function ProjectDetail() {
                             </Card>
                         </Stack>
                     </Card>
+                    </div>
                 )}
 
                 {/* Unterprojekte */}
                 {subProjects.length > 0 && (
+                    <div ref={subProjectsRef}>
                     <Card withBorder radius="md" padding="lg" shadow="xs">
                         <Stack gap="sm">
                             <Group justify="space-between" align="center">
@@ -553,14 +606,12 @@ export default function ProjectDetail() {
                             </Collapse>
                         </Stack>
                     </Card>
+                    </div>
                 )}
-
-                
-
-                
 
                 {/* Versionshistorie – nur für eingeloggte Nutzer sichtbar */}
                 {user !== null && (
+                    <div ref={historyRef}>
                     <Card withBorder radius="md" padding="lg" shadow="xs">
                         <Stack gap="sm">
                             <Group justify="space-between" align="center">
@@ -579,9 +630,12 @@ export default function ProjectDetail() {
                             </Collapse>
                         </Stack>
                     </Card>
+                    </div>
                 )}
 
             </Stack>
+
+            <ProjectTableOfContents sections={tocSections} />
 
             <ProjectEdit
                 project={project}
