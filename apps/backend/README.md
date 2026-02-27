@@ -4,11 +4,15 @@ The Schienendashboard project aggregates nationwide railway infrastructure and p
 
 ## Key Features
 - **FastAPI REST API:** Exposes endpoints for projects, infrastructure objects, and routing information under `/api/v1`.
-- **Routing microservice integration:** Computes rail routes via a dedicated microservice, caches the geometry in PostGIS, and
-  exposes CRUD-style APIs for reuse.
-- **PostgreSQL/PostGIS storage:** Persists geometries and metadata for railway infrastructure in a spatial database.
+- **Authentication & authorisation:** HTTP Basic Auth with PBKDF2 password hashing. Three roles: `viewer` (read-only), `editor` (create/edit projects and texts), `admin` (full access + user management). The `AuthRouter` class enforces authentication on all non-GET endpoints automatically.
+- **Project CRUD & PATCH:** Full create/read/update/delete for projects. `PATCH /api/v1/projects/{id}` accepts any subset of fields, writes a `ChangeLog` entry per changed field, and requires `editor` or `admin` role.
+- **Change tracking:** `ChangeLog` and `ChangeLogEntry` tables record every field-level change with user, timestamp, old value, and new value. `GET /api/v1/projects/{id}/changelog` returns the full audit trail (publicly readable).
+- **Project texts:** Texts associated with projects support user-defined types, a body, a weblink, and a visibility flag (public / login-only). Text changes are also tracked in the change log.
+- **User management endpoints:** `GET /api/v1/users` (admin), `POST /api/v1/users` (admin), `PUT /api/v1/users/{id}` (admin), `DELETE /api/v1/users/{id}` (admin), `GET /api/v1/users/me`.
+- **Routing microservice integration:** Computes rail routes via a dedicated microservice (GrassHopper / pgRouting), caches the geometry in PostGIS, and exposes CRUD-style APIs for reuse.
+- **PostgreSQL/PostGIS storage:** Persists geometries and metadata for railway infrastructure in a spatial database. All spatial data uses EPSG:4326 (WGS 84).
 - **Import and ETL tooling:** Scripts under `scripts/` assist with loading external datasets, e.g. ERA RINF XML or legacy databases.
-- **Modular architecture:** Clear separation of API, database models, CRUD layer, and schemas simplifies maintenance and feature work.
+- **Modular architecture:** Clear separation of API routers, CRUD layer, SQLAlchemy models, Pydantic schemas, and services simplifies maintenance and feature work.
 
 ## Project Structure
 ```

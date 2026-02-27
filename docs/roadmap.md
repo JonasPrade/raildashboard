@@ -6,16 +6,17 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 
 ## Short-Term Features
 
-- [x] Projektbearbeitungsmodus: Zeige alle Eigenschaften des Projekts an und stelle sicher, dass diese bearbeitbar sind. Halte in der Agent.md fest, dass bei Änderungen der Eigenschaften eines Projekts immer sofort auch dieser Bearbeitungsmodus angepasst werden muss.
-- [x] Zeige die Versionshistorie nur für eingeloggte Benutzer an. Mache das zum Grundsatz und halte es an geeigneter Stelle für dich fest.
-- [x] Zeige die Texte für Projekte in jedem Projekt an (sofern sie existieren). Dies soll über den "Übergeordnetes Projekt" erfolgen. 
-- [x] Ergänze die Möglichkeit, dass Texte neu erstellt werden können, nur im eingeloggten Zustand und auch das ChangeTracking hier beachten.
-- [x] Ergänze die Möglichkeit, existierende Texte zu bearbeiten. 
+- [ ] Login User - dauerhaft über Sitzungen hinweg.
 
+- [ ] **Versionshistorie** *(Frontend)*
+  Zeigt allen Nutzern, wer wann was geändert hat.
+  - Neuer Abschnitt „Versionshistorie" in `ProjectDetail`
+  - Timeline-Ansicht: Datum, Nutzername, Liste der geänderten Felder mit altem → neuem Wert
 
-- [x] Füge die Möglichkeit hinzu, dass Texte nur eingelogt oder öffentlich angezeigt werden können.
-- [x] Verschiebe in den Projekten die Darstellung von Verkehrsarten und Merkmale in die Box "Projektdetails". Entferne dort die ehemalige ID
-- [ ] Login User - dauerhaft über Sitzungen hinweg. 
+- [ ] **Revert-Funktion** *(Frontend)*
+  Erlaubt das Zurücksetzen einzelner Felder auf einen früheren Stand.
+  - Pro `ChangeLogEntry`: Button „Zurücksetzen auf [alter Wert]" (nur für `editor` / `admin`)
+  - Sendet `PATCH` mit dem alten Wert des jeweiligen Felds
 
 ---
 
@@ -30,27 +31,11 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
   5. Nutzer akzeptiert → Route wird als `geojson_representation` des Projekts gespeichert (PATCH)
   6. Nutzer lehnt ab → Vorschau wird verworfen
 
-- [ ] Anzeige der Kommentare sowie 
+- [ ] Anzeige der Kommentare sowie
 
-### Benutzerverwaltung *(geordnete Implementierungsschritte)*
+### Benutzerverwaltung
 
-- [x] **Schritt 1: Login-UI** *(Frontend)*
-  Das Backend hat bereits HTTP Basic Auth mit Rollen (viewer / editor / admin).
-  Die App bleibt für alle Nutzer vollständig lesbar — Login ist nur für Schreiboperationen nötig.
-  - „Anmelden"-Button im Header öffnet Login-Formular (Modal)
-  - Credentials im React-Context vorhalten; `Authorization`-Header wird bei API-Requests mitgesendet
-  - API-Interceptor: bei 401/403 → Login-Modal öffnen (kein Zwangs-Redirect für Lesezugriff)
-  - Nach erfolgreichem Login: Header zeigt Nutzername + „Abmelden"-Button
-
-- [x] **Schritt 2: Rollenbasierte Bearbeitung** *(Frontend)*
-  Abhängigkeit: Schritt 1 abgeschlossen.
-  - „Bearbeiten"-Button in `ProjectDetail` und alle anderen Schreiboperationen nur sichtbar/aktiv
-    für eingeloggte Nutzer mit Rolle `editor` oder `admin`
-  - Nicht eingeloggte Nutzer sehen alle Daten uneingeschränkt, aber keine Bearbeitungs-Controls
-  - Admin-Bereich im Header nur für `admin` sichtbar
-
-- [ ] **Schritt 3: Passwort zurücksetzen per E-Mail** *(Backend + Frontend)*
-  Abhängigkeit: Schritt 1 abgeschlossen.
+- [ ] **Passwort zurücksetzen per E-Mail** *(Backend + Frontend)*
   → Vollständiger technischer Plan: [`docs/email_password_reset_plan.md`](email_password_reset_plan.md)
   Backend:
   - Feld `email` zum User-Modell ergänzen + Migration
@@ -62,28 +47,20 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
   - „Passwort vergessen?"-Link im Login-Modal → E-Mail-Eingabeformular
   - Reset-Formular (neues Passwort, Token aus URL-Param des Mail-Links)
 
-- [x] **Schritt 4: User-Management-Seite** *(Backend + Frontend)*
-  Abhängigkeit: Schritte 1 + 2 abgeschlossen. Nur für Admins zugänglich.
-  Backend (fehlende Endpunkte ergänzen):
-  - `PUT /api/v1/users/{id}` — Rolle, E-Mail oder Passwort ändern
-  - `DELETE /api/v1/users/{id}` — Nutzer löschen
-  Frontend:
-  - Seite `/admin/users`: Tabelle aller Nutzer (Name, Rolle, E-Mail, erstellt am)
-  - Nutzer anlegen (Name, E-Mail, Rolle, initiales Passwort oder Reset-Link versenden)
-  - Rolle ändern / Passwort zurücksetzen / Nutzer löschen
-
-
-
 ### Weiteres
-- [ ] **Automatisiertes Backup Datenkbank** Erstelle mir gute Maßnahmen zum Backup Datenbanken, möglichst auch über einfache Command-Zeile
+
+- [ ] **Automatisiertes Backup Datenbank** — Maßnahmen zum Backup, möglichst über einfache Kommandozeile
 
 - [ ] **ProjectProgress** *(Backend + Frontend)*
   Fortschrittsstand eines Projekts (Planungs-, Genehmigungs-, Bauphase). Speist sich aus mehreren Quellen (z. B. Bundestag-Drucksachen, Pressemitteilungen, manuelle Eingabe). Benötigt Validierungslogik für Konflikte zwischen Quellen.
   - Backend: `ProjectProgress`-Modell implementieren (Status, Datum, Quelle, Kommentar)
   - Frontend: Zeitleiste/Meilenstein-Ansicht in `ProjectDetail`
-– [ ] **Anzeige der BVWP-Daten** Für einige Projekte liegen BVWP-Daten vor, diese sind vollständig und übersichtlich darzustellen
-- [ ] **Anzeige Texte und Kommentare:**
-- [ ] **Vervollständigung und Automatisierung Test**
+
+- [ ] **Anzeige der BVWP-Daten** — Für einige Projekte liegen BVWP-Daten vor; vollständig und übersichtlich darstellen
+
+- [ ] **Anzeige Texte und Kommentare**
+
+- [ ] **Vervollständigung und Automatisierung Tests**
 
 ---
 
@@ -127,13 +104,12 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
   ChangeLog-Infrastruktur (für Protokollierung).
 - [ ] **Beschleunigungskommission Schiene** — Datentransfer aus öffentlichen Quellen + automatische Updates
 - [ ] **BVWP-Datenimport** — Übernahme aus Legacy-Datenbank
-- [x] **Backend-Authentifizierung** — HTTP Basic Auth, PBKDF2, Rollen: viewer / editor / admin (Frontend-Integration steht noch aus, siehe Mid-Term)
 - [ ] **Celery Task Queue** — Für lang laufende Tasks (Routing, PDF-Verarbeitung)
 - [ ] **OpenStreetMap-Anbindung** — Breite Abdeckung, aber komplex für Routing-Anfragen
 - [ ] **DB OpenData** — Schienennetz Deutsche Bahn ([GovData](https://www.govdata.de/suche/daten/schienennetz-deutsche-bahnddea3))
 - [ ] **RINF-Daten evaluieren** — Für Bahnhofs-/Stationsverbindungen ggf. weiterhin benötigt
 - [ ] **GeoLine-Erstellung** — Möglichkeit, neue Streckengeometrien zu erzeugen, wenn vorhandene unvollständig/ungültig sind. Ansatz noch offen (Zeichentool auf Karte vs. automatische Vervollständigung).
-- [ ] **Automatisierung Preisniveau** Ein Tool das ermöglicht, Preise gemäß der Inflation/Baukostenentwicklung auf das aktuelle Jahr zu berechnen und so die Vergleichbarkeit zu verbessern
+- [ ] **Automatisierung Preisniveau** — Tool zur Preisanpassung gemäß Inflation/Baukostenentwicklung für bessere Vergleichbarkeit
 
 ---
 
@@ -150,82 +126,3 @@ Priorität:
 - **infrastructure data** — wird nicht übertragen
 - **d-takt data** — ignoriert
 - **texts** — kein Transfer
-
----
-
-## Finished
-
-- [x] Dicke der Linien auf Karte einstellbar, standardmäßig dicker (4 px)
-- [x] Größe der Punkte auf Karte einstellbar
-- [x] In Projektansicht Button "Zur Karte" neben "Zur Projektübersicht"
-- [x] Lücken zwischen Liniensegmenten behoben (MultiLineString + `line-cap: round`)
-- [x] Punkte aus GeoJSON auf Karte dargestellt (separater Circle-Layer)
-- [x] Gruppen-Persistenz über URL-Params beim Wechsel zwischen Karte und Projektliste
-- [x] Backend-Authentifizierung (HTTP Basic Auth, PBKDF2, Rollen: viewer / editor / admin)
-- [x] Routing-Algorithmus implementiert (pgRouting / GrassHopper-Microservice)
-- [x] Stelle sicher, dass properties of project im Browser bei den Projekten angezeigt werden. Aktuell ist das nur für ausgewählte der Fall. Finde einen guten Weg, die Darstellung properties flexibel ergänzt werden kann.
-- [x] Stelle zudem ergänzend dar, welchen Train Kategorien (Verkehrsarten) ein Projekt dient
-- [x] Zeige Projekteigenschaften auch in der Projektdarstellung auf der Karte an. Stelle sicher dass diese Kurzansicht der Projekte als Komponente definiert wird, da sie demnächst auch an anderer Stelle angezeigt wird.
-- [x] Stelle bei jedem Projekt alle zugeordneten Unterprojekte mit der Kurzansicht Projekt dar.
-- [x] Stelle bei jedem Projekt das übergeordnete Projekt mit der Kurzansicht Projekt dar
-- [x] Zeige bei jedem Projekt die Karte mit dem Projekt. Wenn es Unterprojekte gibt, zeige diese auf der Karte. Die Karte soll sich gleich verhalten wie die Übersichtskarte, allerdings nur mit den genannten Variantne (entweder Projekt anziehen oder die Unterprojekte. Die sind dann auch anklickbar zu machen)
-- [x] Stelle (sofern breit genug) Projektdetails + Beschreibung neben der Karte dar (Karte rechts und zwei/Drittel der Breite)
-
-
-- [x] **Gruppen-Persistenz zwischen Karte und Liste**
-  Gruppenfilter wird als URL-Param gespeichert (`?group=id1,id2`). Beim Wechsel zwischen Karte und Liste bleibt der aktive Filter erhalten. *(Aktuelle Implementierung: URL-Params — kein localStorage nötig.)*
-
-
-
-- [x] **Karte/Liste als Tab-Toggle auf einer Seite**
-  Karte und Projektliste werden auf derselben Route (`/`) zusammengeführt. Ein Tab-Toggle (`Karte` | `Liste`) auf der Seite steuert die aktive Ansicht. Aktive Ansicht wird im URL-Param gespeichert (`?view=map` oder `?view=list`), damit Links auf eine bestimmte Ansicht zeigen können. Die Navigation "Projekte" im Header entfällt bzw. wird Teil des Toggles. Bisherige Route `/projects` wird auf `/?view=list` weitergeleitet.
-
-
-
-- [x] **Nur ranghöchste Projekte anzeigen** *(Karte + Liste)*
-  Toggle/Checkbox in der Filterleiste: "Nur übergeordnete Projekte". Filtert auf Projekte, bei denen `superior_project_id IS NULL`. Default: alle Projekte anzeigen.
-
-
-- [x] **Die Anzeige bei Auswahl eines Projektes in der Karte soll nicht nur den Namen und mehr Informationen, sondern die wichtigsten Informationen des Projektes anzeigen, nämlich die Projektnummer sowie die Beschreibung.** 
-
-### Change Tracking
-
-- [x] **Change Tracking** *(Backend + Frontend)*
-  Ermöglicht nachzuvollziehen, wer wann welche Felder eines Projekts geändert hat, und einzelne Felder auf frühere Werte zurückzusetzen.
-  Hinweis: Datenmodell existiert noch nicht (Verzeichnis `change_tracking/` ist leer); PATCH-Endpunkt für Projekte fehlt ebenfalls noch.
-
-  - [x] **Schritt 1: Datenmodell + Migration** *(Backend)*
-    Fundament für alle weiteren Schritte.
-    - `ChangeLog`-Tabelle: `id`, `project_id` (FK→projects), `user_id` (FK→users), `created_at`, optionales `note`-Feld
-    - `ChangeLogEntry`-Tabelle: `id`, `changelog_id` (FK→changelog), `field_name`, `old_value` (TEXT, nullable), `new_value` (TEXT, nullable)
-    - Alembic-Migration erstellen und anwenden
-
-  - [x] **Schritt 2: PATCH-Endpunkt für Projekte** *(Backend)*
-    Voraussetzung für Schritt 3 – ohne PATCH-Endpunkt können keine Änderungen ausgelöst werden.
-    - `PATCH /api/v1/projects/{project_id}` — nimmt alle Projektfelder als optional entgegen
-    - Vergleicht alten und neuen Wert je Feld; schreibt für jedes geänderte Feld einen `ChangeLogEntry`
-    - Erstellt einen übergeordneten `ChangeLog`-Eintrag mit Zeitstempel + eingeloggtem Nutzer
-    - Erfordert Rolle `editor` oder `admin`
-
-  - [x] **Schritt 3: GET-Endpunkt für Changelog** *(Backend)*
-    Macht die History über die API abrufbar.
-    - `GET /api/v1/projects/{project_id}/changelog` — gibt alle `ChangeLog`-Einträge mit zugehörigen `ChangeLogEntry`-Zeilen zurück
-    - Öffentlich lesbar (kein Login erforderlich)
-    - Pydantic-Schemas für Response-Serialisierung
-
-  - [x] **Schritt 4: Projekt bearbeiten** *(Frontend)*
-    Erste sichtbare Funktion für Nutzer mit Schreibrechten.
-    - „Bearbeiten"-Button in `ProjectDetail` (nur für `editor` / `admin` sichtbar)
-    - Bearbeitungsformular mit allen relevanten Feldern
-    - Speichern-Aktion ruft `PATCH /api/v1/projects/{id}` auf
-
-  - [ ] **Schritt 5: Versionshistorie** *(Frontend)*
-    Zeigt allen Nutzern, wer wann was geändert hat.
-    - Neuer Abschnitt „Versionshistorie" in `ProjectDetail`
-    - Timeline-Ansicht: Datum, Nutzername, Liste der geänderten Felder mit altem → neuem Wert
-
-  - [ ] **Schritt 6: Revert-Funktion** *(Frontend)*
-    Erlaubt das Zurücksetzen einzelner Felder auf einen früheren Stand.
-    - Pro `ChangeLogEntry`: Button „Zurücksetzen auf [alter Wert]" (nur für `editor` / `admin`)
-    - Sendet `PATCH` mit dem alten Wert des jeweiligen Felds
-

@@ -94,13 +94,22 @@ export default function DocumentationPage() {
                             <Text span fw={500}>
                                 Routes:
                             </Text>{" "}
-                            <Text span>/ (map view), /documentation (this page)</Text>
+                            <Text span>
+                                / (map + list toggle), /projects/:id (project detail),
+                                /admin (user management, admin only), /documentation (this page)
+                            </Text>
                         </List.Item>
                         <List.Item>
                             <Text span fw={500}>
                                 Scripts:
                             </Text>{" "}
                             <Text span>`npm run dev`, `npm run build`, `npm run preview`, `npm run gen:api`, `npm run gen:zod`</Text>
+                        </List.Item>
+                        <List.Item>
+                            <Text span fw={500}>
+                                Make targets:
+                            </Text>{" "}
+                            <Text span>`make dev`, `make test`, `make migrate`, `make gen-api`, `make create-user`, `make list-users`</Text>
                         </List.Item>
                     </List>
                 </Stack>
