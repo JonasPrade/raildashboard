@@ -1,1 +1,1 @@
-from .change_log import ChangeLog, ChangeLogEntry
+from .change_log import ChangeLog, ChangeLogEntry, TextChangeLog, TextChangeLogEntry

@@ -118,6 +118,8 @@ The backend uses **HTTP Basic Auth**. The `AuthRouter` class (`routing/auth_rout
 
 Roles: `viewer` (read-only), `editor` (can write projects/routes), `admin` (full access, user management). Protect endpoints with `Depends(require_roles(UserRole.editor))` from `core/security.py`.
 
+**Visibility of sensitive data:** Version history (changelog) and any data containing usernames or internal change records must **only be visible to logged-in users**. Anonymous visitors (unauthenticated viewers) must not see this data. This rule applies everywhere change tracking is displayed, not only in `ProjectHistorySection`.
+
 ### Error handling (backend)
 
 - `404` for missing resources, `400` for invalid input, `409` for conflicts (e.g. duplicate username), `403` for authorisation failures.
@@ -222,6 +224,17 @@ Do **not** introduce Zustand or Redux. The project intentionally avoids client-s
 make gen-api
 ```
 
+### Project field sync rule
+
+**Whenever a project field is added, renamed, or removed** (in the SQLAlchemy model, Pydantic schema, or `ProjectSchema`), all of the following files must be updated in the same change:
+
+| File | What to update |
+|---|---|
+| `features/projects/ProjectEdit.tsx` | `ProjectEditFormValues` type, `createInitialValues()`, form field in the correct group |
+| `features/projects/ProjectDetail.tsx` | `createUpdatePayload()` |
+| `shared/api/queries.ts` | `ProjectUpdatePayload` type |
+| `dashboard_backend/schemas/projects/project_update_schema.py` | `ProjectUpdate` Pydantic schema |
+
 ### Code quality (frontend)
 
 Before committing, run:
@@ -257,6 +270,7 @@ npm run test        # Vitest unit/integration tests
 - Update `apps/frontend/src/features/documentation/DocumentationPage.tsx` (the in-app docs) whenever the user-facing feature scope changes.
 - Project-wide architecture, data models, and the roadmap live in `docs/` (repo root).
 - Backend-specific implementation details live in `apps/backend/docs/`.
+- **Update `docs/roadmap.md`** whenever a feature is completed (mark `[ ]` → `[x]`) or a new planned feature is added. Keep it in sync with the actual state of the codebase.
 
 ---
 

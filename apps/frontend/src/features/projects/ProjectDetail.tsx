@@ -6,6 +6,7 @@ import {
     Badge,
     Button,
     Card,
+    Collapse,
     Container,
     Grid,
     Group,
@@ -28,6 +29,7 @@ import ProjectEdit, { type ProjectEditFormValues } from "./ProjectEdit";
 import ProjectSummaryCard from "./ProjectSummaryCard";
 import MapView, { type MapViewProject } from "../map/MapView";
 import ProjectHistorySection from "../changelog/ProjectHistorySection";
+import ProjectTextsSection from "./ProjectTextsSection";
 
 type RouteParams = {
     projectId?: string;
@@ -56,15 +58,6 @@ const detailRows: Array<{ label: string; getValue: (project: Project) => string 
             project.superior_project_id !== null && project.superior_project_id !== undefined
                 ? String(project.superior_project_id)
                 : null,
-    },
-    {
-        label: "Ehemalige ID",
-        getValue: (project) => (project.old_id ? String(project.old_id) : null),
-    },
-    {
-        label: "Ehemalige ID des übergeordneten Projekts",
-        getValue: (project) =>
-            project.superior_project_old_id ? String(project.superior_project_old_id) : null,
     },
     {
         label: "Neue Vmax",
@@ -118,9 +111,55 @@ function createUpdatePayload(values: ProjectEditFormValues): ProjectUpdatePayloa
         description: values.description?.trim() || null,
         justification: values.justification?.trim() || null,
         length: typeof values.length === "number" ? values.length : null,
-        elektrification: values.elektrification,
+        new_vmax: typeof values.new_vmax === "number" ? values.new_vmax : null,
+        etcs_level: typeof values.etcs_level === "number" ? values.etcs_level : null,
+        number_junction_station: typeof values.number_junction_station === "number" ? values.number_junction_station : null,
+        number_overtaking_station: typeof values.number_overtaking_station === "number" ? values.number_overtaking_station : null,
+        filling_stations_count: typeof values.filling_stations_count === "number" ? values.filling_stations_count : null,
+        effects_passenger_long_rail: values.effects_passenger_long_rail,
+        effects_passenger_local_rail: values.effects_passenger_local_rail,
+        effects_cargo_rail: values.effects_cargo_rail,
+        nbs: values.nbs,
+        abs: values.abs,
         second_track: values.second_track,
+        third_track: values.third_track,
+        fourth_track: values.fourth_track,
+        curve: values.curve,
+        increase_speed: values.increase_speed,
+        tunnel_structural_gauge: values.tunnel_structural_gauge,
+        tilting: values.tilting,
         new_station: values.new_station,
+        platform: values.platform,
+        junction_station: values.junction_station,
+        overtaking_station: values.overtaking_station,
+        depot: values.depot,
+        level_free_platform_entrance: values.level_free_platform_entrance,
+        double_occupancy: values.double_occupancy,
+        simultaneous_train_entries: values.simultaneous_train_entries,
+        buffer_track: values.buffer_track,
+        overpass: values.overpass,
+        noise_barrier: values.noise_barrier,
+        railroad_crossing: values.railroad_crossing,
+        gwb: values.gwb,
+        etcs: values.etcs,
+        new_estw: values.new_estw,
+        new_dstw: values.new_dstw,
+        block_increase: values.block_increase,
+        station_railroad_switches: values.station_railroad_switches,
+        flying_junction: values.flying_junction,
+        elektrification: values.elektrification,
+        optimised_electrification: values.optimised_electrification,
+        charging_station: values.charging_station,
+        small_charging_station: values.small_charging_station,
+        battery: values.battery,
+        h2: values.h2,
+        efuel: values.efuel,
+        filling_stations_efuel: values.filling_stations_efuel,
+        filling_stations_h2: values.filling_stations_h2,
+        filling_stations_diesel: values.filling_stations_diesel,
+        sgv740m: values.sgv740m,
+        sanierung: values.sanierung,
+        closure: values.closure,
     };
 }
 
@@ -130,6 +169,8 @@ export default function ProjectDetail() {
     const [searchParams] = useSearchParams();
     const queryClient = useQueryClient();
     const [editOpened, setEditOpened] = useState(false);
+    const [subProjectsOpen, setSubProjectsOpen] = useState(false);
+    const [historyOpen, setHistoryOpen] = useState(false);
     const { user } = useAuth();
     const canEdit = user !== null && (user.role === "editor" || user.role === "admin");
     const projectId = Number(params.projectId);
@@ -309,18 +350,52 @@ export default function ProjectDetail() {
                     <Grid gutter="md" align="stretch">
                         <Grid.Col span={{ base: 12, md: 4 }}>
                             <Stack gap="md" style={{ height: "100%" }}>
-                                {visibleDetailRows.length > 0 && (
-                                    <Card withBorder radius="md" padding="lg" shadow="xs">
-                                        <Stack gap="sm">
-                                            <Title order={4}>Projektdetails</Title>
+                                <Card withBorder radius="md" padding="lg" shadow="xs">
+                                    <Stack gap="sm">
+                                        <Title order={4}>Projektdetails</Title>
+                                        {visibleDetailRows.length > 0 && (
                                             <Stack gap={8}>
                                                 {visibleDetailRows.map(({ label, value }) => (
                                                     <DetailRow key={label} label={label} value={value} />
                                                 ))}
                                             </Stack>
-                                        </Stack>
-                                    </Card>
-                                )}
+                                        )}
+                                        <Text size="xs" fw={600} c="dimmed" tt="uppercase" lts={0.5}>Verkehrsarten</Text>
+                                        <Group gap="xs">
+                                            {trainCategoryLabels.map(({ key, label, color }) => {
+                                                const isActive = Boolean(project[key]);
+                                                return (
+                                                    <Badge
+                                                        key={String(key)}
+                                                        variant={isActive ? "light" : "outline"}
+                                                        color={isActive ? color : "gray"}
+                                                    >
+                                                        {label}
+                                                    </Badge>
+                                                );
+                                            })}
+                                        </Group>
+                                        {activeFeatureGroups.length > 0 && (
+                                            <>
+                                                <Text size="xs" fw={600} c="dimmed" tt="uppercase" lts={0.5}>Merkmale</Text>
+                                                <Stack gap="md">
+                                                    {activeFeatureGroups.map(({ groupLabel, activeFeatures }) => (
+                                                        <Stack key={groupLabel} gap={6}>
+                                                            <Text size="xs" fw={600} c="dimmed">{groupLabel}</Text>
+                                                            <Group gap="xs">
+                                                                {activeFeatures.map(({ key, label }) => (
+                                                                    <Badge key={String(key)} variant="light" color="blue">
+                                                                        {label}
+                                                                    </Badge>
+                                                                ))}
+                                                            </Group>
+                                                        </Stack>
+                                                    ))}
+                                                </Stack>
+                                            </>
+                                        )}
+                                    </Stack>
+                                </Card>
                                 {project.description && project.description.trim() !== "" && (
                                     <Card withBorder radius="md" padding="lg" shadow="xs">
                                         <Stack gap="sm">
@@ -350,18 +425,52 @@ export default function ProjectDetail() {
                     </Grid>
                 ) : (
                     <>
-                        {visibleDetailRows.length > 0 && (
-                            <Card withBorder radius="md" padding="lg" shadow="xs">
-                                <Stack gap="sm">
-                                    <Title order={4}>Projektdetails</Title>
+                        <Card withBorder radius="md" padding="lg" shadow="xs">
+                            <Stack gap="sm">
+                                <Title order={4}>Projektdetails</Title>
+                                {visibleDetailRows.length > 0 && (
                                     <Stack gap={8}>
                                         {visibleDetailRows.map(({ label, value }) => (
                                             <DetailRow key={label} label={label} value={value} />
                                         ))}
                                     </Stack>
-                                </Stack>
-                            </Card>
-                        )}
+                                )}
+                                <Text size="xs" fw={600} c="dimmed" tt="uppercase" lts={0.5}>Verkehrsarten</Text>
+                                <Group gap="xs">
+                                    {trainCategoryLabels.map(({ key, label, color }) => {
+                                        const isActive = Boolean(project[key]);
+                                        return (
+                                            <Badge
+                                                key={String(key)}
+                                                variant={isActive ? "light" : "outline"}
+                                                color={isActive ? color : "gray"}
+                                            >
+                                                {label}
+                                            </Badge>
+                                        );
+                                    })}
+                                </Group>
+                                {activeFeatureGroups.length > 0 && (
+                                    <>
+                                        <Text size="xs" fw={600} c="dimmed" tt="uppercase" lts={0.5}>Merkmale</Text>
+                                        <Stack gap="md">
+                                            {activeFeatureGroups.map(({ groupLabel, activeFeatures }) => (
+                                                <Stack key={groupLabel} gap={6}>
+                                                    <Text size="xs" fw={600} c="dimmed">{groupLabel}</Text>
+                                                    <Group gap="xs">
+                                                        {activeFeatures.map(({ key, label }) => (
+                                                            <Badge key={String(key)} variant="light" color="blue">
+                                                                {label}
+                                                            </Badge>
+                                                        ))}
+                                                    </Group>
+                                                </Stack>
+                                            ))}
+                                        </Stack>
+                                    </>
+                                )}
+                            </Stack>
+                        </Card>
                         {project.description && project.description.trim() !== "" && (
                             <Card withBorder radius="md" padding="lg" shadow="xs">
                                 <Stack gap="sm">
@@ -373,48 +482,15 @@ export default function ProjectDetail() {
                     </>
                 )}
 
-                {/* Verkehrsarten */}
-                <Card withBorder radius="md" padding="lg" shadow="xs">
-                    <Stack gap="sm">
-                        <Title order={4}>Verkehrsarten</Title>
-                        <Group gap="xs">
-                            {trainCategoryLabels.map(({ key, label, color }) => {
-                                const isActive = Boolean(project[key]);
-                                return (
-                                    <Badge
-                                        key={String(key)}
-                                        variant={isActive ? "light" : "outline"}
-                                        color={isActive ? color : "gray"}
-                                    >
-                                        {label}
-                                    </Badge>
-                                );
-                            })}
-                        </Group>
-                    </Stack>
-                </Card>
+                {/* Texte */}
+                <ProjectTextsSection projectId={projectId} canEdit={canEdit} />
 
-                {/* Merkmale – nur wenn mindestens eine Gruppe aktiv */}
-                {activeFeatureGroups.length > 0 && (
+                {/* Begründung */}
+                {project.justification && project.justification.trim() !== "" && (
                     <Card withBorder radius="md" padding="lg" shadow="xs">
                         <Stack gap="sm">
-                            <Title order={4}>Merkmale</Title>
-                            <Stack gap="md">
-                                {activeFeatureGroups.map(({ groupLabel, activeFeatures }) => (
-                                    <Stack key={groupLabel} gap={6}>
-                                        <Text size="xs" fw={600} c="dimmed" tt="uppercase" lts={0.5}>
-                                            {groupLabel}
-                                        </Text>
-                                        <Group gap="xs">
-                                            {activeFeatures.map(({ key, label }) => (
-                                                <Badge key={String(key)} variant="light" color="blue">
-                                                    {label}
-                                                </Badge>
-                                            ))}
-                                        </Group>
-                                    </Stack>
-                                ))}
-                            </Stack>
+                            <Title order={4}>Begründung</Title>
+                            <Text size="sm">{project.justification}</Text>
                         </Stack>
                     </Card>
                 )}
@@ -445,42 +521,65 @@ export default function ProjectDetail() {
                 {subProjects.length > 0 && (
                     <Card withBorder radius="md" padding="lg" shadow="xs">
                         <Stack gap="sm">
-                            <Title order={4}>Unterprojekte ({subProjects.length})</Title>
-                            <Stack gap="sm">
-                                {subProjects.map((sub) => (
-                                    <Card key={sub.id} withBorder radius="sm" padding="md">
-                                        <Stack gap="sm">
-                                            <ProjectSummaryCard project={sub} />
-                                            <Button
-                                                size="xs"
-                                                variant="light"
-                                                component={Link}
-                                                to={`/projects/${sub.id}`}
-                                            >
-                                                Zum Projekt
-                                            </Button>
-                                        </Stack>
-                                    </Card>
-                                ))}
-                            </Stack>
+                            <Group justify="space-between" align="center">
+                                <Title order={4}>Unterprojekte ({subProjects.length})</Title>
+                                <Button
+                                    size="xs"
+                                    variant="subtle"
+                                    color="gray"
+                                    onClick={() => setSubProjectsOpen((o) => !o)}
+                                >
+                                    {subProjectsOpen ? "Ausblenden" : "Anzeigen"}
+                                </Button>
+                            </Group>
+                            <Collapse in={subProjectsOpen}>
+                                <Stack gap="sm">
+                                    {subProjects.map((sub) => (
+                                        <Card key={sub.id} withBorder radius="sm" padding="md">
+                                            <Stack gap="sm">
+                                                <ProjectSummaryCard project={sub} />
+                                                <Button
+                                                    size="xs"
+                                                    variant="light"
+                                                    component={Link}
+                                                    to={`/projects/${sub.id}`}
+                                                >
+                                                    Zum Projekt
+                                                </Button>
+                                            </Stack>
+                                        </Card>
+                                    ))}
+                                </Stack>
+                            </Collapse>
                         </Stack>
                     </Card>
                 )}
 
-                {/* Begründung */}
-                {project.justification && project.justification.trim() !== "" && (
+                
+
+                
+
+                {/* Versionshistorie – nur für eingeloggte Nutzer sichtbar */}
+                {user !== null && (
                     <Card withBorder radius="md" padding="lg" shadow="xs">
                         <Stack gap="sm">
-                            <Title order={4}>Begründung</Title>
-                            <Text size="sm">{project.justification}</Text>
+                            <Group justify="space-between" align="center">
+                                <Title order={4}>Versionshistorie</Title>
+                                <Button
+                                    size="xs"
+                                    variant="subtle"
+                                    color="gray"
+                                    onClick={() => setHistoryOpen((o) => !o)}
+                                >
+                                    {historyOpen ? "Ausblenden" : "Anzeigen"}
+                                </Button>
+                            </Group>
+                            <Collapse in={historyOpen}>
+                                <ProjectHistorySection projectId={projectId} canEdit={canEdit} />
+                            </Collapse>
                         </Stack>
                     </Card>
                 )}
-
-                {/* Versionshistorie */}
-                <Card withBorder radius="md" padding="lg" shadow="xs">
-                    <ProjectHistorySection projectId={projectId} canEdit={canEdit} />
-                </Card>
 
             </Stack>
 

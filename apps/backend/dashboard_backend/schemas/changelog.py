@@ -29,3 +29,26 @@ class ChangeLogRead(BaseModel):
 
 class RevertFieldRequest(BaseModel):
     changelog_entry_id: int
+
+
+class TextChangeLogEntryRead(BaseModel):
+    id: int
+    field_name: str
+    old_value: Optional[str] = None
+    new_value: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TextChangeLogRead(BaseModel):
+    id: int
+    text_id: Optional[int] = None
+    project_id: Optional[int] = None
+    user_id: Optional[int] = None
+    username_snapshot: Optional[str] = None
+    text_header_snapshot: Optional[str] = None
+    timestamp: datetime
+    action: str
+    entries: list[TextChangeLogEntryRead] = []
+
+    model_config = ConfigDict(from_attributes=True)

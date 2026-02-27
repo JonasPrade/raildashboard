@@ -2,11 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import {
     Alert,
     Button,
+    Divider,
     Drawer,
     Group,
     NumberInput,
+    ScrollArea,
     Stack,
     Switch,
+    Text,
     Textarea,
     TextInput,
 } from "@mantine/core";
@@ -14,14 +17,68 @@ import {
 import type { Project } from "../../shared/api/queries";
 
 export type ProjectEditFormValues = {
+    // Text fields
     name: string;
     project_number: string | null;
     description: string | null;
     justification: string | null;
+    // Numeric fields
     length: number | null;
-    elektrification: boolean;
+    new_vmax: number | null;
+    etcs_level: number | null;
+    number_junction_station: number | null;
+    number_overtaking_station: number | null;
+    filling_stations_count: number | null;
+    // Train categories
+    effects_passenger_long_rail: boolean;
+    effects_passenger_local_rail: boolean;
+    effects_cargo_rail: boolean;
+    // Streckenausbau
+    nbs: boolean;
+    abs: boolean;
     second_track: boolean;
+    third_track: boolean;
+    fourth_track: boolean;
+    curve: boolean;
+    increase_speed: boolean;
+    tunnel_structural_gauge: boolean;
+    tilting: boolean;
+    // Bahnhöfe & Infrastruktur
     new_station: boolean;
+    platform: boolean;
+    junction_station: boolean;
+    overtaking_station: boolean;
+    depot: boolean;
+    level_free_platform_entrance: boolean;
+    double_occupancy: boolean;
+    simultaneous_train_entries: boolean;
+    buffer_track: boolean;
+    overpass: boolean;
+    noise_barrier: boolean;
+    railroad_crossing: boolean;
+    gwb: boolean;
+    // Signaltechnik & Digitalisierung
+    etcs: boolean;
+    new_estw: boolean;
+    new_dstw: boolean;
+    block_increase: boolean;
+    station_railroad_switches: boolean;
+    flying_junction: boolean;
+    // Elektrifizierung & Energie
+    elektrification: boolean;
+    optimised_electrification: boolean;
+    charging_station: boolean;
+    small_charging_station: boolean;
+    battery: boolean;
+    h2: boolean;
+    efuel: boolean;
+    filling_stations_efuel: boolean;
+    filling_stations_h2: boolean;
+    filling_stations_diesel: boolean;
+    // Sonstiges
+    sgv740m: boolean;
+    sanierung: boolean;
+    closure: boolean;
 };
 
 type ProjectEditProps = {
@@ -33,6 +90,10 @@ type ProjectEditProps = {
     errorMessage?: string;
 };
 
+function b(v: boolean | null | undefined): boolean {
+    return Boolean(v);
+}
+
 function createInitialValues(project: Project): ProjectEditFormValues {
     return {
         name: project.name,
@@ -40,10 +101,79 @@ function createInitialValues(project: Project): ProjectEditFormValues {
         description: project.description ?? null,
         justification: project.justification ?? null,
         length: project.length ?? null,
-        elektrification: Boolean(project.elektrification),
-        second_track: Boolean(project.second_track),
-        new_station: Boolean(project.new_station ?? false),
+        new_vmax: project.new_vmax ?? null,
+        etcs_level: project.etcs_level ?? null,
+        number_junction_station: project.number_junction_station ?? null,
+        number_overtaking_station: project.number_overtaking_station ?? null,
+        filling_stations_count: project.filling_stations_count ?? null,
+        effects_passenger_long_rail: b(project.effects_passenger_long_rail),
+        effects_passenger_local_rail: b(project.effects_passenger_local_rail),
+        effects_cargo_rail: b(project.effects_cargo_rail),
+        nbs: b(project.nbs),
+        abs: b(project.abs),
+        second_track: b(project.second_track),
+        third_track: b(project.third_track),
+        fourth_track: b(project.fourth_track),
+        curve: b(project.curve),
+        increase_speed: b(project.increase_speed),
+        tunnel_structural_gauge: b(project.tunnel_structural_gauge),
+        tilting: b(project.tilting),
+        new_station: b(project.new_station),
+        platform: b(project.platform),
+        junction_station: b(project.junction_station),
+        overtaking_station: b(project.overtaking_station),
+        depot: b(project.depot),
+        level_free_platform_entrance: b(project.level_free_platform_entrance),
+        double_occupancy: b(project.double_occupancy),
+        simultaneous_train_entries: b(project.simultaneous_train_entries),
+        buffer_track: b(project.buffer_track),
+        overpass: b(project.overpass),
+        noise_barrier: b(project.noise_barrier),
+        railroad_crossing: b(project.railroad_crossing),
+        gwb: b(project.gwb),
+        etcs: b(project.etcs),
+        new_estw: b(project.new_estw),
+        new_dstw: b(project.new_dstw),
+        block_increase: b(project.block_increase),
+        station_railroad_switches: b(project.station_railroad_switches),
+        flying_junction: b(project.flying_junction),
+        elektrification: b(project.elektrification),
+        optimised_electrification: b(project.optimised_electrification),
+        charging_station: b(project.charging_station),
+        small_charging_station: b(project.small_charging_station),
+        battery: b(project.battery),
+        h2: b(project.h2),
+        efuel: b(project.efuel),
+        filling_stations_efuel: b(project.filling_stations_efuel),
+        filling_stations_h2: b(project.filling_stations_h2),
+        filling_stations_diesel: b(project.filling_stations_diesel),
+        sgv740m: b(project.sgv740m),
+        sanierung: b(project.sanierung),
+        closure: b(project.closure),
     };
+}
+
+function SwitchField({
+    label,
+    fieldKey,
+    values,
+    setValues,
+}: {
+    label: string;
+    fieldKey: keyof ProjectEditFormValues;
+    values: ProjectEditFormValues;
+    setValues: React.Dispatch<React.SetStateAction<ProjectEditFormValues>>;
+}) {
+    return (
+        <Switch
+            label={label}
+            checked={values[fieldKey] as boolean}
+            onChange={(event) => {
+                const checked = event.currentTarget.checked;
+                setValues((prev) => ({ ...prev, [fieldKey]: checked }));
+            }}
+        />
+    );
 }
 
 export function ProjectEdit({
@@ -58,15 +188,8 @@ export function ProjectEdit({
 
     const hasChanges = useMemo(() => {
         const initial = createInitialValues(project);
-        return (
-            values.name !== initial.name ||
-            values.project_number !== initial.project_number ||
-            values.description !== initial.description ||
-            values.justification !== initial.justification ||
-            values.length !== initial.length ||
-            values.elektrification !== initial.elektrification ||
-            values.second_track !== initial.second_track ||
-            values.new_station !== initial.new_station
+        return (Object.keys(initial) as Array<keyof ProjectEditFormValues>).some(
+            (key) => values[key] !== initial[key],
         );
     }, [project, values]);
 
@@ -76,10 +199,6 @@ export function ProjectEdit({
         }
     }, [opened, project]);
 
-    const handleSubmit = () => {
-        onSubmit(values);
-    };
-
     return (
         <Drawer
             opened={opened}
@@ -87,46 +206,41 @@ export function ProjectEdit({
             title="Projekt bearbeiten"
             overlayProps={{ opacity: 0.4, blur: 4 }}
             position="right"
-            size="lg"
+            size="xl"
+            scrollAreaComponent={ScrollArea.Autosize}
         >
             <Stack gap="md">
+                {/* Stammdaten */}
+                <Divider label="Stammdaten" labelPosition="left" />
+
                 <TextInput
                     label="Projektname"
                     required
                     value={values.name}
-                    onChange={(event) =>
-                        setValues((prev) => ({
-                            ...prev,
-                            name: event.currentTarget.value,
-                        }))
-                    }
+                    onChange={(event) => {
+                        const value = event.currentTarget.value;
+                        setValues((prev) => ({ ...prev, name: value }));
+                    }}
                 />
 
                 <TextInput
                     label="Projektnummer"
-                    placeholder="z. B. ABS 123"
+                    placeholder="z. B. ABS 123"
                     value={values.project_number ?? ""}
-                    onChange={(event) =>
-                        setValues((prev) => ({
-                            ...prev,
-                            project_number: event.currentTarget.value ? event.currentTarget.value : null,
-                        }))
-                    }
+                    onChange={(event) => {
+                        const value = event.currentTarget.value;
+                        setValues((prev) => ({ ...prev, project_number: value || null }));
+                    }}
                 />
 
                 <NumberInput
                     label="Länge in Kilometern"
-                    placeholder="z. B. 42,5"
-                    value={values.length ?? undefined}
+                    placeholder="z. B. 42,5"
+                    value={values.length ?? ""}
                     onChange={(value) =>
                         setValues((prev) => ({
                             ...prev,
-                            length:
-                                typeof value === "number"
-                                    ? value
-                                    : value === "" || value === null || value === undefined
-                                    ? null
-                                    : Number(value),
+                            length: typeof value === "number" ? value : null,
                         }))
                     }
                     decimalScale={2}
@@ -138,12 +252,10 @@ export function ProjectEdit({
                     minRows={3}
                     autosize
                     value={values.description ?? ""}
-                    onChange={(event) =>
-                        setValues((prev) => ({
-                            ...prev,
-                            description: event.currentTarget.value ? event.currentTarget.value : null,
-                        }))
-                    }
+                    onChange={(event) => {
+                        const value = event.currentTarget.value;
+                        setValues((prev) => ({ ...prev, description: value || null }));
+                    }}
                 />
 
                 <Textarea
@@ -151,45 +263,144 @@ export function ProjectEdit({
                     minRows={2}
                     autosize
                     value={values.justification ?? ""}
-                    onChange={(event) =>
-                        setValues((prev) => ({
-                            ...prev,
-                            justification: event.currentTarget.value ? event.currentTarget.value : null,
-                        }))
-                    }
+                    onChange={(event) => {
+                        const value = event.currentTarget.value;
+                        setValues((prev) => ({ ...prev, justification: value || null }));
+                    }}
                 />
 
-                <Stack gap="sm">
-                    <Switch
-                        label="Elektrifizierung"
-                        checked={values.elektrification}
-                        onChange={(event) =>
+                {/* Verkehrsarten */}
+                <Divider label="Verkehrsarten" labelPosition="left" />
+                <Stack gap="xs">
+                    <SwitchField label="Fernverkehr" fieldKey="effects_passenger_long_rail" values={values} setValues={setValues} />
+                    <SwitchField label="Nahverkehr" fieldKey="effects_passenger_local_rail" values={values} setValues={setValues} />
+                    <SwitchField label="Güterverkehr" fieldKey="effects_cargo_rail" values={values} setValues={setValues} />
+                </Stack>
+
+                {/* Streckenausbau */}
+                <Divider label="Streckenausbau" labelPosition="left" />
+                <Stack gap="xs">
+                    <SwitchField label="Neubaustrecke (NBS)" fieldKey="nbs" values={values} setValues={setValues} />
+                    <SwitchField label="Ausbaustrecke (ABS)" fieldKey="abs" values={values} setValues={setValues} />
+                    <SwitchField label="Zweigleisiger Ausbau" fieldKey="second_track" values={values} setValues={setValues} />
+                    <SwitchField label="Dreigleisiger Ausbau" fieldKey="third_track" values={values} setValues={setValues} />
+                    <SwitchField label="Viergleisiger Ausbau" fieldKey="fourth_track" values={values} setValues={setValues} />
+                    <SwitchField label="Kurvenanhebung" fieldKey="curve" values={values} setValues={setValues} />
+                    <SwitchField label="Geschwindigkeitsanhebung" fieldKey="increase_speed" values={values} setValues={setValues} />
+                    <NumberInput
+                        label="Neue Vmax (km/h)"
+                        value={values.new_vmax ?? ""}
+                        onChange={(value) =>
                             setValues((prev) => ({
                                 ...prev,
-                                elektrification: event.currentTarget.checked,
+                                new_vmax: typeof value === "number" ? value : null,
                             }))
                         }
+                        min={0}
+                        ml="xl"
                     />
-                    <Switch
-                        label="Zweigleisiger Ausbau"
-                        checked={values.second_track}
-                        onChange={(event) =>
+                    <SwitchField label="Tunnel Lichtraumprofil" fieldKey="tunnel_structural_gauge" values={values} setValues={setValues} />
+                    <SwitchField label="Neigetechnik" fieldKey="tilting" values={values} setValues={setValues} />
+                </Stack>
+
+                {/* Bahnhöfe & Infrastruktur */}
+                <Divider label="Bahnhöfe & Infrastruktur" labelPosition="left" />
+                <Stack gap="xs">
+                    <SwitchField label="Neuer Bahnhof" fieldKey="new_station" values={values} setValues={setValues} />
+                    <SwitchField label="Bahnsteig" fieldKey="platform" values={values} setValues={setValues} />
+                    <SwitchField label="Knotenbahnhof" fieldKey="junction_station" values={values} setValues={setValues} />
+                    <NumberInput
+                        label="Anzahl Knotenbahnhöfe"
+                        value={values.number_junction_station ?? ""}
+                        onChange={(value) =>
                             setValues((prev) => ({
                                 ...prev,
-                                second_track: event.currentTarget.checked,
+                                number_junction_station: typeof value === "number" ? value : null,
                             }))
                         }
+                        min={0}
+                        ml="xl"
                     />
-                    <Switch
-                        label="Neuer Bahnhof"
-                        checked={values.new_station}
-                        onChange={(event) =>
+                    <SwitchField label="Überholbahnhof" fieldKey="overtaking_station" values={values} setValues={setValues} />
+                    <NumberInput
+                        label="Anzahl Überholbahnhöfe"
+                        value={values.number_overtaking_station ?? ""}
+                        onChange={(value) =>
                             setValues((prev) => ({
                                 ...prev,
-                                new_station: event.currentTarget.checked,
+                                number_overtaking_station: typeof value === "number" ? value : null,
                             }))
                         }
+                        min={0}
+                        ml="xl"
                     />
+                    <SwitchField label="Depot" fieldKey="depot" values={values} setValues={setValues} />
+                    <SwitchField label="Niveaufreier Bahnsteigzugang" fieldKey="level_free_platform_entrance" values={values} setValues={setValues} />
+                    <SwitchField label="Doppelbelegung" fieldKey="double_occupancy" values={values} setValues={setValues} />
+                    <SwitchField label="Gleichzeitige Einfahrten" fieldKey="simultaneous_train_entries" values={values} setValues={setValues} />
+                    <SwitchField label="Puffergleis" fieldKey="buffer_track" values={values} setValues={setValues} />
+                    <SwitchField label="Überführung" fieldKey="overpass" values={values} setValues={setValues} />
+                    <SwitchField label="Lärmschutzwand" fieldKey="noise_barrier" values={values} setValues={setValues} />
+                    <SwitchField label="Bahnübergang" fieldKey="railroad_crossing" values={values} setValues={setValues} />
+                    <SwitchField label="Gleiswechselbetrieb (GWB)" fieldKey="gwb" values={values} setValues={setValues} />
+                </Stack>
+
+                {/* Signaltechnik & Digitalisierung */}
+                <Divider label="Signaltechnik & Digitalisierung" labelPosition="left" />
+                <Stack gap="xs">
+                    <SwitchField label="ETCS" fieldKey="etcs" values={values} setValues={setValues} />
+                    <NumberInput
+                        label="ETCS-Level"
+                        value={values.etcs_level ?? ""}
+                        onChange={(value) =>
+                            setValues((prev) => ({
+                                ...prev,
+                                etcs_level: typeof value === "number" ? value : null,
+                            }))
+                        }
+                        min={0}
+                        ml="xl"
+                    />
+                    <SwitchField label="Neues ESTW" fieldKey="new_estw" values={values} setValues={setValues} />
+                    <SwitchField label="Neues DSTW" fieldKey="new_dstw" values={values} setValues={setValues} />
+                    <SwitchField label="Blockerhöhung" fieldKey="block_increase" values={values} setValues={setValues} />
+                    <SwitchField label="Bahnhofsweichen" fieldKey="station_railroad_switches" values={values} setValues={setValues} />
+                    <SwitchField label="Überwerfungsbauwerk" fieldKey="flying_junction" values={values} setValues={setValues} />
+                </Stack>
+
+                {/* Elektrifizierung & Energie */}
+                <Divider label="Elektrifizierung & Energie" labelPosition="left" />
+                <Stack gap="xs">
+                    <SwitchField label="Elektrifizierung" fieldKey="elektrification" values={values} setValues={setValues} />
+                    <SwitchField label="Optimierte Elektrifizierung" fieldKey="optimised_electrification" values={values} setValues={setValues} />
+                    <SwitchField label="Ladestation" fieldKey="charging_station" values={values} setValues={setValues} />
+                    <SwitchField label="Kleine Ladestation" fieldKey="small_charging_station" values={values} setValues={setValues} />
+                    <SwitchField label="Batterie" fieldKey="battery" values={values} setValues={setValues} />
+                    <SwitchField label="Wasserstoff (H₂)" fieldKey="h2" values={values} setValues={setValues} />
+                    <SwitchField label="E-Fuel" fieldKey="efuel" values={values} setValues={setValues} />
+                    <SwitchField label="Tankstellen E-Fuel" fieldKey="filling_stations_efuel" values={values} setValues={setValues} />
+                    <SwitchField label="Tankstellen H₂" fieldKey="filling_stations_h2" values={values} setValues={setValues} />
+                    <SwitchField label="Tankstellen Diesel" fieldKey="filling_stations_diesel" values={values} setValues={setValues} />
+                    <NumberInput
+                        label="Anzahl Tankstellen"
+                        value={values.filling_stations_count ?? ""}
+                        onChange={(value) =>
+                            setValues((prev) => ({
+                                ...prev,
+                                filling_stations_count: typeof value === "number" ? value : null,
+                            }))
+                        }
+                        min={0}
+                        ml="xl"
+                    />
+                </Stack>
+
+                {/* Sonstiges */}
+                <Divider label="Sonstiges" labelPosition="left" />
+                <Stack gap="xs">
+                    <SwitchField label="SGV 740m" fieldKey="sgv740m" values={values} setValues={setValues} />
+                    <SwitchField label="Sanierung" fieldKey="sanierung" values={values} setValues={setValues} />
+                    <SwitchField label="Stilllegung" fieldKey="closure" values={values} setValues={setValues} />
                 </Stack>
 
                 {errorMessage && (
@@ -203,13 +414,16 @@ export function ProjectEdit({
                         Abbrechen
                     </Button>
                     <Button
-                        onClick={handleSubmit}
+                        onClick={() => onSubmit(values)}
                         loading={isSubmitting}
                         disabled={!hasChanges || values.name.trim() === ""}
                     >
                         Speichern
                     </Button>
                 </Group>
+
+                {/* Spacer so last items aren't hidden behind sticky footer */}
+                <Text size="xs" c="transparent">.</Text>
             </Stack>
         </Drawer>
     );
