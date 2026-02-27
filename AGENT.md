@@ -9,6 +9,7 @@ This file applies to the entire repository. Read it before making any substantia
 Coding rules:
 
 - Always verify the full roundtrip works before opening a PR.
+- if implemented an feature, mark it as finished in the roadmap.md
 
 
 
@@ -21,12 +22,11 @@ Before writing any code:
 4. **Never add a dependency** without first checking whether an existing library already covers the need.
 
 ## Where to find more information
-- Structure of project in `docs/architecture.md`
-- The command of makefiles in `MAKEFILE`
-- the setup of env variables in `docs/environment.md`
-- architecture in `docs/architecture.md`
-- Git Worfklow in `git_workflow.md`
-- Testing in `docs/testing.md`
+- Architecture & project structure: `docs/architecture.md`
+- Makefile commands: `Makefile`
+- Environment variables: `docs/environment.md`
+- Git workflow: `docs/git_workflow.md`
+- Testing: `docs/testing.md`
 
 
 ## Keep documentation
@@ -40,8 +40,4 @@ Before writing any code:
   - Project-wide architecture, data models, and the roadmap live in `docs/` (repo root).
   - Backend-specific implementation details live in `apps/backend/docs/`.
   - **Update `docs/roadmap.md`** whenever a feature is completed (mark `[ ]` → `[x]`) or a new planned feature is added. Keep it in sync with the actual state of the codebase.
-
-
-
-
 

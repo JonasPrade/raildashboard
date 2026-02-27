@@ -9,6 +9,18 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 - [x] if the window is to small, collaps the header menu to burger menu
 - [ ] Clean up the docs files. Focus on architecture.md
 
+### Claude Hooks
+- [ ] **Pre-edit guard on `.env`** — Hook that warns before any edit to `.env` files (AGENT.md rule: never modify `.env`)
+- [ ] **Post-edit: `make gen-api` reminder** — After editing backend schemas or endpoints, remind to run `make gen-api` if the OpenAPI contract changed
+- [ ] **Post-edit: migration reminder** — After editing `apps/backend/dashboard_backend/models/**`, remind to create an Alembic migration
+- [ ] **Post-edit: roadmap sync reminder** — After editing features or API endpoints, remind to update `docs/roadmap.md`
+
+### Claude Skills
+- [ ] **`/commit`** — Conventional Commit helper: reads staged diff, proposes a commit message in `type(scope): description` format, asks for confirmation
+- [ ] **`/gen-api`** — Regenerate frontend API client: verifies backend is running, runs `make gen-api`, reports changed files
+- [ ] **`/update-roadmap`** — Mark a completed feature: finds the matching `[ ]` item in `docs/roadmap.md` and marks it `[x]`
+- [ ] **`/new-api-route`** — New backend route scaffold: walks through the checklist (endpoint → schema → CRUD → test → `make gen-api`)
+
 ---
 
 ## Mid-Term Features
