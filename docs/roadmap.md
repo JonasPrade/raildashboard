@@ -5,17 +5,7 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 ---
 
 ## Short-Term Features
-
-- [x] Projektbearbeitungsmodus: Zeige alle Eigenschaften des Projekts an und stelle sicher, dass diese bearbeitbar sind. Halte in der Agent.md fest, dass bei Änderungen der Eigenschaften eines Projekts immer sofort auch dieser Bearbeitungsmodus angepasst werden muss.
-- [x] Zeige die Versionshistorie nur für eingeloggte Benutzer an. Mache das zum Grundsatz und halte es an geeigneter Stelle für dich fest.
-- [x] Zeige die Texte für Projekte in jedem Projekt an (sofern sie existieren). Dies soll über den "Übergeordnetes Projekt" erfolgen. 
-- [x] Ergänze die Möglichkeit, dass Texte neu erstellt werden können, nur im eingeloggten Zustand und auch das ChangeTracking hier beachten.
-- [x] Ergänze die Möglichkeit, existierende Texte zu bearbeiten. 
-
-
-- [x] Füge die Möglichkeit hinzu, dass Texte nur eingelogt oder öffentlich angezeigt werden können.
-- [x] Verschiebe in den Projekten die Darstellung von Verkehrsarten und Merkmale in die Box "Projektdetails". Entferne dort die ehemalige ID
-- [ ] Login User - dauerhaft über Sitzungen hinweg. 
+- [ ] Erstelle ein Inhaltsverzeichnis für die Projektdarstellung, das an der linken Seite ausgeklappt werden kann, dadurch ist eine schnellere Orientierung möglich. Bei Elementen die eingeklappt sind, sind diese auszuklappen wenn das Element über das seitliche Inhaltsverzeichnis aufgerufen wird.
 
 ---
 
@@ -29,53 +19,85 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
   4. Frontend zeigt die vorgeschlagene Route als Vorschau auf der Karte an
   5. Nutzer akzeptiert → Route wird als `geojson_representation` des Projekts gespeichert (PATCH)
   6. Nutzer lehnt ab → Vorschau wird verworfen
-
 - [ ] Anzeige der Kommentare sowie 
 
-### Benutzerverwaltung *(geordnete Implementierungsschritte)*
+### Backup DB
+- [x] **Manuelles Backup & Restore** *(Makefile + Shell-Skripte implementiert)*
 
-- [x] **Schritt 1: Login-UI** *(Frontend)*
-  Das Backend hat bereits HTTP Basic Auth mit Rollen (viewer / editor / admin).
-  Die App bleibt für alle Nutzer vollständig lesbar — Login ist nur für Schreiboperationen nötig.
-  - „Anmelden"-Button im Header öffnet Login-Formular (Modal)
-  - Credentials im React-Context vorhalten; `Authorization`-Header wird bei API-Requests mitgesendet
-  - API-Interceptor: bei 401/403 → Login-Modal öffnen (kein Zwangs-Redirect für Lesezugriff)
-  - Nach erfolgreichem Login: Header zeigt Nutzername + „Abmelden"-Button
+  **Werkzeug: `pg_dump` im Custom-Format**
 
-- [x] **Schritt 2: Rollenbasierte Bearbeitung** *(Frontend)*
-  Abhängigkeit: Schritt 1 abgeschlossen.
-  - „Bearbeiten"-Button in `ProjectDetail` und alle anderen Schreiboperationen nur sichtbar/aktiv
-    für eingeloggte Nutzer mit Rolle `editor` oder `admin`
-  - Nicht eingeloggte Nutzer sehen alle Daten uneingeschränkt, aber keine Bearbeitungs-Controls
-  - Admin-Bereich im Header nur für `admin` sichtbar
+  PostgreSQL bietet mit `pg_dump -Fc` das beste Format für Produktions-Backups:
+  - automatisch komprimiert (~5–10× kleiner als SQL-Dump)
+  - unterstützt parallele Wiederherstellung mit `pg_restore`
+  - selektive Restore einzelner Tabellen möglich
+  - vollständig kompatibel mit PostGIS-Erweiterung
 
-- [ ] **Schritt 3: Passwort zurücksetzen per E-Mail** *(Backend + Frontend)*
-  Abhängigkeit: Schritt 1 abgeschlossen.
-  → Vollständiger technischer Plan: [`docs/email_password_reset_plan.md`](email_password_reset_plan.md)
-  Backend:
-  - Feld `email` zum User-Modell ergänzen + Migration
-  - Tabelle `password_reset_token` (Token, User-ID, Ablaufzeitpunkt) + Migration
-  - SMTP-Konfiguration in Settings (Host, Port, Credentials)
-  - `POST /api/v1/auth/request-reset` — nimmt E-Mail, sendet Reset-Link per Mail
-  - `POST /api/v1/auth/reset-password` — nimmt Token + neues Passwort, invalidiert Token
-  Frontend:
-  - „Passwort vergessen?"-Link im Login-Modal → E-Mail-Eingabeformular
-  - Reset-Formular (neues Passwort, Token aus URL-Param des Mail-Links)
+  **Zieldatenbank bestimmen:**
 
-- [x] **Schritt 4: User-Management-Seite** *(Backend + Frontend)*
-  Abhängigkeit: Schritte 1 + 2 abgeschlossen. Nur für Admins zugänglich.
-  Backend (fehlende Endpunkte ergänzen):
-  - `PUT /api/v1/users/{id}` — Rolle, E-Mail oder Passwort ändern
-  - `DELETE /api/v1/users/{id}` — Nutzer löschen
-  Frontend:
-  - Seite `/admin/users`: Tabelle aller Nutzer (Name, Rolle, E-Mail, erstellt am)
-  - Nutzer anlegen (Name, E-Mail, Rolle, initiales Passwort oder Reset-Link versenden)
-  - Rolle ändern / Passwort zurücksetzen / Nutzer löschen
+  Das Skript liest `DATABASE_URL` standardmäßig aus `.env`. Die Zieldatenbank lässt sich auf zwei Wegen überschreiben:
 
+  ```bash
+  # Standard: DATABASE_URL aus .env (lokale Entwicklungs-DB)
+  make backup-db
 
+  # Expliziter Override (z. B. für Produktions-DB, einmalig):
+  make backup-db DB_URL="postgresql://user:pass@prod-server/raildashboard"
 
-### Weiteres
-- [ ] **Automatisiertes Backup Datenkbank** Erstelle mir gute Maßnahmen zum Backup Datenbanken, möglichst auch über einfache Command-Zeile
+  # Umgebungsspezifische .env-Datei (für strukturierte Multi-Env-Setups):
+  make backup-db ENV_FILE=.env.prod
+  ```
+
+  Das Skript gibt die Ziel-URL **immer lesbar aus** (maskiert das Passwort: `postgresql://user:***@host/db`), bevor es den Dump erstellt — so sind versehentliche Backups gegen die falsche Datenbank sofort erkennbar.
+
+  Für den Restore gilt dasselbe Prinzip: ohne Angabe wird gegen die DB aus `.env` wiederhergestellt. **Bei einem Restore in die Produktions-DB immer `DB_URL` explizit setzen.**
+
+  **Implementierte Befehle:**
+
+  ```bash
+  # Backup erstellen
+  make backup-db
+  make backup-db DB_URL="postgresql://user:pass@host/db"   # Override
+  make backup-db ENV_FILE=.env.prod                        # andere .env
+
+  # Alle lokalen Dumps auflisten
+  make list-backups
+
+  # Wiederherstellen (fragt zur Sicherheit nach Bestätigung)
+  make restore-db BACKUP=backups/raildashboard_20260101_020000.dump
+  make restore-db BACKUP=backups/file.dump ENV_FILE=.env.prod
+  ```
+
+  **Implementiert in:**
+  - `scripts/backup_db.sh` — liest `DATABASE_URL` aus `.env`, unterstützt `DB_URL`- und `ENV_FILE`-Override; strippt SQLAlchemy-Treiber-Qualifier (`+psycopg2`); maskiert Passwort im Output; rotiert Dumps älter als 14 Tage
+  - `scripts/restore_db.sh` — gleiche URL-Auflösung; fordert Bestätigungseingabe vor dem Restore; nutzt `pg_restore --clean --if-exists --no-owner`
+  - `Makefile` — Targets: `backup-db`, `restore-db`, `list-backups`
+  - `backups/` — in `.gitignore`, wird vom Skript automatisch angelegt
+
+  **Nächster Schritt — Automatisierung (noch offen):**
+
+  - [ ] **systemd-Timer** (empfohlen gegenüber cron): täglich 02:00 Uhr
+    ```ini
+    # /etc/systemd/system/raildashboard-backup.timer
+    [Timer]
+    OnCalendar=*-*-* 02:00:00
+    Persistent=true
+    ```
+  - [ ] **Optionaler Remote-Upload** via `rclone` (S3, B2, SFTP …), konfigurierbar über `.env`-Variable `BACKUP_REMOTE`
+
+  **Retention-Strategie (GFS):**
+
+  | Ebene       | Aufbewahrung | Speicherort     |
+  |-------------|-------------|-----------------|
+  | Täglich     | 14 Tage     | lokal           |
+  | Wöchentlich | 8 Wochen    | lokal + remote  |
+  | Monatlich   | 12 Monate   | remote          |
+
+  **Verifikation:** Monatlich oder nach größeren Migrationen gegen Test-DB prüfen:
+  ```bash
+  make restore-db BACKUP=backups/raildashboard_YYYYMMDD_HHMMSS.dump ENV_FILE=.env.test
+  ```
+
+  **Abhängigkeiten:** `pg_dump`/`pg_restore` (Teil der PostgreSQL-Client-Tools, muss auf dem Server installiert sein)
 
 - [ ] **ProjectProgress** *(Backend + Frontend)*
   Fortschrittsstand eines Projekts (Planungs-, Genehmigungs-, Bauphase). Speist sich aus mehreren Quellen (z. B. Bundestag-Drucksachen, Pressemitteilungen, manuelle Eingabe). Benötigt Validierungslogik für Konflikte zwischen Quellen.
@@ -135,6 +157,20 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 - [ ] **GeoLine-Erstellung** — Möglichkeit, neue Streckengeometrien zu erzeugen, wenn vorhandene unvollständig/ungültig sind. Ansatz noch offen (Zeichentool auf Karte vs. automatische Vervollständigung).
 - [ ] **Automatisierung Preisniveau** Ein Tool das ermöglicht, Preise gemäß der Inflation/Baukostenentwicklung auf das aktuelle Jahr zu berechnen und so die Vergleichbarkeit zu verbessern
 
+
+- [ ] **Passwort zurücksetzen per E-Mail** *(Backend + Frontend)*
+  Abhängigkeit: Schritt 1 abgeschlossen.
+  → Vollständiger technischer Plan: [`docs/email_password_reset_plan.md`](email_password_reset_plan.md)
+  Backend:
+  - Feld `email` zum User-Modell ergänzen + Migration
+  - Tabelle `password_reset_token` (Token, User-ID, Ablaufzeitpunkt) + Migration
+  - SMTP-Konfiguration in Settings (Host, Port, Credentials)
+  - `POST /api/v1/auth/request-reset` — nimmt E-Mail, sendet Reset-Link per Mail
+  - `POST /api/v1/auth/reset-password` — nimmt Token + neues Passwort, invalidiert Token
+  Frontend:
+  - „Passwort vergessen?"-Link im Login-Modal → E-Mail-Eingabeformular
+  - Reset-Formular (neues Passwort, Token aus URL-Param des Mail-Links)
+
 ---
 
 ## Database Transfer
@@ -171,6 +207,15 @@ Priorität:
 - [x] Zeige bei jedem Projekt die Karte mit dem Projekt. Wenn es Unterprojekte gibt, zeige diese auf der Karte. Die Karte soll sich gleich verhalten wie die Übersichtskarte, allerdings nur mit den genannten Variantne (entweder Projekt anziehen oder die Unterprojekte. Die sind dann auch anklickbar zu machen)
 - [x] Stelle (sofern breit genug) Projektdetails + Beschreibung neben der Karte dar (Karte rechts und zwei/Drittel der Breite)
 
+- [x] Projektbearbeitungsmodus: Zeige alle Eigenschaften des Projekts an und stelle sicher, dass diese bearbeitbar sind. Halte in der Agent.md fest, dass bei Änderungen der Eigenschaften eines Projekts immer sofort auch dieser Bearbeitungsmodus angepasst werden muss.
+- [x] Zeige die Versionshistorie nur für eingeloggte Benutzer an. Mache das zum Grundsatz und halte es an geeigneter Stelle für dich fest.
+- [x] Zeige die Texte für Projekte in jedem Projekt an (sofern sie existieren). Dies soll über den "Übergeordnetes Projekt" erfolgen. 
+- [x] Ergänze die Möglichkeit, dass Texte neu erstellt werden können, nur im eingeloggten Zustand und auch das ChangeTracking hier beachten.
+- [x] Ergänze die Möglichkeit, existierende Texte zu bearbeiten. 
+
+
+- [x] Füge die Möglichkeit hinzu, dass Texte nur eingelogt oder öffentlich angezeigt werden können.
+- [x] Verschiebe in den Projekten die Darstellung von Verkehrsarten und Merkmale in die Box "Projektdetails". Entferne dort die ehemalige ID
 
 - [x] **Gruppen-Persistenz zwischen Karte und Liste**
   Gruppenfilter wird als URL-Param gespeichert (`?group=id1,id2`). Beim Wechsel zwischen Karte und Liste bleibt der aktive Filter erhalten. *(Aktuelle Implementierung: URL-Params — kein localStorage nötig.)*
@@ -229,3 +274,30 @@ Priorität:
     - Pro `ChangeLogEntry`: Button „Zurücksetzen auf [alter Wert]" (nur für `editor` / `admin`)
     - Sendet `PATCH` mit dem alten Wert des jeweiligen Felds
 
+
+### Benutzerverwaltung *(geordnete Implementierungsschritte)*
+
+- [x] **Schritt 1: Login-UI** *(Frontend)*
+  Das Backend hat bereits HTTP Basic Auth mit Rollen (viewer / editor / admin).
+  Die App bleibt für alle Nutzer vollständig lesbar — Login ist nur für Schreiboperationen nötig.
+  - „Anmelden"-Button im Header öffnet Login-Formular (Modal)
+  - Credentials im React-Context vorhalten; `Authorization`-Header wird bei API-Requests mitgesendet
+  - API-Interceptor: bei 401/403 → Login-Modal öffnen (kein Zwangs-Redirect für Lesezugriff)
+  - Nach erfolgreichem Login: Header zeigt Nutzername + „Abmelden"-Button
+
+- [x] **Schritt 2: Rollenbasierte Bearbeitung** *(Frontend)*
+  Abhängigkeit: Schritt 1 abgeschlossen.
+  - „Bearbeiten"-Button in `ProjectDetail` und alle anderen Schreiboperationen nur sichtbar/aktiv
+    für eingeloggte Nutzer mit Rolle `editor` oder `admin`
+  - Nicht eingeloggte Nutzer sehen alle Daten uneingeschränkt, aber keine Bearbeitungs-Controls
+  - Admin-Bereich im Header nur für `admin` sichtbar
+
+- [x] **Schritt 4: User-Management-Seite** *(Backend + Frontend)*
+  Abhängigkeit: Schritte 1 + 2 abgeschlossen. Nur für Admins zugänglich.
+  Backend (fehlende Endpunkte ergänzen):
+  - `PUT /api/v1/users/{id}` — Rolle, E-Mail oder Passwort ändern
+  - `DELETE /api/v1/users/{id}` — Nutzer löschen
+  Frontend:
+  - Seite `/admin/users`: Tabelle aller Nutzer (Name, Rolle, E-Mail, erstellt am)
+  - Nutzer anlegen (Name, E-Mail, Rolle, initiales Passwort oder Reset-Link versenden)
+  - Rolle ändern / Passwort zurücksetzen / Nutzer löschen

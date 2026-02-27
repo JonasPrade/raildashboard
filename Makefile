@@ -17,6 +17,7 @@ ALEMBIC      := .venv/bin/alembic
         test test-backend test-frontend \
         lint lint-frontend \
         migrate migrate-create \
+        backup-db restore-db list-backups \
         list-users create-user change-password \
         gen-api \
         clean clean-backend clean-frontend
@@ -53,6 +54,12 @@ help:
 	@echo "    migrate            Apply all pending Alembic migrations"
 	@echo "    migrate-create     Create a new Alembic revision"
 	@echo "                       Usage: make migrate-create MSG='your message'"
+	@echo "    backup-db          Create a pg_dump of the configured database"
+	@echo "                       Optional: DB_URL=postgresql://... or ENV_FILE=.env.prod"
+	@echo "    restore-db         Restore a dump into the configured database"
+	@echo "                       Usage: make restore-db BACKUP=backups/file.dump"
+	@echo "                       Optional: DB_URL=postgresql://... or ENV_FILE=.env.prod"
+	@echo "    list-backups       List all local dump files with size and date"
 	@echo ""
 	@echo "  User management"
 	@echo "    list-users         List all users with their roles"
@@ -138,6 +145,32 @@ migrate:
 migrate-create:
 	@if [ -z "$(MSG)" ]; then echo "Usage: make migrate-create MSG='your message'"; exit 1; fi
 	cd $(BACKEND_DIR) && $(ALEMBIC) revision --autogenerate -m "$(MSG)"
+
+# ---------------------------------------------------------------------------
+# Backup & Restore
+# ---------------------------------------------------------------------------
+
+# Create a pg_dump of the configured database.
+# Optional overrides: DB_URL="postgresql://..." or ENV_FILE=.env.prod
+backup-db:
+	@DB_URL="$(DB_URL)" ENV_FILE="$(ENV_FILE)" bash scripts/backup_db.sh
+
+# Restore a dump into the configured database.
+# Usage: make restore-db BACKUP=backups/raildashboard_20260101_020000.dump
+# Optional overrides: DB_URL="postgresql://..." or ENV_FILE=.env.prod
+restore-db:
+	@if [ -z "$(BACKUP)" ]; then \
+	    echo "Usage: make restore-db BACKUP=backups/<dateiname>.dump"; exit 1; \
+	fi
+	@DB_URL="$(DB_URL)" ENV_FILE="$(ENV_FILE)" bash scripts/restore_db.sh "$(BACKUP)"
+
+# List all local dump files with size and date.
+list-backups:
+	@if [ ! -d backups ] || [ -z "$$(ls backups/raildashboard_*.dump 2>/dev/null)" ]; then \
+	    echo "Keine Backup-Dateien in backups/ gefunden."; \
+	else \
+	    ls -lh backups/raildashboard_*.dump | awk '{print $$5, $$6, $$7, $$8, $$9}'; \
+	fi
 
 # ---------------------------------------------------------------------------
 # User management
