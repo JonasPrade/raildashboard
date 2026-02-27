@@ -7,19 +7,26 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 ## Short-Term Features
 - [x] Erstelle ein Inhaltsverzeichnis für die Projektdarstellung, das an der linken Seite ausgeklappt werden kann, dadurch ist eine schnellere Orientierung möglich. Bei Elementen die eingeklappt sind, sind diese auszuklappen wenn das Element über das seitliche Inhaltsverzeichnis aufgerufen wird.
 - [x] if the window is to small, collaps the header menu to burger menu
-- [ ] Clean up the docs files. Focus on architecture.md
+- [x] Clean up the docs files. Focus on architecture.md
+- [ ] Verstehe wie das neue Plugin feature-dev funktioniert
 
 ### Claude Hooks
-- [ ] **Pre-edit guard on `.env`** — Hook that warns before any edit to `.env` files (AGENT.md rule: never modify `.env`)
-- [ ] **Post-edit: `make gen-api` reminder** — After editing backend schemas or endpoints, remind to run `make gen-api` if the OpenAPI contract changed
-- [ ] **Post-edit: migration reminder** — After editing `apps/backend/dashboard_backend/models/**`, remind to create an Alembic migration
+- [x] **Pre-edit guard on `.env`** — Hook that warns before any edit to `.env` files (AGENT.md rule: never modify `.env`)
+- [x] **Post-edit: `make gen-api` reminder** — After editing backend schemas or endpoints, remind to run `make gen-api` if the OpenAPI contract changed
+- [x] **Post-edit: migration reminder** — After editing `apps/backend/dashboard_backend/models/**`, remind to create an Alembic migration
 - [ ] **Post-edit: roadmap sync reminder** — After editing features or API endpoints, remind to update `docs/roadmap.md`
+- [x] Create a hook that pushes MacBook Reminder if you need something. This is explained here osascript -e 'display notification "Claude Code needs your attention" with title "Claude Code"' https://code.claude.com/docs/en/hooks-guide#get-notified-when-claude-needs-input
 
 ### Claude Skills
 - [ ] **`/commit`** — Conventional Commit helper: reads staged diff, proposes a commit message in `type(scope): description` format, asks for confirmation
-- [ ] **`/gen-api`** — Regenerate frontend API client: verifies backend is running, runs `make gen-api`, reports changed files
-- [ ] **`/update-roadmap`** — Mark a completed feature: finds the matching `[ ]` item in `docs/roadmap.md` and marks it `[x]`
+- [x] **`/gen-api`** — Regenerate frontend API client: verifies backend is running, runs `make gen-api`, reports changed files
+- [x] **`/update-roadmap`** — Mark a completed feature: finds the matching `[ ]` item in `docs/roadmap.md` and marks it `[x]`. Check if the implemented tasks are documentated. Therefore have in mind that there are different possibilitys for documentation: Root, backend and frontend.
 - [ ] **`/new-api-route`** — New backend route scaffold: walks through the checklist (endpoint → schema → CRUD → test → `make gen-api`)
+
+### Other Plugins
+- [ ] Install the Plugin for Python for Code Intelligence (https://code.claude.com/docs/en/discover-plugins#code-intelligence). Also for Typescript
+- [x] Implement this feature: https://github.com/anthropics/claude-code/tree/main/plugins/feature-dev
+- [ ] Implement https://github.com/anthropics/claude-code/tree/main/plugins/frontend-design
 
 ---
 
