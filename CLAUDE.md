@@ -1,1 +1,1 @@
-Before doing any work in this repository, read AGENT.md in full.
+Before doing any work in this repository, always read AGENT.md in full.
