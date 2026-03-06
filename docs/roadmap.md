@@ -41,43 +41,254 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 
 
 
-
 ### Haushaltsberichte
-- [ ] **Haushaltsberichte Tabelle VE** *(Backend + Frontend)*
-  Jährlicher Import der Anlage VWIB, Teil B (Bundeshaushalt) als PDF.
-  Die Tabelle enthält alle Bedarfsplanmaßnahmen des Schienenwegeinvestitionsprogramms
-  mit FinVe-Nummern, Kostenschätzungen und Jahresansätzen je Haushaltskonto.
 
-  **Zweistufiger Ablauf:**
+Jährlicher Import der Anlage VWIB, Teil B (Bundeshaushalt) als PDF.
+Die Tabelle enthält alle Bedarfsplanmaßnahmen des Schienenwegeinvestitionsprogramms
+mit FinVe-Nummern, Kostenschätzungen und Jahresansätzen je Haushaltskonto.
 
-  1. **Verarbeitung (Parse-Schritt):**
-     - `POST /api/v1/import/haushalt/parse` nimmt PDF + Haushaltsjahr entgegen
-     - Backend extrahiert Tabellenzeilen (`pdfplumber` / `pymupdf`), trennt
-       Hauptzeilen (FinVe-Einträge) von Titelunterzeilen (891 01, 891 52 etc.)
-     - Gleicht jede FinVe-Nummer gegen bestehende `Finve`-Einträge in der DB ab:
-       - **Vorhanden:** Änderungen werden als Update-Vorschlag markiert
-       - **Neu:** FinVe wird als neu zu erstellen markiert; die Projektzuordnung
-         (`finve_to_project`) bleibt zunächst leer und muss im Frontend manuell
-         hergestellt werden (ein oder mehrere Projekte)
-     - Nicht zuordenbare Zeilen (fehlende/unklare FinVe-Nummer) werden als
-       `unmatched_rows` zurückgegeben und können im Review-Schritt manuell
-       einer bestehenden FinVe zugewiesen werden
-     - Für große Dokumente: asynchron via Celery Task Queue, Polling über
-       `GET /api/v1/import/haushalt/status/{task_id}`
+**Abhängigkeiten:** Celery Task Queue ✅, ChangeLog-Infrastruktur ✅
 
-  2. **Freigabe (Confirm-Schritt):**
-     - `POST /api/v1/import/haushalt/confirm` nimmt den (ggf. manuell korrigierten)
-       Vorschlag entgegen und schreibt `Finve`- und `Budget`-Einträge transaktional
-     - Nur für Rollen `editor` / `admin`
-     - Import wird im ChangeLog protokolliert (Nutzer, Zeitstempel, Haushaltsjahr)
+**PDF-Spalten-Mapping** (Werte in €1.000, außer %):
 
-  **Frontend:** Review-Seite zeigt Vorschau der Änderungen (neue/geänderte FinVes,
-  neue Budget-Zeilen, ungematchte Einträge). Für neue FinVes, die noch keinem Projekt
-  zugeordnet sind, bietet die UI eine Auswahl bestehender Projekte an (Mehrfachauswahl).
-  Erst nach manueller Prüfung wird Confirm ausgelöst.
+| Spalte | Header | Ziel-Feld |
+|--------|--------|-----------|
+| 1 | Lfd. Nr. | `Budget.lfd_nr` (z.B. "B0080") |
+| 2 | Nr. FinVe | `Finve.id` (Integer, Matching-Schlüssel) |
+| 3 | Nr. Bedarfsplan Schiene | `Budget.bedarfsplan_number` |
+| 4 | Bezeichnung der Investitionsmaßnahme | `Finve.name` |
+| 5 | Aufnahme Jahr | `Finve.starting_year` |
+| 6 | Gesamtausgaben ursprünglich | `Budget.cost_estimate_original` |
+| 7 | Gesamtausgaben Vorjahr | `Budget.cost_estimate_last_year` |
+| 8 | Gesamtausgaben aktuell | `Budget.cost_estimate_actual` |
+| 9 | Δ zum Vorjahr (€1.000) | `Budget.delta_previous_year` |
+| 10 | Δ zum Vorjahr (%) | `Budget.delta_previous_year_relativ` |
+| 11 | Gründe | `Budget.delta_previous_year_reasons` |
+| 12 | Verausgabt bis Y-2 | `Budget.spent_two_years_previous` |
+| 13 | Bewilligt Y-1 | `Budget.allowed_previous_year` |
+| 14 | Übertragene Ausgabereste | `Budget.spending_residues` |
+| 15 | Veranschlagt Y | `Budget.year_planned` |
+| 16 | Vorhalten Y+1 ff. | `Budget.next_years` |
 
-  **Abhängigkeiten:** Celery Task Queue (für asynchronen Parse-Schritt),
-  ChangeLog-Infrastruktur (für Protokollierung).
+Titelunterzeilen (Spalten 7, 8, 12–16) → `BudgetTitelEntry` verknüpft mit `HaushaltTitel`.
+Nachrichtlich-Zeilen (kursiv) werden ebenfalls als `is_nachrichtlich=True` gespeichert.
+
+**Haushaltstitel im PDF 2026** (Lookup-Tabelle `haushalt_titel`, auto-erweiterbar):
+- `891_01` → Kap. 1202, Titel 891 01
+- `891_03` → Kap. 1202, Titel 891 03
+- `891_04` → Kap. 1202, Titel 891 04
+- `891_52` → Kap. 1408, Titel 891 52
+- `891_91` → Kap. 1202 (alt), Titel 891 91 – IIP Schiene
+- `891_11` → Kap. 1202 (alt), Titel 891 11 – LUFV (alt)
+
+Neue Titel in künftigen PDFs werden automatisch per `get_or_create` registriert.
+
+---
+
+- [ ] **Schritt 1: Neue Datenbankmodelle + Migrationen** *(Backend)*
+
+  **1a — `HaushaltTitel`** — Lookup-Tabelle für Haushaltskapitel/-titel:
+  ```
+  haushalt_titel: id, titel_key (unique, z.B. "891_01"), kapitel ("1202"),
+                  titel_nr ("891 01"), label ("Kap. 1202, Titel 891 01"),
+                  is_nachrichtlich (bool), created_at
+  ```
+
+  **1b — `BudgetTitelEntry`** — normalisierte Titeluntereinträge je Budget-Zeile
+  (ersetzt die vielen fixen `_891_xx`-Spalten in `Budget`):
+  ```
+  budget_titel_entry: id, budget_id (FK→budgets CASCADE),
+                      titel_id (FK→haushalt_titel),
+                      cost_estimate_last_year, cost_estimate_aktuell,
+                      verausgabt_bis, bewilligt, ausgabereste_transferred,
+                      veranschlagt, vorhalten_future
+                      UNIQUE(budget_id, titel_id)
+  ```
+
+  **1c — `HaushaltsParseResult`** — persistierte Rohausgabe des PDF-Parsers
+  (ermöglicht Inspektion, Fehlerprüfung und wiederholtes Öffnen ohne erneuten Upload;
+  `confirmed_at` verhindert Doppel-Import und zeigt in der Liste den Import-Status):
+  ```
+  haushalts_parse_result: id, haushalt_year, pdf_filename, parsed_at,
+                          parsed_by_user_id (FK nullable), username_snapshot,
+                          status ("PENDING"/"SUCCESS"/"FAILURE"),
+                          result_json (JSON),         ← vollständige Parse-Ausgabe
+                          error_message (Text nullable),
+                          confirmed_at (DateTime nullable),   ← gesetzt nach /confirm
+                          confirmed_by_snapshot (String nullable)
+  ```
+
+  **1d — `FinveChangeLog` + `FinveChangeLogEntry`** — Änderungshistorie für Finve,
+  unabhängig von Projekten:
+  ```
+  finve_change_log: id, finve_id (FK→finve nullable SET NULL),
+                    haushalt_year, username_snapshot, timestamp,
+                    action ("CREATE"/"UPDATE"/"IMPORT")
+  finve_change_log_entry: id, changelog_id, field_name, old_value, new_value
+  ```
+
+  **1e — `BudgetChangeLog` + `BudgetChangeLogEntry`** — Änderungshistorie für Budget,
+  unabhängig von Projekten:
+  ```
+  budget_change_log: id, budget_id (FK→budgets nullable SET NULL),
+                     haushalt_year, username_snapshot, timestamp, action
+  budget_change_log_entry: id, changelog_id, field_name, old_value, new_value
+  ```
+
+  **1f — `UnmatchedBudgetRow`** — persistente Ablage für nicht zuordenbare PDF-Zeilen:
+  ```
+  unmatched_budget_row: id, haushalt_year, raw_finve_number (String),
+                        raw_name (String), raw_data (JSON),
+                        resolved (bool default False),
+                        resolved_finve_id (FK nullable),
+                        resolved_at, resolved_by_snapshot
+  ```
+
+  → Alembic-Migration erstellen und anwenden (`make migrate`)
+
+- [ ] **Schritt 2: Pydantic-Schemas** *(Backend)*
+  Neue Datei `apps/backend/dashboard_backend/schemas/haushalt_import.py`:
+  - `HaushaltsParseResultSchema` (Einzelzeile: finve_number, name, status, proposed_finve,
+    proposed_budget, proposed_titel_entries, project_ids)
+  - `HaushaltsParseTaskResult` (vollständiges Task-Ergebnis: year, rows, unmatched_rows)
+  - `HaushaltsConfirmRequest` (year, parse_result_id, rows mit ggf. angepassten project_ids)
+  - `HaushaltsConfirmResponse` (finves_created, finves_updated, budgets_created,
+    budgets_updated, unmatched_saved)
+  - `UnmatchedBudgetRowSchema`, `UnmatchedBudgetRowResolveRequest`
+  - `ParseResultPublicSchema` (für `GET`-Endpoint: Metadaten + result_json)
+
+- [ ] **Schritt 3: CRUD-Funktionen** *(Backend)*
+  Neue Datei `apps/backend/dashboard_backend/crud/haushalt_import.py`:
+  - `get_or_create_haushalt_titel(db, titel_key, kapitel, titel_nr, label, is_nachrichtlich)`
+  - `save_parse_result(db, year, filename, user, status, result_json, error)`
+  - `upsert_finve(db, proposed, user, haushalt_year) → (finve, created, changelog)`
+  - `upsert_budget(db, proposed, user, haushalt_year) → (budget, created, changelog)`
+  - `upsert_budget_titel_entries(db, budget_id, titel_entries)`
+  - `save_unmatched_rows(db, rows, year)`
+  - `resolve_unmatched_row(db, row_id, finve_id, user)`
+
+- [ ] **Schritt 4: Celery-Task — PDF-Parser** *(Backend)*
+  Neue Datei `apps/backend/dashboard_backend/tasks/haushalt.py`.
+  Abhängigkeit: `pdfplumber` zu `requirements.txt` hinzufügen.
+
+  **Parser-Logik:**
+  1. `pdfplumber` öffnet PDF-Bytes, iteriert alle Seiten
+  2. Tabellenzeilen extrahieren; Kopfzeile mit "FinVe" als Ankerpunkt erkennen
+  3. Zeilenklassifikation:
+     - **Hauptzeile**: Spalte 2 enthält Integer → FinVe-Zeile (alle 16 Spalten)
+     - **Titelzeile**: enthält "Kap." + "Titel" → `BudgetTitelEntry` (Spalten 7, 8, 12–16)
+     - **Nachrichtlich**: enthält "nachrichtlich:" → wie Titelzeile, `is_nachrichtlich=True`
+     - **Leer/Trenn**: überspringen
+  4. Pro FinVe-Nummer: Abgleich gegen `Finve.id` in DB
+     - Match → `status = "update"`, Diff berechnen
+     - Kein Match (parsebar, aber unbekannt) → `status = "new"`
+     - Nicht parsebar → `status = "unmatched"`
+  5. Pro Titelzeile: `get_or_create_haushalt_titel()`
+  6. Ergebnis als `HaushaltsParseTaskResult` in `HaushaltsParseResult.result_json` schreiben
+  7. Task gibt `parse_result_id` zurück
+
+  **Task-Signatur:**
+  ```python
+  @celery_app.task(bind=True)
+  def parse_haushalt_pdf(self, pdf_bytes: bytes, year: int,
+                         pdf_filename: str, user_info: dict) -> dict:
+      # returns {"parse_result_id": int}
+  ```
+
+- [ ] **Schritt 5: API-Endpoints** *(Backend)*
+  Neue Datei `apps/backend/dashboard_backend/api/v1/endpoints/haushalt_import.py`,
+  registriert in `router.py` unter `/api/v1/import/haushalt`.
+
+  ```
+  POST   /parse
+    Body: multipart/form-data { pdf: UploadFile, year: int }
+    Auth: editor / admin
+    → startet parse_haushalt_pdf.delay(...)
+    ← { task_id: "abc123" }
+
+  (Polling: GET /api/v1/tasks/{task_id}  →  result enthält parse_result_id)
+
+  GET    /parse-result/{parse_result_id}
+    Auth: editor / admin
+    ← HaushaltsParseResult (Metadaten + vollständiges result_json)
+
+  GET    /parse-result          (Liste aller vergangenen Parse-Läufe)
+    Auth: editor / admin
+    ← [{ id, year, parsed_at, status, pdf_filename, username_snapshot }]
+
+  POST   /confirm
+    Body: { parse_result_id: int, rows: [...], unmatched_action: "save"|"discard" }
+    Auth: editor / admin
+    Guard: wenn confirmed_at bereits gesetzt → 409 Conflict (Doppel-Import verhindern)
+    Transaktional:
+      1. HaushaltTitel get_or_create für neue Titel
+      2. Finve INSERT/UPDATE + FinveChangeLog
+      3. Budget INSERT/UPDATE + BudgetChangeLog  (UNIQUE: budget_year + fin_ve)
+      4. BudgetTitelEntry INSERT/UPDATE pro Titel
+      5. UnmatchedBudgetRow INSERT (bei unmatched_action = "save")
+      6. FinveToProject INSERT für neue FinVes mit project_ids
+      7. HaushaltsParseResult.confirmed_at + confirmed_by_snapshot setzen
+    ← HaushaltsConfirmResponse
+
+  GET    /unmatched?resolved=false
+    Auth: editor / admin
+    ← [UnmatchedBudgetRow]
+
+  PATCH  /unmatched/{id}
+    Body: { finve_id: int }
+    Auth: editor / admin
+    Transaktional: Budget + BudgetTitelEntry schreiben, resolved=True setzen
+    ← UnmatchedBudgetRow
+  ```
+
+- [ ] **Schritt 6: `make gen-api`** — Frontend-Client neu generieren
+
+- [ ] **Schritt 7: Frontend — Import-Flow** *(Frontend)*
+  Neues Feature `apps/frontend/src/features/haushalt-import/`.
+
+  **Dateien:**
+  - `HaushaltsImportPage.tsx` — Zwei Einstiegspunkte (s. UI-Flow), Celery-Polling
+  - `HaushaltsReviewPage.tsx` — lädt `GET /parse-result/{id}`, zeigt Review-Tabelle
+  - `HaushaltsUnmatchedPage.tsx` — zeigt offene `UnmatchedBudgetRow`, Zuweisung per Dropdown
+  - `components/ParseResultList.tsx` — Tabelle vergangener Parse-Läufe mit Status-Badge
+    (PENDING/SUCCESS/FAILURE, Haushaltsjahr, Datum, Nutzer, confirmed_at)
+  - `components/ReviewTable.tsx` — Tabelle: Status-Badge | FinVe-Nr | Name |
+    Kostenvergleich Alt→Neu | Titel-Breakdown (ausklappbar) | Projektzuordnung (bei "new")
+  - `components/TitelBreakdown.tsx` — ausklappbare Titeluntereinträge
+
+  **Routen** (nur für editor / admin):
+  - `/admin/haushalt-import` → Übersicht (Liste + Upload)
+  - `/admin/haushalt-import/review/:parseResultId` → Review eines bestimmten Ergebnisses
+  - `/admin/haushalt-unmatched` → Offene Zeilen nachbearbeiten
+
+  **UI-Flow:**
+  Die Importseite (`/admin/haushalt-import`) hat zwei Bereiche:
+
+  **A — Neuer Import:**
+  1. PDF-Upload + Jahresauswahl → `POST /parse` → `task_id`
+  2. Polling alle 2 s auf `GET /api/v1/tasks/{task_id}` mit Fortschrittsanzeige
+  3. Bei SUCCESS → Redirect zu `/review/:parseResultId`
+
+  **B — Vorhandenes Ergebnis laden:**
+  1. Liste aller vergangenen Parse-Läufe (`GET /parse-result`) mit Spalten:
+     Jahr | Dateiname | Datum | Nutzer | Status | Importiert am
+  2. Klick auf eine Zeile → Redirect zu `/review/:parseResultId` (kein Re-Upload nötig)
+  3. Bereits bestätigte Einträge (`confirmed_at` gesetzt) als read-only anzeigen
+
+  **Review-Seite:**
+  4. Review-Tabelle mit drei Bereichen:
+     - **Neue FinVes** (grün): Projektzuordnung per Mehrfachauswahl pflegen
+     - **Geänderte FinVes** (gelb): Diff-Ansicht Alt→Neu je Feld
+     - **Unmatched** (rot): Info-Badge, werden nach Confirm in Nachbearbeitungs-Seite verschoben
+  5. „Importieren"-Button (deaktiviert wenn `confirmed_at` gesetzt) → `POST /confirm`
+     → Erfolgsmeldung + Badge für offene Unmatched-Rows
+  6. `/admin/haushalt-unmatched`: Tabelle offener Rows, je Zeile FinVe per Dropdown zuweisen
+
+- [ ] **Schritt 8: Dokumentation aktualisieren**
+  - `docs/roadmap.md`: Schritte als `[x]` markieren
+  - `apps/backend/README.md`: Import-Workflow, pdfplumber-Abhängigkeit
+  - `docs/architecture.md`: neue Tabellen in Datenmodell-Übersicht ergänzen
+  - `apps/frontend/src/features/documentation/DocumentationPage.tsx`: Haushalt-Import beschreiben
 
 
 ### Sonstiges

@@ -6,3 +6,4 @@
 .env.test
 .env.docker-dev
 backups/
+data/
