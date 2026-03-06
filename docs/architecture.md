@@ -62,7 +62,22 @@ The codebase follows a strict separation of concerns. Every new feature touches 
 - Parser-related tasks and raw data transformation
 - e.g. PDF processing, RailML import
 
-### 7. Entry Point (`main.py`)
+### 7. Celery Task Queue (`celery_app.py` + `tasks/`)
+Long-running operations (PDF parsing, route computation) run as Celery tasks so that HTTP requests return immediately.
+
+| Component | Description |
+|---|---|
+| `celery_app.py` | Celery instance; broker and result backend configured via `CELERY_BROKER_URL` / `CELERY_RESULT_BACKEND` |
+| `tasks/` | Task modules; imported in `tasks/__init__.py` so the worker discovers them automatically |
+| `GET /api/v1/tasks/{task_id}` | Polls task status — returns `PENDING`, `STARTED`, `SUCCESS`, or `FAILURE` |
+
+**Dev:** Redis runs in Docker (`make docker-dev-up`); worker starts locally with `make celery-worker`.
+**Prod:** A dedicated `worker` container uses the same backend image with the Celery command as entrypoint (see `docker-compose.yml`).
+**Tests:** `CELERY_BROKER_URL=memory://` and `CELERY_RESULT_BACKEND=cache+memory://` are set in `tests/conftest.py`; `task_always_eager=True` runs tasks in-process without a broker.
+
+Both the status endpoint and task-launch endpoints require a logged-in user (any role).
+
+### 8. Entry Point (`main.py`)
 - Initialises the FastAPI app
 - Registers API routers
 - Configures global middleware (CORS, logging)

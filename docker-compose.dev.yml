@@ -35,5 +35,11 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
 volumes:
   raildashboard_pgdata_dev:

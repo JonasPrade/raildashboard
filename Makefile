@@ -20,9 +20,10 @@ ALEMBIC      := .venv/bin/alembic
         backup-db restore-db list-backups \
         list-users create-user change-password \
         gen-api \
+        celery-worker \
         docker-dev-up docker-dev-down \
         docker-prod-build docker-prod-up docker-prod-down \
-        docker-migrate docker-create-user docker-backup-db \
+        docker-migrate docker-create-user docker-backup-db docker-worker-logs \
         clean clean-backend clean-frontend
 
 # ---------------------------------------------------------------------------
@@ -75,9 +76,12 @@ help:
 	@echo "    gen-api            Regenerate frontend API client from OpenAPI schema"
 	@echo "                       (requires backend running at http://localhost:8000)"
 	@echo ""
-	@echo "  Docker – development (DB only)"
-	@echo "    docker-dev-up      Start the dev DB container (postgres:16-postgis on port 5433)"
-	@echo "    docker-dev-down    Stop the dev DB container (data volume is preserved)"
+	@echo "  Docker – development (DB + Redis only)"
+	@echo "    docker-dev-up      Start the dev DB + Redis containers"
+	@echo "    docker-dev-down    Stop the dev containers (data volume is preserved)"
+	@echo ""
+	@echo "  Celery"
+	@echo "    celery-worker      Start Celery worker (requires Redis running)"
 	@echo ""
 	@echo "  Docker – production (full stack)"
 	@echo "    docker-prod-build  Build all Docker images (requires .env.prod)"
@@ -87,6 +91,7 @@ help:
 	@echo "    docker-create-user Create a user inside the backend container"
 	@echo "                       Usage: make docker-create-user USERNAME=admin ROLE=admin"
 	@echo "    docker-backup-db   pg_dump via docker exec on the db container"
+	@echo "    docker-worker-logs Tail Celery worker logs in the prod stack"
 	@echo ""
 	@echo "  Cleanup"
 	@echo "    clean              Remove all build artefacts and caches"
@@ -215,7 +220,15 @@ gen-api:
 	npm --prefix $(FRONTEND_DIR) run gen:zod
 
 # ---------------------------------------------------------------------------
-# Docker – development (DB only)
+# Celery
+# ---------------------------------------------------------------------------
+
+# Start a Celery worker locally (requires Redis running, e.g. via make docker-dev-up).
+celery-worker:
+	cd $(BACKEND_DIR) && PYTHONPATH=. .venv/bin/celery -A dashboard_backend.celery_app worker --loglevel=info
+
+# ---------------------------------------------------------------------------
+# Docker – development (DB + Redis)
 # ---------------------------------------------------------------------------
 
 docker-dev-up:
@@ -247,6 +260,10 @@ docker-create-user:
 	@if [ -z "$(USERNAME)" ]; then echo "Usage: make docker-create-user USERNAME=<name> ROLE=<viewer|editor|admin>"; exit 1; fi
 	@if [ -z "$(ROLE)" ]; then echo "Usage: make docker-create-user USERNAME=<name> ROLE=<viewer|editor|admin>"; exit 1; fi
 	docker compose exec backend python scripts/create_initial_user.py --username $(USERNAME) --role $(ROLE)
+
+# Tail Celery worker logs in the prod stack.
+docker-worker-logs:
+	docker compose --env-file .env.prod logs -f worker
 
 # Create a pg_dump via docker exec on the db container.
 # The dump is written to the local backups/ directory.

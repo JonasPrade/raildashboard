@@ -10,6 +10,7 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 - [x] if the window is to small, collaps the header menu to burger menu
 - [x] Clean up the docs files. Focus on architecture.md
 - [ ] Verstehe wie das neue Plugin feature-dev funktioniert
+- [ ] if you load the project view - center the map on the center of the project. There should be a fitting variable in the database of table `project`
 
 ### Claude Hooks
 - [x] **Pre-edit guard on `.env`** — Hook that warns before any edit to `.env` files (AGENT.md rule: never modify `.env`)
@@ -38,88 +39,6 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 
 ## Mid-Term Features
 
-### Transfer to Docker
-- [x] Transfer the system to docker. Make difference between development and production, but both live in side docker (in dev for example just some services like db etc)
-
-  **Services:**
-  | Service | Dev | Prod |
-  |---------|-----|------|
-  | PostgreSQL + PostGIS | Docker | Docker |
-  | Backend (FastAPI/uvicorn) | Docker (volume-mounted src, hot-reload) | Docker |
-  | Frontend | local Vite dev server | Docker (nginx, pre-built) |
-  | nginx reverse proxy | — | Docker |
-
-  **Implementation steps:**
-
-  - [x] **Schritt 1: Dockerfile für Backend**
-    - `apps/backend/Dockerfile` — multi-stage: `builder` (pip install) → `runtime` (uvicorn)
-    - Base image: `python:3.12-slim` with GDAL/PostGIS client libs
-    - Non-root user, copy venv from builder stage
-    - `ENTRYPOINT ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]`
-
-  - [x] **Schritt 2: Dockerfile für Frontend (Produktion)**
-    - `apps/frontend/Dockerfile` — multi-stage: `builder` (npm ci + npm run build) → `nginx:alpine` (serve dist/)
-    - nginx config: SPA fallback (`try_files $uri /index.html`), proxy `/api/` → backend
-
-  - [x] **Schritt 3: docker-compose.yml (Produktion)**
-    - Services: `db` (postgres:16-postgis), `backend`, `frontend` (nginx)
-    - `db`: named volume `pgdata`, healthcheck
-    - `backend`: depends_on db (healthy), reads `.env.prod`, runs Alembic migration on startup via entrypoint script
-    - `frontend`: depends_on backend, exposes port 80/443
-    - Shared network `raildashboard-net`
-
-  - [x] **Schritt 4: Datenmigration – lokale DB → Docker-Volume (einmalig)**
-    - ⚠️ Dieser Schritt muss **vor** dem ersten Start des DB-Containers ausgeführt werden, damit keine Daten verloren gehen.
-    - Vorgehen:
-      1. Backup der lokalen Datenbank erstellen: `make backup-db` → erzeugt `backups/raildashboard_<timestamp>.dump`
-      2. Docker-Volume für die Dev-DB anlegen: `docker volume create raildashboard_pgdata_dev`
-      3. DB-Container starten (noch leer): `docker compose -f docker-compose.dev.yml up -d db`
-      4. Dump in den Container einspielen: `make restore-db BACKUP=backups/<datei>.dump DB_URL=postgresql://...@localhost:5433/raildashboard`
-      5. Verifizieren: Anzahl der Projekte in lokaler DB == Anzahl im Docker-Container
-    - Das Volume `raildashboard_pgdata_dev` überlebt `docker compose down` — Daten bleiben erhalten.
-    - **Nur `docker compose down -v`** löscht das Volume. Niemals unbeabsichtigt ausführen.
-
-  - [x] **Schritt 5: docker-compose.dev.yml (Entwicklung)**
-    - Nur `db` Service (postgres:16-postgis) — Backend und Frontend laufen weiterhin lokal via `make dev`
-    - Named volume `raildashboard_pgdata_dev` → Daten persistieren zwischen Container-Neustarts
-    - Port-Mapping: `5433:5432` (vermeidet Konflikt mit eventuell lokal laufendem Postgres)
-    - `DATABASE_URL` in `.env` auf `localhost:5433` anpassen (Kommentar: "Docker dev DB")
-    - `VITE_API_BASE_URL=http://localhost:8000` bleibt unverändert
-    - Startup: `docker compose -f docker-compose.dev.yml up -d`
-    - `.env.docker-dev.example` dokumentiert die angepasste `DATABASE_URL`
-
-  - [x] **Schritt 6: Entrypoint-Skript für Backend**
-    - `apps/backend/docker-entrypoint.sh`: wartet auf DB-Readiness, führt `alembic upgrade head` aus, startet uvicorn
-    - Verhindert Race-Condition beim ersten Start
-
-  - [x] **Schritt 7: .env.docker.example**
-    - Dokumentiert alle Docker-spezifischen Werte (z.B. `DATABASE_URL` mit `db` als Hostname statt `localhost`)
-    - Abgeleitet von `.env.example`, nur Docker-Unterschiede kommentiert
-
-  - [x] **Schritt 8: Makefile-Targets für Docker**
-    - `docker-dev-up` / `docker-dev-down` — Dev-DB starten/stoppen
-    - `docker-prod-build` — alle Images bauen
-    - `docker-prod-up` / `docker-prod-down` — Prod-Stack starten/stoppen
-    - `docker-migrate` — Alembic inside backend container
-    - `docker-create-user` — `create_initial_user.py` inside backend container
-    - `docker-backup-db` — `pg_dump` via `docker exec` auf db-Container
-
-  - [x] **Schritt 9: docs/production_setup.md aktualisieren**
-    - Neuer Abschnitt "Docker Deployment" als primärer Weg
-    - Bestehenden systemd-Abschnitt als "Legacy / ohne Docker" behalten
-    - Backup-Workflow mit `docker exec` dokumentieren
-
-  - [x] **Schritt 10: .dockerignore-Dateien**
-    - `apps/backend/.dockerignore`: `.venv`, `__pycache__`, `*.pyc`, `backups/`, `.env*`
-    - `apps/frontend/.dockerignore`: `node_modules`, `dist`, `.env*`
-
-  - [x] **Schritt 11: Roundtrip-Test**
-    - `docker compose -f docker-compose.dev.yml up` → DB erreichbar, `make migrate` erfolgreich
-    - `docker compose up --build` (Prod) → Frontend unter `localhost:80` erreichbar, API-Calls funktionieren, Login funktioniert
-
-### Celery Tasks
-- [ ] **Celery Task Queue** — Für lang laufende Tasks (Routing, PDF-Verarbeitung)
-  Voraussetzung für Backend -> erster Schritt: Formuliere Arbeitsschritte aus
 
 
 
@@ -344,3 +263,134 @@ Priorität:
 - [x] **Manuelles Backup & Restore** *(Makefile + Shell-Skripte implementiert)*
   `scripts/backup_db.sh`, `scripts/restore_db.sh`, Makefile-Targets: `backup-db`, `restore-db`, `list-backups`.
   Vollständige Dokumentation inkl. Automatisierung (systemd-Timer, rclone): [`docs/production_setup.md`](production_setup.md#backup-system)
+
+
+
+  ### Transfer to Docker
+- [x] Transfer the system to docker. Make difference between development and production, but both live in side docker (in dev for example just some services like db etc)
+
+  **Services:**
+  | Service | Dev | Prod |
+  |---------|-----|------|
+  | PostgreSQL + PostGIS | Docker | Docker |
+  | Backend (FastAPI/uvicorn) | Docker (volume-mounted src, hot-reload) | Docker |
+  | Frontend | local Vite dev server | Docker (nginx, pre-built) |
+  | nginx reverse proxy | — | Docker |
+
+  **Implementation steps:**
+
+  - [x] **Schritt 1: Dockerfile für Backend**
+    - `apps/backend/Dockerfile` — multi-stage: `builder` (pip install) → `runtime` (uvicorn)
+    - Base image: `python:3.12-slim` with GDAL/PostGIS client libs
+    - Non-root user, copy venv from builder stage
+    - `ENTRYPOINT ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]`
+
+  - [x] **Schritt 2: Dockerfile für Frontend (Produktion)**
+    - `apps/frontend/Dockerfile` — multi-stage: `builder` (npm ci + npm run build) → `nginx:alpine` (serve dist/)
+    - nginx config: SPA fallback (`try_files $uri /index.html`), proxy `/api/` → backend
+
+  - [x] **Schritt 3: docker-compose.yml (Produktion)**
+    - Services: `db` (postgres:16-postgis), `backend`, `frontend` (nginx)
+    - `db`: named volume `pgdata`, healthcheck
+    - `backend`: depends_on db (healthy), reads `.env.prod`, runs Alembic migration on startup via entrypoint script
+    - `frontend`: depends_on backend, exposes port 80/443
+    - Shared network `raildashboard-net`
+
+  - [x] **Schritt 4: Datenmigration – lokale DB → Docker-Volume (einmalig)**
+    - ⚠️ Dieser Schritt muss **vor** dem ersten Start des DB-Containers ausgeführt werden, damit keine Daten verloren gehen.
+    - Vorgehen:
+      1. Backup der lokalen Datenbank erstellen: `make backup-db` → erzeugt `backups/raildashboard_<timestamp>.dump`
+      2. Docker-Volume für die Dev-DB anlegen: `docker volume create raildashboard_pgdata_dev`
+      3. DB-Container starten (noch leer): `docker compose -f docker-compose.dev.yml up -d db`
+      4. Dump in den Container einspielen: `make restore-db BACKUP=backups/<datei>.dump DB_URL=postgresql://...@localhost:5433/raildashboard`
+      5. Verifizieren: Anzahl der Projekte in lokaler DB == Anzahl im Docker-Container
+    - Das Volume `raildashboard_pgdata_dev` überlebt `docker compose down` — Daten bleiben erhalten.
+    - **Nur `docker compose down -v`** löscht das Volume. Niemals unbeabsichtigt ausführen.
+
+  - [x] **Schritt 5: docker-compose.dev.yml (Entwicklung)**
+    - Nur `db` Service (postgres:16-postgis) — Backend und Frontend laufen weiterhin lokal via `make dev`
+    - Named volume `raildashboard_pgdata_dev` → Daten persistieren zwischen Container-Neustarts
+    - Port-Mapping: `5433:5432` (vermeidet Konflikt mit eventuell lokal laufendem Postgres)
+    - `DATABASE_URL` in `.env` auf `localhost:5433` anpassen (Kommentar: "Docker dev DB")
+    - `VITE_API_BASE_URL=http://localhost:8000` bleibt unverändert
+    - Startup: `docker compose -f docker-compose.dev.yml up -d`
+    - `.env.docker-dev.example` dokumentiert die angepasste `DATABASE_URL`
+
+  - [x] **Schritt 6: Entrypoint-Skript für Backend**
+    - `apps/backend/docker-entrypoint.sh`: wartet auf DB-Readiness, führt `alembic upgrade head` aus, startet uvicorn
+    - Verhindert Race-Condition beim ersten Start
+
+  - [x] **Schritt 7: .env.docker.example**
+    - Dokumentiert alle Docker-spezifischen Werte (z.B. `DATABASE_URL` mit `db` als Hostname statt `localhost`)
+    - Abgeleitet von `.env.example`, nur Docker-Unterschiede kommentiert
+
+  - [x] **Schritt 8: Makefile-Targets für Docker**
+    - `docker-dev-up` / `docker-dev-down` — Dev-DB starten/stoppen
+    - `docker-prod-build` — alle Images bauen
+    - `docker-prod-up` / `docker-prod-down` — Prod-Stack starten/stoppen
+    - `docker-migrate` — Alembic inside backend container
+    - `docker-create-user` — `create_initial_user.py` inside backend container
+    - `docker-backup-db` — `pg_dump` via `docker exec` auf db-Container
+
+  - [x] **Schritt 9: docs/production_setup.md aktualisieren**
+    - Neuer Abschnitt "Docker Deployment" als primärer Weg
+    - Bestehenden systemd-Abschnitt als "Legacy / ohne Docker" behalten
+    - Backup-Workflow mit `docker exec` dokumentieren
+
+  - [x] **Schritt 10: .dockerignore-Dateien**
+    - `apps/backend/.dockerignore`: `.venv`, `__pycache__`, `*.pyc`, `backups/`, `.env*`
+    - `apps/frontend/.dockerignore`: `node_modules`, `dist`, `.env*`
+
+  - [x] **Schritt 11: Roundtrip-Test**
+    - `docker compose -f docker-compose.dev.yml up` → DB erreichbar, `make migrate` erfolgreich
+    - `docker compose up --build` (Prod) → Frontend unter `localhost:80` erreichbar, API-Calls funktionieren, Login funktioniert
+
+### Celery Tasks
+- [x] **Celery Task Queue** — Für lang laufende Tasks (Routing, PDF-Verarbeitung)
+  Voraussetzung für Haushaltsberichte-Import und Routing-Service.
+
+  **Implementierungsschritte:**
+
+  - [x] **Schritt 1: Redis als Broker + Result-Backend**
+    - Redis-Service zu `docker-compose.yml` (prod) und `docker-compose.dev.yml` (dev) hinzufügen
+    - In Dev: Redis als Docker-Container, Backend verbindet sich via `localhost:6379`
+    - In Prod: Redis als interner Service im Compose-Stack (kein Port nach außen)
+    - Dependencies: `celery[redis]` + `redis` zu `requirements.txt` / `pyproject.toml`
+    - `.env.example` und `.env.docker.example` um `CELERY_BROKER_URL` und `CELERY_RESULT_BACKEND` erweitern
+
+  - [x] **Schritt 2: Celery-App initialisieren**
+    - `apps/backend/dashboard_backend/celery_app.py` — Celery-Instanz mit Broker- und Result-URL aus Settings
+    - Settings (`config.py`) um `CELERY_BROKER_URL` (Default: `redis://localhost:6379/0`) und `CELERY_RESULT_BACKEND` erweitern
+    - `tasks/`-Paket anlegen: `apps/backend/dashboard_backend/tasks/__init__.py`
+
+  - [x] **Schritt 3: Worker-Start (Dev + Prod)**
+    - Dev: Makefile-Target `celery-worker` → `celery -A dashboard_backend.celery_app worker --loglevel=info`
+    - Prod: Eigener `worker`-Service in `docker-compose.yml` (gleiche Backend-Image, Command überschrieben)
+      ```yaml
+      worker:
+        build: apps/backend
+        command: celery -A dashboard_backend.celery_app worker --loglevel=info
+        depends_on: [db, redis]
+        env_file: .env.prod
+      ```
+    - Makefile-Target `docker-worker-logs` für Log-Einsicht im Prod-Container
+
+  - [x] **Schritt 4: Task-Status-Endpoint**
+    - `GET /api/v1/tasks/{task_id}` — gibt `{task_id, status, result, error}` zurück
+    - Status-Werte: `PENDING`, `STARTED`, `SUCCESS`, `FAILURE`
+    - Pydantic-Schema `TaskStatusResponse`
+    - Wird vom Frontend zum Polling verwendet (kein WebSocket notwendig)
+
+  - [x] **Schritt 5: Proof-of-Concept-Task**
+    - Dummy-Task `tasks/debug.py`: `add(x, y)` — addiert zwei Zahlen, schläft 2 s
+    - `POST /api/v1/tasks/debug` startet Task, gibt `task_id` zurück
+    - Roundtrip-Test: Task starten → Status pollen → SUCCESS verifizieren
+    - Stellt sicher, dass die gesamte Pipeline (API → Celery → Redis → Result) funktioniert
+
+  - [x] **Schritt 6: Dokumentation + Makefile**
+    - `docs/architecture.md` um Celery/Redis-Komponente erweitern
+    - `apps/backend/README.md` um Worker-Start-Anleitung ergänzen (Dev + Prod)
+    - Makefile-Targets zusammenfassen: `celery-worker`, `docker-worker-logs`
+
+
+

@@ -9,6 +9,9 @@ os.environ.setdefault("RINF_PASSWORD", "test-password")
 os.environ.setdefault("ROUTING_BASE_URL", "http://routing.example")
 os.environ.setdefault("ROUTING_TIMEOUT_SECONDS", "1.0")
 os.environ.setdefault("GRAPH_VERSION", "test-graph")
+# Use in-memory broker and backend so tests run without a Redis instance.
+os.environ.setdefault("CELERY_BROKER_URL", "memory://")
+os.environ.setdefault("CELERY_RESULT_BACKEND", "cache+memory://")
 
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))

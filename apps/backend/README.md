@@ -56,6 +56,8 @@ Application settings are read via Pydantic Settings from a `.env` file in the **
 | `ENVIRONMENT`   | Optional: selects alternative `.env` files (e.g. `.env.test`)    |
 | `OSM_PBF_DIR`   | Optional: directory containing `<COUNTRY>.osm.pbf` extracts for offline OSM imports |
 | `USE_GEOMETRY`  | Optional: set to `0` to skip geometry creation during OSM offline imports |
+| `CELERY_BROKER_URL` | Redis broker URL (default: `redis://localhost:6379/0`) |
+| `CELERY_RESULT_BACKEND` | Redis result backend URL (default: `redis://localhost:6379/0`) |
 
 ## Database Migrations
 Alembic revisions live in `alembic/versions`. Apply schema changes with:
@@ -81,6 +83,50 @@ The backend ships with a multi-stage `Dockerfile` (`apps/backend/Dockerfile`):
 On container start, `docker-entrypoint.sh` waits for the database to be ready, runs `alembic upgrade head`, then launches uvicorn. All environment variables are passed via `docker-compose.yml` / `.env.prod` — no `.env` file is baked into the image.
 
 Use `make docker-prod-up` / `make docker-prod-down` from the repository root to manage the production stack. See [`docs/production_setup.md`](../../docs/production_setup.md) for the full deployment guide.
+
+## Celery Worker
+
+Long-running tasks (PDF parsing, route computation) run asynchronously via Celery with Redis as broker and result backend.
+
+### Environment variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `CELERY_BROKER_URL` | `redis://localhost:6379/0` | Redis broker URL |
+| `CELERY_RESULT_BACKEND` | `redis://localhost:6379/0` | Redis result backend URL |
+
+### Dev — start worker locally
+
+Redis must be running first (included in the dev Docker stack):
+
+```bash
+make docker-dev-up   # starts DB + Redis
+make celery-worker   # starts worker in the foreground
+```
+
+### Prod — worker container
+
+The production `docker-compose.yml` includes a dedicated `worker` service that uses the same backend image with the Celery command as entrypoint. It starts automatically with `make docker-prod-up`.
+
+View worker logs:
+```bash
+make docker-worker-logs
+```
+
+### Task status polling
+
+After starting a task the API returns a `task_id`. The frontend polls:
+
+```
+GET /api/v1/tasks/{task_id}
+```
+
+Response: `{ task_id, status, result, error }` — `status` is one of `PENDING`, `STARTED`, `SUCCESS`, `FAILURE`.
+Both endpoints require a logged-in user.
+
+### Tests
+
+Tests use `CELERY_BROKER_URL=memory://` and `CELERY_RESULT_BACKEND=cache+memory://` (set in `tests/conftest.py`) combined with `task_always_eager=True` — tasks run synchronously in-process; no Redis instance required.
 
 ## Routing API
 The backend persists rail routes that are computed via the routing microservice. The following REST endpoints are available:

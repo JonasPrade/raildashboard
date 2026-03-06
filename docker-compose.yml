@@ -30,6 +30,12 @@ services:
     networks:
       - raildashboard-net
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - raildashboard-net
+
   backend:
     build:
       context: apps/backend
@@ -38,6 +44,22 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - raildashboard-net
+
+  worker:
+    build:
+      context: apps/backend
+    command: celery -A dashboard_backend.celery_app worker --loglevel=info
+    restart: unless-stopped
+    env_file: .env.prod
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - raildashboard-net
 
