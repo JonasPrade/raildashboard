@@ -1,0 +1,16 @@
+# Dependencies (installed fresh inside the image)
+node_modules/
+
+# Build output (produced inside the image)
+dist/
+
+# Environment files (secrets must NOT be baked into the image)
+.env
+.env.*
+!.env.example
+
+# Editor / OS artefacts
+.DS_Store
+.idea/
+.vscode/
+*.swp

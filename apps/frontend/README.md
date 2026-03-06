@@ -53,6 +53,19 @@ The map view expects a raster tile URL provided via `REACT_APP_TILE_LAYER_URL`. 
 
 Navigate to `/documentation` to access the embedded documentation page. It outlines the key features, workflows, and quality requirements. Update this page whenever the functional scope changes.
 
+## Docker (production)
+
+The frontend ships with a multi-stage `Dockerfile` (`apps/frontend/Dockerfile`):
+
+- **Builder stage** — runs `npm ci` and `npm run build` on `node:20-slim`. The `VITE_API_BASE_URL` build argument is set to `""` so API calls use a relative path (`/api/...`).
+- **Runtime stage** — serves the compiled `dist/` folder via `nginx:alpine`. The custom `nginx.conf` handles SPA routing (`try_files $uri /index.html`) and proxies `/api/` to the backend container.
+
+Build and start via the repository root:
+```bash
+make docker-prod-build
+make docker-prod-up
+```
+
 ## Quality checks
 
 Run at least the following check before committing:

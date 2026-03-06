@@ -2,6 +2,7 @@
 
 Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`.
 
+
 ---
 
 ## Short-Term Features
@@ -27,39 +28,102 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 - [ ] Install the Plugin for Python for Code Intelligence (https://code.claude.com/docs/en/discover-plugins#code-intelligence). Also for Typescript
 - [x] Implement this feature: https://github.com/anthropics/claude-code/tree/main/plugins/feature-dev
 - [ ] Implement https://github.com/anthropics/claude-code/tree/main/plugins/frontend-design
+  
+
+#### Test develompment 
+- [ ] Load of failed development tests
+  - Da scheint vor allem erstmal ein Probelm it Routen zu sein -> hier prüfen ob das überhaupt noch aktuell ist
 
 ---
 
 ## Mid-Term Features
 
-- [ ] **Routenvorschlag per GrassHopper** *(Backend + Frontend)*
-  Im Backend existiert bereits ein Routing-Microservice (GrassHopper/pgRouting). Ablauf:
-  1. Nutzer öffnet ein Projekt und wählt "Route berechnen"
-  2. Start- und Endpunkt werden aus bekannten **OperationalPoints** (Dropdown, durchsuchbar) gewählt
-  3. Backend berechnet Route und gibt GeoJSON zurück
-  4. Frontend zeigt die vorgeschlagene Route als Vorschau auf der Karte an
-  5. Nutzer akzeptiert → Route wird als `geojson_representation` des Projekts gespeichert (PATCH)
-  6. Nutzer lehnt ab → Vorschau wird verworfen
-- [ ] Anzeige der Kommentare sowie 
+### Transfer to Docker
+- [x] Transfer the system to docker. Make difference between development and production, but both live in side docker (in dev for example just some services like db etc)
 
-### Backup DB
-- [x] **Manuelles Backup & Restore** *(Makefile + Shell-Skripte implementiert)*
-  `scripts/backup_db.sh`, `scripts/restore_db.sh`, Makefile-Targets: `backup-db`, `restore-db`, `list-backups`.
-  Vollständige Dokumentation inkl. Automatisierung (systemd-Timer, rclone): [`docs/production_setup.md`](production_setup.md#backup-system)
+  **Services:**
+  | Service | Dev | Prod |
+  |---------|-----|------|
+  | PostgreSQL + PostGIS | Docker | Docker |
+  | Backend (FastAPI/uvicorn) | Docker (volume-mounted src, hot-reload) | Docker |
+  | Frontend | local Vite dev server | Docker (nginx, pre-built) |
+  | nginx reverse proxy | — | Docker |
 
-- [ ] **ProjectProgress** *(Backend + Frontend)*
-  Fortschrittsstand eines Projekts (Planungs-, Genehmigungs-, Bauphase). Speist sich aus mehreren Quellen (z. B. Bundestag-Drucksachen, Pressemitteilungen, manuelle Eingabe). Benötigt Validierungslogik für Konflikte zwischen Quellen.
-  - Backend: `ProjectProgress`-Modell implementieren (Status, Datum, Quelle, Kommentar)
-  - Frontend: Zeitleiste/Meilenstein-Ansicht in `ProjectDetail`
-– [ ] **Anzeige der BVWP-Daten** Für einige Projekte liegen BVWP-Daten vor, diese sind vollständig und übersichtlich darzustellen
-- [ ] **Anzeige Texte und Kommentare:**
-- [ ] **Vervollständigung und Automatisierung Test**
+  **Implementation steps:**
 
----
+  - [x] **Schritt 1: Dockerfile für Backend**
+    - `apps/backend/Dockerfile` — multi-stage: `builder` (pip install) → `runtime` (uvicorn)
+    - Base image: `python:3.12-slim` with GDAL/PostGIS client libs
+    - Non-root user, copy venv from builder stage
+    - `ENTRYPOINT ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]`
 
-## Long-Term Features
+  - [x] **Schritt 2: Dockerfile für Frontend (Produktion)**
+    - `apps/frontend/Dockerfile` — multi-stage: `builder` (npm ci + npm run build) → `nginx:alpine` (serve dist/)
+    - nginx config: SPA fallback (`try_files $uri /index.html`), proxy `/api/` → backend
 
-- [ ] **Netzzustandsbericht** — PDF-Import, Extraktion relevanter Kennzahlen in die Datenbank
+  - [x] **Schritt 3: docker-compose.yml (Produktion)**
+    - Services: `db` (postgres:16-postgis), `backend`, `frontend` (nginx)
+    - `db`: named volume `pgdata`, healthcheck
+    - `backend`: depends_on db (healthy), reads `.env.prod`, runs Alembic migration on startup via entrypoint script
+    - `frontend`: depends_on backend, exposes port 80/443
+    - Shared network `raildashboard-net`
+
+  - [x] **Schritt 4: Datenmigration – lokale DB → Docker-Volume (einmalig)**
+    - ⚠️ Dieser Schritt muss **vor** dem ersten Start des DB-Containers ausgeführt werden, damit keine Daten verloren gehen.
+    - Vorgehen:
+      1. Backup der lokalen Datenbank erstellen: `make backup-db` → erzeugt `backups/raildashboard_<timestamp>.dump`
+      2. Docker-Volume für die Dev-DB anlegen: `docker volume create raildashboard_pgdata_dev`
+      3. DB-Container starten (noch leer): `docker compose -f docker-compose.dev.yml up -d db`
+      4. Dump in den Container einspielen: `make restore-db BACKUP=backups/<datei>.dump DB_URL=postgresql://...@localhost:5433/raildashboard`
+      5. Verifizieren: Anzahl der Projekte in lokaler DB == Anzahl im Docker-Container
+    - Das Volume `raildashboard_pgdata_dev` überlebt `docker compose down` — Daten bleiben erhalten.
+    - **Nur `docker compose down -v`** löscht das Volume. Niemals unbeabsichtigt ausführen.
+
+  - [x] **Schritt 5: docker-compose.dev.yml (Entwicklung)**
+    - Nur `db` Service (postgres:16-postgis) — Backend und Frontend laufen weiterhin lokal via `make dev`
+    - Named volume `raildashboard_pgdata_dev` → Daten persistieren zwischen Container-Neustarts
+    - Port-Mapping: `5433:5432` (vermeidet Konflikt mit eventuell lokal laufendem Postgres)
+    - `DATABASE_URL` in `.env` auf `localhost:5433` anpassen (Kommentar: "Docker dev DB")
+    - `VITE_API_BASE_URL=http://localhost:8000` bleibt unverändert
+    - Startup: `docker compose -f docker-compose.dev.yml up -d`
+    - `.env.docker-dev.example` dokumentiert die angepasste `DATABASE_URL`
+
+  - [x] **Schritt 6: Entrypoint-Skript für Backend**
+    - `apps/backend/docker-entrypoint.sh`: wartet auf DB-Readiness, führt `alembic upgrade head` aus, startet uvicorn
+    - Verhindert Race-Condition beim ersten Start
+
+  - [x] **Schritt 7: .env.docker.example**
+    - Dokumentiert alle Docker-spezifischen Werte (z.B. `DATABASE_URL` mit `db` als Hostname statt `localhost`)
+    - Abgeleitet von `.env.example`, nur Docker-Unterschiede kommentiert
+
+  - [x] **Schritt 8: Makefile-Targets für Docker**
+    - `docker-dev-up` / `docker-dev-down` — Dev-DB starten/stoppen
+    - `docker-prod-build` — alle Images bauen
+    - `docker-prod-up` / `docker-prod-down` — Prod-Stack starten/stoppen
+    - `docker-migrate` — Alembic inside backend container
+    - `docker-create-user` — `create_initial_user.py` inside backend container
+    - `docker-backup-db` — `pg_dump` via `docker exec` auf db-Container
+
+  - [x] **Schritt 9: docs/production_setup.md aktualisieren**
+    - Neuer Abschnitt "Docker Deployment" als primärer Weg
+    - Bestehenden systemd-Abschnitt als "Legacy / ohne Docker" behalten
+    - Backup-Workflow mit `docker exec` dokumentieren
+
+  - [x] **Schritt 10: .dockerignore-Dateien**
+    - `apps/backend/.dockerignore`: `.venv`, `__pycache__`, `*.pyc`, `backups/`, `.env*`
+    - `apps/frontend/.dockerignore`: `node_modules`, `dist`, `.env*`
+
+  - [x] **Schritt 11: Roundtrip-Test**
+    - `docker compose -f docker-compose.dev.yml up` → DB erreichbar, `make migrate` erfolgreich
+    - `docker compose up --build` (Prod) → Frontend unter `localhost:80` erreichbar, API-Calls funktionieren, Login funktioniert
+
+### Celery Tasks
+- [ ] **Celery Task Queue** — Für lang laufende Tasks (Routing, PDF-Verarbeitung)
+  Voraussetzung für Backend -> erster Schritt: Formuliere Arbeitsschritte aus
+
+
+
+### Haushaltsberichte
 - [ ] **Haushaltsberichte Tabelle VE** *(Backend + Frontend)*
   Jährlicher Import der Anlage VWIB, Teil B (Bundeshaushalt) als PDF.
   Die Tabelle enthält alle Bedarfsplanmaßnahmen des Schienenwegeinvestitionsprogramms
@@ -95,12 +159,38 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 
   **Abhängigkeiten:** Celery Task Queue (für asynchronen Parse-Schritt),
   ChangeLog-Infrastruktur (für Protokollierung).
+
+
+### Sonstiges
+
+- [ ] **ProjectProgress** *(Backend + Frontend)*
+  Fortschrittsstand eines Projekts (Planungs-, Genehmigungs-, Bauphase). Speist sich aus mehreren Quellen (z. B. Bundestag-Drucksachen, Pressemitteilungen, manuelle Eingabe). Benötigt Validierungslogik für Konflikte zwischen Quellen.
+  - Backend: `ProjectProgress`-Modell implementieren (Status, Datum, Quelle, Kommentar)
+  - Frontend: Zeitleiste/Meilenstein-Ansicht in `ProjectDetail`
+– [ ] **Anzeige der BVWP-Daten** Für einige Projekte liegen BVWP-Daten vor, diese sind vollständig und übersichtlich darzustellen
+- [ ] **Anzeige Texte und Kommentare:**
+- [ ] **Vervollständigung und Automatisierung Test**
+
+---
+
+## Long-Term Features
+
+- [ ] **Routenvorschlag per GrassHopper** *(Backend + Frontend)*
+  Im Backend existiert bereits ein Routing-Microservice (GrassHopper/pgRouting). Ablauf:
+  1. Nutzer öffnet ein Projekt und wählt "Route berechnen"
+  2. Start- und Endpunkt werden aus bekannten **OperationalPoints** (Dropdown, durchsuchbar) gewählt
+  3. Backend berechnet Route und gibt GeoJSON zurück
+  4. Frontend zeigt die vorgeschlagene Route als Vorschau auf der Karte an
+  5. Nutzer akzeptiert → Route wird als `geojson_representation` des Projekts gespeichert (PATCH)
+  6. Nutzer lehnt ab → Vorschau wird verworfen
+- [ ] Anzeige der Kommentare sowie 
+
+- [ ] **Netzzustandsbericht** — PDF-Import, Extraktion relevanter Kennzahlen in die Datenbank
+
 - [ ] **Beschleunigungskommission Schiene** — Datentransfer aus öffentlichen Quellen + automatische Updates
 - [ ] **BVWP-Datenimport** — Übernahme aus Legacy-Datenbank
 - [x] **Backend-Authentifizierung** — HTTP Basic Auth, PBKDF2, Rollen: viewer / editor / admin (Frontend-Integration steht noch aus, siehe Mid-Term)
-- [ ] **Celery Task Queue** — Für lang laufende Tasks (Routing, PDF-Verarbeitung)
-- [ ] **OpenStreetMap-Anbindung** — Breite Abdeckung, aber komplex für Routing-Anfragen
-- [ ] **DB OpenData** — Schienennetz Deutsche Bahn ([GovData](https://www.govdata.de/suche/daten/schienennetz-deutsche-bahnddea3))
+
 - [ ] **RINF-Daten evaluieren** — Für Bahnhofs-/Stationsverbindungen ggf. weiterhin benötigt
 - [ ] **GeoLine-Erstellung** — Möglichkeit, neue Streckengeometrien zu erzeugen, wenn vorhandene unvollständig/ungültig sind. Ansatz noch offen (Zeichentool auf Karte vs. automatische Vervollständigung).
 - [ ] **Automatisierung Preisniveau** Ein Tool das ermöglicht, Preise gemäß der Inflation/Baukostenentwicklung auf das aktuelle Jahr zu berechnen und so die Vergleichbarkeit zu verbessern
@@ -249,3 +339,8 @@ Priorität:
   - Seite `/admin/users`: Tabelle aller Nutzer (Name, Rolle, E-Mail, erstellt am)
   - Nutzer anlegen (Name, E-Mail, Rolle, initiales Passwort oder Reset-Link versenden)
   - Rolle ändern / Passwort zurücksetzen / Nutzer löschen
+
+### Backup DB
+- [x] **Manuelles Backup & Restore** *(Makefile + Shell-Skripte implementiert)*
+  `scripts/backup_db.sh`, `scripts/restore_db.sh`, Makefile-Targets: `backup-db`, `restore-db`, `list-backups`.
+  Vollständige Dokumentation inkl. Automatisierung (systemd-Timer, rclone): [`docs/production_setup.md`](production_setup.md#backup-system)

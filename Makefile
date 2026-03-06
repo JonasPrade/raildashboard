@@ -20,6 +20,9 @@ ALEMBIC      := .venv/bin/alembic
         backup-db restore-db list-backups \
         list-users create-user change-password \
         gen-api \
+        docker-dev-up docker-dev-down \
+        docker-prod-build docker-prod-up docker-prod-down \
+        docker-migrate docker-create-user docker-backup-db \
         clean clean-backend clean-frontend
 
 # ---------------------------------------------------------------------------
@@ -71,6 +74,19 @@ help:
 	@echo "  Code generation"
 	@echo "    gen-api            Regenerate frontend API client from OpenAPI schema"
 	@echo "                       (requires backend running at http://localhost:8000)"
+	@echo ""
+	@echo "  Docker – development (DB only)"
+	@echo "    docker-dev-up      Start the dev DB container (postgres:16-postgis on port 5433)"
+	@echo "    docker-dev-down    Stop the dev DB container (data volume is preserved)"
+	@echo ""
+	@echo "  Docker – production (full stack)"
+	@echo "    docker-prod-build  Build all Docker images (requires .env.prod)"
+	@echo "    docker-prod-up     Start the production stack in the background"
+	@echo "    docker-prod-down   Stop the production stack"
+	@echo "    docker-migrate     Run Alembic migrations inside the backend container"
+	@echo "    docker-create-user Create a user inside the backend container"
+	@echo "                       Usage: make docker-create-user USERNAME=admin ROLE=admin"
+	@echo "    docker-backup-db   pg_dump via docker exec on the db container"
 	@echo ""
 	@echo "  Cleanup"
 	@echo "    clean              Remove all build artefacts and caches"
@@ -197,6 +213,49 @@ change-password:
 gen-api:
 	npm --prefix $(FRONTEND_DIR) run gen:api
 	npm --prefix $(FRONTEND_DIR) run gen:zod
+
+# ---------------------------------------------------------------------------
+# Docker – development (DB only)
+# ---------------------------------------------------------------------------
+
+docker-dev-up:
+	docker compose -f docker-compose.dev.yml up -d
+
+docker-dev-down:
+	docker compose -f docker-compose.dev.yml down
+
+# ---------------------------------------------------------------------------
+# Docker – production (full stack)
+# ---------------------------------------------------------------------------
+
+docker-prod-build:
+	docker compose --env-file .env.prod build
+
+docker-prod-up:
+	docker compose --env-file .env.prod up -d
+
+docker-prod-down:
+	docker compose --env-file .env.prod down
+
+# Run Alembic migrations inside the running backend container.
+docker-migrate:
+	docker compose exec backend alembic upgrade head
+
+# Create a user inside the running backend container.
+# Usage: make docker-create-user USERNAME=admin ROLE=admin
+docker-create-user:
+	@if [ -z "$(USERNAME)" ]; then echo "Usage: make docker-create-user USERNAME=<name> ROLE=<viewer|editor|admin>"; exit 1; fi
+	@if [ -z "$(ROLE)" ]; then echo "Usage: make docker-create-user USERNAME=<name> ROLE=<viewer|editor|admin>"; exit 1; fi
+	docker compose exec backend python scripts/create_initial_user.py --username $(USERNAME) --role $(ROLE)
+
+# Create a pg_dump via docker exec on the db container.
+# The dump is written to the local backups/ directory.
+docker-backup-db:
+	@mkdir -p backups
+	@TIMESTAMP=$$(date +%Y%m%d_%H%M%S); \
+	  FILE="backups/raildashboard_$${TIMESTAMP}.dump"; \
+	  docker compose exec db pg_dump -U raildashboard -Fc raildashboard > "$$FILE" && \
+	  echo "Backup written to $$FILE"
 
 # ---------------------------------------------------------------------------
 # Cleanup

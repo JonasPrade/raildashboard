@@ -121,9 +121,34 @@ make test-frontend
 
 Scripts for importing external data sources live in `apps/backend/scripts/`. See `apps/backend/README.md` for details on ERA RINF XML, OpenStreetMap, and legacy database imports.
 
+## Docker
+
+The full stack (database, backend, frontend) can be run in Docker. There is also a lightweight dev mode that runs only the database in Docker while the backend and frontend run locally.
+
+**Development — DB in Docker, app locally:**
+
+```bash
+make docker-dev-up        # start PostgreSQL on port 5433
+# update DATABASE_URL in .env (see .env.docker-dev.example)
+make dev                  # run backend + frontend as usual
+make docker-dev-down      # stop DB (data volume is preserved)
+```
+
+**Production — full stack in Docker:**
+
+```bash
+cp .env.docker.example .env.prod   # fill in passwords and domain
+make docker-prod-build             # build images
+make docker-prod-up                # start stack (port 80)
+make docker-create-user USERNAME=admin ROLE=admin
+make docker-prod-down              # stop stack
+```
+
+See [`docs/production_setup.md`](docs/production_setup.md) for the full deployment guide including data migration and backup procedures.
+
 ## Deployment
 
-For production setup (server configuration, systemd services, automated backups, nginx reverse proxy, update procedures), see [`docs/production_setup.md`](docs/production_setup.md).
+For production setup (server configuration, Docker deployment, automated backups, update procedures), see [`docs/production_setup.md`](docs/production_setup.md).
 
 ## Contributing
 

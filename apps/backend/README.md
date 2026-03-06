@@ -71,6 +71,17 @@ uvicorn main:app --reload
 ```
 Interactive API documentation is available at `http://localhost:8000/docs`.
 
+## Docker
+
+The backend ships with a multi-stage `Dockerfile` (`apps/backend/Dockerfile`):
+
+- **Builder stage** — installs Python dependencies into `/venv` using `python:3.12-slim`.
+- **Runtime stage** — copies only the venv and application source; runs as a non-root user.
+
+On container start, `docker-entrypoint.sh` waits for the database to be ready, runs `alembic upgrade head`, then launches uvicorn. All environment variables are passed via `docker-compose.yml` / `.env.prod` — no `.env` file is baked into the image.
+
+Use `make docker-prod-up` / `make docker-prod-down` from the repository root to manage the production stack. See [`docs/production_setup.md`](../../docs/production_setup.md) for the full deployment guide.
+
 ## Routing API
 The backend persists rail routes that are computed via the routing microservice. The following REST endpoints are available:
 

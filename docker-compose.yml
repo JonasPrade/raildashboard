@@ -1,0 +1,63 @@
+# docker-compose.yml – Production stack
+#
+# Usage:
+#   docker compose --env-file .env.prod up --build -d
+#
+# All services run inside Docker. The frontend nginx container is the only
+# one that exposes a port to the host (80). It proxies /api/ to the backend.
+#
+# Prerequisites:
+#   - Copy .env.docker.example to .env.prod and fill in the values.
+#   - Run the initial data migration (see docs/production_setup.md → Docker Deployment).
+
+services:
+  db:
+    build:
+      context: docker/db
+    platform: linux/amd64   # no arm64 image available; Rosetta 2 emulates on Apple Silicon
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       raildashboard
+      POSTGRES_USER:     ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d raildashboard"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - raildashboard-net
+
+  backend:
+    build:
+      context: apps/backend
+    restart: unless-stopped
+    env_file: .env.prod
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - raildashboard-net
+
+  frontend:
+    build:
+      context: apps/frontend
+      args:
+        # Empty string → API calls go to the same origin; nginx proxies /api/ → backend.
+        VITE_API_BASE_URL: ""
+        REACT_APP_TILE_LAYER_URL: ${REACT_APP_TILE_LAYER_URL:-}
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - raildashboard-net
+
+volumes:
+  pgdata:
+
+networks:
+  raildashboard-net:

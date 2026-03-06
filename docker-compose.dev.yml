@@ -1,0 +1,39 @@
+# docker-compose.dev.yml – Development: only the database runs in Docker.
+#
+# Backend and frontend continue to run locally via `make dev`.
+# The DB is exposed on port 5433 to avoid conflicts with a locally installed
+# PostgreSQL that may already occupy 5432.
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yml up -d       # start DB
+#   docker compose -f docker-compose.dev.yml down        # stop DB (data persists)
+#   docker compose -f docker-compose.dev.yml down -v     # stop + DESTROY data volume
+#
+# After starting the DB for the first time, restore your existing data:
+#   make restore-db BACKUP=backups/<file>.dump DB_URL=postgresql://raildashboard:raildashboard@localhost:5433/raildashboard
+#
+# Update DATABASE_URL in .env to point to the Docker DB:
+#   DATABASE_URL=postgresql+psycopg2://raildashboard:raildashboard@localhost:5433/raildashboard
+
+services:
+  db:
+    build:
+      context: docker/db
+    platform: linux/amd64   # no arm64 image available; Rosetta 2 emulates on Apple Silicon
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       raildashboard
+      POSTGRES_USER:     raildashboard
+      POSTGRES_PASSWORD: raildashboard
+    ports:
+      - "5433:5432"
+    volumes:
+      - raildashboard_pgdata_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U raildashboard -d raildashboard"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  raildashboard_pgdata_dev:

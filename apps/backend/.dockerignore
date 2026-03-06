@@ -1,0 +1,29 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# Tests
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Data and backups (large files, not needed in image)
+data/
+backups/
+
+# Environment files (secrets must NOT be baked into the image)
+.env
+.env.*
+!.env.example
+
+# Editor / OS artefacts
+.DS_Store
+.idea/
+.vscode/
+*.swp

@@ -37,7 +37,7 @@ Folgende Werte **müssen** für die Produktion angepasst werden (Entwicklungsdef
 
 ---
 
-## Erstmalige Einrichtung
+## Legacy: Erstmalige Einrichtung (ohne Docker)
 
 ```bash
 # 1. Abhängigkeiten installieren
@@ -55,6 +55,81 @@ make create-user USERNAME=admin ROLE=admin
 
 # 5. Frontend bauen
 make build
+```
+
+---
+
+---
+
+## Docker Deployment (empfohlen)
+
+Alle Services laufen in Docker. Das Frontend wird von nginx als statische Dateien ausgeliefert; nginx proxied `/api/` an den Backend-Container.
+
+### Voraussetzungen
+
+- Docker Engine ≥ 24 und Docker Compose V2 (`docker compose`, nicht `docker-compose`)
+
+### Erstmalige Einrichtung
+
+```bash
+# 1. Produktions-Umgebungsvariablen anlegen
+cp .env.docker.example .env.prod
+# .env.prod öffnen und alle Werte ausfüllen (DB_PASSWORD, BACKEND_CORS_ORIGINS, etc.)
+
+# 2. Images bauen und Stack starten
+make docker-prod-build
+make docker-prod-up
+
+# 3. Ersten Admin-User anlegen
+make docker-create-user USERNAME=admin ROLE=admin
+```
+
+Alembic-Migrationen laufen automatisch beim Start des Backend-Containers (via `docker-entrypoint.sh`).
+
+### Datenmigration (einmalig, vor dem ersten Start)
+
+> **Achtung:** Diesen Schritt ausführen, bevor `make docker-prod-up` erstmals gestartet wird.
+
+```bash
+# 1. Backup der lokalen Datenbank
+make backup-db
+
+# 2. Prod-Stack starten (nur DB, damit das Volume existiert)
+docker compose --env-file .env.prod up -d db
+
+# 3. Dump einspielen (DB_URL aus .env.prod verwenden, aber Hostname = localhost)
+make restore-db BACKUP=backups/<datei>.dump \
+  DB_URL=postgresql://raildashboard:<password>@localhost:5432/raildashboard
+
+# 4. Verifizieren: Anzahl Projekte in lokaler DB == Anzahl im Container
+#    Dann Backend + Frontend starten
+make docker-prod-up
+```
+
+### Tägliches Backup via Docker
+
+```bash
+make docker-backup-db   # schreibt in backups/raildashboard_<timestamp>.dump
+```
+
+### Updates einspielen
+
+```bash
+git pull
+make docker-prod-build   # Images neu bauen (inkl. neuem Frontend-Build)
+make docker-prod-down
+make docker-prod-up      # Migrations laufen automatisch beim Start
+```
+
+### Entwicklung: nur DB in Docker
+
+```bash
+# DB starten (Port 5433, Daten persistent in Docker-Volume)
+make docker-dev-up
+
+# DATABASE_URL in .env anpassen (Vorlage: .env.docker-dev.example)
+# Dann lokal weiterentwickeln wie bisher
+make dev
 ```
 
 ---
@@ -172,7 +247,7 @@ make restore-db BACKUP=backups/raildashboard_YYYYMMDD_HHMMSS.dump ENV_FILE=.env.
 
 ---
 
-## Reverse Proxy (nginx)
+## Legacy: Reverse Proxy (nginx, ohne Docker)
 
 Beispielkonfiguration für nginx — Backend unter `/api/`, Frontend-Build als statische Dateien:
 
@@ -202,7 +277,7 @@ server {
 
 ---
 
-## Backend als systemd-Service
+## Legacy: Backend als systemd-Service (ohne Docker)
 
 ```ini
 # /etc/systemd/system/raildashboard-backend.service
@@ -229,7 +304,7 @@ systemctl enable --now raildashboard-backend.service
 
 ---
 
-## Updates einspielen
+## Legacy: Updates einspielen (ohne Docker)
 
 ```bash
 git pull

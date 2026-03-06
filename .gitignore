@@ -3,5 +3,6 @@
 .DS_Store
 .env.example
 .env
-.env.test.example
+.env.test
+.env.docker-dev
 backups/

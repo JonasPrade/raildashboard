@@ -77,7 +77,35 @@ if [[ "$CONFIRM" != "j" && "$CONFIRM" != "J" ]]; then
 fi
 
 # ── Restore ───────────────────────────────────────────────────────────────────
+# Strategy: drop and recreate the database for a completely clean slate.
+# This avoids --clean conflicts with Docker-pre-created extensions (postgis_topology etc.)
+# and is the standard way to do a reliable restore.
+
+# Extract database name and build connection URL to the template1 maintenance database.
+DBNAME=$(echo "$PG_URL" | sed -E 's|.*/([^/?]+).*|\1|')
+TEMPLATE_URL=$(echo "$PG_URL" | sed -E "s|/[^/]+$|/template1|")
+
+echo "→ Beende aktive Verbindungen und lösche Datenbank '$DBNAME'..."
+psql "$TEMPLATE_URL" <<SQL
+SELECT pg_terminate_backend(pid)
+FROM pg_stat_activity
+WHERE datname = '$DBNAME' AND pid <> pg_backend_pid();
+
+DROP DATABASE IF EXISTS "$DBNAME";
+CREATE DATABASE "$DBNAME";
+SQL
 
 echo "→ Stelle wieder her..."
-pg_restore --clean --if-exists --no-owner --no-privileges -d "$PG_URL" "$BACKUP_FILE"
+pg_restore --no-owner --no-privileges -d "$PG_URL" "$BACKUP_FILE" || {
+    STATUS=$?
+    # pg_restore exits with 1 for non-fatal warnings (e.g. unknown SET parameters from a
+    # newer PostgreSQL version such as "transaction_timeout" in PG17 vs. PG16 target).
+    # Only abort on codes > 1 which indicate a fatal error.
+    if [ "$STATUS" -gt 1 ]; then
+        echo "→ Restore fehlgeschlagen (Exit-Code $STATUS)." >&2
+        exit "$STATUS"
+    fi
+    echo "→ Restore mit Warnungen abgeschlossen (nicht-fatale Fehler wurden ignoriert)."
+    exit 0
+}
 echo "→ Restore abgeschlossen."
