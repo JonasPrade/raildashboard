@@ -142,6 +142,8 @@ type Props = {
     height?: number;
     /** Klick-Interaktion (Popup + Navigation) aktivieren. Standard: true */
     clickable?: boolean;
+    /** Initial map center [longitude, latitude]. Overrides the default Germany center. */
+    initialCenter?: [number, number] | null;
 };
 
 type SelectedProject = {
@@ -150,7 +152,7 @@ type SelectedProject = {
     y: number;
 };
 
-export default function MapView({ projects, lineWidth = 4, pointSize = 5, height = 800, clickable = true }: Props) {
+export default function MapView({ projects, lineWidth = 4, pointSize = 5, height = 800, clickable = true, initialCenter }: Props) {
     const mapContainerRef = useRef<HTMLDivElement | null>(null);
     const mapInstanceRef = useRef<maplibregl.Map | null>(null);
     const hoverFeatureIdRef = useRef<string | number | null>(null);
@@ -251,8 +253,8 @@ export default function MapView({ projects, lineWidth = 4, pointSize = 5, height
                     },
                 ],
             },
-            center: [10.0, 51.0],
-            zoom: 5,
+            center: initialCenter ?? [10.0, 51.0],
+            zoom: initialCenter ? 10 : 5,
         });
 
         mapInstanceRef.current = mapInstance;

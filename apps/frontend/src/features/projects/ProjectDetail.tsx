@@ -31,6 +31,7 @@ import MapView, { type MapViewProject } from "../map/MapView";
 import ProjectHistorySection from "../changelog/ProjectHistorySection";
 import ProjectTextsSection from "./ProjectTextsSection";
 import { ProjectTableOfContents, type TocSection } from "./ProjectTableOfContents";
+import FinveSection from "./components/FinveSection";
 
 type RouteParams = {
     projectId?: string;
@@ -177,6 +178,7 @@ export default function ProjectDetail() {
     const detailsRef = useRef<HTMLDivElement>(null);
     const textsRef = useRef<HTMLDivElement>(null);
     const justificationRef = useRef<HTMLDivElement>(null);
+    const finveRef = useRef<HTMLDivElement>(null);
     const superiorRef = useRef<HTMLDivElement>(null);
     const subProjectsRef = useRef<HTMLDivElement>(null);
     const historyRef = useRef<HTMLDivElement>(null);
@@ -235,6 +237,23 @@ export default function ProjectDetail() {
             (p) => p.superior_project_id === project.id && typeof p.id === "number",
         );
     }, [project, allProjects]);
+
+    // Extract centroid [lon, lat] from the project's GeoJSON centroid field
+    const mapCenter = useMemo((): [number, number] | null => {
+        const c = project?.centroid;
+        if (
+            c &&
+            typeof c === "object" &&
+            (c as Record<string, unknown>).type === "Point" &&
+            Array.isArray((c as Record<string, unknown>).coordinates)
+        ) {
+            const coords = (c as { coordinates: unknown[] }).coordinates;
+            if (typeof coords[0] === "number" && typeof coords[1] === "number") {
+                return [coords[0], coords[1]];
+            }
+        }
+        return null;
+    }, [project]);
 
     // Projekte für die Detailkarte: Unterprojekte wenn vorhanden, sonst das Projekt selbst
     const MAP_COLOR = "#2563eb";
@@ -332,6 +351,12 @@ export default function ProjectDetail() {
             label: "Begründung",
             ref: justificationRef,
             visible: !!(project.justification?.trim()),
+        },
+        {
+            id: "finve",
+            label: "FinVe",
+            ref: finveRef,
+            visible: true,
         },
         {
             id: "superior",
@@ -462,6 +487,7 @@ export default function ProjectDetail() {
                                             projects={mapProjects}
                                             height={500}
                                             clickable={subProjects.length > 0}
+                                            initialCenter={mapCenter}
                                         />
                                     </div>
                                 </Stack>
@@ -544,6 +570,11 @@ export default function ProjectDetail() {
                     </Card>
                     </div>
                 )}
+
+                {/* FinVe */}
+                <div ref={finveRef}>
+                    <FinveSection projectId={projectId} />
+                </div>
 
                 {/* Übergeordnetes Projekt */}
                 {superiorProject && (

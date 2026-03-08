@@ -5,6 +5,7 @@
 This file applies to the entire repository. Read it before making any substantial change.
 
 > **Default language:** English. Write code, comments, documentation, commit messages, and PR descriptions in English. UI strings displayed to end users are in German.
+> **Commit messages must always be in English** — no exceptions, even if the conversation is in German.
 
 Coding rules:
 

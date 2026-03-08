@@ -14,8 +14,7 @@ export function LoginModal({ opened, onClose }: Props) {
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
-    const handleSubmit = async (e: FormEvent) => {
-        e.preventDefault();
+    const doLogin = async () => {
         setError(null);
         setLoading(true);
         try {
@@ -28,6 +27,11 @@ export function LoginModal({ opened, onClose }: Props) {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleSubmit = (e: FormEvent) => {
+        e.preventDefault();
+        void doLogin();
     };
 
     const handleClose = () => {
@@ -57,6 +61,12 @@ export function LoginModal({ opened, onClose }: Props) {
                         onChange={(e) => setPassword(e.target.value)}
                         autoComplete="current-password"
                         required
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                e.preventDefault();
+                                void doLogin();
+                            }
+                        }}
                     />
                     <Button type="submit" loading={loading} fullWidth mt="xs">
                         Anmelden

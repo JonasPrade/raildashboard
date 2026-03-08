@@ -20,6 +20,7 @@ ALEMBIC      := .venv/bin/alembic
         backup-db restore-db list-backups \
         list-users create-user change-password \
         gen-api \
+        list-parse-results dump-parse-result \
         celery-worker \
         docker-dev-up docker-dev-down \
         docker-prod-build docker-prod-up docker-prod-down \
@@ -121,6 +122,7 @@ dev:
 	@trap 'kill 0' INT; \
 	  $(MAKE) dev-backend & \
 	  $(MAKE) dev-frontend & \
+	  $(MAKE) celery-worker & \
 	  wait
 
 dev-backend:
@@ -218,6 +220,20 @@ change-password:
 gen-api:
 	npm --prefix $(FRONTEND_DIR) run gen:api
 	npm --prefix $(FRONTEND_DIR) run gen:zod
+
+# ---------------------------------------------------------------------------
+# Haushalt debugging
+# ---------------------------------------------------------------------------
+
+# List all parse results:        make list-parse-results
+# Dump JSON for ID 3:            make dump-parse-result ID=3
+# Write JSON to file:            make dump-parse-result ID=3 > /tmp/result.json
+list-parse-results:
+	cd $(BACKEND_DIR) && PYTHONPATH=. .venv/bin/python scripts/dump_parse_result.py
+
+dump-parse-result:
+	@if [ -z "$(ID)" ]; then echo "Usage: make dump-parse-result ID=<id>"; exit 1; fi
+	cd $(BACKEND_DIR) && PYTHONPATH=. .venv/bin/python scripts/dump_parse_result.py $(ID)
 
 # ---------------------------------------------------------------------------
 # Celery

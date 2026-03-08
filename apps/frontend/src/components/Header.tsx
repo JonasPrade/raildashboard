@@ -23,7 +23,7 @@ export function Header() {
     const { user, logout } = useAuth();
     const [loginOpened, { open: openLogin, close: closeLogin }] = useDisclosure(false);
     const [drawerOpened, { open: openDrawer, close: closeDrawer }] = useDisclosure(false);
-    const isMobile = useMediaQuery("(max-width: 62em)");
+    const isMobile = useMediaQuery("(max-width: 80em)");
 
     const navLinks = (
         <>
@@ -41,9 +41,18 @@ export function Header() {
             <span style={disabledStyle} title="Noch nicht verfügbar">
                 Beschleunigungskommission Schiene - todo
             </span>
-            <span style={disabledStyle} title="Noch nicht verfügbar">
-                Haushalt und Finanzierung - todo
-            </span>
+            {(user?.role === "editor" || user?.role === "admin") && (
+                <NavLink
+                    to="/admin/haushalt-import"
+                    style={({ isActive }) => ({
+                        ...baseStyle,
+                        backgroundColor: isActive ? "rgba(17, 34, 64, 0.08)" : "transparent",
+                    })}
+                    onClick={closeDrawer}
+                >
+                    Haushalts-Import
+                </NavLink>
+            )}
             {user?.role === "admin" && (
                 <NavLink
                     to="/admin"

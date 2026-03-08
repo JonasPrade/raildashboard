@@ -128,6 +128,54 @@ Both endpoints require a logged-in user.
 
 Tests use `CELERY_BROKER_URL=memory://` and `CELERY_RESULT_BACKEND=cache+memory://` (set in `tests/conftest.py`) combined with `task_always_eager=True` — tasks run synchronously in-process; no Redis instance required.
 
+## Haushaltsberichte Import
+
+Yearly import of Annex VWIB Part B (federal budget) as PDF. Requires `pdfplumber` (already in `requirements.txt`).
+
+### Import workflow
+
+1. **Upload PDF** — `POST /api/v1/import/haushalt/parse` (multipart: `pdf`, `year`) → returns `task_id`
+2. **Poll task** — `GET /api/v1/tasks/{task_id}` until `status == "SUCCESS"`; result contains `parse_result_id`
+3. **Review** — `GET /api/v1/import/haushalt/parse-result/{id}` returns full parse result (rows classified as `new` / `update` / `unmatched`). Each row includes pre-populated `project_ids` from existing `FinveToProject` associations.
+4. **Confirm** — `POST /api/v1/import/haushalt/confirm` — transactionally writes Finve, Budget, BudgetTitelEntry; syncs `FinveToProject` for both `new` and `update` rows (bidirectional add/remove); 409 Conflict on double-import
+5. **Unmatched rows** — `GET /api/v1/import/haushalt/unmatched?resolved=false`; resolve with `PATCH /api/v1/import/haushalt/unmatched/{id}`. Rows without a FinVe number (e.g. early-planning projects like `B0134 L 06`) are automatically placed here.
+
+### PDF format notes (2026+)
+
+The 2026 PDF has a different pdfplumber layout vs. prior years:
+- First three columns (Lfd.Nr., FinVe, Bedarfsplan) are merged into one cell, e.g. `B0080 275 N19` — parsed by `_parse_combined_id_cell()`
+- Kap./Titel sub-entries and nachrichtlich entries are embedded as multi-line cells in the main row — extracted by `_extract_inline_titel_entries()` / `_extract_nachrichtlich_entries()`
+- Some entries carry a `(alt)` suffix on the Kapitel number (e.g. `Kap. 1202 (alt)`) — handled by the extended `_KAP_TITEL_RE` regex
+- Projects in early planning phase have no FinVe number (`B0134 L 06`) — automatically classified as unmatched
+
+All import endpoints require role `editor` or `admin`.
+
+### Auto-suggestion matching
+
+During parsing, new FinVes (not yet in DB) are automatically matched against all projects using fuzzy name similarity (`tasks/finve_matching.py`):
+- Normalises both names (lowercase, strip ABS/NBS prefixes, punctuation → spaces)
+- Scores with `difflib.SequenceMatcher` (60%) + token overlap (40%), threshold 0.45
+- Top 3 matches stored as `suggested_project_ids`; pre-populated into `project_ids` for the review UI
+
+### FinVe data in project detail
+
+```
+GET /api/v1/projects/{project_id}/finves
+```
+
+Returns all FinVes linked to a project with their full budget history including per-Haushaltstiteln breakdown (`BudgetTitelEntry`). Uses eager-loading (`joinedload`) for `budgets → titel_entries → titel`. No authentication required beyond the standard project read access.
+
+### New models (migration `20260306001`)
+
+| Table | Description |
+|---|---|
+| `haushalt_titel` | Lookup table for Haushaltskapitel/Titel |
+| `budget_titel_entry` | Per-titel breakdown per Budget row |
+| `haushalts_parse_result` | Persisted raw PDF parser output |
+| `finve_change_log` / `finve_change_log_entry` | Finve change history |
+| `budget_change_log` / `budget_change_log_entry` | Budget change history |
+| `unmatched_budget_row` | Unresolved PDF rows |
+
 ## Routing API
 The backend persists rail routes that are computed via the routing microservice. The following REST endpoints are available:
 

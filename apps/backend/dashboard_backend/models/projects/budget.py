@@ -99,6 +99,9 @@ class Budget(Base):
     next_years_861_01 = Column(Integer)
 
     finve = relationship("Finve", backref=backref("budgets"))
+    titel_entries = relationship(
+        "BudgetTitelEntry", back_populates="budget", cascade="all, delete-orphan"
+    )
     __table_args__ = (
         Index('budgets_year_and_finve_uindex', "budget_year", "fin_ve", unique=True),
     )

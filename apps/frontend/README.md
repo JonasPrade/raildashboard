@@ -40,6 +40,33 @@ The map view expects a raster tile URL provided via `REACT_APP_TILE_LAYER_URL`. 
 └── package.json           # npm scripts and dependencies
 ```
 
+## Key dependencies
+
+| Package | Purpose |
+|---|---|
+| `@mantine/core` | UI component library (layout, forms, modals, …) |
+| `@mantine/charts` + `recharts` | Chart components (`BarChart`, `LineChart`) used for FinVe budget visualisation |
+| `@tanstack/react-query` | Server-state management; all API calls go through `shared/api/queries.ts` |
+| `react-router-dom` | Client-side routing |
+| `axios` | HTTP client (configured in `shared/api/client.gen.ts`) |
+
+## Notable features and components
+
+### FinVe budget display (`features/projects/components/FinveSection.tsx`)
+
+Shows Finanzierungsvereinbarungen linked to a project in the project detail page. Data is fetched via `useProjectFinves(projectId)` (`shared/api/queries.ts` → `GET /api/v1/projects/{id}/finves`).
+
+Each FinVe renders as a collapsible card with three tabs:
+- **Budgetverteilung** — stacked `BarChart` of `veranschlagt` per Haushaltstiteln and year (only shown when Haushaltstiteln data is available)
+- **Kostenentwicklung** — `LineChart` of original / prior-year / current cost estimate trends (only shown for ≥ 2 budget years)
+- **Haushaltstiteln {year}** — detail table of the most recent budget year, split into regular and *nachrichtlich* entries
+
+Charts use a custom `ChartLegend` component rendered below the chart SVG (avoids recharts clipping) with Mantine `ColorSwatch` + `Text`.
+
+### Haushalt PDF import (`features/haushalt-import/`)
+
+Multi-step import workflow for federal budget PDFs. The `ReviewTable` shows auto-suggested project assignments (marked with ✦) computed during the Celery parse task via fuzzy name matching. The Projektzuordnung column has a minimum width of 320 px.
+
 ## Development conventions
 
 * **Stay strict with TypeScript:** New modules should embrace type safety (avoid `any`).

@@ -7,6 +7,9 @@ import DocumentationPage from "./features/documentation/DocumentationPage";
 import ProjectDetail from "./features/projects/ProjectDetail";
 
 const UsersPage = lazy(() => import("./features/admin/UsersPage"));
+const HaushaltsImportPage = lazy(() => import("./features/haushalt-import/HaushaltsImportPage"));
+const HaushaltsReviewPage = lazy(() => import("./features/haushalt-import/HaushaltsReviewPage"));
+const HaushaltsUnmatchedPage = lazy(() => import("./features/haushalt-import/HaushaltsUnmatchedPage"));
 
 function Layout() {
     return (
@@ -35,6 +38,30 @@ export const router = createBrowserRouter([
                 element: (
                     <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
                         <UsersPage />
+                    </Suspense>
+                ),
+            },
+            {
+                path: "admin/haushalt-import",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <HaushaltsImportPage />
+                    </Suspense>
+                ),
+            },
+            {
+                path: "admin/haushalt-import/review/:parseResultId",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <HaushaltsReviewPage />
+                    </Suspense>
+                ),
+            },
+            {
+                path: "admin/haushalt-unmatched",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <HaushaltsUnmatchedPage />
                     </Suspense>
                 ),
             },

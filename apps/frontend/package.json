@@ -14,8 +14,10 @@
     "gen:zod": "openapi-zod-client http://127.0.0.1:8000/openapi.json -o ./src/shared/api/client.gen.ts"
   },
   "dependencies": {
+    "@mantine/charts": "^8.2.4",
     "@mantine/core": "^8.2.4",
     "@mantine/hooks": "^8.2.4",
+    "@mantine/modals": "^8.2.4",
     "@mantine/notifications": "^8.2.4",
     "@tanstack/react-query": "^5.84.2",
     "maplibre-gl": "^5.6.2",
@@ -23,7 +25,8 @@
     "openapi-zod-client": "^1.18.3",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-router-dom": "^7.8.0"
+    "react-router-dom": "^7.8.0",
+    "recharts": "^3.8.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",

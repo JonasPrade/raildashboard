@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/guard-env.sh"
+            "command": "bash /Users/jonas/Documents/coding/raildashboard/.claude/hooks/guard-env.sh"
           }
         ]
       }
@@ -17,11 +17,25 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/remind-gen-api.sh"
+            "command": "bash /Users/jonas/Documents/coding/raildashboard/.claude/hooks/remind-gen-api.sh"
           },
           {
             "type": "command",
-            "command": "bash .claude/hooks/remind-migration.sh"
+            "command": "bash /Users/jonas/Documents/coding/raildashboard/.claude/hooks/remind-migration.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash /Users/jonas/Documents/coding/raildashboard/.claude/hooks/remind-roadmap.sh"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/jonas/Documents/coding/raildashboard/.claude/hooks/notify-macos.sh"
           }
         ]
       }
@@ -31,10 +45,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/notify-macos.sh"
+            "command": "bash /Users/jonas/Documents/coding/raildashboard/.claude/hooks/notify-macos.sh"
           }
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true
   }
 }

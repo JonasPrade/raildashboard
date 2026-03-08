@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router-dom";
 import { MantineProvider } from "@mantine/core";
+import { ModalsProvider } from "@mantine/modals";
 import { Notifications } from "@mantine/notifications";
 import { QueryClientProvider } from "@tanstack/react-query";
 import "@mantine/core/styles.css";
@@ -18,11 +19,13 @@ if (!root) throw new Error("Root element #app not found");
 
 createRoot(root).render(
     <MantineProvider theme={theme} defaultColorScheme="light">
-        <QueryClientProvider client={queryClient}>
-            <AuthProvider>
-                <Notifications />
-                <RouterProvider router={router} />
-            </AuthProvider>
-        </QueryClientProvider>
+        <ModalsProvider>
+            <QueryClientProvider client={queryClient}>
+                <AuthProvider>
+                    <Notifications />
+                    <RouterProvider router={router} />
+                </AuthProvider>
+            </QueryClientProvider>
+        </ModalsProvider>
     </MantineProvider>
 );

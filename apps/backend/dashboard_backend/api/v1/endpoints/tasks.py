@@ -22,7 +22,7 @@ def get_task_status(task_id: str):
     return TaskStatusResponse(
         task_id=task_id,
         status=result.status,
-        result=result.result if result.status == "SUCCESS" else None,
+        result=result.result if result.status in ("SUCCESS", "PROGRESS") else None,
         error=error,
     )
 

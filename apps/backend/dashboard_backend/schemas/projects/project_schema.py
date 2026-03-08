@@ -3,6 +3,69 @@ from typing import Optional, Any
 from ..utils import nan_to_none
 
 
+class TitelEntrySchema(BaseModel):
+    titel_key: str
+    kapitel: str
+    titel_nr: str
+    label: str
+    is_nachrichtlich: bool
+    cost_estimate_last_year: Optional[int] = None
+    cost_estimate_aktuell: Optional[int] = None
+    verausgabt_bis: Optional[int] = None
+    bewilligt: Optional[int] = None
+    ausgabereste_transferred: Optional[int] = None
+    veranschlagt: Optional[int] = None
+    vorhalten_future: Optional[int] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @classmethod
+    def from_entry(cls, entry: Any) -> "TitelEntrySchema":
+        return cls(
+            titel_key=entry.titel.titel_key,
+            kapitel=entry.titel.kapitel,
+            titel_nr=entry.titel.titel_nr,
+            label=entry.titel.label,
+            is_nachrichtlich=entry.titel.is_nachrichtlich,
+            cost_estimate_last_year=entry.cost_estimate_last_year,
+            cost_estimate_aktuell=entry.cost_estimate_aktuell,
+            verausgabt_bis=entry.verausgabt_bis,
+            bewilligt=entry.bewilligt,
+            ausgabereste_transferred=entry.ausgabereste_transferred,
+            veranschlagt=entry.veranschlagt,
+            vorhalten_future=entry.vorhalten_future,
+        )
+
+
+class BudgetSummarySchema(BaseModel):
+    budget_year: int
+    lfd_nr: Optional[str] = None
+    bedarfsplan_number: Optional[str] = None
+    cost_estimate_original: Optional[int] = None
+    cost_estimate_last_year: Optional[int] = None
+    cost_estimate_actual: Optional[int] = None
+    delta_previous_year: Optional[int] = None
+    delta_previous_year_relativ: Optional[float] = None
+    spent_two_years_previous: Optional[int] = None
+    allowed_previous_year: Optional[int] = None
+    spending_residues: Optional[int] = None
+    year_planned: Optional[int] = None
+    next_years: Optional[int] = None
+    titel_entries: list[TitelEntrySchema] = []
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class FinveWithBudgetsSchema(BaseModel):
+    id: int
+    name: Optional[str] = None
+    starting_year: Optional[int] = None
+    cost_estimate_original: Optional[int] = None
+    budgets: list[BudgetSummarySchema] = []
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ProjectSchema(BaseModel):
     id: Optional[int] = None
     name: str

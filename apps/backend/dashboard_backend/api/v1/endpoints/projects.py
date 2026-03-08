@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 
 from fastapi import Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from dashboard_backend.core.security import require_roles
 from dashboard_backend.crud.changelog import (
@@ -17,6 +17,10 @@ from dashboard_backend.models.users import User
 from dashboard_backend.routing.auth_router import AuthRouter
 from dashboard_backend.schemas.changelog import ChangeLogRead, RevertFieldRequest
 from dashboard_backend.schemas.projects import ProjectSchema
+from dashboard_backend.schemas.projects.project_schema import BudgetSummarySchema, FinveWithBudgetsSchema, TitelEntrySchema
+from dashboard_backend.models.projects.finve import Finve
+from dashboard_backend.models.projects.budget import Budget
+from dashboard_backend.models.haushalt.budget_titel_entry import BudgetTitelEntry
 from dashboard_backend.schemas.projects.project_update_schema import ProjectUpdate
 from dashboard_backend.schemas.users import UserRole
 
@@ -57,6 +61,64 @@ def patch_project(
     # Record before/after values in changelog (committed together with the update below)
     create_changelog_for_patch(db, project, update_data, current_user.id, current_user.username)
     return update_project(db, project_id, update_data)
+
+
+@router.get("/{project_id}/finves", response_model=list[FinveWithBudgetsSchema])
+def get_project_finves(project_id: int, db: Session = Depends(get_db)):
+    """Return all FinVes linked to a project, each with their full budget history
+    including per-Haushaltstiteln breakdown."""
+    project = get_project_by_id(db, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    finve_ids = [f.id for f in project.finve]
+    if not finve_ids:
+        return []
+
+    # Eager-load budgets → titel_entries → titel in one query
+    finves = (
+        db.query(Finve)
+        .filter(Finve.id.in_(finve_ids))
+        .options(
+            joinedload(Finve.budgets).joinedload(Budget.titel_entries).joinedload(BudgetTitelEntry.titel)
+        )
+        .all()
+    )
+
+    result = []
+    for finve in finves:
+        budgets_sorted = sorted(finve.budgets, key=lambda b: b.budget_year)
+        budget_schemas = []
+        for b in budgets_sorted:
+            titel_schemas = [TitelEntrySchema.from_entry(e) for e in b.titel_entries]
+            budget_schemas.append(
+                BudgetSummarySchema(
+                    budget_year=b.budget_year,
+                    lfd_nr=b.lfd_nr,
+                    bedarfsplan_number=b.bedarfsplan_number,
+                    cost_estimate_original=b.cost_estimate_original,
+                    cost_estimate_last_year=b.cost_estimate_last_year,
+                    cost_estimate_actual=b.cost_estimate_actual,
+                    delta_previous_year=b.delta_previous_year,
+                    delta_previous_year_relativ=b.delta_previous_year_relativ,
+                    spent_two_years_previous=b.spent_two_years_previous,
+                    allowed_previous_year=b.allowed_previous_year,
+                    spending_residues=b.spending_residues,
+                    year_planned=b.year_planned,
+                    next_years=b.next_years,
+                    titel_entries=titel_schemas,
+                )
+            )
+        result.append(
+            FinveWithBudgetsSchema(
+                id=finve.id,
+                name=finve.name,
+                starting_year=finve.starting_year,
+                cost_estimate_original=finve.cost_estimate_original,
+                budgets=budget_schemas,
+            )
+        )
+    return result
 
 
 @router.get("/{project_id}/changelog", response_model=list[ChangeLogRead])

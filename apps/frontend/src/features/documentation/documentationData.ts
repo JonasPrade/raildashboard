@@ -44,6 +44,23 @@ export const featureHighlights: FeatureHighlight[] = [
             "Links to relevant scripts and entry points",
             "Structured overview for project stakeholders"
         ]
+    },
+    {
+        title: "Haushalts-Import (Anlage VWIB Teil B)",
+        description:
+            "Editors and administrators can upload the annual federal budget annex as PDF and import FinVe and Budget data into the database. " +
+            "The PDF is parsed asynchronously via a Celery background task (pdfplumber). " +
+            "A review step lets users inspect every row before confirming the import.",
+        details: [
+            "Upload PDF + Haushaltsjahr → background task starts, frontend polls every 2 s",
+            "Review page: rows classified as Neu (green) / Änderung (yellow) / Unbekannt (red)",
+            "New FinVes: project assignment via multi-select before confirming",
+            "Confirm button is disabled once a parse result is already imported (double-import guard)",
+            "Unbekannte Zeilen page: assign a FinVe-ID to unresolved rows",
+            "Route /admin/haushalt-import — visible for editor and admin roles only",
+            "Route /admin/haushalt-import/review/:parseResultId — review a specific run",
+            "Route /admin/haushalt-unmatched — manage open unmatched rows"
+        ]
     }
 ];
 

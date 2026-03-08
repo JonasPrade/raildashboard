@@ -62,7 +62,23 @@ The codebase follows a strict separation of concerns. Every new feature touches 
 - Parser-related tasks and raw data transformation
 - e.g. PDF processing, RailML import
 
-### 7. Celery Task Queue (`celery_app.py` + `tasks/`)
+### 7. Haushaltsberichte Import (`models/haushalt/`, `crud/haushalt_import.py`, `tasks/haushalt.py`)
+
+Annual import of the federal budget annex (VWIB Part B) as PDF. The parser runs as a Celery task (`parse_haushalt_pdf`) using `pdfplumber` and writes structured results into the following tables:
+
+| Table | Purpose |
+|---|---|
+| `haushalt_titel` | Lookup: Haushaltskapitel/Titel (auto-extended via `get_or_create`) |
+| `budget_titel_entry` | Per-Titel breakdown linked to a Budget row (UNIQUE budget_id + titel_id) |
+| `haushalts_parse_result` | Persisted raw parser output; `confirmed_at` prevents double-import |
+| `finve_change_log` / `_entry` | Change history for Finve records |
+| `budget_change_log` / `_entry` | Change history for Budget records |
+| `unmatched_budget_row` | PDF rows that could not be matched to a known Finve |
+
+API prefix: `/api/v1/import/haushalt` — requires role `editor` or `admin`.
+Frontend: `src/features/haushalt-import/` — routes `/admin/haushalt-import`, `/admin/haushalt-import/review/:id`, `/admin/haushalt-unmatched`.
+
+### 8. Celery Task Queue (`celery_app.py` + `tasks/`)
 Long-running operations (PDF parsing, route computation) run as Celery tasks so that HTTP requests return immediately.
 
 | Component | Description |

@@ -12,6 +12,8 @@ const ValidationError = z
     loc: z.array(z.union([z.string(), z.number()])),
     msg: z.string(),
     type: z.string(),
+    input: z.unknown().optional(),
+    ctx: z.object({}).partial().passthrough().optional(),
   })
   .passthrough();
 const HTTPValidationError = z
@@ -121,6 +123,89 @@ const ProjectSchema = z
     centroid: z.union([z.unknown(), z.null()]).optional(),
   })
   .passthrough();
+const ProjectUpdate = z
+  .object({
+    name: z.union([z.string(), z.null()]),
+    project_number: z.union([z.string(), z.null()]),
+    description: z.union([z.string(), z.null()]),
+    justification: z.union([z.string(), z.null()]),
+    superior_project_id: z.union([z.number(), z.null()]),
+    effects_passenger_long_rail: z.union([z.boolean(), z.null()]),
+    effects_passenger_local_rail: z.union([z.boolean(), z.null()]),
+    effects_cargo_rail: z.union([z.boolean(), z.null()]),
+    length: z.union([z.number(), z.null()]),
+    nbs: z.union([z.boolean(), z.null()]),
+    abs: z.union([z.boolean(), z.null()]),
+    elektrification: z.union([z.boolean(), z.null()]),
+    charging_station: z.union([z.boolean(), z.null()]),
+    small_charging_station: z.union([z.boolean(), z.null()]),
+    second_track: z.union([z.boolean(), z.null()]),
+    third_track: z.union([z.boolean(), z.null()]),
+    fourth_track: z.union([z.boolean(), z.null()]),
+    curve: z.union([z.boolean(), z.null()]),
+    platform: z.union([z.boolean(), z.null()]),
+    junction_station: z.union([z.boolean(), z.null()]),
+    number_junction_station: z.union([z.number(), z.null()]),
+    overtaking_station: z.union([z.boolean(), z.null()]),
+    number_overtaking_station: z.union([z.number(), z.null()]),
+    double_occupancy: z.union([z.boolean(), z.null()]),
+    block_increase: z.union([z.boolean(), z.null()]),
+    flying_junction: z.union([z.boolean(), z.null()]),
+    tunnel_structural_gauge: z.union([z.boolean(), z.null()]),
+    increase_speed: z.union([z.boolean(), z.null()]),
+    new_vmax: z.union([z.number(), z.null()]),
+    level_free_platform_entrance: z.union([z.boolean(), z.null()]),
+    etcs: z.union([z.boolean(), z.null()]),
+    etcs_level: z.union([z.number(), z.null()]),
+    station_railroad_switches: z.union([z.boolean(), z.null()]),
+    new_station: z.union([z.boolean(), z.null()]),
+    depot: z.union([z.boolean(), z.null()]),
+    battery: z.union([z.boolean(), z.null()]),
+    h2: z.union([z.boolean(), z.null()]),
+    efuel: z.union([z.boolean(), z.null()]),
+    closure: z.union([z.boolean(), z.null()]),
+    optimised_electrification: z.union([z.boolean(), z.null()]),
+    filling_stations_efuel: z.union([z.boolean(), z.null()]),
+    filling_stations_h2: z.union([z.boolean(), z.null()]),
+    filling_stations_diesel: z.union([z.boolean(), z.null()]),
+    filling_stations_count: z.union([z.number(), z.null()]),
+    sanierung: z.union([z.boolean(), z.null()]),
+    sgv740m: z.union([z.boolean(), z.null()]),
+    railroad_crossing: z.union([z.boolean(), z.null()]),
+    new_estw: z.union([z.boolean(), z.null()]),
+    new_dstw: z.union([z.boolean(), z.null()]),
+    noise_barrier: z.union([z.boolean(), z.null()]),
+    overpass: z.union([z.boolean(), z.null()]),
+    buffer_track: z.union([z.boolean(), z.null()]),
+    gwb: z.union([z.boolean(), z.null()]),
+    simultaneous_train_entries: z.union([z.boolean(), z.null()]),
+    tilting: z.union([z.boolean(), z.null()]),
+    geojson_representation: z.union([z.string(), z.null()]),
+  })
+  .partial()
+  .passthrough();
+const ChangeLogEntryRead = z
+  .object({
+    id: z.number().int(),
+    field_name: z.string(),
+    old_value: z.union([z.string(), z.null()]).optional(),
+    new_value: z.union([z.string(), z.null()]).optional(),
+  })
+  .passthrough();
+const ChangeLogRead = z
+  .object({
+    id: z.number().int(),
+    project_id: z.number().int(),
+    user_id: z.union([z.number(), z.null()]).optional(),
+    username_snapshot: z.union([z.string(), z.null()]).optional(),
+    timestamp: z.string().datetime({ offset: true }),
+    action: z.string(),
+    entries: z.array(ChangeLogEntryRead).optional().default([]),
+  })
+  .passthrough();
+const RevertFieldRequest = z
+  .object({ changelog_entry_id: z.number().int() })
+  .passthrough();
 const ProjectGroupSchema = z
   .object({
     id: z.union([z.number(), z.null()]).optional(),
@@ -150,6 +235,10 @@ const UserCreate = z
     password: z.string().min(8).max(128),
   })
   .passthrough();
+const UserUpdate = z.object({ role: UserRole }).passthrough();
+const UserPasswordUpdate = z
+  .object({ password: z.string().min(8).max(128) })
+  .passthrough();
 const Waypoint = z
   .object({
     lat: z.number().gte(-90).lte(90),
@@ -163,6 +252,16 @@ const RouteIn = z
     options: z.object({}).partial().passthrough().optional(),
   })
   .passthrough();
+const RoutePreviewOut = z
+  .object({
+    type: z.string().optional().default("Feature"),
+    geometry: z.object({}).partial().passthrough(),
+    properties: z.object({}).partial().passthrough(),
+  })
+  .passthrough();
+const RouteConfirmIn = z
+  .object({ feature: z.object({}).partial().passthrough() })
+  .passthrough();
 const RouteOut = z
   .object({
     route_id: z.string().uuid(),
@@ -174,6 +273,182 @@ const RouteOut = z
     details: z.object({}).partial().passthrough(),
   })
   .passthrough();
+const ProjectTextTypeSchema = z
+  .object({ id: z.number().int(), name: z.string() })
+  .passthrough();
+const ProjectTextTypeCreate = z.object({ name: z.string() }).passthrough();
+const ProjectTextSchema = z
+  .object({
+    id: z.number().int(),
+    header: z.string(),
+    weblink: z.union([z.string(), z.null()]).optional(),
+    text: z.union([z.string(), z.null()]).optional(),
+    type: z.number().int(),
+    logo_url: z.union([z.string(), z.null()]).optional(),
+    created_at: z.number().int(),
+    updated_at: z.number().int(),
+    text_type: ProjectTextTypeSchema,
+  })
+  .passthrough();
+const ProjectTextCreate = z
+  .object({
+    header: z.string(),
+    weblink: z.union([z.string(), z.null()]).optional(),
+    text: z.union([z.string(), z.null()]).optional(),
+    type: z.number().int(),
+    logo_url: z.union([z.string(), z.null()]).optional(),
+  })
+  .passthrough();
+const TextChangeLogEntryRead = z
+  .object({
+    id: z.number().int(),
+    field_name: z.string(),
+    old_value: z.union([z.string(), z.null()]).optional(),
+    new_value: z.union([z.string(), z.null()]).optional(),
+  })
+  .passthrough();
+const TextChangeLogRead = z
+  .object({
+    id: z.number().int(),
+    text_id: z.union([z.number(), z.null()]).optional(),
+    project_id: z.union([z.number(), z.null()]).optional(),
+    user_id: z.union([z.number(), z.null()]).optional(),
+    username_snapshot: z.union([z.string(), z.null()]).optional(),
+    text_header_snapshot: z.union([z.string(), z.null()]).optional(),
+    timestamp: z.string().datetime({ offset: true }),
+    action: z.string(),
+    entries: z.array(TextChangeLogEntryRead).optional().default([]),
+  })
+  .passthrough();
+const ProjectTextUpdate = z
+  .object({
+    header: z.union([z.string(), z.null()]),
+    weblink: z.union([z.string(), z.null()]),
+    text: z.union([z.string(), z.null()]),
+    type: z.union([z.number(), z.null()]),
+    logo_url: z.union([z.string(), z.null()]),
+  })
+  .partial()
+  .passthrough();
+const TaskStatusResponse = z
+  .object({
+    task_id: z.string(),
+    status: z.string(),
+    result: z.unknown().optional(),
+    error: z.union([z.string(), z.null()]).optional(),
+  })
+  .passthrough();
+const DebugTaskRequest = z
+  .object({ x: z.number().int(), y: z.number().int() })
+  .passthrough();
+const TaskLaunchResponse = z.object({ task_id: z.string() }).passthrough();
+const Body_start_parse_api_v1_import_haushalt_parse_post = z
+  .object({ pdf: z.instanceof(File), year: z.number().int() })
+  .passthrough();
+const ParseResultPublicSchema = z
+  .object({
+    id: z.number().int(),
+    haushalt_year: z.number().int(),
+    pdf_filename: z.string(),
+    parsed_at: z.string().datetime({ offset: true }),
+    username_snapshot: z.union([z.string(), z.null()]).optional(),
+    status: z.string(),
+    error_message: z.union([z.string(), z.null()]).optional(),
+    confirmed_at: z.union([z.string(), z.null()]).optional(),
+    confirmed_by_snapshot: z.union([z.string(), z.null()]).optional(),
+    result_json: z
+      .union([z.object({}).partial().passthrough(), z.null()])
+      .optional(),
+  })
+  .passthrough();
+const ProposedFinve = z
+  .object({
+    id: z.number().int(),
+    name: z.string(),
+    starting_year: z.union([z.number(), z.null()]).optional(),
+    cost_estimate_original: z.union([z.number(), z.null()]).optional(),
+  })
+  .passthrough();
+const ProposedBudget = z
+  .object({
+    budget_year: z.number().int(),
+    lfd_nr: z.union([z.string(), z.null()]).optional(),
+    fin_ve: z.number().int(),
+    bedarfsplan_number: z.union([z.string(), z.null()]).optional(),
+    cost_estimate_original: z.union([z.number(), z.null()]).optional(),
+    cost_estimate_last_year: z.union([z.number(), z.null()]).optional(),
+    cost_estimate_actual: z.union([z.number(), z.null()]).optional(),
+    delta_previous_year: z.union([z.number(), z.null()]).optional(),
+    delta_previous_year_relativ: z.union([z.number(), z.null()]).optional(),
+    delta_previous_year_reasons: z.union([z.string(), z.null()]).optional(),
+    spent_two_years_previous: z.union([z.number(), z.null()]).optional(),
+    allowed_previous_year: z.union([z.number(), z.null()]).optional(),
+    spending_residues: z.union([z.number(), z.null()]).optional(),
+    year_planned: z.union([z.number(), z.null()]).optional(),
+    next_years: z.union([z.number(), z.null()]).optional(),
+  })
+  .passthrough();
+const TitelEntryProposed = z
+  .object({
+    titel_key: z.string(),
+    kapitel: z.string(),
+    titel_nr: z.string(),
+    label: z.string(),
+    is_nachrichtlich: z.boolean().optional().default(false),
+    cost_estimate_last_year: z.union([z.number(), z.null()]).optional(),
+    cost_estimate_aktuell: z.union([z.number(), z.null()]).optional(),
+    verausgabt_bis: z.union([z.number(), z.null()]).optional(),
+    bewilligt: z.union([z.number(), z.null()]).optional(),
+    ausgabereste_transferred: z.union([z.number(), z.null()]).optional(),
+    veranschlagt: z.union([z.number(), z.null()]).optional(),
+    vorhalten_future: z.union([z.number(), z.null()]).optional(),
+  })
+  .passthrough();
+const HaushaltsConfirmRowInput = z
+  .object({
+    finve_number: z.number().int(),
+    status: z.string(),
+    proposed_finve: z.union([ProposedFinve, z.null()]).optional(),
+    proposed_budget: z.union([ProposedBudget, z.null()]).optional(),
+    proposed_titel_entries: z.array(TitelEntryProposed).optional().default([]),
+    project_ids: z.array(z.number().int()).optional().default([]),
+  })
+  .passthrough();
+const HaushaltsConfirmRequest = z
+  .object({
+    parse_result_id: z.number().int(),
+    rows: z.array(HaushaltsConfirmRowInput).optional().default([]),
+    unmatched_action: z.string().optional().default("save"),
+  })
+  .passthrough();
+const HaushaltsConfirmResponse = z
+  .object({
+    finves_created: z.number().int(),
+    finves_updated: z.number().int(),
+    budgets_created: z.number().int(),
+    budgets_updated: z.number().int(),
+    unmatched_saved: z.number().int(),
+  })
+  .passthrough();
+const resolved = z.union([z.boolean(), z.null()]).optional();
+const UnmatchedBudgetRowSchema = z
+  .object({
+    id: z.number().int(),
+    haushalt_year: z.number().int(),
+    raw_finve_number: z.string(),
+    raw_name: z.string(),
+    raw_data: z
+      .union([z.object({}).partial().passthrough(), z.null()])
+      .optional(),
+    resolved: z.boolean(),
+    resolved_finve_id: z.union([z.number(), z.null()]).optional(),
+    resolved_at: z.union([z.string(), z.null()]).optional(),
+    resolved_by_snapshot: z.union([z.string(), z.null()]).optional(),
+  })
+  .passthrough();
+const UnmatchedBudgetRowResolveRequest = z
+  .object({ finve_id: z.number().int() })
+  .passthrough();
 
 export const schemas = {
   RouteRequest,
@@ -181,16 +456,172 @@ export const schemas = {
   ValidationError,
   HTTPValidationError,
   ProjectSchema,
+  ProjectUpdate,
+  ChangeLogEntryRead,
+  ChangeLogRead,
+  RevertFieldRequest,
   ProjectGroupSchema,
   UserRole,
   UserRead,
   UserCreate,
+  UserUpdate,
+  UserPasswordUpdate,
   Waypoint,
   RouteIn,
+  RoutePreviewOut,
+  RouteConfirmIn,
   RouteOut,
+  ProjectTextTypeSchema,
+  ProjectTextTypeCreate,
+  ProjectTextSchema,
+  ProjectTextCreate,
+  TextChangeLogEntryRead,
+  TextChangeLogRead,
+  ProjectTextUpdate,
+  TaskStatusResponse,
+  DebugTaskRequest,
+  TaskLaunchResponse,
+  Body_start_parse_api_v1_import_haushalt_parse_post,
+  ParseResultPublicSchema,
+  ProposedFinve,
+  ProposedBudget,
+  TitelEntryProposed,
+  HaushaltsConfirmRowInput,
+  HaushaltsConfirmRequest,
+  HaushaltsConfirmResponse,
+  resolved,
+  UnmatchedBudgetRowSchema,
+  UnmatchedBudgetRowResolveRequest,
 };
 
 const endpoints = makeApi([
+  {
+    method: "post",
+    path: "/api/v1/import/haushalt/confirm",
+    alias: "confirm_import_api_v1_import_haushalt_confirm_post",
+    description: `Confirm a parse result and import Finve/Budget data.
+
+Guard: if the parse result is already confirmed, returns 409 Conflict.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: HaushaltsConfirmRequest,
+      },
+    ],
+    response: HaushaltsConfirmResponse,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/api/v1/import/haushalt/parse",
+    alias: "start_parse_api_v1_import_haushalt_parse_post",
+    description: `Upload a Haushalt PDF and start a background parse task.
+
+Returns the Celery task_id for polling via GET /api/v1/tasks/{task_id}.`,
+    requestFormat: "form-data",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: Body_start_parse_api_v1_import_haushalt_parse_post,
+      },
+    ],
+    response: z.object({ task_id: z.string() }).passthrough(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/import/haushalt/parse-result",
+    alias: "list_parse_run_results_api_v1_import_haushalt_parse_result_get",
+    description: `Return metadata for all past parse runs, newest first.`,
+    requestFormat: "json",
+    response: z.array(ParseResultPublicSchema),
+  },
+  {
+    method: "get",
+    path: "/api/v1/import/haushalt/parse-result/:parse_result_id",
+    alias:
+      "get_parse_run_result_api_v1_import_haushalt_parse_result__parse_result_id__get",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "parse_result_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: ParseResultPublicSchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/import/haushalt/unmatched",
+    alias: "list_unmatched_api_v1_import_haushalt_unmatched_get",
+    description: `Return unmatched budget rows. Pass ?resolved&#x3D;false to see only open items.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "resolved",
+        type: "Query",
+        schema: resolved,
+      },
+    ],
+    response: z.array(UnmatchedBudgetRowSchema),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "patch",
+    path: "/api/v1/import/haushalt/unmatched/:row_id",
+    alias: "patch_unmatched_api_v1_import_haushalt_unmatched__row_id__patch",
+    description: `Assign a Finve to an unmatched row. Triggers Budget + BudgetTitelEntry creation.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: z.object({ finve_id: z.number().int() }).passthrough(),
+      },
+      {
+        name: "row_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: UnmatchedBudgetRowSchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
   {
     method: "get",
     path: "/api/v1/project_groups/",
@@ -231,6 +662,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/api/v1/projects/:project_id",
     alias: "read_project_api_v1_projects__project_id__get",
+    description: `Retrieve a single project by ID.`,
     requestFormat: "json",
     parameters: [
       {
@@ -249,15 +681,100 @@ const endpoints = makeApi([
     ],
   },
   {
-    method: "post",
-    path: "/api/v1/projects/:project_id/routes",
-    alias: "create_route_api_v1_projects__project_id__routes_post",
+    method: "patch",
+    path: "/api/v1/projects/:project_id",
+    alias: "patch_project_api_v1_projects__project_id__patch",
+    description: `Update project fields. All changed fields are recorded in the changelog.`,
     requestFormat: "json",
     parameters: [
       {
         name: "body",
         type: "Body",
-        schema: RouteIn,
+        schema: ProjectUpdate,
+      },
+      {
+        name: "project_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: ProjectSchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/projects/:project_id/changelog",
+    alias: "read_project_changelog_api_v1_projects__project_id__changelog_get",
+    description: `Return the full changelog for a project, newest entries first.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "project_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: z.array(ChangeLogRead),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/api/v1/projects/:project_id/changelog/revert",
+    alias:
+      "revert_project_field_api_v1_projects__project_id__changelog_revert_post",
+    description: `Revert a single field to its previous value as recorded in the given ChangeLogEntry.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: z
+          .object({ changelog_entry_id: z.number().int() })
+          .passthrough(),
+      },
+      {
+        name: "project_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: ProjectSchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/api/v1/projects/:project_id/routes",
+    alias: "confirm_route_api_v1_projects__project_id__routes_post",
+    description: `Confirm a calculated route and add it to the project.
+
+The frontend sends back the GeoJSON Feature it received from /routes/calculate.
+The route is persisted to the database and linked to the given project.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: z
+          .object({ feature: z.object({}).partial().passthrough() })
+          .passthrough(),
       },
       {
         name: "project_id",
@@ -297,6 +814,164 @@ const endpoints = makeApi([
       },
     ],
     response: z.array(RouteOut),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "put",
+    path: "/api/v1/projects/:project_id/routes/:route_id",
+    alias: "replace_route_api_v1_projects__project_id__routes__route_id__put",
+    description: `Confirm a calculated route and replace an existing one in the project.
+
+The frontend sends back the GeoJSON Feature it received from /routes/calculate.
+The existing route (identified by route_id) is updated in-place.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: z
+          .object({ feature: z.object({}).partial().passthrough() })
+          .passthrough(),
+      },
+      {
+        name: "project_id",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+      {
+        name: "route_id",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: RouteOut,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/projects/:project_id/texts",
+    alias: "list_project_texts_api_v1_projects__project_id__texts_get",
+    description: `Return all texts linked to a project.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "project_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: z.array(ProjectTextSchema),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/api/v1/projects/:project_id/texts",
+    alias: "create_project_text_api_v1_projects__project_id__texts_post",
+    description: `Create a new text and link it to a project. Requires editor or admin role.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: ProjectTextCreate,
+      },
+      {
+        name: "project_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: ProjectTextSchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/projects/:project_id/texts/changelog",
+    alias:
+      "get_texts_changelog_api_v1_projects__project_id__texts_changelog_get",
+    description: `Return the text change history for a project. Requires authentication.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "project_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: z.array(TextChangeLogRead),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "patch",
+    path: "/api/v1/projects/texts/:text_id",
+    alias: "update_text_api_v1_projects_texts__text_id__patch",
+    description: `Update an existing project text. Requires editor or admin role.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: ProjectTextUpdate,
+      },
+      {
+        name: "text_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: ProjectTextSchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "delete",
+    path: "/api/v1/projects/texts/:text_id",
+    alias: "delete_text_api_v1_projects_texts__text_id__delete",
+    description: `Delete a project text. Requires editor or admin role.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "text_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: z.void(),
     errors: [
       {
         status: 422,
@@ -348,6 +1023,105 @@ const endpoints = makeApi([
     ],
   },
   {
+    method: "post",
+    path: "/api/v1/routes/calculate",
+    alias: "calculate_route_api_v1_routes_calculate_post",
+    description: `Calculate a route and return it as a GeoJSON Feature preview.
+
+Nothing is saved to the database. The frontend can evaluate the result
+and then call the confirm endpoint to persist it.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: RouteIn,
+      },
+    ],
+    response: RoutePreviewOut,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/tasks/:task_id",
+    alias: "get_task_status_api_v1_tasks__task_id__get",
+    description: `Return the current status and result of a Celery task.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "task_id",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: TaskStatusResponse,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/api/v1/tasks/debug",
+    alias: "start_debug_task_api_v1_tasks_debug_post",
+    description: `Start the debug add-task and return its task_id for polling.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: DebugTaskRequest,
+      },
+    ],
+    response: z.object({ task_id: z.string() }).passthrough(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/text_types",
+    alias: "list_text_types_api_v1_text_types_get",
+    description: `Return all available project text types.`,
+    requestFormat: "json",
+    response: z.array(ProjectTextTypeSchema),
+  },
+  {
+    method: "post",
+    path: "/api/v1/text_types",
+    alias: "create_project_text_type_api_v1_text_types_post",
+    description: `Create a new project text type. Requires editor or admin role.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: z.object({ name: z.string() }).passthrough(),
+      },
+    ],
+    response: ProjectTextTypeSchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
     method: "get",
     path: "/api/v1/users/",
     alias: "list_users_api_v1_users__get",
@@ -374,6 +1148,88 @@ const endpoints = makeApi([
         schema: HTTPValidationError,
       },
     ],
+  },
+  {
+    method: "patch",
+    path: "/api/v1/users/:user_id",
+    alias: "update_user_api_v1_users__user_id__patch",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: UserUpdate,
+      },
+      {
+        name: "user_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: UserRead,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "delete",
+    path: "/api/v1/users/:user_id",
+    alias: "delete_user_api_v1_users__user_id__delete",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "user_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: z.void(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "patch",
+    path: "/api/v1/users/:user_id/password",
+    alias: "set_user_password_api_v1_users__user_id__password_patch",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: z
+          .object({ password: z.string().min(8).max(128) })
+          .passthrough(),
+      },
+      {
+        name: "user_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: z.void(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/users/me",
+    alias: "get_current_user_info_api_v1_users_me_get",
+    requestFormat: "json",
+    response: UserRead,
   },
 ]);
 

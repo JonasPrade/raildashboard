@@ -48,10 +48,57 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Read Project */
+        /**
+         * Read Project
+         * @description Retrieve a single project by ID.
+         */
         get: operations["read_project_api_v1_projects__project_id__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Patch Project
+         * @description Update project fields. All changed fields are recorded in the changelog.
+         */
+        patch: operations["patch_project_api_v1_projects__project_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/changelog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Project Changelog
+         * @description Return the full changelog for a project, newest entries first.
+         */
+        get: operations["read_project_changelog_api_v1_projects__project_id__changelog_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/changelog/revert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revert Project Field
+         * @description Revert a single field to its previous value as recorded in the given ChangeLogEntry.
+         */
+        post: operations["revert_project_field_api_v1_projects__project_id__changelog_revert_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -92,6 +139,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/users/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Current User Info */
+        get: operations["get_current_user_info_api_v1_users_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/": {
         parameters: {
             query?: never;
@@ -110,6 +174,64 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete User */
+        delete: operations["delete_user_api_v1_users__user_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update User */
+        patch: operations["update_user_api_v1_users__user_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/users/{user_id}/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set User Password */
+        patch: operations["set_user_password_api_v1_users__user_id__password_patch"];
+        trace?: never;
+    };
+    "/api/v1/routes/calculate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Calculate Route
+         * @description Calculate a route and return it as a GeoJSON Feature preview.
+         *
+         *     Nothing is saved to the database. The frontend can evaluate the result
+         *     and then call the confirm endpoint to persist it.
+         */
+        post: operations["calculate_route_api_v1_routes_calculate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/routes": {
         parameters: {
             query?: never;
@@ -120,8 +242,37 @@ export interface paths {
         /** List Routes */
         get: operations["list_routes_api_v1_projects__project_id__routes_get"];
         put?: never;
-        /** Create Route */
-        post: operations["create_route_api_v1_projects__project_id__routes_post"];
+        /**
+         * Confirm Route
+         * @description Confirm a calculated route and add it to the project.
+         *
+         *     The frontend sends back the GeoJSON Feature it received from /routes/calculate.
+         *     The route is persisted to the database and linked to the given project.
+         */
+        post: operations["confirm_route_api_v1_projects__project_id__routes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/routes/{route_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace Route
+         * @description Confirm a calculated route and replace an existing one in the project.
+         *
+         *     The frontend sends back the GeoJSON Feature it received from /routes/calculate.
+         *     The existing route (identified by route_id) is updated in-place.
+         */
+        put: operations["replace_route_api_v1_projects__project_id__routes__route_id__put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -145,14 +296,396 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/text_types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Text Types
+         * @description Return all available project text types.
+         */
+        get: operations["list_text_types_api_v1_text_types_get"];
+        put?: never;
+        /**
+         * Create Project Text Type
+         * @description Create a new project text type. Requires editor or admin role.
+         */
+        post: operations["create_project_text_type_api_v1_text_types_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/texts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Project Texts
+         * @description Return all texts linked to a project.
+         */
+        get: operations["list_project_texts_api_v1_projects__project_id__texts_get"];
+        put?: never;
+        /**
+         * Create Project Text
+         * @description Create a new text and link it to a project. Requires editor or admin role.
+         */
+        post: operations["create_project_text_api_v1_projects__project_id__texts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/texts/changelog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Texts Changelog
+         * @description Return the text change history for a project. Requires authentication.
+         */
+        get: operations["get_texts_changelog_api_v1_projects__project_id__texts_changelog_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/texts/{text_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Text
+         * @description Delete a project text. Requires editor or admin role.
+         */
+        delete: operations["delete_text_api_v1_projects_texts__text_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Text
+         * @description Update an existing project text. Requires editor or admin role.
+         */
+        patch: operations["update_text_api_v1_projects_texts__text_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/tasks/{task_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Task Status
+         * @description Return the current status and result of a Celery task.
+         */
+        get: operations["get_task_status_api_v1_tasks__task_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tasks/debug": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Debug Task
+         * @description Start the debug add-task and return its task_id for polling.
+         */
+        post: operations["start_debug_task_api_v1_tasks_debug_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/haushalt/parse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Parse
+         * @description Upload a Haushalt PDF and start a background parse task.
+         *
+         *     Returns the Celery task_id for polling via GET /api/v1/tasks/{task_id}.
+         */
+        post: operations["start_parse_api_v1_import_haushalt_parse_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/haushalt/parse-result": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Parse Run Results
+         * @description Return metadata for all past parse runs, newest first.
+         */
+        get: operations["list_parse_run_results_api_v1_import_haushalt_parse_result_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/haushalt/parse-result/{parse_result_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Parse Run Result */
+        get: operations["get_parse_run_result_api_v1_import_haushalt_parse_result__parse_result_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/haushalt/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm Import
+         * @description Confirm a parse result and import Finve/Budget data.
+         *
+         *     Guard: if the parse result is already confirmed, returns 409 Conflict.
+         */
+        post: operations["confirm_import_api_v1_import_haushalt_confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/haushalt/unmatched": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Unmatched
+         * @description Return unmatched budget rows. Pass ?resolved=false to see only open items.
+         */
+        get: operations["list_unmatched_api_v1_import_haushalt_unmatched_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/haushalt/unmatched/{row_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Patch Unmatched
+         * @description Assign a Finve to an unmatched row. Triggers Budget + BudgetTitelEntry creation.
+         */
+        patch: operations["patch_unmatched_api_v1_import_haushalt_unmatched__row_id__patch"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** Body_start_parse_api_v1_import_haushalt_parse_post */
+        Body_start_parse_api_v1_import_haushalt_parse_post: {
+            /**
+             * Pdf
+             * Format: binary
+             */
+            pdf: string;
+            /** Year */
+            year: number;
+        };
+        /** ChangeLogEntryRead */
+        ChangeLogEntryRead: {
+            /** Id */
+            id: number;
+            /** Field Name */
+            field_name: string;
+            /** Old Value */
+            old_value?: string | null;
+            /** New Value */
+            new_value?: string | null;
+        };
+        /** ChangeLogRead */
+        ChangeLogRead: {
+            /** Id */
+            id: number;
+            /** Project Id */
+            project_id: number;
+            /** User Id */
+            user_id?: number | null;
+            /** Username Snapshot */
+            username_snapshot?: string | null;
+            /**
+             * Timestamp
+             * Format: date-time
+             */
+            timestamp: string;
+            /** Action */
+            action: string;
+            /**
+             * Entries
+             * @default []
+             */
+            entries: components["schemas"]["ChangeLogEntryRead"][];
+        };
+        /** DebugTaskRequest */
+        DebugTaskRequest: {
+            /** X */
+            x: number;
+            /** Y */
+            y: number;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** HaushaltsConfirmRequest */
+        HaushaltsConfirmRequest: {
+            /** Parse Result Id */
+            parse_result_id: number;
+            /**
+             * Rows
+             * @default []
+             */
+            rows: components["schemas"]["HaushaltsConfirmRowInput"][];
+            /**
+             * Unmatched Action
+             * @default save
+             */
+            unmatched_action: string;
+        };
+        /** HaushaltsConfirmResponse */
+        HaushaltsConfirmResponse: {
+            /** Finves Created */
+            finves_created: number;
+            /** Finves Updated */
+            finves_updated: number;
+            /** Budgets Created */
+            budgets_created: number;
+            /** Budgets Updated */
+            budgets_updated: number;
+            /** Unmatched Saved */
+            unmatched_saved: number;
+        };
+        /**
+         * HaushaltsConfirmRowInput
+         * @description One row submitted in the confirm request (project_ids may be adjusted by user).
+         */
+        HaushaltsConfirmRowInput: {
+            /** Finve Number */
+            finve_number: number;
+            /** Status */
+            status: string;
+            proposed_finve?: components["schemas"]["ProposedFinve"] | null;
+            proposed_budget?: components["schemas"]["ProposedBudget"] | null;
+            /**
+             * Proposed Titel Entries
+             * @default []
+             */
+            proposed_titel_entries: components["schemas"]["TitelEntryProposed"][];
+            /**
+             * Project Ids
+             * @default []
+             */
+            project_ids: number[];
+        };
+        /** ParseResultPublicSchema */
+        ParseResultPublicSchema: {
+            /** Id */
+            id: number;
+            /** Haushalt Year */
+            haushalt_year: number;
+            /** Pdf Filename */
+            pdf_filename: string;
+            /**
+             * Parsed At
+             * Format: date-time
+             */
+            parsed_at: string;
+            /** Username Snapshot */
+            username_snapshot?: string | null;
+            /** Status */
+            status: string;
+            /** Error Message */
+            error_message?: string | null;
+            /** Confirmed At */
+            confirmed_at?: string | null;
+            /** Confirmed By Snapshot */
+            confirmed_by_snapshot?: string | null;
+            /** Result Json */
+            result_json?: {
+                [key: string]: unknown;
+            } | null;
         };
         /** ProjectGroupSchema */
         ProjectGroupSchema: {
@@ -445,6 +978,249 @@ export interface components {
             /** Centroid */
             centroid?: unknown | null;
         };
+        /** ProjectTextCreate */
+        ProjectTextCreate: {
+            /** Header */
+            header: string;
+            /** Weblink */
+            weblink?: string | null;
+            /** Text */
+            text?: string | null;
+            /** Type */
+            type: number;
+            /** Logo Url */
+            logo_url?: string | null;
+        };
+        /** ProjectTextSchema */
+        ProjectTextSchema: {
+            /** Id */
+            id: number;
+            /** Header */
+            header: string;
+            /** Weblink */
+            weblink?: string | null;
+            /** Text */
+            text?: string | null;
+            /** Type */
+            type: number;
+            /** Logo Url */
+            logo_url?: string | null;
+            /** Created At */
+            created_at: number;
+            /** Updated At */
+            updated_at: number;
+            text_type: components["schemas"]["ProjectTextTypeSchema"];
+        };
+        /** ProjectTextTypeCreate */
+        ProjectTextTypeCreate: {
+            /** Name */
+            name: string;
+        };
+        /** ProjectTextTypeSchema */
+        ProjectTextTypeSchema: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+        };
+        /** ProjectTextUpdate */
+        ProjectTextUpdate: {
+            /** Header */
+            header?: string | null;
+            /** Weblink */
+            weblink?: string | null;
+            /** Text */
+            text?: string | null;
+            /** Type */
+            type?: number | null;
+            /** Logo Url */
+            logo_url?: string | null;
+        };
+        /**
+         * ProjectUpdate
+         * @description Partial update schema for Project (PATCH semantics – all fields optional).
+         */
+        ProjectUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Project Number */
+            project_number?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Justification */
+            justification?: string | null;
+            /** Superior Project Id */
+            superior_project_id?: number | null;
+            /** Effects Passenger Long Rail */
+            effects_passenger_long_rail?: boolean | null;
+            /** Effects Passenger Local Rail */
+            effects_passenger_local_rail?: boolean | null;
+            /** Effects Cargo Rail */
+            effects_cargo_rail?: boolean | null;
+            /** Length */
+            length?: number | null;
+            /** Nbs */
+            nbs?: boolean | null;
+            /** Abs */
+            abs?: boolean | null;
+            /** Elektrification */
+            elektrification?: boolean | null;
+            /** Charging Station */
+            charging_station?: boolean | null;
+            /** Small Charging Station */
+            small_charging_station?: boolean | null;
+            /** Second Track */
+            second_track?: boolean | null;
+            /** Third Track */
+            third_track?: boolean | null;
+            /** Fourth Track */
+            fourth_track?: boolean | null;
+            /** Curve */
+            curve?: boolean | null;
+            /** Platform */
+            platform?: boolean | null;
+            /** Junction Station */
+            junction_station?: boolean | null;
+            /** Number Junction Station */
+            number_junction_station?: number | null;
+            /** Overtaking Station */
+            overtaking_station?: boolean | null;
+            /** Number Overtaking Station */
+            number_overtaking_station?: number | null;
+            /** Double Occupancy */
+            double_occupancy?: boolean | null;
+            /** Block Increase */
+            block_increase?: boolean | null;
+            /** Flying Junction */
+            flying_junction?: boolean | null;
+            /** Tunnel Structural Gauge */
+            tunnel_structural_gauge?: boolean | null;
+            /** Increase Speed */
+            increase_speed?: boolean | null;
+            /** New Vmax */
+            new_vmax?: number | null;
+            /** Level Free Platform Entrance */
+            level_free_platform_entrance?: boolean | null;
+            /** Etcs */
+            etcs?: boolean | null;
+            /** Etcs Level */
+            etcs_level?: number | null;
+            /** Station Railroad Switches */
+            station_railroad_switches?: boolean | null;
+            /** New Station */
+            new_station?: boolean | null;
+            /** Depot */
+            depot?: boolean | null;
+            /** Battery */
+            battery?: boolean | null;
+            /** H2 */
+            h2?: boolean | null;
+            /** Efuel */
+            efuel?: boolean | null;
+            /** Closure */
+            closure?: boolean | null;
+            /** Optimised Electrification */
+            optimised_electrification?: boolean | null;
+            /** Filling Stations Efuel */
+            filling_stations_efuel?: boolean | null;
+            /** Filling Stations H2 */
+            filling_stations_h2?: boolean | null;
+            /** Filling Stations Diesel */
+            filling_stations_diesel?: boolean | null;
+            /** Filling Stations Count */
+            filling_stations_count?: number | null;
+            /** Sanierung */
+            sanierung?: boolean | null;
+            /** Sgv740M */
+            sgv740m?: boolean | null;
+            /** Railroad Crossing */
+            railroad_crossing?: boolean | null;
+            /** New Estw */
+            new_estw?: boolean | null;
+            /** New Dstw */
+            new_dstw?: boolean | null;
+            /** Noise Barrier */
+            noise_barrier?: boolean | null;
+            /** Overpass */
+            overpass?: boolean | null;
+            /** Buffer Track */
+            buffer_track?: boolean | null;
+            /** Gwb */
+            gwb?: boolean | null;
+            /** Simultaneous Train Entries */
+            simultaneous_train_entries?: boolean | null;
+            /** Tilting */
+            tilting?: boolean | null;
+            /** Geojson Representation */
+            geojson_representation?: string | null;
+        };
+        /**
+         * ProposedBudget
+         * @description Proposed Budget values from the PDF parser.
+         */
+        ProposedBudget: {
+            /** Budget Year */
+            budget_year: number;
+            /** Lfd Nr */
+            lfd_nr?: string | null;
+            /** Fin Ve */
+            fin_ve: number;
+            /** Bedarfsplan Number */
+            bedarfsplan_number?: string | null;
+            /** Cost Estimate Original */
+            cost_estimate_original?: number | null;
+            /** Cost Estimate Last Year */
+            cost_estimate_last_year?: number | null;
+            /** Cost Estimate Actual */
+            cost_estimate_actual?: number | null;
+            /** Delta Previous Year */
+            delta_previous_year?: number | null;
+            /** Delta Previous Year Relativ */
+            delta_previous_year_relativ?: number | null;
+            /** Delta Previous Year Reasons */
+            delta_previous_year_reasons?: string | null;
+            /** Spent Two Years Previous */
+            spent_two_years_previous?: number | null;
+            /** Allowed Previous Year */
+            allowed_previous_year?: number | null;
+            /** Spending Residues */
+            spending_residues?: number | null;
+            /** Year Planned */
+            year_planned?: number | null;
+            /** Next Years */
+            next_years?: number | null;
+        };
+        /**
+         * ProposedFinve
+         * @description Proposed Finve values from the PDF parser.
+         */
+        ProposedFinve: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Starting Year */
+            starting_year?: number | null;
+            /** Cost Estimate Original */
+            cost_estimate_original?: number | null;
+        };
+        /** RevertFieldRequest */
+        RevertFieldRequest: {
+            /** Changelog Entry Id */
+            changelog_entry_id: number;
+        };
+        /**
+         * RouteConfirmIn
+         * @description Body for the confirm endpoints (add or replace).
+         *
+         *     The frontend sends back the GeoJSON Feature it received from /routes/calculate.
+         */
+        RouteConfirmIn: {
+            /** Feature */
+            feature: {
+                [key: string]: unknown;
+            };
+        };
         /** RouteIn */
         RouteIn: {
             /** Waypoints */
@@ -487,6 +1263,26 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /**
+         * RoutePreviewOut
+         * @description GeoJSON Feature returned by the calculate endpoint (not yet persisted).
+         */
+        RoutePreviewOut: {
+            /**
+             * Type
+             * @default Feature
+             * @constant
+             */
+            type: "Feature";
+            /** Geometry */
+            geometry: {
+                [key: string]: unknown;
+            };
+            /** Properties */
+            properties: {
+                [key: string]: unknown;
+            };
+        };
         /** RouteRequest */
         RouteRequest: {
             /** Start Op */
@@ -499,11 +1295,131 @@ export interface components {
             /** Sectionofline Ids */
             sectionofline_ids: number[];
         };
+        /** TaskLaunchResponse */
+        TaskLaunchResponse: {
+            /** Task Id */
+            task_id: string;
+        };
+        /** TaskStatusResponse */
+        TaskStatusResponse: {
+            /** Task Id */
+            task_id: string;
+            /** Status */
+            status: string;
+            /** Result */
+            result?: unknown;
+            /** Error */
+            error?: string | null;
+        };
+        /** TextChangeLogEntryRead */
+        TextChangeLogEntryRead: {
+            /** Id */
+            id: number;
+            /** Field Name */
+            field_name: string;
+            /** Old Value */
+            old_value?: string | null;
+            /** New Value */
+            new_value?: string | null;
+        };
+        /** TextChangeLogRead */
+        TextChangeLogRead: {
+            /** Id */
+            id: number;
+            /** Text Id */
+            text_id?: number | null;
+            /** Project Id */
+            project_id?: number | null;
+            /** User Id */
+            user_id?: number | null;
+            /** Username Snapshot */
+            username_snapshot?: string | null;
+            /** Text Header Snapshot */
+            text_header_snapshot?: string | null;
+            /**
+             * Timestamp
+             * Format: date-time
+             */
+            timestamp: string;
+            /** Action */
+            action: string;
+            /**
+             * Entries
+             * @default []
+             */
+            entries: components["schemas"]["TextChangeLogEntryRead"][];
+        };
+        /**
+         * TitelEntryProposed
+         * @description Proposed values for a single BudgetTitelEntry extracted from the PDF.
+         */
+        TitelEntryProposed: {
+            /** Titel Key */
+            titel_key: string;
+            /** Kapitel */
+            kapitel: string;
+            /** Titel Nr */
+            titel_nr: string;
+            /** Label */
+            label: string;
+            /**
+             * Is Nachrichtlich
+             * @default false
+             */
+            is_nachrichtlich: boolean;
+            /** Cost Estimate Last Year */
+            cost_estimate_last_year?: number | null;
+            /** Cost Estimate Aktuell */
+            cost_estimate_aktuell?: number | null;
+            /** Verausgabt Bis */
+            verausgabt_bis?: number | null;
+            /** Bewilligt */
+            bewilligt?: number | null;
+            /** Ausgabereste Transferred */
+            ausgabereste_transferred?: number | null;
+            /** Veranschlagt */
+            veranschlagt?: number | null;
+            /** Vorhalten Future */
+            vorhalten_future?: number | null;
+        };
+        /** UnmatchedBudgetRowResolveRequest */
+        UnmatchedBudgetRowResolveRequest: {
+            /** Finve Id */
+            finve_id: number;
+        };
+        /** UnmatchedBudgetRowSchema */
+        UnmatchedBudgetRowSchema: {
+            /** Id */
+            id: number;
+            /** Haushalt Year */
+            haushalt_year: number;
+            /** Raw Finve Number */
+            raw_finve_number: string;
+            /** Raw Name */
+            raw_name: string;
+            /** Raw Data */
+            raw_data?: {
+                [key: string]: unknown;
+            } | null;
+            /** Resolved */
+            resolved: boolean;
+            /** Resolved Finve Id */
+            resolved_finve_id?: number | null;
+            /** Resolved At */
+            resolved_at?: string | null;
+            /** Resolved By Snapshot */
+            resolved_by_snapshot?: string | null;
+        };
         /** UserCreate */
         UserCreate: {
             /** Username */
             username: string;
             role: components["schemas"]["UserRole"];
+            /** Password */
+            password: string;
+        };
+        /** UserPasswordUpdate */
+        UserPasswordUpdate: {
             /** Password */
             password: string;
         };
@@ -525,6 +1441,10 @@ export interface components {
          * @enum {string}
          */
         UserRole: "viewer" | "editor" | "admin";
+        /** UserUpdate */
+        UserUpdate: {
+            role: components["schemas"]["UserRole"];
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -533,6 +1453,10 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+            /** Input */
+            input?: unknown;
+            /** Context */
+            ctx?: Record<string, never>;
         };
         /** Waypoint */
         Waypoint: {
@@ -634,6 +1558,107 @@ export interface operations {
             };
         };
     };
+    patch_project_api_v1_projects__project_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_project_changelog_api_v1_projects__project_id__changelog_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangeLogRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revert_project_field_api_v1_projects__project_id__changelog_revert_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RevertFieldRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     read_project_groups_api_v1_project_groups__get: {
         parameters: {
             query?: never;
@@ -681,6 +1706,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_current_user_info_api_v1_users_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRead"];
                 };
             };
         };
@@ -738,6 +1783,136 @@ export interface operations {
             };
         };
     };
+    delete_user_api_v1_users__user_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_user_api_v1_users__user_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_user_password_api_v1_users__user_id__password_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserPasswordUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    calculate_route_api_v1_routes_calculate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RouteIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoutePreviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_routes_api_v1_projects__project_id__routes_get: {
         parameters: {
             query?: {
@@ -772,7 +1947,7 @@ export interface operations {
             };
         };
     };
-    create_route_api_v1_projects__project_id__routes_post: {
+    confirm_route_api_v1_projects__project_id__routes_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -783,12 +1958,48 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RouteIn"];
+                "application/json": components["schemas"]["RouteConfirmIn"];
             };
         };
         responses: {
             /** @description Successful Response */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RouteOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replace_route_api_v1_projects__project_id__routes__route_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                route_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RouteConfirmIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -825,6 +2036,467 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RouteOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_text_types_api_v1_text_types_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectTextTypeSchema"][];
+                };
+            };
+        };
+    };
+    create_project_text_type_api_v1_text_types_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectTextTypeCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectTextTypeSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_project_texts_api_v1_projects__project_id__texts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectTextSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_project_text_api_v1_projects__project_id__texts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectTextCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectTextSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_texts_changelog_api_v1_projects__project_id__texts_changelog_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TextChangeLogRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_text_api_v1_projects_texts__text_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                text_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_text_api_v1_projects_texts__text_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                text_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectTextUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectTextSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_task_status_api_v1_tasks__task_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_debug_task_api_v1_tasks_debug_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DebugTaskRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskLaunchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_parse_api_v1_import_haushalt_parse_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_start_parse_api_v1_import_haushalt_parse_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskLaunchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_parse_run_results_api_v1_import_haushalt_parse_result_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParseResultPublicSchema"][];
+                };
+            };
+        };
+    };
+    get_parse_run_result_api_v1_import_haushalt_parse_result__parse_result_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                parse_result_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParseResultPublicSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_import_api_v1_import_haushalt_confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HaushaltsConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HaushaltsConfirmResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_unmatched_api_v1_import_haushalt_unmatched_get: {
+        parameters: {
+            query?: {
+                resolved?: boolean | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnmatchedBudgetRowSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_unmatched_api_v1_import_haushalt_unmatched__row_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                row_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UnmatchedBudgetRowResolveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnmatchedBudgetRowSchema"];
                 };
             };
             /** @description Validation Error */

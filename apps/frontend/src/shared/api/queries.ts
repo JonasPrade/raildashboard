@@ -349,3 +349,266 @@ export function useSetUserPassword() {
             }),
     });
 }
+
+// ---------------------------------------------------------------------------
+// FinVe + Budget (Projektdetail)
+// ---------------------------------------------------------------------------
+
+export type TitelEntry = {
+    titel_key: string;
+    kapitel: string;
+    titel_nr: string;
+    label: string;
+    is_nachrichtlich: boolean;
+    cost_estimate_last_year: number | null;
+    cost_estimate_aktuell: number | null;
+    verausgabt_bis: number | null;
+    bewilligt: number | null;
+    ausgabereste_transferred: number | null;
+    veranschlagt: number | null;
+    vorhalten_future: number | null;
+};
+
+export type BudgetSummary = {
+    budget_year: number;
+    lfd_nr: string | null;
+    bedarfsplan_number: string | null;
+    cost_estimate_original: number | null;
+    cost_estimate_last_year: number | null;
+    cost_estimate_actual: number | null;
+    delta_previous_year: number | null;
+    delta_previous_year_relativ: number | null;
+    spent_two_years_previous: number | null;
+    allowed_previous_year: number | null;
+    spending_residues: number | null;
+    year_planned: number | null;
+    next_years: number | null;
+    titel_entries: TitelEntry[];
+};
+
+export type FinveWithBudgets = {
+    id: number;
+    name: string | null;
+    starting_year: number | null;
+    cost_estimate_original: number | null;
+    budgets: BudgetSummary[];
+};
+
+export function useProjectFinves(projectId: number) {
+    return useQuery({
+        queryKey: ["project-finves", projectId],
+        queryFn: () => api<FinveWithBudgets[]>(`/api/v1/projects/${projectId}/finves`),
+        enabled: !Number.isNaN(projectId),
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Haushalt-Import
+// ---------------------------------------------------------------------------
+
+export type TitelEntryProposed = {
+    titel_key: string;
+    kapitel: string;
+    titel_nr: string;
+    label: string;
+    is_nachrichtlich: boolean;
+    cost_estimate_last_year: number | null;
+    cost_estimate_aktuell: number | null;
+    verausgabt_bis: number | null;
+    bewilligt: number | null;
+    ausgabereste_transferred: number | null;
+    veranschlagt: number | null;
+    vorhalten_future: number | null;
+};
+
+export type ProposedFinve = {
+    id: number;
+    name: string;
+    starting_year: number | null;
+    cost_estimate_original: number | null;
+};
+
+export type ProposedBudget = {
+    budget_year: number;
+    lfd_nr: string | null;
+    fin_ve: number;
+    bedarfsplan_number: string | null;
+    cost_estimate_original: number | null;
+    cost_estimate_last_year: number | null;
+    cost_estimate_actual: number | null;
+    delta_previous_year: number | null;
+    delta_previous_year_relativ: number | null;
+    delta_previous_year_reasons: string | null;
+    spent_two_years_previous: number | null;
+    allowed_previous_year: number | null;
+    spending_residues: number | null;
+    year_planned: number | null;
+    next_years: number | null;
+};
+
+export type HaushaltsParseRow = {
+    finve_number: number;
+    name: string;
+    status: "new" | "update" | "unmatched";
+    proposed_finve: ProposedFinve | null;
+    proposed_budget: ProposedBudget | null;
+    proposed_titel_entries: TitelEntryProposed[];
+    project_ids: number[];
+    suggested_project_ids: number[];
+};
+
+export type HaushaltsParseTaskResult = {
+    year: number;
+    rows: HaushaltsParseRow[];
+    unmatched_rows: Record<string, unknown>[];
+};
+
+export type ParseResultPublic = {
+    id: number;
+    haushalt_year: number;
+    pdf_filename: string;
+    parsed_at: string;
+    username_snapshot: string | null;
+    status: "PENDING" | "SUCCESS" | "FAILURE";
+    error_message: string | null;
+    confirmed_at: string | null;
+    confirmed_by_snapshot: string | null;
+    result_json: HaushaltsParseTaskResult | null;
+};
+
+export type UnmatchedBudgetRow = {
+    id: number;
+    haushalt_year: number;
+    raw_finve_number: string;
+    raw_name: string;
+    raw_data: Record<string, unknown> | null;
+    resolved: boolean;
+    resolved_finve_id: number | null;
+    resolved_at: string | null;
+    resolved_by_snapshot: string | null;
+};
+
+export type HaushaltsConfirmRowInput = Omit<HaushaltsParseRow, "status"> & {
+    status: string;
+};
+
+export type HaushaltsConfirmRequest = {
+    parse_result_id: number;
+    rows: HaushaltsConfirmRowInput[];
+    unmatched_action: "save" | "discard";
+};
+
+export type HaushaltsConfirmResponse = {
+    finves_created: number;
+    finves_updated: number;
+    budgets_created: number;
+    budgets_updated: number;
+    unmatched_saved: number;
+};
+
+export type TaskLaunchResponse = { task_id: string };
+export type TaskProgressMeta = {
+    current_page: number;
+    total_pages: number;
+    rows_found: number;
+};
+
+export type TaskStatusResponse = {
+    task_id: string;
+    status: "PENDING" | "STARTED" | "PROGRESS" | "SUCCESS" | "FAILURE";
+    result: unknown;
+    error: string | null;
+};
+
+export function useParseResults() {
+    return useQuery({
+        queryKey: ["haushalt-parse-results"],
+        queryFn: () => api<ParseResultPublic[]>("/api/v1/import/haushalt/parse-result"),
+    });
+}
+
+export function useParseResult(id: number) {
+    return useQuery({
+        queryKey: ["haushalt-parse-result", id],
+        enabled: Number.isFinite(id),
+        queryFn: () => api<ParseResultPublic>(`/api/v1/import/haushalt/parse-result/${id}`),
+    });
+}
+
+export function useTaskStatus(taskId: string | null) {
+    return useQuery({
+        queryKey: ["task-status", taskId],
+        enabled: taskId !== null,
+        refetchInterval: (query) => {
+            const status = (query.state.data as TaskStatusResponse | undefined)?.status;
+            return status === "SUCCESS" || status === "FAILURE" ? false : 1500;
+        },
+        queryFn: () => api<TaskStatusResponse>(`/api/v1/tasks/${taskId}`),
+    });
+}
+
+export function useStartHaushaltsImport() {
+    return useMutation({
+        mutationFn: ({ pdf, year }: { pdf: File; year: number }) => {
+            const form = new FormData();
+            form.append("pdf", pdf);
+            form.append("year", String(year));
+            return api<TaskLaunchResponse>("/api/v1/import/haushalt/parse", {
+                method: "POST",
+                body: form,
+            });
+        },
+    });
+}
+
+export function useDeleteParseResult() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id: number) =>
+            api<void>(`/api/v1/import/haushalt/parse-result/${id}`, { method: "DELETE" }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["haushalt-parse-results"] });
+        },
+    });
+}
+
+export function useConfirmHaushaltsImport() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (payload: HaushaltsConfirmRequest) =>
+            api<HaushaltsConfirmResponse>("/api/v1/import/haushalt/confirm", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["haushalt-parse-results"] });
+            queryClient.invalidateQueries({ queryKey: ["haushalt-unmatched"] });
+        },
+    });
+}
+
+export function useUnmatchedRows(resolved?: boolean) {
+    return useQuery({
+        queryKey: ["haushalt-unmatched", resolved],
+        queryFn: () => {
+            const qs = resolved !== undefined ? `?resolved=${resolved}` : "";
+            return api<UnmatchedBudgetRow[]>(`/api/v1/import/haushalt/unmatched${qs}`);
+        },
+    });
+}
+
+export function useResolveUnmatchedRow() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ rowId, finveId }: { rowId: number; finveId: number }) =>
+            api<UnmatchedBudgetRow>(`/api/v1/import/haushalt/unmatched/${rowId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ finve_id: finveId }),
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["haushalt-unmatched"] });
+        },
+    });
+}
