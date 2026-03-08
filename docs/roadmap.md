@@ -8,7 +8,8 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 ## Short-Term Features
 
 #### Test development
-- [ ] lot of failed development tests — vor allem ein Problem mit Routen; prüfen ob noch aktuell
+- [ ] lot of failed development tests — vor allem ein Problem mit Routen; prüfen ob noch aktuell (user task - no ai)
+- [ ] zoom a little bit more out in the map in the project
 
 ---
 
