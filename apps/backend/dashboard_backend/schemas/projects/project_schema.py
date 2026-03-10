@@ -66,6 +66,24 @@ class FinveWithBudgetsSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ProjectRefSchema(BaseModel):
+    id: int
+    name: str
+
+
+class FinveListItemSchema(BaseModel):
+    id: int
+    name: Optional[str] = None
+    starting_year: Optional[int] = None
+    cost_estimate_original: Optional[int] = None
+    is_sammel_finve: bool
+    temporary_finve_number: bool
+    project_count: int
+    project_names: list[str]
+    projects: list[ProjectRefSchema] = []
+    budgets: list[BudgetSummarySchema] = []
+
+
 class ProjectSchema(BaseModel):
     id: Optional[int] = None
     name: str

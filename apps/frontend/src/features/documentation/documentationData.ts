@@ -46,6 +46,20 @@ export const featureHighlights: FeatureHighlight[] = [
         ]
     },
     {
+        title: "FinVe-Übersicht (/finves)",
+        description:
+            "Zeigt alle Finanzierungsvereinbarungen als ausklappbare Karten. " +
+            "Für eingeloggte Nutzer (alle Rollen) zugänglich.",
+        details: [
+            "Suche nach Bezeichnung oder FinVe-Nr. (client-seitig, ohne Reload)",
+            "Filter: Alle / Regulär / Sammel-FinVes",
+            "Jede Karte zeigt FinVe-Nr., Name, Typ-Badge, Startjahr, Kosten",
+            "Verknüpfte Projekte als anklickbare Mini-Cards (Link zur Projektdetailseite)",
+            "Ausklappbare Budget-Diagramme: Budgetverteilung (BarChart), Kostenentwicklung (LineChart), Haushaltstiteln-Detailtabelle",
+            "Sammel-FinVes erhalten violettes Badge; vorläufige FinVe-Nummern werden markiert"
+        ]
+    },
+    {
         title: "Haushalts-Import (Anlage VWIB Teil B)",
         description:
             "Editors and administrators can upload the annual federal budget annex as PDF and import FinVe and Budget data into the database. " +

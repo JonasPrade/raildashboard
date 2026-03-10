@@ -165,6 +165,25 @@ GET /api/v1/projects/{project_id}/finves
 
 Returns all FinVes linked to a project with their full budget history including per-Haushaltstiteln breakdown (`BudgetTitelEntry`). Uses eager-loading (`joinedload`) for `budgets → titel_entries → titel`. No authentication required beyond the standard project read access.
 
+### FinVe overview endpoint
+
+```
+GET /api/v1/finves/
+```
+
+Returns all FinVes with full budget history and linked projects. Requires any authenticated role (viewer/editor/admin). Response includes: `id`, `name`, `starting_year`, `cost_estimate_original`, `is_sammel_finve`, `temporary_finve_number`, `project_count`, `project_names`, `projects` (list of `{id, name}`), `budgets` (full `BudgetSummarySchema` with `titel_entries`). Implemented in `crud/finves.py`.
+
+### SV-FinVe year-scoped project tracking
+
+`finve_to_project` now has a `haushalt_year` column (migration `20260310001`):
+
+| Value | Meaning |
+|---|---|
+| `NULL` | Permanent link — used for regular FinVes |
+| `<year>` | Year-scoped link — used for Sammelfinanzierungsvereinbarungen |
+
+Two partial unique indexes enforce uniqueness separately for permanent and year-scoped rows. During `POST /confirm`, SV-FinVes only sync the current import year's rows (preserving historical membership); regular FinVes sync the `NULL`-year rows as before. Deleting a confirmed parse result also removes its year-scoped `FinveToProject` rows.
+
 ### New models (migration `20260306001`)
 
 | Table | Description |

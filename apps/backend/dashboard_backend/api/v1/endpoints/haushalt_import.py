@@ -164,20 +164,30 @@ def confirm_import(
         # 5. Sync FinveToProject for new and updated FinVes
         if row.status in ("new", "update") and row.proposed_finve:
             finve_id = row.proposed_finve.id
+            is_sammel = row.proposed_finve.is_sammel_finve
+            # SV-FinVes track membership per haushalt_year; regular FinVes use NULL (permanent)
+            link_year = record.haushalt_year if is_sammel else None
+
             desired = set(row.project_ids)
-            current = {
-                r.project_id
-                for r in db.query(FinveToProject)
-                .filter(FinveToProject.finve_id == finve_id)
-                .all()
-            }
+            q = db.query(FinveToProject).filter(FinveToProject.finve_id == finve_id)
+            if is_sammel:
+                q = q.filter(FinveToProject.haushalt_year == link_year)
+            else:
+                q = q.filter(FinveToProject.haushalt_year.is_(None))
+            current = {r.project_id for r in q.all()}
+
             for project_id in desired - current:
-                db.add(FinveToProject(finve_id=finve_id, project_id=project_id))
+                db.add(FinveToProject(finve_id=finve_id, project_id=project_id, haushalt_year=link_year))
             for project_id in current - desired:
-                db.query(FinveToProject).filter(
+                del_q = db.query(FinveToProject).filter(
                     FinveToProject.finve_id == finve_id,
                     FinveToProject.project_id == project_id,
-                ).delete(synchronize_session=False)
+                )
+                if is_sammel:
+                    del_q = del_q.filter(FinveToProject.haushalt_year == link_year)
+                else:
+                    del_q = del_q.filter(FinveToProject.haushalt_year.is_(None))
+                del_q.delete(synchronize_session=False)
 
     # 6. Save unmatched rows if requested
     if body.unmatched_action == "save":

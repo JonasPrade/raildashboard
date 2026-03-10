@@ -12,6 +12,7 @@ from dashboard_backend.models.haushalt.finve_change_log import FinveChangeLog, F
 from dashboard_backend.models.haushalt.haushalt_titel import HaushaltTitel
 from dashboard_backend.models.haushalt.haushalts_parse_result import HaushaltsParseResult
 from dashboard_backend.models.haushalt.unmatched_budget_row import UnmatchedBudgetRow
+from dashboard_backend.models.associations.finve_to_project import FinveToProject
 from dashboard_backend.models.projects.budget import Budget
 from dashboard_backend.models.projects.finve import Finve
 from dashboard_backend.schemas.haushalt_import import (
@@ -118,6 +119,10 @@ def delete_parse_result(db: Session, parse_result_id: int) -> bool:
         )
         # Delete budgets for this year – CASCADE removes BudgetTitelEntry rows
         db.query(Budget).filter(Budget.budget_year == year).delete(
+            synchronize_session=False
+        )
+        # Remove year-scoped FinveToProject links created during this import
+        db.query(FinveToProject).filter(FinveToProject.haushalt_year == year).delete(
             synchronize_session=False
         )
 

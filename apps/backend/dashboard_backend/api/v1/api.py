@@ -1,6 +1,6 @@
 # dashboard_backend/api/v1/api.py
 from fastapi import APIRouter
-from .endpoints import project_routes, project_texts, route, projects, project_groups, users, tasks, haushalt_import
+from .endpoints import project_routes, project_texts, route, projects, project_groups, users, tasks, haushalt_import, finves
 
 api_router = APIRouter()
 api_router.include_router(route.router, prefix="/route", tags=["route"])
@@ -11,4 +11,5 @@ api_router.include_router(project_routes.router, tags=["routes"])
 api_router.include_router(project_texts.router, tags=["texts"])
 api_router.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
 api_router.include_router(haushalt_import.router, prefix="/import/haushalt", tags=["haushalt-import"])
+api_router.include_router(finves.router, prefix="/finves", tags=["finves"])
 

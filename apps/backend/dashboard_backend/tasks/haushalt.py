@@ -738,9 +738,36 @@ def parse_haushalt_pdf(
         known_ids: set[int] = {row[0] for row in db.query(Finve.id).all()}
         logger.info("Loaded %d known Finve IDs from DB", len(known_ids))
 
-        # Load existing Finve→Project associations to pre-populate project_ids
+        # Load existing Finve→Project associations to pre-populate project_ids.
+        # Regular FinVes use NULL year (permanent); SV-FinVes use the most recent year per finve.
+        from sqlalchemy import func as _func
         finve_projects: dict[int, list[int]] = {}
-        for finve_id, project_id in db.query(FinveToProject.finve_id, FinveToProject.project_id).all():
+        # 1. permanent links (regular FinVes)
+        for finve_id, project_id in (
+            db.query(FinveToProject.finve_id, FinveToProject.project_id)
+            .filter(FinveToProject.haushalt_year.is_(None))
+            .all()
+        ):
+            finve_projects.setdefault(finve_id, []).append(project_id)
+        # 2. SV-FinVe links: only the most recent year per finve
+        latest_year_subq = (
+            db.query(
+                FinveToProject.finve_id,
+                _func.max(FinveToProject.haushalt_year).label("max_year"),
+            )
+            .filter(FinveToProject.haushalt_year.isnot(None))
+            .group_by(FinveToProject.finve_id)
+            .subquery()
+        )
+        for finve_id, project_id in (
+            db.query(FinveToProject.finve_id, FinveToProject.project_id)
+            .join(
+                latest_year_subq,
+                (FinveToProject.finve_id == latest_year_subq.c.finve_id)
+                & (FinveToProject.haushalt_year == latest_year_subq.c.max_year),
+            )
+            .all()
+        ):
             finve_projects.setdefault(finve_id, []).append(project_id)
 
         # Load all projects for auto-suggestion matching

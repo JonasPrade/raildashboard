@@ -402,6 +402,28 @@ export function useProjectFinves(projectId: number) {
     });
 }
 
+export type ProjectRef = { id: number; name: string };
+
+export type FinveListItem = {
+    id: number;
+    name: string | null;
+    starting_year: number | null;
+    cost_estimate_original: number | null;
+    is_sammel_finve: boolean;
+    temporary_finve_number: boolean;
+    project_count: number;
+    project_names: string[];
+    projects: ProjectRef[];
+    budgets: BudgetSummary[];
+};
+
+export function useFinves() {
+    return useQuery({
+        queryKey: ["finves"],
+        queryFn: () => api<FinveListItem[]>("/api/v1/finves/"),
+    });
+}
+
 // ---------------------------------------------------------------------------
 // Haushalt-Import
 // ---------------------------------------------------------------------------

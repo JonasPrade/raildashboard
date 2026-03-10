@@ -52,6 +52,16 @@ The map view expects a raster tile URL provided via `REACT_APP_TILE_LAYER_URL`. 
 
 ## Notable features and components
 
+### FinVe overview page (`features/finves/FinveOverviewPage.tsx`)
+
+Available at `/finves` (visible to all logged-in users). Shows all Finanzierungsvereinbarungen as expandable cards with:
+- FinVe-Nr, name, type badge (Regulär / Sammel-FinVe), "vorläufig" indicator, Aufnahme year, cost figures
+- Linked projects rendered as clickable mini-cards (link to `/projects/:id`)
+- Expandable budget section: same three-tab chart layout as `FinveSection.tsx` (BarChart, LineChart, detail table)
+- Client-side search (name or FinVe-Nr) and SegmentedControl filter (Alle / Regulär / Sammel-FinVes)
+
+Data comes from `useFinves()` hook → `GET /api/v1/finves/` (returns budgets + project refs in one call).
+
 ### FinVe budget display (`features/projects/components/FinveSection.tsx`)
 
 Shows Finanzierungsvereinbarungen linked to a project in the project detail page. Data is fetched via `useProjectFinves(projectId)` (`shared/api/queries.ts` → `GET /api/v1/projects/{id}/finves`).

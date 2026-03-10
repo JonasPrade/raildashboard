@@ -7,13 +7,21 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 
 ## Short-Term Features
 
-#### Test development
+
 - [ ] lot of failed development tests — vor allem ein Problem mit Routen; prüfen ob noch aktuell (user task - no ai)
 - [ ] zoom a little bit more out in the map in the project
-
+- [ ] the clock (Uhrzeit) is wrong in some parts -> watch that is set to Berlin
+- [ ] update the informaiton of parsing PDF
+- [ ] Create a online manual (or documentation) for the import of the haushalt. Make it understandably for the user with an step-by-step explanation of what to do. Link that manual at the all pages with haushalt-import and the check of the parsed pdf
+- [ ] if a project is in the sammelfinve listed - only show a tag that say in which sammelfinve it is listed in the project Detail View
+- [ ] after the review auf Haushalt/Finve - move back to the parsing overview
+- [ ] the start selection of ProjectGroups on map should be configured by the admin
+- [x] make a fivew of the finance (Haushalt). New Page - new Header. there all finve should be seen in maps. Make it searchable. Make filter (f.e. sammmelfinve or other)
 ---
 
 ## Mid-Term Features
+
+- [ ] Search funktion for Project in ProjectMap and List
 
 ### Haushaltsberichte
 
@@ -60,7 +68,7 @@ Neue Titel in künftigen PDFs werden automatisch per `get_or_create` registriert
 **Offene Punkte:**
 - [ ] **FinVe in zugeordneten Projekten anzeigen** — In der Projektdetailseite werden die FinVes bereits angezeigt (`FinveSection.tsx`). Prüfen ob umgekehrt auch das zugeordnete Projekt aus der FinVe-Perspektive navigierbar ist.
 - [x] **Sonderbehandlung Sammelfinve** — Einzelne FinVes (z.B. Sammelfinve für kleinere Maßnahmen) haben massenhaft Projektzuordnungen, die sich über die Jahre ändern. Benötigt: eigene UI-Behandlung im Review-Flow, ggf. Jahres-spezifische Zuordnungstabelle statt einfacher `FinveToProject`.
-- [ ] Show all the financing in an separate overview. List all contracts. Make it clickable for more informations. Add the same diagrams as in ProjectView. Make the overview searchable
+- [x] Show all the financing in an separate overview. List all contracts. Make it clickable for more informations. Add the same diagrams as in ProjectView. Make the overview searchable
 
 ---
 
@@ -195,7 +203,8 @@ Priorität:
 - [x] Fuzzy-Matching (`tasks/finve_matching.py`, SequenceMatcher + Token-Overlap, Threshold 0.45) für automatische Projektzuordnungs-Vorschläge
 - [x] FinVe → mehrere Projekte (bidirektionale Sync beim Confirm; MultiSelect auch bei update-Rows)
 - [x] FinVe-Anzeige in `ProjectDetail`: `GET /api/v1/projects/{id}/finves`, `FinveSection.tsx` mit 3 Tabs (Budgetverteilung BarChart, Kostenentwicklung LineChart, Detailtabelle); `@mantine/charts` + `recharts`
-- [x] **Sammelfinanzierungsvereinbarungen (SV-FinVes)**: Erkennung via Regex im Parser, `is_sammel_finve`-Flag in DB (`finve`-Tabelle) + Alembic-Migration, eigene Review-Sektion "Sammel-FinVes (Phase 2)" in der UI, per-Projekt-Unterzeilen mit Fuzzy-Vorschlägen aus dem Erläuterungstext, Erkennung mehrseitiger Erläuterungen (flat-table-Ansatz + Continuation-Detection), Wiederherstellung von Zeilen mit fehlendem YYY-Identifier via Raw-Text-Lookup
+- [x] **Sammelfinanzierungsvereinbarungen (SV-FinVes)**: Erkennung via Regex im Parser, `is_sammel_finve`-Flag in DB (`finve`-Tabelle) + Alembic-Migration, eigene Review-Sektion "Sammel-FinVes (Phase 2)" in der UI, per-Projekt-Unterzeilen mit Fuzzy-Vorschlägen aus dem Erläuterungstext, Erkennung mehrseitiger Erläuterungen (flat-table-Ansatz + Continuation-Detection), Wiederherstellung von Zeilen mit fehlendem YYY-Identifier via Raw-Text-Lookup. `finve_to_project` um `haushalt_year`-Spalte erweitert: reguläre FinVes nutzen `NULL` (permanente Zuordnung), SV-FinVes speichern Mitgliedschaft pro Jahr → historische Projektzu-/abgänge bleiben erhalten.
+- [x] **FinVe-Übersicht** (`/finves`): Neue Seite mit Kartenansicht aller Finanzierungsvereinbarungen, Volltextsuche, Typ-Filter (Alle / Regulär / Sammel-FinVes). Jede Karte zeigt Kenndaten, verknüpfte Projekte als anklickbare Mini-Cards (Link → Projektdetailseite) sowie ausklappbare Budget-Diagramme (Stacked BarChart, LineChart, Detailtabelle) analog zu `FinveSection.tsx`. Backend: `GET /api/v1/finves` (auth required) + CRUD mit Eager-Load Budgets + Titel.
 
 ### Infrastruktur
 - [x] Docker: Dev (nur DB + Redis), Prod (DB + Backend + Frontend/nginx + Worker); Entrypoint-Skript mit Alembic-Migration, Makefile-Targets
