@@ -38,6 +38,7 @@ class ProposedFinve(BaseModel):
     name: str
     starting_year: Optional[int] = None
     cost_estimate_original: Optional[int] = None
+    is_sammel_finve: bool = False
 
 
 class ProposedBudget(BaseModel):
@@ -58,6 +59,7 @@ class ProposedBudget(BaseModel):
     spending_residues: Optional[int] = None
     year_planned: Optional[int] = None
     next_years: Optional[int] = None
+    sammel_finve: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -73,6 +75,11 @@ class HaushaltsParseResultSchema(BaseModel):
     proposed_finve: Optional[ProposedFinve] = None
     proposed_budget: Optional[ProposedBudget] = None
     proposed_titel_entries: list[TitelEntryProposed] = []
+    is_sammel_finve: bool = False
+    # Project names extracted from the Erläuterung block (Sammel-FinVes only)
+    erlaeuterung_projects: list[str] = []
+    # Per-subrow suggestion: one best-match project ID per erlaeuterung_projects entry (None = no match)
+    erlaeuterung_suggestions: list[Optional[int]] = []
     # Existing project IDs associated with this FinVe (for "update"); editable for "new"
     project_ids: list[int] = []
     # Automatically suggested project IDs (computed during parse, read-only hint for UI)
@@ -100,6 +107,9 @@ class HaushaltsConfirmRowInput(BaseModel):
 
     finve_number: int
     status: str
+    is_sammel_finve: bool = False
+    erlaeuterung_projects: list[str] = []
+    erlaeuterung_suggestions: list[Optional[int]] = []
     proposed_finve: Optional[ProposedFinve] = None
     proposed_budget: Optional[ProposedBudget] = None
     proposed_titel_entries: list[TitelEntryProposed] = []

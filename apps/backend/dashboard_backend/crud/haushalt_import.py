@@ -130,7 +130,7 @@ def delete_parse_result(db: Session, parse_result_id: int) -> bool:
 # Finve upsert
 # ---------------------------------------------------------------------------
 
-_FINVE_TRACKED_FIELDS = ("name", "starting_year", "cost_estimate_original")
+_FINVE_TRACKED_FIELDS = ("name", "starting_year", "cost_estimate_original", "is_sammel_finve")
 
 
 def upsert_finve(
@@ -151,6 +151,7 @@ def upsert_finve(
             name=proposed.name,
             starting_year=proposed.starting_year,
             cost_estimate_original=proposed.cost_estimate_original,
+            is_sammel_finve=proposed.is_sammel_finve,
         )
         db.add(finve)
         db.flush()
@@ -221,6 +222,7 @@ _BUDGET_TRACKED_FIELDS = (
     "spending_residues",
     "year_planned",
     "next_years",
+    "sammel_finve",
 )
 
 
@@ -257,6 +259,7 @@ def upsert_budget(
             spending_residues=proposed.spending_residues,
             year_planned=proposed.year_planned,
             next_years=proposed.next_years,
+            sammel_finve=proposed.sammel_finve,
         )
         db.add(budget)
         db.flush()

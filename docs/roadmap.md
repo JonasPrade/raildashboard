@@ -59,7 +59,8 @@ Neue Titel in künftigen PDFs werden automatisch per `get_or_create` registriert
 
 **Offene Punkte:**
 - [ ] **FinVe in zugeordneten Projekten anzeigen** — In der Projektdetailseite werden die FinVes bereits angezeigt (`FinveSection.tsx`). Prüfen ob umgekehrt auch das zugeordnete Projekt aus der FinVe-Perspektive navigierbar ist.
-- [ ] **Sonderbehandlung Sammelfinve** — Einzelne FinVes (z.B. Sammelfinve für kleinere Maßnahmen) haben massenhaft Projektzuordnungen, die sich über die Jahre ändern. Benötigt: eigene UI-Behandlung im Review-Flow, ggf. Jahres-spezifische Zuordnungstabelle statt einfacher `FinveToProject`.
+- [x] **Sonderbehandlung Sammelfinve** — Einzelne FinVes (z.B. Sammelfinve für kleinere Maßnahmen) haben massenhaft Projektzuordnungen, die sich über die Jahre ändern. Benötigt: eigene UI-Behandlung im Review-Flow, ggf. Jahres-spezifische Zuordnungstabelle statt einfacher `FinveToProject`.
+- [ ] Show all the financing in an separate overview. List all contracts. Make it clickable for more informations. Add the same diagrams as in ProjectView. Make the overview searchable
 
 ---
 
@@ -194,6 +195,7 @@ Priorität:
 - [x] Fuzzy-Matching (`tasks/finve_matching.py`, SequenceMatcher + Token-Overlap, Threshold 0.45) für automatische Projektzuordnungs-Vorschläge
 - [x] FinVe → mehrere Projekte (bidirektionale Sync beim Confirm; MultiSelect auch bei update-Rows)
 - [x] FinVe-Anzeige in `ProjectDetail`: `GET /api/v1/projects/{id}/finves`, `FinveSection.tsx` mit 3 Tabs (Budgetverteilung BarChart, Kostenentwicklung LineChart, Detailtabelle); `@mantine/charts` + `recharts`
+- [x] **Sammelfinanzierungsvereinbarungen (SV-FinVes)**: Erkennung via Regex im Parser, `is_sammel_finve`-Flag in DB (`finve`-Tabelle) + Alembic-Migration, eigene Review-Sektion "Sammel-FinVes (Phase 2)" in der UI, per-Projekt-Unterzeilen mit Fuzzy-Vorschlägen aus dem Erläuterungstext, Erkennung mehrseitiger Erläuterungen (flat-table-Ansatz + Continuation-Detection), Wiederherstellung von Zeilen mit fehlendem YYY-Identifier via Raw-Text-Lookup
 
 ### Infrastruktur
 - [x] Docker: Dev (nur DB + Redis), Prod (DB + Backend + Frontend/nginx + Worker); Entrypoint-Skript mit Alembic-Migration, Makefile-Targets

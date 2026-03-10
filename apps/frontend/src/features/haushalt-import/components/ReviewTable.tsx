@@ -4,6 +4,7 @@ import {
     Box,
     Collapse,
     MultiSelect,
+    Select,
     Stack,
     Table,
     Text,
@@ -29,9 +30,17 @@ function StatusBadge({ status }: { status: HaushaltsParseRow["status"] }) {
     return <Badge color={map[status]} variant="light" size="xs">{label[status]}</Badge>;
 }
 
+function SvBadge() {
+    return (
+        <Badge color="violet" variant="filled" size="xs" title="Sammelfinanzierungsvereinbarung">
+            SV
+        </Badge>
+    );
+}
+
 // Column count for colSpan (main cols + optional Projektzuordnung)
 function colCount(readonly: boolean | undefined) {
-    // expand | Status | Lfd./FinVe/BP | Bezeichnung | Aufn. | Urspr. | Vorjahr | Aktuell | Δabs | Δ% | Verausg. | Bewilligt | Ausgabereste | Veranschl. | Vorhalten | [Projekt]
+    // expand | Status | Lfd./FinVe/BP | Bezeichnung | [Projektzuordnung] | Aufn. | Urspr. | Vorjahr | Aktuell | Δabs | Δ% | Verausg. | Bewilligt | Ausgabereste | Veranschl. | Vorhalten
     return readonly ? 15 : 16;
 }
 
@@ -59,9 +68,42 @@ function DataRow({
     const hasTitel = row.proposed_titel_entries.length > 0;
     const span = colCount(readonly);
 
+    const erlaeuterungProjects = row.erlaeuterung_projects ?? [];
+    const hasSvSubrows = (row.is_sammel_finve ?? false) && erlaeuterungProjects.length > 0;
+
+    // Per-subrow project assignment state — pre-filled from parser suggestions
+    const suggestions = row.erlaeuterung_suggestions ?? [];
+    const [subAssignments, setSubAssignments] = useState<(number | null)[]>(
+        () => erlaeuterungProjects.map((_, i) => suggestions[i] ?? null)
+    );
+
+    // Extra project IDs added manually (not linked to a specific erlaeuterung subrow)
+    const [extraIds, setExtraIds] = useState<number[]>([]);
+
+    function _notifyChange(nextSub: (number | null)[], nextExtra: number[]) {
+        const ids = [...new Set([
+            ...nextSub.filter((id): id is number => id !== null),
+            ...nextExtra,
+        ])];
+        onProjectIdsChange(row.finve_number, ids);
+    }
+
+    function handleSubAssign(idx: number, projectId: number | null) {
+        const next = [...subAssignments];
+        next[idx] = projectId;
+        setSubAssignments(next);
+        _notifyChange(next, extraIds);
+    }
+
+    function handleExtraChange(vals: string[]) {
+        const next = vals.map(Number);
+        setExtraIds(next);
+        _notifyChange(subAssignments, next);
+    }
+
     const suggestedSet = new Set((row.suggested_project_ids ?? []).map(String));
     const hasSuggestions = suggestedSet.size > 0;
-    // Options with "(Vorschlag)" suffix for auto-suggested projects
+    // Options with "✦" suffix for auto-suggested projects
     const annotatedOptions = projectOptions.map((opt) =>
         suggestedSet.has(opt.value)
             ? { ...opt, label: `${opt.label} ✦` }
@@ -89,7 +131,12 @@ function DataRow({
                     ) : null}
                 </Table.Td>
 
-                <Table.Td><StatusBadge status={row.status} /></Table.Td>
+                <Table.Td>
+                    <Stack gap={2}>
+                        <StatusBadge status={row.status} />
+                        {row.is_sammel_finve && <SvBadge />}
+                    </Stack>
+                </Table.Td>
 
                 {/* Lfd. Nr. / FinVe / Bedarfsplan stacked */}
                 <Table.Td style={{ whiteSpace: "nowrap" }}>
@@ -102,35 +149,42 @@ function DataRow({
                     <Text size="xs">{row.name}</Text>
                 </Table.Td>
 
-                {/* Projektzuordnung — direkt neben der Bezeichnung */}
+                {/* Projektzuordnung */}
                 {!readonly && (
                     <Table.Td style={{ minWidth: 320 }}>
                         {(row.status === "new" || row.status === "update") ? (
-                            <Stack gap={4}>
-                                <MultiSelect
-                                    data={annotatedOptions}
-                                    value={row.project_ids.map(String)}
-                                    onChange={(vals) =>
-                                        onProjectIdsChange(row.finve_number, vals.map(Number))
-                                    }
-                                    placeholder="Projekte wählen..."
-                                    searchable
-                                    size="xs"
-                                    style={{ width: "100%" }}
-                                />
-                                {hasSuggestions && row.status === "new" && (
-                                    <Tooltip label="Automatischer Vorschlag basierend auf Namensähnlichkeit. ✦ markiert Vorschläge in der Liste." withArrow>
-                                        <Badge
-                                            color="blue"
-                                            variant="light"
-                                            size="xs"
-                                            style={{ cursor: "default", width: "fit-content" }}
-                                        >
-                                            Auto-Vorschlag
-                                        </Badge>
-                                    </Tooltip>
-                                )}
-                            </Stack>
+                            hasSvSubrows ? (
+                                // SV rows with subrows: show count summary only
+                                <Text size="xs" c="dimmed">
+                                    {subAssignments.filter(Boolean).length} / {erlaeuterungProjects.length} zugeordnet
+                                </Text>
+                            ) : (
+                                <Stack gap={4}>
+                                    <MultiSelect
+                                        data={annotatedOptions}
+                                        value={row.project_ids.map(String)}
+                                        onChange={(vals) =>
+                                            onProjectIdsChange(row.finve_number, vals.map(Number))
+                                        }
+                                        placeholder="Projekte wählen..."
+                                        searchable
+                                        size="xs"
+                                        style={{ width: "100%" }}
+                                    />
+                                    {hasSuggestions && row.status === "new" && (
+                                        <Tooltip label="Automatischer Vorschlag basierend auf Namensähnlichkeit. ✦ markiert Vorschläge in der Liste." withArrow>
+                                            <Badge
+                                                color="blue"
+                                                variant="light"
+                                                size="xs"
+                                                style={{ cursor: "default", width: "fit-content" }}
+                                            >
+                                                Auto-Vorschlag
+                                            </Badge>
+                                        </Tooltip>
+                                    )}
+                                </Stack>
+                            )
                         ) : (
                             <Text size="xs" c="dimmed">
                                 {row.project_ids.length > 0
@@ -164,6 +218,64 @@ function DataRow({
             </Table.Tr>
 
             {/* Collapsible detail row: Haushaltstiteln + nachrichtlich (EVU/Dritte) */}
+            {/* SV subrows: one per Erläuterung project name */}
+            {hasSvSubrows && !readonly && erlaeuterungProjects.map((projectName, idx) => (
+                <Table.Tr
+                    key={`sv-sub-${idx}`}
+                    style={{ background: "var(--mantine-color-violet-0)" }}
+                >
+                    <Table.Td />
+                    <Table.Td />
+                    <Table.Td />
+                    <Table.Td style={{ whiteSpace: "normal", paddingLeft: 20 }}>
+                        <Text size="xs" c="dimmed" style={{ lineHeight: 1.4 }}>
+                            ↳ {projectName}
+                        </Text>
+                    </Table.Td>
+                    <Table.Td style={{ minWidth: 280 }}>
+                        <Select
+                            data={projectOptions}
+                            value={subAssignments[idx] !== null ? String(subAssignments[idx]) : null}
+                            onChange={(val) => handleSubAssign(idx, val ? Number(val) : null)}
+                            placeholder="Projekt suchen & zuordnen..."
+                            searchable
+                            clearable
+                            size="xs"
+                            style={{ width: "100%" }}
+                            leftSection={suggestions[idx] != null && subAssignments[idx] === suggestions[idx]
+                                ? <Text size="xs" c="blue">✦</Text>
+                                : undefined}
+                        />
+                    </Table.Td>
+                    <Table.Td colSpan={11} />
+                </Table.Tr>
+            ))}
+
+            {/* Extra projects row: allows adding projects not mentioned in Erläuterung */}
+            {hasSvSubrows && !readonly && (
+                <Table.Tr style={{ background: "var(--mantine-color-violet-0)" }}>
+                    <Table.Td />
+                    <Table.Td />
+                    <Table.Td />
+                    <Table.Td style={{ whiteSpace: "normal", paddingLeft: 20 }}>
+                        <Text size="xs" c="dimmed" fs="italic">+ weitere Projekte</Text>
+                    </Table.Td>
+                    <Table.Td style={{ minWidth: 280 }}>
+                        <MultiSelect
+                            data={projectOptions}
+                            value={extraIds.map(String)}
+                            onChange={handleExtraChange}
+                            placeholder="Weitere Projekte manuell hinzufügen..."
+                            searchable
+                            clearable
+                            size="xs"
+                            style={{ width: "100%" }}
+                        />
+                    </Table.Td>
+                    <Table.Td colSpan={11} />
+                </Table.Tr>
+            )}
+
             {hasTitel && (
                 <Table.Tr>
                     <Table.Td colSpan={span} p={0}>
@@ -340,26 +452,41 @@ function RowGroup({
 }
 
 export function ReviewTable({ rows, projects, onProjectIdsChange, readonly }: Props) {
-    const newRows = rows.filter((r) => r.status === "new");
-    const updateRows = rows.filter((r) => r.status === "update");
+    const regularNew    = rows.filter((r) => r.status === "new"    && !r.is_sammel_finve);
+    const regularUpdate = rows.filter((r) => r.status === "update" && !r.is_sammel_finve);
+    const svRows        = rows.filter((r) => r.is_sammel_finve ?? false);
     const unmatchedRows = rows.filter((r) => r.status === "unmatched");
 
     return (
         <Stack gap="xl">
             <RowGroup
                 title="Neue FinVes"
-                rows={newRows}
+                rows={regularNew}
                 projects={projects}
                 onProjectIdsChange={onProjectIdsChange}
                 readonly={readonly}
             />
             <RowGroup
                 title="Geänderte FinVes"
-                rows={updateRows}
+                rows={regularUpdate}
                 projects={projects}
                 onProjectIdsChange={onProjectIdsChange}
                 readonly={readonly}
             />
+            {svRows.length > 0 && (
+                <Stack gap="xs">
+                    <Text size="sm" c="dimmed">
+                        Sammelfinanzierungsvereinbarungen – bitte Projekte manuell zuordnen
+                    </Text>
+                    <RowGroup
+                        title="Sammel-FinVes (Phase 2)"
+                        rows={svRows}
+                        projects={projects}
+                        onProjectIdsChange={onProjectIdsChange}
+                        readonly={readonly}
+                    />
+                </Stack>
+            )}
             <RowGroup
                 title="Unbekannte Zeilen"
                 rows={unmatchedRows}

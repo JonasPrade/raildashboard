@@ -63,6 +63,52 @@ def _score(finve_name: str, project_name: str) -> float:
     return 0.6 * full + 0.4 * token_score
 
 
+def suggest_projects_for_sv_erlaeuterung(
+    project_names: list[str],
+    projects: list,  # list of Project ORM instances (need .id and .name)
+) -> list[int]:
+    """For Sammel-FinVes: match each listed project name from the Erläuterung
+    against DB projects and return the best match per name (deduplicated).
+    Used to populate the parent FinVe's suggested_project_ids.
+    """
+    result: list[int] = []
+    seen: set[int] = set()
+    for name in project_names:
+        best: tuple[float, int] | None = None
+        for proj in projects:
+            if not proj.name:
+                continue
+            s = _score(name, proj.name)
+            if s >= _THRESHOLD and (best is None or s > best[0]):
+                best = (s, proj.id)
+        if best and best[1] not in seen:
+            seen.add(best[1])
+            result.append(best[1])
+    return result
+
+
+def suggest_per_erlaeuterung_project(
+    project_names: list[str],
+    projects: list,  # list of Project ORM instances (need .id and .name)
+) -> list[int | None]:
+    """Return one best-match project ID per erlaeuterung project name (or None if
+    no match is found above the threshold).  Result length == len(project_names).
+    Unlike suggest_projects_for_sv_erlaeuterung, duplicates are allowed so that
+    each subrow gets its own independent suggestion.
+    """
+    result: list[int | None] = []
+    for name in project_names:
+        best: tuple[float, int] | None = None
+        for proj in projects:
+            if not proj.name:
+                continue
+            s = _score(name, proj.name)
+            if s >= _THRESHOLD and (best is None or s > best[0]):
+                best = (s, proj.id)
+        result.append(best[1] if best else None)
+    return result
+
+
 def suggest_projects_for_finve(
     finve_name: str,
     projects: list,  # list of Project ORM instances (need .id and .name)

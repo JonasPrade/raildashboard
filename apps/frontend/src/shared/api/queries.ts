@@ -426,6 +426,7 @@ export type ProposedFinve = {
     name: string;
     starting_year: number | null;
     cost_estimate_original: number | null;
+    is_sammel_finve: boolean;
 };
 
 export type ProposedBudget = {
@@ -444,12 +445,16 @@ export type ProposedBudget = {
     spending_residues: number | null;
     year_planned: number | null;
     next_years: number | null;
+    sammel_finve: boolean;
 };
 
 export type HaushaltsParseRow = {
     finve_number: number;
     name: string;
     status: "new" | "update" | "unmatched";
+    is_sammel_finve: boolean;
+    erlaeuterung_projects: string[];
+    erlaeuterung_suggestions: (number | null)[];
     proposed_finve: ProposedFinve | null;
     proposed_budget: ProposedBudget | null;
     proposed_titel_entries: TitelEntryProposed[];

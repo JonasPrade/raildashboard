@@ -12,5 +12,6 @@ class Finve(Base):
     starting_year = Column(Integer)
     cost_estimate_original = Column(Integer)
     temporary_finve_number = Column(Boolean, default=False)  # if true the finve number is not known yet
+    is_sammel_finve = Column(Boolean, default=False, nullable=False, server_default="false")
 
 
