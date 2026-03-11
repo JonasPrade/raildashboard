@@ -7,6 +7,7 @@ This file applies to the entire repository. Read it before making any substantia
 -  **Default language:** English. Write code, comments, documentation, commit messages, and PR descriptions in English. UI strings displayed to end users are in German.
 -  **Commit messages must always be in English** — no exceptions, even if the conversation is in German.
 - When asked to update or edit the roadmap, modify roadmap.md directly. Do NOT implement features unless explicitly asked to implement them.
+- Never attempt roadmap items explicitly marked as **human task** — skip them entirely.
 - When updating documentation, update ALL documentation layers (README, AGENT.md, roadmap.md, frontend docs, etc.) — not just a single file. Look also at the section ## Keep documentation in this file
 - 
 

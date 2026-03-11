@@ -75,7 +75,10 @@ export default function MapPage() {
 
     // --- Map tab: multi-group filter ---
     const selectedGroups = useMemo(() => {
-        if (selectedGroupIds.length === 0) return groups;
+        if (selectedGroupIds.length === 0) {
+            const defaults = groups.filter((g) => g.is_default_selected);
+            return defaults.length > 0 ? defaults : groups;
+        }
         const selectedSet = new Set(selectedGroupIds);
         return groups.filter((group) => selectedSet.has(group.id));
     }, [groups, selectedGroupIds]);

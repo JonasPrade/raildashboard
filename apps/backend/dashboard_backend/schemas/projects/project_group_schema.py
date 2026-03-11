@@ -10,6 +10,7 @@ class ProjectGroupSchema(BaseModel):
     public: bool = False
     color: str = "#FF0000"
     plot_only_superior_projects: bool = True
+    is_default_selected: bool = False
     id_old: Optional[int] = None
 
     # relationships

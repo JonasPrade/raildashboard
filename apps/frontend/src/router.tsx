@@ -7,6 +7,7 @@ import DocumentationPage from "./features/documentation/DocumentationPage";
 import ProjectDetail from "./features/projects/ProjectDetail";
 
 const UsersPage = lazy(() => import("./features/admin/UsersPage"));
+const ProjectGroupsAdminPage = lazy(() => import("./features/admin/ProjectGroupsAdminPage"));
 const HaushaltsImportPage = lazy(() => import("./features/haushalt-import/HaushaltsImportPage"));
 const HaushaltsReviewPage = lazy(() => import("./features/haushalt-import/HaushaltsReviewPage"));
 const HaushaltsUnmatchedPage = lazy(() => import("./features/haushalt-import/HaushaltsUnmatchedPage"));
@@ -40,6 +41,14 @@ export const router = createBrowserRouter([
                 element: (
                     <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
                         <UsersPage />
+                    </Suspense>
+                ),
+            },
+            {
+                path: "admin/project-groups",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <ProjectGroupsAdminPage />
                     </Suspense>
                 ),
             },

@@ -190,6 +190,18 @@ export function useProjectGroups() {
     });
 }
 
+export function useUpdateProjectGroup() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({ groupId, isDefaultSelected }: { groupId: number; isDefaultSelected: boolean }) =>
+            api<ProjectGroup>(`/api/v1/project_groups/${groupId}`, {
+                method: "PATCH",
+                body: JSON.stringify({ is_default_selected: isDefaultSelected }),
+            }),
+        onSuccess: () => qc.invalidateQueries({ queryKey: ["projectGroups"] }),
+    });
+}
+
 export const projectRoutesQueryKey = (projectId: number) => ["projectRoutes", projectId];
 
 export const getProjectRoutesQueryOptions = (projectId: number) => ({

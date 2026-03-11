@@ -9,6 +9,16 @@ def get_project_group_by_id(db: Session, group_id: int):
 def get_project_groups(db: Session):
     return db.query(ProjectGroup).all()
 
+def update_project_group(db: Session, group_id: int, updates: dict):
+    db_group = db.query(ProjectGroup).filter(ProjectGroup.id == group_id).first()
+    if not db_group:
+        return None
+    for key, value in updates.items():
+        setattr(db_group, key, value)
+    db.commit()
+    db.refresh(db_group)
+    return db_group
+
 # def create_project_group(db: Session, group: dict):
 #     db_group = ProjectGroup(**group)
 #     db.add(db_group)

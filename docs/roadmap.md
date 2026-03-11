@@ -7,8 +7,8 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 
 ## Short-Term Features
 
-- [ ] zoom a little bit more out in the map in the project
-- [ ] the start selection of ProjectGroups on map should be configured by the admin
+- [x] zoom a little bit more out in the map in the project
+- [x] the start selection of ProjectGroups on map should be configured by the admin
 
 This tasks must be done by human:
 - [ ] Import of the Haushalt Berichte 2020 - 2025

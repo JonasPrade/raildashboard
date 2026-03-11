@@ -14,6 +14,8 @@ class ProjectGroup(Base):
     color = Column(String(10), default="#FF0000")
     plot_only_superior_projects = Column(Boolean, default=True,
         comment='if true, only projects that have no superior project is plotted in frontend')
+    is_default_selected = Column(Boolean, default=False,
+        comment='if true, this group is pre-selected on the map when no ?group= URL param is present')
     id_old = Column(Integer, unique=True, nullable=True,
         comment='old id from the old database, used for migration purposes')
 

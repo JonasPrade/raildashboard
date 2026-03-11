@@ -157,7 +157,8 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /** Patch Project Group */
+        patch: operations["patch_project_group_api_v1_project_groups__group_id__patch"];
         trace?: never;
     };
     "/api/v1/users/me": {
@@ -859,6 +860,11 @@ export interface components {
              * @default true
              */
             plot_only_superior_projects: boolean;
+            /**
+             * Is Default Selected
+             * @default false
+             */
+            is_default_selected: boolean;
             /** Id Old */
             id_old?: number | null;
             /**
@@ -866,6 +872,11 @@ export interface components {
              * @description List of projects associated with this project group
              */
             projects?: components["schemas"]["ProjectSchema"][];
+        };
+        /** ProjectGroupUpdate */
+        ProjectGroupUpdate: {
+            /** Is Default Selected */
+            is_default_selected: boolean;
         };
         /** ProjectRefSchema */
         ProjectRefSchema: {
@@ -1919,6 +1930,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_project_group_api_v1_project_groups__group_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectGroupUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectGroupSchema"];
                 };
             };
             /** @description Validation Error */

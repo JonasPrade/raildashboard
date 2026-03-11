@@ -259,9 +259,13 @@ const ProjectGroupSchema = z
     public: z.boolean().optional().default(false),
     color: z.string().optional().default("#FF0000"),
     plot_only_superior_projects: z.boolean().optional().default(true),
+    is_default_selected: z.boolean().optional().default(false),
     id_old: z.union([z.number(), z.null()]).optional(),
     projects: z.array(ProjectSchema).optional(),
   })
+  .passthrough();
+const ProjectGroupUpdate = z
+  .object({ is_default_selected: z.boolean() })
   .passthrough();
 const UserRole = z.enum(["viewer", "editor", "admin"]);
 const UserRead = z
@@ -533,6 +537,7 @@ export const schemas = {
   ChangeLogRead,
   RevertFieldRequest,
   ProjectGroupSchema,
+  ProjectGroupUpdate,
   UserRole,
   UserRead,
   UserCreate,
@@ -750,6 +755,32 @@ for that haushalt_year are also removed so the year can be re-imported.`,
       },
     ],
     response: z.unknown(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "patch",
+    path: "/api/v1/project_groups/:group_id",
+    alias: "patch_project_group_api_v1_project_groups__group_id__patch",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: z.object({ is_default_selected: z.boolean() }).passthrough(),
+      },
+      {
+        name: "group_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: ProjectGroupSchema,
     errors: [
       {
         status: 422,

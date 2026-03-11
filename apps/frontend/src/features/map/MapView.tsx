@@ -254,7 +254,7 @@ export default function MapView({ projects, lineWidth = 4, pointSize = 5, height
                 ],
             },
             center: initialCenter ?? [10.0, 51.0],
-            zoom: initialCenter ? 7 : 5,
+            zoom: initialCenter ? 6 : 5,
         });
 
         mapInstanceRef.current = mapInstance;
