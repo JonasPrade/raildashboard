@@ -71,11 +71,15 @@ Each FinVe renders as a collapsible card with three tabs:
 - **Kostenentwicklung** — `LineChart` of original / prior-year / current cost estimate trends (only shown for ≥ 2 budget years)
 - **Haushaltstiteln {year}** — detail table of the most recent budget year, split into regular and *nachrichtlich* entries
 
+Sammel-FinVes (`is_sammel_finve = true`) render as a compact inline tag instead of the full card (no charts).
+
 Charts use a custom `ChartLegend` component rendered below the chart SVG (avoids recharts clipping) with Mantine `ColorSwatch` + `Text`.
 
 ### Haushalt PDF import (`features/haushalt-import/`)
 
 Multi-step import workflow for federal budget PDFs. The `ReviewTable` shows auto-suggested project assignments (marked with ✦) computed during the Celery parse task via fuzzy name matching. The Projektzuordnung column has a minimum width of 320 px.
+
+`HaushaltsGuidePage.tsx` (`/admin/haushalt-import/guide`) provides a step-by-step user guide (accordion format) with troubleshooting FAQ. Linked from both the import page and the review page.
 
 ## Development conventions
 

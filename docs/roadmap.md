@@ -7,67 +7,17 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 
 ## Short-Term Features
 
-
-
 - [ ] zoom a little bit more out in the map in the project
-- [x] the clock (Uhrzeit) is wrong in some parts -> watch that is set to Berlin
-- [x] Create a online manual (or documentation) for the import of the haushalt. Make it understandably for the user with an step-by-step explanation of what to do. Link that manual at the all pages with haushalt-import and the check of the parsed pdf
-- [x] if a project is in the sammelfinve listed - only show a tag that say in which sammelfinve it is listed in the project Detail View
-- [x] after the review auf Haushalt/Finve - move back to the parsing overview
 - [ ] the start selection of ProjectGroups on map should be configured by the admin
-- [x] make a fivew of the finance (Haushalt). New Page - new Header. there all finve should be seen in maps. Make it searchable. Make filter (f.e. sammmelfinve or other)
+
+This tasks must be done by human:
+- [ ] Import of the Haushalt Berichte 2020 - 2025
+
 ---
 
 ## Mid-Term Features
 
 - [ ] Search funktion for Project in ProjectMap and List
-
-### Haushaltsberichte
-
-Jährlicher Import der Anlage VWIB, Teil B (Bundeshaushalt) als PDF.
-Die Tabelle enthält alle Bedarfsplanmaßnahmen des Schienenwegeinvestitionsprogramms
-mit FinVe-Nummern, Kostenschätzungen und Jahresansätzen je Haushaltskonto.
-
-**Implementierungsstand:** Schritte 1–8 vollständig abgeschlossen (DB-Modelle, Parser, API, Frontend-Import-Flow, FinVe-Matching, FinVe-Anzeige in Projektdetailseite). Siehe Finished-Sektion für Details.
-
-**PDF-Spalten-Mapping** (Werte in €1.000, außer %):
-
-| Spalte | Header | Ziel-Feld |
-|--------|--------|-----------|
-| 1 | Lfd. Nr. | `Budget.lfd_nr` (z.B. "B0080") |
-| 2 | Nr. FinVe | `Finve.id` (Integer, Matching-Schlüssel) |
-| 3 | Nr. Bedarfsplan Schiene | `Budget.bedarfsplan_number` |
-| 4 | Bezeichnung der Investitionsmaßnahme | `Finve.name` |
-| 5 | Aufnahme Jahr | `Finve.starting_year` |
-| 6 | Gesamtausgaben ursprünglich | `Budget.cost_estimate_original` |
-| 7 | Gesamtausgaben Vorjahr | `Budget.cost_estimate_last_year` |
-| 8 | Gesamtausgaben aktuell | `Budget.cost_estimate_actual` |
-| 9 | Δ zum Vorjahr (€1.000) | `Budget.delta_previous_year` |
-| 10 | Δ zum Vorjahr (%) | `Budget.delta_previous_year_relativ` |
-| 11 | Gründe | `Budget.delta_previous_year_reasons` |
-| 12 | Verausgabt bis Y-2 | `Budget.spent_two_years_previous` |
-| 13 | Bewilligt Y-1 | `Budget.allowed_previous_year` |
-| 14 | Übertragene Ausgabereste | `Budget.spending_residues` |
-| 15 | Veranschlagt Y | `Budget.year_planned` |
-| 16 | Vorhalten Y+1 ff. | `Budget.next_years` |
-
-Titelunterzeilen (Spalten 7, 8, 12–16) → `BudgetTitelEntry` verknüpft mit `HaushaltTitel`.
-Nachrichtlich-Zeilen (kursiv) werden ebenfalls als `is_nachrichtlich=True` gespeichert.
-
-**Haushaltstitel im PDF 2026** (Lookup-Tabelle `haushalt_titel`, auto-erweiterbar):
-- `891_01` → Kap. 1202, Titel 891 01
-- `891_03` → Kap. 1202, Titel 891 03
-- `891_04` → Kap. 1202, Titel 891 04
-- `891_52` → Kap. 1408, Titel 891 52
-- `891_91` → Kap. 1202 (alt), Titel 891 91 – IIP Schiene
-- `891_11` → Kap. 1202 (alt), Titel 891 11 – LUFV (alt)
-
-Neue Titel in künftigen PDFs werden automatisch per `get_or_create` registriert.
-
-**Offene Punkte:**
-- [ ] **FinVe in zugeordneten Projekten anzeigen** — In der Projektdetailseite werden die FinVes bereits angezeigt (`FinveSection.tsx`). Prüfen ob umgekehrt auch das zugeordnete Projekt aus der FinVe-Perspektive navigierbar ist.
-- [x] **Sonderbehandlung Sammelfinve** — Einzelne FinVes (z.B. Sammelfinve für kleinere Maßnahmen) haben massenhaft Projektzuordnungen, die sich über die Jahre ändern. Benötigt: eigene UI-Behandlung im Review-Flow, ggf. Jahres-spezifische Zuordnungstabelle statt einfacher `FinveToProject`.
-- [x] Show all the financing in an separate overview. List all contracts. Make it clickable for more informations. Add the same diagrams as in ProjectView. Make the overview searchable
 
 ---
 
@@ -176,6 +126,9 @@ Priorität:
 - [x] Projektdetails + Beschreibung neben Karte (Karte rechts, 2/3 Breite bei ausreichend Platz)
 - [x] Projekteigenschaften (inkl. Verkehrsarten, Merkmale) in Box „Projektdetails"; alte ID entfernt
 - [x] Kurzansicht-Komponente für Projekte auf Karte und in Projektdetail (Unter-/Oberprojekte)
+- [x] Datum-/Zeitanzeige durchgehend auf Zeitzone Europe/Berlin umgestellt (Changelog, Import, Nutzerverwaltung)
+- [x] Nach Bestätigung des Haushalt-Reviews automatische Weiterleitung zur Import-Übersicht
+- [x] SV-FinVes in Projektdetailseite als kompakter Tag dargestellt (kein Diagramm)
 
 ### Texte & Kommentare
 - [x] Projekttexte anzeigen (über übergeordnetes Projekt), erstellen, bearbeiten
@@ -194,6 +147,45 @@ Priorität:
 - [x] User-Management-Seite `/admin/users` (nur admin): Nutzer anlegen, Rolle/Passwort ändern, löschen
 
 ### Haushaltsberichte-Import (vollständig)
+
+Jährlicher Import der Anlage VWIB, Teil B (Bundeshaushalt) als PDF.
+Die Tabelle enthält alle Bedarfsplanmaßnahmen des Schienenwegeinvestitionsprogramms
+mit FinVe-Nummern, Kostenschätzungen und Jahresansätzen je Haushaltskonto.
+
+**PDF-Spalten-Mapping** (Werte in €1.000, außer %):
+
+| Spalte | Header | Ziel-Feld |
+|--------|--------|-----------|
+| 1 | Lfd. Nr. | `Budget.lfd_nr` (z.B. "B0080") |
+| 2 | Nr. FinVe | `Finve.id` (Integer, Matching-Schlüssel) |
+| 3 | Nr. Bedarfsplan Schiene | `Budget.bedarfsplan_number` |
+| 4 | Bezeichnung der Investitionsmaßnahme | `Finve.name` |
+| 5 | Aufnahme Jahr | `Finve.starting_year` |
+| 6 | Gesamtausgaben ursprünglich | `Budget.cost_estimate_original` |
+| 7 | Gesamtausgaben Vorjahr | `Budget.cost_estimate_last_year` |
+| 8 | Gesamtausgaben aktuell | `Budget.cost_estimate_actual` |
+| 9 | Δ zum Vorjahr (€1.000) | `Budget.delta_previous_year` |
+| 10 | Δ zum Vorjahr (%) | `Budget.delta_previous_year_relativ` |
+| 11 | Gründe | `Budget.delta_previous_year_reasons` |
+| 12 | Verausgabt bis Y-2 | `Budget.spent_two_years_previous` |
+| 13 | Bewilligt Y-1 | `Budget.allowed_previous_year` |
+| 14 | Übertragene Ausgabereste | `Budget.spending_residues` |
+| 15 | Veranschlagt Y | `Budget.year_planned` |
+| 16 | Vorhalten Y+1 ff. | `Budget.next_years` |
+
+Titelunterzeilen (Spalten 7, 8, 12–16) → `BudgetTitelEntry` verknüpft mit `HaushaltTitel`.
+Nachrichtlich-Zeilen (kursiv) werden ebenfalls als `is_nachrichtlich=True` gespeichert.
+
+**Haushaltstitel im PDF 2026** (Lookup-Tabelle `haushalt_titel`, auto-erweiterbar):
+- `891_01` → Kap. 1202, Titel 891 01
+- `891_03` → Kap. 1202, Titel 891 03
+- `891_04` → Kap. 1202, Titel 891 04
+- `891_52` → Kap. 1408, Titel 891 52
+- `891_91` → Kap. 1202 (alt), Titel 891 91 – IIP Schiene
+- `891_11` → Kap. 1202 (alt), Titel 891 11 – LUFV (alt)
+
+Neue Titel in künftigen PDFs werden automatisch per `get_or_create` registriert.
+
 - [x] DB-Modelle: `HaushaltTitel`, `BudgetTitelEntry`, `HaushaltsParseResult`, `FinveChangeLog`, `BudgetChangeLog`, `UnmatchedBudgetRow` + Alembic-Migration
 - [x] Pydantic-Schemas (`haushalt_import.py`), CRUD-Funktionen (`crud/haushalt_import.py`)
 - [x] Celery-Task `parse_haushalt_pdf` (`tasks/haushalt.py`) mit `pdfplumber`; Parser-Fixes für 2026-Format (zusammengeführte Spalten, mehrzeilige Zellen, `_KAP_TITEL_RE` mit `(alt)`-Zusatz, `_BHO_NOTE_RE`)
@@ -204,6 +196,7 @@ Priorität:
 - [x] FinVe-Anzeige in `ProjectDetail`: `GET /api/v1/projects/{id}/finves`, `FinveSection.tsx` mit 3 Tabs (Budgetverteilung BarChart, Kostenentwicklung LineChart, Detailtabelle); `@mantine/charts` + `recharts`
 - [x] **Sammelfinanzierungsvereinbarungen (SV-FinVes)**: Erkennung via Regex im Parser, `is_sammel_finve`-Flag in DB (`finve`-Tabelle) + Alembic-Migration, eigene Review-Sektion "Sammel-FinVes (Phase 2)" in der UI, per-Projekt-Unterzeilen mit Fuzzy-Vorschlägen aus dem Erläuterungstext, Erkennung mehrseitiger Erläuterungen (flat-table-Ansatz + Continuation-Detection), Wiederherstellung von Zeilen mit fehlendem YYY-Identifier via Raw-Text-Lookup. `finve_to_project` um `haushalt_year`-Spalte erweitert: reguläre FinVes nutzen `NULL` (permanente Zuordnung), SV-FinVes speichern Mitgliedschaft pro Jahr → historische Projektzu-/abgänge bleiben erhalten.
 - [x] **FinVe-Übersicht** (`/finves`): Neue Seite mit Kartenansicht aller Finanzierungsvereinbarungen, Volltextsuche, Typ-Filter (Alle / Regulär / Sammel-FinVes). Jede Karte zeigt Kenndaten, verknüpfte Projekte als anklickbare Mini-Cards (Link → Projektdetailseite) sowie ausklappbare Budget-Diagramme (Stacked BarChart, LineChart, Detailtabelle) analog zu `FinveSection.tsx`. Backend: `GET /api/v1/finves` (auth required) + CRUD mit Eager-Load Budgets + Titel.
+- [x] **Import-Anleitung** (`/admin/haushalt-import/guide`): Schritt-für-Schritt-Dokumentation für Endnutzer; verlinkt von Import- und Review-Seite.
 
 ### Infrastruktur
 - [x] Docker: Dev (nur DB + Redis), Prod (DB + Backend + Frontend/nginx + Worker); Entrypoint-Skript mit Alembic-Migration, Makefile-Targets
