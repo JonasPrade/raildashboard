@@ -115,6 +115,20 @@ const LINE_SERIES = [
     { name: "Aktuell", color: "green.6" },
 ] as const;
 
+const CHART_TOOLTIP_PROPS = {
+    contentStyle: {
+        background: "var(--mantine-color-body)",
+        border: "1px solid var(--mantine-color-default-border)",
+        borderRadius: "var(--mantine-radius-sm)",
+        color: "var(--mantine-color-text)",
+        fontSize: 12,
+    },
+} as const;
+
+function fmtChart(v: number | null) {
+    return v != null ? v.toLocaleString("de-DE") + " T€" : "–";
+}
+
 // ---------------------------------------------------------------------------
 // Titel detail table per year
 // ---------------------------------------------------------------------------
@@ -281,18 +295,8 @@ function FinveCard({ finve }: { finve: FinveWithBudgets }) {
                                                 type="stacked"
                                                 tickLine="x"
                                                 gridAxis="y"
-                                                valueFormatter={(v) =>
-                                                    v != null ? v.toLocaleString("de-DE") + " T€" : "–"
-                                                }
-                                                tooltipProps={{
-                                                    contentStyle: {
-                                                        background: "var(--mantine-color-body)",
-                                                        border: "1px solid var(--mantine-color-default-border)",
-                                                        borderRadius: "var(--mantine-radius-sm)",
-                                                        color: "var(--mantine-color-text)",
-                                                        fontSize: 12,
-                                                    },
-                                                }}
+                                                valueFormatter={fmtChart}
+                                                tooltipProps={CHART_TOOLTIP_PROPS}
                                             />
                                         </Box>
                                         <ChartLegend
@@ -329,18 +333,8 @@ function FinveCard({ finve }: { finve: FinveWithBudgets }) {
                                                 tickLine="x"
                                                 gridAxis="y"
                                                 withDots
-                                                valueFormatter={(v) =>
-                                                    v != null ? v.toLocaleString("de-DE") + " T€" : "–"
-                                                }
-                                                tooltipProps={{
-                                                    contentStyle: {
-                                                        background: "var(--mantine-color-body)",
-                                                        border: "1px solid var(--mantine-color-default-border)",
-                                                        borderRadius: "var(--mantine-radius-sm)",
-                                                        color: "var(--mantine-color-text)",
-                                                        fontSize: 12,
-                                                    },
-                                                }}
+                                                valueFormatter={fmtChart}
+                                                tooltipProps={CHART_TOOLTIP_PROPS}
                                             />
                                         </Box>
                                         <ChartLegend

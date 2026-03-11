@@ -202,9 +202,9 @@ export default function HaushaltsGuidePage() {
                     </List>
                 </Alert>
 
-                <Accordion variant="separated" radius="md" defaultValue="step-0">
-                    {STEPS.map((step, i) => (
-                        <Accordion.Item key={i} value={`step-${i}`}>
+                <Accordion variant="separated" radius="md" defaultValue="step-1">
+                    {STEPS.map((step) => (
+                        <Accordion.Item key={step.nr} value={`step-${step.nr}`}>
                             <Accordion.Control>
                                 <Group gap="sm" align="center">
                                     <Badge size="lg" variant="filled" color="blue" w={28} p={0} style={{ flexShrink: 0 }}>
