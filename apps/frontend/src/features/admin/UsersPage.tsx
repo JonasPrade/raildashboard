@@ -1,11 +1,14 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
     Alert,
     Button,
+    Card,
     Container,
     Group,
     Loader,
     Select,
+    SimpleGrid,
     Stack,
     Table,
     Text,
@@ -191,6 +194,16 @@ export default function UsersPage() {
                         })}
                     </Table.Tbody>
                 </Table>
+
+                <Title order={3}>Einstellungen</Title>
+                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+                    <Card withBorder radius="md" padding="md" component={Link} to="/admin/project-groups" style={{ textDecoration: "none" }}>
+                        <Stack gap={4}>
+                            <Text fw={500}>Projektgruppen</Text>
+                            <Text size="sm" c="dimmed">Standardauswahl auf der Karte konfigurieren</Text>
+                        </Stack>
+                    </Card>
+                </SimpleGrid>
             </Stack>
 
             <CreateUserModal opened={createOpened} onClose={closeCreate} />

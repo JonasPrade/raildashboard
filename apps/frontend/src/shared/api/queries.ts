@@ -196,9 +196,33 @@ export function useUpdateProjectGroup() {
         mutationFn: ({ groupId, isDefaultSelected }: { groupId: number; isDefaultSelected: boolean }) =>
             api<ProjectGroup>(`/api/v1/project_groups/${groupId}`, {
                 method: "PATCH",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ is_default_selected: isDefaultSelected }),
             }),
         onSuccess: () => qc.invalidateQueries({ queryKey: ["projectGroups"] }),
+    });
+}
+
+export type MapGroupMode = "preconfigured" | "all";
+export type AppSettings = { map_group_mode: MapGroupMode };
+
+export function useAppSettings() {
+    return useQuery({
+        queryKey: ["appSettings"],
+        queryFn: () => api<AppSettings>("/api/v1/settings/"),
+    });
+}
+
+export function useUpdateAppSettings() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (map_group_mode: MapGroupMode) =>
+            api<AppSettings>("/api/v1/settings/", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ map_group_mode }),
+            }),
+        onSuccess: () => qc.invalidateQueries({ queryKey: ["appSettings"] }),
     });
 }
 

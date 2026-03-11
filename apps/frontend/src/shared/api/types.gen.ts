@@ -598,10 +598,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/settings/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Settings */
+        get: operations["get_settings_api_v1_settings__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Settings */
+        patch: operations["patch_settings_api_v1_settings__patch"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AppSettingsSchema */
+        AppSettingsSchema: {
+            /**
+             * Map Group Mode
+             * @default preconfigured
+             * @enum {string}
+             */
+            map_group_mode: "preconfigured" | "all";
+        };
+        /** AppSettingsUpdate */
+        AppSettingsUpdate: {
+            /**
+             * Map Group Mode
+             * @enum {string}
+             */
+            map_group_mode: "preconfigured" | "all";
+        };
         /** Body_start_parse_api_v1_import_haushalt_parse_post */
         Body_start_parse_api_v1_import_haushalt_parse_post: {
             /**
@@ -2823,6 +2858,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FinveListItemSchema"][];
+                };
+            };
+        };
+    };
+    get_settings_api_v1_settings__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSettingsSchema"];
+                };
+            };
+        };
+    };
+    patch_settings_api_v1_settings__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AppSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSettingsSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

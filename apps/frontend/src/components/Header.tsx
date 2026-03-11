@@ -77,18 +77,6 @@ export function Header() {
                     Administration
                 </NavLink>
             )}
-            {user?.role === "admin" && (
-                <NavLink
-                    to="/admin/project-groups"
-                    style={({ isActive }) => ({
-                        ...baseStyle,
-                        backgroundColor: isActive ? "rgba(17, 34, 64, 0.08)" : "transparent",
-                    })}
-                    onClick={closeDrawer}
-                >
-                    Projektgruppen
-                </NavLink>
-            )}
         </>
     );
 

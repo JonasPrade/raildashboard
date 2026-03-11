@@ -522,6 +522,15 @@ const FinveListItemSchema = z
     budgets: z.array(BudgetSummarySchema).optional().default([]),
   })
   .passthrough();
+const AppSettingsSchema = z
+  .object({
+    map_group_mode: z.enum(["preconfigured", "all"]).default("preconfigured"),
+  })
+  .partial()
+  .passthrough();
+const AppSettingsUpdate = z
+  .object({ map_group_mode: z.enum(["preconfigured", "all"]) })
+  .passthrough();
 
 export const schemas = {
   RouteRequest,
@@ -571,6 +580,8 @@ export const schemas = {
   UnmatchedBudgetRowResolveRequest,
   ProjectRefSchema,
   FinveListItemSchema,
+  AppSettingsSchema,
+  AppSettingsUpdate,
 };
 
 const endpoints = makeApi([
@@ -1201,6 +1212,34 @@ and then call the confirm endpoint to persist it.`,
       },
     ],
     response: RoutePreviewOut,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/settings/",
+    alias: "get_settings_api_v1_settings__get",
+    requestFormat: "json",
+    response: AppSettingsSchema,
+  },
+  {
+    method: "patch",
+    path: "/api/v1/settings/",
+    alias: "patch_settings_api_v1_settings__patch",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: AppSettingsUpdate,
+      },
+    ],
+    response: AppSettingsSchema,
     errors: [
       {
         status: 422,

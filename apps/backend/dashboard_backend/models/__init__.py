@@ -7,3 +7,4 @@ from . import associations  # noqa: F401
 from . import users  # noqa: F401
 from . import routes  # noqa: F401
 from . import haushalt  # noqa: F401
+from .app_settings import AppSettings  # noqa: F401

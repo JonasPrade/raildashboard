@@ -22,7 +22,7 @@ import GroupFilterDrawer, { type ProjectGroupOption } from "../projects/GroupFil
 import { ProjectCard } from "../projects/ProjectGroupsPage";
 import MapControls from "./MapControls";
 import MapView, { type MapViewProject } from "./MapView";
-import { useProjectGroups, type ProjectGroup, type Project } from "../../shared/api/queries";
+import { useProjectGroups, useAppSettings, type ProjectGroup, type Project } from "../../shared/api/queries";
 
 const DEFAULT_GROUP_COLOR = "#2563eb";
 const hasNumericId = (
@@ -37,6 +37,8 @@ const DEFAULT_POINT_SIZE = 5;
 export default function MapPage() {
     const [opened, { open, close }] = useDisclosure(false);
     const { data, isLoading, isError, error } = useProjectGroups();
+    const { data: appSettings } = useAppSettings();
+    const mapGroupMode = appSettings?.map_group_mode ?? "preconfigured";
     const [searchParams, setSearchParams] = useSearchParams();
     const [lineWidth, setLineWidth] = useState(DEFAULT_LINE_WIDTH);
     const [pointSize, setPointSize] = useState(DEFAULT_POINT_SIZE);
@@ -75,13 +77,14 @@ export default function MapPage() {
 
     // --- Map tab: multi-group filter ---
     const selectedGroups = useMemo(() => {
+        if (mapGroupMode === "all") return groups;
         if (selectedGroupIds.length === 0) {
             const defaults = groups.filter((g) => g.is_default_selected);
             return defaults.length > 0 ? defaults : groups;
         }
         const selectedSet = new Set(selectedGroupIds);
         return groups.filter((group) => selectedSet.has(group.id));
-    }, [groups, selectedGroupIds]);
+    }, [groups, selectedGroupIds, mapGroupMode]);
 
     const selectedProjects = useMemo(() => {
         const projectMap = new Map<number, MapViewProject>();
