@@ -184,6 +184,50 @@ const ProjectUpdate = z
   })
   .partial()
   .passthrough();
+const TitelEntrySchema = z
+  .object({
+    titel_key: z.string(),
+    kapitel: z.string(),
+    titel_nr: z.string(),
+    label: z.string(),
+    is_nachrichtlich: z.boolean(),
+    cost_estimate_last_year: z.union([z.number(), z.null()]).optional(),
+    cost_estimate_aktuell: z.union([z.number(), z.null()]).optional(),
+    verausgabt_bis: z.union([z.number(), z.null()]).optional(),
+    bewilligt: z.union([z.number(), z.null()]).optional(),
+    ausgabereste_transferred: z.union([z.number(), z.null()]).optional(),
+    veranschlagt: z.union([z.number(), z.null()]).optional(),
+    vorhalten_future: z.union([z.number(), z.null()]).optional(),
+  })
+  .passthrough();
+const BudgetSummarySchema = z
+  .object({
+    budget_year: z.number().int(),
+    lfd_nr: z.union([z.string(), z.null()]).optional(),
+    bedarfsplan_number: z.union([z.string(), z.null()]).optional(),
+    cost_estimate_original: z.union([z.number(), z.null()]).optional(),
+    cost_estimate_last_year: z.union([z.number(), z.null()]).optional(),
+    cost_estimate_actual: z.union([z.number(), z.null()]).optional(),
+    delta_previous_year: z.union([z.number(), z.null()]).optional(),
+    delta_previous_year_relativ: z.union([z.number(), z.null()]).optional(),
+    spent_two_years_previous: z.union([z.number(), z.null()]).optional(),
+    allowed_previous_year: z.union([z.number(), z.null()]).optional(),
+    spending_residues: z.union([z.number(), z.null()]).optional(),
+    year_planned: z.union([z.number(), z.null()]).optional(),
+    next_years: z.union([z.number(), z.null()]).optional(),
+    titel_entries: z.array(TitelEntrySchema).optional().default([]),
+  })
+  .passthrough();
+const FinveWithBudgetsSchema = z
+  .object({
+    id: z.number().int(),
+    name: z.union([z.string(), z.null()]).optional(),
+    starting_year: z.union([z.number(), z.null()]).optional(),
+    cost_estimate_original: z.union([z.number(), z.null()]).optional(),
+    is_sammel_finve: z.boolean().optional().default(false),
+    budgets: z.array(BudgetSummarySchema).optional().default([]),
+  })
+  .passthrough();
 const ChangeLogEntryRead = z
   .object({
     id: z.number().int(),
@@ -367,6 +411,7 @@ const ProposedFinve = z
     name: z.string(),
     starting_year: z.union([z.number(), z.null()]).optional(),
     cost_estimate_original: z.union([z.number(), z.null()]).optional(),
+    is_sammel_finve: z.boolean().optional().default(false),
   })
   .passthrough();
 const ProposedBudget = z
@@ -386,6 +431,7 @@ const ProposedBudget = z
     spending_residues: z.union([z.number(), z.null()]).optional(),
     year_planned: z.union([z.number(), z.null()]).optional(),
     next_years: z.union([z.number(), z.null()]).optional(),
+    sammel_finve: z.boolean().optional().default(false),
   })
   .passthrough();
 const TitelEntryProposed = z
@@ -408,6 +454,12 @@ const HaushaltsConfirmRowInput = z
   .object({
     finve_number: z.number().int(),
     status: z.string(),
+    is_sammel_finve: z.boolean().optional().default(false),
+    erlaeuterung_projects: z.array(z.string()).optional().default([]),
+    erlaeuterung_suggestions: z
+      .array(z.union([z.number(), z.null()]))
+      .optional()
+      .default([]),
     proposed_finve: z.union([ProposedFinve, z.null()]).optional(),
     proposed_budget: z.union([ProposedBudget, z.null()]).optional(),
     proposed_titel_entries: z.array(TitelEntryProposed).optional().default([]),
@@ -449,6 +501,23 @@ const UnmatchedBudgetRowSchema = z
 const UnmatchedBudgetRowResolveRequest = z
   .object({ finve_id: z.number().int() })
   .passthrough();
+const ProjectRefSchema = z
+  .object({ id: z.number().int(), name: z.string() })
+  .passthrough();
+const FinveListItemSchema = z
+  .object({
+    id: z.number().int(),
+    name: z.union([z.string(), z.null()]).optional(),
+    starting_year: z.union([z.number(), z.null()]).optional(),
+    cost_estimate_original: z.union([z.number(), z.null()]).optional(),
+    is_sammel_finve: z.boolean(),
+    temporary_finve_number: z.boolean(),
+    project_count: z.number().int(),
+    project_names: z.array(z.string()),
+    projects: z.array(ProjectRefSchema).optional().default([]),
+    budgets: z.array(BudgetSummarySchema).optional().default([]),
+  })
+  .passthrough();
 
 export const schemas = {
   RouteRequest,
@@ -457,6 +526,9 @@ export const schemas = {
   HTTPValidationError,
   ProjectSchema,
   ProjectUpdate,
+  TitelEntrySchema,
+  BudgetSummarySchema,
+  FinveWithBudgetsSchema,
   ChangeLogEntryRead,
   ChangeLogRead,
   RevertFieldRequest,
@@ -492,9 +564,19 @@ export const schemas = {
   resolved,
   UnmatchedBudgetRowSchema,
   UnmatchedBudgetRowResolveRequest,
+  ProjectRefSchema,
+  FinveListItemSchema,
 };
 
 const endpoints = makeApi([
+  {
+    method: "get",
+    path: "/api/v1/finves/",
+    alias: "get_finves_api_v1_finves__get",
+    description: `Return all Finanzierungsvereinbarungen with linked project info.`,
+    requestFormat: "json",
+    response: z.array(FinveListItemSchema),
+  },
   {
     method: "post",
     path: "/api/v1/import/haushalt/confirm",
@@ -565,6 +647,32 @@ Returns the Celery task_id for polling via GET /api/v1/tasks/{task_id}.`,
       },
     ],
     response: ParseResultPublicSchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "delete",
+    path: "/api/v1/import/haushalt/parse-result/:parse_result_id",
+    alias:
+      "delete_parse_run_result_api_v1_import_haushalt_parse_result__parse_result_id__delete",
+    description: `Delete a parse result.
+
+If the result was already confirmed, all Budget and BudgetTitelEntry rows
+for that haushalt_year are also removed so the year can be re-imported.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "parse_result_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: z.void(),
     errors: [
       {
         status: 422,
@@ -751,6 +859,29 @@ Returns the Celery task_id for polling via GET /api/v1/tasks/{task_id}.`,
       },
     ],
     response: ProjectSchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/projects/:project_id/finves",
+    alias: "get_project_finves_api_v1_projects__project_id__finves_get",
+    description: `Return all FinVes linked to a project, each with their full budget history
+including per-Haushaltstiteln breakdown.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "project_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: z.array(FinveWithBudgetsSchema),
     errors: [
       {
         status: 422,

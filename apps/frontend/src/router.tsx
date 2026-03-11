@@ -10,6 +10,7 @@ const UsersPage = lazy(() => import("./features/admin/UsersPage"));
 const HaushaltsImportPage = lazy(() => import("./features/haushalt-import/HaushaltsImportPage"));
 const HaushaltsReviewPage = lazy(() => import("./features/haushalt-import/HaushaltsReviewPage"));
 const HaushaltsUnmatchedPage = lazy(() => import("./features/haushalt-import/HaushaltsUnmatchedPage"));
+const HaushaltsGuidePage = lazy(() => import("./features/haushalt-import/HaushaltsGuidePage"));
 const FinveOverviewPage = lazy(() => import("./features/finves/FinveOverviewPage"));
 
 function Layout() {
@@ -55,6 +56,14 @@ export const router = createBrowserRouter([
                 element: (
                     <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
                         <HaushaltsReviewPage />
+                    </Suspense>
+                ),
+            },
+            {
+                path: "admin/haushalt-import/guide",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <HaushaltsGuidePage />
                     </Suspense>
                 ),
             },

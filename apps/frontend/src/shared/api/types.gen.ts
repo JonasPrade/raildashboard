@@ -65,6 +65,27 @@ export interface paths {
         patch: operations["patch_project_api_v1_projects__project_id__patch"];
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/finves": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Project Finves
+         * @description Return all FinVes linked to a project, each with their full budget history
+         *     including per-Haushaltstiteln breakdown.
+         */
+        get: operations["get_project_finves_api_v1_projects__project_id__finves_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/changelog": {
         parameters: {
             query?: never;
@@ -481,7 +502,14 @@ export interface paths {
         get: operations["get_parse_run_result_api_v1_import_haushalt_parse_result__parse_result_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete Parse Run Result
+         * @description Delete a parse result.
+         *
+         *     If the result was already confirmed, all Budget and BudgetTitelEntry rows
+         *     for that haushalt_year are also removed so the year can be re-imported.
+         */
+        delete: operations["delete_parse_run_result_api_v1_import_haushalt_parse_result__parse_result_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -549,6 +577,26 @@ export interface paths {
         patch: operations["patch_unmatched_api_v1_import_haushalt_unmatched__row_id__patch"];
         trace?: never;
     };
+    "/api/v1/finves/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Finves
+         * @description Return all Finanzierungsvereinbarungen with linked project info.
+         */
+        get: operations["get_finves_api_v1_finves__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -562,6 +610,40 @@ export interface components {
             pdf: string;
             /** Year */
             year: number;
+        };
+        /** BudgetSummarySchema */
+        BudgetSummarySchema: {
+            /** Budget Year */
+            budget_year: number;
+            /** Lfd Nr */
+            lfd_nr?: string | null;
+            /** Bedarfsplan Number */
+            bedarfsplan_number?: string | null;
+            /** Cost Estimate Original */
+            cost_estimate_original?: number | null;
+            /** Cost Estimate Last Year */
+            cost_estimate_last_year?: number | null;
+            /** Cost Estimate Actual */
+            cost_estimate_actual?: number | null;
+            /** Delta Previous Year */
+            delta_previous_year?: number | null;
+            /** Delta Previous Year Relativ */
+            delta_previous_year_relativ?: number | null;
+            /** Spent Two Years Previous */
+            spent_two_years_previous?: number | null;
+            /** Allowed Previous Year */
+            allowed_previous_year?: number | null;
+            /** Spending Residues */
+            spending_residues?: number | null;
+            /** Year Planned */
+            year_planned?: number | null;
+            /** Next Years */
+            next_years?: number | null;
+            /**
+             * Titel Entries
+             * @default []
+             */
+            titel_entries: components["schemas"]["TitelEntrySchema"][];
         };
         /** ChangeLogEntryRead */
         ChangeLogEntryRead: {
@@ -603,6 +685,56 @@ export interface components {
             x: number;
             /** Y */
             y: number;
+        };
+        /** FinveListItemSchema */
+        FinveListItemSchema: {
+            /** Id */
+            id: number;
+            /** Name */
+            name?: string | null;
+            /** Starting Year */
+            starting_year?: number | null;
+            /** Cost Estimate Original */
+            cost_estimate_original?: number | null;
+            /** Is Sammel Finve */
+            is_sammel_finve: boolean;
+            /** Temporary Finve Number */
+            temporary_finve_number: boolean;
+            /** Project Count */
+            project_count: number;
+            /** Project Names */
+            project_names: string[];
+            /**
+             * Projects
+             * @default []
+             */
+            projects: components["schemas"]["ProjectRefSchema"][];
+            /**
+             * Budgets
+             * @default []
+             */
+            budgets: components["schemas"]["BudgetSummarySchema"][];
+        };
+        /** FinveWithBudgetsSchema */
+        FinveWithBudgetsSchema: {
+            /** Id */
+            id: number;
+            /** Name */
+            name?: string | null;
+            /** Starting Year */
+            starting_year?: number | null;
+            /** Cost Estimate Original */
+            cost_estimate_original?: number | null;
+            /**
+             * Is Sammel Finve
+             * @default false
+             */
+            is_sammel_finve: boolean;
+            /**
+             * Budgets
+             * @default []
+             */
+            budgets: components["schemas"]["BudgetSummarySchema"][];
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -646,6 +778,21 @@ export interface components {
             finve_number: number;
             /** Status */
             status: string;
+            /**
+             * Is Sammel Finve
+             * @default false
+             */
+            is_sammel_finve: boolean;
+            /**
+             * Erlaeuterung Projects
+             * @default []
+             */
+            erlaeuterung_projects: string[];
+            /**
+             * Erlaeuterung Suggestions
+             * @default []
+             */
+            erlaeuterung_suggestions: (number | null)[];
             proposed_finve?: components["schemas"]["ProposedFinve"] | null;
             proposed_budget?: components["schemas"]["ProposedBudget"] | null;
             /**
@@ -719,6 +866,13 @@ export interface components {
              * @description List of projects associated with this project group
              */
             projects?: components["schemas"]["ProjectSchema"][];
+        };
+        /** ProjectRefSchema */
+        ProjectRefSchema: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
         };
         /** ProjectSchema */
         ProjectSchema: {
@@ -1189,6 +1343,11 @@ export interface components {
             year_planned?: number | null;
             /** Next Years */
             next_years?: number | null;
+            /**
+             * Sammel Finve
+             * @default false
+             */
+            sammel_finve: boolean;
         };
         /**
          * ProposedFinve
@@ -1203,6 +1362,11 @@ export interface components {
             starting_year?: number | null;
             /** Cost Estimate Original */
             cost_estimate_original?: number | null;
+            /**
+             * Is Sammel Finve
+             * @default false
+             */
+            is_sammel_finve: boolean;
         };
         /** RevertFieldRequest */
         RevertFieldRequest: {
@@ -1366,6 +1530,33 @@ export interface components {
              * Is Nachrichtlich
              * @default false
              */
+            is_nachrichtlich: boolean;
+            /** Cost Estimate Last Year */
+            cost_estimate_last_year?: number | null;
+            /** Cost Estimate Aktuell */
+            cost_estimate_aktuell?: number | null;
+            /** Verausgabt Bis */
+            verausgabt_bis?: number | null;
+            /** Bewilligt */
+            bewilligt?: number | null;
+            /** Ausgabereste Transferred */
+            ausgabereste_transferred?: number | null;
+            /** Veranschlagt */
+            veranschlagt?: number | null;
+            /** Vorhalten Future */
+            vorhalten_future?: number | null;
+        };
+        /** TitelEntrySchema */
+        TitelEntrySchema: {
+            /** Titel Key */
+            titel_key: string;
+            /** Kapitel */
+            kapitel: string;
+            /** Titel Nr */
+            titel_nr: string;
+            /** Label */
+            label: string;
+            /** Is Nachrichtlich */
             is_nachrichtlich: boolean;
             /** Cost Estimate Last Year */
             cost_estimate_last_year?: number | null;
@@ -1580,6 +1771,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_project_finves_api_v1_projects__project_id__finves_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinveWithBudgetsSchema"][];
                 };
             };
             /** @description Validation Error */
@@ -2411,6 +2633,35 @@ export interface operations {
             };
         };
     };
+    delete_parse_run_result_api_v1_import_haushalt_parse_result__parse_result_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                parse_result_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     confirm_import_api_v1_import_haushalt_confirm_post: {
         parameters: {
             query?: never;
@@ -2506,6 +2757,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_finves_api_v1_finves__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinveListItemSchema"][];
                 };
             };
         };

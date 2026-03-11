@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
     Alert,
+    Anchor,
     Button,
     Container,
     FileInput,
@@ -80,7 +81,12 @@ export default function HaushaltsImportPage() {
     return (
         <Container size="lg" py="xl">
             <Stack gap="xl">
-                <Title order={2}>Haushalts-Import</Title>
+                <Group justify="space-between" align="center">
+                    <Title order={2}>Haushalts-Import</Title>
+                    <Anchor component={Link} to="/admin/haushalt-import/guide" size="sm">
+                        Anleitung anzeigen →
+                    </Anchor>
+                </Group>
 
                 {/* A — New import */}
                 <Paper withBorder p="md">

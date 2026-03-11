@@ -391,6 +391,7 @@ export type FinveWithBudgets = {
     name: string | null;
     starting_year: number | null;
     cost_estimate_original: number | null;
+    is_sammel_finve: boolean;
     budgets: BudgetSummary[];
 };
 

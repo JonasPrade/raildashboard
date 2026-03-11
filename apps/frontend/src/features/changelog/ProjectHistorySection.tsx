@@ -154,6 +154,7 @@ function ChangeLogItem({ log, canEdit, revertingEntryId, onRevert }: ChangeLogIt
         year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
+        timeZone: "Europe/Berlin",
     });
 
     const summary = (
@@ -234,6 +235,7 @@ function TextChangeLogItem({ log }: TextChangeLogItemProps) {
         year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
+        timeZone: "Europe/Berlin",
     });
 
     const summary = (

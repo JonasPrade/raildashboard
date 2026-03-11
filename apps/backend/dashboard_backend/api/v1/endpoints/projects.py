@@ -115,6 +115,7 @@ def get_project_finves(project_id: int, db: Session = Depends(get_db)):
                 name=finve.name,
                 starting_year=finve.starting_year,
                 cost_estimate_original=finve.cost_estimate_original,
+                is_sammel_finve=finve.is_sammel_finve,
                 budgets=budget_schemas,
             )
         )

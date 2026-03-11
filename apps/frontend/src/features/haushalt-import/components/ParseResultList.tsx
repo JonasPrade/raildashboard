@@ -72,7 +72,7 @@ export function ParseResultList({ results }: Props) {
                         </Table.Td>
                         <Table.Td>
                             <Text size="sm" c="dimmed">
-                                {new Date(r.parsed_at).toLocaleString("de-DE")}
+                                {new Date(r.parsed_at).toLocaleString("de-DE", { timeZone: "Europe/Berlin" })}
                             </Text>
                         </Table.Td>
                         <Table.Td>
@@ -84,7 +84,7 @@ export function ParseResultList({ results }: Props) {
                         <Table.Td>
                             {r.confirmed_at ? (
                                 <Text size="sm" c="dimmed">
-                                    {new Date(r.confirmed_at).toLocaleString("de-DE")}
+                                    {new Date(r.confirmed_at).toLocaleString("de-DE", { timeZone: "Europe/Berlin" })}
                                 </Text>
                             ) : (
                                 <Text size="sm" c="dimmed">–</Text>

@@ -4,15 +4,11 @@
 
 This file applies to the entire repository. Read it before making any substantial change.
 
-> **Default language:** English. Write code, comments, documentation, commit messages, and PR descriptions in English. UI strings displayed to end users are in German.
-> **Commit messages must always be in English** — no exceptions, even if the conversation is in German.
-
-Coding rules:
-
-- Always verify the full roundtrip works before opening a PR.
-- if implemented an feature, mark it as finished in the roadmap.md
-
-
+-  **Default language:** English. Write code, comments, documentation, commit messages, and PR descriptions in English. UI strings displayed to end users are in German.
+-  **Commit messages must always be in English** — no exceptions, even if the conversation is in German.
+- When asked to update or edit the roadmap, modify roadmap.md directly. Do NOT implement features unless explicitly asked to implement them.
+- When updating documentation, update ALL documentation layers (README, AGENT.md, roadmap.md, frontend docs, etc.) — not just a single file. Look also at the section ## Keep documentation in this file
+- 
 
 ## How to approach tasks
 

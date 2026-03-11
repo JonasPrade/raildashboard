@@ -1,7 +1,8 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useState } from "react";
 import {
     Alert,
+    Anchor,
     Badge,
     Button,
     Container,
@@ -104,6 +105,7 @@ export default function HaushaltsReviewPage() {
                 message: `${resp.finves_created} FinVes neu, ${resp.finves_updated} aktualisiert. ${resp.unmatched_saved} unbekannte Zeilen gespeichert.`,
                 autoClose: 8000,
             });
+            navigate("/admin/haushalt-import");
         } catch (e: unknown) {
             const detail = (e as { details?: { detail?: string } })?.details?.detail;
             notifications.show({
@@ -118,18 +120,23 @@ export default function HaushaltsReviewPage() {
             <Stack gap="lg">
                 <Group justify="space-between" wrap="wrap">
                     <Stack gap={2}>
-                        <Title order={2}>
-                            Review – Haushalt {result.haushalt_year}
-                        </Title>
+                        <Group gap="sm" align="center">
+                            <Title order={2}>
+                                Review – Haushalt {result.haushalt_year}
+                            </Title>
+                            <Anchor component={Link} to="/admin/haushalt-import/guide" size="sm" c="dimmed">
+                                Anleitung →
+                            </Anchor>
+                        </Group>
                         <Text size="sm" c="dimmed">
-                            {result.pdf_filename} · geparst am {new Date(result.parsed_at).toLocaleString("de-DE")}
+                            {result.pdf_filename} · geparst am {new Date(result.parsed_at).toLocaleString("de-DE", { timeZone: "Europe/Berlin" })}
                             {result.username_snapshot ? ` von ${result.username_snapshot}` : ""}
                         </Text>
                     </Stack>
 
                     {isConfirmed ? (
                         <Badge color="green" size="lg" variant="light">
-                            Importiert am {new Date(result.confirmed_at!).toLocaleString("de-DE")}
+                            Importiert am {new Date(result.confirmed_at!).toLocaleString("de-DE", { timeZone: "Europe/Berlin" })}
                             {result.confirmed_by_snapshot ? ` von ${result.confirmed_by_snapshot}` : ""}
                         </Badge>
                     ) : (

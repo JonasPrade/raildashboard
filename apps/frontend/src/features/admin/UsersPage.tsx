@@ -142,7 +142,7 @@ export default function UsersPage() {
                                     </Table.Td>
                                     <Table.Td>
                                         <Text size="sm" c="dimmed">
-                                            {new Date(u.created_at).toLocaleDateString("de-DE")}
+                                            {new Date(u.created_at).toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" })}
                                         </Text>
                                     </Table.Td>
                                     <Table.Td>

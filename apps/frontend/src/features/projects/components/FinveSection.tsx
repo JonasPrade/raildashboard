@@ -197,6 +197,21 @@ function FinveCard({ finve }: { finve: FinveWithBudgets }) {
     // Last budget year for the table tab
     const lastBudget = finve.budgets.at(-1);
 
+    // SammelFinVe: show compact tag only
+    if (finve.is_sammel_finve) {
+        return (
+            <Group gap="xs" align="center">
+                <Badge variant="light" color="orange" size="md">
+                    Sammel-FinVe
+                </Badge>
+                <Badge variant="outline" color="indigo" size="md">
+                    FinVe {finve.id}
+                </Badge>
+                <Text size="sm" c="dimmed">{finve.name ?? "–"}</Text>
+            </Group>
+        );
+    }
+
     return (
         <Card withBorder radius="md" padding="md" shadow="xs">
             <Stack gap="sm">
@@ -267,8 +282,17 @@ function FinveCard({ finve }: { finve: FinveWithBudgets }) {
                                                 tickLine="x"
                                                 gridAxis="y"
                                                 valueFormatter={(v) =>
-                                                    v.toLocaleString("de-DE") + " T€"
+                                                    v != null ? v.toLocaleString("de-DE") + " T€" : "–"
                                                 }
+                                                tooltipProps={{
+                                                    contentStyle: {
+                                                        background: "var(--mantine-color-body)",
+                                                        border: "1px solid var(--mantine-color-default-border)",
+                                                        borderRadius: "var(--mantine-radius-sm)",
+                                                        color: "var(--mantine-color-text)",
+                                                        fontSize: 12,
+                                                    },
+                                                }}
                                             />
                                         </Box>
                                         <ChartLegend
@@ -306,8 +330,17 @@ function FinveCard({ finve }: { finve: FinveWithBudgets }) {
                                                 gridAxis="y"
                                                 withDots
                                                 valueFormatter={(v) =>
-                                                    v.toLocaleString("de-DE") + " T€"
+                                                    v != null ? v.toLocaleString("de-DE") + " T€" : "–"
                                                 }
+                                                tooltipProps={{
+                                                    contentStyle: {
+                                                        background: "var(--mantine-color-body)",
+                                                        border: "1px solid var(--mantine-color-default-border)",
+                                                        borderRadius: "var(--mantine-radius-sm)",
+                                                        color: "var(--mantine-color-text)",
+                                                        fontSize: 12,
+                                                    },
+                                                }}
                                             />
                                         </Box>
                                         <ChartLegend

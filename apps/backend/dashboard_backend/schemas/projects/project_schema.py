@@ -61,6 +61,7 @@ class FinveWithBudgetsSchema(BaseModel):
     name: Optional[str] = None
     starting_year: Optional[int] = None
     cost_estimate_original: Optional[int] = None
+    is_sammel_finve: bool = False
     budgets: list[BudgetSummarySchema] = []
 
     model_config = ConfigDict(from_attributes=True)

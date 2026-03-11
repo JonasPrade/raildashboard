@@ -8,13 +8,12 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 ## Short-Term Features
 
 
-- [ ] lot of failed development tests — vor allem ein Problem mit Routen; prüfen ob noch aktuell (user task - no ai)
+
 - [ ] zoom a little bit more out in the map in the project
-- [ ] the clock (Uhrzeit) is wrong in some parts -> watch that is set to Berlin
-- [ ] update the informaiton of parsing PDF
-- [ ] Create a online manual (or documentation) for the import of the haushalt. Make it understandably for the user with an step-by-step explanation of what to do. Link that manual at the all pages with haushalt-import and the check of the parsed pdf
-- [ ] if a project is in the sammelfinve listed - only show a tag that say in which sammelfinve it is listed in the project Detail View
-- [ ] after the review auf Haushalt/Finve - move back to the parsing overview
+- [x] the clock (Uhrzeit) is wrong in some parts -> watch that is set to Berlin
+- [x] Create a online manual (or documentation) for the import of the haushalt. Make it understandably for the user with an step-by-step explanation of what to do. Link that manual at the all pages with haushalt-import and the check of the parsed pdf
+- [x] if a project is in the sammelfinve listed - only show a tag that say in which sammelfinve it is listed in the project Detail View
+- [x] after the review auf Haushalt/Finve - move back to the parsing overview
 - [ ] the start selection of ProjectGroups on map should be configured by the admin
 - [x] make a fivew of the finance (Haushalt). New Page - new Header. there all finve should be seen in maps. Make it searchable. Make filter (f.e. sammmelfinve or other)
 ---
