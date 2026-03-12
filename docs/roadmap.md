@@ -15,10 +15,6 @@ This tasks must be done by human:
 
 ## Mid-Term Features
 
-- [ ] Search funktion for Project in ProjectMap and List
-
----
-
 ### Sonstiges
 
 - [ ] **ProjectProgress** *(Backend + Frontend)*
@@ -26,7 +22,43 @@ This tasks must be done by human:
   - Backend: `ProjectProgress`-Modell implementieren (Status, Datum, Quelle, Kommentar)
   - Frontend: Zeitleiste/Meilenstein-Ansicht in `ProjectDetail`
 
-- [ ] **Anzeige der BVWP-Daten** — Für einige Projekte liegen BVWP-Daten vor, diese sind vollständig und übersichtlich darzustellen
+### Anzeige der BVWP-Daten
+
+**Goal:** Display BVWP assessment data for projects that have it. Not all projects have BVWP data (1:0-or-1 relation to `bvwp_project_data` table, ~200 fields). Read-only display.
+
+**Backend:**
+
+1. **Pydantic schema** `apps/backend/dashboard_backend/schemas/projects/bvwp_schema.py` — `BvwpProjectDataSchema` with all fields as `Optional`, `model_config = ConfigDict(from_attributes=True)`. Fields grouped into 11 logical sections matching the model's comment blocks.
+2. **CRUD** `apps/backend/dashboard_backend/crud/projects/bvwp.py` — `get_bvwp_data(db, project_id) -> BvwpProjectData | None`
+3. **Endpoint** `GET /api/v1/projects/{project_id}/bvwp` — returns `BvwpProjectDataSchema` or `404` if no data. No auth required (consistent with existing project endpoints). Added to `projects.py`.
+4. **`make gen-api`** — regenerate frontend client.
+
+**Frontend:**
+
+5. **Component** `apps/frontend/src/features/bvwp/BvwpDataSection.tsx` — rendered inside `ProjectDetail`. Only shown if BVWP data exists. Layout: Mantine `Tabs`, one tab per logical group (tab hidden if all fields in group are null). Key display rules: `nkv` as prominent stat badge, `priority` as colored badge, floats formatted with `toLocaleString('de-DE')`, null fields skipped (not shown as "—"), congestion data as a small `<Table>`.
+6. **Query hook** via generated OpenAPI client (`useQuery` on `GET /projects/{id}/bvwp`).
+7. **Integration** into `ProjectDetail` — add "BVWP" section; hide entirely if query returns 404.
+
+**Field groups / Tabs:**
+1. Grunddaten (nkv, priority, bedarfsplan_nr, bottleneck_elimination, alternatives)
+2. Kosten (planned costs, valuation-relevant costs, pricelevel 2012 variants)
+3. Verkehrsprognose Personenverkehr (relocation, delta_travel_time, delta_rail_km)
+4. Verkehrsprognose Güterverkehr (relocation truck/ship, delta_rail_cargo_*)
+5. Nutzen Personenverkehr (use_change_* + use_sum_passenger yearly/present_value)
+6. Nutzen Güterverkehr (use_change_operating_cost_truck_* etc. + use_sum_cargo)
+7. Weitere Nutzenwirkungen (maintenance, LCC, noise)
+8. Umwelt (emissions delta_nox/co/co2/hc/pm/so2, noise, area/natura2000/ufr/flooding/water fields)
+9. Raumordnung (bvwp_regional_significance, spatial_significance_*)
+10. Kapazität (bvwp_congested_rail_* per time period, waiting period, punctuality)
+11. Reisezeitbeispiele & Sonstiges (traveltime_reduction, examples, additional_informations, duration fields)
+
+- [ ] Step 1 — BvwpProjectDataSchema
+- [ ] Step 2 — CRUD get_bvwp_data
+- [ ] Step 3 — GET /projects/{id}/bvwp endpoint
+- [ ] Step 4 — make gen-api
+- [ ] Step 5 — BvwpDataSection component
+- [ ] Step 6 — Query hook
+- [ ] Step 7 — Integration into ProjectDetail
 
 - [ ] **Vervollständigung und Automatisierung Tests**
 
@@ -93,6 +125,7 @@ Priorität:
 - [x] **Plugins**: `feature-dev`, `frontend-design`, `pyright-lsp` (Python Code Intelligence), `typescript-lsp`
 
 ### UI / UX
+- [x] Project search on map and list view — client-side substring filter by name / project number / description; search input in `MapControls` overlay (map) and list header; `?search=` URL param with 200 ms debounce; result count, clear button, and empty-state messages
 - [x] Admin-configurable ProjectGroup visibility (`is_visible`) and default selection (`is_default_selected`) on map; group filter drawer redesigned as clickable button list
 - [x] Admin-configurable map group mode (`AppSettings.map_group_mode`: `preconfigured` / `all`) in `/admin/project-groups`
 - [x] Zoom initial map view on project detail page reduced (zoom 7 → 6)

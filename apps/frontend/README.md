@@ -75,6 +75,15 @@ Sammel-FinVes (`is_sammel_finve = true`) render as a compact inline tag instead 
 
 Charts use a custom `ChartLegend` component rendered below the chart SVG (avoids recharts clipping) with Mantine `ColorSwatch` + `Text`.
 
+### Project search (`features/map/MapPage.tsx` + `MapControls.tsx`)
+
+Available on both the map and list view at `/`. A search `TextInput` (with magnifier icon and clear button) lets users find projects by name, project number, or description via case-insensitive substring matching. All filtering is client-side — no extra API calls are made, as all project data is already in memory from `useProjectGroups()`.
+
+- **Map view:** Non-matching projects are removed from the MapLibre GeoJSON sources. The controls panel shows a "X von Y Projekten" count while a search is active. If no project matches, a centred overlay hint is displayed.
+- **List view:** Project cards are filtered in-place. The count label updates to "X von Y Projekten" and an empty-state alert is shown when nothing matches.
+- **URL persistence:** The term is stored in `?search=<term>` (debounced, 200 ms, `replace: true`) so it survives map ↔ list tab switches and browser back/forward navigation.
+- **Dependency added:** `@tabler/icons-react` for the search and close icons.
+
 ### Admin: Project group map settings (`features/admin/ProjectGroupsAdminPage.tsx`)
 
 Available at `/admin/project-groups` (admin only, linked from the admin board in `/admin/users`). Lets admins configure map display behaviour per group:

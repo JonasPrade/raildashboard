@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+    ActionIcon,
     Alert,
     Badge,
     Box,
@@ -13,9 +14,11 @@ import {
     Stack,
     Switch,
     Text,
+    TextInput,
     Title,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import { IconSearch, IconX } from "@tabler/icons-react";
 import { useSearchParams } from "react-router-dom";
 
 import GroupFilterDrawer, { type ProjectGroupOption } from "../projects/GroupFilterDrawer";
@@ -45,6 +48,20 @@ export default function MapPage() {
 
     const view = searchParams.get("view") ?? "map";
     const onlySuperior = searchParams.get("only_superior") !== "false"; // default true
+
+    // --- Search state: local for immediate input, debounced to URL ---
+    const [localSearch, setLocalSearch] = useState(() => searchParams.get("search") ?? "");
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setSearchParams((prev) => {
+                if (localSearch) prev.set("search", localSearch);
+                else prev.delete("search");
+                return prev;
+            }, { replace: true });
+        }, 200);
+        return () => clearTimeout(timer);
+    }, [localSearch, setSearchParams]);
 
     const handleOnlySuperiorChange = (checked: boolean) => {
         setSearchParams((prev) => {
@@ -104,6 +121,17 @@ export default function MapPage() {
             ? allProjects.filter((p) => p.superior_project_id == null)
             : allProjects;
     }, [selectedGroups, onlySuperior]);
+
+    const filteredMapProjects = useMemo(() => {
+        const term = localSearch.trim().toLowerCase();
+        if (!term) return selectedProjects;
+        return selectedProjects.filter(
+            (p) =>
+                p.name?.toLowerCase().includes(term) ||
+                p.project_number?.toLowerCase().includes(term) ||
+                p.description?.toLowerCase().includes(term),
+        );
+    }, [selectedProjects, localSearch]);
 
     // --- List tab: single-group selection (first entry in ?group) ---
     const selectedGroupId = useMemo(() => {
@@ -166,9 +194,18 @@ export default function MapPage() {
             ? groups.find((group) => group.id === selectedGroupId)
             : undefined;
         const rawProjects = (selectedGroup?.projects ?? []).filter(Boolean) as Project[];
-        const projects = onlySuperior
+        const superiorFiltered = onlySuperior
             ? rawProjects.filter((p) => p.superior_project_id == null)
             : rawProjects;
+        const searchTerm = localSearch.trim().toLowerCase();
+        const projects = searchTerm
+            ? superiorFiltered.filter(
+                  (p) =>
+                      p.name?.toLowerCase().includes(searchTerm) ||
+                      p.project_number?.toLowerCase().includes(searchTerm) ||
+                      p.description?.toLowerCase().includes(searchTerm),
+              )
+            : superiorFiltered;
         const selectData = groups.map((group) => ({
             value: String(group.id),
             label: group.name,
@@ -198,6 +235,21 @@ export default function MapPage() {
                                 nothingFoundMessage={isLoading ? "Lade…" : "Keine Projektgruppen gefunden"}
                                 searchable
                                 clearable
+                                style={{ flex: 1 }}
+                            />
+                            <TextInput
+                                label="Suche"
+                                placeholder="Name, Nr., Beschreibung…"
+                                leftSection={<IconSearch size={14} />}
+                                rightSection={
+                                    localSearch ? (
+                                        <ActionIcon variant="subtle" size="xs" onClick={() => setLocalSearch("")}>
+                                            <IconX size={12} />
+                                        </ActionIcon>
+                                    ) : undefined
+                                }
+                                value={localSearch}
+                                onChange={(e) => setLocalSearch(e.currentTarget.value)}
                                 style={{ flex: 1 }}
                             />
                             <Switch
@@ -274,16 +326,19 @@ export default function MapPage() {
                             <Group justify="space-between" align="center">
                                 <Title order={3}>Projekte</Title>
                                 <Text size="sm" c="dimmed">
-                                    {projects.length === 1 ? "1 Projekt" : `${projects.length} Projekte`}
-                                    {onlySuperior && rawProjects.length !== projects.length
-                                        ? ` (von ${rawProjects.length})`
-                                        : " in dieser Gruppe"}
+                                    {localSearch.trim()
+                                        ? `${projects.length} von ${superiorFiltered.length} Projekten`
+                                        : projects.length === 1
+                                          ? "1 Projekt"
+                                          : `${projects.length} Projekte${onlySuperior && rawProjects.length !== projects.length ? ` (von ${rawProjects.length})` : " in dieser Gruppe"}`}
                                 </Text>
                             </Group>
 
                             {projects.length === 0 ? (
                                 <Alert color="blue" variant="light" title="Keine Projekte gefunden">
-                                    Diese Projektgruppe enthält aktuell keine Projekte.
+                                    {localSearch.trim()
+                                        ? `Keine Projekte für „${localSearch.trim()}" gefunden.`
+                                        : "Diese Projektgruppe enthält aktuell keine Projekte."}
                                 </Alert>
                             ) : (
                                 <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="lg">
@@ -309,7 +364,32 @@ export default function MapPage() {
             <Container size="xl" style={{ position: "relative" }}>
                 {viewToggle}
                 <Box style={{ position: "relative" }}>
-                    <MapView projects={selectedProjects} lineWidth={lineWidth} pointSize={pointSize} />
+                    <MapView projects={filteredMapProjects} lineWidth={lineWidth} pointSize={pointSize} />
+                    {localSearch.trim() && filteredMapProjects.length === 0 && (
+                        <Box
+                            style={{
+                                position: "absolute",
+                                top: "50%",
+                                left: "50%",
+                                transform: "translate(-50%, -50%)",
+                                zIndex: 5,
+                                pointerEvents: "none",
+                            }}
+                        >
+                            <Text
+                                size="sm"
+                                c="dimmed"
+                                style={{
+                                    background: "rgba(255,255,255,0.9)",
+                                    padding: "8px 14px",
+                                    borderRadius: 8,
+                                    border: "1px solid #e0e0e0",
+                                }}
+                            >
+                                Keine Projekte für „{localSearch.trim()}" gefunden
+                            </Text>
+                        </Box>
+                    )}
                     <MapControls
                         onOpenFilters={open}
                         lineWidth={lineWidth}
@@ -318,6 +398,10 @@ export default function MapPage() {
                         onPointSizeChange={setPointSize}
                         onlySuperior={onlySuperior}
                         onOnlySuperiorChange={handleOnlySuperiorChange}
+                        searchTerm={localSearch}
+                        onSearchChange={setLocalSearch}
+                        totalProjects={selectedProjects.length}
+                        filteredCount={filteredMapProjects.length}
                     />
                 </Box>
             </Container>

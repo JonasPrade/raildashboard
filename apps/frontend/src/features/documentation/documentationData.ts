@@ -25,6 +25,19 @@ export const featureHighlights: FeatureHighlight[] = [
         ]
     },
     {
+        title: "Project search",
+        description:
+            "Client-side full-text search across all loaded projects in both the map and the list view." +
+            " The search term is stored in the `?search=` URL parameter so it persists across view switches and page reloads.",
+        details: [
+            "Searches project name, project number, and description (case-insensitive substring match)",
+            "Map view: non-matching projects disappear from the map; result count shown in the controls panel",
+            "List view: project cards filtered in-place with matching count and empty-state message",
+            "Clear button (×) resets the search; term survives map ↔ list tab switches via URL param",
+            "Debounced URL writes (~200 ms) to avoid flooding the browser history stack"
+        ]
+    },
+    {
         title: "Project group filter",
         description:
             "The `GroupFilterDrawer` lets users select which project groups are shown on the map and in the list." +

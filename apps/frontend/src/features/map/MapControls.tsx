@@ -1,4 +1,5 @@
-import { Box, Button, Paper, Slider, Stack, Switch, Text } from "@mantine/core";
+import { ActionIcon, Box, Button, Paper, Slider, Stack, Switch, Text, TextInput } from "@mantine/core";
+import { IconSearch, IconX } from "@tabler/icons-react";
 
 type Props = {
     onOpenFilters: () => void;
@@ -8,21 +9,56 @@ type Props = {
     onPointSizeChange: (value: number) => void;
     onlySuperior: boolean;
     onOnlySuperiorChange: (value: boolean) => void;
+    searchTerm: string;
+    onSearchChange: (value: string) => void;
+    totalProjects: number;
+    filteredCount: number;
 };
 
-export default function MapControls({ onOpenFilters, lineWidth, onLineWidthChange, pointSize, onPointSizeChange, onlySuperior, onOnlySuperiorChange }: Props) {
-    // Absolute overlay, sits on top of the map
+export default function MapControls({
+    onOpenFilters,
+    lineWidth,
+    onLineWidthChange,
+    pointSize,
+    onPointSizeChange,
+    onlySuperior,
+    onOnlySuperiorChange,
+    searchTerm,
+    onSearchChange,
+    totalProjects,
+    filteredCount,
+}: Props) {
     return (
         <Box
             style={{
                 position: "absolute",
                 top: 12,
                 right: 30,
-                zIndex: 10, // above map
+                zIndex: 10,
             }}
         >
             <Paper p="sm" radius="md" shadow="sm" withBorder>
                 <Stack gap="sm">
+                    <TextInput
+                        placeholder="Projekt suchen…"
+                        leftSection={<IconSearch size={14} />}
+                        rightSection={
+                            searchTerm ? (
+                                <ActionIcon variant="subtle" size="xs" onClick={() => onSearchChange("")}>
+                                    <IconX size={12} />
+                                </ActionIcon>
+                            ) : undefined
+                        }
+                        value={searchTerm}
+                        onChange={(e) => onSearchChange(e.currentTarget.value)}
+                        size="sm"
+                        style={{ width: 180 }}
+                    />
+                    {searchTerm && (
+                        <Text size="xs" c="dimmed">
+                            {filteredCount} von {totalProjects} Projekten
+                        </Text>
+                    )}
                     <Button size="sm" color="petrol" onClick={onOpenFilters}>
                         Projektgruppen
                     </Button>
