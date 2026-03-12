@@ -259,13 +259,18 @@ const ProjectGroupSchema = z
     public: z.boolean().optional().default(false),
     color: z.string().optional().default("#FF0000"),
     plot_only_superior_projects: z.boolean().optional().default(true),
+    is_visible: z.boolean().optional().default(true),
     is_default_selected: z.boolean().optional().default(false),
     id_old: z.union([z.number(), z.null()]).optional(),
     projects: z.array(ProjectSchema).optional(),
   })
   .passthrough();
 const ProjectGroupUpdate = z
-  .object({ is_default_selected: z.boolean() })
+  .object({
+    is_visible: z.union([z.boolean(), z.null()]),
+    is_default_selected: z.union([z.boolean(), z.null()]),
+  })
+  .partial()
   .passthrough();
 const UserRole = z.enum(["viewer", "editor", "admin"]);
 const UserRead = z
@@ -783,7 +788,7 @@ for that haushalt_year are also removed so the year can be re-imported.`,
       {
         name: "body",
         type: "Body",
-        schema: z.object({ is_default_selected: z.boolean() }).passthrough(),
+        schema: ProjectGroupUpdate,
       },
       {
         name: "group_id",

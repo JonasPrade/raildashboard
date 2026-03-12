@@ -896,6 +896,11 @@ export interface components {
              */
             plot_only_superior_projects: boolean;
             /**
+             * Is Visible
+             * @default true
+             */
+            is_visible: boolean;
+            /**
              * Is Default Selected
              * @default false
              */
@@ -910,8 +915,10 @@ export interface components {
         };
         /** ProjectGroupUpdate */
         ProjectGroupUpdate: {
+            /** Is Visible */
+            is_visible?: boolean | null;
             /** Is Default Selected */
-            is_default_selected: boolean;
+            is_default_selected?: boolean | null;
         };
         /** ProjectRefSchema */
         ProjectRefSchema: {

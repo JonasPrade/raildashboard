@@ -24,7 +24,10 @@ export default function ProjectGroupsPage() {
     const { data, isLoading, isError, error } = useProjectGroups();
     const [searchParams, setSearchParams] = useSearchParams();
 
-    const groups = useMemo(() => (data ?? []).filter(hasNumericId), [data]);
+    const groups = useMemo(
+        () => (data ?? []).filter((g): g is ProjectGroup & { id: number } => hasNumericId(g) && g.is_visible !== false),
+        [data],
+    );
 
     const selectedGroupId = useMemo(() => {
         const param = searchParams.get("group");

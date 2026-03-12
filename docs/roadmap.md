@@ -9,6 +9,8 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 
 - [x] zoom a little bit more out in the map in the project
 - [x] the start selection of ProjectGroups on map should be configured by the admin
+- [ ] change the selection in the map: Show all ProjectGroup that are allowd to be shown. Make it clickable which ProjectGroups should be shown - no Dropdown search
+- [ ] make the "Schienenprojekte-Dashboard" clickable -> return to Start Page
 
 This tasks must be done by human:
 - [ ] Import of the Haushalt Berichte 2020 - 2025
@@ -45,7 +47,7 @@ This tasks must be done by human:
 
 - [ ] **Anzeige der BVWP-Daten** — Für einige Projekte liegen BVWP-Daten vor, diese sind vollständig und übersichtlich darzustellen
 
-- [ ] **Anzeige Texte und Kommentare** — Kommentare anzeigen (Details noch offen)
+
 
 - [ ] **Vervollständigung und Automatisierung Tests**
 
@@ -112,6 +114,8 @@ Priorität:
 - [x] **Plugins**: `feature-dev`, `frontend-design`, `pyright-lsp` (Python Code Intelligence), `typescript-lsp`
 
 ### UI / UX
+- [x] Zoom initial map view on project detail page reduced (zoom 7 → 6)
+- [x] Admin-configurable default ProjectGroup selection on map (`AppSettings.map_group_mode`: `preconfigured` / `all`; per-group `is_default_selected` toggle in `/admin/project-groups`)
 - [x] Login via Enter-Taste (nicht nur Button-Klick) — `LoginModal.tsx`: `PasswordInput.onKeyDown` → `doLogin()`
 - [x] Inhaltsverzeichnis in Projektdarstellung (links, ausklappbar; klappt Abschnitte beim Anklicken auf)
 - [x] Header-Menü kollabiert zu Burger-Menü bei schmalen Fenstern (Kollaps-Schwellwert angepasst)

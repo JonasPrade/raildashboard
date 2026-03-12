@@ -193,11 +193,14 @@ export function useProjectGroups() {
 export function useUpdateProjectGroup() {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: ({ groupId, isDefaultSelected }: { groupId: number; isDefaultSelected: boolean }) =>
+        mutationFn: ({ groupId, isVisible, isDefaultSelected }: { groupId: number; isVisible?: boolean; isDefaultSelected?: boolean }) =>
             api<ProjectGroup>(`/api/v1/project_groups/${groupId}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ is_default_selected: isDefaultSelected }),
+                body: JSON.stringify({
+                    ...(isVisible !== undefined && { is_visible: isVisible }),
+                    ...(isDefaultSelected !== undefined && { is_default_selected: isDefaultSelected }),
+                }),
             }),
         onSuccess: () => qc.invalidateQueries({ queryKey: ["projectGroups"] }),
     });

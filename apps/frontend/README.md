@@ -75,6 +75,15 @@ Sammel-FinVes (`is_sammel_finve = true`) render as a compact inline tag instead 
 
 Charts use a custom `ChartLegend` component rendered below the chart SVG (avoids recharts clipping) with Mantine `ColorSwatch` + `Text`.
 
+### Admin: Project group map settings (`features/admin/ProjectGroupsAdminPage.tsx`)
+
+Available at `/admin/project-groups` (admin only, linked from the admin board in `/admin/users`). Lets admins configure the default map display behaviour:
+
+- **Anzeigemodus** (`SegmentedControl`): `preconfigured` — only pre-selected groups shown on map open; `all` — all groups shown regardless of group filters.
+- **Per-group toggles** (`Switch`): mark individual groups as `is_default_selected`. Selected groups sort to the top. Switches are disabled when mode is `all`.
+
+The settings are persisted in the `AppSettings` singleton table (backend) and fetched via `useAppSettings()` / `useUpdateAppSettings()` hooks. The map page (`MapPage.tsx`) reads `map_group_mode` on load and applies defaults accordingly (pre-selected groups if mode is `preconfigured`, all groups if mode is `all`; explicit `?group=` URL param always takes precedence).
+
 ### Haushalt PDF import (`features/haushalt-import/`)
 
 Multi-step import workflow for federal budget PDFs. The `ReviewTable` shows auto-suggested project assignments (marked with ✦) computed during the Celery parse task via fuzzy name matching. The Projektzuordnung column has a minimum width of 320 px.

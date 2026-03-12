@@ -1,5 +1,6 @@
 from fastapi import Depends, HTTPException
 from pydantic import BaseModel
+from typing import Optional
 from sqlalchemy.orm import Session
 from dashboard_backend.crud.projects.project_groups import (
     get_project_groups,
@@ -15,7 +16,8 @@ router = AuthRouter()
 
 
 class ProjectGroupUpdate(BaseModel):
-    is_default_selected: bool
+    is_visible: Optional[bool] = None
+    is_default_selected: Optional[bool] = None
 
 
 @router.get("/", response_model=list[ProjectGroupSchema])

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
     Alert,
     Badge,
@@ -11,6 +12,7 @@ import {
     Switch,
     Text,
     Title,
+    Tooltip,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
@@ -30,7 +32,7 @@ const MODE_DATA: { value: MapGroupMode; label: string; description: string }[] =
     {
         value: "all",
         label: "Alle anzeigen",
-        description: "Alle Projekte werden angezeigt, unabhängig von Gruppenfiltern.",
+        description: "Alle sichtbaren Gruppen werden beim Öffnen der Karte angezeigt.",
     },
 ];
 
@@ -53,21 +55,38 @@ export default function ProjectGroupsAdminPage() {
         });
     };
 
-    const handleToggle = (groupId: number, checked: boolean) => {
+    const handleToggle = (
+        groupId: number,
+        field: "isVisible" | "isDefaultSelected",
+        checked: boolean,
+    ) => {
+        const errorMessages = {
+            isVisible: "Sichtbarkeit konnte nicht gespeichert werden.",
+            isDefaultSelected: "Standardauswahl konnte nicht gespeichert werden.",
+        };
         updateGroup.mutate(
-            { groupId, isDefaultSelected: checked },
+            { groupId, [field]: checked },
             {
                 onError: () =>
                     notifications.show({
                         color: "red",
                         title: "Fehler",
-                        message: "Standardauswahl konnte nicht gespeichert werden.",
+                        message: errorMessages[field],
                     }),
             },
         );
     };
 
     const activeMode = MODE_DATA.find((m) => m.value === currentMode);
+    const sortedGroups = useMemo(
+        () =>
+            [...(groups ?? [])].sort(
+                (a, b) =>
+                    Number(b.is_visible) - Number(a.is_visible) ||
+                    Number(b.is_default_selected) - Number(a.is_default_selected),
+            ),
+        [groups],
+    );
 
     return (
         <Container size="md" py="xl">
@@ -75,7 +94,7 @@ export default function ProjectGroupsAdminPage() {
                 <Stack gap="xs">
                     <Title order={2}>Projektgruppen – Kartenansicht</Title>
                     <Text c="dimmed" size="sm">
-                        Lege fest, welche Projektgruppen beim Öffnen der Karte angezeigt werden.
+                        Lege fest, welche Projektgruppen auf der Karte angezeigt und vorausgewählt werden.
                     </Text>
                 </Stack>
 
@@ -94,13 +113,7 @@ export default function ProjectGroupsAdminPage() {
                     </Stack>
                 </Card>
 
-                <Divider label="Vorkonfigurierte Gruppen" labelPosition="center" />
-
-                <Text size="sm" c={currentMode === "all" ? "dimmed" : undefined}>
-                    {currentMode === "all"
-                        ? "Nicht aktiv — wird nur im Modus „Vorkonfiguriert" verwendet."
-                        : "Wähle die Gruppen, die beim Öffnen der Karte vorausgewählt sein sollen."}
-                </Text>
+                <Divider label="Projektgruppen" labelPosition="center" />
 
                 {isError && (
                     <Alert color="red" variant="light" title="Fehler beim Laden">
@@ -114,11 +127,31 @@ export default function ProjectGroupsAdminPage() {
                     </Group>
                 ) : (
                     <Stack gap="sm">
-                        {[...(groups ?? [])].sort((a, b) => Number(b.is_default_selected) - Number(a.is_default_selected)).map((group) => (
-                            <Card key={group.id} withBorder radius="md" padding="md"
-                                style={{ opacity: currentMode === "all" ? 0.5 : 1 }}>
+                        {/* Column headers */}
+                        {sortedGroups.length > 0 && (
+                            <Group justify="flex-end" gap="xl" pr={4}>
+                                <Tooltip label={"Gruppe auf der Karte anzeigen"} withArrow>
+                                    <Text size="xs" c="dimmed" fw={500} style={{ minWidth: 80, textAlign: "center" }}>
+                                        Sichtbar
+                                    </Text>
+                                </Tooltip>
+                                <Tooltip label={"Gruppe beim Öffnen vorauswählen (nur im Modus Vorkonfiguriert)"} withArrow>
+                                    <Text size="xs" c="dimmed" fw={500} style={{ minWidth: 80, textAlign: "center" }}>
+                                        Vorausgewählt
+                                    </Text>
+                                </Tooltip>
+                            </Group>
+                        )}
+
+                        {sortedGroups.map((group) => (
+                            <Card
+                                key={group.id}
+                                withBorder
+                                radius="md"
+                                padding="md"
+                            >
                                 <Group justify="space-between" align="center">
-                                    <Group gap="sm" align="center">
+                                    <Group gap="sm" align="center" style={{ opacity: group.is_visible ? 1 : 0.4 }}>
                                         <span
                                             aria-hidden
                                             style={{
@@ -132,24 +165,39 @@ export default function ProjectGroupsAdminPage() {
                                         />
                                         <Stack gap={2}>
                                             <Text size="sm" fw={500}>{group.name}</Text>
-                                            <Text size="xs" c="dimmed">{group.short_name} · {group.projects?.length ?? 0} Projekte</Text>
+                                            <Text size="xs" c="dimmed">
+                                                {group.short_name} · {group.projects?.length ?? 0} Projekte
+                                            </Text>
                                         </Stack>
-                                        {group.is_default_selected && (
-                                            <Badge size="xs" color="blue" variant="light">
-                                                Vorausgewählt
-                                            </Badge>
+                                        {!group.is_visible && (
+                                            <Badge size="xs" color="gray" variant="light">Ausgeblendet</Badge>
+                                        )}
+                                        {group.is_visible && group.is_default_selected && (
+                                            <Badge size="xs" color="blue" variant="light">Vorausgewählt</Badge>
                                         )}
                                     </Group>
-                                    <Switch
-                                        checked={group.is_default_selected}
-                                        onChange={(e) => handleToggle(group.id!, e.currentTarget.checked)}
-                                        disabled={updateGroup.isPending || currentMode === "all"}
-                                        aria-label={`${group.name} als Standard vorauswählen`}
-                                    />
+
+                                    <Group gap="xl">
+                                        <Switch
+                                            checked={group.is_visible}
+                                            onChange={(e) => handleToggle(group.id!, "isVisible", e.currentTarget.checked)}
+                                            disabled={updateGroup.isPending}
+                                            aria-label={`${group.name} auf Karte anzeigen`}
+                                            style={{ minWidth: 80, display: "flex", justifyContent: "center" }}
+                                        />
+                                        <Switch
+                                            checked={group.is_default_selected}
+                                            onChange={(e) => handleToggle(group.id!, "isDefaultSelected", e.currentTarget.checked)}
+                                            disabled={updateGroup.isPending || !group.is_visible || currentMode === "all"}
+                                            aria-label={`${group.name} als Standard vorauswählen`}
+                                            style={{ minWidth: 80, display: "flex", justifyContent: "center" }}
+                                        />
+                                    </Group>
                                 </Group>
                             </Card>
                         ))}
-                        {(groups ?? []).length === 0 && (
+
+                        {sortedGroups.length === 0 && (
                             <Alert color="gray" variant="light" title="Keine Projektgruppen">
                                 Es sind noch keine Projektgruppen vorhanden.
                             </Alert>

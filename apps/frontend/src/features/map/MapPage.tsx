@@ -54,7 +54,10 @@ export default function MapPage() {
     };
 
     // --- Shared: all groups with numeric ids ---
-    const groups = useMemo(() => (data ?? []).filter(hasNumericId), [data]);
+    const groups = useMemo(
+        () => (data ?? []).filter((g): g is ProjectGroup & { id: number } => hasNumericId(g) && g.is_visible !== false),
+        [data],
+    );
 
     const projectGroupOptions = useMemo<ProjectGroupOption[]>(() => {
         return groups.map((group) => ({

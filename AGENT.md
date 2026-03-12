@@ -9,8 +9,8 @@ This file applies to the entire repository. Read it before making any substantia
 - When asked to update or edit the roadmap, modify roadmap.md directly. Do NOT implement features unless explicitly asked to implement them.
 - Never attempt roadmap items explicitly marked as **human task** — skip them entirely.
 - When updating documentation, update ALL documentation layers (README, AGENT.md, roadmap.md, frontend docs, etc.) — not just a single file. Look also at the section ## Keep documentation in this file
-- 
-
+- **Roadmap Style**: if a task is marked with [p] it means that it has to be planned first. If user asks for doing - create a plan and notice the whole plan in the roadmap.md - substitute the open task with a section started by a header with ###
+ 
 ## How to approach tasks
 
 Before writing any code:
