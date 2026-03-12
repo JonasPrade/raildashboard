@@ -249,6 +249,12 @@ function FinveCard({ finve }: { finve: FinveWithBudgets }) {
                                 <Text size="sm" fw={500}>{fmt(finve.cost_estimate_original)}</Text>
                             </Stack>
                         )}
+                        {lastBudget?.cost_estimate_actual != null && (
+                            <Stack gap={0} align="flex-end">
+                                <Text size="xs" c="dimmed">Aktuelle Kosten ({lastBudget.budget_year})</Text>
+                                <Text size="sm" fw={500}>{fmt(lastBudget.cost_estimate_actual)}</Text>
+                            </Stack>
+                        )}
                         {hasBudgets && (
                             <Text
                                 size="xs"
