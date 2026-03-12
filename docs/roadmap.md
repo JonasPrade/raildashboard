@@ -2,14 +2,10 @@
 
 Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`.
 
-
 ---
 
 ## Short-Term Features
 
-- [x] zoom a little bit more out in the map in the project
-- [x] the start selection of ProjectGroups on map should be configured by the admin
-- [ ] change the selection in the map: Show all ProjectGroup that are allowd to be shown. Make it clickable which ProjectGroups should be shown - no Dropdown search
 - [ ] make the "Schienenprojekte-Dashboard" clickable -> return to Start Page
 
 This tasks must be done by human:
@@ -23,21 +19,6 @@ This tasks must be done by human:
 
 ---
 
-### Change Tracking
-
-**Implementierungsstand:** Schritte 1–4 abgeschlossen (DB-Modelle `change_log`/`change_log_entry`, PATCH-Endpunkt für Projekte, GET-Changelog, Bearbeitungsformular im Frontend).
-
-- [ ] **Schritt 5: Versionshistorie** *(Frontend)*
-  - Neuer Abschnitt „Versionshistorie" in `ProjectDetail` (nur für eingeloggte Nutzer sichtbar)
-  - Timeline-Ansicht: Datum, Nutzername, Liste der geänderten Felder mit altem → neuem Wert
-  - Daten kommen von `GET /api/v1/projects/{project_id}/changelog`
-
-- [ ] **Schritt 6: Revert-Funktion** *(Frontend)*
-  - Pro `ChangeLogEntry`: Button „Zurücksetzen auf [alter Wert]" (nur für `editor` / `admin`)
-  - Sendet `PATCH /api/v1/projects/{id}` mit dem alten Wert des jeweiligen Felds
-
----
-
 ### Sonstiges
 
 - [ ] **ProjectProgress** *(Backend + Frontend)*
@@ -46,8 +27,6 @@ This tasks must be done by human:
   - Frontend: Zeitleiste/Meilenstein-Ansicht in `ProjectDetail`
 
 - [ ] **Anzeige der BVWP-Daten** — Für einige Projekte liegen BVWP-Daten vor, diese sind vollständig und übersichtlich darzustellen
-
-
 
 - [ ] **Vervollständigung und Automatisierung Tests**
 
@@ -114,8 +93,9 @@ Priorität:
 - [x] **Plugins**: `feature-dev`, `frontend-design`, `pyright-lsp` (Python Code Intelligence), `typescript-lsp`
 
 ### UI / UX
+- [x] Admin-configurable ProjectGroup visibility (`is_visible`) and default selection (`is_default_selected`) on map; group filter drawer redesigned as clickable button list
+- [x] Admin-configurable map group mode (`AppSettings.map_group_mode`: `preconfigured` / `all`) in `/admin/project-groups`
 - [x] Zoom initial map view on project detail page reduced (zoom 7 → 6)
-- [x] Admin-configurable default ProjectGroup selection on map (`AppSettings.map_group_mode`: `preconfigured` / `all`; per-group `is_default_selected` toggle in `/admin/project-groups`)
 - [x] Login via Enter-Taste (nicht nur Button-Klick) — `LoginModal.tsx`: `PasswordInput.onKeyDown` → `doLogin()`
 - [x] Inhaltsverzeichnis in Projektdarstellung (links, ausklappbar; klappt Abschnitte beim Anklicken auf)
 - [x] Header-Menü kollabiert zu Burger-Menü bei schmalen Fenstern (Kollaps-Schwellwert angepasst)
@@ -139,11 +119,13 @@ Priorität:
 - [x] Sichtbarkeit von Texten: eingeloggt-only oder öffentlich
 - [x] Versionshistorie und Bearbeitungsformular nur für eingeloggte Nutzer sichtbar
 
-### Change Tracking (Schritte 1–4)
+### Change Tracking (vollständig)
 - [x] DB-Modelle `change_log` + `change_log_entry` + Alembic-Migration
 - [x] `PATCH /api/v1/projects/{id}` — schreibt ChangeLog-Einträge je geändertem Feld (Rolle: editor/admin)
 - [x] `GET /api/v1/projects/{id}/changelog` — öffentlich lesbar
 - [x] Bearbeitungsformular in `ProjectDetail` (editor/admin); alle Felder bearbeitbar
+- [x] Versionshistorie-Timeline in `ProjectDetail` (`ProjectHistorySection.tsx`); nur für eingeloggte Nutzer
+- [x] „Zurücksetzen"-Button pro `ChangeLogEntry` (editor/admin) via `useRevertProjectField` hook
 
 ### Benutzerverwaltung
 - [x] Login-UI: Modal im Header, Credentials im React-Context, Authorization-Header bei API-Requests, 401/403-Interceptor

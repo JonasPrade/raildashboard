@@ -77,12 +77,13 @@ Charts use a custom `ChartLegend` component rendered below the chart SVG (avoids
 
 ### Admin: Project group map settings (`features/admin/ProjectGroupsAdminPage.tsx`)
 
-Available at `/admin/project-groups` (admin only, linked from the admin board in `/admin/users`). Lets admins configure the default map display behaviour:
+Available at `/admin/project-groups` (admin only, linked from the admin board in `/admin/users`). Lets admins configure map display behaviour per group:
 
-- **Anzeigemodus** (`SegmentedControl`): `preconfigured` — only pre-selected groups shown on map open; `all` — all groups shown regardless of group filters.
-- **Per-group toggles** (`Switch`): mark individual groups as `is_default_selected`. Selected groups sort to the top. Switches are disabled when mode is `all`.
+- **Anzeigemodus** (`SegmentedControl`): `preconfigured` — only pre-selected groups shown on map open; `all` — all visible groups shown on map open.
+- **Sichtbar** (`Switch`): per-group `is_visible` toggle — hidden groups are filtered from the map, the project list, and the group filter drawer entirely.
+- **Vorausgewählt** (`Switch`): per-group `is_default_selected` toggle — disabled when mode is `all` or the group is hidden.
 
-The settings are persisted in the `AppSettings` singleton table (backend) and fetched via `useAppSettings()` / `useUpdateAppSettings()` hooks. The map page (`MapPage.tsx`) reads `map_group_mode` on load and applies defaults accordingly (pre-selected groups if mode is `preconfigured`, all groups if mode is `all`; explicit `?group=` URL param always takes precedence).
+Settings are persisted in the `AppSettings` singleton table (backend) and fetched via `useAppSettings()` / `useUpdateAppSettings()`. The map page reads `map_group_mode` on load; explicit `?group=` URL param always takes precedence.
 
 ### Haushalt PDF import (`features/haushalt-import/`)
 

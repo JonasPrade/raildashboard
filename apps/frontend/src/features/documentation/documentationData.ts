@@ -27,12 +27,23 @@ export const featureHighlights: FeatureHighlight[] = [
     {
         title: "Project group filter",
         description:
-            "The `GroupFilterDrawer` component lets users select multiple project groups." +
-            " The selection is mirrored in the URL via the `group` query parameter, making it easy to share.",
+            "The `GroupFilterDrawer` lets users select which project groups are shown on the map and in the list." +
+            " The selection is mirrored in the URL via the `group` query parameter.",
         details: [
-            "Fallback data until an API endpoint is connected via React Query",
-            "Custom rendering of selected chips with colour indicators",
-            "Extensible to cover loading and error states"
+            "Clickable button list — one button per group with colour dot and project count",
+            "Groups hidden by an admin (is_visible = false) are excluded automatically",
+            "Selection persists across map ↔ list view switches via URL param"
+        ]
+    },
+    {
+        title: "Change tracking & version history",
+        description:
+            "Every field edit on a project is recorded in the `change_log` / `change_log_entry` tables." +
+            " Logged-in users can view a timeline of all changes; editors and admins can revert individual fields.",
+        details: [
+            "Timeline in ProjectDetail — date, user, old → new value per field (login-gated)",
+            "\"Zurücksetzen\" button per entry reverts the field to its previous value (editor/admin only)",
+            "Implemented in `features/changelog/ProjectHistorySection.tsx` + `useRevertProjectField` hook"
         ]
     },
     {
@@ -109,7 +120,7 @@ export const techStack: string[] = [
     "Vite 7 as build and dev server",
     "React 19 with React Router 7",
     "TypeScript 5 in strict mode",
-    "Reacht Query for server state management",
+    "React Query for server state management",
     "Mantine 8 as UI library",
     "MapLibre GL for map rendering"
 ];
