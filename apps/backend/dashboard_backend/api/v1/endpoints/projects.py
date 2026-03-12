@@ -11,6 +11,7 @@ from dashboard_backend.crud.changelog import (
     get_changelog_entry,
     get_project_changelog,
 )
+from dashboard_backend.crud.projects.bvwp import get_bvwp_data
 from dashboard_backend.crud.projects.projects import get_project_by_id, get_projects, update_project
 from dashboard_backend.database import get_db
 from dashboard_backend.models.users import User
@@ -21,6 +22,7 @@ from dashboard_backend.schemas.projects.project_schema import BudgetSummarySchem
 from dashboard_backend.models.projects.finve import Finve
 from dashboard_backend.models.projects.budget import Budget
 from dashboard_backend.models.haushalt.budget_titel_entry import BudgetTitelEntry
+from dashboard_backend.schemas.projects.bvwp_schema import BvwpProjectDataSchema
 from dashboard_backend.schemas.projects.project_update_schema import ProjectUpdate
 from dashboard_backend.schemas.users import UserRole
 
@@ -40,6 +42,18 @@ def read_project(project_id: int, db: Session = Depends(get_db)):
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     return project
+
+
+@router.get("/{project_id}/bvwp", response_model=BvwpProjectDataSchema)
+def get_project_bvwp(project_id: int, db: Session = Depends(get_db)):
+    """Return BVWP assessment data for a project. Returns 404 if no BVWP data exists."""
+    project = get_project_by_id(db, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    bvwp = get_bvwp_data(db, project_id)
+    if not bvwp:
+        raise HTTPException(status_code=404, detail="No BVWP data for this project")
+    return bvwp
 
 
 @router.patch("/{project_id}", response_model=ProjectSchema)

@@ -23,6 +23,7 @@ import {
     type ProjectUpdatePayload,
     updateProject,
     useProject,
+    useProjectBvwp,
     useProjects,
 } from "../../shared/api/queries";
 import ProjectEdit, { type ProjectEditFormValues } from "./ProjectEdit";
@@ -32,6 +33,7 @@ import ProjectHistorySection from "../changelog/ProjectHistorySection";
 import ProjectTextsSection from "./ProjectTextsSection";
 import { ProjectTableOfContents, type TocSection } from "./ProjectTableOfContents";
 import FinveSection from "./components/FinveSection";
+import BvwpDataSection from "./components/BvwpDataSection";
 
 type RouteParams = {
     projectId?: string;
@@ -179,6 +181,7 @@ export default function ProjectDetail() {
     const textsRef = useRef<HTMLDivElement>(null);
     const justificationRef = useRef<HTMLDivElement>(null);
     const finveRef = useRef<HTMLDivElement>(null);
+    const bvwpRef = useRef<HTMLDivElement>(null);
     const superiorRef = useRef<HTMLDivElement>(null);
     const subProjectsRef = useRef<HTMLDivElement>(null);
     const historyRef = useRef<HTMLDivElement>(null);
@@ -190,6 +193,7 @@ export default function ProjectDetail() {
 
     const { data, isLoading, isError, error } = useProject(projectId);
     const { data: allProjects } = useProjects();
+    const { data: bvwpData } = useProjectBvwp(projectId);
 
     const mutation = useMutation({
         mutationFn: (values: ProjectEditFormValues) => updateProject(projectId, createUpdatePayload(values)),
@@ -357,6 +361,12 @@ export default function ProjectDetail() {
             label: "FinVe",
             ref: finveRef,
             visible: true,
+        },
+        {
+            id: "bvwp",
+            label: "BVWP-Bewertung",
+            ref: bvwpRef,
+            visible: bvwpData != null,
         },
         {
             id: "superior",
@@ -574,6 +584,11 @@ export default function ProjectDetail() {
                 {/* FinVe */}
                 <div ref={finveRef}>
                     <FinveSection projectId={projectId} />
+                </div>
+
+                {/* BVWP-Bewertung */}
+                <div ref={bvwpRef}>
+                    <BvwpDataSection projectId={projectId} />
                 </div>
 
                 {/* Übergeordnetes Projekt */}

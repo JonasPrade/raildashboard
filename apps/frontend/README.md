@@ -75,6 +75,14 @@ Sammel-FinVes (`is_sammel_finve = true`) render as a compact inline tag instead 
 
 Charts use a custom `ChartLegend` component rendered below the chart SVG (avoids recharts clipping) with Mantine `ColorSwatch` + `Text`.
 
+### BVWP assessment display (`features/projects/components/BvwpDataSection.tsx`)
+
+Shows BVWP (Bundesverkehrswegeplan) assessment data for projects that have it. Rendered inside `ProjectDetail` after the FinVe section. Hidden entirely for projects without BVWP data (query returns `null` on 404).
+
+Data comes from `useProjectBvwp(projectId)` → `GET /api/v1/projects/{id}/bvwp`.
+
+Layout: Mantine `Tabs` with up to 11 groups — **Grunddaten** (NKV shown as `Badge`, priority as coloured badge), **Kosten**, **Prognose PV**, **Prognose GV**, **Nutzen PV**, **Nutzen GV**, **Weitere Nutzenwirkungen**, **Umwelt**, **Raumordnung**, **Kapazität** (congestion table with reference/plancase by time period), **Sonstiges**. Tabs with no non-null fields are hidden automatically. Float values are formatted with `toLocaleString('de-DE')`.
+
 ### Project search (`features/map/MapPage.tsx` + `MapControls.tsx`)
 
 Available on both the map and list view at `/`. A search `TextInput` (with magnifier icon and clear button) lets users find projects by name, project number, or description via case-insensitive substring matching. All filtering is client-side — no extra API calls are made, as all project data is already in memory from `useProjectGroups()`.

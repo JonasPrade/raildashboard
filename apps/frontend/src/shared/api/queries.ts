@@ -442,6 +442,26 @@ export function useProjectFinves(projectId: number) {
     });
 }
 
+export type BvwpProjectData = components["schemas"]["BvwpProjectDataSchema"];
+
+export function useProjectBvwp(projectId: number) {
+    return useQuery({
+        queryKey: ["project-bvwp", projectId],
+        enabled: !Number.isNaN(projectId),
+        queryFn: async () => {
+            try {
+                return await api<BvwpProjectData>(`/api/v1/projects/${projectId}/bvwp`);
+            } catch (err) {
+                // 404 means no BVWP data for this project — treat as null, not an error
+                if (err && typeof err === "object" && "status" in err && (err as { status: number }).status === 404) {
+                    return null;
+                }
+                throw err;
+            }
+        },
+    });
+}
+
 export type ProjectRef = { id: number; name: string };
 
 export type FinveListItem = {

@@ -65,6 +65,26 @@ export interface paths {
         patch: operations["patch_project_api_v1_projects__project_id__patch"];
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/bvwp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Project Bvwp
+         * @description Return BVWP assessment data for a project. Returns 404 if no BVWP data exists.
+         */
+        get: operations["get_project_bvwp_api_v1_projects__project_id__bvwp_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/finves": {
         parameters: {
             query?: never;
@@ -680,6 +700,433 @@ export interface components {
              * @default []
              */
             titel_entries: components["schemas"]["TitelEntrySchema"][];
+        };
+        /** BvwpProjectDataSchema */
+        BvwpProjectDataSchema: {
+            /** Id */
+            id: number;
+            /** Project Id */
+            project_id: number;
+            /** Nkv */
+            nkv?: number | null;
+            /** Priority */
+            priority?: string | null;
+            /** Reason Priority */
+            reason_priority?: string | null;
+            /** Bvwp Alternatives */
+            bvwp_alternatives?: string | null;
+            /** Bedarfsplan Nr */
+            bedarfsplan_nr?: number | null;
+            /** Bottleneck Elimination */
+            bottleneck_elimination?: boolean | null;
+            /** Planned Total Cost */
+            planned_total_cost?: number | null;
+            /** Actual Cost */
+            actual_cost?: number | null;
+            /** Maintenance Cost */
+            maintenance_cost?: number | null;
+            /** Investment Cost */
+            investment_cost?: number | null;
+            /** Planning Cost */
+            planning_cost?: number | null;
+            /** Capital Service Cost */
+            capital_service_cost?: number | null;
+            /** Bvwp Planned Cost */
+            bvwp_planned_cost?: number | null;
+            /** Bvwp Planned Maintenance Cost */
+            bvwp_planned_maintenance_cost?: number | null;
+            /** Bvwp Planned Planning Cost */
+            bvwp_planned_planning_cost?: number | null;
+            /** Bvwp Planned Planning Cost Incurred */
+            bvwp_planned_planning_cost_incurred?: number | null;
+            /** Bvwp Total Budget Relevant Cost */
+            bvwp_total_budget_relevant_cost?: number | null;
+            /** Bvwp Total Budget Relevant Cost Incurred */
+            bvwp_total_budget_relevant_cost_incurred?: number | null;
+            /** Bvwp Valuation Relevant Cost */
+            bvwp_valuation_relevant_cost?: number | null;
+            /** Bvwp Valuation Relevant Cost Pricelevel 2012 */
+            bvwp_valuation_relevant_cost_pricelevel_2012?: number | null;
+            /** Bvwp Valuation Relevant Cost Pricelevel 2012 Planning Cost */
+            bvwp_valuation_relevant_cost_pricelevel_2012_planning_cost?: number | null;
+            /** Bvwp Valuation Relevant Cost Pricelevel 2012 Infrastructure Cos */
+            bvwp_valuation_relevant_cost_pricelevel_2012_infrastructure_cos?: number | null;
+            /** Bvwp Valuation Relevant Cost Pricelevel 2012 Present Value */
+            bvwp_valuation_relevant_cost_pricelevel_2012_present_value?: number | null;
+            /** Relocation Car To Rail */
+            relocation_car_to_rail?: number | null;
+            /** Relocation Rail To Car */
+            relocation_rail_to_car?: number | null;
+            /** Relocation Air To Rail */
+            relocation_air_to_rail?: number | null;
+            /** Induced Traffic */
+            induced_traffic?: number | null;
+            /** Delta Car Km */
+            delta_car_km?: number | null;
+            /** Delta Km Rail */
+            delta_km_rail?: number | null;
+            /** Delta Rail Running Time */
+            delta_rail_running_time?: number | null;
+            /** Delta Rail Km Rail */
+            delta_rail_km_rail?: number | null;
+            /** Delta Rail Km Car To Rail */
+            delta_rail_km_car_to_rail?: number | null;
+            /** Delta Rail Km Rail To Car */
+            delta_rail_km_rail_to_car?: number | null;
+            /** Delta Rail Km Air To Rail */
+            delta_rail_km_air_to_rail?: number | null;
+            /** Delta Rail Km Induced */
+            delta_rail_km_induced?: number | null;
+            /** Delta Travel Time Rail */
+            delta_travel_time_rail?: number | null;
+            /** Delta Travel Time Car To Rail */
+            delta_travel_time_car_to_rail?: number | null;
+            /** Delta Travel Time Rail To Car */
+            delta_travel_time_rail_to_car?: number | null;
+            /** Delta Travel Time Air To Rail */
+            delta_travel_time_air_to_rail?: number | null;
+            /** Delta Travel Time Induced */
+            delta_travel_time_induced?: number | null;
+            /** Relocation Truck To Rail */
+            relocation_truck_to_rail?: number | null;
+            /** Relocation Ship To Rail */
+            relocation_ship_to_rail?: number | null;
+            /** Delta Truck Km */
+            delta_truck_km?: number | null;
+            /** Delta Truck Count */
+            delta_truck_count?: number | null;
+            /** Delta Rail Cargo Count */
+            delta_rail_cargo_count?: number | null;
+            /** Delta Rail Cargo Running Time */
+            delta_rail_cargo_running_time?: number | null;
+            /** Delta Rail Cargo Km Lkw To Rail */
+            delta_rail_cargo_km_lkw_to_rail?: number | null;
+            /** Delta Rail Cargo Km Ship To Rail */
+            delta_rail_cargo_km_ship_to_rail?: number | null;
+            /** Delta Rail Cargo Time Rail */
+            delta_rail_cargo_time_rail?: number | null;
+            /** Delta Rail Cargo Time Lkw To Rail */
+            delta_rail_cargo_time_lkw_to_rail?: number | null;
+            /** Delta Rail Cargo Time Ship To Rail */
+            delta_rail_cargo_time_ship_to_rail?: number | null;
+            /** Use Change Operation Cost Car Yearly */
+            use_change_operation_cost_car_yearly?: number | null;
+            /** Use Change Operating Cost Rail Yearly */
+            use_change_operating_cost_rail_yearly?: number | null;
+            /** Use Change Operating Cost Air Yearly */
+            use_change_operating_cost_air_yearly?: number | null;
+            /** Use Change Pollution Car Yearly */
+            use_change_pollution_car_yearly?: number | null;
+            /** Use Change Pollution Rail Yearly */
+            use_change_pollution_rail_yearly?: number | null;
+            /** Use Change Pollution Air Yearly */
+            use_change_pollution_air_yearly?: number | null;
+            /** Use Change Safety Car Yearly */
+            use_change_safety_car_yearly?: number | null;
+            /** Use Change Safety Rail Yearly */
+            use_change_safety_rail_yearly?: number | null;
+            /** Use Change Travel Time Rail Yearly */
+            use_change_travel_time_rail_yearly?: number | null;
+            /** Use Change Travel Time Induced Yearly */
+            use_change_travel_time_induced_yearly?: number | null;
+            /** Use Change Travel Time Pkw Yearly */
+            use_change_travel_time_pkw_yearly?: number | null;
+            /** Use Change Travel Time Air Yearly */
+            use_change_travel_time_air_yearly?: number | null;
+            /** Use Change Travel Time Less 2Min Yearly */
+            use_change_travel_time_less_2min_yearly?: number | null;
+            /** Use Change Implicit Benefit Induced Yearly */
+            use_change_implicit_benefit_induced_yearly?: number | null;
+            /** Use Change Implicit Benefit Pkw Yearly */
+            use_change_implicit_benefit_pkw_yearly?: number | null;
+            /** Use Change Implicit Benefit Air Yearly */
+            use_change_implicit_benefit_air_yearly?: number | null;
+            /** Use Sum Passenger Yearly */
+            use_sum_passenger_yearly?: number | null;
+            /** Use Change Operation Cost Car Present Value */
+            use_change_operation_cost_car_present_value?: number | null;
+            /** Use Change Operating Cost Rail Present Value */
+            use_change_operating_cost_rail_present_value?: number | null;
+            /** Use Change Operating Cost Air Present Value */
+            use_change_operating_cost_air_present_value?: number | null;
+            /** Use Change Pollution Car Present Value */
+            use_change_pollution_car_present_value?: number | null;
+            /** Use Change Pollution Rail Present Value */
+            use_change_pollution_rail_present_value?: number | null;
+            /** Use Change Pollution Air Present Value */
+            use_change_pollution_air_present_value?: number | null;
+            /** Use Change Safety Car Present Value */
+            use_change_safety_car_present_value?: number | null;
+            /** Use Change Safety Rail Present Value */
+            use_change_safety_rail_present_value?: number | null;
+            /** Use Change Travel Time Rail Present Value */
+            use_change_travel_time_rail_present_value?: number | null;
+            /** Use Change Travel Time Induced Present Value */
+            use_change_travel_time_induced_present_value?: number | null;
+            /** Use Change Travel Time Pkw Present Value */
+            use_change_travel_time_pkw_present_value?: number | null;
+            /** Use Change Travel Time Air Present Value */
+            use_change_travel_time_air_present_value?: number | null;
+            /** Use Change Travel Time Less 2Min Present Value */
+            use_change_travel_time_less_2min_present_value?: number | null;
+            /** Use Change Implicit Benefit Induced Present Value */
+            use_change_implicit_benefit_induced_present_value?: number | null;
+            /** Use Change Implicit Benefit Pkw Present Value */
+            use_change_implicit_benefit_pkw_present_value?: number | null;
+            /** Use Change Implicit Benefit Air Present Value */
+            use_change_implicit_benefit_air_present_value?: number | null;
+            /** Use Sum Passenger Present Value */
+            use_sum_passenger_present_value?: number | null;
+            /** Use Change Operating Cost Truck Yearly */
+            use_change_operating_cost_truck_yearly?: number | null;
+            /** Use Change Operating Cost Rail Cargo Yearly */
+            use_change_operating_cost_rail_cargo_yearly?: number | null;
+            /** Use Change Operating Cost Ship Yearly */
+            use_change_operating_cost_ship_yearly?: number | null;
+            /** Use Change Pollution Truck Yearly */
+            use_change_pollution_truck_yearly?: number | null;
+            /** Use Change Pollution Rail Cargo Yearly */
+            use_change_pollution_rail_cargo_yearly?: number | null;
+            /** Use Change Pollution Ship Yearly */
+            use_change_pollution_ship_yearly?: number | null;
+            /** Use Change Safety Truck Yearly */
+            use_change_safety_truck_yearly?: number | null;
+            /** Use Change Safety Rail Cargo Yearly */
+            use_change_safety_rail_cargo_yearly?: number | null;
+            /** Use Change Safety Ship Yearly */
+            use_change_safety_ship_yearly?: number | null;
+            /** Use Change Running Time Rail Yearly */
+            use_change_running_time_rail_yearly?: number | null;
+            /** Use Change Running Time Lkw Yearly */
+            use_change_running_time_lkw_yearly?: number | null;
+            /** Use Change Running Time Ship Yearly */
+            use_change_running_time_ship_yearly?: number | null;
+            /** Use Change Implicit Benefit Truck Yearly */
+            use_change_implicit_benefit_truck_yearly?: number | null;
+            /** Use Change Implicit Benefit Ship Yearly */
+            use_change_implicit_benefit_ship_yearly?: number | null;
+            /** Use Change Reliability Yearly */
+            use_change_reliability_yearly?: number | null;
+            /** Use Sum Cargo Yearly */
+            use_sum_cargo_yearly?: number | null;
+            /** Use Change Operating Cost Truck Present Value */
+            use_change_operating_cost_truck_present_value?: number | null;
+            /** Use Change Operating Cost Rail Cargo Present Value */
+            use_change_operating_cost_rail_cargo_present_value?: number | null;
+            /** Use Change Operating Cost Ship Present Value */
+            use_change_operating_cost_ship_present_value?: number | null;
+            /** Use Change Pollution Truck Present Value */
+            use_change_pollution_truck_present_value?: number | null;
+            /** Use Change Pollution Rail Cargo Present Value */
+            use_change_pollution_rail_cargo_present_value?: number | null;
+            /** Use Change Pollution Ship Present Value */
+            use_change_pollution_ship_present_value?: number | null;
+            /** Use Change Safety Truck Present Value */
+            use_change_safety_truck_present_value?: number | null;
+            /** Use Change Safety Rail Cargo Present Value */
+            use_change_safety_rail_cargo_present_value?: number | null;
+            /** Use Change Safety Ship Present Value */
+            use_change_safety_ship_present_value?: number | null;
+            /** Use Change Running Time Rail Present Value */
+            use_change_running_time_rail_present_value?: number | null;
+            /** Use Change Running Time Lkw Present Value */
+            use_change_running_time_lkw_present_value?: number | null;
+            /** Use Change Running Time Ship Present Value */
+            use_change_running_time_ship_present_value?: number | null;
+            /** Use Change Implicit Benefit Truck Present Value */
+            use_change_implicit_benefit_truck_present_value?: number | null;
+            /** Use Change Implicit Benefit Ship Present Value */
+            use_change_implicit_benefit_ship_present_value?: number | null;
+            /** Use Change Reliability Present Value */
+            use_change_reliability_present_value?: number | null;
+            /** Use Sum Cargo Present Value */
+            use_sum_cargo_present_value?: number | null;
+            /** Use Change Maintenance Cost Yearly */
+            use_change_maintenance_cost_yearly?: number | null;
+            /** Use Change Lcc Infrastructure Yearly */
+            use_change_lcc_infrastructure_yearly?: number | null;
+            /** Use Change Noise Intown Yearly */
+            use_change_noise_intown_yearly?: number | null;
+            /** Use Change Noise Outtown Yearly */
+            use_change_noise_outtown_yearly?: number | null;
+            /** Sum Use Change Yearly */
+            sum_use_change_yearly?: number | null;
+            /** Use Change Maintenance Cost Present Value */
+            use_change_maintenance_cost_present_value?: number | null;
+            /** Use Change Lcc Infrastructure Present Value */
+            use_change_lcc_infrastructure_present_value?: number | null;
+            /** Use Change Noise Intown Present Value */
+            use_change_noise_intown_present_value?: number | null;
+            /** Use Change Noise Outtown Present Value */
+            use_change_noise_outtown_present_value?: number | null;
+            /** Sum Use Change Present Value */
+            sum_use_change_present_value?: number | null;
+            /** Bvwp Environmental Impact */
+            bvwp_environmental_impact?: string | null;
+            /** Delta Nox */
+            delta_nox?: number | null;
+            /** Delta Co */
+            delta_co?: number | null;
+            /** Delta Co2 */
+            delta_co2?: number | null;
+            /** Delta Hc */
+            delta_hc?: number | null;
+            /** Delta Pm */
+            delta_pm?: number | null;
+            /** Delta So2 */
+            delta_so2?: number | null;
+            /** Bvwp Sum Use Environment */
+            bvwp_sum_use_environment?: number | null;
+            /** Bvwp Sum Environmental Affectedness */
+            bvwp_sum_environmental_affectedness?: string | null;
+            /** Bvwp Sum Environmental Affectedness Text */
+            bvwp_sum_environmental_affectedness_text?: string | null;
+            /** Noise New Affected */
+            noise_new_affected?: number | null;
+            /** Noise Relieved */
+            noise_relieved?: number | null;
+            /** Change Noise Outtown */
+            change_noise_outtown?: number | null;
+            /** Area Nature High Importance */
+            area_nature_high_importance?: number | null;
+            /** Area Nature High Importance Per Km */
+            area_nature_high_importance_per_km?: number | null;
+            /** Area Nature High Importance Rating */
+            area_nature_high_importance_rating?: string | null;
+            /** Natura2000 Rating */
+            natura2000_rating?: string | null;
+            /** Natura2000 Not Excluded */
+            natura2000_not_excluded?: number | null;
+            /** Natura2000 Probably */
+            natura2000_probably?: number | null;
+            /** Ufr 250 */
+            ufr_250?: number | null;
+            /** Ufr 250 Per Km */
+            ufr_250_per_km?: number | null;
+            /** Ufra 250 Rating */
+            ufra_250_rating?: string | null;
+            /** Bfn Rating */
+            bfn_rating?: string | null;
+            /** Ufr 1000 Undissacted Large Area */
+            ufr_1000_undissacted_large_area?: number | null;
+            /** Ufr 1000 Undissacted Large Area Per Km */
+            ufr_1000_undissacted_large_area_per_km?: number | null;
+            /** Ufr 1000 Undissacted Large Mammals */
+            ufr_1000_undissacted_large_mammals?: number | null;
+            /** Ufr 1000 Undissacted Large Mammals Per Km */
+            ufr_1000_undissacted_large_mammals_per_km?: number | null;
+            /** Count Undissacted Area */
+            count_undissacted_area?: number | null;
+            /** Count Reconnect Area */
+            count_reconnect_area?: number | null;
+            /** Land Consumption */
+            land_consumption?: number | null;
+            /** Flooding Area */
+            flooding_area?: number | null;
+            /** Flooding Area Per Km */
+            flooding_area_per_km?: number | null;
+            /** Flooding Area Rating */
+            flooding_area_rating?: string | null;
+            /** Water Protection Area */
+            water_protection_area?: number | null;
+            /** Water Protection Area Per Km */
+            water_protection_area_per_km?: number | null;
+            /** Water Protection Area Rating */
+            water_protection_area_rating?: string | null;
+            /** Uzvr */
+            uzvr?: number | null;
+            /** Uvzr Rating */
+            uvzr_rating?: string | null;
+            /** Priortiy Area Landscape Protection */
+            priortiy_area_landscape_protection?: number | null;
+            /** Priority Area Landscape Protection Per Km */
+            priority_area_landscape_protection_per_km?: number | null;
+            /** Priority Area Landscape Protection Rating */
+            priority_area_landscape_protection_rating?: string | null;
+            /** Environmental Additional Informations */
+            environmental_additional_informations?: string | null;
+            /** Bvwp Regional Significance */
+            bvwp_regional_significance?: string | null;
+            /** Spatial Significance Overall Result */
+            spatial_significance_overall_result?: string | null;
+            /** Spatial Significance Reasons */
+            spatial_significance_reasons?: string | null;
+            /** Spatial Significance Street */
+            spatial_significance_street?: string | null;
+            /** Spatial Significance Accessibility Deficits */
+            spatial_significance_accessibility_deficits?: string | null;
+            /** Spatial Significance Conclusion */
+            spatial_significance_conclusion?: string | null;
+            /** Bvwp Congested Rail Reference 6To9 Km */
+            bvwp_congested_rail_reference_6to9_km?: number | null;
+            /** Bvwp Congested Rail Reference 6To9 Perc */
+            bvwp_congested_rail_reference_6to9_perc?: number | null;
+            /** Bvwp Congested Rail Plancase 6To9 Km */
+            bvwp_congested_rail_plancase_6to9_km?: number | null;
+            /** Bvwp Congested Rail Plancase 6To9 Perc */
+            bvwp_congested_rail_plancase_6to9_perc?: number | null;
+            /** Bvwp Congested Rail Reference 9To16 Km */
+            bvwp_congested_rail_reference_9to16_km?: number | null;
+            /** Bvwp Congested Rail Reference 9To16 Perc */
+            bvwp_congested_rail_reference_9to16_perc?: number | null;
+            /** Bvwp Congested Rail Plancase 9To16 Km */
+            bvwp_congested_rail_plancase_9to16_km?: number | null;
+            /** Bvwp Congested Rail Plancase 9To16 Perc */
+            bvwp_congested_rail_plancase_9to16_perc?: number | null;
+            /** Bvwp Congested Rail Reference 16To19 Km */
+            bvwp_congested_rail_reference_16to19_km?: number | null;
+            /** Bvwp Congested Rail Reference 16To19 Perc */
+            bvwp_congested_rail_reference_16to19_perc?: number | null;
+            /** Bvwp Congested Rail Plancase 16To19 Km */
+            bvwp_congested_rail_plancase_16to19_km?: number | null;
+            /** Bvwp Congested Rail Plancase 16To19 Perc */
+            bvwp_congested_rail_plancase_16to19_perc?: number | null;
+            /** Bvwp Congested Rail Reference 19To22 Km */
+            bvwp_congested_rail_reference_19to22_km?: number | null;
+            /** Bvwp Congested Rail Reference 19To22 Perc */
+            bvwp_congested_rail_reference_19to22_perc?: number | null;
+            /** Bvwp Congested Rail Plancase 19To22 Km */
+            bvwp_congested_rail_plancase_19to22_km?: number | null;
+            /** Bvwp Congested Rail Plancase 19To22 Perc */
+            bvwp_congested_rail_plancase_19to22_perc?: number | null;
+            /** Bvwp Congested Rail Reference 22To6 Km */
+            bvwp_congested_rail_reference_22to6_km?: number | null;
+            /** Bvwp Congested Rail Reference 22To6 Perc */
+            bvwp_congested_rail_reference_22to6_perc?: number | null;
+            /** Bvwp Congested Rail Plancase 22To6 Km */
+            bvwp_congested_rail_plancase_22to6_km?: number | null;
+            /** Bvwp Congested Rail Plancase 22To6 Perc */
+            bvwp_congested_rail_plancase_22to6_perc?: number | null;
+            /** Bvwp Congested Rail Reference Day Km */
+            bvwp_congested_rail_reference_day_km?: number | null;
+            /** Bvwp Congested Rail Reference Day Perc */
+            bvwp_congested_rail_reference_day_perc?: number | null;
+            /** Bvwp Congested Rail Plancase Day Km */
+            bvwp_congested_rail_plancase_day_km?: number | null;
+            /** Bvwp Congested Rail Plancase Day Perc */
+            bvwp_congested_rail_plancase_day_perc?: number | null;
+            /** Bvwp Unscheduled Waiting Period Reference */
+            bvwp_unscheduled_waiting_period_reference?: number | null;
+            /** Bvwp Unscheduled Waiting Period Plancase */
+            bvwp_unscheduled_waiting_period_plancase?: number | null;
+            /** Bvwp Punctuality Cargo Reference */
+            bvwp_punctuality_cargo_reference?: number | null;
+            /** Bvwp Delta Punctuality Relativ */
+            bvwp_delta_punctuality_relativ?: number | null;
+            /** Bvwp Delta Punctuality Absolut */
+            bvwp_delta_punctuality_absolut?: number | null;
+            /** Traveltime Reduction */
+            traveltime_reduction?: number | null;
+            /** Bvwp Traveltime Examples */
+            bvwp_traveltime_examples?: string | null;
+            /** Bvwp Duration Of Outstanding Planning */
+            bvwp_duration_of_outstanding_planning?: number | null;
+            /** Bvwp Duration Of Build */
+            bvwp_duration_of_build?: number | null;
+            /** Bvwp Duration Operating */
+            bvwp_duration_operating?: number | null;
+            /** Bvwp Additional Informations */
+            bvwp_additional_informations?: string | null;
         };
         /** ChangeLogEntryRead */
         ChangeLogEntryRead: {
@@ -1824,6 +2271,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_project_bvwp_api_v1_projects__project_id__bvwp_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BvwpProjectDataSchema"];
                 };
             };
             /** @description Validation Error */

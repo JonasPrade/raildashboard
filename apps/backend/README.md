@@ -195,6 +195,14 @@ Two partial unique indexes enforce uniqueness separately for permanent and year-
 | `budget_change_log` / `budget_change_log_entry` | Budget change history |
 | `unmatched_budget_row` | Unresolved PDF rows |
 
+### BVWP assessment data
+
+```
+GET /api/v1/projects/{project_id}/bvwp
+```
+
+Returns the full BVWP assessment record for a project (`BvwpProjectDataSchema`, ~200 optional fields). Returns `404` if no BVWP data exists for that project — the frontend uses this to conditionally show the section. No authentication required. Implemented in `crud/projects/bvwp.py` + `schemas/projects/bvwp_schema.py`.
+
 ## Routing API
 The backend persists rail routes that are computed via the routing microservice. The following REST endpoints are available:
 

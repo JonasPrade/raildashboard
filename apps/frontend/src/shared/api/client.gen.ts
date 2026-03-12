@@ -184,6 +184,444 @@ const ProjectUpdate = z
   })
   .partial()
   .passthrough();
+const BvwpProjectDataSchema = z
+  .object({
+    id: z.number().int(),
+    project_id: z.number().int(),
+    nkv: z.union([z.number(), z.null()]).optional(),
+    priority: z.union([z.string(), z.null()]).optional(),
+    reason_priority: z.union([z.string(), z.null()]).optional(),
+    bvwp_alternatives: z.union([z.string(), z.null()]).optional(),
+    bedarfsplan_nr: z.union([z.number(), z.null()]).optional(),
+    bottleneck_elimination: z.union([z.boolean(), z.null()]).optional(),
+    planned_total_cost: z.union([z.number(), z.null()]).optional(),
+    actual_cost: z.union([z.number(), z.null()]).optional(),
+    maintenance_cost: z.union([z.number(), z.null()]).optional(),
+    investment_cost: z.union([z.number(), z.null()]).optional(),
+    planning_cost: z.union([z.number(), z.null()]).optional(),
+    capital_service_cost: z.union([z.number(), z.null()]).optional(),
+    bvwp_planned_cost: z.union([z.number(), z.null()]).optional(),
+    bvwp_planned_maintenance_cost: z.union([z.number(), z.null()]).optional(),
+    bvwp_planned_planning_cost: z.union([z.number(), z.null()]).optional(),
+    bvwp_planned_planning_cost_incurred: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_total_budget_relevant_cost: z.union([z.number(), z.null()]).optional(),
+    bvwp_total_budget_relevant_cost_incurred: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_valuation_relevant_cost: z.union([z.number(), z.null()]).optional(),
+    bvwp_valuation_relevant_cost_pricelevel_2012: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_valuation_relevant_cost_pricelevel_2012_planning_cost: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_valuation_relevant_cost_pricelevel_2012_infrastructure_cos: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_valuation_relevant_cost_pricelevel_2012_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    relocation_car_to_rail: z.union([z.number(), z.null()]).optional(),
+    relocation_rail_to_car: z.union([z.number(), z.null()]).optional(),
+    relocation_air_to_rail: z.union([z.number(), z.null()]).optional(),
+    induced_traffic: z.union([z.number(), z.null()]).optional(),
+    delta_car_km: z.union([z.number(), z.null()]).optional(),
+    delta_km_rail: z.union([z.number(), z.null()]).optional(),
+    delta_rail_running_time: z.union([z.number(), z.null()]).optional(),
+    delta_rail_km_rail: z.union([z.number(), z.null()]).optional(),
+    delta_rail_km_car_to_rail: z.union([z.number(), z.null()]).optional(),
+    delta_rail_km_rail_to_car: z.union([z.number(), z.null()]).optional(),
+    delta_rail_km_air_to_rail: z.union([z.number(), z.null()]).optional(),
+    delta_rail_km_induced: z.union([z.number(), z.null()]).optional(),
+    delta_travel_time_rail: z.union([z.number(), z.null()]).optional(),
+    delta_travel_time_car_to_rail: z.union([z.number(), z.null()]).optional(),
+    delta_travel_time_rail_to_car: z.union([z.number(), z.null()]).optional(),
+    delta_travel_time_air_to_rail: z.union([z.number(), z.null()]).optional(),
+    delta_travel_time_induced: z.union([z.number(), z.null()]).optional(),
+    relocation_truck_to_rail: z.union([z.number(), z.null()]).optional(),
+    relocation_ship_to_rail: z.union([z.number(), z.null()]).optional(),
+    delta_truck_km: z.union([z.number(), z.null()]).optional(),
+    delta_truck_count: z.union([z.number(), z.null()]).optional(),
+    delta_rail_cargo_count: z.union([z.number(), z.null()]).optional(),
+    delta_rail_cargo_running_time: z.union([z.number(), z.null()]).optional(),
+    delta_rail_cargo_km_lkw_to_rail: z.union([z.number(), z.null()]).optional(),
+    delta_rail_cargo_km_ship_to_rail: z
+      .union([z.number(), z.null()])
+      .optional(),
+    delta_rail_cargo_time_rail: z.union([z.number(), z.null()]).optional(),
+    delta_rail_cargo_time_lkw_to_rail: z
+      .union([z.number(), z.null()])
+      .optional(),
+    delta_rail_cargo_time_ship_to_rail: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_operation_cost_car_yearly: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_operating_cost_rail_yearly: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_operating_cost_air_yearly: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_pollution_car_yearly: z.union([z.number(), z.null()]).optional(),
+    use_change_pollution_rail_yearly: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_pollution_air_yearly: z.union([z.number(), z.null()]).optional(),
+    use_change_safety_car_yearly: z.union([z.number(), z.null()]).optional(),
+    use_change_safety_rail_yearly: z.union([z.number(), z.null()]).optional(),
+    use_change_travel_time_rail_yearly: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_travel_time_induced_yearly: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_travel_time_pkw_yearly: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_travel_time_air_yearly: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_travel_time_less_2min_yearly: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_implicit_benefit_induced_yearly: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_implicit_benefit_pkw_yearly: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_implicit_benefit_air_yearly: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_sum_passenger_yearly: z.union([z.number(), z.null()]).optional(),
+    use_change_operation_cost_car_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_operating_cost_rail_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_operating_cost_air_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_pollution_car_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_pollution_rail_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_pollution_air_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_safety_car_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_safety_rail_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_travel_time_rail_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_travel_time_induced_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_travel_time_pkw_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_travel_time_air_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_travel_time_less_2min_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_implicit_benefit_induced_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_implicit_benefit_pkw_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_implicit_benefit_air_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_sum_passenger_present_value: z.union([z.number(), z.null()]).optional(),
+    use_change_operating_cost_truck_yearly: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_operating_cost_rail_cargo_yearly: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_operating_cost_ship_yearly: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_pollution_truck_yearly: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_pollution_rail_cargo_yearly: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_pollution_ship_yearly: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_safety_truck_yearly: z.union([z.number(), z.null()]).optional(),
+    use_change_safety_rail_cargo_yearly: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_safety_ship_yearly: z.union([z.number(), z.null()]).optional(),
+    use_change_running_time_rail_yearly: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_running_time_lkw_yearly: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_running_time_ship_yearly: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_implicit_benefit_truck_yearly: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_implicit_benefit_ship_yearly: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_reliability_yearly: z.union([z.number(), z.null()]).optional(),
+    use_sum_cargo_yearly: z.union([z.number(), z.null()]).optional(),
+    use_change_operating_cost_truck_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_operating_cost_rail_cargo_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_operating_cost_ship_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_pollution_truck_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_pollution_rail_cargo_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_pollution_ship_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_safety_truck_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_safety_rail_cargo_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_safety_ship_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_running_time_rail_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_running_time_lkw_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_running_time_ship_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_implicit_benefit_truck_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_implicit_benefit_ship_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_reliability_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_sum_cargo_present_value: z.union([z.number(), z.null()]).optional(),
+    use_change_maintenance_cost_yearly: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_lcc_infrastructure_yearly: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_noise_intown_yearly: z.union([z.number(), z.null()]).optional(),
+    use_change_noise_outtown_yearly: z.union([z.number(), z.null()]).optional(),
+    sum_use_change_yearly: z.union([z.number(), z.null()]).optional(),
+    use_change_maintenance_cost_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_lcc_infrastructure_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_noise_intown_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    use_change_noise_outtown_present_value: z
+      .union([z.number(), z.null()])
+      .optional(),
+    sum_use_change_present_value: z.union([z.number(), z.null()]).optional(),
+    bvwp_environmental_impact: z.union([z.string(), z.null()]).optional(),
+    delta_nox: z.union([z.number(), z.null()]).optional(),
+    delta_co: z.union([z.number(), z.null()]).optional(),
+    delta_co2: z.union([z.number(), z.null()]).optional(),
+    delta_hc: z.union([z.number(), z.null()]).optional(),
+    delta_pm: z.union([z.number(), z.null()]).optional(),
+    delta_so2: z.union([z.number(), z.null()]).optional(),
+    bvwp_sum_use_environment: z.union([z.number(), z.null()]).optional(),
+    bvwp_sum_environmental_affectedness: z
+      .union([z.string(), z.null()])
+      .optional(),
+    bvwp_sum_environmental_affectedness_text: z
+      .union([z.string(), z.null()])
+      .optional(),
+    noise_new_affected: z.union([z.number(), z.null()]).optional(),
+    noise_relieved: z.union([z.number(), z.null()]).optional(),
+    change_noise_outtown: z.union([z.number(), z.null()]).optional(),
+    area_nature_high_importance: z.union([z.number(), z.null()]).optional(),
+    area_nature_high_importance_per_km: z
+      .union([z.number(), z.null()])
+      .optional(),
+    area_nature_high_importance_rating: z
+      .union([z.string(), z.null()])
+      .optional(),
+    natura2000_rating: z.union([z.string(), z.null()]).optional(),
+    natura2000_not_excluded: z.union([z.number(), z.null()]).optional(),
+    natura2000_probably: z.union([z.number(), z.null()]).optional(),
+    ufr_250: z.union([z.number(), z.null()]).optional(),
+    ufr_250_per_km: z.union([z.number(), z.null()]).optional(),
+    ufra_250_rating: z.union([z.string(), z.null()]).optional(),
+    bfn_rating: z.union([z.string(), z.null()]).optional(),
+    ufr_1000_undissacted_large_area: z.union([z.number(), z.null()]).optional(),
+    ufr_1000_undissacted_large_area_per_km: z
+      .union([z.number(), z.null()])
+      .optional(),
+    ufr_1000_undissacted_large_mammals: z
+      .union([z.number(), z.null()])
+      .optional(),
+    ufr_1000_undissacted_large_mammals_per_km: z
+      .union([z.number(), z.null()])
+      .optional(),
+    count_undissacted_area: z.union([z.number(), z.null()]).optional(),
+    count_reconnect_area: z.union([z.number(), z.null()]).optional(),
+    land_consumption: z.union([z.number(), z.null()]).optional(),
+    flooding_area: z.union([z.number(), z.null()]).optional(),
+    flooding_area_per_km: z.union([z.number(), z.null()]).optional(),
+    flooding_area_rating: z.union([z.string(), z.null()]).optional(),
+    water_protection_area: z.union([z.number(), z.null()]).optional(),
+    water_protection_area_per_km: z.union([z.number(), z.null()]).optional(),
+    water_protection_area_rating: z.union([z.string(), z.null()]).optional(),
+    uzvr: z.union([z.number(), z.null()]).optional(),
+    uvzr_rating: z.union([z.string(), z.null()]).optional(),
+    priortiy_area_landscape_protection: z
+      .union([z.number(), z.null()])
+      .optional(),
+    priority_area_landscape_protection_per_km: z
+      .union([z.number(), z.null()])
+      .optional(),
+    priority_area_landscape_protection_rating: z
+      .union([z.string(), z.null()])
+      .optional(),
+    environmental_additional_informations: z
+      .union([z.string(), z.null()])
+      .optional(),
+    bvwp_regional_significance: z.union([z.string(), z.null()]).optional(),
+    spatial_significance_overall_result: z
+      .union([z.string(), z.null()])
+      .optional(),
+    spatial_significance_reasons: z.union([z.string(), z.null()]).optional(),
+    spatial_significance_street: z.union([z.string(), z.null()]).optional(),
+    spatial_significance_accessibility_deficits: z
+      .union([z.string(), z.null()])
+      .optional(),
+    spatial_significance_conclusion: z.union([z.string(), z.null()]).optional(),
+    bvwp_congested_rail_reference_6to9_km: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_congested_rail_reference_6to9_perc: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_congested_rail_plancase_6to9_km: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_congested_rail_plancase_6to9_perc: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_congested_rail_reference_9to16_km: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_congested_rail_reference_9to16_perc: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_congested_rail_plancase_9to16_km: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_congested_rail_plancase_9to16_perc: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_congested_rail_reference_16to19_km: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_congested_rail_reference_16to19_perc: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_congested_rail_plancase_16to19_km: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_congested_rail_plancase_16to19_perc: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_congested_rail_reference_19to22_km: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_congested_rail_reference_19to22_perc: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_congested_rail_plancase_19to22_km: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_congested_rail_plancase_19to22_perc: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_congested_rail_reference_22to6_km: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_congested_rail_reference_22to6_perc: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_congested_rail_plancase_22to6_km: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_congested_rail_plancase_22to6_perc: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_congested_rail_reference_day_km: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_congested_rail_reference_day_perc: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_congested_rail_plancase_day_km: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_congested_rail_plancase_day_perc: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_unscheduled_waiting_period_reference: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_unscheduled_waiting_period_plancase: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_punctuality_cargo_reference: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_delta_punctuality_relativ: z.union([z.number(), z.null()]).optional(),
+    bvwp_delta_punctuality_absolut: z.union([z.number(), z.null()]).optional(),
+    traveltime_reduction: z.union([z.number(), z.null()]).optional(),
+    bvwp_traveltime_examples: z.union([z.string(), z.null()]).optional(),
+    bvwp_duration_of_outstanding_planning: z
+      .union([z.number(), z.null()])
+      .optional(),
+    bvwp_duration_of_build: z.union([z.number(), z.null()]).optional(),
+    bvwp_duration_operating: z.union([z.number(), z.null()]).optional(),
+    bvwp_additional_informations: z.union([z.string(), z.null()]).optional(),
+  })
+  .passthrough();
 const TitelEntrySchema = z
   .object({
     titel_key: z.string(),
@@ -544,6 +982,7 @@ export const schemas = {
   HTTPValidationError,
   ProjectSchema,
   ProjectUpdate,
+  BvwpProjectDataSchema,
   TitelEntrySchema,
   BudgetSummarySchema,
   FinveWithBudgetsSchema,
@@ -854,6 +1293,28 @@ for that haushalt_year are also removed so the year can be re-imported.`,
       },
     ],
     response: ProjectSchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/projects/:project_id/bvwp",
+    alias: "get_project_bvwp_api_v1_projects__project_id__bvwp_get",
+    description: `Return BVWP assessment data for a project. Returns 404 if no BVWP data exists.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "project_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: BvwpProjectDataSchema,
     errors: [
       {
         status: 422,
