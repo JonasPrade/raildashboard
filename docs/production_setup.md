@@ -132,6 +132,32 @@ make docker-dev-up
 make dev
 ```
 
+### GraphHopper (Routing-Microservice)
+
+GraphHopper ist als optionaler Service in beiden Compose-Setups integriert.
+
+**Voraussetzung (einmalig):** OSM-PBF-Datei bereitstellen:
+```bash
+mkdir -p data/graphhopper
+# Deutschland-Extrakt (~4 GB, vollständig):
+# https://download.geofabrik.de/europe/germany-latest.osm.pbf
+# Für Tests reicht ein kleinerer Regionalextrakt, z.B. Bayern (~500 MB).
+cp /pfad/zu/extract.osm.pbf data/graphhopper/map.osm.pbf
+```
+
+**Erster Start** (baut den Graphen — dauert 5–30 min je nach PBF-Größe):
+```bash
+# Nur in Dev (als separates Docker-Profil):
+docker compose -f docker-compose.dev.yml --profile routing up -d graphhopper
+
+# In Produktion startet GraphHopper automatisch mit dem restlichen Stack.
+# ROUTING_BASE_URL=http://graphhopper:8989 ist bereits in .env.docker.example gesetzt.
+```
+
+Der Graph-Cache wird in `data/graphhopper/graph-cache/` gespeichert. Folgestarts nutzen den Cache und starten in wenigen Sekunden.
+
+**Cache-Invalidierung:** Nach einem neuen PBF-Extrakt `GRAPH_VERSION` in `.env.prod` hochzählen und den Stack neu starten.
+
 ---
 
 ## Backup-System

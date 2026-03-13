@@ -63,6 +63,26 @@ services:
     networks:
       - raildashboard-net
 
+  graphhopper:
+    image: graphhopper/graphhopper:9.1
+    restart: unless-stopped
+    volumes:
+      # Mount the config file (read-only)
+      - ./docker/graphhopper/config.yml:/graphhopper/config.yml:ro
+      # Mount the data directory: place map.osm.pbf here before first start.
+      # GraphHopper writes the graph cache into data/graphhopper/graph-cache/.
+      - ./data/graphhopper:/data
+    ports:
+      - "8989:8989"
+    networks:
+      - raildashboard-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8989/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 300s   # graph build can take several minutes on first run
+
   frontend:
     build:
       context: apps/frontend

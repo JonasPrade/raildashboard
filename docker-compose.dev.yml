@@ -41,5 +41,26 @@ services:
     ports:
       - "6379:6379"
 
+  # GraphHopper routing microservice (optional in dev).
+  # Start it alongside the DB with:
+  #   docker compose -f docker-compose.dev.yml --profile routing up -d
+  #
+  # Prerequisites: place an OSM PBF file at data/graphhopper/map.osm.pbf before first start.
+  # GraphHopper will build the graph on first launch and cache it in data/graphhopper/graph-cache/.
+  graphhopper:
+    profiles: [routing]
+    image: graphhopper/graphhopper:9.1
+    volumes:
+      - ./docker/graphhopper/config.yml:/graphhopper/config.yml:ro
+      - ./data/graphhopper:/data
+    ports:
+      - "8989:8989"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8989/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 300s
+
 volumes:
   raildashboard_pgdata_dev:
