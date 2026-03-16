@@ -23,22 +23,43 @@ A web application that aggregates nationwide railway infrastructure and project 
 |---|---|
 | Python | 3.11+ |
 | Node.js | 20+ |
-| PostgreSQL + PostGIS | 15+ |
+| Docker + Docker Compose | (for database) |
 
 ## Quick start
 
-```bash
-# Copy and fill in the environment file
-cp .env.example .env
+The recommended setup runs **PostgreSQL in Docker** and the backend/frontend locally.
 
-# Install all dependencies and start both services
+```bash
+# 1. Copy and fill in environment files
+cp .env.example .env
+cp .env.docker-dev.example .env.docker-dev   # adjust DB credentials if needed
+
+# 2. Start the PostgreSQL container (port 5433)
+make docker-dev-up
+
+# 3. Install dependencies
 make install
+
+# 4. Run database migrations
+make migrate
+
+# 5. Start backend, frontend, and Celery worker
 make dev
 ```
 
-`make dev` starts the backend on `http://localhost:8000` and the frontend on `http://localhost:5173`.
+`make dev` starts:
+- Backend API on `http://localhost:8000` (interactive docs: `/docs`)
+- Frontend on `http://localhost:5173`
+- Celery worker for background tasks (PDF parsing)
+
+Stop the database container when done:
+```bash
+make docker-dev-down   # data volume is preserved
+```
 
 See `Makefile` for the full list of available targets.
+
+> **Local PostgreSQL:** If you already have PostgreSQL 15+ with PostGIS running locally, skip steps 1–2 and set `DATABASE_URL` in `.env` directly.
 
 ## Configuration
 
