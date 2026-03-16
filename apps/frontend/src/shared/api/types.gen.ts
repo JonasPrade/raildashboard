@@ -636,6 +636,116 @@ export interface paths {
         patch: operations["patch_settings_api_v1_settings__patch"];
         trace?: never;
     };
+    "/api/v1/import/vib/parse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Vib Parse
+         * @description Upload a VIB PDF and start a background parse task.
+         *
+         *     Returns the Celery task_id for polling via GET /api/v1/tasks/{task_id}.
+         *     Once the task is in SUCCESS state, retrieve the parse result via
+         *     GET /import/vib/parse-result/{task_id}.
+         */
+        post: operations["start_vib_parse_api_v1_import_vib_parse_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/vib/parse-result/{task_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Vib Parse Result
+         * @description Retrieve the parse result for a completed Celery task.
+         *
+         *     Returns VibParseTaskResult with entries and matching suggestions.
+         *     Returns 202 if the task is still running; 422 if it failed.
+         */
+        get: operations["get_vib_parse_result_api_v1_import_vib_parse_result__task_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/vib/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm Vib Import
+         * @description Confirm a VIB parse result and write VibReport + VibEntry rows to DB.
+         *
+         *     Guard: if a VibReport for the given year already exists, returns 409.
+         *     Delete the existing report first if re-import is needed.
+         */
+        post: operations["confirm_vib_import_api_v1_import_vib_confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/vib/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Vib Reports
+         * @description Return metadata for all imported VIB reports, newest year first.
+         */
+        get: operations["list_vib_reports_api_v1_import_vib_reports_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/vib/reports/{report_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Vib Report
+         * @description Delete a VIB report and all associated VibEntry / VibPfaEntry rows.
+         */
+        delete: operations["delete_vib_report_api_v1_import_vib_reports__report_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -659,6 +769,16 @@ export interface components {
         };
         /** Body_start_parse_api_v1_import_haushalt_parse_post */
         Body_start_parse_api_v1_import_haushalt_parse_post: {
+            /**
+             * Pdf
+             * Format: binary
+             */
+            pdf: string;
+            /** Year */
+            year: number;
+        };
+        /** Body_start_vib_parse_api_v1_import_vib_parse_post */
+        Body_start_vib_parse_api_v1_import_vib_parse_post: {
             /**
              * Pdf
              * Format: binary
@@ -2149,6 +2269,180 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /**
+         * VibConfirmEntryInput
+         * @description One entry as submitted in the confirm request (project_id adjusted by user).
+         */
+        VibConfirmEntryInput: {
+            /** Vib Section */
+            vib_section?: string | null;
+            /** Vib Lfd Nr */
+            vib_lfd_nr?: string | null;
+            /** Vib Name Raw */
+            vib_name_raw: string;
+            /**
+             * Category
+             * @default laufend
+             */
+            category: string;
+            /** Verkehrliche Zielsetzung */
+            verkehrliche_zielsetzung?: string | null;
+            /** Durchgefuehrte Massnahmen */
+            durchgefuehrte_massnahmen?: string | null;
+            /** Noch Umzusetzende Massnahmen */
+            noch_umzusetzende_massnahmen?: string | null;
+            /** Bauaktivitaeten */
+            bauaktivitaeten?: string | null;
+            /** Teilinbetriebnahmen */
+            teilinbetriebnahmen?: string | null;
+            /** Raw Text */
+            raw_text?: string | null;
+            /** Strecklaenge Km */
+            strecklaenge_km?: number | null;
+            /** Gesamtkosten Mio Eur */
+            gesamtkosten_mio_eur?: number | null;
+            /** Entwurfsgeschwindigkeit */
+            entwurfsgeschwindigkeit?: string | null;
+            /**
+             * Pfa Entries
+             * @default []
+             */
+            pfa_entries: components["schemas"]["VibPfaEntryProposed"][];
+            /** Project Id */
+            project_id?: number | null;
+        };
+        /** VibConfirmRequest */
+        VibConfirmRequest: {
+            /** Task Id */
+            task_id: string;
+            /** Year */
+            year: number;
+            /** Drucksache Nr */
+            drucksache_nr?: string | null;
+            /** Report Date */
+            report_date?: string | null;
+            /**
+             * Entries
+             * @default []
+             */
+            entries: components["schemas"]["VibConfirmEntryInput"][];
+        };
+        /** VibConfirmResponse */
+        VibConfirmResponse: {
+            /** Report Id */
+            report_id: number;
+            /** Entries Created */
+            entries_created: number;
+            /** Pfa Entries Created */
+            pfa_entries_created: number;
+        };
+        /**
+         * VibEntryProposed
+         * @description One Vorhaben as extracted from the VIB PDF.
+         */
+        VibEntryProposed: {
+            /** Vib Section */
+            vib_section?: string | null;
+            /** Vib Lfd Nr */
+            vib_lfd_nr?: string | null;
+            /** Vib Name Raw */
+            vib_name_raw: string;
+            /**
+             * Category
+             * @default laufend
+             */
+            category: string;
+            /** Verkehrliche Zielsetzung */
+            verkehrliche_zielsetzung?: string | null;
+            /** Durchgefuehrte Massnahmen */
+            durchgefuehrte_massnahmen?: string | null;
+            /** Noch Umzusetzende Massnahmen */
+            noch_umzusetzende_massnahmen?: string | null;
+            /** Bauaktivitaeten */
+            bauaktivitaeten?: string | null;
+            /** Teilinbetriebnahmen */
+            teilinbetriebnahmen?: string | null;
+            /** Raw Text */
+            raw_text?: string | null;
+            /** Strecklaenge Km */
+            strecklaenge_km?: number | null;
+            /** Gesamtkosten Mio Eur */
+            gesamtkosten_mio_eur?: number | null;
+            /** Entwurfsgeschwindigkeit */
+            entwurfsgeschwindigkeit?: string | null;
+            /**
+             * Pfa Entries
+             * @default []
+             */
+            pfa_entries: components["schemas"]["VibPfaEntryProposed"][];
+            /** Project Id */
+            project_id?: number | null;
+            /**
+             * Suggested Project Ids
+             * @default []
+             */
+            suggested_project_ids: number[];
+        };
+        /**
+         * VibParseTaskResult
+         * @description Complete result returned by the parse_vib_pdf Celery task.
+         */
+        VibParseTaskResult: {
+            /** Year */
+            year: number;
+            /** Drucksache Nr */
+            drucksache_nr?: string | null;
+            /** Report Date */
+            report_date?: string | null;
+            /**
+             * Entries
+             * @default []
+             */
+            entries: components["schemas"]["VibEntryProposed"][];
+        };
+        /**
+         * VibPfaEntryProposed
+         * @description One row from the PFA table extracted from the PDF.
+         */
+        VibPfaEntryProposed: {
+            /** Abschnitt Label */
+            abschnitt_label?: string | null;
+            /** Nr Pfa */
+            nr_pfa?: string | null;
+            /** Oertlichkeit */
+            oertlichkeit?: string | null;
+            /** Entwurfsplanung */
+            entwurfsplanung?: string | null;
+            /** Abschluss Finve */
+            abschluss_finve?: string | null;
+            /** Datum Pfb */
+            datum_pfb?: string | null;
+            /** Baubeginn */
+            baubeginn?: string | null;
+            /** Inbetriebnahme */
+            inbetriebnahme?: string | null;
+        };
+        /** VibReportSchema */
+        VibReportSchema: {
+            /** Id */
+            id: number;
+            /** Year */
+            year: number;
+            /** Drucksache Nr */
+            drucksache_nr?: string | null;
+            /** Report Date */
+            report_date?: string | null;
+            /**
+             * Imported At
+             * Format: date-time
+             */
+            imported_at: string;
+            /**
+             * Entry Count
+             * @default 0
+             */
+            entry_count: number;
+        };
         /** Waypoint */
         Waypoint: {
             /** Lat */
@@ -3388,6 +3682,152 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AppSettingsSchema"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_vib_parse_api_v1_import_vib_parse_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_start_vib_parse_api_v1_import_vib_parse_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskLaunchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_vib_parse_result_api_v1_import_vib_parse_result__task_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VibParseTaskResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_vib_import_api_v1_import_vib_confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VibConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VibConfirmResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_vib_reports_api_v1_import_vib_reports_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VibReportSchema"][];
+                };
+            };
+        };
+    };
+    delete_vib_report_api_v1_import_vib_reports__report_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

@@ -13,6 +13,7 @@ from dashboard_backend.crud.changelog import (
 )
 from dashboard_backend.crud.projects.bvwp import get_bvwp_data
 from dashboard_backend.crud.projects.projects import get_project_by_id, get_projects, update_project
+from dashboard_backend.crud.vib import get_vib_entries_for_project
 from dashboard_backend.database import get_db
 from dashboard_backend.models.users import User
 from dashboard_backend.routing.auth_router import AuthRouter
@@ -25,6 +26,7 @@ from dashboard_backend.models.haushalt.budget_titel_entry import BudgetTitelEntr
 from dashboard_backend.schemas.projects.bvwp_schema import BvwpProjectDataSchema
 from dashboard_backend.schemas.projects.project_update_schema import ProjectUpdate
 from dashboard_backend.schemas.users import UserRole
+from dashboard_backend.schemas.vib import VibEntryForProjectSchema
 
 router = AuthRouter()
 
@@ -54,6 +56,37 @@ def get_project_bvwp(project_id: int, db: Session = Depends(get_db)):
     if not bvwp:
         raise HTTPException(status_code=404, detail="No BVWP data for this project")
     return bvwp
+
+
+@router.get("/{project_id}/vib", response_model=list[VibEntryForProjectSchema])
+def get_project_vib(project_id: int, db: Session = Depends(get_db)):
+    """Return all VIB entries linked to a project, newest year first."""
+    project = get_project_by_id(db, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    entries = get_vib_entries_for_project(db, project_id)
+    result = []
+    for e in entries:
+        result.append(VibEntryForProjectSchema(
+            id=e.id,
+            year=e.report.year,
+            drucksache_nr=e.report.drucksache_nr,
+            vib_section=e.vib_section,
+            vib_name_raw=e.vib_name_raw,
+            category=e.category,
+            bauaktivitaeten=e.bauaktivitaeten,
+            teilinbetriebnahmen=e.teilinbetriebnahmen,
+            verkehrliche_zielsetzung=e.verkehrliche_zielsetzung,
+            durchgefuehrte_massnahmen=e.durchgefuehrte_massnahmen,
+            noch_umzusetzende_massnahmen=e.noch_umzusetzende_massnahmen,
+            raw_text=e.raw_text,
+            strecklaenge_km=e.strecklaenge_km,
+            gesamtkosten_mio_eur=e.gesamtkosten_mio_eur,
+            entwurfsgeschwindigkeit=e.entwurfsgeschwindigkeit,
+            ai_extracted=e.ai_extracted,
+            pfa_entries=e.pfa_entries,
+        ))
+    return result
 
 
 @router.patch("/{project_id}", response_model=ProjectSchema)

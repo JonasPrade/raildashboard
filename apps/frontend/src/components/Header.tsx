@@ -65,6 +65,18 @@ export function Header() {
                     Haushalts-Import
                 </NavLink>
             )}
+            {(user?.role === "editor" || user?.role === "admin") && (
+                <NavLink
+                    to="/admin/vib-import"
+                    style={({ isActive }) => ({
+                        ...baseStyle,
+                        backgroundColor: isActive ? "rgba(17, 34, 64, 0.08)" : "transparent",
+                    })}
+                    onClick={closeDrawer}
+                >
+                    VIB-Import
+                </NavLink>
+            )}
             {user?.role === "admin" && (
                 <NavLink
                     to="/admin"

@@ -1,6 +1,6 @@
 # dashboard_backend/api/v1/api.py
 from fastapi import APIRouter
-from .endpoints import project_routes, project_texts, route, projects, project_groups, users, tasks, haushalt_import, finves, settings
+from .endpoints import project_routes, project_texts, route, projects, project_groups, users, tasks, haushalt_import, finves, settings, vib_import
 
 api_router = APIRouter()
 api_router.include_router(route.router, prefix="/route", tags=["route"])
@@ -13,4 +13,4 @@ api_router.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
 api_router.include_router(haushalt_import.router, prefix="/import/haushalt", tags=["haushalt-import"])
 api_router.include_router(finves.router, prefix="/finves", tags=["finves"])
 api_router.include_router(settings.router, prefix="/settings", tags=["settings"])
-
+api_router.include_router(vib_import.router, prefix="/import/vib", tags=["vib-import"])

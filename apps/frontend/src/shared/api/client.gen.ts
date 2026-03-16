@@ -974,6 +974,95 @@ const AppSettingsSchema = z
 const AppSettingsUpdate = z
   .object({ map_group_mode: z.enum(["preconfigured", "all"]) })
   .passthrough();
+const Body_start_vib_parse_api_v1_import_vib_parse_post = z
+  .object({ pdf: z.instanceof(File), year: z.number().int() })
+  .passthrough();
+const VibPfaEntryProposed = z
+  .object({
+    abschnitt_label: z.union([z.string(), z.null()]),
+    nr_pfa: z.union([z.string(), z.null()]),
+    oertlichkeit: z.union([z.string(), z.null()]),
+    entwurfsplanung: z.union([z.string(), z.null()]),
+    abschluss_finve: z.union([z.string(), z.null()]),
+    datum_pfb: z.union([z.string(), z.null()]),
+    baubeginn: z.union([z.string(), z.null()]),
+    inbetriebnahme: z.union([z.string(), z.null()]),
+  })
+  .partial()
+  .passthrough();
+const VibEntryProposed = z
+  .object({
+    vib_section: z.union([z.string(), z.null()]).optional(),
+    vib_lfd_nr: z.union([z.string(), z.null()]).optional(),
+    vib_name_raw: z.string(),
+    category: z.string().optional().default("laufend"),
+    verkehrliche_zielsetzung: z.union([z.string(), z.null()]).optional(),
+    durchgefuehrte_massnahmen: z.union([z.string(), z.null()]).optional(),
+    noch_umzusetzende_massnahmen: z.union([z.string(), z.null()]).optional(),
+    bauaktivitaeten: z.union([z.string(), z.null()]).optional(),
+    teilinbetriebnahmen: z.union([z.string(), z.null()]).optional(),
+    raw_text: z.union([z.string(), z.null()]).optional(),
+    strecklaenge_km: z.union([z.number(), z.null()]).optional(),
+    gesamtkosten_mio_eur: z.union([z.number(), z.null()]).optional(),
+    entwurfsgeschwindigkeit: z.union([z.string(), z.null()]).optional(),
+    pfa_entries: z.array(VibPfaEntryProposed).optional().default([]),
+    project_id: z.union([z.number(), z.null()]).optional(),
+    suggested_project_ids: z.array(z.number().int()).optional().default([]),
+  })
+  .passthrough();
+const VibParseTaskResult = z
+  .object({
+    year: z.number().int(),
+    drucksache_nr: z.union([z.string(), z.null()]).optional(),
+    report_date: z.union([z.string(), z.null()]).optional(),
+    entries: z.array(VibEntryProposed).optional().default([]),
+  })
+  .passthrough();
+const VibConfirmEntryInput = z
+  .object({
+    vib_section: z.union([z.string(), z.null()]).optional(),
+    vib_lfd_nr: z.union([z.string(), z.null()]).optional(),
+    vib_name_raw: z.string(),
+    category: z.string().optional().default("laufend"),
+    verkehrliche_zielsetzung: z.union([z.string(), z.null()]).optional(),
+    durchgefuehrte_massnahmen: z.union([z.string(), z.null()]).optional(),
+    noch_umzusetzende_massnahmen: z.union([z.string(), z.null()]).optional(),
+    bauaktivitaeten: z.union([z.string(), z.null()]).optional(),
+    teilinbetriebnahmen: z.union([z.string(), z.null()]).optional(),
+    raw_text: z.union([z.string(), z.null()]).optional(),
+    strecklaenge_km: z.union([z.number(), z.null()]).optional(),
+    gesamtkosten_mio_eur: z.union([z.number(), z.null()]).optional(),
+    entwurfsgeschwindigkeit: z.union([z.string(), z.null()]).optional(),
+    pfa_entries: z.array(VibPfaEntryProposed).optional().default([]),
+    project_id: z.union([z.number(), z.null()]).optional(),
+  })
+  .passthrough();
+const VibConfirmRequest = z
+  .object({
+    task_id: z.string(),
+    year: z.number().int(),
+    drucksache_nr: z.union([z.string(), z.null()]).optional(),
+    report_date: z.union([z.string(), z.null()]).optional(),
+    entries: z.array(VibConfirmEntryInput).optional().default([]),
+  })
+  .passthrough();
+const VibConfirmResponse = z
+  .object({
+    report_id: z.number().int(),
+    entries_created: z.number().int(),
+    pfa_entries_created: z.number().int(),
+  })
+  .passthrough();
+const VibReportSchema = z
+  .object({
+    id: z.number().int(),
+    year: z.number().int(),
+    drucksache_nr: z.union([z.string(), z.null()]).optional(),
+    report_date: z.union([z.string(), z.null()]).optional(),
+    imported_at: z.string().datetime({ offset: true }),
+    entry_count: z.number().int().optional().default(0),
+  })
+  .passthrough();
 
 export const schemas = {
   RouteRequest,
@@ -1026,6 +1115,14 @@ export const schemas = {
   FinveListItemSchema,
   AppSettingsSchema,
   AppSettingsUpdate,
+  Body_start_vib_parse_api_v1_import_vib_parse_post,
+  VibPfaEntryProposed,
+  VibEntryProposed,
+  VibParseTaskResult,
+  VibConfirmEntryInput,
+  VibConfirmRequest,
+  VibConfirmResponse,
+  VibReportSchema,
 };
 
 const endpoints = makeApi([
@@ -1182,6 +1279,112 @@ for that haushalt_year are also removed so the year can be re-imported.`,
       },
     ],
     response: UnmatchedBudgetRowSchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/api/v1/import/vib/confirm",
+    alias: "confirm_vib_import_api_v1_import_vib_confirm_post",
+    description: `Confirm a VIB parse result and write VibReport + VibEntry rows to DB.
+
+Guard: if a VibReport for the given year already exists, returns 409.
+Delete the existing report first if re-import is needed.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: VibConfirmRequest,
+      },
+    ],
+    response: VibConfirmResponse,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/api/v1/import/vib/parse",
+    alias: "start_vib_parse_api_v1_import_vib_parse_post",
+    description: `Upload a VIB PDF and start a background parse task.
+
+Returns the Celery task_id for polling via GET /api/v1/tasks/{task_id}.
+Once the task is in SUCCESS state, retrieve the parse result via
+GET /import/vib/parse-result/{task_id}.`,
+    requestFormat: "form-data",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: Body_start_vib_parse_api_v1_import_vib_parse_post,
+      },
+    ],
+    response: z.object({ task_id: z.string() }).passthrough(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/import/vib/parse-result/:task_id",
+    alias: "get_vib_parse_result_api_v1_import_vib_parse_result__task_id__get",
+    description: `Retrieve the parse result for a completed Celery task.
+
+Returns VibParseTaskResult with entries and matching suggestions.
+Returns 202 if the task is still running; 422 if it failed.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "task_id",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: VibParseTaskResult,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/import/vib/reports",
+    alias: "list_vib_reports_api_v1_import_vib_reports_get",
+    description: `Return metadata for all imported VIB reports, newest year first.`,
+    requestFormat: "json",
+    response: z.array(VibReportSchema),
+  },
+  {
+    method: "delete",
+    path: "/api/v1/import/vib/reports/:report_id",
+    alias: "delete_vib_report_api_v1_import_vib_reports__report_id__delete",
+    description: `Delete a VIB report and all associated VibEntry / VibPfaEntry rows.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "report_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: z.void(),
     errors: [
       {
         status: 422,

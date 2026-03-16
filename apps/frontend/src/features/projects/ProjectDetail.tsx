@@ -34,6 +34,7 @@ import ProjectTextsSection from "./ProjectTextsSection";
 import { ProjectTableOfContents, type TocSection } from "./ProjectTableOfContents";
 import FinveSection from "./components/FinveSection";
 import BvwpDataSection from "./components/BvwpDataSection";
+import VibSection from "./components/VibSection";
 
 type RouteParams = {
     projectId?: string;
@@ -182,6 +183,7 @@ export default function ProjectDetail() {
     const justificationRef = useRef<HTMLDivElement>(null);
     const finveRef = useRef<HTMLDivElement>(null);
     const bvwpRef = useRef<HTMLDivElement>(null);
+    const vibRef = useRef<HTMLDivElement>(null);
     const superiorRef = useRef<HTMLDivElement>(null);
     const subProjectsRef = useRef<HTMLDivElement>(null);
     const historyRef = useRef<HTMLDivElement>(null);
@@ -367,6 +369,12 @@ export default function ProjectDetail() {
             label: "BVWP-Bewertung",
             ref: bvwpRef,
             visible: bvwpData != null,
+        },
+        {
+            id: "vib",
+            label: "Verkehrsinvestitionsberichte",
+            ref: vibRef,
+            visible: user !== null,
         },
         {
             id: "superior",
@@ -590,6 +598,13 @@ export default function ProjectDetail() {
                 <div ref={bvwpRef}>
                     <BvwpDataSection projectId={projectId} />
                 </div>
+
+                {/* Verkehrsinvestitionsberichte – nur für eingeloggte Nutzer */}
+                {user !== null && (
+                    <div ref={vibRef}>
+                        <VibSection projectId={projectId} />
+                    </div>
+                )}
 
                 {/* Übergeordnetes Projekt */}
                 {superiorProject && (

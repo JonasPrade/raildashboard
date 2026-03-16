@@ -7,6 +7,7 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 ## Short-Term Features
 
 - [ ] make the "Schienenprojekte-Dashboard" clickable -> return to Start Page
+- [ ] Show Button Haushalt in menu for all - not only logged in users
 
 This tasks must be done by human:
 - [ ] Import of the Haushalt Berichte 2020 - 2025
@@ -190,13 +191,13 @@ Sektion **„Verkehrsinvestitionsberichte"** (nur eingeloggte Nutzer, analog Cha
 
 #### Implementierungsreihenfolge
 
-1. [ ] DB-Modelle + Alembic-Migration
-2. [ ] Parser `tasks/vib.py` + Debug-Script `scripts/dump_vib_parse_result.py`
-3. [ ] Auto-Matching `tasks/vib_matching.py`
-4. [ ] API-Endpunkte + Schemas + CRUD + `make gen-api`
-5. [ ] Frontend Import-Flow `features/vib-import/`
+1. [x] DB-Modelle + Alembic-Migration (`models/vib/`, `alembic/versions/20260313001_add_vib_tables.py`)
+2. [x] Parser `tasks/vib.py` + Debug-Script `scripts/dump_vib_parse_result.py`
+3. [x] Auto-Matching `tasks/vib_matching.py` (VDE-Nummer + Fuzzy-Name, Threshold 0.50)
+4. [x] API-Endpunkte + Schemas + CRUD (`schemas/vib.py`, `crud/vib.py`, `api/v1/endpoints/vib_import.py`) — `make gen-api` noch ausstehend (Backend muss laufen)
+5. [x] Frontend Import-Flow `features/vib-import/` (`VibImportPage.tsx`, `VibReviewPage.tsx`, Router + Queries)
 6. [ ] LLM-Extraktions-Task `tasks/vib_ai_extraction.py` (optionaler Schritt)
-7. [ ] Frontend Projektdetail-Sektion `features/vib/VibSection.tsx`
+7. [x] Frontend Projektdetail-Sektion `features/projects/components/VibSection.tsx` + `GET /api/v1/projects/{id}/vib` + Header nav link
 
 ---
 
@@ -264,6 +265,9 @@ Add to `queries.ts`:
 - [ ] **BVWP-Datenimport** — Übernahme der BVWP-Daten aus der Legacy-Datenbank. Voraussetzung für die Anzeige der BVWP-Bewertung (Display-Feature bereits implementiert).
 
 - [ ] **Vervollständigung und Automatisierung Tests**
+- [ ] Cleanup Database structure. Evaluate
+- [ ] Bug-Report: A Button in the right corner where everybody can report Bugs or Problems (logged in users dont have to add there contact information). Bugs should be collect in fitting tool and solved by ai
+- 
 
 ---
 

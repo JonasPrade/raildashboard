@@ -699,3 +699,164 @@ export function useResolveUnmatchedRow() {
         },
     });
 }
+
+// ---------------------------------------------------------------------------
+// VIB (Verkehrsinvestitionsbericht) import
+// ---------------------------------------------------------------------------
+
+export type VibPfaEntryProposed = {
+    abschnitt_label: string | null;
+    nr_pfa: string | null;
+    oertlichkeit: string | null;
+    entwurfsplanung: string | null;
+    abschluss_finve: string | null;
+    datum_pfb: string | null;
+    baubeginn: string | null;
+    inbetriebnahme: string | null;
+};
+
+export type VibEntryProposed = {
+    vib_section: string | null;
+    vib_lfd_nr: string | null;
+    vib_name_raw: string;
+    category: "laufend" | "neu" | "potentiell" | "abgeschlossen";
+    verkehrliche_zielsetzung: string | null;
+    durchgefuehrte_massnahmen: string | null;
+    noch_umzusetzende_massnahmen: string | null;
+    bauaktivitaeten: string | null;
+    teilinbetriebnahmen: string | null;
+    raw_text: string | null;
+    strecklaenge_km: number | null;
+    gesamtkosten_mio_eur: number | null;
+    entwurfsgeschwindigkeit: string | null;
+    pfa_entries: VibPfaEntryProposed[];
+    project_id: number | null;
+    suggested_project_ids: number[];
+};
+
+export type VibParseTaskResult = {
+    year: number;
+    drucksache_nr: string | null;
+    report_date: string | null;
+    entries: VibEntryProposed[];
+};
+
+export type VibConfirmEntryInput = Omit<VibEntryProposed, "suggested_project_ids">;
+
+export type VibConfirmRequest = {
+    task_id: string;
+    year: number;
+    drucksache_nr: string | null;
+    report_date: string | null;
+    entries: VibConfirmEntryInput[];
+};
+
+export type VibConfirmResponse = {
+    report_id: number;
+    entries_created: number;
+    pfa_entries_created: number;
+};
+
+export type VibReportSchema = {
+    id: number;
+    year: number;
+    drucksache_nr: string | null;
+    report_date: string | null;
+    imported_at: string;
+    entry_count: number;
+};
+
+export type VibPfaEntrySchema = {
+    id: number;
+    abschnitt_label: string | null;
+    nr_pfa: string | null;
+    oertlichkeit: string | null;
+    entwurfsplanung: string | null;
+    abschluss_finve: string | null;
+    datum_pfb: string | null;
+    baubeginn: string | null;
+    inbetriebnahme: string | null;
+};
+
+export type VibEntryForProject = {
+    id: number;
+    year: number;
+    drucksache_nr: string | null;
+    vib_section: string | null;
+    vib_name_raw: string;
+    category: "laufend" | "neu" | "potentiell" | "abgeschlossen";
+    bauaktivitaeten: string | null;
+    teilinbetriebnahmen: string | null;
+    verkehrliche_zielsetzung: string | null;
+    durchgefuehrte_massnahmen: string | null;
+    noch_umzusetzende_massnahmen: string | null;
+    raw_text: string | null;
+    strecklaenge_km: number | null;
+    gesamtkosten_mio_eur: number | null;
+    entwurfsgeschwindigkeit: string | null;
+    ai_extracted: boolean;
+    pfa_entries: VibPfaEntrySchema[];
+};
+
+export function useVibParseResult(taskId: string | null) {
+    return useQuery({
+        queryKey: ["vib-parse-result", taskId],
+        enabled: taskId !== null,
+        queryFn: () => api<VibParseTaskResult>(`/api/v1/import/vib/parse-result/${taskId}`),
+        retry: false,
+    });
+}
+
+export function useStartVibImport() {
+    return useMutation({
+        mutationFn: ({ pdf, year }: { pdf: File; year: number }) => {
+            const form = new FormData();
+            form.append("pdf", pdf);
+            form.append("year", String(year));
+            return api<TaskLaunchResponse>("/api/v1/import/vib/parse", {
+                method: "POST",
+                body: form,
+            });
+        },
+    });
+}
+
+export function useVibReports() {
+    return useQuery({
+        queryKey: ["vib-reports"],
+        queryFn: () => api<VibReportSchema[]>("/api/v1/import/vib/reports"),
+    });
+}
+
+export function useDeleteVibReport() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id: number) =>
+            api<void>(`/api/v1/import/vib/reports/${id}`, { method: "DELETE" }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["vib-reports"] });
+        },
+    });
+}
+
+export function useConfirmVibImport() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (payload: VibConfirmRequest) =>
+            api<VibConfirmResponse>("/api/v1/import/vib/confirm", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["vib-reports"] });
+        },
+    });
+}
+
+export function useProjectVibEntries(projectId: number) {
+    return useQuery({
+        queryKey: ["project-vib", projectId],
+        queryFn: () => api<VibEntryForProject[]>(`/api/v1/projects/${projectId}/vib`),
+    });
+}
