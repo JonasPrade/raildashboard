@@ -8,7 +8,9 @@ Copy `.env.example` to `.env` and fill in values. Required variables:
 | `REACT_APP_TILE_LAYER_URL` | Frontend | Raster tile URL for map background |
 | `VITE_API_BASE_URL` | Frontend | Defaults to `http://localhost:8000` |
 | `ROUTING_BASE_URL` | Backend | GraphHopper instance URL |
-| `RINF_API_URL` / `RINF_USERNAME` / `RINF_PASSWORD` | Backend | ERA RINF API credentials |
+| `CELERY_BROKER_URL` | Backend | Dev: `redis://:devpassword@localhost:6379/0` (password set in `docker-compose.dev.yml`) |
+| `CELERY_RESULT_BACKEND` | Backend | Same as `CELERY_BROKER_URL` |
+| `RINF_API_URL` / `RINF_USERNAME` / `RINF_PASSWORD` | Backend | Optional — ERA RINF API credentials; omit if RINF imports are not used |
 
 > ⚠️ **Never modify or overwrite `.env`.** It contains personal local settings. Only read from it.
 

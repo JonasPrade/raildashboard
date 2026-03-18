@@ -47,17 +47,17 @@ Application settings are read via Pydantic Settings from a `.env` file in the **
 | Variable        | Description                                                      |
 |-----------------|------------------------------------------------------------------|
 | `DATABASE_URL`  | PostgreSQL connection string pointing to the PostGIS database    |
-| `RINF_API_URL`  | Base URL of the ERA RINF API                                     |
-| `RINF_USERNAME` | Username for ERA RINF                                            |
-| `RINF_PASSWORD` | Password for ERA RINF                                            |
+| `RINF_API_URL`  | Optional: Base URL of the ERA RINF API                           |
+| `RINF_USERNAME` | Optional: Username for ERA RINF                                  |
+| `RINF_PASSWORD` | Optional: Password for ERA RINF                                  |
 | `ROUTING_BASE_URL` | Base URL of the routing microservice (e.g. GraphHopper)          |
 | `ROUTING_TIMEOUT_SECONDS` | Optional: request timeout for the routing client (default `20`) |
 | `GRAPH_VERSION` | Identifier for the routing graph build used for caching           |
 | `ENVIRONMENT`   | Optional: selects alternative `.env` files (e.g. `.env.test`)    |
 | `OSM_PBF_DIR`   | Optional: directory containing `<COUNTRY>.osm.pbf` extracts for offline OSM imports |
 | `USE_GEOMETRY`  | Optional: set to `0` to skip geometry creation during OSM offline imports |
-| `CELERY_BROKER_URL` | Redis broker URL (default: `redis://localhost:6379/0`) |
-| `CELERY_RESULT_BACKEND` | Redis result backend URL (default: `redis://localhost:6379/0`) |
+| `CELERY_BROKER_URL` | Redis broker URL. Dev default (docker-compose.dev.yml): `redis://:devpassword@localhost:6379/0` |
+| `CELERY_RESULT_BACKEND` | Redis result backend URL. Dev default: `redis://:devpassword@localhost:6379/0` |
 
 ## Database Migrations
 Alembic revisions live in `alembic/versions`. Apply schema changes with:
@@ -92,8 +92,8 @@ Long-running tasks (PDF parsing, route computation) run asynchronously via Celer
 
 | Variable | Default | Description |
 |---|---|---|
-| `CELERY_BROKER_URL` | `redis://localhost:6379/0` | Redis broker URL |
-| `CELERY_RESULT_BACKEND` | `redis://localhost:6379/0` | Redis result backend URL |
+| `CELERY_BROKER_URL` | `redis://:devpassword@localhost:6379/0` | Redis broker URL (dev Docker Redis requires password) |
+| `CELERY_RESULT_BACKEND` | `redis://:devpassword@localhost:6379/0` | Redis result backend URL |
 
 ### Dev — start worker locally
 

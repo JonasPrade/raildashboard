@@ -51,6 +51,8 @@ async def start_parse(
 
     Returns the Celery task_id for polling via GET /api/v1/tasks/{task_id}.
     """
+    if pdf.content_type != "application/pdf":
+        raise HTTPException(status_code=400, detail="Only PDF files are accepted.")
     pdf_bytes = await pdf.read()
     user_info = {"id": current_user.id, "username": current_user.username}
     result = parse_haushalt_pdf.delay(pdf_bytes, year, pdf.filename or "upload.pdf", user_info)

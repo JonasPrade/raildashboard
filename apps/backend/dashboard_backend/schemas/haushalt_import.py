@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -119,7 +119,7 @@ class HaushaltsConfirmRowInput(BaseModel):
 class HaushaltsConfirmRequest(BaseModel):
     parse_result_id: int
     rows: list[HaushaltsConfirmRowInput] = []
-    unmatched_action: str = "save"  # "save" | "discard"
+    unmatched_action: Literal["save", "discard"] = "save"
 
 
 class HaushaltsConfirmResponse(BaseModel):

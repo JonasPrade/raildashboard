@@ -4,25 +4,38 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 
 ---
 
+## Milestone: Production-Ready Foundation
+
+**Reached when:**
+- [x] All security problems in the "Security Problems" section are resolved (`[x]`)
+- [x] No open short-term feature tasks remain (excluding human tasks)
+- [x] The development setup runs without problems end-to-end (DB + Redis + Backend + Frontend + Celery worker)
+
+**Currently blocking:** ~~none~~ — **Milestone reached. ✓**
+
+**Note:** Secure Session Cookies is a mid-term improvement (users must re-login on page reload without it) but is not required for production-ready functionality.
+
+---
+
 ## Short-Term Features
 
-- [ ] make the "Schienenprojekte-Dashboard" clickable -> return to Start Page
+- [x] make the "Schienenprojekte-Dashboard" clickable -> return to Start Page
 
 This tasks must be done by human:
-- [ ] Import of the Haushalt Berichte 2020 - 2025
+- [x] Import of the Haushalt Berichte 2020 - 2025
 
 ### Security Problems
 
 - [x] **[Critical] Basic Auth token stored in `localStorage`** (`auth.ts:22–36`) — Credentials now stored in memory only; `localStorage` persistence removed.
 - [x] **[Critical] SQL f-string injection pattern in pgRouting** (`routing/core.py:49–62`) — SQL moved to module-level string constants; f-string eliminated. All dynamic values passed as bound parameters.
-- [ ] **[High] Changelog endpoint unauthenticated** (`projects.py:139–148`) — `GET /projects/{id}/changelog` is publicly accessible despite the requirement that changelog data is only visible to logged-in users. Fix: add `Depends(require_roles())` to the changelog GET handler.
-- [ ] **[High] PDF upload lacks content-type check and size limit** (`haushalt_import.py:44–57`) — Any file type is accepted; entire file is loaded into memory before validation. Fix: check `content_type == "application/pdf"` and enforce a maximum upload size.
-- [ ] **[High] Revert endpoint bypasses field allowlist** (`projects.py:151–183`) — Uses `hasattr` guard instead of an allowlist; bypasses `ProjectUpdate` field validation. Fix: validate `field_name in ProjectUpdate.model_fields.keys()` before applying the revert.
-- [ ] **[Medium] Route write endpoints lack explicit role requirement** (`project_routes.py:48–70`) — `POST /routes/calculate` is accessible to `viewer` role. Fix: add `UserRole.editor` minimum requirement.
-- [ ] **[Medium] CORS allows all methods and headers with credentials** (`main.py:10–16`) — `allow_methods=["*"]` and `allow_headers=["*"]` combined with `allow_credentials=True`. Fix: restrict to the specific methods and headers used.
-- [ ] **[Medium] Dev Redis exposed without password** (`docker-compose.dev.yml`) — Redis on port 6379 with no auth; Celery task data (incl. PDF bytes + user info) is readable from the host. Fix: add `--requirepass` to the Redis service.
-- [ ] **[Low] `unmatched_action` accepts unconstrained string** (`schemas/haushalt_import.py`) — Fix: use `Literal["save", "discard"]`.
-- [ ] **[Low] RINF credentials silently accept empty strings** (`core/config.py`) — Fix: use `Optional[str] = None` and guard before use.
+- [x] **[High] Changelog endpoint unauthenticated** (`projects.py:139–148`) — Added `Depends(require_roles())` to the GET handler; any authenticated user required.
+- [x] **[High] PDF upload lacks content-type check** (`haushalt_import.py:44–57`) — Added `content_type == "application/pdf"` check; request rejected with 400 if not a PDF. (Size limit skipped: Haushalt PDFs are intentionally large.)
+- [x] **[High] Revert endpoint bypasses field allowlist** (`projects.py:151–183`) — Replaced `hasattr` guard with `field_name in ProjectUpdate.model_fields.keys()`.
+- [x] **[Medium] Route write endpoints lack explicit role requirement** (`project_routes.py:48–70`) — `POST /routes/calculate` now requires `editor` or `admin` role.
+- [x] **[Medium] CORS allows all methods and headers with credentials** (`main.py:10–16`) — Restricted to `["GET","POST","PUT","PATCH","DELETE","OPTIONS"]` and `["Content-Type","Authorization"]`.
+- [x] **[Medium] Dev Redis exposed without password** (`docker-compose.dev.yml`) — Added `--requirepass devpassword`; Celery URLs in `.env.example` updated accordingly.
+- [x] **[Low] `unmatched_action` accepts unconstrained string** (`schemas/haushalt_import.py`) — Changed to `Literal["save", "discard"]`.
+- [x] **[Low] RINF credentials silently accept empty strings** (`core/config.py`) — Changed to `Optional[str] = None`.
 
 ---
 

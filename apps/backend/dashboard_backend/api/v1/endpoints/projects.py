@@ -139,6 +139,7 @@ def get_project_finves(project_id: int, db: Session = Depends(get_db)):
 @router.get("/{project_id}/changelog", response_model=list[ChangeLogRead])
 def read_project_changelog(
     project_id: int,
+    current_user: User = Depends(require_roles()),
     db: Session = Depends(get_db),
 ):
     """Return the full changelog for a project, newest entries first."""
@@ -165,7 +166,7 @@ def revert_project_field(
         raise HTTPException(status_code=404, detail="Changelog entry not found")
 
     field_name = entry.field_name
-    if not hasattr(project, field_name):
+    if field_name not in ProjectUpdate.model_fields.keys():
         raise HTTPException(status_code=400, detail=f"Unknown field: {field_name}")
 
     # Parse stored JSON value back to the original Python type
