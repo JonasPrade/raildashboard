@@ -18,9 +18,9 @@ import { queryClient } from "./query";
 // base64(username:password) — the raw HTTP Basic Auth token.
 // ---------------------------------------------------------------------------
 
-const STORAGE_KEY = "auth_credentials";
-
-let _credentials: string | null = localStorage.getItem(STORAGE_KEY);
+// Credentials are stored in memory only — never persisted to localStorage or
+// any other browser storage to prevent credential theft via XSS.
+let _credentials: string | null = null;
 
 export function getCredentials(): string | null {
   return _credentials;
@@ -28,11 +28,6 @@ export function getCredentials(): string | null {
 
 export function setCredentials(creds: string | null): void {
   _credentials = creds;
-  if (creds) {
-    localStorage.setItem(STORAGE_KEY, creds);
-  } else {
-    localStorage.removeItem(STORAGE_KEY);
-  }
 }
 
 // ---------------------------------------------------------------------------

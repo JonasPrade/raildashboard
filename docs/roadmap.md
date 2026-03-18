@@ -11,9 +11,81 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 This tasks must be done by human:
 - [ ] Import of the Haushalt Berichte 2020 - 2025
 
+### Security Problems
+
+- [x] **[Critical] Basic Auth token stored in `localStorage`** (`auth.ts:22–36`) — Credentials now stored in memory only; `localStorage` persistence removed.
+- [x] **[Critical] SQL f-string injection pattern in pgRouting** (`routing/core.py:49–62`) — SQL moved to module-level string constants; f-string eliminated. All dynamic values passed as bound parameters.
+- [ ] **[High] Changelog endpoint unauthenticated** (`projects.py:139–148`) — `GET /projects/{id}/changelog` is publicly accessible despite the requirement that changelog data is only visible to logged-in users. Fix: add `Depends(require_roles())` to the changelog GET handler.
+- [ ] **[High] PDF upload lacks content-type check and size limit** (`haushalt_import.py:44–57`) — Any file type is accepted; entire file is loaded into memory before validation. Fix: check `content_type == "application/pdf"` and enforce a maximum upload size.
+- [ ] **[High] Revert endpoint bypasses field allowlist** (`projects.py:151–183`) — Uses `hasattr` guard instead of an allowlist; bypasses `ProjectUpdate` field validation. Fix: validate `field_name in ProjectUpdate.model_fields.keys()` before applying the revert.
+- [ ] **[Medium] Route write endpoints lack explicit role requirement** (`project_routes.py:48–70`) — `POST /routes/calculate` is accessible to `viewer` role. Fix: add `UserRole.editor` minimum requirement.
+- [ ] **[Medium] CORS allows all methods and headers with credentials** (`main.py:10–16`) — `allow_methods=["*"]` and `allow_headers=["*"]` combined with `allow_credentials=True`. Fix: restrict to the specific methods and headers used.
+- [ ] **[Medium] Dev Redis exposed without password** (`docker-compose.dev.yml`) — Redis on port 6379 with no auth; Celery task data (incl. PDF bytes + user info) is readable from the host. Fix: add `--requirepass` to the Redis service.
+- [ ] **[Low] `unmatched_action` accepts unconstrained string** (`schemas/haushalt_import.py`) — Fix: use `Literal["save", "discard"]`.
+- [ ] **[Low] RINF credentials silently accept empty strings** (`core/config.py`) — Fix: use `Optional[str] = None` and guard before use.
+
 ---
 
 ## Mid-Term Features
+
+### Secure Session Cookies (replace in-memory Basic Auth token)
+
+Currently credentials are held in memory only (no `localStorage`), which means users must log in again after every page reload. The proper fix is to have the backend issue a signed `httpOnly` session cookie — inaccessible to JavaScript, survives reloads, and expires automatically.
+
+#### Backend
+
+**1. `config.py`** — add `session_secret_key: str` (required, read from `.env`). Used to HMAC-sign session tokens.
+
+**2. `core/security.py`** — add three helpers:
+- `create_session_token(user_id: int) -> str` — builds `"{user_id}:{timestamp}"`, signs with HMAC-SHA256 using `session_secret_key`, returns `"{payload}.{signature}"` (base64url-encoded)
+- `verify_session_token(token: str) -> int | None` — verifies signature, checks expiry (e.g. 7 days), returns `user_id` or `None`
+- `require_session()` — FastAPI dependency: reads the `session` cookie, calls `verify_session_token`, loads user from DB, raises 401 if missing/invalid. Mirrors the interface of `require_roles()`.
+
+**3. New file `api/v1/endpoints/auth.py`** — two endpoints:
+- `POST /api/v1/auth/session` — JSON body `{ username, password }`, validates via existing `_authenticate()` logic, calls `response.set_cookie(key="session", value=token, httponly=True, secure=True, samesite="strict", max_age=604800)`
+- `DELETE /api/v1/auth/session` — clears the cookie (`response.delete_cookie("session")`); requires valid session
+
+**4. `api/v1/router.py`** — register the new auth router.
+
+**5. `GET /api/v1/users/me`** — accept both `require_roles()` (Basic Auth) and `require_session()` so both auth methods work during the transition. Long-term, Basic Auth can be removed from non-admin endpoints.
+
+**6. Run `make gen-api`** to sync the frontend client.
+
+#### Frontend
+
+**`auth.ts`**
+- `login()`: call `POST /api/v1/auth/session` with `{ username, password }` as JSON body instead of setting credentials manually. On success the browser stores the cookie automatically.
+- `logout()`: call `DELETE /api/v1/auth/session`.
+- Remove `setCredentials` / `getCredentials` entirely.
+- The existing `useEffect` on mount that calls `GET /api/v1/users/me` already handles session restore — if the cookie is valid the user is populated transparently.
+
+**`client.ts`** (the API fetch wrapper)
+- Remove the `Authorization: Basic ...` header injection.
+- Add `credentials: "include"` to all `fetch` calls so the browser sends the cookie cross-origin (needed because frontend dev server runs on a different port than the backend).
+
+#### .env changes
+
+Add to `.env.example` and `.env.docker.example`:
+```
+SESSION_SECRET_KEY=<random 32-byte hex string>
+```
+Document in `docs/environment.md`.
+
+#### Security properties after this change
+
+- Cookie is `httpOnly` → JavaScript can never read the session token
+- `SameSite=Strict` → CSRF is not possible (browser won't send cookie on cross-site requests)
+- `Secure` flag → cookie is only sent over HTTPS (set conditionally: `secure=settings.environment == "production"`)
+- 7-day expiry → automatic session invalidation
+
+#### Implementation order
+
+1. [ ] `config.py` — add `session_secret_key`
+2. [ ] `core/security.py` — add `create_session_token`, `verify_session_token`, `require_session`
+3. [ ] `api/v1/endpoints/auth.py` — `POST` + `DELETE /api/v1/auth/session`
+4. [ ] Register router + update `GET /users/me` to accept session auth
+5. [ ] Run `make gen-api`
+6. [ ] `auth.ts` + `client.ts` — swap credential header for cookie flow
 
 ### Verkehrsinvestitionsbericht (VIB) Import
 

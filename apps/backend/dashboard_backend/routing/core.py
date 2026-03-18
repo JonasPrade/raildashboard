@@ -7,6 +7,39 @@ from dashboard_backend.models.railway_infrastructure import OperationalPoint, Se
 # Konfigurieren des Loggings
 logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# Static SQL constants — defined at module level to make clear that no
+# user-controlled data is ever interpolated into the query string.
+# All dynamic values (:start_op_id, :end_op_id) are passed as bound params.
+# ---------------------------------------------------------------------------
+_SQL_NODES = (
+    "SELECT op_id, ROW_NUMBER() OVER () AS node_id FROM operational_point"
+)
+
+_SQL_EDGES = (
+    "SELECT sol.id, n_start.node_id AS source, n_end.node_id AS target,"
+    " sol.sol_length AS cost"
+    " FROM section_of_line sol"
+    " JOIN (" + _SQL_NODES + ") n_start ON sol.sol_op_start = n_start.op_id"
+    " JOIN (" + _SQL_NODES + ") n_end ON sol.sol_op_end = n_end.op_id"
+)
+
+_SQL_ROUTE_QUERY = text(
+    "WITH nodes AS (" + _SQL_NODES + "),"
+    " start_node AS (SELECT node_id FROM nodes WHERE op_id = :start_op_id),"
+    " end_node AS (SELECT node_id FROM nodes WHERE op_id = :end_op_id)"
+    " SELECT sol.id AS section_of_line_id"
+    " FROM pgr_dijkstra("
+    "   $$ " + _SQL_EDGES + " $$,"
+    "   (SELECT node_id FROM start_node),"
+    "   (SELECT node_id FROM end_node),"
+    "   directed := false"
+    " ) AS di"
+    " JOIN section_of_line sol ON di.edge = sol.id"
+    " ORDER BY di.path_seq"
+)
+
+
 def find_route_section_of_lines(db: Session, start_op_id: str, end_op_id: str) -> list[int]:
     """
     Findet die kürzeste Route zwischen zwei Betriebspunkten mithilfe von pgRouting (pgr_dijkstra).
@@ -26,43 +59,8 @@ def find_route_section_of_lines(db: Session, start_op_id: str, end_op_id: str) -
     if not end_exists:
         raise ValueError(f"Zielbetriebspunkt {end_op_id} existiert nicht.")
 
-    # Diese Abfrage ist komplexer, da sie die für pgRouting benötigte Struktur zur Laufzeit erstellt:
-    # 1. 'nodes': Erstellt eine temporäre Zuordnung von 'op_id' (String) zu einer eindeutigen 'node_id' (Integer).
-    # 2. 'edges': Erstellt die Kantentabelle für pgRouting, indem 'sol_op_start'/'sol_op_end' durch die Integer 'node_id' ersetzt werden.
-    # 3. 'pgr_dijkstra': Führt die Routenberechnung auf dem dynamisch erstellten Graphen durch.
-    # 4. Das Endergebnis verbindet die gefundenen Routensegmente (Kanten) wieder mit den Betriebspunkten,
-    #    um die Liniengeometrie zwischen den jeweiligen Start- und Endpunkten zu erstellen.
-    sql_nodes = """
-                SELECT op_id, ROW_NUMBER() OVER () AS node_id \
-                FROM operational_point \
-                """
-    sql_edges = """
-        SELECT
-            sol.id,
-            n_start.node_id AS source,
-            n_end.node_id AS target,
-            sol.sol_length AS cost
-        FROM section_of_line sol
-        JOIN (""" + sql_nodes + """) n_start ON sol.sol_op_start = n_start.op_id
-        JOIN (""" + sql_nodes + """) n_end ON sol.sol_op_end = n_end.op_id
-    """
-    sql_query = text(f"""
-        WITH nodes AS ({sql_nodes}),
-        start_node AS (SELECT node_id FROM nodes WHERE op_id = :start_op_id),
-        end_node AS (SELECT node_id FROM nodes WHERE op_id = :end_op_id)
-        SELECT sol.id AS section_of_line_id
-        FROM pgr_dijkstra(
-            $$ {sql_edges} $$,
-            (SELECT node_id FROM start_node),
-            (SELECT node_id FROM end_node),
-            directed := false
-        ) AS di
-        JOIN section_of_line sol ON di.edge = sol.id
-        ORDER BY di.path_seq;
-    """)
-
     logger.debug(f"Searche route from {start_op_id} to {end_op_id}")
-    result = db.execute(sql_query, {"start_op_id": start_op_id, "end_op_id": end_op_id})
+    result = db.execute(_SQL_ROUTE_QUERY, {"start_op_id": start_op_id, "end_op_id": end_op_id})
     section_ids = [row[0] for row in result.fetchall()]
 
     if not section_ids:
