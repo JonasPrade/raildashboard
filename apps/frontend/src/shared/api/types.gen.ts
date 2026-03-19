@@ -4,6 +4,30 @@
  */
 
 export interface paths {
+    "/api/v1/auth/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Session
+         * @description Validate credentials and issue an httpOnly session cookie.
+         */
+        post: operations["create_session_api_v1_auth_session_post"];
+        /**
+         * Delete Session
+         * @description Clear the session cookie (logout).
+         */
+        delete: operations["delete_session_api_v1_auth_session_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/route/": {
         parameters: {
             query?: never;
@@ -659,10 +683,7 @@ export interface components {
         };
         /** Body_start_parse_api_v1_import_haushalt_parse_post */
         Body_start_parse_api_v1_import_haushalt_parse_post: {
-            /**
-             * Pdf
-             * Format: binary
-             */
+            /** Pdf */
             pdf: string;
             /** Year */
             year: number;
@@ -1236,8 +1257,9 @@ export interface components {
             /**
              * Unmatched Action
              * @default save
+             * @enum {string}
              */
-            unmatched_action: string;
+            unmatched_action: "save" | "discard";
         };
         /** HaushaltsConfirmResponse */
         HaushaltsConfirmResponse: {
@@ -1959,6 +1981,13 @@ export interface components {
             /** Sectionofline Ids */
             sectionofline_ids: number[];
         };
+        /** SessionCredentials */
+        SessionCredentials: {
+            /** Username */
+            username: string;
+            /** Password */
+            password: string;
+        };
         /** TaskLaunchResponse */
         TaskLaunchResponse: {
             /** Task Id */
@@ -2165,6 +2194,66 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    create_session_api_v1_auth_session_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionCredentials"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_session_api_v1_auth_session_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_route_api_v1_route__post: {
         parameters: {
             query?: never;
@@ -2503,7 +2592,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -2514,6 +2605,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

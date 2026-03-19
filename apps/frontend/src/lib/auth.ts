@@ -11,26 +11,6 @@ import { api } from "../shared/api/client";
 import { queryClient } from "./query";
 
 // ---------------------------------------------------------------------------
-// Module-level credential store
-//
-// Lives outside React so that shared/api/client.ts can read credentials
-// without depending on the React tree. Credentials are stored as
-// base64(username:password) — the raw HTTP Basic Auth token.
-// ---------------------------------------------------------------------------
-
-// Credentials are stored in memory only — never persisted to localStorage or
-// any other browser storage to prevent credential theft via XSS.
-let _credentials: string | null = null;
-
-export function getCredentials(): string | null {
-  return _credentials;
-}
-
-export function setCredentials(creds: string | null): void {
-  _credentials = creds;
-}
-
-// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
@@ -43,7 +23,7 @@ export type AuthUser = {
 type AuthContextType = {
   user: AuthUser | null;
   login: (username: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 };
 
 // ---------------------------------------------------------------------------
@@ -53,7 +33,7 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   login: async () => {},
-  logout: () => {},
+  logout: async () => {},
 });
 
 // ---------------------------------------------------------------------------
@@ -64,33 +44,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [initialized, setInitialized] = useState(false);
 
-  // On mount: restore session from stored credentials
+  // On mount: restore session from httpOnly cookie (transparent to JS)
   useEffect(() => {
-    const creds = getCredentials();
-    if (!creds) {
-      setInitialized(true);
-      return;
-    }
     api<AuthUser>("/api/v1/users/me")
       .then((u) => setUser(u))
-      .catch(() => setCredentials(null))
+      .catch(() => {
+        // No valid session — user stays null
+      })
       .finally(() => setInitialized(true));
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
-    const creds = btoa(`${username}:${password}`);
-    setCredentials(creds);
-    try {
-      const u = await api<AuthUser>("/api/v1/users/me");
-      setUser(u);
-    } catch {
-      setCredentials(null);
+    await api("/api/v1/auth/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    }).catch(() => {
       throw new Error("Ungültige Anmeldedaten");
-    }
+    });
+    const u = await api<AuthUser>("/api/v1/users/me");
+    setUser(u);
   }, []);
 
-  const logout = useCallback(() => {
-    setCredentials(null);
+  const logout = useCallback(async () => {
+    await api("/api/v1/auth/session", { method: "DELETE" }).catch(() => {
+      // Ignore errors on logout (e.g. already expired session)
+    });
     setUser(null);
     queryClient.clear();
   }, []);

@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     backend_cors_origins: list[str] = ["http://localhost:5173"]
     celery_broker_url: str = "redis://localhost:6379/0"
     celery_result_backend: str = "redis://localhost:6379/0"
+    session_secret_key: str  # Required: 32-byte hex string for HMAC-signing session tokens
 
     model_config = SettingsConfigDict(
         env_file=str(_REPO_ROOT / f".env{_ENV_SUFFIX}"),
