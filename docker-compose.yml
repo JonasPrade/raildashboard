@@ -1,20 +1,25 @@
 # docker-compose.yml – Production stack
 #
 # Usage:
-#   docker compose --env-file .env.prod up --build -d
+#   APP_VERSION=v1.2.0 docker compose --env-file .env.prod up --build -d
+#   (or set APP_VERSION in .env.prod)
+#
+# All services are built directly from the GitHub repository at the given release
+# tag — no local source checkout required on the server. Docker clones the repo
+# at build time using the GitHub URL context.
 #
 # All services run inside Docker. The frontend nginx container is the only
 # one that exposes a port to the host (80). It proxies /api/ to the backend.
 #
 # Prerequisites:
-#   - Copy .env.docker.example to .env.prod and fill in the values.
+#   - Copy .env.prod.example to .env.prod and fill in the values.
+#   - Set APP_VERSION in .env.prod to the desired release tag (e.g. v1.2.0).
 #   - Run the initial data migration (see docs/production_setup.md → Docker Deployment).
 
 services:
   db:
     build:
-      context: docker/db
-    platform: linux/amd64   # no arm64 image available; Rosetta 2 emulates on Apple Silicon
+      context: "https://github.com/JonasPrade/raildashboard.git#${APP_VERSION}:docker/db"
     restart: unless-stopped
     environment:
       POSTGRES_DB:       raildashboard
@@ -38,9 +43,12 @@ services:
 
   backend:
     build:
-      context: apps/backend
+      context: "https://github.com/JonasPrade/raildashboard.git#${APP_VERSION}:apps/backend"
     restart: unless-stopped
     env_file: .env.prod
+    environment:
+      # Assembled from DB_USER / DB_PASSWORD so the password only needs to be set once.
+      DATABASE_URL: "postgresql+psycopg2://${DB_USER}:${DB_PASSWORD}@db:5432/raildashboard"
     depends_on:
       db:
         condition: service_healthy
@@ -51,10 +59,12 @@ services:
 
   worker:
     build:
-      context: apps/backend
+      context: "https://github.com/JonasPrade/raildashboard.git#${APP_VERSION}:apps/backend"
     command: celery -A dashboard_backend.celery_app worker --loglevel=info
     restart: unless-stopped
     env_file: .env.prod
+    environment:
+      DATABASE_URL: "postgresql+psycopg2://${DB_USER}:${DB_PASSWORD}@db:5432/raildashboard"
     depends_on:
       db:
         condition: service_healthy
@@ -64,14 +74,17 @@ services:
       - raildashboard-net
 
   graphhopper:
-    image: graphhopper/graphhopper:9.1
+    build:
+      context: "https://github.com/JonasPrade/raildashboard.git#${APP_VERSION}:docker/graphhopper"
     restart: unless-stopped
+    environment:
+      # URL to an OSM PBF extract. Downloaded automatically on first start if the
+      # graph cache volume is empty. Example: https://download.geofabrik.de/europe/germany-latest.osm.pbf
+      GH_OSM_URL: ${GH_OSM_URL:-}
     volumes:
-      # Mount the config file (read-only)
-      - ./docker/graphhopper/config.yml:/graphhopper/config.yml:ro
-      # Mount the data directory: place map.osm.pbf here before first start.
-      # GraphHopper writes the graph cache into data/graphhopper/graph-cache/.
-      - ./data/graphhopper:/data
+      # Named volume: OSM PBF + built graph cache persist across restarts.
+      # No local data/ directory needed on the server.
+      - ghdata:/data
     ports:
       - "8989:8989"
     networks:
@@ -85,14 +98,14 @@ services:
 
   frontend:
     build:
-      context: apps/frontend
+      context: "https://github.com/JonasPrade/raildashboard.git#${APP_VERSION}:apps/frontend"
       args:
         # Empty string → API calls go to the same origin; nginx proxies /api/ → backend.
         VITE_API_BASE_URL: ""
         REACT_APP_TILE_LAYER_URL: ${REACT_APP_TILE_LAYER_URL:-}
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "5000:80"
     depends_on:
       - backend
     networks:
@@ -100,6 +113,7 @@ services:
 
 volumes:
   pgdata:
+  ghdata:
 
 networks:
   raildashboard-net:

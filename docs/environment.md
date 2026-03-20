@@ -11,6 +11,12 @@ Copy `.env.example` to `.env` and fill in values. Required variables:
 | `CELERY_BROKER_URL` | Backend | Dev: `redis://:devpassword@localhost:6379/0` (password set in `docker-compose.dev.yml`) |
 | `CELERY_RESULT_BACKEND` | Backend | Same as `CELERY_BROKER_URL` |
 | `RINF_API_URL` / `RINF_USERNAME` / `RINF_PASSWORD` | Backend | Optional — ERA RINF API credentials; omit if RINF imports are not used |
+| `LLM_BASE_URL` | Backend | Optional — OpenAI-compatible endpoint for AI extraction; leave empty to disable |
+| `LLM_API_KEY` | Backend | Optional — API key for the LLM endpoint |
+| `LLM_MODEL` | Backend | Optional — model name (default: `gpt-4o-mini`) |
+| `ROUTING_TIMEOUT_SECONDS` | Backend | Optional — timeout in seconds for routing requests (default: `20`) |
+| `GRAPH_VERSION` | Backend | Routing graph build identifier; increment after deploying a new OSM extract |
+| `BACKEND_CORS_ORIGINS` | Backend | JSON array of allowed CORS origins; defaults to `["http://localhost:5173"]` — **must be set in production** |
 
 > ⚠️ **Never modify or overwrite `.env`.** It contains personal local settings. Only read from it.
 

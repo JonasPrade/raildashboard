@@ -13,7 +13,7 @@ import {
     Text,
     Title,
 } from "@mantine/core";
-import { BarChart, LineChart } from "@mantine/charts";
+import { DonutChart, LineChart } from "@mantine/charts";
 import {
     type FinveWithBudgets,
     type BudgetSummary,
@@ -35,48 +35,24 @@ function fmtNum(val: number | null): number {
 // Returns { key: short chart key, label: full readable label }
 // ---------------------------------------------------------------------------
 
-type TitelMeta = { key: string; label: string; color: string };
-
-function collectTitelMeta(budgets: BudgetSummary[]): TitelMeta[] {
-    const seen = new Map<string, string>(); // titel_key → full label
-    for (const b of budgets) {
-        for (const e of b.titel_entries) {
-            if (!e.is_nachrichtlich && !seen.has(e.titel_key)) {
-                seen.set(e.titel_key, e.label);
-            }
-        }
-    }
-    return [...seen.entries()].map(([key, label], i) => ({
-        // Short key used as recharts dataKey (must be unique, no spaces issues)
-        key: `Kap. ${key.split("_")[0]} · ${key.split("_").slice(1).join(" ")}`,
-        label,
-        color: SERIE_COLORS[i % SERIE_COLORS.length],
-    }));
-}
-
-// Distinct colors for up to 10 Titel series
+// Distinct CSS hex colors for up to 10 Titel series (must be plain CSS for DonutChart)
 const SERIE_COLORS = [
-    "blue.5", "teal.5", "green.5", "yellow.5", "orange.5",
-    "red.5", "grape.5", "indigo.5", "cyan.5", "lime.5",
+    "#339af0", "#20c997", "#51cf66", "#fcc419", "#ff922b",
+    "#ff6b6b", "#cc5de8", "#5c7cfa", "#22b8cf", "#94d82d",
 ];
 
 // ---------------------------------------------------------------------------
-// BarChart: veranschlagt per Haushaltstiteln, stacked, per year
+// DonutChart: veranschlagt per Haushaltstiteln for the most recent report
 // ---------------------------------------------------------------------------
 
-function buildTitelBarData(budgets: BudgetSummary[], metas: TitelMeta[]) {
-    return budgets.map((b) => {
-        const row: Record<string, string | number> = { Jahr: String(b.budget_year) };
-        for (const meta of metas) {
-            // match by titel_key reconstructed from meta.key
-            const entry = b.titel_entries.find(
-                (e) => !e.is_nachrichtlich &&
-                    `Kap. ${e.titel_key.split("_")[0]} · ${e.titel_key.split("_").slice(1).join(" ")}` === meta.key
-            );
-            row[meta.key] = fmtNum(entry?.veranschlagt ?? null);
-        }
-        return row;
-    });
+function buildPieData(budget: BudgetSummary) {
+    return budget.titel_entries
+        .filter((e) => !e.is_nachrichtlich && (e.veranschlagt ?? 0) > 0)
+        .map((e, i) => ({
+            name: e.label,
+            value: e.veranschlagt ?? 0,
+            color: SERIE_COLORS[i % SERIE_COLORS.length],
+        }));
 }
 
 // ---------------------------------------------------------------------------
@@ -88,7 +64,7 @@ function ChartLegend({ items }: { items: { label: string; color: string }[] }) {
         <Group gap="md" mt="xs" wrap="wrap">
             {items.map((item) => (
                 <Group key={item.label} gap={6} align="center">
-                    <ColorSwatch color={`var(--mantine-color-${item.color.replace(".", "-")})`} size={12} />
+                    <ColorSwatch color={item.color} size={12} />
                     <Text size="xs" c="dimmed">{item.label}</Text>
                 </Group>
             ))}
@@ -97,23 +73,16 @@ function ChartLegend({ items }: { items: { label: string; color: string }[] }) {
 }
 
 // ---------------------------------------------------------------------------
-// LineChart: cost estimate trend over years
+// LineChart: total cost estimate per report year (one series)
 // ---------------------------------------------------------------------------
 
 function buildLineData(budgets: BudgetSummary[]) {
     return budgets.map((b) => ({
         Jahr: String(b.budget_year),
-        "Ursprünglich": fmtNum(b.cost_estimate_original),
-        "Vorjahr": fmtNum(b.cost_estimate_last_year),
-        "Aktuell": fmtNum(b.cost_estimate_actual),
+        "Gesamtkosten": fmtNum(b.cost_estimate_actual),
     }));
 }
 
-const LINE_SERIES = [
-    { name: "Ursprünglich", color: "gray.5", strokeDasharray: "5 5" },
-    { name: "Vorjahr", color: "blue.4" },
-    { name: "Aktuell", color: "green.6" },
-] as const;
 
 const CHART_TOOLTIP_PROPS = {
     contentStyle: {
@@ -199,17 +168,18 @@ function FinveCard({ finve }: { finve: FinveWithBudgets }) {
     const [open, setOpen] = useState(false);
     const hasBudgets = finve.budgets.length > 0;
     const hasMultipleYears = finve.budgets.length >= 2;
-    const hasTitelEntries = finve.budgets.some((b) => b.titel_entries.length > 0);
-
-    const titelMetas = collectTitelMeta(finve.budgets);
-    const barSeries = titelMetas.map((m) => ({ name: m.key, color: m.color }));
-    const barData = buildTitelBarData(finve.budgets, titelMetas);
-    const lineData = buildLineData(finve.budgets);
-
-    const firstTab = hasTitelEntries ? "budget" : hasMultipleYears ? "costs" : "table";
-
-    // Last budget year for the table tab
     const lastBudget = finve.budgets.at(-1);
+    const hasTitelEntries = (lastBudget?.titel_entries ?? []).some(
+        (e) => !e.is_nachrichtlich && (e.veranschlagt ?? 0) > 0
+    );
+
+    const pieData = lastBudget ? buildPieData(lastBudget) : [];
+    const lineData = buildLineData(finve.budgets);
+    const yMax = Math.ceil(
+        Math.max(...finve.budgets.map((b) => b.cost_estimate_actual ?? 0)) * 1.1
+    );
+
+    const firstTab = hasMultipleYears ? "costs" : hasTitelEntries ? "budget" : "table";
 
     // SammelFinVe: show compact tag only
     if (finve.is_sammel_finve) {
@@ -272,81 +242,64 @@ function FinveCard({ finve }: { finve: FinveWithBudgets }) {
                     <Collapse in={open}>
                         <Tabs defaultValue={firstTab} mt="xs">
                             <Tabs.List>
-                                {hasTitelEntries && (
-                                    <Tabs.Tab value="budget">Budgetverteilung</Tabs.Tab>
-                                )}
                                 {hasMultipleYears && (
                                     <Tabs.Tab value="costs">Kostenentwicklung</Tabs.Tab>
                                 )}
+                                {hasTitelEntries && (
+                                    <Tabs.Tab value="budget">Budgetverteilung</Tabs.Tab>
+                                )}
                                 {lastBudget && lastBudget.titel_entries.length > 0 && (
-                                    <Tabs.Tab value="table">
-                                        Haushaltstiteln {lastBudget.budget_year}
-                                    </Tabs.Tab>
+                                    <Tabs.Tab value="table">Haushaltbericht {lastBudget!.budget_year}</Tabs.Tab>
                                 )}
                             </Tabs.List>
 
-                            {/* Stacked BarChart: veranschlagt per Titel per year */}
-                            {hasTitelEntries && (
-                                <Tabs.Panel value="budget" pt="md">
-                                    <Stack gap="xs">
-                                        <Text size="xs" c="dimmed">
-                                            Veranschlagte Mittel je Haushaltstiteln und Jahr (T€)
-                                        </Text>
-                                        <Box style={{ overflowX: "auto" }}>
-                                            <BarChart
-                                                h={280}
-                                                data={barData}
-                                                dataKey="Jahr"
-                                                series={barSeries}
-                                                type="stacked"
-                                                tickLine="x"
-                                                gridAxis="y"
-                                                valueFormatter={fmtChart}
-                                                tooltipProps={CHART_TOOLTIP_PROPS}
-                                            />
-                                        </Box>
-                                        <ChartLegend
-                                            items={titelMetas.map((m) => ({
-                                                label: m.label,
-                                                color: m.color,
-                                            }))}
-                                        />
-                                    </Stack>
-                                </Tabs.Panel>
-                            )}
-
-                            {/* LineChart: cost estimate trend — only with ≥ 2 budget years */}
+                            {/* LineChart: total cost estimate per report year */}
                             {hasMultipleYears && (
                                 <Tabs.Panel value="costs" pt="md">
                                     <Stack gap="xs">
                                         <Text size="xs" c="dimmed">
-                                            Entwicklung der Gesamtkostenschätzung über die Jahre (T€)
+                                            Gesamtkostenschätzung je Haushaltsbericht (T€)
                                         </Text>
                                         <Box style={{ overflowX: "auto" }}>
                                             <LineChart
                                                 h={280}
                                                 data={lineData}
                                                 dataKey="Jahr"
-                                                series={LINE_SERIES.map((s) => ({
-                                                    name: s.name,
-                                                    color: s.color,
-                                                    strokeDasharray:
-                                                        "strokeDasharray" in s
-                                                            ? s.strokeDasharray
-                                                            : undefined,
-                                                }))}
+                                                series={[{ name: "Gesamtkosten", color: "green.6" }]}
                                                 curveType="monotone"
                                                 tickLine="x"
                                                 gridAxis="y"
                                                 withDots
                                                 valueFormatter={fmtChart}
+                                                yAxisProps={{ width: 130, domain: [0, yMax] }}
                                                 tooltipProps={CHART_TOOLTIP_PROPS}
                                             />
                                         </Box>
+                                    </Stack>
+                                </Tabs.Panel>
+                            )}
+
+                            {/* DonutChart: veranschlagt per Titel for the most recent report */}
+                            {hasTitelEntries && (
+                                <Tabs.Panel value="budget" pt="md">
+                                    <Stack gap="xs">
+                                        <Text size="xs" c="dimmed">
+                                            Budgetverteilung nach Haushaltstiteln – Haushaltsbericht {lastBudget!.budget_year} (T€)
+                                        </Text>
+                                        <Group justify="center">
+                                            <DonutChart
+                                                data={pieData}
+                                                size={220}
+                                                thickness={36}
+                                                withTooltip
+                                                tooltipDataSource="segment"
+                                                valueFormatter={(v) => v.toLocaleString("de-DE") + " T€"}
+                                            />
+                                        </Group>
                                         <ChartLegend
-                                            items={LINE_SERIES.map((s) => ({
-                                                label: s.name,
-                                                color: s.color,
+                                            items={pieData.map((d) => ({
+                                                label: d.name,
+                                                color: d.color,
                                             }))}
                                         />
                                     </Stack>

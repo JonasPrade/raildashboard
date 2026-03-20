@@ -20,20 +20,53 @@ Architekturübersicht: siehe `docs/architecture.md`.
 
 ## Umgebungsvariablen
 
-Alle Variablen sind in `.env.example` vollständig dokumentiert (README.md → "Configuration").
+Das Template für alle Produktionsvariablen liegt unter `.env.prod.example`.
 Für die Produktion eine eigene Datei anlegen:
 
 ```bash
-cp .env.example .env.prod
+cp .env.prod.example .env.prod
+# Alle Werte in .env.prod ausfüllen (DB_PASSWORD, BACKEND_CORS_ORIGINS, etc.)
 ```
 
-Folgende Werte **müssen** für die Produktion angepasst werden (Entwicklungsdefaults reichen nicht):
+### Pflichtfelder (Entwicklungsdefaults reichen nicht)
 
-| Variable | Produktionswert (Beispiel) |
-|----------|---------------------------|
-| `DATABASE_URL` | `postgresql+psycopg2://user:password@localhost:5432/raildashboard` |
-| `BACKEND_CORS_ORIGINS` | `["https://deine-domain.de"]` — nicht `*` |
-| `VITE_API_BASE_URL` | `https://deine-domain.de/api` — nicht localhost |
+| Variable | Produktionswert (Beispiel) | Hinweis |
+|----------|---------------------------|---------|
+| `DB_USER` | `raildashboard` | PostgreSQL-Benutzer, den Docker-Compose anlegt |
+| `DB_PASSWORD` | Sicheres Passwort | `DATABASE_URL` wird automatisch daraus zusammengesetzt — **nicht** doppelt setzen |
+| `BACKEND_CORS_ORIGINS` | `["https://deine-domain.de"]` | **Niemals `*`** — auf die echte Domain setzen |
+| `VITE_API_BASE_URL` | Leer lassen (`""`) | nginx proxied `/api/` zum Backend — nur ausfüllen wenn kein nginx |
+
+### Optionale, aber empfohlene Felder
+
+| Variable | Standard | Beschreibung |
+|----------|----------|--------------|
+| `ROUTING_BASE_URL` | `http://graphhopper:8989` | GraphHopper-Dienst im Docker-Netzwerk |
+| `ROUTING_TIMEOUT_SECONDS` | `20` | Timeout für Routing-Anfragen in Sekunden |
+| `GRAPH_VERSION` | `1` | Hochzählen nach neuem OSM-Extrakt (busted Route-Cache) |
+| `GH_OSM_URL` | `https://download.geofabrik.de/…` | OSM PBF URL; GraphHopper lädt die Datei beim ersten Start automatisch herunter |
+| `REACT_APP_TILE_LAYER_URL` | — | Raster-Kachel-URL für die Kartenansicht |
+| `CELERY_BROKER_URL` | `redis://redis:6379/0` | Redis im Docker-Netzwerk (kein Passwort nötig, da nicht nach außen exponiert) |
+| `CELERY_RESULT_BACKEND` | `redis://redis:6379/0` | Wie `CELERY_BROKER_URL` |
+
+### Optionale RINF-API-Zugangsdaten
+
+| Variable | Beschreibung |
+|----------|--------------|
+| `RINF_API_URL` | ERA RINF API Base-URL (Standard: `https://rinf.era.europa.eu/api`) |
+| `RINF_USERNAME` | ERA RINF-Benutzername |
+| `RINF_PASSWORD` | ERA RINF-Passwort |
+
+### Optionale LLM-Konfiguration (KI-gestützte Extraktion)
+
+Wird für die KI-gestützte Erkennung im VIB-Import und verwandten Features verwendet.
+Leer lassen deaktiviert die Funktion vollständig.
+
+| Variable | Beschreibung |
+|----------|--------------|
+| `LLM_BASE_URL` | OpenAI-kompatibler Endpunkt (`https://api.openai.com/v1`, Ollama-URL, etc.) |
+| `LLM_API_KEY` | API-Schlüssel |
+| `LLM_MODEL` | Modellname (Standard: `gpt-4o-mini`) |
 
 ---
 
@@ -71,16 +104,24 @@ Alle Services laufen in Docker. Das Frontend wird von nginx als statische Dateie
 
 ### Erstmalige Einrichtung
 
-```bash
-# 1. Produktions-Umgebungsvariablen anlegen
-cp .env.docker.example .env.prod
-# .env.prod öffnen und alle Werte ausfüllen (DB_PASSWORD, BACKEND_CORS_ORIGINS, etc.)
+Der Server benötigt **nur** `docker-compose.yml` und eine `.env.prod` — kein Source-Checkout erforderlich. Docker clont den Code automatisch von GitHub.
 
-# 2. Images bauen und Stack starten
+```bash
+# 1. Nur docker-compose.yml auf den Server übertragen
+scp docker-compose.yml user@server:/opt/raildashboard/
+
+# 2. Produktions-Umgebungsvariablen anlegen
+cp .env.prod.example .env.prod
+# .env.prod öffnen und alle Werte ausfüllen:
+#   - APP_VERSION=v1.2.0  ← gewünschtes Release-Tag
+#   - DB_PASSWORD, BACKEND_CORS_ORIGINS, etc.
+scp .env.prod user@server:/opt/raildashboard/
+
+# 3. Images bauen und Stack starten (auf dem Server)
 make docker-prod-build
 make docker-prod-up
 
-# 3. Ersten Admin-User anlegen
+# 4. Ersten Admin-User anlegen
 make docker-create-user USERNAME=admin ROLE=admin
 ```
 
@@ -106,19 +147,90 @@ make restore-db BACKUP=backups/<datei>.dump \
 make docker-prod-up
 ```
 
+### Nutzerverwaltung (Docker)
+
+```bash
+# Neuen Nutzer anlegen
+make docker-create-user USERNAME=admin ROLE=admin
+# Rollen: viewer | editor | admin
+
+# Nutzer auflisten (lokale venv-Umgebung nötig)
+make list-users
+
+# Passwort ändern (läuft im Backend-Container)
+docker compose --env-file .env.prod exec backend python scripts/change_password.py --username <name>
+```
+
+### Logs und Monitoring
+
+```bash
+# Alle Logs des Stacks (live)
+docker compose --env-file .env.prod logs -f
+
+# Nur Backend
+docker compose --env-file .env.prod logs -f backend
+
+# Celery-Worker (PDF-Parsing, Hintergrundaufgaben)
+make docker-worker-logs
+
+# Health-Check des Backends abfragen
+curl http://localhost/api/health
+```
+
+Der Backend-Container führt beim Start automatisch `alembic upgrade head` aus (`docker-entrypoint.sh`) — Migrationen müssen daher nicht manuell angestoßen werden. Falls Migrationen manuell ausgeführt werden müssen:
+
+```bash
+make docker-migrate
+```
+
 ### Tägliches Backup via Docker
 
 ```bash
 make docker-backup-db   # schreibt in backups/raildashboard_<timestamp>.dump
 ```
 
-### Updates einspielen
+### HTTPS / TLS (empfohlen für Produktion)
+
+Das Docker-Setup hört auf Port 80. Für HTTPS empfiehlt sich ein vorgelagerter Reverse Proxy mit automatischer Zertifikatsverwaltung (z. B. Caddy oder Certbot/nginx):
+
+**Option A – Caddy (einfachste Variante):**
+
+```
+# /etc/caddy/Caddyfile
+deine-domain.de {
+    reverse_proxy localhost:80
+}
+```
+
+Caddy bezieht und erneuert Let's Encrypt-Zertifikate automatisch.
+
+**Option B – nginx + Certbot:**
 
 ```bash
-git pull
-make docker-prod-build   # Images neu bauen (inkl. neuem Frontend-Build)
+# Zertifikat einmalig ausstellen (nginx muss Port 80 hören)
+certbot --nginx -d deine-domain.de
+# Automatische Erneuerung via systemd-Timer ist nach certbot-Installation aktiv
+```
+
+Danach `BACKEND_CORS_ORIGINS` in `.env.prod` auf die HTTPS-URL aktualisieren und den Stack neu starten:
+
+```bash
+make docker-prod-down && make docker-prod-up
+```
+
+### Updates einspielen
+
+Kein `git pull` nötig — nur `APP_VERSION` in `.env.prod` auf das neue Tag setzen, dann neu bauen:
+
+```bash
+# 1. APP_VERSION in .env.prod aktualisieren, z.B.:
+#    APP_VERSION=v1.3.0
+nano .env.prod
+
+# 2. Images neu bauen (Docker clont den Code von GitHub) und Stack neu starten
+make docker-prod-build   # baut alle Images vom neuen GitHub-Tag
 make docker-prod-down
-make docker-prod-up      # Migrations laufen automatisch beim Start
+make docker-prod-up      # Migrationen laufen automatisch beim Start
 ```
 
 ### Entwicklung: nur DB in Docker
@@ -134,29 +246,32 @@ make dev
 
 ### GraphHopper (Routing-Microservice)
 
-GraphHopper ist als optionaler Service in beiden Compose-Setups integriert.
+GraphHopper ist als optionaler Service im Compose-Stack integriert. Kein lokales `data/`-Verzeichnis erforderlich — OSM-Daten und Graph-Cache werden in einem named Docker Volume (`ghdata`) gespeichert.
 
-**Voraussetzung (einmalig):** OSM-PBF-Datei bereitstellen:
-```bash
-mkdir -p data/graphhopper
-# Deutschland-Extrakt (~4 GB, vollständig):
-# https://download.geofabrik.de/europe/germany-latest.osm.pbf
-# Für Tests reicht ein kleinerer Regionalextrakt, z.B. Bayern (~500 MB).
-cp /pfad/zu/extract.osm.pbf data/graphhopper/map.osm.pbf
+**Einrichtung:** `GH_OSM_URL` in `.env.prod` setzen:
+```dotenv
+# Beispiel: Deutschland-Extrakt (~4 GB)
+GH_OSM_URL=https://download.geofabrik.de/europe/germany-latest.osm.pbf
+# Für Tests reicht ein kleinerer Regionalextrakt, z.B. Bayern (~500 MB):
+# GH_OSM_URL=https://download.geofabrik.de/europe/germany/bayern-latest.osm.pbf
 ```
 
-**Erster Start** (baut den Graphen — dauert 5–30 min je nach PBF-Größe):
+**Erster Start** — GraphHopper lädt die PBF-Datei automatisch herunter und baut den Graphen (dauert 5–30 min je nach Größe):
 ```bash
-# Nur in Dev (als separates Docker-Profil):
-docker compose -f docker-compose.dev.yml --profile routing up -d graphhopper
-
-# In Produktion startet GraphHopper automatisch mit dem restlichen Stack.
-# ROUTING_BASE_URL=http://graphhopper:8989 ist bereits in .env.docker.example gesetzt.
+# GraphHopper startet automatisch mit dem restlichen Stack:
+make docker-prod-up
+# Logs verfolgen:
+docker compose --env-file .env.prod logs -f graphhopper
 ```
 
-Der Graph-Cache wird in `data/graphhopper/graph-cache/` gespeichert. Folgestarts nutzen den Cache und starten in wenigen Sekunden.
+Folgestarts nutzen den Cache im Volume und starten in wenigen Sekunden.
 
-**Cache-Invalidierung:** Nach einem neuen PBF-Extrakt `GRAPH_VERSION` in `.env.prod` hochzählen und den Stack neu starten.
+**OSM-Extrakt aktualisieren:** `GRAPH_VERSION` in `.env.prod` hochzählen (busted Route-Cache), dann den Stack neu starten. Das Volume `ghdata` löschen, damit GraphHopper die neue PBF herunterlädt:
+```bash
+docker compose --env-file .env.prod down
+docker volume rm raildashboard_ghdata   # erzwingt Neu-Download + Graph-Rebuild
+make docker-prod-up
+```
 
 ---
 

@@ -34,6 +34,16 @@ After marking the item, check whether the completed feature is already documente
 
 For each file, briefly check whether it already mentions the feature. Use `Grep` to search for key terms from the feature description.
 
-**Step 4 — Report**
+**Step 4 — Handle `@AI` annotations**
+
+Scan `docs/roadmap.md` for any lines containing `@AI`. Each such line is an inline task left for you to complete. The text after `@AI -` describes what to do (e.g. `@AI - finished, move it to finished section`).
+
+For each `@AI` annotation found:
+1. Read the instruction and carry it out (e.g. move a completed item to the finished/done section, reformat an entry, delete obsolete text, etc.).
+2. Remove the `@AI` annotation from the line once the task is done.
+
+If no `@AI` annotations exist, skip this step silently.
+
+**Step 5 — Report**
 
 Summarise what you changed and list which documentation files still need updating (if any). Do not edit the README files yourself — just report what is missing so the user can decide.

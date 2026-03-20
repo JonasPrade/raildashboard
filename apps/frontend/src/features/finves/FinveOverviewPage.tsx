@@ -20,8 +20,7 @@ import {
     Title,
     UnstyledButton,
 } from "@mantine/core";
-import { BarChart, LineChart } from "@mantine/charts";
-import { useAuth } from "../../lib/auth";
+import { DonutChart, LineChart } from "@mantine/charts";
 import { useFinves, type BudgetSummary, type FinveListItem, type TitelEntry } from "../../shared/api/queries";
 
 // ---------------------------------------------------------------------------
@@ -43,57 +42,28 @@ function fmtNum(val: number | null): number {
 // Chart data builders (same logic as FinveSection.tsx)
 // ---------------------------------------------------------------------------
 
-type TitelMeta = { key: string; label: string; color: string };
-
+// Distinct CSS hex colors for up to 10 Titel series (must be plain CSS for DonutChart)
 const SERIE_COLORS = [
-    "blue.5", "teal.5", "green.5", "yellow.5", "orange.5",
-    "red.5", "grape.5", "indigo.5", "cyan.5", "lime.5",
+    "#339af0", "#20c997", "#51cf66", "#fcc419", "#ff922b",
+    "#ff6b6b", "#cc5de8", "#5c7cfa", "#22b8cf", "#94d82d",
 ];
 
-function collectTitelMeta(budgets: BudgetSummary[]): TitelMeta[] {
-    const seen = new Map<string, string>();
-    for (const b of budgets) {
-        for (const e of b.titel_entries) {
-            if (!e.is_nachrichtlich && !seen.has(e.titel_key)) {
-                seen.set(e.titel_key, e.label);
-            }
-        }
-    }
-    return [...seen.entries()].map(([key, label], i) => ({
-        key: `Kap. ${key.split("_")[0]} · ${key.split("_").slice(1).join(" ")}`,
-        label,
-        color: SERIE_COLORS[i % SERIE_COLORS.length],
-    }));
-}
-
-function buildTitelBarData(budgets: BudgetSummary[], metas: TitelMeta[]) {
-    return budgets.map((b) => {
-        const row: Record<string, string | number> = { Jahr: String(b.budget_year) };
-        for (const meta of metas) {
-            const entry = b.titel_entries.find(
-                (e) => !e.is_nachrichtlich &&
-                    `Kap. ${e.titel_key.split("_")[0]} · ${e.titel_key.split("_").slice(1).join(" ")}` === meta.key
-            );
-            row[meta.key] = fmtNum(entry?.veranschlagt ?? null);
-        }
-        return row;
-    });
+function buildPieData(budget: BudgetSummary) {
+    return budget.titel_entries
+        .filter((e) => !e.is_nachrichtlich && (e.veranschlagt ?? 0) > 0)
+        .map((e, i) => ({
+            name: e.label,
+            value: e.veranschlagt ?? 0,
+            color: SERIE_COLORS[i % SERIE_COLORS.length],
+        }));
 }
 
 function buildLineData(budgets: BudgetSummary[]) {
     return budgets.map((b) => ({
         Jahr: String(b.budget_year),
-        "Ursprünglich": fmtNum(b.cost_estimate_original),
-        "Vorjahr": fmtNum(b.cost_estimate_last_year),
-        "Aktuell": fmtNum(b.cost_estimate_actual),
+        "Gesamtkosten": fmtNum(b.cost_estimate_actual),
     }));
 }
-
-const LINE_SERIES = [
-    { name: "Ursprünglich", color: "gray.5", strokeDasharray: "5 5" },
-    { name: "Vorjahr", color: "blue.4" },
-    { name: "Aktuell", color: "green.6" },
-] as const;
 
 // ---------------------------------------------------------------------------
 // Chart legend
@@ -104,10 +74,7 @@ function ChartLegend({ items }: { items: { label: string; color: string }[] }) {
         <Group gap="md" mt="xs" wrap="wrap">
             {items.map((item) => (
                 <Group key={item.label} gap={6} align="center">
-                    <ColorSwatch
-                        color={`var(--mantine-color-${item.color.replace(".", "-")})`}
-                        size={12}
-                    />
+                    <ColorSwatch color={item.color} size={12} />
                     <Text size="xs" c="dimmed">{item.label}</Text>
                 </Group>
             ))}
@@ -186,15 +153,18 @@ function FinveCard({ finve }: { finve: FinveListItem }) {
 
     const hasBudgets = finve.budgets.length > 0;
     const hasMultipleYears = finve.budgets.length >= 2;
-    const hasTitelEntries = finve.budgets.some((b) => b.titel_entries.length > 0);
     const lastBudget = finve.budgets.at(-1);
+    const hasTitelEntries = (lastBudget?.titel_entries ?? []).some(
+        (e) => !e.is_nachrichtlich && (e.veranschlagt ?? 0) > 0
+    );
 
-    const titelMetas = collectTitelMeta(finve.budgets);
-    const barSeries = titelMetas.map((m) => ({ name: m.key, color: m.color }));
-    const barData = buildTitelBarData(finve.budgets, titelMetas);
+    const pieData = lastBudget ? buildPieData(lastBudget) : [];
     const lineData = buildLineData(finve.budgets);
+    const yMax = Math.ceil(
+        Math.max(...finve.budgets.map((b) => b.cost_estimate_actual ?? 0)) * 1.1
+    );
 
-    const firstTab = hasTitelEntries ? "budget" : hasMultipleYears ? "costs" : "table";
+    const firstTab = hasMultipleYears ? "costs" : hasTitelEntries ? "budget" : "table";
 
     return (
         <Card withBorder radius="md" padding="lg" shadow="xs">
@@ -302,75 +272,36 @@ function FinveCard({ finve }: { finve: FinveListItem }) {
                         <Collapse in={open}>
                             <Tabs defaultValue={firstTab}>
                                 <Tabs.List>
-                                    {hasTitelEntries && (
-                                        <Tabs.Tab value="budget">Budgetverteilung</Tabs.Tab>
-                                    )}
                                     {hasMultipleYears && (
                                         <Tabs.Tab value="costs">Kostenentwicklung</Tabs.Tab>
                                     )}
+                                    {hasTitelEntries && (
+                                        <Tabs.Tab value="budget">Budgetverteilung</Tabs.Tab>
+                                    )}
                                     {lastBudget && lastBudget.titel_entries.length > 0 && (
-                                        <Tabs.Tab value="table">
-                                            Haushaltstiteln {lastBudget.budget_year}
-                                        </Tabs.Tab>
+                                        <Tabs.Tab value="table">Haushaltbericht {lastBudget!.budget_year}</Tabs.Tab>
                                     )}
                                 </Tabs.List>
 
-                                {hasTitelEntries && (
-                                    <Tabs.Panel value="budget" pt="md">
-                                        <Stack gap="xs">
-                                            <Text size="xs" c="dimmed">
-                                                Veranschlagte Mittel je Haushaltstiteln und Jahr (T€)
-                                            </Text>
-                                            <Box style={{ overflowX: "auto" }}>
-                                                <BarChart
-                                                    h={280}
-                                                    data={barData}
-                                                    dataKey="Jahr"
-                                                    series={barSeries}
-                                                    type="stacked"
-                                                    tickLine="x"
-                                                    gridAxis="y"
-                                                    valueFormatter={(v) => v != null ? v.toLocaleString("de-DE") + " T€" : "–"}
-                                                    tooltipProps={{
-                                                        contentStyle: {
-                                                            background: "var(--mantine-color-body)",
-                                                            border: "1px solid var(--mantine-color-default-border)",
-                                                            borderRadius: "var(--mantine-radius-sm)",
-                                                            color: "var(--mantine-color-text)",
-                                                            fontSize: 12,
-                                                        },
-                                                    }}
-                                                />
-                                            </Box>
-                                            <ChartLegend
-                                                items={titelMetas.map((m) => ({ label: m.label, color: m.color }))}
-                                            />
-                                        </Stack>
-                                    </Tabs.Panel>
-                                )}
-
+                                {/* LineChart: total cost estimate per report year */}
                                 {hasMultipleYears && (
                                     <Tabs.Panel value="costs" pt="md">
                                         <Stack gap="xs">
                                             <Text size="xs" c="dimmed">
-                                                Entwicklung der Gesamtkostenschätzung über die Jahre (T€)
+                                                Gesamtkostenschätzung je Haushaltsbericht (T€)
                                             </Text>
                                             <Box style={{ overflowX: "auto" }}>
                                                 <LineChart
                                                     h={280}
                                                     data={lineData}
                                                     dataKey="Jahr"
-                                                    series={LINE_SERIES.map((s) => ({
-                                                        name: s.name,
-                                                        color: s.color,
-                                                        strokeDasharray:
-                                                            "strokeDasharray" in s ? s.strokeDasharray : undefined,
-                                                    }))}
+                                                    series={[{ name: "Gesamtkosten", color: "green.6" }]}
                                                     curveType="monotone"
                                                     tickLine="x"
                                                     gridAxis="y"
                                                     withDots
-                                                    valueFormatter={(v) => v != null ? v.toLocaleString("de-DE") + " T€" : "–"}
+                                                    valueFormatter={(v: number) => v != null ? v.toLocaleString("de-DE") + " T€" : "–"}
+                                                    yAxisProps={{ width: 130, domain: [0, yMax] }}
                                                     tooltipProps={{
                                                         contentStyle: {
                                                             background: "var(--mantine-color-body)",
@@ -382,8 +313,29 @@ function FinveCard({ finve }: { finve: FinveListItem }) {
                                                     }}
                                                 />
                                             </Box>
+                                        </Stack>
+                                    </Tabs.Panel>
+                                )}
+
+                                {/* DonutChart: veranschlagt per Titel for the most recent report */}
+                                {hasTitelEntries && (
+                                    <Tabs.Panel value="budget" pt="md">
+                                        <Stack gap="xs">
+                                            <Text size="xs" c="dimmed">
+                                                Budgetverteilung nach Haushaltstiteln – Haushaltsbericht {lastBudget!.budget_year} (T€)
+                                            </Text>
+                                            <Group justify="center">
+                                                <DonutChart
+                                                    data={pieData}
+                                                    size={220}
+                                                    thickness={36}
+                                                    withTooltip
+                                                    tooltipDataSource="segment"
+                                                    valueFormatter={(v: number) => v.toLocaleString("de-DE") + " T€"}
+                                                />
+                                            </Group>
                                             <ChartLegend
-                                                items={LINE_SERIES.map((s) => ({ label: s.name, color: s.color }))}
+                                                items={pieData.map((d) => ({ label: d.name, color: d.color }))}
                                             />
                                         </Stack>
                                     </Tabs.Panel>
@@ -411,7 +363,6 @@ function FinveCard({ finve }: { finve: FinveListItem }) {
 // ---------------------------------------------------------------------------
 
 export default function FinveOverviewPage() {
-    const { user } = useAuth();
     const [search, setSearch] = useState("");
     const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
 
@@ -430,16 +381,6 @@ export default function FinveOverviewPage() {
             return true;
         });
     }, [finves, search, typeFilter]);
-
-    if (!user) {
-        return (
-            <Container size="sm" py="xl">
-                <Alert color="blue" variant="light" title="Anmeldung erforderlich">
-                    Bitte melde dich an, um die FinVe-Übersicht zu sehen.
-                </Alert>
-            </Container>
-        );
-    }
 
     return (
         <Container size="xl" py="xl">

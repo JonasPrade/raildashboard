@@ -78,7 +78,7 @@ All runtime configuration is managed through a single `.env` file in the reposit
 | `OSM_PBF_DIR` | Backend | Directory for `.osm.pbf` extracts (default: `data/osm`) |
 | `USE_GEOMETRY` | Backend | Set to `0` to skip geometry creation on OSM import |
 | `VITE_API_BASE_URL` | Frontend | Backend API base URL (default: `http://localhost:8000`) |
-| `VITE_TILE_LAYER_URL` | Frontend | Raster tile layer URL for the map view |
+| `REACT_APP_TILE_LAYER_URL` | Frontend | Raster tile layer URL for the map view |
 
 ## Backend
 
@@ -155,11 +155,11 @@ make dev                  # run backend + frontend as usual
 make docker-dev-down      # stop DB (data volume is preserved)
 ```
 
-**Production — full stack in Docker:**
+**Production — full stack in Docker (server needs only `docker-compose.yml` + `.env.prod`):**
 
 ```bash
-cp .env.docker.example .env.prod   # fill in passwords and domain
-make docker-prod-build             # build images
+cp .env.prod.example .env.prod   # fill in passwords, domain, and APP_VERSION tag
+make docker-prod-build             # Docker clones code from GitHub at APP_VERSION tag
 make docker-prod-up                # start stack (port 80)
 make docker-create-user USERNAME=admin ROLE=admin
 make docker-prod-down              # stop stack

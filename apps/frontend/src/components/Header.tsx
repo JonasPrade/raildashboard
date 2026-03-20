@@ -38,18 +38,16 @@ export function Header() {
             >
                 Projekte
             </NavLink>
-            {user !== null && (
-                <NavLink
-                    to="/finves"
-                    style={({ isActive }) => ({
-                        ...baseStyle,
-                        backgroundColor: isActive ? "rgba(17, 34, 64, 0.08)" : "transparent",
-                    })}
-                    onClick={closeDrawer}
-                >
-                    Haushalt
-                </NavLink>
-            )}
+            <NavLink
+                to="/finves"
+                style={({ isActive }) => ({
+                    ...baseStyle,
+                    backgroundColor: isActive ? "rgba(17, 34, 64, 0.08)" : "transparent",
+                })}
+                onClick={closeDrawer}
+            >
+                Haushalt
+            </NavLink>
             <span style={disabledStyle} title="Noch nicht verfügbar">
                 Beschleunigungskommission Schiene - todo
             </span>

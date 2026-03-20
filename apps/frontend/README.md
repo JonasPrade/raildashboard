@@ -45,7 +45,7 @@ The map view expects a raster tile URL provided via `REACT_APP_TILE_LAYER_URL`. 
 | Package | Purpose |
 |---|---|
 | `@mantine/core` | UI component library (layout, forms, modals, …) |
-| `@mantine/charts` + `recharts` | Chart components (`BarChart`, `LineChart`) used for FinVe budget visualisation |
+| `@mantine/charts` + `recharts` | Chart components (`DonutChart`, `LineChart`) used for FinVe budget visualisation. **Important:** `@mantine/charts/styles.css` must be imported in `main.tsx` — without it, `DonutChart` collapses to zero height and is invisible (its dimensions are set entirely via CSS classes, unlike `LineChart` which uses an explicit `h` prop). |
 | `@tanstack/react-query` | Server-state management; all API calls go through `shared/api/queries.ts` |
 | `react-router-dom` | Client-side routing |
 | `axios` | HTTP client (configured in `shared/api/client.gen.ts`) |
@@ -54,10 +54,10 @@ The map view expects a raster tile URL provided via `REACT_APP_TILE_LAYER_URL`. 
 
 ### FinVe overview page (`features/finves/FinveOverviewPage.tsx`)
 
-Available at `/finves` (visible to all logged-in users). Shows all Finanzierungsvereinbarungen as expandable cards with:
+Available at `/finves` (**public — no login required**). Shows all Finanzierungsvereinbarungen as expandable cards with:
 - FinVe-Nr, name, type badge (Regulär / Sammel-FinVe), "vorläufig" indicator, Aufnahme year, cost figures
 - Linked projects rendered as clickable mini-cards (link to `/projects/:id`)
-- Expandable budget section: same three-tab chart layout as `FinveSection.tsx` (BarChart, LineChart, detail table)
+- Expandable budget section: same three-tab chart layout as `FinveSection.tsx` (DonutChart, LineChart, detail table)
 - Client-side search (name or FinVe-Nr) and SegmentedControl filter (Alle / Regulär / Sammel-FinVes)
 
 Data comes from `useFinves()` hook → `GET /api/v1/finves/` (returns budgets + project refs in one call).
@@ -67,9 +67,9 @@ Data comes from `useFinves()` hook → `GET /api/v1/finves/` (returns budgets + 
 Shows Finanzierungsvereinbarungen linked to a project in the project detail page. Data is fetched via `useProjectFinves(projectId)` (`shared/api/queries.ts` → `GET /api/v1/projects/{id}/finves`).
 
 Each FinVe renders as a collapsible card with three tabs:
-- **Budgetverteilung** — stacked `BarChart` of `veranschlagt` per Haushaltstiteln and year (only shown when Haushaltstiteln data is available)
-- **Kostenentwicklung** — `LineChart` of original / prior-year / current cost estimate trends (only shown for ≥ 2 budget years)
-- **Haushaltstiteln {year}** — detail table of the most recent budget year, split into regular and *nachrichtlich* entries
+- **Kostenentwicklung** — single-series `LineChart` of `cost_estimate_actual` per Haushaltsbericht (one data point per imported report year); Y-axis domain is max × 1.1, width 130 px (only shown for ≥ 2 budget years)
+- **Budgetverteilung** — `DonutChart` showing `veranschlagt` per Haushaltstiteln for the **most recent report only**; subtitle and tab label include the report year (only shown when Haushaltstiteln data is available)
+- **Haushaltbericht {year}** — detail table of the most recent budget year, split into regular and *nachrichtlich* entries
 
 Sammel-FinVes (`is_sammel_finve = true`) render as a compact inline tag instead of the full card (no charts).
 
