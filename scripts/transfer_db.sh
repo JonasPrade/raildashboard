@@ -41,7 +41,7 @@ read_local_db_url() {
 }
 
 read_prod_db_user() {
-    ssh "$SSH_HOST" "grep -E '^DB_USER=' $REMOTE_DIR/.env | head -1 | cut -d'=' -f2- | tr -d '\"'"'"
+    ssh "$SSH_HOST" "grep -E '^DB_USER=' $REMOTE_DIR/.env" | head -1 | cut -d= -f2- | tr -d "'\""
 }
 
 confirm() {
