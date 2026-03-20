@@ -4,10 +4,18 @@ from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Repo root is 4 levels up from this file:
-# dashboard_backend/core/config.py -> core -> dashboard_backend -> backend -> apps -> repo root
-_REPO_ROOT = Path(__file__).parents[4]
-_ENV_SUFFIX = f".{os.getenv('ENVIRONMENT')}" if os.getenv('ENVIRONMENT') else ""
+
+def _find_env_file() -> str | None:
+    """Walk up from this file to find a .env file (works both locally and in Docker).
+    In Docker the env vars are injected directly, so no .env file will be found
+    and pydantic-settings falls back to reading from the process environment."""
+    suffix = f".{os.getenv('ENVIRONMENT')}" if os.getenv('ENVIRONMENT') else ""
+    for parent in Path(__file__).resolve().parents:
+        candidate = parent / f".env{suffix}"
+        if candidate.exists():
+            return str(candidate)
+    return None
+
 
 class Settings(BaseSettings):
     # Explicitly map environment variable names for clarity
@@ -26,7 +34,7 @@ class Settings(BaseSettings):
     celery_result_backend: str = "redis://localhost:6379/0"
 
     model_config = SettingsConfigDict(
-        env_file=str(_REPO_ROOT / f".env{_ENV_SUFFIX}"),
+        env_file=_find_env_file(),
         case_sensitive=False,
         extra="ignore"
     )
