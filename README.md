@@ -155,10 +155,10 @@ make dev                  # run backend + frontend as usual
 make docker-dev-down      # stop DB (data volume is preserved)
 ```
 
-**Production — full stack in Docker (server needs only `docker-compose.yml` + `.env.prod`):**
+**Production — full stack in Docker (server needs only `docker-compose.yml` + `.env`):**
 
 ```bash
-cp .env.prod.example .env.prod   # fill in passwords, domain, and APP_VERSION tag
+cp .env.example .env   # fill in passwords, domain, and APP_VERSION tag
 make docker-prod-build             # Docker clones code from GitHub at APP_VERSION tag
 make docker-prod-up                # start stack (port 80)
 make docker-create-user USERNAME=admin ROLE=admin

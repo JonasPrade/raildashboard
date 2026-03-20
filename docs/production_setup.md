@@ -20,12 +20,12 @@ Architekturübersicht: siehe `docs/architecture.md`.
 
 ## Umgebungsvariablen
 
-Das Template für alle Produktionsvariablen liegt unter `.env.prod.example`.
+Das Template für alle Produktionsvariablen liegt unter `.env.example`.
 Für die Produktion eine eigene Datei anlegen:
 
 ```bash
-cp .env.prod.example .env.prod
-# Alle Werte in .env.prod ausfüllen (DB_PASSWORD, BACKEND_CORS_ORIGINS, etc.)
+cp .env.example .env
+# Alle Werte in .env ausfüllen (DB_PASSWORD, BACKEND_CORS_ORIGINS, etc.)
 ```
 
 ### Pflichtfelder (Entwicklungsdefaults reichen nicht)
@@ -104,18 +104,18 @@ Alle Services laufen in Docker. Das Frontend wird von nginx als statische Dateie
 
 ### Erstmalige Einrichtung
 
-Der Server benötigt **nur** `docker-compose.yml` und eine `.env.prod` — kein Source-Checkout erforderlich. Docker clont den Code automatisch von GitHub.
+Der Server benötigt **nur** `docker-compose.yml` und eine `.env` — kein Source-Checkout erforderlich. Docker clont den Code automatisch von GitHub.
 
 ```bash
 # 1. Nur docker-compose.yml auf den Server übertragen
 scp docker-compose.yml user@server:/opt/raildashboard/
 
 # 2. Produktions-Umgebungsvariablen anlegen
-cp .env.prod.example .env.prod
-# .env.prod öffnen und alle Werte ausfüllen:
+cp .env.example .env
+# .env öffnen und alle Werte ausfüllen:
 #   - APP_VERSION=v1.2.0  ← gewünschtes Release-Tag
 #   - DB_PASSWORD, BACKEND_CORS_ORIGINS, etc.
-scp .env.prod user@server:/opt/raildashboard/
+scp .env user@server:/opt/raildashboard/
 
 # 3. Images bauen und Stack starten (auf dem Server)
 make docker-prod-build
@@ -136,9 +136,9 @@ Alembic-Migrationen laufen automatisch beim Start des Backend-Containers (via `d
 make backup-db
 
 # 2. Prod-Stack starten (nur DB, damit das Volume existiert)
-docker compose --env-file .env.prod up -d db
+docker compose --env-file .env up -d db
 
-# 3. Dump einspielen (DB_URL aus .env.prod verwenden, aber Hostname = localhost)
+# 3. Dump einspielen (DB_URL aus .env verwenden, aber Hostname = localhost)
 make restore-db BACKUP=backups/<datei>.dump \
   DB_URL=postgresql://raildashboard:<password>@localhost:5432/raildashboard
 
@@ -158,17 +158,17 @@ make docker-create-user USERNAME=admin ROLE=admin
 make list-users
 
 # Passwort ändern (läuft im Backend-Container)
-docker compose --env-file .env.prod exec backend python scripts/change_password.py --username <name>
+docker compose --env-file .env exec backend python scripts/change_password.py --username <name>
 ```
 
 ### Logs und Monitoring
 
 ```bash
 # Alle Logs des Stacks (live)
-docker compose --env-file .env.prod logs -f
+docker compose --env-file .env logs -f
 
 # Nur Backend
-docker compose --env-file .env.prod logs -f backend
+docker compose --env-file .env logs -f backend
 
 # Celery-Worker (PDF-Parsing, Hintergrundaufgaben)
 make docker-worker-logs
@@ -212,7 +212,7 @@ certbot --nginx -d deine-domain.de
 # Automatische Erneuerung via systemd-Timer ist nach certbot-Installation aktiv
 ```
 
-Danach `BACKEND_CORS_ORIGINS` in `.env.prod` auf die HTTPS-URL aktualisieren und den Stack neu starten:
+Danach `BACKEND_CORS_ORIGINS` in `.env` auf die HTTPS-URL aktualisieren und den Stack neu starten:
 
 ```bash
 make docker-prod-down && make docker-prod-up
@@ -220,12 +220,12 @@ make docker-prod-down && make docker-prod-up
 
 ### Updates einspielen
 
-Kein `git pull` nötig — nur `APP_VERSION` in `.env.prod` auf das neue Tag setzen, dann neu bauen:
+Kein `git pull` nötig — nur `APP_VERSION` in `.env` auf das neue Tag setzen, dann neu bauen:
 
 ```bash
-# 1. APP_VERSION in .env.prod aktualisieren, z.B.:
+# 1. APP_VERSION in .env aktualisieren, z.B.:
 #    APP_VERSION=v1.3.0
-nano .env.prod
+nano .env
 
 # 2. Images neu bauen (Docker clont den Code von GitHub) und Stack neu starten
 make docker-prod-build   # baut alle Images vom neuen GitHub-Tag
@@ -248,7 +248,7 @@ make dev
 
 GraphHopper ist als optionaler Service im Compose-Stack integriert. Kein lokales `data/`-Verzeichnis erforderlich — OSM-Daten und Graph-Cache werden in einem named Docker Volume (`ghdata`) gespeichert.
 
-**Einrichtung:** `GH_OSM_URL` in `.env.prod` setzen:
+**Einrichtung:** `GH_OSM_URL` in `.env` setzen:
 ```dotenv
 # Beispiel: Deutschland-Extrakt (~4 GB)
 GH_OSM_URL=https://download.geofabrik.de/europe/germany-latest.osm.pbf
@@ -261,14 +261,14 @@ GH_OSM_URL=https://download.geofabrik.de/europe/germany-latest.osm.pbf
 # GraphHopper startet automatisch mit dem restlichen Stack:
 make docker-prod-up
 # Logs verfolgen:
-docker compose --env-file .env.prod logs -f graphhopper
+docker compose --env-file .env logs -f graphhopper
 ```
 
 Folgestarts nutzen den Cache im Volume und starten in wenigen Sekunden.
 
-**OSM-Extrakt aktualisieren:** `GRAPH_VERSION` in `.env.prod` hochzählen (busted Route-Cache), dann den Stack neu starten. Das Volume `ghdata` löschen, damit GraphHopper die neue PBF herunterlädt:
+**OSM-Extrakt aktualisieren:** `GRAPH_VERSION` in `.env` hochzählen (busted Route-Cache), dann den Stack neu starten. Das Volume `ghdata` löschen, damit GraphHopper die neue PBF herunterlädt:
 ```bash
-docker compose --env-file .env.prod down
+docker compose --env-file .env down
 docker volume rm raildashboard_ghdata   # erzwingt Neu-Download + Graph-Rebuild
 make docker-prod-up
 ```
@@ -287,13 +287,13 @@ Dumps werden in `backups/` abgelegt (nicht im Git, durch `.gitignore` ausgeschlo
 make backup-db
 
 # Mit produktionsspezifischer .env-Datei
-make backup-db ENV_FILE=.env.prod
+make backup-db ENV_FILE=.env
 
 # Alle lokalen Dumps auflisten
 make list-backups
 
 # Wiederherstellen (fragt zur Sicherheit nach Bestätigung)
-make restore-db BACKUP=backups/raildashboard_20260101_020000.dump ENV_FILE=.env.prod
+make restore-db BACKUP=backups/raildashboard_20260101_020000.dump ENV_FILE=.env
 ```
 
 Das Skript:
@@ -315,7 +315,7 @@ After=network.target
 Type=oneshot
 User=raildashboard
 WorkingDirectory=/opt/raildashboard
-EnvironmentFile=/opt/raildashboard/.env.prod
+EnvironmentFile=/opt/raildashboard/.env
 ExecStart=/opt/raildashboard/scripts/backup_db.sh
 StandardOutput=journal
 StandardError=journal
@@ -354,7 +354,7 @@ journalctl -u raildashboard-backup.service -n 50
 Für eine zweite Sicherheitskopie (Schutz bei Datenverlust auf dem Server selbst):
 
 1. `rclone` installieren und konfigurieren: `rclone config`
-2. `BACKUP_REMOTE` in `.env.prod` setzen:
+2. `BACKUP_REMOTE` in `.env` setzen:
    ```dotenv
    BACKUP_REMOTE=s3:mein-bucket/raildashboard/
    # oder: sftp:backup-server/raildashboard/
@@ -430,7 +430,7 @@ After=network.target postgresql.service
 Type=simple
 User=raildashboard
 WorkingDirectory=/opt/raildashboard/apps/backend
-EnvironmentFile=/opt/raildashboard/.env.prod
+EnvironmentFile=/opt/raildashboard/.env
 ExecStart=/opt/raildashboard/apps/backend/.venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000 --workers 2
 Restart=on-failure
 

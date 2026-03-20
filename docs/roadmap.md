@@ -62,7 +62,7 @@ Currently credentials are held in memory only (no `localStorage`), which means u
 
 #### .env changes
 
-Add to `.env.example` and `.env.prod.example`:
+Add to `.env.example` and `.env.example`:
 ```
 SESSION_SECRET_KEY=<random 32-byte hex string>
 ```
@@ -93,7 +93,7 @@ The backend infrastructure is fully implemented (GraphHopper HTTP client, `Route
 - `docker/graphhopper/config.yml` — GraphHopper config with `rail_default` profile
 - `docker-compose.yml` (prod) — `graphhopper` service added; starts automatically with the stack
 - `docker-compose.dev.yml` — `graphhopper` service added behind `--profile routing` (opt-in)
-- `.env.prod.example` — `ROUTING_BASE_URL=http://graphhopper:8989` (was broken `localhost`)
+- `.env.example` — `ROUTING_BASE_URL=http://graphhopper:8989` (was broken `localhost`)
 - `.env.example` — added note about dev compose profile command
 - `docs/production_setup.md` — GraphHopper setup section (PBF placement, first start, cache invalidation)
 - **Prerequisite (human task):** place OSM PBF at `data/graphhopper/map.osm.pbf` before first start
@@ -297,7 +297,7 @@ Neue Titel in künftigen PDFs werden automatisch per `get_or_create` registriert
 - [x] **Import-Anleitung** (`/admin/haushalt-import/guide`): Schritt-für-Schritt-Dokumentation für Endnutzer; verlinkt von Import- und Review-Seite.
 
 ### Infrastruktur
-- [x] **Docker Compose GitHub Build**: `docker-compose.yml` baut alle Services direkt aus dem GitHub-Repository am angegebenen Release-Tag (`APP_VERSION`). Server benötigt nur `docker-compose.yml` + `.env.prod` — kein Source-Upload nötig. Update = `APP_VERSION` in `.env.prod` ändern + `make docker-prod-build`.
+- [x] **Docker Compose GitHub Build**: `docker-compose.yml` baut alle Services direkt aus dem GitHub-Repository am angegebenen Release-Tag (`APP_VERSION`). Server benötigt nur `docker-compose.yml` + `.env` — kein Source-Upload nötig. Update = `APP_VERSION` in `.env` ändern + `make docker-prod-build`.
 - [x] Docker: Dev (nur DB + Redis), Prod (DB + Backend + Frontend/nginx + Worker); Entrypoint-Skript mit Alembic-Migration, Makefile-Targets
 - [x] Celery Task Queue mit Redis-Broker; Task-Status-Endpoint `GET /api/v1/tasks/{task_id}`
 - [x] Backup & Restore: `scripts/backup_db.sh`, `scripts/restore_db.sh`, Makefile-Targets; Doku in `docs/production_setup.md`

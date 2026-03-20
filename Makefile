@@ -60,10 +60,10 @@ help:
 	@echo "    migrate-create     Create a new Alembic revision"
 	@echo "                       Usage: make migrate-create MSG='your message'"
 	@echo "    backup-db          Create a pg_dump of the configured database"
-	@echo "                       Optional: DB_URL=postgresql://... or ENV_FILE=.env.prod"
+	@echo "                       Optional: DB_URL=postgresql://... or ENV_FILE=.env"
 	@echo "    restore-db         Restore a dump into the configured database"
 	@echo "                       Usage: make restore-db BACKUP=backups/file.dump"
-	@echo "                       Optional: DB_URL=postgresql://... or ENV_FILE=.env.prod"
+	@echo "                       Optional: DB_URL=postgresql://... or ENV_FILE=.env"
 	@echo "    list-backups       List all local dump files with size and date"
 	@echo ""
 	@echo "  User management"
@@ -85,7 +85,7 @@ help:
 	@echo "    celery-worker      Start Celery worker (requires Redis running)"
 	@echo ""
 	@echo "  Docker – production (full stack)"
-	@echo "    docker-prod-build  Build all Docker images (requires .env.prod)"
+	@echo "    docker-prod-build  Build all Docker images (requires .env)"
 	@echo "    docker-prod-up     Start the production stack in the background"
 	@echo "    docker-prod-down   Stop the production stack"
 	@echo "    docker-migrate     Run Alembic migrations inside the backend container"
@@ -174,13 +174,13 @@ migrate-create:
 # ---------------------------------------------------------------------------
 
 # Create a pg_dump of the configured database.
-# Optional overrides: DB_URL="postgresql://..." or ENV_FILE=.env.prod
+# Optional overrides: DB_URL="postgresql://..." or ENV_FILE=.env
 backup-db:
 	@DB_URL="$(DB_URL)" ENV_FILE="$(ENV_FILE)" bash scripts/backup_db.sh
 
 # Restore a dump into the configured database.
 # Usage: make restore-db BACKUP=backups/raildashboard_20260101_020000.dump
-# Optional overrides: DB_URL="postgresql://..." or ENV_FILE=.env.prod
+# Optional overrides: DB_URL="postgresql://..." or ENV_FILE=.env
 restore-db:
 	@if [ -z "$(BACKUP)" ]; then \
 	    echo "Usage: make restore-db BACKUP=backups/<dateiname>.dump"; exit 1; \
@@ -258,13 +258,13 @@ docker-dev-down:
 # ---------------------------------------------------------------------------
 
 docker-prod-build:
-	docker compose --env-file .env.prod build
+	docker compose --env-file .env build
 
 docker-prod-up:
-	docker compose --env-file .env.prod up -d
+	docker compose --env-file .env up -d
 
 docker-prod-down:
-	docker compose --env-file .env.prod down
+	docker compose --env-file .env down
 
 # Run Alembic migrations inside the running backend container.
 docker-migrate:
@@ -279,7 +279,7 @@ docker-create-user:
 
 # Tail Celery worker logs in the prod stack.
 docker-worker-logs:
-	docker compose --env-file .env.prod logs -f worker
+	docker compose --env-file .env logs -f worker
 
 # Create a pg_dump via docker exec on the db container.
 # The dump is written to the local backups/ directory.

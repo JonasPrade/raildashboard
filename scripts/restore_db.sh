@@ -4,12 +4,12 @@
 # Verwendung:
 #   ./scripts/restore_db.sh backups/raildashboard_20260101_020000.dump
 #   DB_URL="postgresql://..." ./scripts/restore_db.sh backups/file.dump
-#   ENV_FILE=.env.prod ./scripts/restore_db.sh backups/file.dump
+#   ENV_FILE=.env ./scripts/restore_db.sh backups/file.dump
 #
 # Via Makefile:
 #   make restore-db BACKUP=backups/raildashboard_20260101_020000.dump
 #   make restore-db BACKUP=backups/file.dump DB_URL="postgresql://..."
-#   make restore-db BACKUP=backups/file.dump ENV_FILE=.env.prod
+#   make restore-db BACKUP=backups/file.dump ENV_FILE=.env
 
 set -euo pipefail
 

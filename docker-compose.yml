@@ -1,19 +1,19 @@
 # docker-compose.yml – Production stack
 #
 # Usage:
-#   APP_VERSION=v1.2.0 docker compose --env-file .env.prod up --build -d
-#   (or set APP_VERSION in .env.prod)
+#   docker compose up --build -d
+#
+# Docker Compose automatically reads .env from the working directory.
+# All variable substitution (APP_VERSION, DB_USER, …) and container env vars
+# come from that single file — no --env-file flag required.
 #
 # All services are built directly from the GitHub repository at the given release
 # tag — no local source checkout required on the server. Docker clones the repo
 # at build time using the GitHub URL context.
 #
-# All services run inside Docker. The frontend nginx container is the only
-# one that exposes a port to the host (80). It proxies /api/ to the backend.
-#
 # Prerequisites:
-#   - Copy .env.prod.example to .env.prod and fill in the values.
-#   - Set APP_VERSION in .env.prod to the desired release tag (e.g. v1.2.0).
+#   - Copy .env.prod.example to .env and fill in the values.
+#   - Set APP_VERSION in .env to the desired release tag (e.g. v1.2.0).
 #   - Run the initial data migration (see docs/production_setup.md → Docker Deployment).
 
 services:
@@ -45,7 +45,7 @@ services:
     build:
       context: "https://github.com/JonasPrade/raildashboard.git#${APP_VERSION}:apps/backend"
     restart: unless-stopped
-    env_file: .env.prod
+    env_file: .env
     environment:
       # Assembled from DB_USER / DB_PASSWORD so the password only needs to be set once.
       DATABASE_URL: "postgresql+psycopg2://${DB_USER}:${DB_PASSWORD}@db:5432/raildashboard"
@@ -62,7 +62,7 @@ services:
       context: "https://github.com/JonasPrade/raildashboard.git#${APP_VERSION}:apps/backend"
     command: celery -A dashboard_backend.celery_app worker --loglevel=info
     restart: unless-stopped
-    env_file: .env.prod
+    env_file: .env
     environment:
       DATABASE_URL: "postgresql+psycopg2://${DB_USER}:${DB_PASSWORD}@db:5432/raildashboard"
     depends_on:

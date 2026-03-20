@@ -11,7 +11,7 @@ OSM_FILE=/data/map.osm.pbf
 if [ ! -f "$OSM_FILE" ]; then
   if [ -z "${GH_OSM_URL:-}" ]; then
     echo "ERROR: /data/map.osm.pbf not found and GH_OSM_URL is not set." >&2
-    echo "Set GH_OSM_URL in .env.prod to an OSM PBF URL." >&2
+    echo "Set GH_OSM_URL in .env to an OSM PBF URL." >&2
     echo "Example: https://download.geofabrik.de/europe/germany-latest.osm.pbf" >&2
     exit 1
   fi

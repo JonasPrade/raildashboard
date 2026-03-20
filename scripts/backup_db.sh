@@ -4,12 +4,12 @@
 # Verwendung:
 #   ./scripts/backup_db.sh                              # DATABASE_URL aus .env
 #   DB_URL="postgresql://..." ./scripts/backup_db.sh   # direkter Override
-#   ENV_FILE=.env.prod ./scripts/backup_db.sh          # alternative .env-Datei
+#   ENV_FILE=.env ./scripts/backup_db.sh          # alternative .env-Datei
 #
 # Via Makefile:
 #   make backup-db
 #   make backup-db DB_URL="postgresql://..."
-#   make backup-db ENV_FILE=.env.prod
+#   make backup-db ENV_FILE=.env
 
 set -euo pipefail
 
