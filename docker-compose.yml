@@ -73,28 +73,8 @@ services:
     networks:
       - raildashboard-net
 
-  graphhopper:
-    build:
-      context: "https://github.com/JonasPrade/raildashboard.git#${APP_VERSION}:docker/graphhopper"
-    restart: unless-stopped
-    environment:
-      # URL to an OSM PBF extract. Downloaded automatically on first start if the
-      # graph cache volume is empty. Example: https://download.geofabrik.de/europe/germany-latest.osm.pbf
-      GH_OSM_URL: ${GH_OSM_URL:-}
-    volumes:
-      # Named volume: OSM PBF + built graph cache persist across restarts.
-      # No local data/ directory needed on the server.
-      - ghdata:/data
-    ports:
-      - "8989:8989"
-    networks:
-      - raildashboard-net
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8989/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 300s   # graph build can take several minutes on first run
+  # graphhopper: disabled — not yet required by any service.
+  # Re-enable and configure GH_OSM_URL in .env when routing is needed.
 
   frontend:
     build:
@@ -113,7 +93,6 @@ services:
 
 volumes:
   pgdata:
-  ghdata:
 
 networks:
   raildashboard-net:
