@@ -1,10 +1,15 @@
-FROM graphhopper/graphhopper:9.1
+FROM eclipse-temurin:17-jre-alpine
 
-# Bake in the routing config so no bind mount is needed on the server.
+ARG GH_VERSION=9.1
+
+RUN apk add --no-cache wget \
+ && wget -q -O /graphhopper.jar \
+      "https://github.com/graphhopper/graphhopper/releases/download/${GH_VERSION}/graphhopper-web-${GH_VERSION}.jar" \
+ && mkdir -p /graphhopper
+
 COPY config.yml /graphhopper/config.yml
-
-# Entrypoint downloads the OSM PBF from GH_OSM_URL on first start if not cached.
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
+EXPOSE 8989
 ENTRYPOINT ["/docker-entrypoint.sh"]

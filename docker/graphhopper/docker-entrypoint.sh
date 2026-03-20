@@ -21,10 +21,4 @@ if [ ! -f "$OSM_FILE" ]; then
   echo "Download complete."
 fi
 
-GH_JAR=$(find /graphhopper -name "graphhopper-web-*.jar" | head -1)
-if [ -z "$GH_JAR" ]; then
-  echo "ERROR: GraphHopper jar not found in /graphhopper" >&2
-  exit 1
-fi
-
-exec java ${JAVA_OPTS:-} -jar "$GH_JAR" server /graphhopper/config.yml
+exec java ${JAVA_OPTS:-} -jar /graphhopper.jar server /graphhopper/config.yml
