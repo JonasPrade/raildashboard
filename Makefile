@@ -213,6 +213,11 @@ change-password:
 	@if [ -z "$(USERNAME)" ]; then echo "Usage: make change-password USERNAME=<name>"; exit 1; fi
 	cd $(BACKEND_DIR) && PYTHONPATH=. .venv/bin/python scripts/change_password.py --username $(USERNAME)
 
+# Usage: make delete-user USERNAME=admin
+delete-user:
+	@if [ -z "$(USERNAME)" ]; then echo "Usage: make delete-user USERNAME=<name>"; exit 1; fi
+	cd $(BACKEND_DIR) && PYTHONPATH=. .venv/bin/python scripts/delete_user.py --username $(USERNAME)
+
 # ---------------------------------------------------------------------------
 # Code generation
 # ---------------------------------------------------------------------------
@@ -276,6 +281,11 @@ docker-create-user:
 	@if [ -z "$(USERNAME)" ]; then echo "Usage: make docker-create-user USERNAME=<name> ROLE=<viewer|editor|admin>"; exit 1; fi
 	@if [ -z "$(ROLE)" ]; then echo "Usage: make docker-create-user USERNAME=<name> ROLE=<viewer|editor|admin>"; exit 1; fi
 	docker compose exec backend python scripts/create_initial_user.py --username $(USERNAME) --role $(ROLE)
+
+# Usage: make docker-delete-user USERNAME=admin
+docker-delete-user:
+	@if [ -z "$(USERNAME)" ]; then echo "Usage: make docker-delete-user USERNAME=<name>"; exit 1; fi
+	docker compose exec backend python scripts/delete_user.py --username $(USERNAME)
 
 # Tail Celery worker logs in the prod stack.
 docker-worker-logs:
