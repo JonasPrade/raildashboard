@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 # transfer_db.sh — Transfer the database between local dev and production.
 #
+# Uses plain SQL dumps (pg_dump -Fp) so there are no pg_dump/pg_restore version
+# mismatches between local Postgres and the production Docker container.
+#
 # Usage:
 #   ./scripts/transfer_db.sh dev-to-prod   # push local dev DB → production
 #   ./scripts/transfer_db.sh prod-to-dev   # pull production DB → local dev
 #
 # Prerequisites:
-#   - pg_dump / pg_restore available locally
+#   - pg_dump / psql available locally
 #   - SSH alias "contabo" configured in ~/.ssh/config
 #   - Production stack running on the server (db container must be healthy)
 #   - .env readable locally (for local DATABASE_URL)
@@ -37,12 +40,8 @@ read_local_db_url() {
     echo "$url" | sed -E 's|^postgresql\+[a-z0-9]+://|postgresql://|'
 }
 
-read_prod_credentials() {
-    DB_USER=$(ssh "$SSH_HOST" "grep -E '^DB_USER=' $REMOTE_DIR/.env | head -1 | cut -d'=' -f2- | tr -d '\"'")
-    DB_PASS=$(ssh "$SSH_HOST" "grep -E '^DB_PASSWORD=' $REMOTE_DIR/.env | head -1 | cut -d'=' -f2- | tr -d '\"'")
-    if [ -z "$DB_USER" ] || [ -z "$DB_PASS" ]; then
-        echo "ERROR: Could not read DB_USER / DB_PASSWORD from server's .env" >&2; exit 1
-    fi
+read_prod_db_user() {
+    ssh "$SSH_HOST" "grep -E '^DB_USER=' $REMOTE_DIR/.env | head -1 | cut -d'=' -f2- | tr -d '\"'"'"
 }
 
 confirm() {
@@ -65,9 +64,12 @@ if [ "$DIRECTION" = "dev-to-prod" ]; then
     echo "→ Source (local):  $MASKED"
     echo "→ Target (server): raildashboard @ $SSH_HOST"
 
-    DUMP_FILE="$BACKUP_DIR/dev_to_prod_${TIMESTAMP}.dump"
-    echo "→ Dumping local DB..."
-    pg_dump -Fc "$LOCAL_URL" > "$DUMP_FILE"
+    # Plain SQL dump — version-agnostic, works across PG major versions.
+    # --clean --if-exists adds DROP statements so restore is idempotent.
+    DUMP_FILE="$BACKUP_DIR/dev_to_prod_${TIMESTAMP}.sql"
+    echo "→ Dumping local DB (plain SQL)..."
+    pg_dump --format=plain --clean --if-exists --no-owner --no-privileges \
+        "$LOCAL_URL" > "$DUMP_FILE"
     echo "→ Dump: $(basename "$DUMP_FILE") ($(du -sh "$DUMP_FILE" | cut -f1))"
 
     echo "→ Uploading to server..."
@@ -75,16 +77,13 @@ if [ "$DIRECTION" = "dev-to-prod" ]; then
     scp "$DUMP_FILE" "$SSH_HOST:$REMOTE_DIR/backups/"
     REMOTE_DUMP="$REMOTE_DIR/backups/$(basename "$DUMP_FILE")"
 
-    read_prod_credentials
+    DB_USER="$(read_prod_db_user)"
     confirm "This will OVERWRITE all data in the PRODUCTION database."
 
     echo "→ Restoring into production DB container..."
+    # docker compose exec uses the container's local socket → no password needed.
     ssh "$SSH_HOST" "cd $REMOTE_DIR && \
-        docker compose exec -T db bash -c \
-        'PGPASSWORD=$DB_PASS pg_restore \
-            -U $DB_USER -d raildashboard \
-            --clean --if-exists --no-owner --no-privileges' \
-        < $REMOTE_DUMP"
+        docker compose exec -T db psql -U $DB_USER raildashboard < $REMOTE_DUMP"
 
     echo "→ Done. Production DB updated from local dev."
     echo "→ Dump kept at: $REMOTE_DUMP"
@@ -100,28 +99,23 @@ if [ "$DIRECTION" = "prod-to-dev" ]; then
     echo "→ Source (server): raildashboard @ $SSH_HOST"
     echo "→ Target (local):  $MASKED"
 
-    read_prod_credentials
+    DB_USER="$(read_prod_db_user)"
 
-    REMOTE_DUMP="$REMOTE_DIR/backups/prod_to_dev_${TIMESTAMP}.dump"
-    echo "→ Dumping production DB..."
+    DUMP_FILE="$BACKUP_DIR/prod_to_dev_${TIMESTAMP}.sql"
+    echo "→ Dumping production DB (plain SQL)..."
+    # Stream dump directly from container to local file via SSH pipe.
     ssh "$SSH_HOST" "cd $REMOTE_DIR && \
-        docker compose exec -T db bash -c \
-        'PGPASSWORD=$DB_PASS pg_dump -Fc -U $DB_USER raildashboard' \
-        > $REMOTE_DUMP"
-
-    DUMP_FILE="$BACKUP_DIR/prod_to_dev_${TIMESTAMP}.dump"
-    echo "→ Downloading dump..."
-    scp "$SSH_HOST:$REMOTE_DUMP" "$DUMP_FILE"
+        docker compose exec -T db pg_dump \
+            --format=plain --clean --if-exists --no-owner --no-privileges \
+            -U $DB_USER raildashboard" > "$DUMP_FILE"
     echo "→ Dump: $(basename "$DUMP_FILE") ($(du -sh "$DUMP_FILE" | cut -f1))"
 
     confirm "This will OVERWRITE all data in your LOCAL dev database."
 
     echo "→ Restoring into local DB..."
-    pg_restore --no-owner --no-privileges --clean --if-exists -d "$LOCAL_URL" "$DUMP_FILE" || {
-        STATUS=$?
-        [ "$STATUS" -gt 1 ] && { echo "→ Restore failed (exit $STATUS)." >&2; exit "$STATUS"; }
-        echo "→ Restore completed with non-fatal warnings."
-    }
+    # Extract password from local DATABASE_URL for PGPASSWORD.
+    PG_PASS=$(echo "$LOCAL_URL" | sed -E 's|.*://[^:]+:([^@]+)@.*|\1|')
+    PGPASSWORD="$PG_PASS" psql "$LOCAL_URL" < "$DUMP_FILE"
 
     echo "→ Done. Local dev DB updated from production."
     echo "→ Dump kept at: $DUMP_FILE"
