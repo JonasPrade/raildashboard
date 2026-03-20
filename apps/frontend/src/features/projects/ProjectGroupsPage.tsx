@@ -191,59 +191,63 @@ export default function ProjectGroupsPage() {
 export function ProjectCard({ project }: { project: Project }) {
     const lengthValue = typeof project.length === "number" ? `${project.length.toLocaleString("de-DE")}` : null;
     const hasProjectId = typeof project.id === "number" && Number.isFinite(project.id);
-    const cardProps = hasProjectId
-        ? ({
-              component: Link,
-              to: `/projects/${project.id}`,
-              style: { textDecoration: "none" },
-          } as const)
-        : ({} as const);
 
-    return (
-        <Card withBorder shadow="xs" radius="md" padding="lg" {...cardProps}>
-            <Stack gap="sm">
-                <Stack gap={4}>
-                    <Title order={4}>{project.name}</Title>
-                    {project.project_number && (
-                        <Text size="sm" c="dimmed">
-                            Projektnummer: {project.project_number}
-                        </Text>
-                    )}
-                </Stack>
-
-                {project.description ? (
-                    <Text size="sm" c="dimmed" lineClamp={3}>
-                        {project.description}
-                    </Text>
-                ) : (
-                    <Text size="sm" c="dimmed" style={{ fontStyle: "italic" }}>
-                        Keine Projektbeschreibung vorhanden.
+    const cardContent = (
+        <Stack gap="sm">
+            <Stack gap={4}>
+                <Title order={4}>{project.name}</Title>
+                {project.project_number && (
+                    <Text size="sm" c="dimmed">
+                        Projektnummer: {project.project_number}
                     </Text>
                 )}
-
-                <Group gap="xs">
-                    {lengthValue && (
-                        <Badge variant="light" color="blue">
-                            Länge: {lengthValue} km
-                        </Badge>
-                    )}
-                    {project.elektrification && (
-                        <Badge variant="light" color="green">
-                            Elektrifizierung
-                        </Badge>
-                    )}
-                    {project.second_track && (
-                        <Badge variant="light" color="teal">
-                            Zweigleisiger Ausbau
-                        </Badge>
-                    )}
-                    {project.new_station && (
-                        <Badge variant="light" color="violet">
-                            Neuer Bahnhof
-                        </Badge>
-                    )}
-                </Group>
             </Stack>
+
+            {project.description ? (
+                <Text size="sm" c="dimmed" lineClamp={3}>
+                    {project.description}
+                </Text>
+            ) : (
+                <Text size="sm" c="dimmed" style={{ fontStyle: "italic" }}>
+                    Keine Projektbeschreibung vorhanden.
+                </Text>
+            )}
+
+            <Group gap="xs">
+                {lengthValue && (
+                    <Badge variant="light" color="blue">
+                        Länge: {lengthValue} km
+                    </Badge>
+                )}
+                {project.elektrification && (
+                    <Badge variant="light" color="green">
+                        Elektrifizierung
+                    </Badge>
+                )}
+                {project.second_track && (
+                    <Badge variant="light" color="teal">
+                        Zweigleisiger Ausbau
+                    </Badge>
+                )}
+                {project.new_station && (
+                    <Badge variant="light" color="violet">
+                        Neuer Bahnhof
+                    </Badge>
+                )}
+            </Group>
+        </Stack>
+    );
+
+    if (hasProjectId) {
+        return (
+            <Card component={Link} to={`/projects/${project.id}`} style={{ textDecoration: "none" }} withBorder shadow="xs" radius="md" padding="lg">
+                {cardContent}
+            </Card>
+        );
+    }
+    return (
+        <Card withBorder shadow="xs" radius="md" padding="lg">
+            {cardContent}
         </Card>
     );
 }

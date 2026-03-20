@@ -265,7 +265,7 @@ export default function MapView({ projects, lineWidth = 4, pointSize = 5, height
 
         // Single map-level mousemove: checks both project layers for smooth
         // transitions between lines and points of the same project.
-        const handleMouseMove = (event: maplibregl.MapMouseEvent & maplibregl.EventData) => {
+        const handleMouseMove = (event: maplibregl.MapMouseEvent) => {
             const features = mapInstance.queryRenderedFeatures(event.point, {
                 layers: ["project-routes-line", "project-points-circle"],
             });
@@ -345,7 +345,7 @@ export default function MapView({ projects, lineWidth = 4, pointSize = 5, height
         if (!clickable) return undefined;
 
         const handleProjectClick = (
-            event: maplibregl.MapMouseEvent & maplibregl.EventData,
+            event: maplibregl.MapLayerMouseEvent,
         ) => {
             const feature = event.features?.[0];
             if (!feature || !isRecord(feature.properties)) return;
@@ -362,7 +362,7 @@ export default function MapView({ projects, lineWidth = 4, pointSize = 5, height
             setSelectedProject({ project, x: event.point.x, y: event.point.y });
         };
 
-        const handleMapClick = (event: maplibregl.MapMouseEvent & maplibregl.EventData) => {
+        const handleMapClick = (event: maplibregl.MapMouseEvent) => {
             const features = mapInstance.queryRenderedFeatures(event.point, {
                 layers: ["project-routes-line", "project-points-circle"],
             });
@@ -389,8 +389,10 @@ export default function MapView({ projects, lineWidth = 4, pointSize = 5, height
         if (!mapInstance) return;
         const lineSource = mapInstance.getSource("project-routes") as maplibregl.GeoJSONSource | undefined;
         const pointSource = mapInstance.getSource("project-points") as maplibregl.GeoJSONSource | undefined;
-        if (lineSource) lineSource.setData(lineFeatureCollection);
-        if (pointSource) pointSource.setData(pointFeatureCollection);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (lineSource) lineSource.setData(lineFeatureCollection as any);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (pointSource) pointSource.setData(pointFeatureCollection as any);
     }, [lineFeatureCollection, pointFeatureCollection, isMapReady]);
 
     // Update line-width expression when the slider changes
