@@ -1,39 +1,32 @@
-# GraphHopper configuration for the Schienendashboard routing microservice.
+# GraphHopper 9.x configuration for the Schienendashboard routing microservice.
 #
-# The service exposes a "rail_default" profile used by the backend's RoutingClient.
+# This file is baked into the Docker image at build time (COPY in Dockerfile).
+# It does not need to exist on the server — Docker fetches it from GitHub.
 #
-# Prerequisites (one-time setup):
-#   1. Download a suitable OSM PBF extract and place it at data/graphhopper/map.osm.pbf
-#      (relative to the repo root).  A Germany-wide extract works; a smaller regional
-#      extract is faster to build.  Source: https://download.geofabrik.de/
-#   2. Start the service — GraphHopper will build the graph on first launch (~5–30 min
-#      depending on file size) and cache it in data/graphhopper/graph-cache/.
-#   3. Subsequent restarts reuse the cache and start in seconds.
-#
-# The file is mounted read-only into the container; the graph cache directory
-# (data/graphhopper/graph-cache/) is a separate writable volume mount.
+# Migration note: GraphHopper 9.x removed the `vehicle` property from profiles.
+# The encoder is now declared via graph.flag_encoders at the top level.
 
 graphhopper:
   datareader.file: /data/map.osm.pbf
 
-  # ---- Profiles ---------------------------------------------------------------
-  # "rail_default" is the profile name the backend sends as the `profile` parameter.
-  # It uses GraphHopper's built-in "rail" flag encoder which follows railway=* edges.
+  # ---- Encoder -----------------------------------------------------------------
+  # Declare the rail encoder at the top level (replaces per-profile `vehicle` from 8.x).
+  graph.flag_encoders: rail
+
+  # ---- Profiles ----------------------------------------------------------------
   profiles:
     - name: rail_default
-      vehicle: rail
       weighting: fastest
       turn_costs: false
 
-  # Contraction Hierarchies speed up queries significantly.  Disable if graph build
-  # time is unacceptable (e.g. full Europe PBF); enable for regional extracts.
+  # Contraction Hierarchies speed up queries significantly.
   profiles_ch:
     - profile: rail_default
 
-  # ---- Storage ----------------------------------------------------------------
+  # ---- Storage -----------------------------------------------------------------
   graph.location: /data/graph-cache
 
-  # ---- Server -----------------------------------------------------------------
+  # ---- Server ------------------------------------------------------------------
   server:
     application_connectors:
       - type: http
