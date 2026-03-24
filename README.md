@@ -68,6 +68,7 @@ All runtime configuration is managed through a single `.env` file in the reposit
 | Variable | Used by | Description |
 |---|---|---|
 | `DATABASE_URL` | Backend | PostgreSQL connection string (PostGIS required) |
+| `SESSION_SECRET_KEY` | Backend | Required. HMAC signing key for session cookies. Generate: `python -c "import secrets; print(secrets.token_hex(32))"` |
 | `RINF_API_URL` | Backend | ERA RINF API base URL |
 | `RINF_USERNAME` | Backend | ERA RINF username |
 | `RINF_PASSWORD` | Backend | ERA RINF password |

@@ -47,6 +47,7 @@ Application settings are read via Pydantic Settings from a `.env` file in the **
 | Variable        | Description                                                      |
 |-----------------|------------------------------------------------------------------|
 | `DATABASE_URL`  | PostgreSQL connection string pointing to the PostGIS database    |
+| `SESSION_SECRET_KEY` | Required. HMAC signing key for httpOnly session cookies. Generate: `python -c "import secrets; print(secrets.token_hex(32))"` |
 | `RINF_API_URL`  | Optional: Base URL of the ERA RINF API                           |
 | `RINF_USERNAME` | Optional: Username for ERA RINF                                  |
 | `RINF_PASSWORD` | Optional: Password for ERA RINF                                  |
@@ -83,6 +84,18 @@ The backend ships with a multi-stage `Dockerfile` (`apps/backend/Dockerfile`):
 On container start, `docker-entrypoint.sh` waits for the database to be ready, runs `alembic upgrade head`, then launches uvicorn. All environment variables are passed via `docker-compose.yml` / `.env.prod` — no `.env` file is baked into the image.
 
 Use `make docker-prod-up` / `make docker-prod-down` from the repository root to manage the production stack. See [`docs/production_setup.md`](../../docs/production_setup.md) for the full deployment guide.
+
+## Authentication API
+
+Session-based login using a signed `httpOnly` cookie (no credentials stored on the client).
+
+| Endpoint | Auth required | Description |
+|---|---|---|
+| `POST /api/v1/auth/session` | No | Validate `{ username, password }`, set signed `session` cookie (7-day expiry) |
+| `DELETE /api/v1/auth/session` | Session cookie | Clear the session cookie (logout) |
+| `GET /api/v1/users/me` | Session cookie or Basic Auth | Return the current user; used for session restore on page load |
+
+The cookie is `httpOnly` (JS-inaccessible), `SameSite=Strict` (CSRF-safe), and `Secure` when `ENVIRONMENT=production`. Token signing uses HMAC-SHA256 with `SESSION_SECRET_KEY`. Implementation lives in `core/security.py` (`create_session_token`, `verify_session_token`, `require_session`, `require_auth`) and `api/v1/endpoints/auth.py`.
 
 ## Celery Worker
 
