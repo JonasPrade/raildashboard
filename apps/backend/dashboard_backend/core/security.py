@@ -22,7 +22,6 @@ from dashboard_backend.schemas.users import UserRole
 PasswordHasher = Callable[[str], str]
 
 
-_security = HTTPBasic()
 _ITERATIONS = 390_000
 
 
@@ -67,10 +66,22 @@ def require_roles(*roles: UserRole):
     allowed_roles: set[str] | None = {role.value for role in roles} if roles else None
 
     def dependency(
-        credentials: HTTPBasicCredentials = Depends(_security),
+        session: Optional[str] = Cookie(default=None, alias=_SESSION_COOKIE),
+        credentials: Optional[HTTPBasicCredentials] = Depends(_optional_security),
         db: Session = Depends(get_db),
     ):
-        user = _authenticate(credentials, db)
+        user = None
+        if session:
+            user_id = verify_session_token(session)
+            if user_id is not None:
+                user = users_crud.get_user_by_id(db, user_id)
+        if user is None and credentials:
+            user = _authenticate(credentials, db)
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not authenticated",
+            )
         if allowed_roles is not None and user.role not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -168,7 +179,6 @@ def require_auth():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
-            headers={"WWW-Authenticate": "Basic"},
         )
 
     return dependency

@@ -19,6 +19,9 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 
 ## Short-Term Features
 
+Bug:
+- [ ] Switch Map <-> List overlaps with header menu
+
 - [x] make the "Schienenprojekte-Dashboard" clickable -> return to Start Page
 
 This tasks must be done by human:
