@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from dashboard_backend.core.security import hash_password, require_roles
+from dashboard_backend.core.security import hash_password, require_auth, require_roles
 from dashboard_backend.crud import users as users_crud
 from dashboard_backend.database import get_db
 from dashboard_backend.models.users import User
@@ -16,7 +16,7 @@ router = AuthRouter()
 
 @router.get("/me", response_model=UserRead)
 def get_current_user_info(
-    current_user: User = Depends(require_roles()),
+    current_user: User = Depends(require_auth()),
 ):
     return current_user
 

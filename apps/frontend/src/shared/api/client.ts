@@ -1,5 +1,3 @@
-import { getCredentials } from "../../lib/auth";
-
 type PathParams = Record<string, string | number | undefined>;
 
 export const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
@@ -31,12 +29,11 @@ function resolvePath(path: string, pathParams?: PathParams) {
 export async function api<T>(path: string, init: ApiRequestInit = {}): Promise<T> {
     const { params, headers, ...requestInit } = init;
     const resolvedPath = resolvePath(path, params?.path);
-    const authCreds = getCredentials();
     const response = await fetch(`${API_BASE}${resolvedPath}`, {
         ...requestInit,
+        credentials: "include",
         headers: {
             Accept: "application/json",
-            ...(authCreds ? { Authorization: `Basic ${authCreds}` } : {}),
             ...(headers ?? {}),
         },
     });

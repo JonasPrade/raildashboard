@@ -48,9 +48,15 @@ The map view expects a raster tile URL provided via `REACT_APP_TILE_LAYER_URL`. 
 | `@mantine/charts` + `recharts` | Chart components (`DonutChart`, `LineChart`) used for FinVe budget visualisation. **Important:** `@mantine/charts/styles.css` must be imported in `main.tsx` — without it, `DonutChart` collapses to zero height and is invisible (its dimensions are set entirely via CSS classes, unlike `LineChart` which uses an explicit `h` prop). |
 | `@tanstack/react-query` | Server-state management; all API calls go through `shared/api/queries.ts` |
 | `react-router-dom` | Client-side routing |
-| `axios` | HTTP client (configured in `shared/api/client.gen.ts`) |
+| `axios` | HTTP client (configured in `shared/api/client.gen.ts`) — note: manual API calls use the custom `fetch`-based wrapper in `shared/api/client.ts` |
 
 ## Notable features and components
+
+### Authentication (`lib/auth.ts` + `shared/api/client.ts`)
+
+Login issues a `POST /api/v1/auth/session` request with `{ username, password }`. On success the backend sets a signed `httpOnly` session cookie — JavaScript never has access to the token. All subsequent `fetch` calls in `shared/api/client.ts` include `credentials: "include"` so the browser attaches the cookie automatically.
+
+On app mount, `AuthProvider` calls `GET /api/v1/users/me` to restore the session from the cookie transparently — no credentials need to be stored in memory or `localStorage`. Logout calls `DELETE /api/v1/auth/session`, which clears the cookie server-side.
 
 ### FinVe overview page (`features/finves/FinveOverviewPage.tsx`)
 

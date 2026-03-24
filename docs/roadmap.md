@@ -7,6 +7,13 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 
 ## Short-Term Features
 
+Bug:
+- [ ] Switch Map <-> List overlaps with header menu
+
+- [x] make the "Schienenprojekte-Dashboard" clickable -> return to Start Page
+
+This tasks must be done by human:
+- [x] Import of the Haushalt Berichte 2020 - 2025
 
 ### Security Problems
 
@@ -77,12 +84,12 @@ Document in `docs/environment.md`.
 
 #### Implementation order
 
-1. [ ] `config.py` — add `session_secret_key`
-2. [ ] `core/security.py` — add `create_session_token`, `verify_session_token`, `require_session`
-3. [ ] `api/v1/endpoints/auth.py` — `POST` + `DELETE /api/v1/auth/session`
-4. [ ] Register router + update `GET /users/me` to accept session auth
-5. [ ] Run `make gen-api`
-6. [ ] `auth.ts` + `client.ts` — swap credential header for cookie flow
+1. [x] `config.py` — add `session_secret_key`
+2. [x] `core/security.py` — add `create_session_token`, `verify_session_token`, `require_session`
+3. [x] `api/v1/endpoints/auth.py` — `POST` + `DELETE /api/v1/auth/session`
+4. [x] Register router + update `GET /users/me` to accept session auth
+5. [x] Run `make gen-api`
+6. [x] `auth.ts` + `client.ts` — swap credential header for cookie flow
 
 
 ### Routenvorschlag per GrassHopper *(Backend + Frontend)*
