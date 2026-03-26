@@ -16,11 +16,11 @@ const FinveOverviewPage = lazy(() => import("./features/finves/FinveOverviewPage
 
 function Layout() {
     return (
-        <AppShell header={{ height: 60 }} padding="md" style={{ minHeight: "100vh" }}>
+        <AppShell header={{ height: 60 }} padding="md">
             <AppShell.Header>
                 <Header />
             </AppShell.Header>
-            <AppShell.Main style={{ position: "relative", minHeight: "calc(100vh - 60px)" }}>
+            <AppShell.Main>
                 <Outlet />
             </AppShell.Main>
         </AppShell>

@@ -1,11 +1,11 @@
+import React from "react";
 import { Burger, Button, Drawer, Group, Stack, Text, Title } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { NavLink } from "react-router-dom";
-import type { CSSProperties } from "react";
 import { useAuth } from "../lib/auth";
 import { LoginModal } from "../features/auth/LoginModal";
 
-const baseStyle: CSSProperties = {
+const baseStyle: React.CSSProperties = {
     textDecoration: "none",
     color: "inherit",
     padding: "6px 12px",
@@ -13,17 +13,12 @@ const baseStyle: CSSProperties = {
     fontWeight: 500,
 };
 
-const disabledStyle: CSSProperties = {
-    ...baseStyle,
-    color: "rgba(0, 0, 0, 0.3)",
-    cursor: "not-allowed",
-};
 
 export function Header() {
     const { user, logout } = useAuth();
     const [loginOpened, { open: openLogin, close: closeLogin }] = useDisclosure(false);
     const [drawerOpened, { open: openDrawer, close: closeDrawer }] = useDisclosure(false);
-    const isMobile = useMediaQuery("(max-width: 80em)");
+    const isMobile = useMediaQuery("(max-width: 100em)");
 
     const navLinks = (
         <>
@@ -48,10 +43,7 @@ export function Header() {
             >
                 Haushalt
             </NavLink>
-            <span style={disabledStyle} title="Noch nicht verfügbar">
-                Beschleunigungskommission Schiene - todo
-            </span>
-            {(user?.role === "editor" || user?.role === "admin") && (
+{(user?.role === "editor" || user?.role === "admin") && (
                 <NavLink
                     to="/admin/haushalt-import"
                     style={({ isActive }) => ({

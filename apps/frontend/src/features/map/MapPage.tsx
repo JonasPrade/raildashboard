@@ -7,7 +7,9 @@ import {
     Card,
     Container,
     Group,
+    List,
     Loader,
+    Popover,
     SegmentedControl,
     Select,
     SimpleGrid,
@@ -18,7 +20,7 @@ import {
     Title,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconSearch, IconX } from "@tabler/icons-react";
+import { IconHelp, IconSearch, IconX } from "@tabler/icons-react";
 import { useSearchParams } from "react-router-dom";
 
 import GroupFilterDrawer, { type ProjectGroupOption } from "../projects/GroupFilterDrawer";
@@ -168,7 +170,7 @@ export default function MapPage() {
     };
 
     const viewToggle = (
-        <Group justify="center" pb="sm">
+        <Group justify="center" pb="sm" gap="xs">
             <SegmentedControl
                 value={view}
                 onChange={handleViewChange}
@@ -179,6 +181,35 @@ export default function MapPage() {
                     { value: "list", label: "Liste" },
                 ]}
             />
+            <Popover width={300} position="bottom" withArrow shadow="md">
+                <Popover.Target>
+                    <ActionIcon variant="subtle" color="gray" size="md" aria-label="Hilfe zur Suche und Filterung">
+                        <IconHelp size={18} />
+                    </ActionIcon>
+                </Popover.Target>
+                <Popover.Dropdown>
+                    <Stack gap="xs">
+                        <Text size="sm" fw={600}>So findest du Projekte</Text>
+                        <List size="sm" spacing={6}>
+                            <List.Item>
+                                <Text size="sm" span fw={500}>Suche</Text>
+                                <Text size="sm"> — Tippe einen Namen oder eine Nummer ein. Die Karte bzw. Liste aktualisiert sich sofort.</Text>
+                            </List.Item>
+                            <List.Item>
+                                <Text size="sm" span fw={500}>Projektgruppen</Text>
+                                <Text size="sm"> — Klicke auf „Projektgruppen", um nach Themengruppen zu filtern. Auf der Karte kannst du mehrere Gruppen gleichzeitig auswählen.</Text>
+                            </List.Item>
+                            <List.Item>
+                                <Text size="sm" span fw={500}>Nur Hauptprojekte</Text>
+                                <Text size="sm"> — Aktiviere diesen Schalter, um Teilprojekte auszublenden.</Text>
+                            </List.Item>
+                            <List.Item>
+                                <Text size="sm" c="dimmed">Tipp: Die aktuelle Ansicht lässt sich als Link teilen – einfach die URL kopieren.</Text>
+                            </List.Item>
+                        </List>
+                    </Stack>
+                </Popover.Dropdown>
+            </Popover>
         </Group>
     );
 
@@ -361,10 +392,31 @@ export default function MapPage() {
     // --- Map view (default) ---
     return (
         <>
-            <Container size="xl" style={{ position: "relative" }}>
+            <Container size="xl">
                 {viewToggle}
                 <Box style={{ position: "relative" }}>
                     <MapView projects={filteredMapProjects} lineWidth={lineWidth} pointSize={pointSize} />
+                    {isLoading && groups.length === 0 && (
+                        <Box
+                            style={{
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                width: "100%",
+                                height: "100%",
+                                background: "rgba(255,255,255,0.7)",
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: 12,
+                                zIndex: 4,
+                            }}
+                        >
+                            <Loader size="lg" />
+                            <Text size="sm" c="dimmed">Projektgruppen werden geladen…</Text>
+                        </Box>
+                    )}
                     {localSearch.trim() && filteredMapProjects.length === 0 && (
                         <Box
                             style={{
