@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -68,3 +68,4 @@ class ProjectUpdate(BaseModel):
     tilting: Optional[bool] = None
 
     geojson_representation: Optional[str] = None
+    project_group_ids: Optional[List[int]] = None

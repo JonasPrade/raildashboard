@@ -98,6 +98,14 @@ Available on both the map and list view at `/`. A search `TextInput` (with magni
 - **URL persistence:** The term is stored in `?search=<term>` (debounced, 200 ms, `replace: true`) so it survives map ↔ list tab switches and browser back/forward navigation.
 - **Dependency added:** `@tabler/icons-react` for the search and close icons.
 
+### Project edit form (`features/projects/ProjectEdit.tsx`)
+
+Slide-over drawer for editors/admins to update all project fields including group membership. The form is opened from `ProjectDetail` and submits a `PATCH /api/v1/projects/{id}` request via the `createUpdatePayload()` helper in `ProjectDetail.tsx`.
+
+- `ProjectGroupRef` (id, name, short_name, color) is now included in `ProjectSchema`, so the current group membership is available from the project object
+- **Group membership field:** `MultiSelect` populated from `useProjectGroups()`, seeded from `project.project_groups`, sent as `project_group_ids: number[]` in the PATCH body
+- `hasChanges` comparison handles the `project_group_ids` array with element-wise comparison (plain `!==` would always be `true` for arrays)
+
 ### Admin: Project group map settings (`features/admin/ProjectGroupsAdminPage.tsx`)
 
 Available at `/admin/project-groups` (admin only, linked from the admin board in `/admin/users`). Lets admins configure map display behaviour per group:

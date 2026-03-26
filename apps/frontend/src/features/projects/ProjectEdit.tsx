@@ -1,20 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import {
     Alert,
+    Box,
     Button,
     Divider,
     Drawer,
     Group,
+    MultiSelect,
     NumberInput,
     ScrollArea,
     Stack,
     Switch,
-    Text,
     Textarea,
     TextInput,
 } from "@mantine/core";
 
 import type { Project } from "../../shared/api/queries";
+import { useProjectGroups } from "../../shared/api/queries";
 
 export type ProjectEditFormValues = {
     // Text fields
@@ -79,6 +81,8 @@ export type ProjectEditFormValues = {
     sgv740m: boolean;
     sanierung: boolean;
     closure: boolean;
+    // Projektgruppen
+    project_group_ids: number[];
 };
 
 type ProjectEditProps = {
@@ -150,6 +154,7 @@ function createInitialValues(project: Project): ProjectEditFormValues {
         sgv740m: b(project.sgv740m),
         sanierung: b(project.sanierung),
         closure: b(project.closure),
+        project_group_ids: (project.project_groups ?? []).map((g) => g.id),
     };
 }
 
@@ -185,13 +190,24 @@ export function ProjectEdit({
     errorMessage,
 }: ProjectEditProps) {
     const [values, setValues] = useState<ProjectEditFormValues>(() => createInitialValues(project));
+    const { data: allGroups = [] } = useProjectGroups();
+
+    const initialValues = useMemo(() => createInitialValues(project), [project]);
+    const groupOptions = useMemo(
+        () => allGroups.map((g) => ({ value: String(g.id), label: g.name })),
+        [allGroups],
+    );
 
     const hasChanges = useMemo(() => {
-        const initial = createInitialValues(project);
-        return (Object.keys(initial) as Array<keyof ProjectEditFormValues>).some(
-            (key) => values[key] !== initial[key],
-        );
-    }, [project, values]);
+        return (Object.keys(initialValues) as Array<keyof ProjectEditFormValues>).some((key) => {
+            if (key === "project_group_ids") {
+                const aSet = new Set(values.project_group_ids);
+                const bSet = new Set(initialValues.project_group_ids);
+                return aSet.size !== bSet.size || [...aSet].some((id) => !bSet.has(id));
+            }
+            return values[key] !== initialValues[key];
+        });
+    }, [initialValues, values]);
 
     useEffect(() => {
         if (opened) {
@@ -207,8 +223,9 @@ export function ProjectEdit({
             overlayProps={{ opacity: 0.4, blur: 4 }}
             position="right"
             size="xl"
-            scrollAreaComponent={ScrollArea.Autosize}
+            styles={{ body: { display: "flex", flexDirection: "column", height: "100%", padding: 0 } }}
         >
+            <ScrollArea style={{ flex: 1 }} p="md">
             <Stack gap="md">
                 {/* Stammdaten */}
                 <Divider label="Stammdaten" labelPosition="left" />
@@ -267,6 +284,23 @@ export function ProjectEdit({
                         const value = event.currentTarget.value;
                         setValues((prev) => ({ ...prev, justification: value || null }));
                     }}
+                />
+
+                <MultiSelect
+                    label="Projektgruppen"
+                    placeholder="Gruppen auswählen…"
+                    data={groupOptions}
+                    value={values.project_group_ids.map(String)}
+                    onChange={(selected) =>
+                        setValues((prev) => ({
+                            ...prev,
+                            project_group_ids: selected
+                                .map((s) => parseInt(s, 10))
+                                .filter((n) => !isNaN(n)),
+                        }))
+                    }
+                    searchable
+                    clearable
                 />
 
                 {/* Verkehrsarten */}
@@ -403,12 +437,15 @@ export function ProjectEdit({
                     <SwitchField label="Stilllegung" fieldKey="closure" values={values} setValues={setValues} />
                 </Stack>
 
+            </Stack>
+            </ScrollArea>
+
+            <Box p="md" style={{ borderTop: "1px solid var(--mantine-color-default-border)" }}>
                 {errorMessage && (
-                    <Alert color="red" variant="light" title="Speichern fehlgeschlagen">
+                    <Alert color="red" variant="light" title="Speichern fehlgeschlagen" mb="sm">
                         {errorMessage}
                     </Alert>
                 )}
-
                 <Group justify="flex-end">
                     <Button variant="default" onClick={onClose} disabled={isSubmitting}>
                         Abbrechen
@@ -421,10 +458,7 @@ export function ProjectEdit({
                         Speichern
                     </Button>
                 </Group>
-
-                {/* Spacer so last items aren't hidden behind sticky footer */}
-                <Text size="xs" c="transparent">.</Text>
-            </Stack>
+            </Box>
         </Drawer>
     );
 }

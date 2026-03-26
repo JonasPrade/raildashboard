@@ -63,6 +63,7 @@ export type ProjectUpdatePayload = {
     sgv740m?: boolean;
     sanierung?: boolean;
     closure?: boolean;
+    project_group_ids?: number[];
 };
 
 // ---------------------------------------------------------------------------

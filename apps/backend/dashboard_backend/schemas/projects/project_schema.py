@@ -72,6 +72,15 @@ class ProjectRefSchema(BaseModel):
     name: str
 
 
+class ProjectGroupRef(BaseModel):
+    id: int
+    name: str
+    short_name: str
+    color: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class FinveListItemSchema(BaseModel):
     id: int
     name: Optional[str] = None
@@ -150,6 +159,7 @@ class ProjectSchema(BaseModel):
 
     geojson_representation: Optional[str] = None
     centroid: Optional[Any]  = None # Für Geo-Daten, ggf. anpassen
+    project_groups: list[ProjectGroupRef] = []
 
     model_config = ConfigDict(from_attributes=True)
 

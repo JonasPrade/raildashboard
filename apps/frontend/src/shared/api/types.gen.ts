@@ -683,7 +683,10 @@ export interface components {
         };
         /** Body_start_parse_api_v1_import_haushalt_parse_post */
         Body_start_parse_api_v1_import_haushalt_parse_post: {
-            /** Pdf */
+            /**
+             * Pdf
+             * Format: binary
+             */
             pdf: string;
             /** Year */
             year: number;
@@ -1339,6 +1342,17 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /** ProjectGroupRef */
+        ProjectGroupRef: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Short Name */
+            short_name: string;
+            /** Color */
+            color: string;
+        };
         /** ProjectGroupSchema */
         ProjectGroupSchema: {
             /** Id */
@@ -1653,6 +1667,11 @@ export interface components {
             geojson_representation?: string | null;
             /** Centroid */
             centroid?: unknown | null;
+            /**
+             * Project Groups
+             * @default []
+             */
+            project_groups: components["schemas"]["ProjectGroupRef"][];
         };
         /** ProjectTextCreate */
         ProjectTextCreate: {
@@ -1829,6 +1848,8 @@ export interface components {
             tilting?: boolean | null;
             /** Geojson Representation */
             geojson_representation?: string | null;
+            /** Project Group Ids */
+            project_group_ids?: number[] | null;
         };
         /**
          * ProposedBudget
@@ -2259,7 +2280,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -2345,7 +2368,9 @@ export interface operations {
             path: {
                 project_id: number;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -2442,7 +2467,9 @@ export interface operations {
             path: {
                 project_id: number;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -2473,7 +2500,9 @@ export interface operations {
             path: {
                 project_id: number;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -2559,7 +2588,9 @@ export interface operations {
             path: {
                 group_id: number;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -2623,7 +2654,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -2636,6 +2669,15 @@ export interface operations {
                     "application/json": components["schemas"]["UserRead"][];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     create_user_api_v1_users__post: {
@@ -2643,7 +2685,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -2678,7 +2722,9 @@ export interface operations {
             path: {
                 user_id: number;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -2707,7 +2753,9 @@ export interface operations {
             path: {
                 user_id: number;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -2742,7 +2790,9 @@ export interface operations {
             path: {
                 user_id: number;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -2773,7 +2823,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -2842,7 +2894,9 @@ export interface operations {
             path: {
                 project_id: string;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -2878,7 +2932,9 @@ export interface operations {
                 project_id: string;
                 route_id: string;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -2962,7 +3018,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -3028,7 +3086,9 @@ export interface operations {
             path: {
                 project_id: number;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -3063,7 +3123,9 @@ export interface operations {
             path: {
                 project_id: number;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -3094,7 +3156,9 @@ export interface operations {
             path: {
                 text_id: number;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -3123,7 +3187,9 @@ export interface operations {
             path: {
                 text_id: number;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -3158,7 +3224,9 @@ export interface operations {
             path: {
                 task_id: string;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -3187,7 +3255,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -3220,7 +3290,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -3253,7 +3325,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -3266,6 +3340,15 @@ export interface operations {
                     "application/json": components["schemas"]["ParseResultPublicSchema"][];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     get_parse_run_result_api_v1_import_haushalt_parse_result__parse_result_id__get: {
@@ -3275,7 +3358,9 @@ export interface operations {
             path: {
                 parse_result_id: number;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -3306,7 +3391,9 @@ export interface operations {
             path: {
                 parse_result_id: number;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -3333,7 +3420,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -3368,7 +3457,9 @@ export interface operations {
             };
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -3399,7 +3490,9 @@ export interface operations {
             path: {
                 row_id: number;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -3472,7 +3565,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody: {
             content: {

@@ -208,6 +208,17 @@ Two partial unique indexes enforce uniqueness separately for permanent and year-
 | `budget_change_log` / `budget_change_log_entry` | Budget change history |
 | `unmatched_budget_row` | Unresolved PDF rows |
 
+### Project group membership
+
+`ProjectSchema` now includes a `project_groups` list of lightweight refs (`ProjectGroupRef`: id, name, short_name, color). Editors and admins can update a project's group membership via the standard PATCH endpoint:
+
+```
+PATCH /api/v1/projects/{project_id}
+Body: { "project_group_ids": [1, 3] }
+```
+
+When `project_group_ids` is present in the payload, `update_project()` (CRUD layer) replaces the many-to-many `project_to_project_group` rows atomically. Omitting the field leaves existing group assignments unchanged. Requires `editor` or `admin` role.
+
 ### BVWP assessment data
 
 ```

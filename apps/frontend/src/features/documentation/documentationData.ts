@@ -49,6 +49,18 @@ export const featureHighlights: FeatureHighlight[] = [
         ]
     },
     {
+        title: "Projekteigenschaften bearbeiten",
+        description:
+            "Editors und Admins können alle Felder eines Projekts über die Seitenleiste 'Projekt bearbeiten' ändern. " +
+            "Dazu gehört jetzt auch die Zuordnung zu Projektgruppen.",
+        details: [
+            "MultiSelect-Feld mit allen verfügbaren Projektgruppen (gefüllt via useProjectGroups())",
+            "Aktuelle Gruppen-Zuordnung wird als Initialwert aus project.project_groups geladen",
+            "Änderungen werden als project_group_ids-Array per PATCH /api/v1/projects/{id} gespeichert",
+            "Nur für editor/admin sichtbar"
+        ]
+    },
+    {
         title: "Change tracking & version history",
         description:
             "Every field edit on a project is recorded in the `change_log` / `change_log_entry` tables." +

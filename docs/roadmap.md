@@ -6,6 +6,8 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 
 ## Mid-Term Features
 
+- Möglichkeit bei Texten/Kommentaren auch PDF/Dokumente anzuhängen
+
 ### Routenvorschlag per GrassHopper *(Backend + Frontend)*
 
 The backend infrastructure is fully implemented (GraphHopper HTTP client, `RouteService`, endpoints `POST /routes/calculate`, `POST /projects/{id}/routes`, `PUT /projects/{id}/routes/{route_id}`, `GET /projects/{id}/routes`, ORM model `routes`, CRUD, caching, tests). What is missing is the frontend workflow and one small backend addition.
@@ -133,6 +135,8 @@ Priorität:
 - [x] Dev Redis password-protected
 
 ### UI / UX
+- [x] **Edit ProjectGroup membership in ProjectEdit form** — `ProjectGroupRef` added to `ProjectSchema`; `project_group_ids` in `ProjectUpdate`; CRUD replaces many-to-many association; `MultiSelect` in `ProjectEdit.tsx` populated via `useProjectGroups()`
+- [x] **Sticky Save/Cancel footer in ProjectEdit drawer** — buttons moved out of the scroll area into a fixed footer (`Box` with top border); drawer body uses flex-column layout so footer is always visible
 - [x] **BVWP-Bewertung in Projektdetail** — `GET /api/v1/projects/{id}/bvwp` endpoint; `BvwpProjectDataSchema` (Pydantic) + `get_bvwp_data` CRUD; `BvwpDataSection.tsx` in `ProjectDetail` with 11 tab groups; NKV shown as badge
 - [x] Project search on map and list view — client-side substring filter; `?search=` URL param with 200 ms debounce
 - [x] Admin-configurable ProjectGroup visibility and default selection; group filter drawer redesigned

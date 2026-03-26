@@ -1,6 +1,7 @@
 # dashboard_backend/crud/projects.py
 from sqlalchemy.orm import Session
 from dashboard_backend.models.projects import Project
+from dashboard_backend.models.projects.project_group import ProjectGroup
 
 def get_projects(db: Session):
     """Gibt alle Projekte zurück."""
@@ -22,6 +23,13 @@ def update_project(db: Session, project_id: int, update_data: dict):
     project = get_project_by_id(db, project_id)
     if not project:
         return None
+
+    # Handle many-to-many group assignment separately
+    update_data = dict(update_data)
+    group_ids = update_data.pop("project_group_ids", None)
+    if group_ids is not None:
+        project.project_groups = db.query(ProjectGroup).filter(ProjectGroup.id.in_(group_ids)).all()
+
     for key, value in update_data.items():
         setattr(project, key, value)
     db.commit()

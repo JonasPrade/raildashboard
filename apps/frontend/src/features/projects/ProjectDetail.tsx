@@ -164,6 +164,7 @@ function createUpdatePayload(values: ProjectEditFormValues): ProjectUpdatePayloa
         sgv740m: values.sgv740m,
         sanierung: values.sanierung,
         closure: values.closure,
+        project_group_ids: values.project_group_ids,
     };
 }
 

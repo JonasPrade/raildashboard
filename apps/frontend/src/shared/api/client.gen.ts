@@ -1,11 +1,8 @@
 import { makeApi, Zodios, type ZodiosOptions } from "@zodios/core";
 import { z } from "zod";
 
-const RouteRequest = z
-  .object({ start_op: z.string(), end_op: z.string() })
-  .passthrough();
-const RouteResponse = z
-  .object({ sectionofline_ids: z.array(z.number().int()) })
+const SessionCredentials = z
+  .object({ username: z.string(), password: z.string() })
   .passthrough();
 const ValidationError = z
   .object({
@@ -19,6 +16,20 @@ const ValidationError = z
 const HTTPValidationError = z
   .object({ detail: z.array(ValidationError) })
   .partial()
+  .passthrough();
+const RouteRequest = z
+  .object({ start_op: z.string(), end_op: z.string() })
+  .passthrough();
+const RouteResponse = z
+  .object({ sectionofline_ids: z.array(z.number().int()) })
+  .passthrough();
+const ProjectGroupRef = z
+  .object({
+    id: z.number().int(),
+    name: z.string(),
+    short_name: z.string(),
+    color: z.string(),
+  })
   .passthrough();
 const ProjectSchema = z
   .object({
@@ -121,6 +132,7 @@ const ProjectSchema = z
     tilting: z.union([z.boolean(), z.null()]).optional().default(false),
     geojson_representation: z.union([z.string(), z.null()]).optional(),
     centroid: z.union([z.unknown(), z.null()]).optional(),
+    project_groups: z.array(ProjectGroupRef).optional().default([]),
   })
   .passthrough();
 const ProjectUpdate = z
@@ -181,6 +193,7 @@ const ProjectUpdate = z
     simultaneous_train_entries: z.union([z.boolean(), z.null()]),
     tilting: z.union([z.boolean(), z.null()]),
     geojson_representation: z.union([z.string(), z.null()]),
+    project_group_ids: z.union([z.array(z.number().int()), z.null()]),
   })
   .partial()
   .passthrough();
@@ -917,7 +930,7 @@ const HaushaltsConfirmRequest = z
   .object({
     parse_result_id: z.number().int(),
     rows: z.array(HaushaltsConfirmRowInput).optional().default([]),
-    unmatched_action: z.string().optional().default("save"),
+    unmatched_action: z.enum(["save", "discard"]).optional().default("save"),
   })
   .passthrough();
 const HaushaltsConfirmResponse = z
@@ -976,10 +989,12 @@ const AppSettingsUpdate = z
   .passthrough();
 
 export const schemas = {
-  RouteRequest,
-  RouteResponse,
+  SessionCredentials,
   ValidationError,
   HTTPValidationError,
+  RouteRequest,
+  RouteResponse,
+  ProjectGroupRef,
   ProjectSchema,
   ProjectUpdate,
   BvwpProjectDataSchema,
@@ -1029,6 +1044,43 @@ export const schemas = {
 };
 
 const endpoints = makeApi([
+  {
+    method: "post",
+    path: "/api/v1/auth/session",
+    alias: "create_session_api_v1_auth_session_post",
+    description: `Validate credentials and issue an httpOnly session cookie.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: SessionCredentials,
+      },
+    ],
+    response: z.void(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "delete",
+    path: "/api/v1/auth/session",
+    alias: "delete_session_api_v1_auth_session_delete",
+    description: `Clear the session cookie (logout).`,
+    requestFormat: "json",
+    response: z.void(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
   {
     method: "get",
     path: "/api/v1/finves/",
@@ -1092,6 +1144,13 @@ Returns the Celery task_id for polling via GET /api/v1/tasks/{task_id}.`,
     description: `Return metadata for all past parse runs, newest first.`,
     requestFormat: "json",
     response: z.array(ParseResultPublicSchema),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
   },
   {
     method: "get",
@@ -1794,6 +1853,13 @@ and then call the confirm endpoint to persist it.`,
     alias: "list_users_api_v1_users__get",
     requestFormat: "json",
     response: z.array(UserRead),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
   },
   {
     method: "post",
@@ -1897,6 +1963,13 @@ and then call the confirm endpoint to persist it.`,
     alias: "get_current_user_info_api_v1_users_me_get",
     requestFormat: "json",
     response: UserRead,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
   },
 ]);
 
