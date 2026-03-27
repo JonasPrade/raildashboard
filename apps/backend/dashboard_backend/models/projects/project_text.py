@@ -16,6 +16,7 @@ class ProjectText(Base):
     updated_at = Column(Integer, nullable=False, default=0)
 
     text_type = relationship("ProjectTextType", backref="project_texts")
+    attachments = relationship("TextAttachment", back_populates="text", cascade="all, delete-orphan")
     # projects = relationship("ProjectTextType", backref="texts", lazy=True)
 
     def __repr__(self):

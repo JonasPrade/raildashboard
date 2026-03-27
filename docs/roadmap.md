@@ -6,7 +6,124 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 
 ## Mid-Term Features
 
-- Möglichkeit bei Texten/Kommentaren auch PDF/Dokumente anzuhängen
+
+### Dokumente verknüpfen mit Projekttext *(Backend + Frontend)*
+
+Editors can link richly-described **Document** records to individual `ProjectText` entries.
+Unlike `TextAttachment` (inline 1:1 file dump), a `Document` is a reusable entity with metadata
+(title, description, date, source, visibility) that can be linked to multiple texts and projects.
+
+The `document` and `document_to_project` tables already exist in the DB. Missing is:
+- `document_to_text` association
+- Full CRUD API for documents
+- Frontend management UI
+
+#### Step 1 — DB: `document_to_text` association + migration *(Backend)*
+New association table `document_to_text` (many-to-many `Document` ↔ `ProjectText`):
+- `document_id` (FK → `document.id`, ondelete=CASCADE, PK)
+- `text_id` (FK → `project_text.id`, ondelete=CASCADE, PK)
+- `UniqueConstraint('document_id', 'text_id', name='uq_document_to_text')`
+
+Also extend the `Document` model (`models/projects/document.py`):
+- Add `texts` relationship: `relationship("ProjectText", secondary="document_to_text", back_populates="documents")`
+- Add `uploaded_by_user_id` (FK → `users`, ondelete=SET NULL, nullable) — tracks who created the document
+- Add `created_at` (DateTime, default=utcnow)
+- Make `file_path` nullable (documents may reference an external URL; field comment says "ggf. als URL oder lokaler Pfad")
+
+Add to `ProjectText` model:
+- `documents = relationship("Document", secondary="document_to_text", back_populates="texts")`
+
+Alembic migration: `<date>001_add_document_to_text.py`
+- `op.create_table("document_to_text", ...)` with both FKs and UniqueConstraint
+- `op.alter_column("document", "file_path", nullable=True)` — make nullable
+
+#### Step 2 — Pydantic schemas *(Backend)*
+New schemas in `schemas/projects/document_schema.py`:
+- `DocumentSchema`: `id, title, description, file_path, date, source, is_public, created_at, uploaded_by_user_id`
+- `DocumentCreate`: `title` (required), `description?, date?, source?, is_public=True, file_path?` (URL; omit when uploading a file)
+- `DocumentUpdate`: all fields optional (PATCH semantics)
+
+Update `ProjectTextSchema` to include `documents: list[DocumentSchema] = []`.
+Update `get_texts_for_project` CRUD to `selectinload(ProjectText.documents)` alongside the existing `selectinload(ProjectText.attachments)`.
+
+#### Step 3 — CRUD *(Backend)*
+New file `crud/projects/documents.py`:
+- `create_document(db, data, user_id, stored_filename?, file_size?)` → Document
+- `get_document(db, id)` → Document | None
+- `list_documents(db)` → list[Document] — for the document picker
+- `update_document(db, id, update_data)` → Document | None
+- `delete_document(db, id)` → bool — also returns stored_filename so the endpoint can delete the file
+- `link_document_to_text(db, document_id, text_id)` — inserts into `document_to_text`; no-op if already linked
+- `unlink_document_from_text(db, document_id, text_id)` — deletes row
+- `get_documents_for_text(db, text_id)` → list[Document]
+
+#### Step 4 — File storage for documents *(Backend)*
+Extend `utils/file_storage.py` (or add a small wrapper) to support a `documents/` subdirectory under `UPLOAD_DIR`:
+- Same path-traversal guard and python-magic MIME check as for TextAttachments
+- Sub-path: `{UPLOAD_DIR}/documents/{document_id}/{uuid}{ext}`
+
+#### Step 5 — API endpoints *(Backend)*
+New file `api/v1/endpoints/documents.py`, registered in `api/v1/api.py`:
+
+| Method | Route | Auth | Notes |
+|--------|-------|------|-------|
+| GET | `/documents` | public | List all documents (for picker); filter `?is_public=true` for unauthenticated |
+| POST | `/documents` | editor+ | Create document; accepts either JSON body (`DocumentCreate` + optional `file: UploadFile`) or JSON-only if `file_path` URL is provided |
+| GET | `/documents/{id}` | public* | Get single document |
+| PATCH | `/documents/{id}` | editor+ | Update metadata fields |
+| DELETE | `/documents/{id}` | editor+ | Delete document + file from disk; fails if linked to any text or project (or cascade — decide at implementation time) |
+| GET | `/documents/{id}/download` | public* | Stream file; same security headers as TextAttachment download (Content-Disposition: attachment, RFC 5987, nosniff) |
+| POST | `/projects/texts/{text_id}/documents/{document_id}` | editor+ | Link existing document to text |
+| DELETE | `/projects/texts/{text_id}/documents/{document_id}` | editor+ | Unlink document from text |
+
+*public only if `document.is_public = true`; require viewer+ auth for non-public documents.
+
+**[Security]** same constraints as TextAttachment: MIME via `python-magic`, path traversal guard, `Content-Disposition: attachment`, RFC 5987 filename, `X-Content-Type-Options: nosniff`, write DB row first then file.
+Run `make gen-api` after adding the router.
+
+#### Step 6 — Frontend queries *(Frontend)*
+Add to `queries.ts`:
+```ts
+export type Document = {
+    id: number; title: string; description: string | null;
+    file_path: string | null; date: string | null; source: string | null;
+    is_public: boolean; created_at: string; uploaded_by_user_id: number | null;
+};
+// useDocuments() — GET /documents
+// useCreateDocument() — POST /documents (FormData with optional file)
+// useUpdateDocument() — PATCH /documents/{id}
+// useDeleteDocument() — DELETE /documents/{id}
+// useLinkDocumentToText(textId, projectId) — POST link
+// useUnlinkDocumentFromText(textId, projectId) — DELETE unlink
+```
+Update `ProjectText` type: add `documents: Document[]`.
+
+#### Step 7 — Frontend UI *(Frontend)*
+Changes in `features/projects/ProjectTextsSection.tsx`:
+
+**`DocumentList` sub-component** (below `AttachmentList` in `TextCard`):
+- Renders each linked document as a row: title + optional date + optional source badge + `is_public` indicator
+- If `file_path` starts with `http`: shows external link icon → opens in new tab
+- If `file_path` is a stored file: shows download icon → `/documents/{id}/download`
+- Unlink button (editor/admin only) with `openConfirmModal` guard; calls `useUnlinkDocumentFromText`
+
+**`DocumentPickerModal` component** (new file `features/projects/DocumentPickerModal.tsx`):
+- Searchable list of all documents (from `useDocuments()`)
+- Each row: title, date, source badge
+- Click → calls `useLinkDocumentToText`; closes on success
+- Footer: "Neues Dokument erstellen" button → opens `DocumentFormModal`
+
+**`DocumentFormModal` component** (new file `features/projects/DocumentFormModal.tsx`):
+- Fields: Titel (required), Beschreibung, Datum, Quelle, Sichtbarkeit (`is_public` toggle)
+- Attachment: either file upload (re-uses file input pattern from `AttachmentUploadArea`) OR URL input — toggled by a radio/segment
+- On submit: calls `useCreateDocument`; if `linkAfterCreate=true` also calls `useLinkDocumentToText`
+
+Add "Dokument verknüpfen" button (editor/admin only) to `TextCard` → opens `DocumentPickerModal`.
+
+#### Step 8 — Documentation
+- Update `docs/architecture.md` / `docs/models.md` with `DocumentToText` association
+- Update `DocumentationPage.tsx` to mention document library and text linking
+- Mark this roadmap section done
 
 ### Routenvorschlag per GrassHopper *(Backend + Frontend)*
 
@@ -155,10 +272,11 @@ Priorität:
 - [x] Hilfe-Popover (?) neben Karte/Liste-Toggle — erklärt Suche, Gruppenfilter und „Nur Hauptprojekte"-Schalter
 - [x] Lade-Overlay auf der Karte während Projektgruppen initial geladen werden
 
-### Texte & Kommentare
+### Texte & Dateianhänge
 - [x] Projekttexte anzeigen, erstellen, bearbeiten
 - [x] Sichtbarkeit von Texten: eingeloggt-only oder öffentlich
 - [x] Versionshistorie und Bearbeitungsformular nur für eingeloggte Nutzer sichtbar
+- [x] **Dateianhänge für Projekttexte** — Editors können PDFs, Word, Excel und Bilder (max. 50 MB) an Projekttexte anhängen, direkt beim Erstellen oder nachträglich. `TextAttachment`-Modell + Migration `20260326001`; `utils/file_storage.py` mit Pfad-Traversal-Guard + MIME-Validierung via `python-magic`; API: POST/GET/DELETE/Download; Docker-Volume `uploads`; `UPLOAD_DIR` env var (lokal in `.env` setzen)
 
 ### Change Tracking
 - [x] DB-Modelle `change_log` + `change_log_entry` + Alembic-Migration

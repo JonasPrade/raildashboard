@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from dashboard_backend.models.associations.text_to_project import TextToProject
 from dashboard_backend.models.projects.project_text import ProjectText
@@ -14,6 +14,7 @@ def get_texts_for_project(db: Session, project_id: int) -> list[ProjectText]:
         db.query(ProjectText)
         .join(TextToProject, TextToProject.text_id == ProjectText.id)
         .filter(TextToProject.project_id == project_id)
+        .options(selectinload(ProjectText.attachments))
         .all()
     )
 

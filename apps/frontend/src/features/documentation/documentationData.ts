@@ -61,6 +61,20 @@ export const featureHighlights: FeatureHighlight[] = [
         ]
     },
     {
+        title: "Projekttexte & Dateianhänge",
+        description:
+            "Editors können jedem Projekttext Dateien anhängen (PDF, Word, Excel, JPEG, PNG, max. 50 MB). " +
+            "Anhänge werden in einem persistenten Docker-Volume gespeichert und über einen gesicherten Download-Endpunkt ausgeliefert.",
+        details: [
+            "Datei-Upload per Klick (Mehrfachauswahl möglich) — beim Erstellen eines Texts oder nachträglich in der Textkarte",
+            "Unterstützte Formate: PDF, Word (.doc/.docx), Excel (.xls/.xlsx), JPEG, PNG",
+            "Download-Link pro Anhang; Dateiname, Typ-Icon und Dateigröße werden angezeigt",
+            "Löschen mit Bestätigungsdialog (nur editor/admin)",
+            "Sicherheit: MIME-Typ wird serverseitig via python-magic geprüft (nicht nur HTTP-Header); Content-Disposition: attachment verhindert XSS",
+            "Nur für editor/admin sichtbar im Bearbeitungsmodus"
+        ]
+    },
+    {
         title: "Change tracking & version history",
         description:
             "Every field edit on a project is recorded in the `change_log` / `change_log_entry` tables." +

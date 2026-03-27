@@ -72,6 +72,16 @@ export type ProjectUpdatePayload = {
 
 export type ProjectTextType = { id: number; name: string };
 
+export type TextAttachment = {
+    id: number;
+    text_id: number;
+    filename: string;
+    mime_type: string;
+    file_size: number;
+    uploaded_at: string;
+    uploaded_by_user_id: number | null;
+};
+
 export type ProjectText = {
     id: number;
     header: string;
@@ -82,6 +92,7 @@ export type ProjectText = {
     created_at: number;
     updated_at: number;
     text_type: ProjectTextType;
+    attachments: TextAttachment[];
 };
 
 export type ProjectTextCreate = {
@@ -160,6 +171,37 @@ export function useDeleteProjectText(projectId: number) {
     return useMutation({
         mutationFn: (textId: number) =>
             api<void>(`/api/v1/projects/texts/${textId}`, { method: "DELETE" }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["projectTexts", projectId] });
+        },
+    });
+}
+
+export function useUploadTextAttachment(projectId: number) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ textId, file }: { textId: number; file: File }) => {
+            const formData = new FormData();
+            formData.append("file", file);
+            // No Content-Type header — browser sets multipart/form-data with boundary
+            return api<TextAttachment>(`/api/v1/projects/texts/${textId}/attachments`, {
+                method: "POST",
+                body: formData,
+            });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["projectTexts", projectId] });
+        },
+    });
+}
+
+export function useDeleteTextAttachment(projectId: number) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ textId, attachmentId }: { textId: number; attachmentId: number }) =>
+            api<void>(`/api/v1/projects/texts/${textId}/attachments/${attachmentId}`, {
+                method: "DELETE",
+            }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["projectTexts", projectId] });
         },

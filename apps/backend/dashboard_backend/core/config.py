@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     celery_broker_url: str = "redis://localhost:6379/0"
     celery_result_backend: str = "redis://localhost:6379/0"
     session_secret_key: str  # Required: 32-byte hex string for HMAC-signing session tokens
+    upload_dir: str = "/app/uploads/text-attachments"  # UPLOAD_DIR env var
 
     model_config = SettingsConfigDict(
         env_file=_find_env_file(),

@@ -6,3 +6,4 @@ from .project import Project
 from .project_group import ProjectGroup
 from .project_text import ProjectText
 from .project_text_type import ProjectTextType
+from .text_attachment import TextAttachment

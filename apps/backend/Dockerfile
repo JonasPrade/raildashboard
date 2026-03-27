@@ -12,6 +12,7 @@ WORKDIR /build
 # psycopg2-binary is used here so this is mostly a safety net.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
+        libmagic1 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN python -m venv /venv
@@ -24,6 +25,11 @@ RUN /venv/bin/pip install --upgrade pip && \
 # Stage 2: runtime – lean image that only contains the app and the venv
 # ---------------------------------------------------------------------------
 FROM python:3.12-slim AS runtime
+
+# libmagic1 is required at runtime by python-magic (MIME byte-sniffing for file uploads)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libmagic1 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Non-root user for security
 RUN useradd --create-home --no-log-init appuser

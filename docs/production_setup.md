@@ -189,6 +189,32 @@ make docker-migrate
 make docker-backup-db   # schreibt in backups/raildashboard_<timestamp>.dump
 ```
 
+### Uploads-Volume (Dateianhänge)
+
+Das Docker-Volume `uploads` (gemountet unter `/app/uploads` im Backend-Container) enthält alle Dateianhänge von Projekttexten. Es wird **nicht** durch `make docker-backup-db` gesichert, da dieses nur `pg_dump` ausführt.
+
+**Wichtig:** Wenn die Datenbank ohne das uploads-Volume wiederhergestellt wird, zeigen alle `text_attachment`-Zeilen auf nicht vorhandene Dateien.
+
+Backup des Uploads-Volumes (z. B. als zusätzlicher Schritt im systemd-Timer):
+
+```bash
+docker run --rm \
+  -v raildashboard_uploads:/data:ro \
+  -v $(pwd)/backups:/out \
+  alpine tar czf /out/uploads_$(date +%Y%m%d_%H%M%S).tar.gz -C /data .
+```
+
+Wiederherstellen:
+
+```bash
+docker run --rm \
+  -v raildashboard_uploads:/data \
+  -v $(pwd)/backups:/out \
+  alpine tar xzf /out/uploads_<timestamp>.tar.gz -C /data
+```
+
+Beide Befehle in den systemd-Timer eintragen (nach dem `pg_dump`-Schritt), damit DB und Dateien immer gemeinsam gesichert werden.
+
 ### HTTPS / TLS (empfohlen für Produktion)
 
 Das Docker-Setup hört auf Port 80. Für HTTPS empfiehlt sich ein vorgelagerter Reverse Proxy mit automatischer Zertifikatsverwaltung (z. B. Caddy oder Certbot/nginx):

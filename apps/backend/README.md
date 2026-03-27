@@ -32,6 +32,10 @@ See `docs/architecture.md` (repo root) for architectural background and `docs/ro
 - Python 3.11 (or newer)
 - PostgreSQL with the PostGIS extension
 - `.env` file in the repository root (copy from `.env.example` in repo root)
+- `libmagic` system library — required by `python-magic` for MIME byte-sniffing on file uploads:
+  - **Debian/Ubuntu:** `sudo apt-get install libmagic1`
+  - **macOS:** `brew install libmagic`
+  - **Docker:** installed automatically via the `Dockerfile`
 
 ## Installation
 1. Clone the repository and change into the project directory.

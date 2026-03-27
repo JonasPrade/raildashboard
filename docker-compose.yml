@@ -49,6 +49,9 @@ services:
     environment:
       # Assembled from DB_USER / DB_PASSWORD so the password only needs to be set once.
       DATABASE_URL: "postgresql+psycopg2://${DB_USER}:${DB_PASSWORD}@db:5432/raildashboard"
+      UPLOAD_DIR: /app/uploads/text-attachments
+    volumes:
+      - uploads:/app/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -93,6 +96,7 @@ services:
 
 volumes:
   pgdata:
+  uploads:    # text attachment files — back this up alongside the database!
 
 networks:
   raildashboard-net:

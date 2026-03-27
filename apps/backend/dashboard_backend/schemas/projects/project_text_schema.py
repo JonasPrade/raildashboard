@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
@@ -16,6 +17,18 @@ class ProjectTextTypeCreate(BaseModel):
     name: str
 
 
+class TextAttachmentSchema(BaseModel):
+    id: int
+    text_id: int
+    filename: str
+    mime_type: str
+    file_size: int
+    uploaded_at: datetime
+    uploaded_by_user_id: Optional[int] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ProjectTextSchema(BaseModel):
     id: int
     header: str
@@ -26,6 +39,7 @@ class ProjectTextSchema(BaseModel):
     created_at: int
     updated_at: int
     text_type: ProjectTextTypeSchema
+    attachments: list[TextAttachmentSchema] = []
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
     ActionIcon,
     Alert,
     Anchor,
+    Badge,
     Button,
     Card,
     Group,
@@ -16,19 +17,52 @@ import {
     Title,
     Tooltip,
 } from "@mantine/core";
+import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
 
 import {
     type ProjectText,
     type ProjectTextCreate,
     type ProjectTextUpdate,
+    type TextAttachment,
     useCreateProjectText,
     useCreateTextType,
     useDeleteProjectText,
+    useDeleteTextAttachment,
     useProjectTexts,
     useTextTypes,
     useUpdateProjectText,
+    useUploadTextAttachment,
 } from "../../shared/api/queries";
+import { API_BASE } from "../../shared/api/client";
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function formatBytes(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function fileTypeIcon(mimeType: string): string {
+    if (mimeType === "application/pdf") return "📄";
+    if (mimeType.startsWith("image/")) return "🖼️";
+    if (mimeType.includes("word") || mimeType.includes("msword")) return "📝";
+    if (mimeType.includes("excel") || mimeType.includes("spreadsheet")) return "📊";
+    return "📎";
+}
+
+const ACCEPTED_MIME = [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-excel",
+    "image/jpeg",
+    "image/png",
+].join(",");
+
+const MAX_FILE_BYTES = 50 * 1024 * 1024;
 
 // ── Create text type modal ────────────────────────────────────────────────────
 
@@ -41,10 +75,6 @@ type CreateTextTypeModalProps = {
 function CreateTextTypeModal({ opened, onClose, onCreated }: CreateTextTypeModalProps) {
     const [name, setName] = useState("");
     const createTypeMutation = useCreateTextType();
-
-    useEffect(() => {
-        if (opened) setName("");
-    }, [opened]);
 
     function handleSubmit() {
         const trimmed = name.trim();
@@ -75,10 +105,7 @@ function CreateTextTypeModal({ opened, onClose, onCreated }: CreateTextTypeModal
                     label="Typname"
                     required
                     value={name}
-                    onChange={(event) => {
-                        const value = event.currentTarget.value;
-                        setName(value);
-                    }}
+                    onChange={(event) => setName(event.currentTarget.value)}
                     placeholder="z. B. Pressemitteilung"
                 />
                 <Group justify="flex-end">
@@ -125,24 +152,41 @@ function fromText(t: ProjectText): TextFormValues {
 type TextFormModalProps = {
     opened: boolean;
     onClose: () => void;
-    onSubmit: (values: TextFormValues) => void;
+    onSubmit: (values: TextFormValues, files: File[]) => void;
     isSubmitting: boolean;
     initialValues: TextFormValues;
     title: string;
+    showFileUpload?: boolean;
 };
 
-function TextFormModal({ opened, onClose, onSubmit, isSubmitting, initialValues, title }: TextFormModalProps) {
+function TextFormModal({ opened, onClose, onSubmit, isSubmitting, initialValues, title, showFileUpload }: TextFormModalProps) {
     const [values, setValues] = useState<TextFormValues>(initialValues);
+    const [pendingFiles, setPendingFiles] = useState<File[]>([]);
     const [createTypeOpened, setCreateTypeOpened] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const { data: textTypes } = useTextTypes();
 
     // Reset form whenever the modal opens
     useEffect(() => {
         if (opened) {
             setValues(initialValues);
+            setPendingFiles([]);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [opened]);
+
+    function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+        const selected = Array.from(e.currentTarget.files ?? []);
+        const valid = selected.filter((f) => {
+            if (f.size > MAX_FILE_BYTES) {
+                notifications.show({ color: "red", title: "Datei zu groß", message: `„${f.name}" überschreitet 50 MB.` });
+                return false;
+            }
+            return true;
+        });
+        setPendingFiles((prev) => [...prev, ...valid]);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+    }
 
     const typeOptions = (textTypes ?? []).map((t) => ({
         value: String(t.id),
@@ -164,10 +208,7 @@ function TextFormModal({ opened, onClose, onSubmit, isSubmitting, initialValues,
                         label="Überschrift"
                         required
                         value={values.header}
-                        onChange={(event) => {
-                            const value = event.currentTarget.value;
-                            setValues((prev) => ({ ...prev, header: value }));
-                        }}
+                        onChange={(event) => { const v = event.currentTarget.value; setValues((prev) => ({ ...prev, header: v })); }}
                     />
 
                     <Group gap="xs" align="flex-end">
@@ -197,41 +238,66 @@ function TextFormModal({ opened, onClose, onSubmit, isSubmitting, initialValues,
                         minRows={4}
                         autosize
                         value={values.text}
-                        onChange={(event) => {
-                            const value = event.currentTarget.value;
-                            setValues((prev) => ({ ...prev, text: value }));
-                        }}
+                        onChange={(event) => { const v = event.currentTarget.value; setValues((prev) => ({ ...prev, text: v })); }}
                     />
 
                     <TextInput
                         label="Weblink"
                         placeholder="https://…"
                         value={values.weblink}
-                        onChange={(event) => {
-                            const value = event.currentTarget.value;
-                            setValues((prev) => ({ ...prev, weblink: value }));
-                        }}
+                        onChange={(event) => { const v = event.currentTarget.value; setValues((prev) => ({ ...prev, weblink: v })); }}
                     />
 
                     <TextInput
                         label="Logo-URL"
                         placeholder="https://…"
                         value={values.logo_url}
-                        onChange={(event) => {
-                            const value = event.currentTarget.value;
-                            setValues((prev) => ({ ...prev, logo_url: value }));
-                        }}
+                        onChange={(event) => { const v = event.currentTarget.value; setValues((prev) => ({ ...prev, logo_url: v })); }}
                     />
+
+                    {showFileUpload && (
+                        <Stack gap={4}>
+                            <Text size="sm" fw={500}>Anhänge</Text>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                multiple
+                                accept={ACCEPTED_MIME}
+                                style={{ display: "none" }}
+                                onChange={handleFileSelect}
+                            />
+                            <Button
+                                size="xs"
+                                variant="subtle"
+                                leftSection="📎"
+                                onClick={() => fileInputRef.current?.click()}
+                            >
+                                Dateien auswählen
+                            </Button>
+                            {pendingFiles.map((f) => (
+                                <Group key={f.name} justify="space-between" align="center" wrap="nowrap">
+                                    <Text size="xs" c="dimmed" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                        📎 {f.name} ({formatBytes(f.size)})
+                                    </Text>
+                                    <ActionIcon
+                                        size="xs"
+                                        variant="subtle"
+                                        color="red"
+                                        onClick={() => setPendingFiles((prev) => prev.filter((x) => x.name !== f.name))}
+                                        aria-label={`${f.name} entfernen`}
+                                    >
+                                        ×
+                                    </ActionIcon>
+                                </Group>
+                            ))}
+                        </Stack>
+                    )}
 
                     <Group justify="flex-end">
                         <Button variant="default" onClick={onClose} disabled={isSubmitting}>
                             Abbrechen
                         </Button>
-                        <Button
-                            onClick={() => onSubmit(values)}
-                            loading={isSubmitting}
-                            disabled={!isValid}
-                        >
+                        <Button onClick={() => onSubmit(values, pendingFiles)} loading={isSubmitting} disabled={!isValid}>
                             Speichern
                         </Button>
                     </Group>
@@ -244,6 +310,170 @@ function TextFormModal({ opened, onClose, onSubmit, isSubmitting, initialValues,
                 onCreated={handleTypeCreated}
             />
         </>
+    );
+}
+
+// ── Attachment list ───────────────────────────────────────────────────────────
+
+type AttachmentListProps = {
+    attachments: TextAttachment[];
+    textId: number;
+    projectId: number;
+    canEdit: boolean;
+};
+
+function AttachmentList({ attachments, textId, projectId, canEdit }: AttachmentListProps) {
+    const deleteMutation = useDeleteTextAttachment(projectId);
+
+    if (attachments.length === 0) return null;
+
+    function handleDelete(attachment: TextAttachment) {
+        modals.openConfirmModal({
+            title: "Anhang löschen",
+            children: (
+                <Text size="sm">
+                    Soll „{attachment.filename}" wirklich gelöscht werden?
+                </Text>
+            ),
+            labels: { confirm: "Löschen", cancel: "Abbrechen" },
+            confirmProps: { color: "red" },
+            onConfirm: () => {
+                deleteMutation.mutate(
+                    { textId, attachmentId: attachment.id },
+                    {
+                        onError: () => {
+                            notifications.show({
+                                color: "red",
+                                title: "Löschen fehlgeschlagen",
+                                message: "Der Anhang konnte nicht gelöscht werden.",
+                            });
+                        },
+                    },
+                );
+            },
+        });
+    }
+
+    return (
+        <Stack gap={4}>
+            {attachments.map((a) => (
+                <Group key={a.id} justify="space-between" align="center" wrap="nowrap">
+                    <Group gap="xs" align="center" style={{ minWidth: 0 }}>
+                        <Text size="sm">{fileTypeIcon(a.mime_type)}</Text>
+                        <Anchor
+                            href={`${API_BASE}/api/v1/projects/texts/${textId}/attachments/${a.id}/download`}
+                            size="sm"
+                            style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                        >
+                            {a.filename}
+                        </Anchor>
+                        <Badge size="xs" variant="outline" color="gray">
+                            {formatBytes(a.file_size)}
+                        </Badge>
+                    </Group>
+                    {canEdit && (
+                        <ActionIcon
+                            size="xs"
+                            variant="subtle"
+                            color="red"
+                            loading={deleteMutation.isPending}
+                            onClick={() => handleDelete(a)}
+                            aria-label={`Anhang ${a.filename} löschen`}
+                        >
+                            ×
+                        </ActionIcon>
+                    )}
+                </Group>
+            ))}
+        </Stack>
+    );
+}
+
+// ── Attachment upload area ────────────────────────────────────────────────────
+
+type AttachmentUploadAreaProps = {
+    textId: number;
+    projectId: number;
+};
+
+type UploadState = { filename: string; status: "uploading" | "done" | "error"; error?: string };
+
+function AttachmentUploadArea({ textId, projectId }: AttachmentUploadAreaProps) {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [uploads, setUploads] = useState<UploadState[]>([]);
+    const uploadMutation = useUploadTextAttachment(projectId);
+
+    function handleFiles(files: FileList | null) {
+        if (!files || files.length === 0) return;
+
+        Array.from(files).forEach((file) => {
+            if (file.size > MAX_FILE_BYTES) {
+                notifications.show({
+                    color: "red",
+                    title: "Datei zu groß",
+                    message: `„${file.name}" überschreitet das Limit von 50 MB.`,
+                });
+                return;
+            }
+
+            setUploads((prev) => [...prev, { filename: file.name, status: "uploading" }]);
+
+            uploadMutation.mutate({ textId, file }, {
+                onSuccess: () => {
+                    setUploads((prev) =>
+                        prev.map((u) => (u.filename === file.name ? { ...u, status: "done" } : u)),
+                    );
+                    // Clear done entries after a short delay
+                    setTimeout(() => {
+                        setUploads((prev) => prev.filter((u) => u.filename !== file.name));
+                    }, 2000);
+                },
+                onError: (err) => {
+                    const message =
+                        (err as { details?: { detail?: string } })?.details?.detail ??
+                        "Upload fehlgeschlagen";
+                    setUploads((prev) =>
+                        prev.map((u) =>
+                            u.filename === file.name ? { ...u, status: "error", error: message } : u,
+                        ),
+                    );
+                },
+            });
+        });
+
+        // Reset input so the same file can be selected again
+        if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+
+    return (
+        <Stack gap={4}>
+            <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept={ACCEPTED_MIME}
+                style={{ display: "none" }}
+                onChange={(e) => handleFiles(e.currentTarget.files)}
+            />
+            <Button
+                size="xs"
+                variant="subtle"
+                leftSection="📎"
+                onClick={() => fileInputRef.current?.click()}
+            >
+                Anhang hinzufügen
+            </Button>
+            {uploads.map((u) => (
+                <Group key={u.filename} gap="xs" align="center">
+                    {u.status === "uploading" && <Loader size="xs" />}
+                    {u.status === "done" && <Text size="xs" c="green">✓</Text>}
+                    {u.status === "error" && <Text size="xs" c="red">✗</Text>}
+                    <Text size="xs" c={u.status === "error" ? "red" : "dimmed"}>
+                        {u.filename}{u.status === "error" ? ` — ${u.error}` : ""}
+                    </Text>
+                </Group>
+            ))}
+        </Stack>
     );
 }
 
@@ -260,7 +490,7 @@ function TextCard({ projectText, canEdit, projectId }: TextCardProps) {
     const updateMutation = useUpdateProjectText(projectId);
     const deleteMutation = useDeleteProjectText(projectId);
 
-    function handleEdit(values: TextFormValues) {
+    function handleEdit(values: TextFormValues, _files: File[]) {
         if (!values.type) return;
         const payload: ProjectTextUpdate = {
             header: values.header.trim(),
@@ -348,6 +578,15 @@ function TextCard({ projectText, canEdit, projectId }: TextCardProps) {
                             {projectText.weblink}
                         </Anchor>
                     )}
+                    <AttachmentList
+                        attachments={projectText.attachments}
+                        textId={projectText.id}
+                        projectId={projectId}
+                        canEdit={canEdit}
+                    />
+                    {canEdit && (
+                        <AttachmentUploadArea textId={projectText.id} projectId={projectId} />
+                    )}
                 </Stack>
             </Card>
 
@@ -374,8 +613,9 @@ export default function ProjectTextsSection({ projectId, canEdit }: ProjectTexts
     const [createOpened, setCreateOpened] = useState(false);
     const { data, isLoading, isError } = useProjectTexts(projectId);
     const createMutation = useCreateProjectText(projectId);
+    const uploadMutation = useUploadTextAttachment(projectId);
 
-    function handleCreate(values: TextFormValues) {
+    function handleCreate(values: TextFormValues, files: File[]) {
         if (!values.type) return;
         const payload: ProjectTextCreate = {
             header: values.header.trim(),
@@ -385,12 +625,27 @@ export default function ProjectTextsSection({ projectId, canEdit }: ProjectTexts
             type: Number(values.type),
         };
         createMutation.mutate(payload, {
-            onSuccess: () => {
+            onSuccess: (createdText) => {
                 setCreateOpened(false);
                 notifications.show({
                     color: "green",
                     title: "Text erstellt",
                     message: "Der neue Text wurde gespeichert.",
+                });
+                // Upload any files that were selected during creation
+                files.forEach((file) => {
+                    uploadMutation.mutate(
+                        { textId: createdText.id, file },
+                        {
+                            onError: () => {
+                                notifications.show({
+                                    color: "red",
+                                    title: "Upload fehlgeschlagen",
+                                    message: `„${file.name}" konnte nicht hochgeladen werden.`,
+                                });
+                            },
+                        },
+                    );
                 });
             },
             onError: () => {
@@ -460,6 +715,7 @@ export default function ProjectTextsSection({ projectId, canEdit }: ProjectTexts
                 isSubmitting={createMutation.isPending}
                 initialValues={emptyForm()}
                 title="Text hinzufügen"
+                showFileUpload
             />
         </>
     );
