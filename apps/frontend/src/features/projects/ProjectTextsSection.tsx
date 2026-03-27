@@ -17,6 +17,7 @@ import {
     Title,
     Tooltip,
 } from "@mantine/core";
+import { IconEye } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
 
@@ -35,6 +36,7 @@ import {
     useUploadTextAttachment,
 } from "../../shared/api/queries";
 import { API_BASE } from "../../shared/api/client";
+import PdfPreviewModal from "./PdfPreviewModal";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -324,6 +326,7 @@ type AttachmentListProps = {
 
 function AttachmentList({ attachments, textId, projectId, canEdit }: AttachmentListProps) {
     const deleteMutation = useDeleteTextAttachment(projectId);
+    const [previewAttachment, setPreviewAttachment] = useState<TextAttachment | null>(null);
 
     if (attachments.length === 0) return null;
 
@@ -355,37 +358,63 @@ function AttachmentList({ attachments, textId, projectId, canEdit }: AttachmentL
     }
 
     return (
-        <Stack gap={4}>
-            {attachments.map((a) => (
-                <Group key={a.id} justify="space-between" align="center" wrap="nowrap">
-                    <Group gap="xs" align="center" style={{ minWidth: 0 }}>
-                        <Text size="sm">{fileTypeIcon(a.mime_type)}</Text>
-                        <Anchor
-                            href={`${API_BASE}/api/v1/projects/texts/${textId}/attachments/${a.id}/download`}
-                            size="sm"
-                            style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                        >
-                            {a.filename}
-                        </Anchor>
-                        <Badge size="xs" variant="outline" color="gray">
-                            {formatBytes(a.file_size)}
-                        </Badge>
+        <>
+            <Stack gap={4}>
+                {attachments.map((a) => (
+                    <Group key={a.id} justify="space-between" align="center" wrap="nowrap">
+                        <Group gap="xs" align="center" style={{ minWidth: 0 }}>
+                            <Text size="sm">{fileTypeIcon(a.mime_type)}</Text>
+                            <Anchor
+                                href={`${API_BASE}/api/v1/projects/texts/${textId}/attachments/${a.id}/download`}
+                                size="sm"
+                                style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                            >
+                                {a.filename}
+                            </Anchor>
+                            <Badge size="xs" variant="outline" color="gray">
+                                {formatBytes(a.file_size)}
+                            </Badge>
+                        </Group>
+                        <Group gap={4} wrap="nowrap">
+                            {a.mime_type === "application/pdf" && (
+                                <Tooltip label="Vorschau">
+                                    <ActionIcon
+                                        size="xs"
+                                        variant="subtle"
+                                        color="blue"
+                                        onClick={() => setPreviewAttachment(a)}
+                                        aria-label={`PDF-Vorschau ${a.filename}`}
+                                    >
+                                        <IconEye size={12} />
+                                    </ActionIcon>
+                                </Tooltip>
+                            )}
+                            {canEdit && (
+                                <ActionIcon
+                                    size="xs"
+                                    variant="subtle"
+                                    color="red"
+                                    loading={deleteMutation.isPending}
+                                    onClick={() => handleDelete(a)}
+                                    aria-label={`Anhang ${a.filename} löschen`}
+                                >
+                                    ×
+                                </ActionIcon>
+                            )}
+                        </Group>
                     </Group>
-                    {canEdit && (
-                        <ActionIcon
-                            size="xs"
-                            variant="subtle"
-                            color="red"
-                            loading={deleteMutation.isPending}
-                            onClick={() => handleDelete(a)}
-                            aria-label={`Anhang ${a.filename} löschen`}
-                        >
-                            ×
-                        </ActionIcon>
-                    )}
-                </Group>
-            ))}
-        </Stack>
+                ))}
+            </Stack>
+
+            {previewAttachment && (
+                <PdfPreviewModal
+                    opened={previewAttachment !== null}
+                    onClose={() => setPreviewAttachment(null)}
+                    attachmentUrl={`${API_BASE}/api/v1/projects/texts/${textId}/attachments/${previewAttachment.id}/download?inline=true`}
+                    filename={previewAttachment.filename}
+                />
+            )}
+        </>
     );
 }
 

@@ -781,6 +781,17 @@ const ProjectTextTypeSchema = z
   .object({ id: z.number().int(), name: z.string() })
   .passthrough();
 const ProjectTextTypeCreate = z.object({ name: z.string() }).passthrough();
+const TextAttachmentSchema = z
+  .object({
+    id: z.number().int(),
+    text_id: z.number().int(),
+    filename: z.string(),
+    mime_type: z.string(),
+    file_size: z.number().int(),
+    uploaded_at: z.string().datetime({ offset: true }),
+    uploaded_by_user_id: z.union([z.number(), z.null()]).optional(),
+  })
+  .passthrough();
 const ProjectTextSchema = z
   .object({
     id: z.number().int(),
@@ -792,6 +803,7 @@ const ProjectTextSchema = z
     created_at: z.number().int(),
     updated_at: z.number().int(),
     text_type: ProjectTextTypeSchema,
+    attachments: z.array(TextAttachmentSchema).optional().default([]),
   })
   .passthrough();
 const ProjectTextCreate = z
@@ -834,6 +846,8 @@ const ProjectTextUpdate = z
   })
   .partial()
   .passthrough();
+const Body_upload_attachment_api_v1_projects_texts__text_id__attachments_post =
+  z.object({ file: z.instanceof(File) }).passthrough();
 const TaskStatusResponse = z
   .object({
     task_id: z.string(),
@@ -1018,11 +1032,13 @@ export const schemas = {
   RouteOut,
   ProjectTextTypeSchema,
   ProjectTextTypeCreate,
+  TextAttachmentSchema,
   ProjectTextSchema,
   ProjectTextCreate,
   TextChangeLogEntryRead,
   TextChangeLogRead,
   ProjectTextUpdate,
+  Body_upload_attachment_api_v1_projects_texts__text_id__attachments_post,
   TaskStatusResponse,
   DebugTaskRequest,
   TaskLaunchResponse,
@@ -1670,6 +1686,129 @@ The existing route (identified by route_id) is updated in-place.`,
       },
     ],
     response: z.void(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/api/v1/projects/texts/:text_id/attachments",
+    alias: "upload_attachment_api_v1_projects_texts__text_id__attachments_post",
+    description: `Upload a file attachment to a project text. Requires editor or admin role.
+
+Accepted types: PDF, Word (.doc/.docx), Excel (.xls/.xlsx), JPEG, PNG.
+Maximum file size: 50 MB.`,
+    requestFormat: "form-data",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: z.object({ file: z.instanceof(File) }).passthrough(),
+      },
+      {
+        name: "text_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: TextAttachmentSchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/projects/texts/:text_id/attachments",
+    alias: "list_attachments_api_v1_projects_texts__text_id__attachments_get",
+    description: `List all attachments for a project text.
+
+Requires authentication if the parent text belongs to an authenticated-only project.
+For now all texts are publicly readable (mirrors list_project_texts behaviour).`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "text_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: z.array(TextAttachmentSchema),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "delete",
+    path: "/api/v1/projects/texts/:text_id/attachments/:attachment_id",
+    alias:
+      "remove_attachment_api_v1_projects_texts__text_id__attachments__attachment_id__delete",
+    description: `Delete an attachment. Requires editor or admin role.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "text_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+      {
+        name: "attachment_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: z.void(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/projects/texts/:text_id/attachments/:attachment_id/download",
+    alias:
+      "download_attachment_api_v1_projects_texts__text_id__attachments__attachment_id__download_get",
+    description: `Stream an attachment file.
+
+Security:
+- Content-Type is set from the DB-stored mime_type (never re-detected).
+- Content-Disposition forces download by default (prevents stored XSS via HTML/SVG).
+- Pass ?inline&#x3D;true to serve PDFs inline (for in-browser preview); ignored for other types.
+- Filename is RFC 5987-encoded to prevent header injection.
+- X-Content-Type-Options: nosniff is set.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "text_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+      {
+        name: "attachment_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+      {
+        name: "inline",
+        type: "Query",
+        schema: z.boolean().optional().default(false),
+      },
+    ],
+    response: z.unknown(),
     errors: [
       {
         status: 422,

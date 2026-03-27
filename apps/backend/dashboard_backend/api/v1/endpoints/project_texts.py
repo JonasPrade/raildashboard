@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import urllib.parse
 
-from fastapi import Depends, File, HTTPException, UploadFile
+from fastapi import Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
@@ -288,13 +288,15 @@ def remove_attachment(
 def download_attachment(
     text_id: int,
     attachment_id: int,
+    inline: bool = Query(default=False),
     db: Session = Depends(get_db),
 ):
     """Stream an attachment file.
 
     Security:
     - Content-Type is set from the DB-stored mime_type (never re-detected).
-    - Content-Disposition forces download (prevents stored XSS via HTML/SVG).
+    - Content-Disposition forces download by default (prevents stored XSS via HTML/SVG).
+    - Pass ?inline=true to serve PDFs inline (for in-browser preview); ignored for other types.
     - Filename is RFC 5987-encoded to prevent header injection.
     - X-Content-Type-Options: nosniff is set.
     """
@@ -308,7 +310,9 @@ def download_attachment(
 
     # RFC 5987 percent-encode the filename for Content-Disposition
     encoded_filename = urllib.parse.quote(attachment.filename, safe="")
-    content_disposition = f"attachment; filename*=UTF-8''{encoded_filename}"
+    # Only serve inline for PDFs — other types always force download
+    disposition_type = "inline" if (inline and attachment.mime_type == "application/pdf") else "attachment"
+    content_disposition = f"{disposition_type}; filename*=UTF-8''{encoded_filename}"
 
     return FileResponse(
         path=str(file_path),

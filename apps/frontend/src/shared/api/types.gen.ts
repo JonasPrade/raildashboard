@@ -454,6 +454,83 @@ export interface paths {
         patch: operations["update_text_api_v1_projects_texts__text_id__patch"];
         trace?: never;
     };
+    "/api/v1/projects/texts/{text_id}/attachments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Attachments
+         * @description List all attachments for a project text.
+         *
+         *     Requires authentication if the parent text belongs to an authenticated-only project.
+         *     For now all texts are publicly readable (mirrors list_project_texts behaviour).
+         */
+        get: operations["list_attachments_api_v1_projects_texts__text_id__attachments_get"];
+        put?: never;
+        /**
+         * Upload Attachment
+         * @description Upload a file attachment to a project text. Requires editor or admin role.
+         *
+         *     Accepted types: PDF, Word (.doc/.docx), Excel (.xls/.xlsx), JPEG, PNG.
+         *     Maximum file size: 50 MB.
+         */
+        post: operations["upload_attachment_api_v1_projects_texts__text_id__attachments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/texts/{text_id}/attachments/{attachment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove Attachment
+         * @description Delete an attachment. Requires editor or admin role.
+         */
+        delete: operations["remove_attachment_api_v1_projects_texts__text_id__attachments__attachment_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/texts/{text_id}/attachments/{attachment_id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Attachment
+         * @description Stream an attachment file.
+         *
+         *     Security:
+         *     - Content-Type is set from the DB-stored mime_type (never re-detected).
+         *     - Content-Disposition forces download by default (prevents stored XSS via HTML/SVG).
+         *     - Pass ?inline=true to serve PDFs inline (for in-browser preview); ignored for other types.
+         *     - Filename is RFC 5987-encoded to prevent header injection.
+         *     - X-Content-Type-Options: nosniff is set.
+         */
+        get: operations["download_attachment_api_v1_projects_texts__text_id__attachments__attachment_id__download_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tasks/{task_id}": {
         parameters: {
             query?: never;
@@ -690,6 +767,14 @@ export interface components {
             pdf: string;
             /** Year */
             year: number;
+        };
+        /** Body_upload_attachment_api_v1_projects_texts__text_id__attachments_post */
+        Body_upload_attachment_api_v1_projects_texts__text_id__attachments_post: {
+            /**
+             * File
+             * Format: binary
+             */
+            file: string;
         };
         /** BudgetSummarySchema */
         BudgetSummarySchema: {
@@ -1705,6 +1790,11 @@ export interface components {
             /** Updated At */
             updated_at: number;
             text_type: components["schemas"]["ProjectTextTypeSchema"];
+            /**
+             * Attachments
+             * @default []
+             */
+            attachments: components["schemas"]["TextAttachmentSchema"][];
         };
         /** ProjectTextTypeCreate */
         ProjectTextTypeCreate: {
@@ -2024,6 +2114,26 @@ export interface components {
             result?: unknown;
             /** Error */
             error?: string | null;
+        };
+        /** TextAttachmentSchema */
+        TextAttachmentSchema: {
+            /** Id */
+            id: number;
+            /** Text Id */
+            text_id: number;
+            /** Filename */
+            filename: string;
+            /** Mime Type */
+            mime_type: string;
+            /** File Size */
+            file_size: number;
+            /**
+             * Uploaded At
+             * Format: date-time
+             */
+            uploaded_at: string;
+            /** Uploaded By User Id */
+            uploaded_by_user_id?: number | null;
         };
         /** TextChangeLogEntryRead */
         TextChangeLogEntryRead: {
@@ -3204,6 +3314,140 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectTextSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_attachments_api_v1_projects_texts__text_id__attachments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                text_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TextAttachmentSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_attachment_api_v1_projects_texts__text_id__attachments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                text_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_attachment_api_v1_projects_texts__text_id__attachments_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TextAttachmentSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_attachment_api_v1_projects_texts__text_id__attachments__attachment_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                text_id: number;
+                attachment_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_attachment_api_v1_projects_texts__text_id__attachments__attachment_id__download_get: {
+        parameters: {
+            query?: {
+                inline?: boolean;
+            };
+            header?: never;
+            path: {
+                text_id: number;
+                attachment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
