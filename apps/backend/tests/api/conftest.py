@@ -10,6 +10,9 @@ from sqlalchemy.orm import sessionmaker
 from dashboard_backend.core.security import hash_password
 from dashboard_backend.database import get_db
 from dashboard_backend.dependencies.routes import get_route_service
+from dashboard_backend.models.app_settings import AppSettings
+from dashboard_backend.models.projects.project_text import ProjectText
+from dashboard_backend.models.projects.project_text_type import ProjectTextType
 from dashboard_backend.models.users import User
 from dashboard_backend.models.routes import Route
 from dashboard_backend.models.projects.project_group import ProjectGroup
@@ -23,7 +26,14 @@ engine = create_engine(SQLITE_URL, connect_args={"check_same_thread": False})
 TestingSessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 
-TABLES = [User.__table__, ProjectGroup.__table__, Route.__table__]
+TABLES = [
+    User.__table__,
+    ProjectGroup.__table__,
+    Route.__table__,
+    AppSettings.__table__,
+    ProjectTextType.__table__,  # must precede ProjectText (FK dependency)
+    ProjectText.__table__,
+]
 
 
 class RoutingClientStub:

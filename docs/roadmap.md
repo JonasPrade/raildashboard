@@ -57,7 +57,62 @@ In `ProjectTextsSection.tsx`, next to each PDF attachment row:
 
 - [ ] **BVWP-Datenimport** — Übernahme der BVWP-Daten aus der Legacy-Datenbank. Voraussetzung für die Anzeige der BVWP-Bewertung (Display-Feature bereits implementiert).
 
-- [ ] **Vervollständigung und Automatisierung Tests**
+### Vervollständigung und Automatisierung Tests
+
+**Status:** Implementiert (Steps 1–6 abgeschlossen)
+
+#### Analyse Ist-Zustand
+
+**Backend** (`apps/backend/tests/`)
+- Abgedeckt: `route`, `project_groups`, `project_routes_api`, `users`, `tasks`, routing-Service, Route-Domain
+- **Nicht abgedeckt (7 Endpoint-Module):**
+  - `projects.py` — GET list/detail, POST, PATCH, changelog, revert (größte Lücke)
+  - `auth.py` — Session-Login (POST /auth/session), Logout (DELETE), Cookie-Handling
+  - `finves.py` — GET /finves/ Listenendpunkt
+  - `haushalt_import.py` — POST /parse, GET /parse-result, POST /confirm, PATCH /unmatched
+  - `project_texts.py` — CRUD Texte, Anhänge (Upload/Download/Delete), Dokument-Verknüpfungen
+  - `settings.py` — GET/PATCH Settings
+  - `operational_points.py` (geplant, Step 1 Routing) — noch nicht implementiert
+- **Nicht abgedeckte Business-Logik:**
+  - `tasks/haushalt.py` — Parser-Funktionen (`_parse_combined_id_cell`, `_extract_project_name`, `_extract_inline_titel_entries`, `_build_sv_raw_lookup`, Seitenumbruch-Recovery)
+  - `tasks/finve_matching.py` — Fuzzy-Matching-Logik
+  - `tasks/vib.py` + `tasks/vib_matching.py` — VIB-Parser und Matching
+  - `utils/file_storage.py` — Path-Traversal-Guard, MIME-Validierung
+
+**Frontend** (`apps/frontend/src/`)
+- Konfiguriert: Vitest + jsdom (vite.config.ts), `pnpm test` funktioniert — aber **0 eigene Tests vorhanden**
+- Testbare Einheiten:
+  - `features/projects/projectFeatureConfig.ts` — pure Data-Konfiguration (featureGroups, trainCategoryLabels)
+  - `lib/auth.ts` — AuthProvider, useAuth-Hook (mit @testing-library/react)
+  - `shared/api/queries.ts` — Query-Hooks (mit msw + React Query)
+  - Utility-Funktionen falls vorhanden
+
+#### Plan
+
+**Schritt 1 — Backend: Konftest erweitern**
+- [x] `tests/api/conftest.py` um weitere Tabellen ergänzen: `AppSettings`, `ProjectTextType`, `ProjectText`
+
+**Schritt 2 — Backend: fehlende API-Tests**
+- [x] `tests/api/test_projects.py` — GET /projects/, GET /projects/{id}, PATCH (editor), PATCH unauth (401/403), changelog GET, revert POST
+- [x] `tests/api/test_auth.py` — POST /auth/session success/fail, DELETE /auth/session, Cookie wird gesetzt
+- [x] `tests/api/test_finves.py` — GET /finves/ gibt Liste zurück (monkeypatch CRUD)
+- [x] `tests/api/test_project_texts.py` — CRUD Texte, Visibility-Prüfung (öffentlich vs. auth-only), Delete
+- [x] `tests/api/test_settings.py` — GET/PATCH Settings, Rolle-Guard, Roundtrip
+
+**Schritt 3 — Backend: Parser-Unit-Tests**
+- [x] `tests/unit/test_finve_matching.py` — `_normalize`, `_score`, `suggest_projects_for_finve`, `suggest_per_erlaeuterung_project`, `suggest_projects_for_sv_erlaeuterung`
+- [x] `tests/unit/test_file_storage.py` — Path-Traversal-Guard, erlaubte MIME-Types, `delete_attachment_file` silent on missing
+- [ ] `tests/unit/test_haushalt_parser.py` — Fixtures aus realen PDF-Zeilen (als String), Tests für `_parse_combined_id_cell`, `_extract_project_name`, etc. *(aufwändig, späteres Ticket)*
+
+**Schritt 4 — Frontend: Basis-Setup + erste Tests**
+- [x] `@testing-library/react`, `@testing-library/user-event`, `jsdom` als Dev-Dependencies hinzugefügt
+- [x] `src/features/projects/projectFeatureConfig.test.ts` — featureGroups enthält alle erwarteten Keys, keine Duplikate, trainCategoryLabels korrekt
+- [x] `src/lib/auth.test.tsx` — useAuth Login/Logout-Flow mit gemocktem fetch (17 Tests)
+
+**Schritt 5 — Automatisierung (CI)**
+- [ ] Backend-Tests in CI: `pytest apps/backend/tests/` als GitHub-Actions-Step
+- [ ] Frontend-Tests in CI: `pnpm test` in `apps/frontend/`
+- [ ] Coverage-Report generieren (`pytest --cov`, `vitest --coverage`) und als Artefakt speichern
 - [ ] **Special view of Generalsanierung. Timeline when which Generalsanierung is started and when it is finished**
 
 ---
