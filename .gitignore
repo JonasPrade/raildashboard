@@ -1,9 +1,10 @@
 .claude/settings.local.json
 .claude/worktrees/
+.worktrees/
 .DS_Store
 .env.example
 .env
 .env.test
 .env.docker-dev
 backups/
-data/data/uploads/
+data/
