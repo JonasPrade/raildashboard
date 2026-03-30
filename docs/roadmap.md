@@ -6,48 +6,6 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 
 ## Mid-Term Features
 
-
----
-
-### PDF Preview on Demand (in-page, react-pdf) ✅
-
-PDF attachments currently force a browser download. Goal: "Vorschau"-button opens the PDF rendered inside a Mantine `Modal` using `react-pdf` (PDF.js wrapper).
-
-#### Backend — inline serving endpoint
-
-Add query param `inline: bool = False` to the existing download endpoint (`GET /api/v1/projects/texts/{text_id}/attachments/{attachment_id}/download`):
-- If `inline=true` **and** `mime_type == "application/pdf"`: set `Content-Disposition: inline; filename*=...` instead of `attachment`
-- All other files (Word, Excel, images) keep forced download regardless of param
-- Keep `X-Content-Type-Options: nosniff`
-
-#### Frontend — `PdfPreviewModal` component
-
-New file: `apps/frontend/src/features/projects/PdfPreviewModal.tsx`
-
-- Add dependency: `react-pdf` (`pnpm add react-pdf`) — ships its own PDF.js worker
-- Configure worker once in `main.tsx`: `pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()`
-- Props: `{ opened, onClose, attachmentUrl, filename }`
-- `attachmentUrl` = existing download URL + `?inline=true`
-- Renders inside `<Modal size="xl" title={filename}>`:
-  - `<Document>` from `react-pdf` loading from `attachmentUrl`
-  - Page navigation: previous / next `ActionIcon` buttons + `"{page} / {total}"` counter
-  - Loading state: centered `Loader`
-  - Error state: "PDF konnte nicht geladen werden" with download fallback link
-- Modal is lazy — PDF only fetches when `opened === true`
-
-#### Integration in `AttachmentList`
-
-In `ProjectTextsSection.tsx`, next to each PDF attachment row:
-- Add a "Vorschau" `ActionIcon` (eye icon) — only shown when `mime_type === "application/pdf"`
-- Click → set `previewAttachment` state → renders `<PdfPreviewModal opened ... />`
-- Existing download anchor remains unchanged
-
-**Steps:**
-- [x] Backend: add `inline` param to download endpoint
-- [x] Frontend: `pnpm add react-pdf`; configure worker in `main.tsx`
-- [x] Frontend: `PdfPreviewModal.tsx` component
-- [x] Frontend: integrate eye-icon button + modal state into `AttachmentList` in `ProjectTextsSection.tsx`
-
 ### Sonstiges
 
 - [ ] **ProjectProgress** *(Backend + Frontend)*
@@ -113,6 +71,7 @@ In `ProjectTextsSection.tsx`, next to each PDF attachment row:
 - [ ] Backend-Tests in CI: `pytest apps/backend/tests/` als GitHub-Actions-Step
 - [ ] Frontend-Tests in CI: `pnpm test` in `apps/frontend/`
 - [ ] Coverage-Report generieren (`pytest --cov`, `vitest --coverage`) und als Artefakt speichern
+
 - [ ] **Special view of Generalsanierung. Timeline when which Generalsanierung is started and when it is finished**
 
 ---
@@ -256,6 +215,7 @@ Priorität:
 - [x] Versionshistorie und Bearbeitungsformular nur für eingeloggte Nutzer sichtbar
 - [x] **Dateianhänge für Projekttexte** — Editors können PDFs, Word, Excel und Bilder (max. 50 MB) an Projekttexte anhängen, direkt beim Erstellen oder nachträglich. `TextAttachment`-Modell + Migration `20260326001`; `utils/file_storage.py` mit Pfad-Traversal-Guard + MIME-Validierung via `python-magic`; API: POST/GET/DELETE/Download; Docker-Volume `uploads`; `UPLOAD_DIR` env var (lokal in `.env` setzen)
 - [x] **Dokumente verknüpfen mit Projekttext** — Editors können wiederverwendbare `Document`-Einträge (Titel, Beschreibung, Datum, Quelle, Sichtbarkeit, optionaler Datei-Upload oder URL) mit einzelnen `ProjectText`-Einträgen verknüpfen. `document_to_text`-Assoziationstabelle + Migration; vollständiges CRUD-API (`/documents`, Link/Unlink-Endpunkte); `DocumentPickerModal`, `DocumentFormModal`, `DocumentList` in `ProjectTextsSection.tsx`
+- [x] **PDF-Vorschau in Projekttext** — Eye-Icon neben PDF-Anhängen öffnet `PdfPreviewModal.tsx` (react-pdf / PDF.js) mit Seitennavigation und Download-Fallback. Download-Endpoint unterstützt `?inline=true` für PDFs.
 
 ### Change Tracking
 - [x] DB-Modelle `change_log` + `change_log_entry` + Alembic-Migration

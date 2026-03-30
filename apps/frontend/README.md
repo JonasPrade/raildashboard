@@ -116,6 +116,18 @@ Available at `/admin/project-groups` (admin only, linked from the admin board in
 
 Settings are persisted in the `AppSettings` singleton table (backend) and fetched via `useAppSettings()` / `useUpdateAppSettings()`. The map page reads `map_group_mode` on load; explicit `?group=` URL param always takes precedence.
 
+### Project text attachments + PDF preview (`features/projects/ProjectTextsSection.tsx`)
+
+Each `ProjectText` can have file attachments (PDF, Word, Excel, images, max 50 MB). Attachments are listed in `AttachmentList` with a download anchor for all types.
+
+PDF attachments additionally show an eye icon (`IconEye`) that opens `PdfPreviewModal.tsx` — an in-page viewer built on `react-pdf` (PDF.js). Features:
+- Page-by-page navigation with previous / next buttons and a `{page} / {total}` counter
+- Loading spinner, error state with download fallback link
+- PDF only fetches when the modal is opened (lazy)
+- PDF.js worker loaded from unpkg CDN at the exact `pdfjs-dist` version bundled with `react-pdf`
+
+The backend download endpoint (`GET /api/v1/projects/texts/{text_id}/attachments/{attachment_id}/download`) accepts `?inline=true` to serve PDFs with `Content-Disposition: inline`; all non-PDF types ignore the param and always force download.
+
 ### Haushalt PDF import (`features/haushalt-import/`)
 
 Multi-step import workflow for federal budget PDFs. The `ReviewTable` shows auto-suggested project assignments (marked with ✦) computed during the Celery parse task via fuzzy name matching. The Projektzuordnung column has a minimum width of 320 px.
