@@ -1,0 +1,20 @@
+#!/bin/bash
+# Scoped Python script runner — only allows scripts in scripts/ directory.
+# Prevents arbitrary code execution (python -c, python -m, etc.) without approval.
+set -e
+
+SCRIPT="$1"
+shift
+
+if [[ -z "$SCRIPT" ]]; then
+  echo "Usage: run-python-script scripts/<name>.py [args...]" >&2
+  exit 1
+fi
+
+if [[ "$SCRIPT" != scripts/* ]]; then
+  echo "ERROR: Only scripts in the scripts/ directory are allowed (got: $SCRIPT)" >&2
+  exit 1
+fi
+
+cd /Users/jonas/Documents/coding/raildashboard/apps/backend
+exec .venv/bin/python3.11 "$SCRIPT" "$@"
