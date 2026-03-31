@@ -45,6 +45,8 @@ class VibEntryProposed(BaseModel):
     strecklaenge_km: Optional[float] = None
     gesamtkosten_mio_eur: Optional[float] = None
     entwurfsgeschwindigkeit: Optional[str] = None
+    planungsstand: Optional[str] = None
+    project_status: Optional[str] = None   # "Planung" | "Bau" | None
 
     pfa_entries: list[VibPfaEntryProposed] = []
 
@@ -89,6 +91,8 @@ class VibConfirmEntryInput(BaseModel):
     strecklaenge_km: Optional[float] = None
     gesamtkosten_mio_eur: Optional[float] = None
     entwurfsgeschwindigkeit: Optional[str] = None
+    planungsstand: Optional[str] = None
+    project_status: Optional[str] = None
 
     pfa_entries: list[VibPfaEntryProposed] = []
     project_id: Optional[int] = None
@@ -161,6 +165,8 @@ class VibEntryForProjectSchema(BaseModel):
     strecklaenge_km: Optional[float] = None
     gesamtkosten_mio_eur: Optional[float] = None
     entwurfsgeschwindigkeit: Optional[str] = None
+    planungsstand: Optional[str] = None
+    project_status: Optional[str] = None
 
     ai_extracted: bool = False
 
