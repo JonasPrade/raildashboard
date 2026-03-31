@@ -729,6 +729,8 @@ export type VibEntryProposed = {
     strecklaenge_km: number | null;
     gesamtkosten_mio_eur: number | null;
     entwurfsgeschwindigkeit: string | null;
+    planungsstand: string | null;
+    project_status: "Planung" | "Bau" | null;
     pfa_entries: VibPfaEntryProposed[];
     project_id: number | null;
     suggested_project_ids: number[];
@@ -794,6 +796,8 @@ export type VibEntryForProject = {
     strecklaenge_km: number | null;
     gesamtkosten_mio_eur: number | null;
     entwurfsgeschwindigkeit: string | null;
+    planungsstand: string | null;
+    project_status: "Planung" | "Bau" | null;
     ai_extracted: boolean;
     pfa_entries: VibPfaEntrySchema[];
 };
