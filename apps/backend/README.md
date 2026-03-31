@@ -203,6 +203,55 @@ GET /api/v1/projects/{project_id}/bvwp
 
 Returns the full BVWP assessment record for a project (`BvwpProjectDataSchema`, ~200 optional fields). Returns `404` if no BVWP data exists for that project — the frontend uses this to conditionally show the section. No authentication required. Implemented in `crud/projects/bvwp.py` + `schemas/projects/bvwp_schema.py`.
 
+## Verkehrsinvestitionsbericht (VIB) Import
+
+Yearly import of the Bundestag printed paper „Verkehrsinvestitionsbericht für das Berichtsjahr XXXX". Only **Section B** (Schienenwege der Eisenbahnen des Bundes) is imported; sections C and D are ignored.
+
+### Import workflow
+
+1. **Upload PDF** — `POST /api/v1/import/vib/parse` (multipart: `pdf`, `year`) → returns `task_id`
+2. **Poll task** — `GET /api/v1/tasks/{task_id}` until `status == "SUCCESS"`
+3. **Review** — `GET /api/v1/import/vib/parse-result/{task_id}` — returns all extracted `VibEntryProposed` objects with auto-matched `project_id` and `suggested_project_ids`
+4. **Confirm** — `POST /api/v1/import/vib/confirm` — writes `VibReport` + `VibEntry` + `VibPfaEntry` rows; returns `{ report_id, entries_created, pfa_entries_created }`
+5. **Project detail** — `GET /api/v1/projects/{id}/vib` — all VIB entries linked to a project, newest year first
+
+All VIB import endpoints require role `editor` or `admin`.
+
+### Extracted fields per entry
+
+| Field | Source |
+|---|---|
+| `vib_section` | Heading regex (`B.4.x.x`) |
+| `vib_name_raw` | TOC lookup (canonical name) |
+| `category` | Section number: B.4.1=laufend, B.4.2=neu, B.4.3=potentiell |
+| `planungsstand` | Label `Planungsstand:` in body text |
+| `bauaktivitaeten` | Label `Bauaktivitäten [year]:` |
+| `teilinbetriebnahmen` | Label `Teilinbetriebnahmen [year]:` |
+| `verkehrliche_zielsetzung` | Label `Verkehrliche Zielsetzung` |
+| `strecklaenge_km`, `gesamtkosten_mio_eur`, `entwurfsgeschwindigkeit` | Regex on `Projektkenndaten` block |
+| `raw_text` | Full accumulated plain text (capped at 8 000 chars) |
+| `pfa_entries` | `pdfplumber` table extraction |
+
+### Review UI fields
+
+In addition to the parsed data, the admin can set per entry:
+- `project_id` — links the VIB entry to an existing project (auto-suggested via VDE-number + fuzzy name matching)
+- `project_status` — `"Planung"` or `"Bau"` (user-assigned high-level status)
+- `raw_text` — directly editable in the review card before confirming
+
+### DB models (migration `20260313001`, `20260331001`)
+
+| Table | Description |
+|---|---|
+| `vib_report` | One row per imported year (drucksache_nr, report_date) |
+| `vib_entry` | One row per Vorhaben; FK → vib_report + project (nullable) |
+| `vib_pfa_entry` | PFA table rows; FK → vib_entry |
+| `vib_draft_report` | Temporary parse result stored before user confirmation |
+
+### Auto-suggestion matching
+
+`tasks/vib_matching.py` — VDE-number extraction (highest confidence) + fuzzy name matching (SequenceMatcher + token overlap, threshold 0.50). Top suggestions stored in `suggested_project_ids` in the parse result.
+
 ## Routing API
 The backend persists rail routes that are computed via the routing microservice. The following REST endpoints are available:
 
