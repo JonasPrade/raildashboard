@@ -30,6 +30,8 @@ class VibEntry(Base):
     strecklaenge_km = Column(Float, nullable=True)
     gesamtkosten_mio_eur = Column(Float, nullable=True)
     entwurfsgeschwindigkeit = Column(String(50), nullable=True)
+    planungsstand = Column(Text, nullable=True)
+    project_status = Column(String(20), nullable=True)   # "Planung" | "Bau" | None
 
     ai_extracted = Column(Boolean, nullable=False, server_default="false", default=False)
     ai_result = Column(Text, nullable=True)  # JSON blob from LLM extraction
