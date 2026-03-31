@@ -76,6 +76,7 @@ _BLOCK_LABELS: dict[str, re.Pattern] = {
     "noch_umzusetzende_massnahmen": re.compile(r"Noch\s+umzusetzende\s+Maßnahmen", re.IGNORECASE),
     "bauaktivitaeten": re.compile(r"Bauaktivit[äa]ten(?:\s*\[\d{4}\])?", re.IGNORECASE),
     "teilinbetriebnahmen": re.compile(r"Teilinbetriebnahmen(?:\s*\[\d{4}\])?", re.IGNORECASE),
+    "planungsstand": re.compile(r"Planungsstand", re.IGNORECASE),
     "projektkenndaten": re.compile(r"Projektkenndaten", re.IGNORECASE),
 }
 
@@ -488,6 +489,7 @@ def _parse_vib_pdf(
             strecklaenge_km=strecklaenge,
             gesamtkosten_mio_eur=gesamtkosten,
             entwurfsgeschwindigkeit=geschwindigkeit_str,
+            planungsstand=sub_blocks.get("planungsstand"),
             pfa_entries=pfa_entries,
             project_id=suggested_ids[0] if suggested_ids else None,
             suggested_project_ids=suggested_ids,
