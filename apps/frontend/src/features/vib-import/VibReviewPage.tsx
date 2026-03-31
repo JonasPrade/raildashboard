@@ -6,7 +6,6 @@ import {
     Badge,
     Button,
     Card,
-    Collapse,
     Container,
     Group,
     Loader,
@@ -15,6 +14,7 @@ import {
     Stack,
     Table,
     Text,
+    Textarea,
     Title,
     Tooltip,
 } from "@mantine/core";
@@ -46,15 +46,14 @@ function VibEntryCard({
     projectOptions,
     onProjectChange,
     onStatusChange,
+    onRawTextChange,
 }: {
     entry: VibEntryProposed;
     projectOptions: { value: string; label: string }[];
     onProjectChange: (projectId: number | null) => void;
     onStatusChange: (status: string | null) => void;
+    onRawTextChange: (text: string) => void;
 }) {
-    const [pfaExpanded, setPfaExpanded] = useState(false);
-    const [rawExpanded, setRawExpanded] = useState(false);
-
     const hasSuggestion =
         entry.project_id !== null ||
         (entry.suggested_project_ids && entry.suggested_project_ids.length > 0);
@@ -68,12 +67,14 @@ function VibEntryCard({
     return (
         <Card withBorder radius="md" padding="lg" shadow="xs">
             <Stack gap="md">
+                {/* Section label */}
                 {entry.vib_section && (
                     <Text size="xs" c="dimmed" ff="monospace">
                         {entry.vib_section}
                     </Text>
                 )}
 
+                {/* Projektkenndaten */}
                 {(entry.strecklaenge_km !== null ||
                     entry.gesamtkosten_mio_eur !== null ||
                     entry.entwurfsgeschwindigkeit) && (
@@ -96,6 +97,7 @@ function VibEntryCard({
                     </Group>
                 )}
 
+                {/* Planungsstand (extracted from PDF) */}
                 {entry.planungsstand && (
                     <div>
                         <Text size="sm" fw={600} mb={2}>
@@ -107,7 +109,8 @@ function VibEntryCard({
                     </div>
                 )}
 
-                <Group gap={4} align="flex-end" wrap="nowrap">
+                {/* Project mapping + status */}
+                <Group gap="sm" align="flex-end" wrap="wrap">
                     <Select
                         label="Projekt zuordnen"
                         size="sm"
@@ -117,7 +120,7 @@ function VibEntryCard({
                         data={projectOptions}
                         value={entry.project_id !== null ? String(entry.project_id) : null}
                         onChange={(v) => onProjectChange(v !== null ? Number(v) : null)}
-                        style={{ flex: 1 }}
+                        style={{ flex: 1, minWidth: 200 }}
                     />
                     {hasSuggestion && (
                         <Tooltip label={`KI-Vorschlag: ${entry.suggested_project_ids.join(", ")}`}>
@@ -145,10 +148,11 @@ function VibEntryCard({
                         data={PROJECT_STATUS_OPTIONS}
                         value={entry.project_status ?? null}
                         onChange={onStatusChange}
-                        style={{ width: 140 }}
+                        style={{ width: 150 }}
                     />
                 </Group>
 
+                {/* Bauaktivitäten */}
                 {entry.bauaktivitaeten && (
                     <div>
                         <Text size="sm" fw={600} mb={2}>
@@ -160,6 +164,7 @@ function VibEntryCard({
                     </div>
                 )}
 
+                {/* Teilinbetriebnahmen */}
                 {entry.teilinbetriebnahmen && (
                     <div>
                         <Text size="sm" fw={600} mb={2}>
@@ -171,76 +176,63 @@ function VibEntryCard({
                     </div>
                 )}
 
+                {/* PFA-Tabelle — always shown */}
                 {entry.pfa_entries && entry.pfa_entries.length > 0 && (
                     <div>
-                        <Group
-                            gap="xs"
-                            mb={4}
-                            style={{ cursor: "pointer" }}
-                            onClick={() => setPfaExpanded((v) => !v)}
-                        >
-                            <Text size="sm" fw={600}>
-                                PFA-Tabelle ({entry.pfa_entries.length} Einträge)
-                            </Text>
-                            <Text size="xs" c="dimmed">
-                                {pfaExpanded ? "▲ ausblenden" : "▼ anzeigen"}
-                            </Text>
-                        </Group>
-                        <Collapse in={pfaExpanded}>
-                            <Paper withBorder p={0} style={{ overflow: "auto" }}>
-                                <Table withTableBorder withColumnBorders fz="xs" style={{ fontSize: 11 }}>
-                                    <Table.Thead>
-                                        <Table.Tr>
-                                            <Table.Th>Nr.</Table.Th>
-                                            <Table.Th>Örtlichkeit</Table.Th>
-                                            <Table.Th>Abschluss FinVe</Table.Th>
-                                            <Table.Th>PFB</Table.Th>
-                                            <Table.Th>Baubeginn</Table.Th>
-                                            <Table.Th>IBM</Table.Th>
+                        <Text size="sm" fw={600} mb={6}>
+                            PFA-Tabelle ({entry.pfa_entries.length} Einträge)
+                        </Text>
+                        <Paper withBorder p={0} style={{ overflow: "auto" }}>
+                            <Table withTableBorder withColumnBorders fz="xs" style={{ fontSize: 11 }}>
+                                <Table.Thead>
+                                    <Table.Tr>
+                                        <Table.Th>Nr.</Table.Th>
+                                        <Table.Th>Örtlichkeit</Table.Th>
+                                        <Table.Th>Abschluss FinVe</Table.Th>
+                                        <Table.Th>PFB</Table.Th>
+                                        <Table.Th>Baubeginn</Table.Th>
+                                        <Table.Th>IBM</Table.Th>
+                                    </Table.Tr>
+                                </Table.Thead>
+                                <Table.Tbody>
+                                    {entry.pfa_entries.map((pfa, pi) => (
+                                        <Table.Tr key={pi}>
+                                            <Table.Td>
+                                                {pfa.abschnitt_label
+                                                    ? `${pfa.abschnitt_label} / `
+                                                    : ""}
+                                                {pfa.nr_pfa}
+                                            </Table.Td>
+                                            <Table.Td>{pfa.oertlichkeit ?? "–"}</Table.Td>
+                                            <Table.Td>{pfa.abschluss_finve ?? "–"}</Table.Td>
+                                            <Table.Td>{pfa.datum_pfb ?? "–"}</Table.Td>
+                                            <Table.Td>{pfa.baubeginn ?? "–"}</Table.Td>
+                                            <Table.Td>{pfa.inbetriebnahme ?? "–"}</Table.Td>
                                         </Table.Tr>
-                                    </Table.Thead>
-                                    <Table.Tbody>
-                                        {entry.pfa_entries.map((pfa, pi) => (
-                                            <Table.Tr key={pi}>
-                                                <Table.Td>
-                                                    {pfa.abschnitt_label ? `${pfa.abschnitt_label} / ` : ""}
-                                                    {pfa.nr_pfa}
-                                                </Table.Td>
-                                                <Table.Td>{pfa.oertlichkeit ?? "–"}</Table.Td>
-                                                <Table.Td>{pfa.abschluss_finve ?? "–"}</Table.Td>
-                                                <Table.Td>{pfa.datum_pfb ?? "–"}</Table.Td>
-                                                <Table.Td>{pfa.baubeginn ?? "–"}</Table.Td>
-                                                <Table.Td>{pfa.inbetriebnahme ?? "–"}</Table.Td>
-                                            </Table.Tr>
-                                        ))}
-                                    </Table.Tbody>
-                                </Table>
-                            </Paper>
-                        </Collapse>
+                                    ))}
+                                </Table.Tbody>
+                            </Table>
+                        </Paper>
                     </div>
                 )}
 
-                {entry.raw_text && (
-                    <div>
-                        <Group
-                            gap="xs"
-                            mb={4}
-                            style={{ cursor: "pointer" }}
-                            onClick={() => setRawExpanded((v) => !v)}
-                        >
-                            <Text size="sm" fw={600}>
-                                Volltext
-                            </Text>
-                            <Text size="xs" c="dimmed">
-                                {rawExpanded ? "▲ ausblenden" : "▼ anzeigen"}
-                            </Text>
-                        </Group>
-                        <Collapse in={rawExpanded}>
-                            <Text size="xs" c="dimmed" style={{ whiteSpace: "pre-wrap" }}>
-                                {entry.raw_text}
-                            </Text>
-                        </Collapse>
-                    </div>
+                {/* Volltext — always shown, editable */}
+                {entry.raw_text !== null && entry.raw_text !== undefined && (
+                    <Textarea
+                        label="Volltext"
+                        autosize
+                        minRows={6}
+                        maxRows={24}
+                        value={entry.raw_text}
+                        onChange={(e) => onRawTextChange(e.currentTarget.value)}
+                        styles={{
+                            input: {
+                                fontFamily: "monospace",
+                                fontSize: 12,
+                                lineHeight: 1.6,
+                            },
+                        }}
+                    />
                 )}
             </Stack>
         </Card>
@@ -299,21 +291,10 @@ export default function VibReviewPage() {
         label: `${p.project_number ?? "–"} ${p.name}`,
     }));
 
-    const handleProjectChange = (projectId: number | null) => {
+    const updateCurrentEntry = (patch: Partial<VibEntryProposed>) => {
         setEntries((prev) => {
             const base = prev ?? parseResult.entries;
-            return base.map((e, i) =>
-                i === currentIndex ? { ...e, project_id: projectId } : e,
-            );
-        });
-    };
-
-    const handleStatusChange = (status: string | null) => {
-        setEntries((prev) => {
-            const base = prev ?? parseResult.entries;
-            return base.map((e, i) =>
-                i === currentIndex ? { ...e, project_status: status as "Planung" | "Bau" | null } : e,
-            );
+            return base.map((e, i) => (i === currentIndex ? { ...e, ...patch } : e));
         });
     };
 
@@ -347,37 +328,17 @@ export default function VibReviewPage() {
     return (
         <Container size="lg" py="xl">
             <Stack gap="lg">
-                <Group justify="space-between" align="center" wrap="wrap" gap="sm">
-                    <Group gap="xs" align="center">
-                        <ActionIcon
-                            variant="subtle"
-                            onClick={() => setCurrentIndex((i) => i - 1)}
-                            disabled={currentIndex === 0}
-                        >
-                            <IconChevronLeft size={18} />
-                        </ActionIcon>
-                        <Text size="sm" fw={500} style={{ minWidth: 60, textAlign: "center" }}>
-                            {currentIndex + 1} / {total}
+                {/* Header */}
+                <Group justify="space-between" align="flex-start">
+                    <Stack gap={2}>
+                        <Title order={2}>VIB-Review — Berichtsjahr {parseResult.year}</Title>
+                        <Text size="sm" c="dimmed">
+                            {parseResult.drucksache_nr
+                                ? `Drucksache ${parseResult.drucksache_nr}`
+                                : ""}
+                            {parseResult.report_date ? ` · ${parseResult.report_date}` : ""}
                         </Text>
-                        <ActionIcon
-                            variant="subtle"
-                            onClick={() => setCurrentIndex((i) => i + 1)}
-                            disabled={currentIndex === total - 1}
-                        >
-                            <IconChevronRight size={18} />
-                        </ActionIcon>
-                        <Text fw={600} lineClamp={1} style={{ maxWidth: 400 }}>
-                            {currentEntry.vib_name_raw}
-                        </Text>
-                        <Badge
-                            size="sm"
-                            color={CATEGORY_COLORS[currentEntry.category] ?? "gray"}
-                            variant="light"
-                        >
-                            {currentEntry.category}
-                        </Badge>
-                    </Group>
-
+                    </Stack>
                     <Group gap="sm">
                         <Text size="sm" c="dimmed">
                             {matchedCount} / {total} zugeordnet
@@ -391,20 +352,49 @@ export default function VibReviewPage() {
                     </Group>
                 </Group>
 
-                <Stack gap={2}>
-                    <Title order={2}>VIB-Review — Berichtsjahr {parseResult.year}</Title>
-                    <Text size="sm" c="dimmed">
-                        {parseResult.drucksache_nr ? `Drucksache ${parseResult.drucksache_nr}` : ""}
-                        {parseResult.report_date ? ` · ${parseResult.report_date}` : ""}
+                {/* Navigation bar */}
+                <Group gap="xs" align="center">
+                    <ActionIcon
+                        variant="default"
+                        onClick={() => setCurrentIndex((i) => i - 1)}
+                        disabled={currentIndex === 0}
+                    >
+                        <IconChevronLeft size={16} />
+                    </ActionIcon>
+                    <Text size="sm" fw={500} style={{ minWidth: 52, textAlign: "center" }}>
+                        {currentIndex + 1} / {total}
                     </Text>
-                </Stack>
+                    <ActionIcon
+                        variant="default"
+                        onClick={() => setCurrentIndex((i) => i + 1)}
+                        disabled={currentIndex === total - 1}
+                    >
+                        <IconChevronRight size={16} />
+                    </ActionIcon>
+                    <Text fw={600} lineClamp={1} style={{ maxWidth: 500 }}>
+                        {currentEntry.vib_name_raw}
+                    </Text>
+                    <Badge
+                        size="sm"
+                        color={CATEGORY_COLORS[currentEntry.category] ?? "gray"}
+                        variant="light"
+                    >
+                        {currentEntry.category}
+                    </Badge>
+                </Group>
 
+                {/* Entry card */}
                 {currentEntry && (
                     <VibEntryCard
                         entry={currentEntry}
                         projectOptions={projectOptions}
-                        onProjectChange={handleProjectChange}
-                        onStatusChange={handleStatusChange}
+                        onProjectChange={(projectId) => updateCurrentEntry({ project_id: projectId })}
+                        onStatusChange={(status) =>
+                            updateCurrentEntry({
+                                project_status: status as "Planung" | "Bau" | null,
+                            })
+                        }
+                        onRawTextChange={(text) => updateCurrentEntry({ raw_text: text })}
                     />
                 )}
             </Stack>
