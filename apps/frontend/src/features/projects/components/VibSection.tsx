@@ -46,6 +46,15 @@ function VibTabContent({ entry }: { entry: VibEntryForProject }) {
                         KI-extrahiert
                     </Badge>
                 )}
+                {entry.project_status && (
+                    <Badge
+                        size="sm"
+                        color={entry.project_status === "Bau" ? "cyan" : "orange"}
+                        variant="light"
+                    >
+                        {entry.project_status}
+                    </Badge>
+                )}
             </Group>
 
             {/* Projektkenndaten */}
@@ -67,6 +76,17 @@ function VibTabContent({ entry }: { entry: VibEntryForProject }) {
                         </Text>
                     )}
                 </Group>
+            )}
+
+            {entry.planungsstand && (
+                <div>
+                    <Text size="sm" fw={600} mb={4}>
+                        Planungsstand
+                    </Text>
+                    <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>
+                        {entry.planungsstand}
+                    </Text>
+                </div>
             )}
 
             {/* Bauaktivitäten */}
