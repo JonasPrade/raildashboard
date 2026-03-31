@@ -141,6 +141,8 @@ def create_vib_report_with_entries(
             strecklaenge_km=entry_data.strecklaenge_km,
             gesamtkosten_mio_eur=entry_data.gesamtkosten_mio_eur,
             entwurfsgeschwindigkeit=entry_data.entwurfsgeschwindigkeit,
+            planungsstand=entry_data.planungsstand,
+            project_status=entry_data.project_status,
         )
         db.add(vib_entry)
         db.flush()  # get vib_entry.id
