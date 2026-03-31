@@ -22,11 +22,27 @@ Jährlicher Import des Bundestagsdrucksache-PDFs „Verkehrsinvestitionsbericht 
 
 Der vollständige Text jedes Vorhabens wird gespeichert und in `ProjectDetail` angezeigt. Optional können per LLM automatisch Schlüsselinformationen extrahiert und als Einträge in das `ProjectProgress`-Datenmodell geschrieben werden (VIB ist eine von mehreren Quellen des ProjectProgress-Systems).
 
-More features:
-- [ ] Read out the planning status
-- [ ] Change the system of VIB-Review:
-  - add that it has a value status of project: Planning or Building
-- [ ] Make each project a card. I can switch between cards with arrow at top. it gives a content like in the ProjectCard -> where i can switch faster. Show each VIB Project like it iwll be seen in the Project card later
+### More VIB features
+
+#### Feature A — Planungsstand extraction
+- [ ] Add `planungsstand` (Text, nullable) column to `vib_entry` (Alembic migration)
+- [ ] Parser (`tasks/vib.py`): extract `Planungsstand:` label from raw text, same pattern as `Bauaktivitäten:`
+- [ ] Add field to `VibEntryProposed`, `VibConfirmEntryInput`, `VibEntryForProjectSchema`
+- [ ] CRUD: pass `planungsstand` on `VibEntry` create
+- [ ] Display in card review (Feature C) and `VibSection.tsx`
+
+#### Feature B — Project status (Planung / Bau) per VIB entry
+- [ ] Add `project_status` (VARCHAR 20, nullable, values `"Planung"` | `"Bau"`) to `vib_entry` — same migration as Feature A
+- [ ] Add field to all three schemas + CRUD
+- [ ] Card review (Feature C): `Select` (Planung / Bau / –) per entry, state-managed like `project_id`
+- [ ] `VibSection.tsx`: show as `Badge` next to category badge
+
+#### Feature C — Card navigation in VIB-Review
+- [ ] Replace `<Table>` in `VibReviewPage` with single-card view
+- [ ] Top bar: `[←] 3/42 [→]` arrows · entry name · category badge · matched count · Confirm button
+- [ ] Card body (full width): section label, Kenndaten, Planungsstand, project Select + confidence badge, project_status Select, Bauaktivitäten, Teilinbetriebnahmen, PFA-Tabelle (collapsible), Volltext (collapsible)
+- [ ] State: `currentIndex` (useState); confirm logic unchanged
+- [ ] Run `make gen-api` after backend changes
 
 ---
 
