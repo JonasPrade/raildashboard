@@ -33,12 +33,18 @@ _SECTION_END_RE = re.compile(r"^\s*C\s+Bundesfernstra", re.IGNORECASE | re.MULTI
 _TOC_DOT_RE = re.compile(r"\.\s\.")
 
 # Vorhaben heading: "B.4.1.3  ABS Lübeck–Rostock–Stralsund (VDE Nr. 1)"
+# Also matches OCR variant "B 4.1.1" (space instead of dot between B and 4).
 # Only match 4-level B.4.x.x headings (the actual Vorhaben entries, not section overviews).
-# Group 1 = section nr (e.g. "B.4.1.3"), Group 2 = name (may include right-column artifact)
+# Group 1 = section nr (e.g. "B.4.1.3" or "B 4.1.1"), Group 2 = name (may include right-column artifact)
 _VORHABEN_HEADING_RE = re.compile(
-    r"^(B\.4\.\d+\.\d+)\s{1,8}(.+)$",
+    r"^(B[\s.]4\.\d+\.\d+)\s{1,8}(.+)$",
     re.MULTILINE,
 )
+
+# TOC entry pattern: "B 4.1.1 Name ... 56" or "B.4.1.8 Name" (multi-line)
+_TOC_ENTRY_RE = re.compile(r"^(B[\s.]4\.[123]\.\d+)\s+(.+)", re.MULTILINE)
+# Trailing dots (continuous "....." or spaced ". . .") + page number at end of a TOC line
+_TOC_PAGE_RE = re.compile(r"\s*\.[\.\s]+(\d+)\s*$")
 
 # Right-column content labels that pdfplumber merges onto the heading line in two-column
 # layouts.  Strip everything from this marker onwards to get the clean project name.
@@ -92,6 +98,48 @@ _RAW_TEXT_MAX_CHARS = 8000
 # Helper utilities
 # ---------------------------------------------------------------------------
 
+def _extract_page_text_columns(page: object) -> str:
+    """Extract text from a PDF page in two-column reading order.
+
+    VIB pages use a two-column layout.  pdfplumber's default extract_text()
+    interleaves the columns line-by-line, producing garbled text.  This
+    function reads the left column (x0 < COL_BOUNDARY) top-to-bottom, then
+    the right column top-to-bottom, and concatenates them.  Block labels
+    (`Verkehrliche Zielsetzung:`, etc.) remain in their correct position
+    relative to their content.
+
+    The column boundary (~250 pt) is derived empirically from the 2023 VIB PDF
+    where left column words start at x0 ≈ 43–52 and right column words start
+    at x0 ≈ 283–293.
+    """
+    COL_BOUNDARY = 250.0
+    Y_TOLERANCE = 3  # group words within 3 pt vertical band into same line
+
+    words = page.extract_words()
+    if not words:
+        return page.extract_text() or ""
+
+    left_lines: dict[int, list] = {}
+    right_lines: dict[int, list] = {}
+
+    for w in words:
+        # Round y to nearest Y_TOLERANCE band to group words on the same line
+        y_key = round(w["top"] / Y_TOLERANCE)
+        target = left_lines if w["x0"] < COL_BOUNDARY else right_lines
+        target.setdefault(y_key, []).append(w)
+
+    def _lines_to_text(lines: dict[int, list]) -> str:
+        result = []
+        for y_key in sorted(lines):
+            row = sorted(lines[y_key], key=lambda w: w["x0"])
+            result.append(" ".join(w["text"] for w in row))
+        return "\n".join(result)
+
+    left_text = _lines_to_text(left_lines)
+    right_text = _lines_to_text(right_lines)
+    return (left_text + "\n" + right_text) if right_text else left_text
+
+
 def _find_content_boundary(text: str, pattern: re.Pattern) -> int | None:
     """Return the char position of the first match that is NOT a TOC entry.
 
@@ -130,6 +178,52 @@ def _extract_lfd_nr(section: str) -> str | None:
     """Extract the last numeric component as the lfd_nr within its category."""
     parts = section.split(".")
     return parts[-1] if parts else None
+
+
+def _parse_toc(full_text: str) -> dict[str, str]:
+    """Parse the table of contents to extract canonical project names.
+
+    The TOC contains the authoritative list of all B.4.x.x entries with clean
+    project names (free of the two-column layout artefacts present in the body).
+    Some entries span multiple lines in the TOC (e.g. B.4.1.8 has cross-
+    references on continuation lines); we only use the first-line name.
+
+    Returns: {normalized_section_nr: clean_name}
+      e.g. {"B.4.1.1": "Lfd. Vorhaben Nr. 2 – ABS Lübeck/Hagenow Land–Rostock–Stralsund (VDE Nr. 1)"}
+    """
+    # TOC comes before the content section; find the boundary.
+    toc_start_m = re.search(r"B\s+Schienenwege", full_text)
+    content_start = _find_content_boundary(full_text, _SECTION_START_RE)
+    if toc_start_m is None or content_start is None:
+        return {}
+
+    toc_text = full_text[toc_start_m.start():content_start]
+    lines = toc_text.split("\n")
+
+    result: dict[str, str] = {}
+    for line in lines:
+        m = _TOC_ENTRY_RE.match(line)
+        if not m:
+            continue
+
+        section = m.group(1).replace(" ", ".")
+        name_part = m.group(2)
+
+        # Strip trailing dots+page-number if on the same line
+        page_m = _TOC_PAGE_RE.search(name_part)
+        if page_m:
+            name = name_part[:page_m.start()].strip()
+        else:
+            name = name_part.strip()
+
+        # Fix common OCR space artefact: "L fd." → "Lfd."
+        name = re.sub(r"\bL\s+fd\.", "Lfd.", name)
+        name = name.strip()
+
+        if name:
+            result[section] = name
+
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -284,7 +378,7 @@ def _parse_vib_pdf(
                         "total_pages": total_pages,
                     },
                 )
-            page_text = page.extract_text() or ""
+            page_text = _extract_page_text_columns(page)
             all_pages_text.append(page_text)
 
             # Extract document metadata from first few pages
@@ -316,6 +410,10 @@ def _parse_vib_pdf(
             rail_start_pos, rail_end, rail_end - rail_start_pos,
         )
 
+    # Build TOC name lookup for canonical project names (avoids two-column artefacts).
+    toc_names = _parse_toc(full_text)
+    logger.info("VIB: parsed %d project names from TOC", len(toc_names))
+
     # Find all Vorhaben headings within the rail section
     heading_matches = list(_VORHABEN_HEADING_RE.finditer(rail_text))
     logger.info("VIB: found %d Vorhaben headings", len(heading_matches))
@@ -323,8 +421,9 @@ def _parse_vib_pdf(
     entries: list[VibEntryProposed] = []
 
     for i, hm in enumerate(heading_matches):
-        section_nr = hm.group(1).strip()
-        name_raw = hm.group(2).strip()
+        # Normalize "B 4.1.1" (OCR space artefact) → "B.4.1.1"
+        section_nr = hm.group(1).strip().replace(" ", ".")
+        extracted_name = hm.group(2).strip()
 
         block_start = hm.start()
         block_end = (
@@ -335,9 +434,13 @@ def _parse_vib_pdf(
         category = _determine_category(section_nr)
         lfd_nr = _extract_lfd_nr(section_nr)
 
-        # Strip right-column content labels merged onto the heading line by pdfplumber
-        # (two-column PDF layout artefact, e.g. "... ABS Berlin–Dresden Verkehrliche Zielsetzung:")
-        name_raw = _HEADING_SUFFIX_RE.sub("", name_raw).strip()
+        # Use the TOC name as canonical vib_name_raw — it is free of two-column
+        # layout artefacts that pdfplumber merges onto the heading line in the body.
+        # Fall back to the extracted heading name (with suffix stripping) if not in TOC.
+        if section_nr in toc_names:
+            name_raw = toc_names[section_nr]
+        else:
+            name_raw = _HEADING_SUFFIX_RE.sub("", extracted_name).strip()
 
         sub_blocks = _extract_sub_blocks(block_text)
 

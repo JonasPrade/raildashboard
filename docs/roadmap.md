@@ -22,6 +22,12 @@ Jährlicher Import des Bundestagsdrucksache-PDFs „Verkehrsinvestitionsbericht 
 
 Der vollständige Text jedes Vorhabens wird gespeichert und in `ProjectDetail` angezeigt. Optional können per LLM automatisch Schlüsselinformationen extrahiert und als Einträge in das `ProjectProgress`-Datenmodell geschrieben werden (VIB ist eine von mehreren Quellen des ProjectProgress-Systems).
 
+More features:
+- [ ] Read out the planning status
+- [ ] Change the system of VIB-Review:
+  - add that it has a value status of project: Planning or Building
+- [ ] Make each project a card. I can switch between cards with arrow at top. it gives a content like in the ProjectCard -> where i can switch faster. Show each VIB Project like it iwll be seen in the Project card later
+
 ---
 
 #### Dokumentstruktur (Referenz: VIB 2023, Drucksache 21/125)

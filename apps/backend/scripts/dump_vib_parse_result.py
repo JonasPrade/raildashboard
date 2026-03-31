@@ -29,7 +29,19 @@ def _dump_raw(pdf_path: str) -> None:
 
     _SECTION_START_RE = re.compile(r"^\s*B\s+Schienenwege", re.IGNORECASE | re.MULTILINE)
     _SECTION_END_RE = re.compile(r"^\s*C\s+Bundesfernstra", re.IGNORECASE | re.MULTILINE)
-    _VORHABEN_HEADING_RE = re.compile(r"^(B\.\d+\.\d+(?:\.\d+)?)\s{1,8}(.+)$", re.MULTILINE)
+    # Also matches OCR variant "B 4.1.1" (space instead of dot)
+    _VORHABEN_HEADING_RE = re.compile(r"^(B[\s.]4\.\d+\.\d+)\s{1,8}(.+)$", re.MULTILINE)
+    _TOC_DOT_RE = re.compile(r"\.\s\.")
+
+    def _find_content_boundary(text: str, pattern: re.Pattern) -> int | None:
+        for m in pattern.finditer(text):
+            line_end = text.find("\n", m.start())
+            if line_end == -1:
+                line_end = len(text)
+            line = text[m.start():line_end]
+            if not _TOC_DOT_RE.search(line):
+                return m.start()
+        return None
 
     print(f"Reading PDF: {pdf_path}", file=sys.stderr)
     with open(pdf_path, "rb") as f:
@@ -66,12 +78,11 @@ def _dump_raw(pdf_path: str) -> None:
         print(f"\n--- at char {char_pos} ---")
         print(repr(full_text[snippet_start:snippet_end]))
 
-    # Show the sliced rail section
-    start_match = _SECTION_START_RE.search(full_text)
-    end_match = _SECTION_END_RE.search(full_text)
-    if start_match:
-        rail_start = start_match.start()
-        rail_end = end_match.start() if end_match else len(full_text)
+    # Show the sliced rail section — skip TOC hits to find the actual content boundary
+    rail_start = _find_content_boundary(full_text, _SECTION_START_RE)
+    rail_end = _find_content_boundary(full_text, _SECTION_END_RE)
+    if rail_start is not None:
+        rail_end = rail_end if rail_end is not None else len(full_text)
         rail_text = full_text[rail_start:rail_end]
         print(f"\n{'=' * 80}")
         print(f"SLICED RAIL SECTION: chars {rail_start}–{rail_end} ({rail_end - rail_start} chars)")
