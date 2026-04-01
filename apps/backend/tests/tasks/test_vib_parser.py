@@ -52,3 +52,26 @@ class TestVorhabenSectionRe:
         text = "Some preamble\nB.4.1.5\nMore content"
         m = _VORHABEN_SECTION_RE.search(text)
         assert m is not None
+
+
+from dashboard_backend.tasks.vib import _extract_project_status
+
+
+class TestExtractProjectStatus:
+    def test_detects_bau(self):
+        assert _extract_project_status("Projektstand: Bau\nEinige weitere Infos") == "Bau"
+
+    def test_detects_planung(self):
+        assert _extract_project_status("Planungsstand: Planung\nDetails") == "Planung"
+
+    def test_returns_none_when_absent(self):
+        assert _extract_project_status("Kein Hinweis auf Status") is None
+
+    def test_returns_none_for_none_input(self):
+        assert _extract_project_status(None) is None
+
+    def test_case_insensitive_bau(self):
+        assert _extract_project_status("Status: bau") == "Bau"
+
+    def test_case_insensitive_planung(self):
+        assert _extract_project_status("Status: planung") == "Planung"

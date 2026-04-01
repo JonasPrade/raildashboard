@@ -88,6 +88,19 @@ _BLOCK_LABELS: dict[str, re.Pattern] = {
     "projektkenndaten": re.compile(r"Projektkenndaten", re.IGNORECASE),
 }
 
+_PROJECT_STATUS_RE = re.compile(r"\b(Bau|Planung)\b", re.IGNORECASE)
+
+
+def _extract_project_status(text: str | None) -> str | None:
+    """Return 'Bau' or 'Planung' if found in text, else None."""
+    if not text:
+        return None
+    m = _PROJECT_STATUS_RE.search(text)
+    if not m:
+        return None
+    return m.group(1).capitalize()
+
+
 _PFA_TABLE_HEADER_RE = re.compile(r"Nr\s*\.\s*PFA.{0,60}[Öö]rtlichkeit", re.IGNORECASE | re.DOTALL)
 
 # Projektkenndaten value extraction
@@ -458,6 +471,10 @@ def _parse_vib_pdf(
 
         sub_blocks = _extract_sub_blocks(block_text)
 
+        # Extract project_status from planungsstand text
+        planungsstand_text = sub_blocks.get("planungsstand")
+        project_status = _extract_project_status(planungsstand_text)
+
         # Parse Projektkenndaten
         kenndaten_text = sub_blocks.get("projektkenndaten", "")
         strecklaenge: float | None = None
@@ -502,7 +519,8 @@ def _parse_vib_pdf(
             strecklaenge_km=strecklaenge,
             gesamtkosten_mio_eur=gesamtkosten,
             entwurfsgeschwindigkeit=geschwindigkeit_str,
-            planungsstand=sub_blocks.get("planungsstand"),
+            planungsstand=planungsstand_text,
+            project_status=project_status,
             pfa_entries=pfa_entries,
             project_id=suggested_ids[0] if suggested_ids else None,
             suggested_project_ids=suggested_ids,
