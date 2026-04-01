@@ -1,191 +1,68 @@
-"""Dump a completed VIB parse task result from the Celery/Redis result backend.
+#!/usr/bin/env python3.11
+"""Dump a VIB PDF parse result to stdout without Celery or DB.
 
 Usage:
-    # List all confirmed VIB reports in the database
-    python3.11 scripts/dump_vib_parse_result.py
+    python3.11 scripts/dump_vib_parse_result.py path/to/vib.pdf [year]
 
-    # Dump the parse result for a specific Celery task_id
-    python3.11 scripts/dump_vib_parse_result.py <task_id>
-
-    # Write to file
-    python3.11 scripts/dump_vib_parse_result.py <task_id> > /tmp/vib_result.json
-
-    # Diagnose raw PDF text extraction (shows TOC vs content structure)
-    python3.11 scripts/dump_vib_parse_result.py --raw /path/to/vib.pdf
-    python3.11 scripts/dump_vib_parse_result.py --raw /path/to/vib.pdf > /tmp/vib_raw.txt
-
-Run from apps/backend/:
-    cd apps/backend && python3.11 scripts/dump_vib_parse_result.py
+Output: structured summary of each detected Vorhaben block.
 """
-import io
-import json
-import re
 import sys
+import os
+
+# Allow running from apps/backend/
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Minimal env so config doesn't fail
+os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
+os.environ.setdefault("RINF_API_URL", "https://example.invalid")
+os.environ.setdefault("RINF_USERNAME", "x")
+os.environ.setdefault("RINF_PASSWORD", "x")
+
+from dashboard_backend.tasks.vib import _parse_vib_pdf  # noqa: E402
 
 
-def _dump_raw(pdf_path: str) -> None:
-    """Extract raw text from a VIB PDF and print diagnostics about key patterns."""
-    import pdfplumber
+def main() -> None:
+    if len(sys.argv) < 2:
+        print("Usage: python3.11 scripts/dump_vib_parse_result.py <path_to_vib.pdf> [year]")
+        sys.exit(1)
 
-    _SECTION_START_RE = re.compile(r"^\s*B\s+Schienenwege", re.IGNORECASE | re.MULTILINE)
-    _SECTION_END_RE = re.compile(r"^\s*C\s+Bundesfernstra", re.IGNORECASE | re.MULTILINE)
-    # Also matches OCR variant "B 4.1.1" (space instead of dot)
-    _VORHABEN_HEADING_RE = re.compile(r"^(B[\s.]4\.\d+\.\d+)\s{1,8}(.+)$", re.MULTILINE)
-    _TOC_DOT_RE = re.compile(r"\.\s\.")
+    pdf_path = sys.argv[1]
+    year = int(sys.argv[2]) if len(sys.argv) > 2 else 2023
 
-    def _find_content_boundary(text: str, pattern: re.Pattern) -> int | None:
-        for m in pattern.finditer(text):
-            line_end = text.find("\n", m.start())
-            if line_end == -1:
-                line_end = len(text)
-            line = text[m.start():line_end]
-            if not _TOC_DOT_RE.search(line):
-                return m.start()
-        return None
-
-    print(f"Reading PDF: {pdf_path}", file=sys.stderr)
     with open(pdf_path, "rb") as f:
         pdf_bytes = f.read()
 
-    all_pages_text: list[str] = []
-    with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-        total_pages = len(pdf.pages)
-        print(f"Total pages: {total_pages}", file=sys.stderr)
-        for page in pdf.pages:
-            all_pages_text.append(page.extract_text() or "")
+    result = _parse_vib_pdf(pdf_bytes, year)
 
-    full_text = "\n".join(all_pages_text)
+    print(f"Year: {result.year}")
+    print(f"Drucksache: {result.drucksache_nr}")
+    print(f"Report date: {result.report_date}")
+    print(f"Entries found: {len(result.entries)}")
+    print("=" * 70)
 
-    # Show all occurrences of "B Schienenwege" with context
-    print("\n" + "=" * 80)
-    print("ALL OCCURRENCES OF 'B Schienenwege' (with 3 lines context each):")
-    print("=" * 80)
-    for m in _SECTION_START_RE.finditer(full_text):
-        char_pos = m.start()
-        snippet_start = max(0, char_pos - 100)
-        snippet_end = min(len(full_text), char_pos + 300)
-        print(f"\n--- at char {char_pos} ---")
-        print(repr(full_text[snippet_start:snippet_end]))
+    for e in result.entries:
+        print(f"\n[{e.vib_section}] {e.vib_name_raw[:80]}")
+        print(f"  category:       {e.category}")
+        print(f"  project_status: {e.project_status}")
+        print(f"  strecklaenge:   {e.strecklaenge_km} km")
+        print(f"  gesamtkosten:   {e.gesamtkosten_mio_eur} Mio €")
+        print(f"  PFA entries:    {len(e.pfa_entries)}")
 
-    # Show all occurrences of "C Bundesfernstraßen" with context
-    print("\n" + "=" * 80)
-    print("ALL OCCURRENCES OF 'C Bundesfernstra' (with 3 lines context each):")
-    print("=" * 80)
-    for m in _SECTION_END_RE.finditer(full_text):
-        char_pos = m.start()
-        snippet_start = max(0, char_pos - 100)
-        snippet_end = min(len(full_text), char_pos + 300)
-        print(f"\n--- at char {char_pos} ---")
-        print(repr(full_text[snippet_start:snippet_end]))
+        fields = [
+            ("bauaktivitaeten", e.bauaktivitaeten),
+            ("planungsstand", e.planungsstand),
+            ("verkehrliche_zielsetzung", e.verkehrliche_zielsetzung),
+        ]
+        for label, val in fields:
+            preview = (val or "–")[:120].replace("\n", " ")
+            print(f"  {label}: {preview}")
 
-    # Show the sliced rail section — skip TOC hits to find the actual content boundary
-    rail_start = _find_content_boundary(full_text, _SECTION_START_RE)
-    rail_end = _find_content_boundary(full_text, _SECTION_END_RE)
-    if rail_start is not None:
-        rail_end = rail_end if rail_end is not None else len(full_text)
-        rail_text = full_text[rail_start:rail_end]
-        print(f"\n{'=' * 80}")
-        print(f"SLICED RAIL SECTION: chars {rail_start}–{rail_end} ({rail_end - rail_start} chars)")
-        print("=" * 80)
-        print("FIRST 2000 chars of rail section:")
-        print(rail_text[:2000])
-
-        heading_matches = list(_VORHABEN_HEADING_RE.finditer(rail_text))
-        print(f"\n{'=' * 80}")
-        print(f"VORHABEN HEADINGS FOUND IN RAIL SECTION: {len(heading_matches)}")
-        print("=" * 80)
-        for i, hm in enumerate(heading_matches[:30]):
-            # Show how many chars of content follow this heading before the next
-            block_start = hm.start()
-            block_end = heading_matches[i + 1].start() if i + 1 < len(heading_matches) else len(rail_text)
-            block_len = block_end - block_start
-            print(f"  {hm.group(1):>12}  {hm.group(2)[:60]:<60}  block_len={block_len}")
-    else:
-        print("\nWARNING: 'B Schienenwege' section start NOT FOUND in document!")
-
-    # Write full text to stdout for further inspection
-    print("\n" + "=" * 80)
-    print("FULL EXTRACTED TEXT (stdout):")
-    print("=" * 80)
-    sys.stdout.write(full_text)
-
-
-def main():
-    if len(sys.argv) >= 2 and sys.argv[1] == "--raw":
-        if len(sys.argv) < 3:
-            print("Usage: python3.11 scripts/dump_vib_parse_result.py --raw /path/to/vib.pdf", file=sys.stderr)
-            sys.exit(1)
-        _dump_raw(sys.argv[2])
-        return
-
-    from dashboard_backend.celery_app import celery_app
-    from dashboard_backend.database import Session
-    from dashboard_backend.models.vib.vib_report import VibReport
-
-    if len(sys.argv) < 2:
-        # List all confirmed VIB reports from the database
-        db = Session()
-        try:
-            reports = (
-                db.query(VibReport)
-                .order_by(VibReport.year.desc())
-                .all()
-            )
-            if not reports:
-                print("Keine VIB-Berichte in der Datenbank vorhanden.")
-                return
-            print(f"{'ID':>4}  {'Jahr':>6}  {'Drucksache':<20}  {'Datum':<12}  {'Einträge':>8}")
-            print("-" * 60)
-            for r in reports:
-                datum = r.report_date.isoformat() if r.report_date else "–"
-                n_entries = len(r.entries)
-                print(
-                    f"{r.id:>4}  {r.year:>6}  {r.drucksache_nr or '–':<20}  "
-                    f"{datum:<12}  {n_entries:>8}"
-                )
-        finally:
-            db.close()
-        return
-
-    task_id = sys.argv[1]
-    async_result = celery_app.AsyncResult(task_id)
-
-    print(f"Task ID   : {task_id}", file=sys.stderr)
-    print(f"State     : {async_result.state}", file=sys.stderr)
-
-    if async_result.state == "PENDING":
-        print("Task is still pending or does not exist.", file=sys.stderr)
-        sys.exit(1)
-
-    if async_result.state == "FAILURE":
-        print(f"Task failed: {async_result.result}", file=sys.stderr)
-        sys.exit(1)
-
-    if async_result.state != "SUCCESS":
-        print(f"Unexpected state: {async_result.state}", file=sys.stderr)
-        sys.exit(1)
-
-    result = async_result.result
-    if not isinstance(result, dict):
-        print(f"Unexpected result type: {type(result)}", file=sys.stderr)
-        sys.exit(1)
-
-    entries = result.get("entries", [])
-    print(f"Jahr      : {result.get('year')}", file=sys.stderr)
-    print(f"Einträge  : {len(entries)}", file=sys.stderr)
-    print(f"Drucksache: {result.get('drucksache_nr', '–')}", file=sys.stderr)
-    print("-" * 80, file=sys.stderr)
-    for i, e in enumerate(entries):
-        proj_id = e.get("project_id")
-        suggestions = e.get("suggested_project_ids", [])
-        print(
-            f"  [{i + 1:>3}] {e.get('vib_section', '?'):>10}  "
-            f"{e.get('vib_name_raw', '')[:55]:<55}  "
-            f"project_id={proj_id}  suggestions={suggestions}",
-            file=sys.stderr,
-        )
-
-    print(json.dumps(result, ensure_ascii=False, indent=2))
+        if e.pfa_entries:
+            print("  PFA rows:")
+            for pfa in e.pfa_entries[:3]:
+                print(f"    {pfa.nr_pfa} | {pfa.oertlichkeit} | {pfa.entwurfsplanung} | IBN: {pfa.inbetriebnahme}")
+            if len(e.pfa_entries) > 3:
+                print(f"    … ({len(e.pfa_entries) - 3} more)")
 
 
 if __name__ == "__main__":
