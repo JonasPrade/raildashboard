@@ -48,12 +48,9 @@ function VibEntryCard({
     onStatusChange,
     onRawTextChange,
     onFieldChange,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    onPfaChange: _onPfaChange,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    onPfaAdd: _onPfaAdd,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    onPfaRemove: _onPfaRemove,
+    onPfaChange,
+    onPfaAdd,
+    onPfaRemove,
 }: {
     entry: VibEntryProposed;
     projectOptions: { value: string; label: string }[];
@@ -220,45 +217,67 @@ function VibEntryCard({
                     styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
                 />
 
-                {/* PFA-Tabelle — always shown */}
-                {entry.pfa_entries && entry.pfa_entries.length > 0 && (
-                    <div>
-                        <Text size="sm" fw={600} mb={6}>
+                {/* PFA-Tabelle — always shown, inline editable */}
+                <div>
+                    <Group justify="space-between" mb={6}>
+                        <Text size="sm" fw={600}>
                             PFA-Tabelle ({entry.pfa_entries.length} Einträge)
                         </Text>
+                        <Button size="xs" variant="light" onClick={onPfaAdd}>
+                            + Zeile
+                        </Button>
+                    </Group>
+                    {entry.pfa_entries.length > 0 ? (
                         <Paper withBorder p={0} style={{ overflow: "auto" }}>
                             <Table withTableBorder withColumnBorders fz="xs" style={{ fontSize: 11 }}>
                                 <Table.Thead>
                                     <Table.Tr>
                                         <Table.Th>Nr.</Table.Th>
                                         <Table.Th>Örtlichkeit</Table.Th>
+                                        <Table.Th>Entwurfspl.</Table.Th>
                                         <Table.Th>Abschluss FinVe</Table.Th>
                                         <Table.Th>PFB</Table.Th>
                                         <Table.Th>Baubeginn</Table.Th>
                                         <Table.Th>IBM</Table.Th>
+                                        <Table.Th />
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
                                     {entry.pfa_entries.map((pfa, pi) => (
                                         <Table.Tr key={pi}>
+                                            {(["nr_pfa", "oertlichkeit", "entwurfsplanung", "abschluss_finve", "datum_pfb", "baubeginn", "inbetriebnahme"] as const).map((field) => (
+                                                <Table.Td key={field}>
+                                                    <input
+                                                        style={{
+                                                            width: field === "oertlichkeit" ? 140 : 80,
+                                                            border: "none",
+                                                            background: "transparent",
+                                                            fontSize: 11,
+                                                            fontFamily: "inherit",
+                                                        }}
+                                                        value={(pfa as Record<string, string | null>)[field] ?? ""}
+                                                        onChange={(e) => onPfaChange(pi, field, e.currentTarget.value)}
+                                                    />
+                                                </Table.Td>
+                                            ))}
                                             <Table.Td>
-                                                {pfa.abschnitt_label
-                                                    ? `${pfa.abschnitt_label} / `
-                                                    : ""}
-                                                {pfa.nr_pfa}
+                                                <button
+                                                    style={{ cursor: "pointer", background: "none", border: "none", color: "red" }}
+                                                    onClick={() => onPfaRemove(pi)}
+                                                    title="Zeile löschen"
+                                                >
+                                                    ×
+                                                </button>
                                             </Table.Td>
-                                            <Table.Td>{pfa.oertlichkeit ?? "–"}</Table.Td>
-                                            <Table.Td>{pfa.abschluss_finve ?? "–"}</Table.Td>
-                                            <Table.Td>{pfa.datum_pfb ?? "–"}</Table.Td>
-                                            <Table.Td>{pfa.baubeginn ?? "–"}</Table.Td>
-                                            <Table.Td>{pfa.inbetriebnahme ?? "–"}</Table.Td>
                                         </Table.Tr>
                                     ))}
                                 </Table.Tbody>
                             </Table>
                         </Paper>
-                    </div>
-                )}
+                    ) : (
+                        <Text size="xs" c="dimmed">Keine PFA-Einträge.</Text>
+                    )}
+                </div>
 
                 {/* Volltext — always shown, editable */}
                 {entry.raw_text !== null && entry.raw_text !== undefined && (
@@ -345,6 +364,51 @@ export default function VibReviewPage() {
     const handleFieldChange = (idx: number) => (field: keyof VibEntryProposed, value: string) => {
         setEntries((prev) =>
             (prev ?? parseResult.entries).map((e, i) => (i === idx ? { ...e, [field]: value || null } : e))
+        );
+    };
+
+    const handlePfaChange = (idx: number) => (pfaIdx: number, field: string, value: string) => {
+        setEntries((prev) =>
+            (prev ?? parseResult.entries).map((e, i) => {
+                if (i !== idx) return e;
+                const newPfa = e.pfa_entries.map((p, pi) =>
+                    pi === pfaIdx ? { ...p, [field]: value || null } : p
+                );
+                return { ...e, pfa_entries: newPfa };
+            })
+        );
+    };
+
+    const handlePfaAdd = (idx: number) => () => {
+        setEntries((prev) =>
+            (prev ?? parseResult.entries).map((e, i) => {
+                if (i !== idx) return e;
+                return {
+                    ...e,
+                    pfa_entries: [
+                        ...e.pfa_entries,
+                        {
+                            nr_pfa: null,
+                            oertlichkeit: null,
+                            entwurfsplanung: null,
+                            abschluss_finve: null,
+                            datum_pfb: null,
+                            baubeginn: null,
+                            inbetriebnahme: null,
+                            abschnitt_label: null,
+                        },
+                    ],
+                };
+            })
+        );
+    };
+
+    const handlePfaRemove = (idx: number) => (pfaIdx: number) => {
+        setEntries((prev) =>
+            (prev ?? parseResult.entries).map((e, i) => {
+                if (i !== idx) return e;
+                return { ...e, pfa_entries: e.pfa_entries.filter((_, pi) => pi !== pfaIdx) };
+            })
         );
     };
 
@@ -446,9 +510,9 @@ export default function VibReviewPage() {
                         }
                         onRawTextChange={(text) => updateCurrentEntry({ raw_text: text })}
                         onFieldChange={handleFieldChange(currentIndex)}
-                        onPfaChange={() => {}}
-                        onPfaAdd={() => {}}
-                        onPfaRemove={() => {}}
+                        onPfaChange={handlePfaChange(currentIndex)}
+                        onPfaAdd={handlePfaAdd(currentIndex)}
+                        onPfaRemove={handlePfaRemove(currentIndex)}
                     />
                 )}
             </Stack>
