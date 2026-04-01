@@ -27,6 +27,7 @@ from dashboard_backend.schemas.vib import (
     VibReportSchema,
 )
 from dashboard_backend.tasks.vib import parse_vib_pdf
+from dashboard_backend.tasks.vib_ai_extraction import extract_vib_blocks
 
 router = AuthRouter()
 
@@ -177,6 +178,39 @@ def confirm_vib_import(
 
     db.commit()
     return response
+
+
+# ---------------------------------------------------------------------------
+# POST /extract-ai/{parse_task_id} — start LLM extraction task
+# ---------------------------------------------------------------------------
+
+@router.post(
+    "/extract-ai/{parse_task_id}",
+    response_model=TaskLaunchResponse,
+    dependencies=[_require_editor],
+)
+def start_vib_ai_extraction(
+    parse_task_id: str,
+    current_user: User = Depends(require_roles(UserRole.editor, UserRole.admin)),
+    db: Session = Depends(get_db),
+):
+    """Start the LLM extraction Celery task for a parsed VIB draft.
+
+    The parse_task_id must refer to a completed parse task whose draft is saved in DB.
+    Returns a new task_id for polling via GET /api/v1/tasks/{task_id}.
+    When the task reaches SUCCESS, the draft in DB is updated with AI-extracted content.
+    Retrieve the updated parse result via GET /parse-result/{parse_task_id}.
+    """
+    if not settings.llm_base_url:
+        raise HTTPException(status_code=422, detail="LLM not configured: LLM_BASE_URL is empty")
+
+    draft = get_draft_by_task_id(db, parse_task_id)
+    if draft is None:
+        raise HTTPException(status_code=404, detail="Draft not found for this parse_task_id")
+
+    user_info = {"id": current_user.id, "username": current_user.username}
+    result = extract_vib_blocks.delay(parse_task_id, user_info)
+    return TaskLaunchResponse(task_id=result.id)
 
 
 # ---------------------------------------------------------------------------
