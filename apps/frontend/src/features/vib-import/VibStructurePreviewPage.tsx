@@ -41,6 +41,14 @@ export default function VibStructurePreviewPage() {
     const startAiExtraction = useStartVibAiExtraction();
 
     const [aiTaskId, setAiTaskId] = useState<string | null>(null);
+    const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+
+    const toggleRow = (idx: number) =>
+        setExpandedRows((prev) => {
+            const next = new Set(prev);
+            next.has(idx) ? next.delete(idx) : next.add(idx);
+            return next;
+        });
     const aiTaskStatus = useTaskStatus(aiTaskId);
 
     useEffect(() => {
@@ -169,9 +177,25 @@ export default function VibStructurePreviewPage() {
                                             {e.pfa_entries.length}
                                         </Text>
                                     </Table.Td>
-                                    <Table.Td>
-                                        <Text size="xs" c="dimmed" ff="monospace" lineClamp={1}>
-                                            {(e.raw_text ?? "–").slice(0, 120)}
+                                    <Table.Td
+                                        style={{ cursor: "pointer", maxWidth: 400 }}
+                                        onClick={() => toggleRow(idx)}
+                                    >
+                                        <Text
+                                            size="xs"
+                                            c="dimmed"
+                                            ff="monospace"
+                                            style={{
+                                                whiteSpace: expandedRows.has(idx) ? "pre-wrap" : "nowrap",
+                                                overflow: expandedRows.has(idx) ? "visible" : "hidden",
+                                                textOverflow: expandedRows.has(idx) ? "unset" : "ellipsis",
+                                                wordBreak: "break-word",
+                                            }}
+                                        >
+                                            {e.raw_text ?? "–"}
+                                        </Text>
+                                        <Text size="xs" c="blue" mt={2}>
+                                            {expandedRows.has(idx) ? "▲ einklappen" : "▼ ausklappen"}
                                         </Text>
                                     </Table.Td>
                                 </Table.Tr>
