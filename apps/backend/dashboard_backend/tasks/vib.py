@@ -99,34 +99,39 @@ _RAW_TEXT_MAX_CHARS = 8000
 # Helper utilities
 # ---------------------------------------------------------------------------
 
+def _is_two_column_page(words: list) -> bool:
+    """Return True if more than 15% of words start in the right-column zone (x0 > 260 pt)."""
+    if not words:
+        return False
+    right_count = sum(1 for w in words if w["x0"] > 260)
+    return (right_count / len(words)) >= 0.15
+
+
 def _extract_page_text_columns(page: object) -> str:
-    """Extract text from a PDF page in two-column reading order.
+    """Extract text from a PDF page, auto-detecting single vs. two-column layout.
 
-    VIB pages use a two-column layout.  pdfplumber's default extract_text()
-    interleaves the columns line-by-line, producing garbled text.  This
-    function reads the left column (x0 < COL_BOUNDARY) top-to-bottom, then
-    the right column top-to-bottom, and concatenates them.  Block labels
-    (`Verkehrliche Zielsetzung:`, etc.) remain in their correct position
-    relative to their content.
-
-    The column boundary (~250 pt) is derived empirically from the 2023 VIB PDF
-    where left column words start at x0 ≈ 43–52 and right column words start
-    at x0 ≈ 283–293.
+    For two-column pages: reads left column (x0 <= 260) top-to-bottom, then
+    right column top-to-bottom, concatenates.
+    For single-column pages: reads all words in top-to-bottom order.
     """
-    COL_BOUNDARY = 250.0
-    Y_TOLERANCE = 3  # group words within 3 pt vertical band into same line
+    COL_BOUNDARY = 260.0
+    Y_TOLERANCE = 3
 
     words = page.extract_words()
     if not words:
         return page.extract_text() or ""
 
+    two_col = _is_two_column_page(words)
+
     left_lines: dict[int, list] = {}
     right_lines: dict[int, list] = {}
 
     for w in words:
-        # Round y to nearest Y_TOLERANCE band to group words on the same line
         y_key = round(w["top"] / Y_TOLERANCE)
-        target = left_lines if w["x0"] < COL_BOUNDARY else right_lines
+        if two_col:
+            target = left_lines if w["x0"] <= COL_BOUNDARY else right_lines
+        else:
+            target = left_lines  # single column — all words go to left_lines
         target.setdefault(y_key, []).append(w)
 
     def _lines_to_text(lines: dict[int, list]) -> str:
