@@ -47,12 +47,23 @@ function VibEntryCard({
     onProjectChange,
     onStatusChange,
     onRawTextChange,
+    onFieldChange,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    onPfaChange: _onPfaChange,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    onPfaAdd: _onPfaAdd,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    onPfaRemove: _onPfaRemove,
 }: {
     entry: VibEntryProposed;
     projectOptions: { value: string; label: string }[];
     onProjectChange: (projectId: number | null) => void;
     onStatusChange: (status: string | null) => void;
     onRawTextChange: (text: string) => void;
+    onFieldChange: (field: keyof VibEntryProposed, value: string) => void;
+    onPfaChange: (pfaIndex: number, field: string, value: string) => void;
+    onPfaAdd: () => void;
+    onPfaRemove: (pfaIndex: number) => void;
 }) {
     const hasSuggestion =
         entry.project_id !== null ||
@@ -72,6 +83,9 @@ function VibEntryCard({
                     <Text size="xs" c="dimmed" ff="monospace">
                         {entry.vib_section}
                     </Text>
+                )}
+                {(entry as VibEntryProposed & { ai_extracted?: boolean }).ai_extracted && (
+                    <Badge size="xs" color="violet" variant="light">KI</Badge>
                 )}
 
                 {/* Projektkenndaten */}
@@ -98,16 +112,15 @@ function VibEntryCard({
                 )}
 
                 {/* Planungsstand (extracted from PDF) */}
-                {entry.planungsstand && (
-                    <div>
-                        <Text size="sm" fw={600} mb={2}>
-                            Planungsstand:
-                        </Text>
-                        <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>
-                            {entry.planungsstand}
-                        </Text>
-                    </div>
-                )}
+                <Textarea
+                    label="Planungsstand"
+                    autosize
+                    minRows={3}
+                    maxRows={12}
+                    value={entry.planungsstand ?? ""}
+                    onChange={(e) => onFieldChange("planungsstand", e.currentTarget.value)}
+                    styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
+                />
 
                 {/* Project mapping + status */}
                 <Group gap="sm" align="flex-end" wrap="wrap">
@@ -153,28 +166,59 @@ function VibEntryCard({
                 </Group>
 
                 {/* Bauaktivitäten */}
-                {entry.bauaktivitaeten && (
-                    <div>
-                        <Text size="sm" fw={600} mb={2}>
-                            Bauaktivitäten:
-                        </Text>
-                        <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>
-                            {entry.bauaktivitaeten}
-                        </Text>
-                    </div>
-                )}
+                <Textarea
+                    label="Bauaktivitäten"
+                    autosize
+                    minRows={3}
+                    maxRows={12}
+                    value={entry.bauaktivitaeten ?? ""}
+                    onChange={(e) => onFieldChange("bauaktivitaeten", e.currentTarget.value)}
+                    styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
+                />
 
                 {/* Teilinbetriebnahmen */}
-                {entry.teilinbetriebnahmen && (
-                    <div>
-                        <Text size="sm" fw={600} mb={2}>
-                            Teilinbetriebnahmen:
-                        </Text>
-                        <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>
-                            {entry.teilinbetriebnahmen}
-                        </Text>
-                    </div>
-                )}
+                <Textarea
+                    label="Teilinbetriebnahmen"
+                    autosize
+                    minRows={3}
+                    maxRows={12}
+                    value={entry.teilinbetriebnahmen ?? ""}
+                    onChange={(e) => onFieldChange("teilinbetriebnahmen", e.currentTarget.value)}
+                    styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
+                />
+
+                {/* Verkehrliche Zielsetzung */}
+                <Textarea
+                    label="Verkehrliche Zielsetzung"
+                    autosize
+                    minRows={3}
+                    maxRows={12}
+                    value={entry.verkehrliche_zielsetzung ?? ""}
+                    onChange={(e) => onFieldChange("verkehrliche_zielsetzung", e.currentTarget.value)}
+                    styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
+                />
+
+                {/* Durchgeführte Maßnahmen */}
+                <Textarea
+                    label="Durchgeführte Maßnahmen"
+                    autosize
+                    minRows={3}
+                    maxRows={12}
+                    value={entry.durchgefuehrte_massnahmen ?? ""}
+                    onChange={(e) => onFieldChange("durchgefuehrte_massnahmen", e.currentTarget.value)}
+                    styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
+                />
+
+                {/* Noch umzusetzende Maßnahmen */}
+                <Textarea
+                    label="Noch umzusetzende Maßnahmen"
+                    autosize
+                    minRows={3}
+                    maxRows={12}
+                    value={entry.noch_umzusetzende_massnahmen ?? ""}
+                    onChange={(e) => onFieldChange("noch_umzusetzende_massnahmen", e.currentTarget.value)}
+                    styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
+                />
 
                 {/* PFA-Tabelle — always shown */}
                 {entry.pfa_entries && entry.pfa_entries.length > 0 && (
@@ -298,6 +342,12 @@ export default function VibReviewPage() {
         });
     };
 
+    const handleFieldChange = (idx: number) => (field: keyof VibEntryProposed, value: string) => {
+        setEntries((prev) =>
+            (prev ?? parseResult.entries).map((e, i) => (i === idx ? { ...e, [field]: value || null } : e))
+        );
+    };
+
     const handleConfirm = async () => {
         if (!taskId) return;
         const payload = {
@@ -395,6 +445,10 @@ export default function VibReviewPage() {
                             })
                         }
                         onRawTextChange={(text) => updateCurrentEntry({ raw_text: text })}
+                        onFieldChange={handleFieldChange(currentIndex)}
+                        onPfaChange={() => {}}
+                        onPfaAdd={() => {}}
+                        onPfaRemove={() => {}}
                     />
                 )}
             </Stack>
