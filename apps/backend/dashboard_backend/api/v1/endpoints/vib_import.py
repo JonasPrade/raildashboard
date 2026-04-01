@@ -4,6 +4,7 @@ from fastapi import Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from dashboard_backend.celery_app import celery_app
+from dashboard_backend.core.config import settings
 from dashboard_backend.core.security import require_roles
 from dashboard_backend.crud.vib import (
     create_vib_report_with_entries,
@@ -19,6 +20,7 @@ from dashboard_backend.routing.auth_router import AuthRouter
 from dashboard_backend.schemas.tasks import TaskLaunchResponse
 from dashboard_backend.schemas.users import UserRole
 from dashboard_backend.schemas.vib import (
+    VibAiAvailableResponse,
     VibConfirmRequest,
     VibConfirmResponse,
     VibParseTaskResult,
@@ -29,6 +31,24 @@ from dashboard_backend.tasks.vib import parse_vib_pdf
 router = AuthRouter()
 
 _require_editor = Depends(require_roles(UserRole.editor, UserRole.admin))
+
+
+# ---------------------------------------------------------------------------
+# GET /ai-available — check if LLM-based AI extraction is configured
+# ---------------------------------------------------------------------------
+
+@router.get(
+    "/ai-available",
+    response_model=VibAiAvailableResponse,
+    dependencies=[_require_editor],
+)
+def vib_ai_available():
+    """Return whether LLM-based AI extraction is configured."""
+    available = bool(settings.llm_base_url)
+    return VibAiAvailableResponse(
+        available=available,
+        model=settings.llm_model if available else None,
+    )
 
 
 # ---------------------------------------------------------------------------

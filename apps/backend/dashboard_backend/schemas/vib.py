@@ -173,3 +173,8 @@ class VibEntryForProjectSchema(BaseModel):
     pfa_entries: list[VibPfaEntrySchema] = []
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class VibAiAvailableResponse(BaseModel):
+    available: bool
+    model: Optional[str] = None

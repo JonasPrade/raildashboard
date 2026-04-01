@@ -12,6 +12,9 @@ os.environ.setdefault("GRAPH_VERSION", "test-graph")
 # Use in-memory broker and backend so tests run without a Redis instance.
 os.environ.setdefault("CELERY_BROKER_URL", "memory://")
 os.environ.setdefault("CELERY_RESULT_BACKEND", "cache+memory://")
+os.environ.setdefault("LLM_BASE_URL", "")
+os.environ.setdefault("LLM_API_KEY", "")
+os.environ.setdefault("LLM_MODEL", "test-model")
 
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))

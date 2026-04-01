@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     backend_cors_origins: list[str] = ["http://localhost:5173"]
     celery_broker_url: str = "redis://localhost:6379/0"
     celery_result_backend: str = "redis://localhost:6379/0"
+    # LLM settings for optional VIB AI extraction
+    # llm_base_url empty = feature disabled
+    llm_base_url: str = ""
+    llm_api_key: str = ""
+    llm_model: str = "gpt-4o-mini"
 
     model_config = SettingsConfigDict(
         env_file=str(_REPO_ROOT / f".env{_ENV_SUFFIX}"),
