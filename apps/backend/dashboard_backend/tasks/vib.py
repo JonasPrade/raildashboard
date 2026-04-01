@@ -100,7 +100,7 @@ _RAW_TEXT_MAX_CHARS = 8000
 # ---------------------------------------------------------------------------
 
 def _is_two_column_page(words: list) -> bool:
-    """Return True if more than 15% of words start in the right-column zone (x0 > 260 pt)."""
+    """Return True if at least 15% of words start in the right-column zone (x0 > 260 pt)."""
     if not words:
         return False
     right_count = sum(1 for w in words if w["x0"] > 260)
