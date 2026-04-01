@@ -1,6 +1,7 @@
 """Unit tests for VIB parser helper functions."""
 import pytest
 from dashboard_backend.tasks.vib import _is_two_column_page, _extract_page_text_columns
+from dashboard_backend.tasks.vib import _VORHABEN_SECTION_RE
 
 
 def _make_word(x0: float, top: float, text: str) -> dict:
@@ -29,3 +30,25 @@ class TestIsTwoColumnPage:
         left = [_make_word(50, i * 10, "l") for i in range(98)]
         right = [_make_word(300, i * 10, "r") for i in range(2)]
         assert _is_two_column_page(left + right) is False
+
+
+class TestVorhabenSectionRe:
+    def test_matches_standard_format(self):
+        m = _VORHABEN_SECTION_RE.search("B.4.1.3  Some long heading with artifacts")
+        assert m is not None
+        assert m.group(1).replace(" ", ".") == "B.4.1.3"
+
+    def test_matches_ocr_space_variant(self):
+        m = _VORHABEN_SECTION_RE.search("B 4.2.1  Heading text")
+        assert m is not None
+        assert m.group(1).replace(" ", ".") == "B.4.2.1"
+
+    def test_does_not_match_toc_subsection(self):
+        # B.4 without two trailing levels must not match
+        m = _VORHABEN_SECTION_RE.search("B.4.1  Section overview")
+        assert m is None
+
+    def test_matches_multiline(self):
+        text = "Some preamble\nB.4.1.5\nMore content"
+        m = _VORHABEN_SECTION_RE.search(text)
+        assert m is not None

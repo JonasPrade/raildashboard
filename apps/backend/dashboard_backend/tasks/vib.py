@@ -41,6 +41,14 @@ _VORHABEN_HEADING_RE = re.compile(
     re.MULTILINE,
 )
 
+# Simplified anchor: match just the section number at line start.
+# More robust than _VORHABEN_HEADING_RE because right-column artifacts on
+# the heading line no longer prevent detection.
+_VORHABEN_SECTION_RE = re.compile(
+    r"^(B[\s.]4\.[123]\.\d+)\b",
+    re.MULTILINE,
+)
+
 # TOC entry pattern: "B 4.1.1 Name ... 56" or "B.4.1.8 Name" (multi-line)
 _TOC_ENTRY_RE = re.compile(r"^(B[\s.]4\.[123]\.\d+)\s+(.+)", re.MULTILINE)
 # Trailing dots (continuous "....." or spaced ". . .") + page number at end of a TOC line
@@ -421,7 +429,7 @@ def _parse_vib_pdf(
     logger.info("VIB: parsed %d project names from TOC", len(toc_names))
 
     # Find all Vorhaben headings within the rail section
-    heading_matches = list(_VORHABEN_HEADING_RE.finditer(rail_text))
+    heading_matches = list(_VORHABEN_SECTION_RE.finditer(rail_text))
     logger.info("VIB: found %d Vorhaben headings", len(heading_matches))
 
     entries: list[VibEntryProposed] = []
@@ -429,7 +437,7 @@ def _parse_vib_pdf(
     for i, hm in enumerate(heading_matches):
         # Normalize "B 4.1.1" (OCR space artefact) → "B.4.1.1"
         section_nr = hm.group(1).strip().replace(" ", ".")
-        extracted_name = hm.group(2).strip()
+        extracted_name = ""  # name always comes from TOC; not captured from body heading
 
         block_start = hm.start()
         block_end = (
