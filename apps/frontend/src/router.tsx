@@ -15,6 +15,7 @@ const HaushaltsGuidePage = lazy(() => import("./features/haushalt-import/Haushal
 const FinveOverviewPage = lazy(() => import("./features/finves/FinveOverviewPage"));
 const VibImportPage = lazy(() => import("./features/vib-import/VibImportPage"));
 const VibReviewPage = lazy(() => import("./features/vib-import/VibReviewPage"));
+const VibStructurePreviewPage = lazy(() => import("./features/vib-import/VibStructurePreviewPage"));
 
 function Layout() {
     return (
@@ -107,6 +108,14 @@ export const router = createBrowserRouter([
                 element: (
                     <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
                         <VibReviewPage />
+                    </Suspense>
+                ),
+            },
+            {
+                path: "admin/vib-import/preview/:taskId",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <VibStructurePreviewPage />
                     </Suspense>
                 ),
             },

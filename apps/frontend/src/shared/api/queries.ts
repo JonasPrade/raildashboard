@@ -864,3 +864,19 @@ export function useProjectVibEntries(projectId: number) {
         queryFn: () => api<VibEntryForProject[]>(`/api/v1/projects/${projectId}/vib`),
     });
 }
+
+export function useVibAiAvailable() {
+    return useQuery({
+        queryKey: ["vib-ai-available"],
+        queryFn: () => api<{ available: boolean; model: string | null }>("/api/v1/import/vib/ai-available"),
+    });
+}
+
+export function useStartVibAiExtraction() {
+    return useMutation({
+        mutationFn: (parseTaskId: string) =>
+            api<TaskLaunchResponse>(`/api/v1/import/vib/extract-ai/${parseTaskId}`, {
+                method: "POST",
+            }),
+    });
+}

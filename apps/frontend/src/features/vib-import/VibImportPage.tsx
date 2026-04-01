@@ -64,7 +64,7 @@ export default function VibImportPage() {
         if (!taskId || !taskStatus.data) return;
         const { status } = taskStatus.data;
         if (status === "SUCCESS") {
-            navigate(`/admin/vib-import/review/${taskId}`);
+            navigate(`/admin/vib-import/preview/${taskId}`);
         }
         if (status === "FAILURE") {
             notifications.show({
