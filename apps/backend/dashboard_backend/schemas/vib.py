@@ -54,6 +54,8 @@ class VibEntryProposed(BaseModel):
     project_id: Optional[int] = None
     # Auto-suggestion computed during parse (read-only hint for review UI)
     suggested_project_ids: list[int] = []
+    # Set to True after LLM extraction has been applied
+    ai_extracted: bool = False
 
 
 # ---------------------------------------------------------------------------

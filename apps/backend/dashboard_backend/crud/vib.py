@@ -60,6 +60,16 @@ def delete_draft(db: Session, task_id: str) -> None:
     db.query(VibDraftReport).filter(VibDraftReport.task_id == task_id).delete()
 
 
+def update_draft_ai_result(db: Session, task_id: str, raw_result_json: str) -> bool:
+    """Replace the raw_result_json of an existing draft. Returns False if not found."""
+    draft = get_draft_by_task_id(db, task_id)
+    if draft is None:
+        return False
+    draft.raw_result_json = raw_result_json
+    db.flush()
+    return True
+
+
 # ---------------------------------------------------------------------------
 # VibReport queries
 # ---------------------------------------------------------------------------
