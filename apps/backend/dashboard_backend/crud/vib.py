@@ -177,9 +177,10 @@ def create_vib_report_with_entries(
         db.flush()  # get vib_entry.id
 
         if entry_data.project_ids:
+            unique_pids = list(dict.fromkeys(entry_data.project_ids))
             db.execute(
                 vib_entry_project.insert(),
-                [{"vib_entry_id": vib_entry.id, "project_id": pid} for pid in entry_data.project_ids],
+                [{"vib_entry_id": vib_entry.id, "project_id": pid} for pid in unique_pids],
             )
 
         entries_created += 1
