@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Text, Float, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
 
 from dashboard_backend.models.base import Base
+from dashboard_backend.models.vib.vib_entry_project import vib_entry_project
 
 
 class VibEntry(Base):
@@ -10,9 +11,6 @@ class VibEntry(Base):
     id = Column(Integer, primary_key=True, index=True)
     vib_report_id = Column(
         Integer, ForeignKey("vib_report.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    project_id = Column(
-        Integer, ForeignKey("project.id", ondelete="SET NULL"), nullable=True, index=True
     )
     vib_section = Column(String(20), nullable=True)   # e.g. "B.4.1.1"
     vib_lfd_nr = Column(String(20), nullable=True)
@@ -31,11 +29,13 @@ class VibEntry(Base):
     gesamtkosten_mio_eur = Column(Float, nullable=True)
     entwurfsgeschwindigkeit = Column(String(50), nullable=True)
     planungsstand = Column(Text, nullable=True)
-    project_status = Column(String(20), nullable=True)   # "Planung" | "Bau" | None
+    status_planung = Column(Boolean, nullable=False, server_default="false", default=False)
+    status_bau = Column(Boolean, nullable=False, server_default="false", default=False)
+    status_abgeschlossen = Column(Boolean, nullable=False, server_default="false", default=False)
 
     ai_extracted = Column(Boolean, nullable=False, server_default="false", default=False)
     ai_result = Column(Text, nullable=True)  # JSON blob from LLM extraction
 
     report = relationship("VibReport", back_populates="entries")
-    project = relationship("Project", foreign_keys=[project_id])
+    projects = relationship("Project", secondary=vib_entry_project, backref="vib_entries")
     pfa_entries = relationship("VibPfaEntry", back_populates="vib_entry", cascade="all, delete-orphan")
