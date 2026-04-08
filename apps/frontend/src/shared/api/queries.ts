@@ -595,9 +595,13 @@ export type HaushaltsConfirmResponse = {
 
 export type TaskLaunchResponse = { task_id: string };
 export type TaskProgressMeta = {
-    current_page: number;
-    total_pages: number;
-    rows_found: number;
+    // VIB parse steps
+    step?: string;
+    step_label?: string;
+    // legacy page-based progress (haushalt import)
+    current_page?: number;
+    total_pages?: number;
+    rows_found?: number;
 };
 
 export type TaskStatusResponse = {
@@ -730,10 +734,17 @@ export type VibEntryProposed = {
     gesamtkosten_mio_eur: number | null;
     entwurfsgeschwindigkeit: string | null;
     planungsstand: string | null;
-    project_status: "Planung" | "Bau" | null;
     pfa_entries: VibPfaEntryProposed[];
-    project_id: number | null;
+    pfa_raw_markdown: string | null;
+    sonstiges: string | null;
+    project_ids: number[];
     suggested_project_ids: number[];
+    status_planung: boolean;
+    status_bau: boolean;
+    status_abgeschlossen: boolean;
+    ai_extracted: boolean;
+    ai_extraction_failed: boolean;
+    ai_extraction_error: string | null;
 };
 
 export type VibParseTaskResult = {
@@ -797,7 +808,9 @@ export type VibEntryForProject = {
     gesamtkosten_mio_eur: number | null;
     entwurfsgeschwindigkeit: string | null;
     planungsstand: string | null;
-    project_status: "Planung" | "Bau" | null;
+    status_planung: boolean;
+    status_bau: boolean;
+    status_abgeschlossen: boolean;
     ai_extracted: boolean;
     pfa_entries: VibPfaEntrySchema[];
 };
@@ -813,10 +826,25 @@ export function useVibParseResult(taskId: string | null) {
 
 export function useStartVibImport() {
     return useMutation({
-        mutationFn: ({ pdf, year }: { pdf: File; year: number }) => {
+        mutationFn: ({
+            pdf,
+            year,
+            startPage,
+            endPage,
+            stripHeadersFooters = true,
+        }: {
+            pdf: File;
+            year: number;
+            startPage?: number;
+            endPage?: number;
+            stripHeadersFooters?: boolean;
+        }) => {
             const form = new FormData();
             form.append("pdf", pdf);
             form.append("year", String(year));
+            if (startPage != null) form.append("start_page", String(startPage));
+            if (endPage != null) form.append("end_page", String(endPage));
+            form.append("strip_headers_footers", String(stripHeadersFooters));
             return api<TaskLaunchResponse>("/api/v1/import/vib/parse", {
                 method: "POST",
                 body: form,
@@ -854,6 +882,7 @@ export function useConfirmVibImport() {
             }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["vib-reports"] });
+            queryClient.invalidateQueries({ queryKey: ["vib-drafts"] });
         },
     });
 }
@@ -872,11 +901,62 @@ export function useVibAiAvailable() {
     });
 }
 
+export function useVibOcrAvailable() {
+    return useQuery({
+        queryKey: ["vib-ocr-available"],
+        queryFn: () => api<{ available: boolean; model: string | null }>("/api/v1/import/vib/ocr-available"),
+    });
+}
+
 export function useStartVibAiExtraction() {
     return useMutation({
         mutationFn: (parseTaskId: string) =>
             api<TaskLaunchResponse>(`/api/v1/import/vib/extract-ai/${parseTaskId}`, {
                 method: "POST",
             }),
+    });
+}
+
+export function useSaveVibDraft() {
+    return useMutation({
+        mutationFn: ({ taskId, data }: { taskId: string; data: VibParseTaskResult }) =>
+            api<void>(`/api/v1/import/vib/draft/${taskId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+            }),
+    });
+}
+
+export function useRetryVibAiForEntry() {
+    return useMutation({
+        mutationFn: ({ taskId, entryIdx }: { taskId: string; entryIdx: number }) =>
+            api<VibEntryProposed>(`/api/v1/import/vib/extract-ai/${taskId}/entry/${entryIdx}`, {
+                method: "POST",
+            }),
+    });
+}
+
+export type VibDraftSchema = {
+    task_id: string;
+    year: number;
+    created_at: string;
+};
+
+export function useVibDrafts() {
+    return useQuery({
+        queryKey: ["vib-drafts"],
+        queryFn: () => api<VibDraftSchema[]>("/api/v1/import/vib/drafts"),
+    });
+}
+
+export function useDeleteVibDraft() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (taskId: string) =>
+            api<void>(`/api/v1/import/vib/drafts/${taskId}`, { method: "DELETE" }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["vib-drafts"] });
+        },
     });
 }
