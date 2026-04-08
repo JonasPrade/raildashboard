@@ -94,7 +94,7 @@ class VibParseTaskResult(BaseModel):
 # ---------------------------------------------------------------------------
 
 class VibConfirmEntryInput(BaseModel):
-    """One entry as submitted in the confirm request (project_id adjusted by user)."""
+    """One entry as submitted in the confirm request (project_ids adjusted by user)."""
 
     vib_section: Optional[str] = None
     vib_lfd_nr: Optional[str] = None
