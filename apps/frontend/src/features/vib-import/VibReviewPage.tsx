@@ -4,13 +4,15 @@ import {
     ActionIcon,
     Alert,
     Badge,
+    Box,
     Button,
     Card,
+    Checkbox,
     Container,
     Group,
     Loader,
+    MultiSelect,
     Paper,
-    Select,
     Stack,
     Table,
     Text,
@@ -18,6 +20,8 @@ import {
     Title,
     Tooltip,
 } from "@mantine/core";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import { useAuth } from "../../lib/auth";
@@ -25,6 +29,10 @@ import {
     useVibParseResult,
     useConfirmVibImport,
     useProjects,
+    useSaveVibDraft,
+    useRetryVibAiForEntry,
+    useVibAiAvailable,
+    useVibOcrAvailable,
     type VibEntryProposed,
     type VibConfirmEntryInput,
 } from "../../shared/api/queries";
@@ -36,11 +44,6 @@ const CATEGORY_COLORS: Record<string, string> = {
     abgeschlossen: "gray",
 };
 
-const PROJECT_STATUS_OPTIONS = [
-    { value: "Planung", label: "Planung" },
-    { value: "Bau", label: "Bau" },
-];
-
 function VibEntryCard({
     entry,
     projectOptions,
@@ -51,39 +54,66 @@ function VibEntryCard({
     onPfaChange,
     onPfaAdd,
     onPfaRemove,
+    onRetryAi,
+    isRetryingAi,
 }: {
     entry: VibEntryProposed;
     projectOptions: { value: string; label: string }[];
-    onProjectChange: (projectId: number | null) => void;
-    onStatusChange: (status: string | null) => void;
+    onProjectChange: (projectIds: number[]) => void;
+    onStatusChange: (field: "status_planung" | "status_bau" | "status_abgeschlossen", value: boolean) => void;
     onRawTextChange: (text: string) => void;
     onFieldChange: (field: keyof VibEntryProposed, value: string) => void;
     onPfaChange: (pfaIndex: number, field: string, value: string) => void;
     onPfaAdd: () => void;
     onPfaRemove: (pfaIndex: number) => void;
+    onRetryAi?: () => void;
+    isRetryingAi?: boolean;
 }) {
+    const [showRawPfa, setShowRawPfa] = useState(false);
+
     const hasSuggestion =
-        entry.project_id !== null ||
+        entry.project_ids.length > 0 ||
         (entry.suggested_project_ids && entry.suggested_project_ids.length > 0);
     const confidence =
-        entry.project_id !== null && entry.suggested_project_ids[0] === entry.project_id
+        entry.project_ids.length > 0 &&
+        entry.suggested_project_ids.some((id) => entry.project_ids.includes(id))
             ? "high"
-            : entry.project_id !== null
+            : entry.project_ids.length > 0
               ? "manual"
               : "none";
 
     return (
         <Card withBorder radius="md" padding="lg" shadow="xs">
             <Stack gap="md">
-                {/* Section label */}
-                {entry.vib_section && (
-                    <Text size="xs" c="dimmed" ff="monospace">
-                        {entry.vib_section}
-                    </Text>
-                )}
-                {(entry as VibEntryProposed & { ai_extracted?: boolean }).ai_extracted && (
-                    <Badge size="xs" color="violet" variant="light">KI</Badge>
-                )}
+                {/* Section label + AI status badges */}
+                <Group gap="xs" align="center">
+                    {entry.vib_section && (
+                        <Text size="xs" c="dimmed" ff="monospace">
+                            {entry.vib_section}
+                        </Text>
+                    )}
+                    {entry.ai_extracted && (
+                        <Badge size="xs" color="violet" variant="light">KI</Badge>
+                    )}
+                    {entry.ai_extraction_failed && (
+                        <Tooltip label={entry.ai_extraction_error ?? "KI-Extraktion fehlgeschlagen"} withArrow>
+                            <Badge size="xs" color="orange" variant="light">KI fehlgeschlagen</Badge>
+                        </Tooltip>
+                    )}
+                    {onRetryAi && (
+                        <Button
+                            size="xs"
+                            variant="light"
+                            color={entry.ai_extraction_failed ? "orange" : "violet"}
+                            loading={isRetryingAi}
+                            onClick={onRetryAi}
+                        >
+                            {entry.ai_extracted || entry.ai_extraction_failed
+                                ? "KI wiederholen"
+                                : "KI extrahieren"}
+                        </Button>
+                    )}
+                </Group>
 
                 {/* Projektkenndaten */}
                 {(entry.strecklaenge_km !== null ||
@@ -108,28 +138,17 @@ function VibEntryCard({
                     </Group>
                 )}
 
-                {/* Planungsstand (extracted from PDF) */}
-                <Textarea
-                    label="Planungsstand"
-                    autosize
-                    minRows={3}
-                    maxRows={12}
-                    value={entry.planungsstand ?? ""}
-                    onChange={(e) => onFieldChange("planungsstand", e.currentTarget.value)}
-                    styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
-                />
-
-                {/* Project mapping + status */}
+                {/* Project mapping */}
                 <Group gap="sm" align="flex-end" wrap="wrap">
-                    <Select
-                        label="Projekt zuordnen"
+                    <MultiSelect
+                        label="Projekte zuordnen"
                         size="sm"
                         clearable
                         searchable
-                        placeholder="Projekt zuordnen…"
+                        placeholder="Projekte zuordnen…"
                         data={projectOptions}
-                        value={entry.project_id !== null ? String(entry.project_id) : null}
-                        onChange={(v) => onProjectChange(v !== null ? Number(v) : null)}
+                        value={entry.project_ids.map(String)}
+                        onChange={(vs) => onProjectChange(vs.map(Number))}
                         style={{ flex: 1, minWidth: 200 }}
                     />
                     {hasSuggestion && (
@@ -150,15 +169,25 @@ function VibEntryCard({
                             </Badge>
                         </Tooltip>
                     )}
-                    <Select
-                        label="Projektstatus"
-                        size="sm"
-                        clearable
-                        placeholder="–"
-                        data={PROJECT_STATUS_OPTIONS}
-                        value={entry.project_status ?? null}
-                        onChange={onStatusChange}
-                        style={{ width: 150 }}
+                </Group>
+
+                {/* Projektstatus – drei Checkboxen */}
+                <Group gap="lg">
+                    <Text size="sm" fw={500} style={{ minWidth: 100 }}>Projektstatus</Text>
+                    <Checkbox
+                        label="Planung"
+                        checked={entry.status_planung}
+                        onChange={(e) => onStatusChange("status_planung", e.currentTarget.checked)}
+                    />
+                    <Checkbox
+                        label="Bau"
+                        checked={entry.status_bau}
+                        onChange={(e) => onStatusChange("status_bau", e.currentTarget.checked)}
+                    />
+                    <Checkbox
+                        label="Abgeschlossen"
+                        checked={entry.status_abgeschlossen}
+                        onChange={(e) => onStatusChange("status_abgeschlossen", e.currentTarget.checked)}
                     />
                 </Group>
 
@@ -279,6 +308,48 @@ function VibEntryCard({
                     )}
                 </div>
 
+                {/* Bug 5: PFA raw markdown toggle */}
+                {entry.pfa_raw_markdown && (
+                    <div>
+                        <Button
+                            size="xs"
+                            variant="subtle"
+                            onClick={() => setShowRawPfa((v) => !v)}
+                            mb={4}
+                        >
+                            {showRawPfa ? "Roh-Markdown ausblenden" : "PFA Roh-Markdown anzeigen"}
+                        </Button>
+                        {showRawPfa && (
+                            <Box
+                                p="xs"
+                                style={{
+                                    fontSize: 12,
+                                    fontFamily: "var(--mantine-font-family-monospace)",
+                                    background: "var(--mantine-color-gray-0)",
+                                    borderRadius: 4,
+                                    overflowX: "auto",
+                                }}
+                                className="vib-raw-markdown"
+                            >
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                    {entry.pfa_raw_markdown}
+                                </ReactMarkdown>
+                            </Box>
+                        )}
+                    </div>
+                )}
+
+                {/* Sonstiges — leftover text not assigned to any sub-section, always shown */}
+                <Textarea
+                    label="Sonstiger Text (nicht zugeordnet)"
+                    autosize
+                    minRows={3}
+                    maxRows={12}
+                    value={entry.sonstiges ?? ""}
+                    onChange={(e) => onFieldChange("sonstiges", e.currentTarget.value)}
+                    styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
+                />
+
                 {/* Volltext — always shown, editable */}
                 {entry.raw_text !== null && entry.raw_text !== undefined && (
                     <Textarea
@@ -309,10 +380,15 @@ export default function VibReviewPage() {
 
     const { data: parseResult, isLoading, isError } = useVibParseResult(taskId ?? null);
     const { data: projects } = useProjects();
+    const { data: aiAvailable } = useVibAiAvailable();
+    const { data: ocrAvailable } = useVibOcrAvailable();
     const confirm = useConfirmVibImport();
+    const saveDraft = useSaveVibDraft();
+    const retryAi = useRetryVibAiForEntry();
 
     const [entries, setEntries] = useState<VibEntryProposed[] | null>(null);
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [retryingIdx, setRetryingIdx] = useState<number | null>(null);
 
     if (user?.role !== "editor" && user?.role !== "admin") {
         return (
@@ -412,6 +488,40 @@ export default function VibReviewPage() {
         );
     };
 
+    const handleSaveDraft = async () => {
+        if (!taskId || !parseResult) return;
+        try {
+            await saveDraft.mutateAsync({
+                taskId,
+                data: {
+                    year: parseResult.year,
+                    drucksache_nr: parseResult.drucksache_nr,
+                    report_date: parseResult.report_date,
+                    entries: displayEntries,
+                },
+            });
+            notifications.show({ color: "green", message: "Entwurf gespeichert." });
+        } catch {
+            notifications.show({ color: "red", message: "Entwurf konnte nicht gespeichert werden." });
+        }
+    };
+
+    const handleRetryAi = async (idx: number) => {
+        if (!taskId) return;
+        setRetryingIdx(idx);
+        try {
+            const updated = await retryAi.mutateAsync({ taskId, entryIdx: idx });
+            setEntries((prev) =>
+                (prev ?? parseResult!.entries).map((e, i) => (i === idx ? updated : e))
+            );
+            notifications.show({ color: "green", message: "KI-Extraktion erfolgreich." });
+        } catch {
+            notifications.show({ color: "red", message: "KI-Extraktion fehlgeschlagen." });
+        } finally {
+            setRetryingIdx(null);
+        }
+    };
+
     const handleConfirm = async () => {
         if (!taskId) return;
         const payload = {
@@ -437,7 +547,8 @@ export default function VibReviewPage() {
         }
     };
 
-    const matchedCount = displayEntries.filter((e) => e.project_id !== null).length;
+    const matchedCount = displayEntries.filter((e) => e.project_ids.length > 0).length;
+    const failedAiCount = displayEntries.filter((e) => e.ai_extraction_failed).length;
 
     return (
         <Container size="lg" py="xl">
@@ -457,6 +568,25 @@ export default function VibReviewPage() {
                         <Text size="sm" c="dimmed">
                             {matchedCount} / {total} zugeordnet
                         </Text>
+                        {failedAiCount > 0 && (
+                            <Tooltip label={`${failedAiCount} Einträge: KI-Extraktion fehlgeschlagen`} withArrow>
+                                <Badge size="sm" color="orange" variant="light">
+                                    {failedAiCount} KI ✗
+                                </Badge>
+                            </Tooltip>
+                        )}
+                        <Tooltip label={ocrAvailable?.available ? `OCR: ${ocrAvailable.model}` : "Texterkennung: pymupdf"}>
+                            <Badge size="xs" variant="outline" color={ocrAvailable?.available ? "violet" : "gray"}>
+                                {ocrAvailable?.available ? "Mistral OCR" : "pymupdf"}
+                            </Badge>
+                        </Tooltip>
+                        <Button
+                            variant="light"
+                            onClick={handleSaveDraft}
+                            loading={saveDraft.isPending}
+                        >
+                            Entwurf speichern
+                        </Button>
                         <Button variant="outline" onClick={() => navigate("/admin/vib-import")}>
                             Abbrechen
                         </Button>
@@ -495,6 +625,11 @@ export default function VibReviewPage() {
                     >
                         {currentEntry.category}
                     </Badge>
+                    {currentEntry.ai_extraction_failed && (
+                        <Tooltip label={currentEntry.ai_extraction_error ?? "KI-Extraktion fehlgeschlagen – Wiederholen im Eintrag möglich"} withArrow>
+                            <Badge size="sm" color="orange" variant="filled">KI ✗</Badge>
+                        </Tooltip>
+                    )}
                 </Group>
 
                 {/* Entry card */}
@@ -502,17 +637,17 @@ export default function VibReviewPage() {
                     <VibEntryCard
                         entry={currentEntry}
                         projectOptions={projectOptions}
-                        onProjectChange={(projectId) => updateCurrentEntry({ project_id: projectId })}
-                        onStatusChange={(status) =>
-                            updateCurrentEntry({
-                                project_status: status as "Planung" | "Bau" | null,
-                            })
+                        onProjectChange={(projectIds) => updateCurrentEntry({ project_ids: projectIds })}
+                        onStatusChange={(field, value) =>
+                            updateCurrentEntry({ [field]: value })
                         }
                         onRawTextChange={(text) => updateCurrentEntry({ raw_text: text })}
                         onFieldChange={handleFieldChange(currentIndex)}
                         onPfaChange={handlePfaChange(currentIndex)}
                         onPfaAdd={handlePfaAdd(currentIndex)}
                         onPfaRemove={handlePfaRemove(currentIndex)}
+                        onRetryAi={aiAvailable?.available ? () => handleRetryAi(currentIndex) : undefined}
+                        isRetryingAi={retryingIdx === currentIndex}
                     />
                 )}
             </Stack>

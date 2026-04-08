@@ -85,6 +85,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/vib": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Project Vib
+         * @description Return all VIB entries linked to a project, newest year first.
+         */
+        get: operations["get_project_vib_api_v1_projects__project_id__vib_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/finves": {
         parameters: {
             query?: never;
@@ -636,6 +656,46 @@ export interface paths {
         patch: operations["patch_settings_api_v1_settings__patch"];
         trace?: never;
     };
+    "/api/v1/import/vib/ai-available": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Vib Ai Available
+         * @description Return whether LLM-based AI extraction is configured.
+         */
+        get: operations["vib_ai_available_api_v1_import_vib_ai_available_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/vib/ocr-available": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Vib Ocr Available
+         * @description Return whether Mistral OCR is configured.
+         */
+        get: operations["vib_ocr_available_api_v1_import_vib_ocr_available_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/import/vib/parse": {
         parameters: {
             query?: never;
@@ -649,9 +709,10 @@ export interface paths {
          * Start Vib Parse
          * @description Upload a VIB PDF and start a background parse task.
          *
+         *     start_page / end_page (optional, 1-indexed): restrict OCR to these pages only.
+         *     strip_headers_footers: remove repeated page headers/footers from OCR output (default True).
+         *
          *     Returns the Celery task_id for polling via GET /api/v1/tasks/{task_id}.
-         *     Once the task is in SUCCESS state, retrieve the parse result via
-         *     GET /import/vib/parse-result/{task_id}.
          */
         post: operations["start_vib_parse_api_v1_import_vib_parse_post"];
         delete?: never;
@@ -671,7 +732,8 @@ export interface paths {
          * Get Vib Parse Result
          * @description Retrieve the parse result for a completed Celery task.
          *
-         *     Returns VibParseTaskResult with entries and matching suggestions.
+         *     Tries Redis first (Celery result backend). Falls back to the
+         *     vib_draft_report DB table if the Redis entry has been evicted.
          *     Returns 202 if the task is still running; 422 if it failed.
          */
         get: operations["get_vib_parse_result_api_v1_import_vib_parse_result__task_id__get"];
@@ -700,6 +762,160 @@ export interface paths {
          *     Delete the existing report first if re-import is needed.
          */
         post: operations["confirm_vib_import_api_v1_import_vib_confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/vib/extract-ai/{parse_task_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Vib Ai Extraction
+         * @description Start the LLM extraction Celery task for a parsed VIB draft.
+         *
+         *     The parse_task_id must refer to a completed parse task whose draft is saved in DB.
+         *     Returns a new task_id for polling via GET /api/v1/tasks/{task_id}.
+         *     When the task reaches SUCCESS, the draft in DB is updated with AI-extracted content.
+         *     Retrieve the updated parse result via GET /parse-result/{parse_task_id}.
+         */
+        post: operations["start_vib_ai_extraction_api_v1_import_vib_extract_ai__parse_task_id__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/vib/drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Vib Drafts
+         * @description Return metadata for all unconfirmed VIB drafts, newest first.
+         */
+        get: operations["list_vib_drafts_api_v1_import_vib_drafts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/vib/drafts/{task_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Vib Draft
+         * @description Discard an unconfirmed VIB draft.
+         */
+        delete: operations["delete_vib_draft_api_v1_import_vib_drafts__task_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/vib/draft/{parse_task_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Save Vib Draft
+         * @description Overwrite the draft's raw_result_json with the current review state.
+         *
+         *     Called by the review UI to persist edits so work survives page reloads.
+         */
+        patch: operations["save_vib_draft_api_v1_import_vib_draft__parse_task_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/import/vib/extract-ai/{parse_task_id}/entry/{entry_idx}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retry Vib Ai For Entry
+         * @description Re-run LLM extraction synchronously for a single entry and persist the result.
+         */
+        post: operations["retry_vib_ai_for_entry_api_v1_import_vib_extract_ai__parse_task_id__entry__entry_idx__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/vib/draft/{task_id}/image/{image_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Vib Draft Image
+         * @description Return a single OCR image extracted from the Mistral OCR response.
+         *
+         *     image_id matches the id returned by the OCR API, e.g. "img-0.jpeg".
+         *     The image bytes are decoded from base64 and returned with the appropriate
+         *     content type (image/jpeg or image/png).
+         */
+        get: operations["get_vib_draft_image_api_v1_import_vib_draft__task_id__image__image_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/vib/draft/{task_id}/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Vib Draft Images
+         * @description Return metadata for all OCR images extracted from a draft (id, page_index).
+         *
+         *     Does NOT return base64 data — fetch individual images via
+         *     GET /draft/{task_id}/image/{image_id}.
+         */
+        get: operations["list_vib_draft_images_api_v1_import_vib_draft__task_id__images_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -786,6 +1002,15 @@ export interface components {
             pdf: string;
             /** Year */
             year: number;
+            /** Start Page */
+            start_page?: number | null;
+            /** End Page */
+            end_page?: number | null;
+            /**
+             * Strip Headers Footers
+             * @default true
+             */
+            strip_headers_footers: boolean;
         };
         /** BudgetSummarySchema */
         BudgetSummarySchema: {
@@ -2269,9 +2494,16 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /** VibAiAvailableResponse */
+        VibAiAvailableResponse: {
+            /** Available */
+            available: boolean;
+            /** Model */
+            model?: string | null;
+        };
         /**
          * VibConfirmEntryInput
-         * @description One entry as submitted in the confirm request (project_id adjusted by user).
+         * @description One entry as submitted in the confirm request (project_ids adjusted by user).
          */
         VibConfirmEntryInput: {
             /** Vib Section */
@@ -2303,13 +2535,37 @@ export interface components {
             gesamtkosten_mio_eur?: number | null;
             /** Entwurfsgeschwindigkeit */
             entwurfsgeschwindigkeit?: string | null;
+            /** Planungsstand */
+            planungsstand?: string | null;
+            /**
+             * Status Planung
+             * @default false
+             */
+            status_planung: boolean;
+            /**
+             * Status Bau
+             * @default false
+             */
+            status_bau: boolean;
+            /**
+             * Status Abgeschlossen
+             * @default false
+             */
+            status_abgeschlossen: boolean;
             /**
              * Pfa Entries
              * @default []
              */
             pfa_entries: components["schemas"]["VibPfaEntryProposed"][];
-            /** Project Id */
-            project_id?: number | null;
+            /** Pfa Raw Markdown */
+            pfa_raw_markdown?: string | null;
+            /** Sonstiges */
+            sonstiges?: string | null;
+            /**
+             * Project Ids
+             * @default []
+             */
+            project_ids: number[];
         };
         /** VibConfirmRequest */
         VibConfirmRequest: {
@@ -2335,6 +2591,81 @@ export interface components {
             entries_created: number;
             /** Pfa Entries Created */
             pfa_entries_created: number;
+        };
+        /**
+         * VibDraftSchema
+         * @description Metadata for an unconfirmed VIB draft (excludes the raw JSON payload).
+         */
+        VibDraftSchema: {
+            /** Task Id */
+            task_id: string;
+            /** Year */
+            year: number;
+            /** Created At */
+            created_at: string;
+        };
+        /**
+         * VibEntryForProjectSchema
+         * @description VIB entry as returned in GET /projects/{id}/vib.
+         */
+        VibEntryForProjectSchema: {
+            /** Id */
+            id: number;
+            /** Year */
+            year: number;
+            /** Drucksache Nr */
+            drucksache_nr?: string | null;
+            /** Vib Section */
+            vib_section?: string | null;
+            /** Vib Name Raw */
+            vib_name_raw: string;
+            /** Category */
+            category: string;
+            /** Bauaktivitaeten */
+            bauaktivitaeten?: string | null;
+            /** Teilinbetriebnahmen */
+            teilinbetriebnahmen?: string | null;
+            /** Verkehrliche Zielsetzung */
+            verkehrliche_zielsetzung?: string | null;
+            /** Durchgefuehrte Massnahmen */
+            durchgefuehrte_massnahmen?: string | null;
+            /** Noch Umzusetzende Massnahmen */
+            noch_umzusetzende_massnahmen?: string | null;
+            /** Raw Text */
+            raw_text?: string | null;
+            /** Strecklaenge Km */
+            strecklaenge_km?: number | null;
+            /** Gesamtkosten Mio Eur */
+            gesamtkosten_mio_eur?: number | null;
+            /** Entwurfsgeschwindigkeit */
+            entwurfsgeschwindigkeit?: string | null;
+            /** Planungsstand */
+            planungsstand?: string | null;
+            /**
+             * Status Planung
+             * @default false
+             */
+            status_planung: boolean;
+            /**
+             * Status Bau
+             * @default false
+             */
+            status_bau: boolean;
+            /**
+             * Status Abgeschlossen
+             * @default false
+             */
+            status_abgeschlossen: boolean;
+            /**
+             * Ai Extracted
+             * @default false
+             */
+            ai_extracted: boolean;
+            /**
+             * Pfa Entries
+             * @default []
+             */
+            pfa_entries: components["schemas"]["VibPfaEntrySchema"][];
         };
         /**
          * VibEntryProposed
@@ -2370,24 +2701,84 @@ export interface components {
             gesamtkosten_mio_eur?: number | null;
             /** Entwurfsgeschwindigkeit */
             entwurfsgeschwindigkeit?: string | null;
+            /** Planungsstand */
+            planungsstand?: string | null;
+            /**
+             * Status Planung
+             * @default false
+             */
+            status_planung: boolean;
+            /**
+             * Status Bau
+             * @default false
+             */
+            status_bau: boolean;
+            /**
+             * Status Abgeschlossen
+             * @default false
+             */
+            status_abgeschlossen: boolean;
             /**
              * Pfa Entries
              * @default []
              */
             pfa_entries: components["schemas"]["VibPfaEntryProposed"][];
-            /** Project Id */
-            project_id?: number | null;
+            /** Pfa Raw Markdown */
+            pfa_raw_markdown?: string | null;
+            /** Sonstiges */
+            sonstiges?: string | null;
+            /**
+             * Project Ids
+             * @default []
+             */
+            project_ids: number[];
             /**
              * Suggested Project Ids
              * @default []
              */
             suggested_project_ids: number[];
+            /**
+             * Ai Extracted
+             * @default false
+             */
+            ai_extracted: boolean;
+            /**
+             * Ai Extraction Failed
+             * @default false
+             */
+            ai_extraction_failed: boolean;
+            /** Ai Extraction Error */
+            ai_extraction_error?: string | null;
+        };
+        /** VibOcrAvailableResponse */
+        VibOcrAvailableResponse: {
+            /** Available */
+            available: boolean;
+            /** Model */
+            model?: string | null;
         };
         /**
          * VibParseTaskResult
          * @description Complete result returned by the parse_vib_pdf Celery task.
          */
-        VibParseTaskResult: {
+        "VibParseTaskResult-Input": {
+            /** Year */
+            year: number;
+            /** Drucksache Nr */
+            drucksache_nr?: string | null;
+            /** Report Date */
+            report_date?: string | null;
+            /**
+             * Entries
+             * @default []
+             */
+            entries: components["schemas"]["VibEntryProposed"][];
+        };
+        /**
+         * VibParseTaskResult
+         * @description Complete result returned by the parse_vib_pdf Celery task.
+         */
+        "VibParseTaskResult-Output": {
             /** Year */
             year: number;
             /** Drucksache Nr */
@@ -2422,6 +2813,27 @@ export interface components {
             /** Inbetriebnahme */
             inbetriebnahme?: string | null;
         };
+        /** VibPfaEntrySchema */
+        VibPfaEntrySchema: {
+            /** Id */
+            id: number;
+            /** Abschnitt Label */
+            abschnitt_label?: string | null;
+            /** Nr Pfa */
+            nr_pfa?: string | null;
+            /** Oertlichkeit */
+            oertlichkeit?: string | null;
+            /** Entwurfsplanung */
+            entwurfsplanung?: string | null;
+            /** Abschluss Finve */
+            abschluss_finve?: string | null;
+            /** Datum Pfb */
+            datum_pfb?: string | null;
+            /** Baubeginn */
+            baubeginn?: string | null;
+            /** Inbetriebnahme */
+            inbetriebnahme?: string | null;
+        };
         /** VibReportSchema */
         VibReportSchema: {
             /** Id */
@@ -2432,10 +2844,7 @@ export interface components {
             drucksache_nr?: string | null;
             /** Report Date */
             report_date?: string | null;
-            /**
-             * Imported At
-             * Format: date-time
-             */
+            /** Imported At */
             imported_at: string;
             /**
              * Entry Count
@@ -2596,6 +3005,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BvwpProjectDataSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_project_vib_api_v1_projects__project_id__vib_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VibEntryForProjectSchema"][];
                 };
             };
             /** @description Validation Error */
@@ -3694,6 +4134,46 @@ export interface operations {
             };
         };
     };
+    vib_ai_available_api_v1_import_vib_ai_available_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VibAiAvailableResponse"];
+                };
+            };
+        };
+    };
+    vib_ocr_available_api_v1_import_vib_ocr_available_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VibOcrAvailableResponse"];
+                };
+            };
+        };
+    };
     start_vib_parse_api_v1_import_vib_parse_post: {
         parameters: {
             query?: never;
@@ -3744,7 +4224,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["VibParseTaskResult"];
+                    "application/json": components["schemas"]["VibParseTaskResult-Output"];
                 };
             };
             /** @description Validation Error */
@@ -3778,6 +4258,214 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VibConfirmResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_vib_ai_extraction_api_v1_import_vib_extract_ai__parse_task_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                parse_task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskLaunchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_vib_drafts_api_v1_import_vib_drafts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VibDraftSchema"][];
+                };
+            };
+        };
+    };
+    delete_vib_draft_api_v1_import_vib_drafts__task_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_vib_draft_api_v1_import_vib_draft__parse_task_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                parse_task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VibParseTaskResult-Input"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retry_vib_ai_for_entry_api_v1_import_vib_extract_ai__parse_task_id__entry__entry_idx__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                parse_task_id: string;
+                entry_idx: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VibEntryProposed"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_vib_draft_image_api_v1_import_vib_draft__task_id__image__image_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+                image_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_vib_draft_images_api_v1_import_vib_draft__task_id__images_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
