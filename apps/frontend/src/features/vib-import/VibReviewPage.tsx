@@ -152,7 +152,7 @@ function VibEntryCard({
                         style={{ flex: 1, minWidth: 200 }}
                     />
                     {hasSuggestion && (
-                        <Tooltip label={`KI-Vorschlag: ${entry.suggested_project_ids.join(", ")}`}>
+                        <Tooltip label={`KI-Vorschlag: ${entry.suggested_project_ids.map(id => projectOptions.find(o => o.value === String(id))?.label ?? String(id)).join(", ")}`}>
                             <Badge
                                 size="xs"
                                 color={

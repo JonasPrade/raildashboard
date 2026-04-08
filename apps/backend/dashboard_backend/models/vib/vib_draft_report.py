@@ -27,4 +27,10 @@ class VibDraftReport(Base):
         nullable=True,
     )
 
+    # OCR extraction fields — populated by parse_vib_pdf when OCR is used
+    ocr_raw_text = Column(Text, nullable=True)       # full OCR text before block-splitting
+    ocr_status = Column(String(20), nullable=True)   # "done" | "fallback" | "failed"
+    ocr_model = Column(String(100), nullable=True)   # e.g. "mistral-ocr-2512" or "pymupdf"
+    ocr_images_json = Column(Text, nullable=True)    # JSON list of {page_index, id, image_base64}
+
     created_by = relationship("User", foreign_keys=[created_by_user_id])

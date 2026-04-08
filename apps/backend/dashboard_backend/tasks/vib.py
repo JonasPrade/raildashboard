@@ -800,7 +800,7 @@ def _parse_vib_pdf(
             pfa_entries=pfa_entries,
             pfa_raw_markdown=pfa_raw_markdown,
             sonstiges=sonstiges,
-            project_ids=[suggested_ids[0]] if suggested_ids else [],
+            project_ids=suggested_ids,
             suggested_project_ids=suggested_ids,
         )
         entries.append(entry)

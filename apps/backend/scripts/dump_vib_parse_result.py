@@ -32,18 +32,25 @@ def main() -> None:
     with open(pdf_path, "rb") as f:
         pdf_bytes = f.read()
 
-    result = _parse_vib_pdf(pdf_bytes, year)
+    parse_result, _full_text, ocr_model, ocr_status, _images = _parse_vib_pdf(pdf_bytes, year)
 
-    print(f"Year: {result.year}")
-    print(f"Drucksache: {result.drucksache_nr}")
-    print(f"Report date: {result.report_date}")
-    print(f"Entries found: {len(result.entries)}")
+    print(f"Year: {parse_result.year}")
+    print(f"Drucksache: {parse_result.drucksache_nr}")
+    print(f"Report date: {parse_result.report_date}")
+    print(f"OCR: {ocr_status} / {ocr_model}")
+    print(f"Entries found: {len(parse_result.entries)}")
     print("=" * 70)
 
-    for e in result.entries:
+    # Optional filter: show only a specific section (e.g. "B.4.1.1")
+    section_filter = sys.argv[3] if len(sys.argv) > 3 else None
+
+    for e in parse_result.entries:
+        if section_filter and e.vib_section != section_filter:
+            continue
         print(f"\n[{e.vib_section}] {e.vib_name_raw[:80]}")
         print(f"  category:       {e.category}")
-        print(f"  project_status: {e.project_status}")
+        flags = " ".join(f for f, v in [("Planung", e.status_planung), ("Bau", e.status_bau), ("Abgeschlossen", e.status_abgeschlossen)] if v) or "–"
+        print(f"  status_flags:   {flags}")
         print(f"  strecklaenge:   {e.strecklaenge_km} km")
         print(f"  gesamtkosten:   {e.gesamtkosten_mio_eur} Mio €")
         print(f"  PFA entries:    {len(e.pfa_entries)}")
@@ -52,6 +59,7 @@ def main() -> None:
             ("bauaktivitaeten", e.bauaktivitaeten),
             ("planungsstand", e.planungsstand),
             ("verkehrliche_zielsetzung", e.verkehrliche_zielsetzung),
+            ("sonstiges", e.sonstiges),
         ]
         for label, val in fields:
             preview = (val or "–")[:120].replace("\n", " ")
@@ -59,10 +67,9 @@ def main() -> None:
 
         if e.pfa_entries:
             print("  PFA rows:")
-            for pfa in e.pfa_entries[:3]:
-                print(f"    {pfa.nr_pfa} | {pfa.oertlichkeit} | {pfa.entwurfsplanung} | IBN: {pfa.inbetriebnahme}")
-            if len(e.pfa_entries) > 3:
-                print(f"    … ({len(e.pfa_entries) - 3} more)")
+            for pfa in e.pfa_entries:
+                abschnitt = f" [{pfa.abschnitt_label}]" if pfa.abschnitt_label else ""
+                print(f"    {pfa.nr_pfa}{abschnitt} | {pfa.oertlichkeit} | {pfa.entwurfsplanung} | IBN: {pfa.inbetriebnahme}")
 
 
 if __name__ == "__main__":

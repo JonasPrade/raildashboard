@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
     Alert,
     Button,
+    Checkbox,
     Container,
     FileInput,
     Group,
@@ -23,6 +24,8 @@ import {
     useTaskStatus,
     useVibReports,
     useDeleteVibReport,
+    useVibDrafts,
+    useDeleteVibDraft,
     type TaskProgressMeta,
 } from "../../shared/api/queries";
 
@@ -31,13 +34,26 @@ export default function VibImportPage() {
     const navigate = useNavigate();
 
     const [file, setFile] = useState<File | null>(null);
+    const [pdfUrl, setPdfUrl] = useState<string | null>(null);
     const [year, setYear] = useState<number>(new Date().getFullYear() - 1);
+    const [startPage, setStartPage] = useState<number | "">("");
+    const [endPage, setEndPage] = useState<number | "">("");
+    const [stripHeadersFooters, setStripHeadersFooters] = useState(true);
     const [taskId, setTaskId] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!file) { setPdfUrl(null); return; }
+        const url = URL.createObjectURL(file);
+        setPdfUrl(url);
+        return () => URL.revokeObjectURL(url);
+    }, [file]);
 
     const startImport = useStartVibImport();
     const taskStatus = useTaskStatus(taskId);
     const { data: reports, isLoading: reportsLoading } = useVibReports();
     const deleteReport = useDeleteVibReport();
+    const { data: drafts, isLoading: draftsLoading } = useVibDrafts();
+    const deleteDraft = useDeleteVibDraft();
 
     if (user?.role !== "editor" && user?.role !== "admin") {
         return (
@@ -52,7 +68,13 @@ export default function VibImportPage() {
     const handleUpload = async () => {
         if (!file) return;
         try {
-            const { task_id } = await startImport.mutateAsync({ pdf: file, year });
+            const { task_id } = await startImport.mutateAsync({
+                pdf: file,
+                year,
+                startPage: startPage !== "" ? startPage : undefined,
+                endPage: endPage !== "" ? endPage : undefined,
+                stripHeadersFooters,
+            });
             setTaskId(task_id);
         } catch {
             notifications.show({ color: "red", message: "Upload fehlgeschlagen." });
@@ -133,6 +155,38 @@ export default function VibImportPage() {
                                 max={2100}
                                 w={120}
                             />
+                        </Group>
+                        <Group align="flex-end" gap="sm" wrap="wrap">
+                            <NumberInput
+                                label="OCR: von Seite (optional)"
+                                description="Erste Seite von Abschnitt B"
+                                placeholder="z. B. 45"
+                                value={startPage}
+                                onChange={(v) => setStartPage(v === "" ? "" : Number(v))}
+                                min={1}
+                                w={180}
+                            />
+                            <NumberInput
+                                label="OCR: bis Seite (optional)"
+                                description="Letzte Seite von Abschnitt B"
+                                placeholder="z. B. 195"
+                                value={endPage}
+                                onChange={(v) => setEndPage(v === "" ? "" : Number(v))}
+                                min={1}
+                                w={180}
+                            />
+                            <Text size="xs" c="dimmed" maw={300} style={{ alignSelf: "flex-end", paddingBottom: 6 }}>
+                                Seitenbereich einschränken, damit Mistral OCR nur Abschnitt B verarbeitet.
+                                Leer lassen für automatische Erkennung.
+                            </Text>
+                        </Group>
+                        <Group align="center" gap="xl">
+                            <Checkbox
+                                label="Kopf- und Fußzeilen ignorieren"
+                                description="Wiederkehrende Zeilen (Seitenzahlen, Dokumenttitel) aus dem OCR-Text entfernen"
+                                checked={stripHeadersFooters}
+                                onChange={(e) => setStripHeadersFooters(e.currentTarget.checked)}
+                            />
                             <Button
                                 onClick={handleUpload}
                                 loading={startImport.isPending || isParsing}
@@ -147,21 +201,20 @@ export default function VibImportPage() {
                                 <Group gap="xs">
                                     <Loader size="xs" />
                                     <Text size="sm">
-                                        {progress
-                                            ? `Seite ${progress.current_page} / ${progress.total_pages}`
-                                            : "Parsing läuft…"}
+                                        {progress?.step_label
+                                            ? progress.step_label
+                                            : progress?.current_page != null
+                                              ? `Seite ${progress.current_page} / ${progress.total_pages}`
+                                              : "Parsing läuft…"}
                                     </Text>
                                 </Group>
                                 <Progress
                                     value={
-                                        progress
-                                            ? Math.round(
-                                                  (progress.current_page / progress.total_pages) *
-                                                      100
-                                              )
+                                        progress?.current_page != null && progress?.total_pages != null
+                                            ? Math.round((progress.current_page / progress.total_pages) * 100)
                                             : 100
                                     }
-                                    animated={!progress}
+                                    animated={!progress || progress.step === "ocr"}
                                     size="sm"
                                 />
                             </Stack>
@@ -169,7 +222,93 @@ export default function VibImportPage() {
                     </Stack>
                 </Paper>
 
-                {/* B — Imported reports */}
+                {/* PDF preview — shown when a file is selected */}
+                {pdfUrl && (
+                    <Paper withBorder p={0} style={{ overflow: "hidden" }}>
+                        <iframe
+                            src={pdfUrl}
+                            title="PDF-Vorschau"
+                            style={{ width: "100%", height: "75vh", border: "none", display: "block" }}
+                        />
+                    </Paper>
+                )}
+
+                {/* B — Open drafts */}
+                {(draftsLoading || (drafts && drafts.length > 0)) && (
+                    <Paper withBorder p="md">
+                        <Stack gap="md">
+                            <Title order={4}>Offene Entwürfe</Title>
+                            <Text size="sm" c="dimmed">
+                                Geparste PDFs, die noch nicht bestätigt wurden. Entwürfe können weiterbearbeitet werden.
+                            </Text>
+                            {draftsLoading ? (
+                                <Group justify="center"><Loader /></Group>
+                            ) : (
+                                <Table striped highlightOnHover withTableBorder>
+                                    <Table.Thead>
+                                        <Table.Tr>
+                                            <Table.Th>Jahr</Table.Th>
+                                            <Table.Th>Erstellt</Table.Th>
+                                            <Table.Th />
+                                        </Table.Tr>
+                                    </Table.Thead>
+                                    <Table.Tbody>
+                                        {drafts!.map((d) => (
+                                            <Table.Tr key={d.task_id}>
+                                                <Table.Td>{d.year}</Table.Td>
+                                                <Table.Td>
+                                                    {new Date(d.created_at).toLocaleString("de-DE", { timeZone: "Europe/Berlin" })}
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <Group gap="xs" justify="flex-end">
+                                                        <Button
+                                                            size="xs"
+                                                            variant="light"
+                                                            onClick={() =>
+                                                                navigate(`/admin/vib-import/review/${d.task_id}`)
+                                                            }
+                                                        >
+                                                            Weiterbearbeiten
+                                                        </Button>
+                                                        <Button
+                                                            size="xs"
+                                                            variant="subtle"
+                                                            color="red"
+                                                            onClick={() =>
+                                                                modals.openConfirmModal({
+                                                                    title: "Entwurf verwerfen?",
+                                                                    children: (
+                                                                        <Text size="sm">
+                                                                            Der Entwurf für Jahr {d.year} wird unwiderruflich gelöscht.
+                                                                        </Text>
+                                                                    ),
+                                                                    labels: { confirm: "Verwerfen", cancel: "Abbrechen" },
+                                                                    confirmProps: { color: "red" },
+                                                                    onConfirm: () =>
+                                                                        deleteDraft.mutate(d.task_id, {
+                                                                            onError: () =>
+                                                                                notifications.show({
+                                                                                    color: "red",
+                                                                                    message: "Löschen fehlgeschlagen.",
+                                                                                }),
+                                                                        }),
+                                                                })
+                                                            }
+                                                        >
+                                                            Verwerfen
+                                                        </Button>
+                                                    </Group>
+                                                </Table.Td>
+                                            </Table.Tr>
+                                        ))}
+                                    </Table.Tbody>
+                                </Table>
+                            )}
+                        </Stack>
+                    </Paper>
+                )}
+
+                {/* C — Imported reports */}
                 <Paper withBorder p="md">
                     <Stack gap="md">
                         <Title order={4}>Importierte Berichte</Title>
@@ -195,7 +334,8 @@ export default function VibImportPage() {
                                             <Table.Td>{r.drucksache_nr ?? "–"}</Table.Td>
                                             <Table.Td>
                                                 {new Date(r.imported_at).toLocaleDateString(
-                                                    "de-DE"
+                                                    "de-DE",
+                                                    { timeZone: "Europe/Berlin" }
                                                 )}
                                             </Table.Td>
                                             <Table.Td>{r.entry_count}</Table.Td>

@@ -22,11 +22,20 @@ class Settings(BaseSettings):
     backend_cors_origins: list[str] = ["http://localhost:5173"]
     celery_broker_url: str = "redis://localhost:6379/0"
     celery_result_backend: str = "redis://localhost:6379/0"
-    # LLM settings for optional VIB AI extraction
+    # LLM settings for optional VIB semantic extraction (OpenAI-compatible)
     # llm_base_url empty = feature disabled
     llm_base_url: str = ""
     llm_api_key: str = ""
     llm_model: str = "gpt-4o-mini"
+
+    # OCR settings for VIB PDF text extraction (Mistral OCR API)
+    # ocr_api_key empty = pymupdf fallback is used instead
+    ocr_api_key: str = ""
+    ocr_base_url: str = "https://api.mistral.ai"
+    ocr_model: str = "mistral-ocr-latest"
+    # Strip repeated header/footer lines (page numbers, running headers) from OCR output.
+    # Can be overridden per-import via the upload form.
+    ocr_strip_headers_footers: bool = True
 
     model_config = SettingsConfigDict(
         env_file=str(_REPO_ROOT / f".env{_ENV_SUFFIX}"),

@@ -8,9 +8,11 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 
 - [ ] make the "Schienenprojekte-Dashboard" clickable -> return to Start Page
 - [ ] Show Button Haushalt in menu for all - not only logged in users
+- [ ] integrate the new design described in `docs/DESIGN.md`
 
 This tasks must be done by human:
 - [ ] Import of the Haushalt Berichte 2020 - 2025
+- [ ] Update time slots Hochleistungskorridore
 
 ---
 
@@ -18,207 +20,37 @@ This tasks must be done by human:
 
 ### Verkehrsinvestitionsbericht (VIB) Import
 
-Jährlicher Import des Bundestagsdrucksache-PDFs „Verkehrsinvestitionsbericht für das Berichtsjahr XXXX". Nur **Abschnitt B** (Schienenwege der Eisenbahnen des Bundes) wird importiert; Abschnitte C (Straße) und D (Wasserstraße) werden ignoriert.
+Jährlicher Import des Bundestagsdrucksache-PDFs (Abschnitt B: Schienenwege). Vollständig implementiert: DB-Modelle, Mistral-OCR-Pipeline, Parser, KI-Inhaltsextraktion, Review-UI, API-Endpunkte, Import-UI und ProjectDetail-Anzeige.
 
-Der vollständige Text jedes Vorhabens wird gespeichert und in `ProjectDetail` angezeigt. Optional können per LLM automatisch Schlüsselinformationen extrahiert und als Einträge in das `ProjectProgress`-Datenmodell geschrieben werden (VIB ist eine von mehreren Quellen des ProjectProgress-Systems).
+Siehe: `docs/features/feature-vib-import.md`
 
-### More VIB features
+**Phase 1 — Parser-Fixes (kein LLM):**
+- [x] Per-Seite Spaltentyp-Erkennung (bimodal x0-Analyse statt festem COL_BOUNDARY)
+- [x] TOC-verankerte Blockgrenzen (Sektionsnummer als Anker)
+- [x] Debug-Script `scripts/dump_vib_parse_result.py`
+- [x] `project_status` aus Planungsstand-Block extrahieren
 
-#### Feature A — Planungsstand extraction
-- [x] Add `planungsstand` (Text, nullable) column to `vib_entry` (Alembic migration)
-- [x] Parser (`tasks/vib.py`): extract `Planungsstand:` label from raw text, same pattern as `Bauaktivitäten:`
-- [x] Add field to `VibEntryProposed`, `VibConfirmEntryInput`, `VibEntryForProjectSchema`
-- [x] CRUD: pass `planungsstand` on `VibEntry` create
-- [x] Display in card review (Feature C) and `VibSection.tsx`
+**Phase 2 — LLM-Inhaltsextraktion:**
+- [x] Celery-Task `extract_vib_blocks` + Endpoint
+- [x] `VibStructurePreviewPage`: Strukturvorschau nach Parse → direkt "Weiter zum Review" (kein Batch-KI-Schritt mehr)
+- [x] Nach Parse → Redirect zu Preview (statt direkt zu Review)
+- [x] KI-Badge auf extrahierten Karten
+- [x] **KI-Extraktion pro Vorhaben**: Im Review "KI extrahieren"-Button pro Eintrag (single-entry endpoint); ersetzt den früheren Batch-KI-Schritt. Begründung: Mistral OCR Qualität ist hoch genug, dass Batch-KI redundant ist; KI bleibt als optionales Werkzeug für einzelne Einträge verfügbar.
 
-#### Feature B — Project status (Planung / Bau) per VIB entry
-- [x] Add `project_status` (VARCHAR 20, nullable, values `"Planung"` | `"Bau"`) to `vib_entry` — same migration as Feature A
-- [x] Add field to all three schemas + CRUD
-- [x] Card review (Feature C): `Select` (Planung / Bau / –) per entry, state-managed like `project_id`
-- [x] `VibSection.tsx`: show as `Badge` next to category badge
+**Phase 3 — Review-UI:**
+- [x] Sub-Block-Felder editierbar (Textareas)
+- [x] PFA-Tabelle inline editierbar
 
-#### Feature C — Card navigation in VIB-Review
-- [x] Replace `<Table>` in `VibReviewPage` with single-card view
-- [x] Top bar: `[←] 3/42 [→]` arrows · entry name · category badge · matched count · Confirm button
-- [x] Card body (full width): section label, Kenndaten, Planungsstand, project Select + confidence badge, project_status Select, Bauaktivitäten, Teilinbetriebnahmen, PFA-Tabelle (collapsible), Volltext (collapsible)
-- [x] State: `currentIndex` (useState); confirm logic unchanged
-
----
-
-#### Dokumentstruktur (Referenz: VIB 2023, Drucksache 21/125)
-
-Jedes Schienenvorhaben (`B.4.x.x`) belegt 1–6 Seiten:
-
-| Block | Inhalt | Extraktion |
-|-------|--------|------------|
-| Überschrift | Abschnittsnr., Name (z.B. „ABS Lübeck–Rostock–Stralsund (VDE Nr. 1)"), Kategorie | Regex |
-| Streckenmap | Kartenbild | ignorieren |
-| Verkehrliche Zielsetzung | Fließtext / Bullets | Freitext |
-| Durchgeführte / Geplante Maßnahmen | Bullets | Freitext |
-| Noch umzusetzende Maßnahmen | Bullets (optional) | Freitext |
-| Projektkenndaten | Streckenlänge (km), Geschwindigkeit (km/h), Gesamtkosten (Mio. €) | Regex |
-| **PFA-Tabelle** | Nr. PFA, Örtlichkeit, Entwurfsplanung, Abschluss FinVe, Datum PFB, Baubeginn, Inbetriebnahme | pdfplumber table |
-| **Teilinbetriebnahmen [Jahr]** | Was im Berichtsjahr in Betrieb ging | Label + Bullets |
-| **Bauaktivitäten [Jahr]** | Was im Berichtsjahr gebaut wurde (primärer Fortschrittsindikator) | Label + Bullets |
-
-Kategorien: `laufend` (B.4.1), `neu` (B.4.2), `potentiell` (B.4.3), `abgeschlossen` (Kurzerwähnung).
-
----
-
-#### Phase 1 — Datenbankmodell
-
-```
-vib_report
-  id, year (int, unique), drucksache_nr (str), report_date (date),
-  imported_at, imported_by_user_id (FK users)
-
-vib_entry
-  id, vib_report_id (FK), project_id (FK projects, nullable – nach Mapping),
-  vib_section (str, z.B. "B.4.1.1"), vib_lfd_nr (str),
-  vib_name_raw (str),
-  category (enum: laufend | neu | potentiell | abgeschlossen),
-  raw_text (text),                  -- vollständiger Plain-Text des Vorhabens
-  bauaktivitaeten (text),           -- Abschnitt "Bauaktivitäten [Jahr]"
-  teilinbetriebnahmen (text),       -- Abschnitt "Teilinbetriebnahmen [Jahr]"
-  verkehrliche_zielsetzung (text),
-  durchgefuehrte_massnahmen (text),
-  noch_umzusetzende_massnahmen (text),
-  strecklaenge_km (float), gesamtkosten_mio_eur (float), entwurfsgeschwindigkeit (str),
-  ai_extracted (bool, default False)
-
-vib_pfa_entry
-  id, vib_entry_id (FK), abschnitt_label (str, z.B. "1. Baustufe"),
-  nr_pfa (str), oertlichkeit (str), entwurfsplanung (str),
-  abschluss_finve (str), datum_pfb (str), baubeginn (str), inbetriebnahme (str)
-```
-
-Alembic-Migration für alle drei Tabellen.
-
----
-
-#### Phase 2 — PDF-Parser
-
-Celery-Task `parse_vib_pdf` in `tasks/vib.py` (pdfplumber, bereits vorhanden).
-
-1. **Sektionsgrenzen**: Seite für Seite; Start bei Heading „B Schienenwege", Stop bei „C Bundesfernstraßen".
-2. **Vorhaben-Grenzen**: Regex `^B\s*\.4\.[123]\.\d+` in fettem/blauem Heading → neuer Entry; Text akkumulieren über Seitenumbrüche.
-3. **Strukturierte Felder**: Regex auf `Streckenlänge:`, `Gesamtkosten:`, `Entwurfsgeschwindigkeit:`.
-4. **Freitextblöcke**: Label-Suche auf `Bauaktivitäten \d{4}:` und `Teilinbetriebnahmen \d{4}:`, Bullets bis nächstes Hauptlabel.
-5. **PFA-Tabelle**: `pdfplumber.extract_tables()`, Spaltenköpfe als Erkennungsmerkmal, Zwischenzeilen als `abschnitt_label`.
-6. **raw_text**: gesamter akkumulierter Plain-Text des Vorhabens — wird unverändert gespeichert.
-7. **Abgeschlossene Vorhaben** (1–2 Sätze, keine PFA-Tabelle): `category=abgeschlossen`, nur `raw_text` + `vib_name_raw`.
-
----
-
-#### Phase 3 — Projektmapping (interaktiv wie Haushalt-Import)
-
-**Auto-Matching:**
-1. **VDE-Nummer** aus `vib_name_raw` extrahieren → gegen DB-Projektfeld matchen (höchste Konfidenz)
-2. **Fuzzy-Name-Matching** auf bereinigtem Streckennamen (SequenceMatcher + Token-Overlap, Threshold 0.5) — analog `finve_matching.py`
-3. Bisherige Mappings aus früheren Imports als Lookup-Cache
-
-**Admin-Review-UI** (`/admin/vib-import`):
-- **Upload-Schritt**: PDF hochladen → Celery-Task → Polling (identisches Muster wie Haushalt-Import)
-- **Review-Tabelle**: eine Zeile pro extrahiertem Vorhaben
-  - VIB-Abschnitt, Name, Kategorie-Badge
-  - Vorgeschlagenes Projekt mit Konfidenz-Chip (grün ≥ 0.7, gelb 0.5–0.7, rot < 0.5 / kein Treffer)
-  - Freitext-Projektsuche als manuelle Override
-  - Aufklappbarer Preview: extrahierte Felder + raw_text-Snippet
-- **Confirm-Button**: schreibt alle Einträge in DB; bei aktivierter KI optional LLM-Extraktion starten
-
----
-
-#### Phase 4 — Optionale LLM-Extraktion → ProjectProgress
-
-Nach dem Confirm kann der Admin optional „KI-Extraktion starten" wählen. Der Task `extract_vib_progress` läuft asynchron (Celery).
-
-**API-Design (provider-agnostisch):**
-
-```python
-# settings: LLM_BASE_URL, LLM_API_KEY, LLM_MODEL
-# Unterstützt jeden OpenAI-kompatiblen Endpunkt:
-#   OpenAI: api.openai.com/v1
-#   Anthropic (via compatibility layer)
-#   Ollama: localhost:11434/v1
-#   Azure OpenAI, Mistral, etc.
-
-POST {LLM_BASE_URL}/chat/completions
-{
-  "model": "{LLM_MODEL}",
-  "messages": [{"role": "user", "content": "<kompakter Prompt>"}],
-  "response_format": { "type": "json_object" }
-}
-```
-
-**Token-Minimierung** — der Prompt enthält nur bereits extrahierte Kurzfelder, NICHT `raw_text`:
-
-```
-Analysiere dieses Bahnprojekt und antworte als JSON.
-
-Projekt: {vib_name_raw}
-Gesamtkosten: {gesamtkosten_mio_eur} Mio. €
-Bauaktivitäten {year}: {bauaktivitaeten}          # meist 3–8 Sätze
-Inbetriebnahmen {year}: {teilinbetriebnahmen}     # meist 1–3 Zeilen
-Offene PFA-Abschnitte (Baubeginn/IBM noch offen): {kompakte_pfa_liste}
-
-Antworte ausschließlich als JSON:
-{
-  "cost_total_mio": <float|null>,
-  "construction_start_next": "<MM/YYYY|null>",   // frühester offener Baubeginn
-  "commissioning_next": "<MM/YYYY|null>",        // früheste offene Inbetriebnahme
-  "progress_summary": "<max 2 Sätze DE>",
-  "key_events": ["<event1>", "<event2>"]         // max 3 Einträge
-}
-```
-
-Typischer Prompt: ~300–500 Token. KI-Extraktion läuft nur wenn `LLM_BASE_URL` konfiguriert ist; ohne Konfiguration ist der Button ausgegraut.
-
-**Ergebnis** wird als `ProjectProgress`-Eintrag gespeichert (`source="vib_{year}"`). Definition des `ProjectProgress`-Modells ist eine eigenständige Roadmap-Aufgabe — VIB-Import bereitet das Feld vor, schreibt aber noch nicht direkt in das Modell bis dieses implementiert ist. Bis dahin: Extraktion in `vib_entry.ai_result` (JSON-Feld) speichern.
-
----
-
-#### Phase 5 — API-Endpunkte
-
-- `POST /api/v1/import/vib` — PDF-Upload → Task → `{ task_id }`
-- `GET /api/v1/import/vib/{task_id}/result` — Parse-Ergebnis + Mapping-Vorschläge
-- `POST /api/v1/import/vib/{task_id}/confirm` — Mapping bestätigen + DB schreiben
-- `POST /api/v1/import/vib/{task_id}/extract-ai` — optionaler LLM-Task starten
-- `GET /api/v1/vib/reports` — Liste aller importierten Berichte
-- `GET /api/v1/projects/{id}/vib` — alle VIB-Einträge eines Projekts (alle Jahre)
-
-Schemas in `schemas/vib.py`, CRUD in `crud/vib.py`, Router in `api/v1/endpoints/vib_import.py`.
-
----
-
-#### Phase 6 — Frontend-Anzeige in ProjectDetail
-
-Sektion **„Verkehrsinvestitionsberichte"** (nur eingeloggte Nutzer, analog Changelog):
-
-- Tab-Leiste pro Berichtsjahr (absteigend)
-- Je Tab: Bauaktivitäten-Text, Teilinbetriebnahmen-Text, aufklappbarer Volltext (`raw_text`), aufklappbare PFA-Tabelle
-- KI-Badge wenn `ai_extracted=True`, verlinkt zu ProjectProgress (sobald implementiert)
-
----
-
-#### Umgebungsvariablen (neu)
-
-| Variable | Beschreibung | Beispiel |
-|----------|-------------|---------|
-| `LLM_BASE_URL` | OpenAI-kompatibler Endpunkt (leer = KI deaktiviert) | `https://api.openai.com/v1` |
-| `LLM_API_KEY` | API-Key für den Endpunkt | `sk-...` |
-| `LLM_MODEL` | Modellname | `gpt-4o-mini` |
-
----
-
-#### Implementierungsreihenfolge
-
-1. [x] DB-Modelle + Alembic-Migration (`models/vib/`, `alembic/versions/20260313001_add_vib_tables.py`)
-2. [x] Parser `tasks/vib.py` + Debug-Script `scripts/dump_vib_parse_result.py`
-3. [x] Auto-Matching `tasks/vib_matching.py` (VDE-Nummer + Fuzzy-Name, Threshold 0.50)
-4. [x] API-Endpunkte + Schemas + CRUD (`schemas/vib.py`, `crud/vib.py`, `api/v1/endpoints/vib_import.py`) — `make gen-api` noch ausstehend (Backend muss laufen)
-5. [x] Frontend Import-Flow `features/vib-import/` (`VibImportPage.tsx`, `VibReviewPage.tsx`, Router + Queries)
-6. [ ] LLM-Extraktions-Task `tasks/vib_ai_extraction.py` (optionaler Schritt)
-7. [x] Frontend Projektdetail-Sektion `features/projects/components/VibSection.tsx` + `GET /api/v1/projects/{id}/vib` + Header nav link
+**Phase 4 — Mistral OCR Pipeline:**
+- [x] `tasks/vib_ocr.py`: Mistral OCR API integration (`mistral-ocr-latest`); pymupdf fallback when no API key
+- [x] `_inline_tables()`: Resolves `[tbl-N.md](tbl-N.md)` placeholders in `page.markdown` with `page.tables[i].content` — ensures PFA tables and all other markdown tables are present in `raw_text`
+- [x] `_page_to_text()`: Strips `page.header` / `page.footer` (API-separated fields) when `strip_headers_footers=True`; strips `![img-N.*](img-N.*)` image references via regex
+- [x] `extract_pages_as_pdf()`: Extracts sub-PDF for a given page range (1-indexed, pymupdf); sent to Mistral OCR instead of full PDF
+- [x] Import-UI: optional "von Seite / bis Seite" inputs (page range for OCR); "Kopf- und Fußzeilen ignorieren" checkbox (default on); PDF preview (iframe); timezone Europe/Berlin
+- [x] Parser: `_VORHABEN_SECTION_RE` extended to match both plain `B.4.1.3` and markdown heading `# B.4.1.3` formats; `_RAW_TEXT_MAX_CHARS` raised to 30,000; "Termine" added to `_BLOCK_LABELS`; `_parse_pfa_table_markdown()` for pipe-table PFA parsing
+- [x] `VibStructurePreviewPage`: richer raw text display — sub-section detection badges, char-count quality indicator, expandable rows with stats; removed false-positive alerts; raw text rendered as Markdown (`react-markdown` + `remark-gfm`) so pipe tables, headings, and bold text are displayed properly instead of as raw characters
+- [x] `_collect_images()`: collects `{page_index, id, image_base64}` from `page.images` for all OCR pages; stored as JSON in `vib_draft_report.ocr_images_json`
+- [x] API endpoints `GET /draft/{task_id}/images` (list metadata) and `GET /draft/{task_id}/image/{image_id}` (serve bytes) — base64-decoded, correct content-type for jpeg/png/webp
 
 ---
 
@@ -226,73 +58,43 @@ Sektion **„Verkehrsinvestitionsberichte"** (nur eingeloggte Nutzer, analog Cha
 
 ### Routenvorschlag per GrassHopper *(Backend + Frontend)*
 
-The backend infrastructure is fully implemented (GraphHopper HTTP client, `RouteService`, endpoints `POST /routes/calculate`, `POST /projects/{id}/routes`, `PUT /projects/{id}/routes/{route_id}`, `GET /projects/{id}/routes`, ORM model `routes`, CRUD, caching, tests). What is missing is the frontend workflow and one small backend addition.
+Backend-Infrastruktur vollständig implementiert (GraphHopper HTTP client, RouteService, Endpoints, ORM, CRUD, Tests, Docker). Offen: Frontend-Workflow + OperationalPoints-Endpoint.
 
-#### ✅ Done — Docker infrastructure
-- `docker/graphhopper/config.yml` — GraphHopper config with `rail_default` profile
-- `docker-compose.yml` (prod) — `graphhopper` service added; starts automatically with the stack
-- `docker-compose.dev.yml` — `graphhopper` service added behind `--profile routing` (opt-in)
-- `.env.docker.example` — `ROUTING_BASE_URL=http://graphhopper:8989` (was broken `localhost`)
-- `.env.example` — added note about dev compose profile command
-- `docs/production_setup.md` — GraphHopper setup section (PBF placement, first start, cache invalidation)
-- **Prerequisite (human task):** place OSM PBF at `data/graphhopper/map.osm.pbf` before first start
+**Prerequisite (human task):** OSM-PBF unter `data/graphhopper/map.osm.pbf` ablegen.
 
-#### Step 1 — Expose OperationalPoints as a searchable API endpoint *(Backend)*
-- Add `GET /api/v1/operational-points?q=<name_or_id>&limit=20` in a new file `api/v1/endpoints/operational_points.py`
-- Pydantic response schema: `OperationalPointRef { id, op_id, name, type, latitude, longitude }`
-- CRUD function `search_operational_points(db, query, limit)` — `ILIKE` filter on `name` and `op_id`
-- Register router in `api/v1/router.py` (public, no auth required)
-- Run `make gen-api` to sync the frontend client
-
-#### Step 2 — Route calculation dialog *(Frontend)*
-New component `RouteCalculatorModal.tsx` inside `features/routing/`:
-- Visible in `ProjectDetail` only for `editor` / `admin` roles; triggered by a button "Route berechnen"
-- Two `Combobox` / `Select` inputs (searchable via the new endpoint) for start and end OperationalPoint
-- "Berechnen"-button → `POST /api/v1/routes/calculate` with `{ waypoints: [{lat, lon}, {lat, lon}], profile: "rail_default", options: {} }`
-- Loading state, error handling (502 → "Routing-Dienst nicht erreichbar", 422 → "Kein Pfad gefunden")
-- On success: store the returned `RoutePreviewOut` GeoJSON Feature in local state
-
-#### Step 3 — Route preview on map *(Frontend)*
-- In `ProjectDetail` (or a dedicated `RoutePreviewMap`), add a temporary MapLibre `LineLayer` sourced from the preview GeoJSON
-- Style: dashed blue line, distinct from the solid project geometry
-- Show distance (km) and duration (min) from `properties.distance_m` / `properties.duration_ms`
-
-#### Step 4 — Accept / Reject flow *(Frontend)*
-- **Accept** → `POST /api/v1/projects/{id}/routes` with `{ feature: <RoutePreviewOut> }` → invalidate `projectRoutesQuery`; additionally `PATCH /api/v1/projects/{id}` to update `geojson_representation` so the route appears on the main map
-- **Reject** → clear preview state; no API call
-- After accept: show success notification, close modal, map re-renders with persisted route
-
-#### Step 5 — Saved routes list *(Frontend)*
-- Small section in `ProjectDetail` (editor/admin only) listing saved routes via `GET /api/v1/projects/{id}/routes`
-- Each row: date, distance, duration, "Als aktive Geometrie setzen"-button (PATCH geojson_representation) and "Ersetzen"-button (PUT replace)
-- Mutation hooks: `useConfirmRoute`, `useReplaceRoute`, `useSetProjectGeometry`
-
-#### Step 6 — Frontend query hooks *(Frontend)*
-Add to `queries.ts`:
-- `useOperationalPointSearch(query)` — debounced, enabled when `query.length >= 2`
-- `useCalculateRoute()` — mutation
-- `useConfirmRoute(projectId)` — mutation
-- `useReplaceRoute(projectId)` — mutation
+Siehe: `docs/features/feature-routing.md`
 
 ---
+
+### Admin: Offene Zuordnungen (BudgetFinVe & VIB)
+
+- [ ] In der Admin-Übersicht anzeigen, welche importierten Datensätze noch kein Projekt zugeordnet haben:
+  - **Haushalt / BudgetFinVe**: FinVes ohne verknüpftes Projekt (aus `finve_to_project`-Tabelle)
+  - **VIB-Einträge**: bestätigte VIB-Einträge (`vib_entry`) ohne `project_id`
+  - Darstellung als kompakte Warnsektionen auf einer Admin-Seite (z.B. `/admin/unassigned`) oder eingebettet in die jeweilige Import-Übersicht; direkter Link zum Bearbeiten des Eintrags
 
 ### Sonstiges
 
 - [ ] **ProjectProgress** *(Backend + Frontend)*
-  Fortschrittsstand eines Projekts (Planungs-, Genehmigungs-, Bauphase). Speist sich aus mehreren Quellen (z. B. Bundestag-Drucksachen, Pressemitteilungen, manuelle Eingabe). Benötigt Validierungslogik für Konflikte zwischen Quellen.
-  - Backend: `ProjectProgress`-Modell implementieren (Status, Datum, Quelle, Kommentar)
-  - Frontend: Zeitleiste/Meilenstein-Ansicht in `ProjectDetail`
+  Fortschrittsstand eines Projekts (Planungs-, Genehmigungs-, Bauphase) aus mehreren Quellen (VIB, manuell, Pressemitteilungen).
+  Siehe: `docs/features/feature-project-progress.md`
 
 - [ ] **BVWP-Datenimport** — Übernahme der BVWP-Daten aus der Legacy-Datenbank. Voraussetzung für die Anzeige der BVWP-Bewertung (Display-Feature bereits implementiert).
 
 - [ ] **Vervollständigung und Automatisierung Tests**
 - [ ] Cleanup Database structure. Evaluate
 - [ ] Bug-Report: A Button in the right corner where everybody can report Bugs or Problems (logged in users dont have to add there contact information). Bugs should be collect in fitting tool and solved by ai
-- 
-
+- [ ] Kennzahlen Marktuntersuchungsbericht Bundesnetzagentur -> wichtigsten Entwicklungskennzahlen online stellen
+- [ ] Integration API Bauinfoportal zu Dashboard
+- [ ] In the FinVe calculation show if the cost development is inside the normal price inflation
+- [ ] Integrate a feed for newsletter und updates from websites to roadmap.md
 ---
 
 ## Long-Term Features
+
+- [ ] **VIB-Review: Original-PDF-Anzeige** — Im Review-Schritt das hochgeladene PDF parallel zum Formular anzeigen, auf die passende Seite gesprungen. Erfordert: PDF-Speicherung serverseitig (z.B. temporär an draft_id geknüpft), Seitennummer-Tracking im Parser (pro Eintrag), Serve-Endpoint `GET /import/vib/pdf/{task_id}`, Frontend-Integration mit `react-pdf` oder ähnlichem.
+
+- [ ] **VIB-Review: OCR-Bilder anzeigen** — Im Review und in `VibStructurePreviewPage` extrahierte Mistral-OCR-Bilder (Diagramme, Karten, Fortschrittsbalken) pro Vorhaben anzeigen. Backend-Infrastruktur bereits implementiert: `ocr_images_json` auf `VibDraftReport`, `GET /draft/{task_id}/images` (Metadaten) und `GET /draft/{task_id}/image/{id}` (Bytes). Offen: pro-Eintrag-Zuordnung der Bilder (page_index-Matching gegen entry block_start/end-Seiten) und Frontend-Komponente (Galerie oder Inline-Thumbnails in der Strukturvorschau).
 
 - [ ] **Netzzustandsbericht** — PDF-Import, Extraktion relevanter Kennzahlen in die Datenbank
 
@@ -305,16 +107,8 @@ Add to `queries.ts`:
 - [ ] **Automatisierung Preisniveau** — Tool zum Berechnen von Preisen gemäß Inflation/Baukostenentwicklung auf das aktuelle Jahr
 
 - [ ] **Passwort zurücksetzen per E-Mail** *(Backend + Frontend)*
-  → Vollständiger technischer Plan: [`docs/email_password_reset_plan.md`](email_password_reset_plan.md)
-  Backend:
-  - Feld `email` zum User-Modell ergänzen + Migration
-  - Tabelle `password_reset_token` (Token, User-ID, Ablaufzeitpunkt) + Migration
-  - SMTP-Konfiguration in Settings (Host, Port, Credentials)
-  - `POST /api/v1/auth/request-reset` — nimmt E-Mail, sendet Reset-Link per Mail
-  - `POST /api/v1/auth/reset-password` — nimmt Token + neues Passwort, invalidiert Token
-  Frontend:
-  - „Passwort vergessen?"-Link im Login-Modal → E-Mail-Eingabeformular
-  - Reset-Formular (neues Passwort, Token aus URL-Param des Mail-Links)
+  Reset-Link per E-Mail, Token-basiert (UUID4, 1h gültig). Admin hinterlegt E-Mail in Benutzerverwaltung.
+  Siehe: `docs/features/feature-password-reset.md`
 
 ---
 

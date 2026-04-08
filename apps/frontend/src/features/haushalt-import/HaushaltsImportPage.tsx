@@ -123,13 +123,13 @@ export default function HaushaltsImportPage() {
                                 <Group gap="xs">
                                     <Loader size="xs" />
                                     <Text size="sm">
-                                        {progress
+                                        {progress?.current_page != null
                                             ? `Seite ${progress.current_page} / ${progress.total_pages} — ${progress.rows_found} Zeilen gefunden`
                                             : "Parsing läuft…"}
                                     </Text>
                                 </Group>
                                 <Progress
-                                    value={progress
+                                    value={progress?.current_page != null && progress?.total_pages != null
                                         ? Math.round((progress.current_page / progress.total_pages) * 100)
                                         : 100}
                                     animated={!progress}

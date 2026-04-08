@@ -46,14 +46,14 @@ function VibTabContent({ entry }: { entry: VibEntryForProject }) {
                         KI-extrahiert
                     </Badge>
                 )}
-                {entry.project_status && (
-                    <Badge
-                        size="sm"
-                        color={entry.project_status === "Bau" ? "cyan" : "orange"}
-                        variant="light"
-                    >
-                        {entry.project_status}
-                    </Badge>
+                {entry.status_planung && (
+                    <Badge size="sm" color="orange" variant="light">Planung</Badge>
+                )}
+                {entry.status_bau && (
+                    <Badge size="sm" color="cyan" variant="light">Bau</Badge>
+                )}
+                {entry.status_abgeschlossen && (
+                    <Badge size="sm" color="green" variant="light">Abgeschlossen</Badge>
                 )}
             </Group>
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 
 from celery import Task
 
@@ -33,9 +34,11 @@ Extrahiere folgende Felder als JSON:
   "durchgefuehrte_massnahmen": "<Text oder null>",
   "noch_umzusetzende_massnahmen": "<Text oder null>",
   "bauaktivitaeten": "<Text oder null>",
-  "teilinbetriebnahmen": "<Text oder null>",
+  "teilinbetriebnahmen": "<Text oder null — bei status_abgeschlossen=true: Inbetriebnahmedatum oder -beschreibung aus dem Text>",
   "planungsstand": "<Text oder null>",
-  "project_status": "<'Planung' | 'Bau' | null>",
+  "status_planung": "<true wenn das Projekt sich in der Planungsphase befindet, sonst false>",
+  "status_bau": "<true wenn das Projekt sich im Bau befindet, sonst false>",
+  "status_abgeschlossen": "<true wenn das Projekt fertiggestellt / in Betrieb genommen wurde, sonst false>",
   "strecklaenge_km": "<float oder null>",
   "gesamtkosten_mio_eur": "<float oder null>",
   "entwurfsgeschwindigkeit": "<z.B. '200/250' oder null>",
@@ -51,6 +54,9 @@ Extrahiere folgende Felder als JSON:
     }}
   ]
 }}
+
+Hinweis zu Projektstatus: status_planung, status_bau und status_abgeschlossen können gleichzeitig true sein \
+(z.B. wenn Teilabschnitte bereits in Betrieb sind während andere noch geplant werden).
 """
 
 _TEXT_FIELDS = [
@@ -60,9 +66,10 @@ _TEXT_FIELDS = [
     "bauaktivitaeten",
     "teilinbetriebnahmen",
     "planungsstand",
-    "project_status",
     "entwurfsgeschwindigkeit",
 ]
+
+_BOOL_STATUS_FIELDS = ["status_planung", "status_bau", "status_abgeschlossen"]
 
 
 def _call_llm(prompt: str) -> dict:
@@ -85,11 +92,44 @@ def _call_llm(prompt: str) -> dict:
     return json.loads(response.choices[0].message.content)
 
 
+_TEILINBETRIEBNAHMEN_NONE_RE = re.compile(r"^\s*[-–]\s*[Kk]eine\.?\s*$")
+
+
+def _summarise_error(exc: Exception) -> str:
+    """Return a short human-readable error label for display in the review UI.
+
+    Detects common API error patterns (rate limit, auth, timeout) and returns
+    a concise label; falls back to the first 120 chars of the exception string.
+    """
+    msg = str(exc)
+    if "429" in msg or "capacity exceeded" in msg.lower() or "rate limit" in msg.lower():
+        return "429 – Kapazität überschritten"
+    if "401" in msg or "unauthorized" in msg.lower() or "authentication" in msg.lower():
+        return "401 – Authentifizierungsfehler"
+    if "503" in msg or "unavailable" in msg.lower():
+        return "503 – Service nicht verfügbar"
+    if "timeout" in msg.lower():
+        return "Timeout"
+    return msg[:120]
+
+
+def _normalize_teilinbetriebnahmen(val: str) -> str | None:
+    """Normalize '- Keine.' and variants to None (no partial commissioning)."""
+    if _TEILINBETRIEBNAHMEN_NONE_RE.match(val):
+        return None
+    return val
+
+
 def _merge_ai_result(entry_dict: dict, ai: dict) -> dict:
     """Merge LLM-extracted fields into an entry dict. Returns updated dict."""
     for field in _TEXT_FIELDS:
-        if ai.get(field) is not None:
-            entry_dict[field] = ai[field]
+        val = ai.get(field)
+        if val is not None:
+            if isinstance(val, list):
+                val = "\n".join(str(item) for item in val)
+            if field == "teilinbetriebnahmen":
+                val = _normalize_teilinbetriebnahmen(val)
+            entry_dict[field] = val
 
     for num_field in ("strecklaenge_km", "gesamtkosten_mio_eur"):
         val = ai.get(num_field)
@@ -98,6 +138,11 @@ def _merge_ai_result(entry_dict: dict, ai: dict) -> dict:
                 entry_dict[num_field] = float(val)
             except (TypeError, ValueError):
                 pass
+
+    for bool_field in _BOOL_STATUS_FIELDS:
+        val = ai.get(bool_field)
+        if val is not None:
+            entry_dict[bool_field] = bool(val)
 
     if ai.get("pfa_entries"):
         entry_dict["pfa_entries"] = ai["pfa_entries"]
@@ -152,6 +197,8 @@ def extract_vib_blocks(
                 )
                 ai_result = _call_llm(prompt)
                 entries_as_dicts[idx] = _merge_ai_result(entry_dict, ai_result)
+                entries_as_dicts[idx]["ai_extraction_failed"] = False
+                entries_as_dicts[idx]["ai_extraction_error"] = None
                 logger.debug("LLM extraction OK for %s", entry_dict.get("vib_section"))
             except Exception as exc:
                 logger.warning(
@@ -159,6 +206,8 @@ def extract_vib_blocks(
                     entry_dict.get("vib_section"),
                     exc,
                 )
+                entries_as_dicts[idx]["ai_extraction_failed"] = True
+                entries_as_dicts[idx]["ai_extraction_error"] = _summarise_error(exc)
 
         updated_result = VibParseTaskResult(
             year=result.year,

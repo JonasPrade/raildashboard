@@ -11,6 +11,28 @@ This file applies to the entire repository. Read it before making any substantia
 - When updating documentation, update ALL documentation layers (README, AGENT.md, roadmap.md, frontend docs, etc.) — not just a single file. Look also at the section ## Keep documentation in this file
 - **Roadmap Style**: if a task is marked with [p] it means that it has to be planned first. If user asks for doing - create a plan and notice the whole plan in the roadmap.md - substitute the open task with a section started by a header with ###
  
+## Feature Development Workflow
+
+Features are documented in two layers:
+
+- **`docs/roadmap.md`** — coarse overview: order, priority, high-level dependencies. No deep technical detail.
+- **`docs/features/feature-<name>.md`** — one file per larger topic: goal, scope, desired behavior, acceptance criteria, technical notes.
+
+**Rule of thumb:** if a topic fits in a few sentences → keep it in the roadmap. If it needs multiple sections → give it its own feature file and link it from the roadmap (`See: docs/features/feature-<name>.md`).
+
+**Do NOT create `docs/superpowers/` or any other tool-internal subfolders under `docs/`.** All documentation and implementation plans belong in `docs/roadmap.md` or `docs/features/feature-<name>.md` — never in folders created by agentic tooling.
+
+**Order of work:**
+1. Feature file is written/updated first.
+2. Code is written only after the feature file exists.
+3. When the feature is done, mark it `[x]` in the roadmap.
+
+## Python Environment
+
+- Always use the project virtualenv: `apps/backend/.venv/bin/python` (Python 3.13)
+- Run tests with: `cd apps/backend && .venv/bin/python -m pytest`
+- Never use system Python or `python3.11` directly
+
 ## How to approach tasks
 
 Before writing any code:
