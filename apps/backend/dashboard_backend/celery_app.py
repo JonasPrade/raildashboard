@@ -5,7 +5,11 @@ celery_app = Celery(
     "dashboard_backend",
     broker=settings.celery_broker_url,
     backend=settings.celery_result_backend,
-    include=["dashboard_backend.tasks"],
+    include=[
+        "dashboard_backend.tasks.vib",
+        "dashboard_backend.tasks.vib_ai_extraction",
+        "dashboard_backend.tasks.haushalt",
+    ],
 )
 
 celery_app.conf.update(

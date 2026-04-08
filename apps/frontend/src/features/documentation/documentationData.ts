@@ -110,6 +110,22 @@ export const featureHighlights: FeatureHighlight[] = [
         ]
     },
     {
+        title: "VIB-Import (Verkehrsinvestitionsbericht)",
+        description:
+            "Editors and administrators can upload the annual Verkehrsinvestitionsbericht as PDF and import all Section B rail projects. " +
+            "The PDF is parsed asynchronously via a Celery background task. " +
+            "A card-based review step lets users inspect each Vorhaben individually before confirming.",
+        details: [
+            "Upload PDF + Berichtsjahr → background task starts, frontend polls every 2 s",
+            "Review: one card per Vorhaben, navigate with ← / → arrows",
+            "Each card shows: Kenndaten, Planungsstand, Bauaktivitäten, Teilinbetriebnahmen, PFA-Tabelle, editable Volltext",
+            "Project mapping via searchable Select + confidence badge (auto-matched by VDE-number / fuzzy name)",
+            "Projektstatus select: Planung or Bau per entry",
+            "Route /admin/vib-import — visible for editor and admin roles only",
+            "VIB entries shown in ProjectDetail under 'Verkehrsinvestitionsberichte' (tab per year, login-gated)"
+        ]
+    },
+    {
         title: "Haushalts-Import (Anlage VWIB Teil B)",
         description:
             "Editors and administrators can upload the annual federal budget annex as PDF and import FinVe and Budget data into the database. " +

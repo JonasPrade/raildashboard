@@ -34,6 +34,20 @@ class Settings(BaseSettings):
     celery_result_backend: str = "redis://localhost:6379/0"
     session_secret_key: str  # Required: 32-byte hex string for HMAC-signing session tokens
     upload_dir: str = "/app/uploads/text-attachments"  # UPLOAD_DIR env var
+    # LLM settings for optional VIB semantic extraction (OpenAI-compatible)
+    # llm_base_url empty = feature disabled
+    llm_base_url: str = ""
+    llm_api_key: str = ""
+    llm_model: str = "gpt-4o-mini"
+
+    # OCR settings for VIB PDF text extraction (Mistral OCR API)
+    # ocr_api_key empty = pymupdf fallback is used instead
+    ocr_api_key: str = ""
+    ocr_base_url: str = "https://api.mistral.ai"
+    ocr_model: str = "mistral-ocr-latest"
+    # Strip repeated header/footer lines (page numbers, running headers) from OCR output.
+    # Can be overridden per-import via the upload form.
+    ocr_strip_headers_footers: bool = True
 
     model_config = SettingsConfigDict(
         env_file=_find_env_file(),

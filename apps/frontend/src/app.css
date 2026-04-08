@@ -1,3 +1,29 @@
+/* Markdown table styling for VIB raw text preview */
+.vib-raw-markdown table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 8px 0;
+    font-size: 11px;
+}
+.vib-raw-markdown th,
+.vib-raw-markdown td {
+    border: 1px solid var(--mantine-color-gray-3);
+    padding: 3px 8px;
+    text-align: left;
+    white-space: nowrap;
+}
+.vib-raw-markdown th {
+    background: var(--mantine-color-gray-1);
+    font-weight: 600;
+}
+.vib-raw-markdown p {
+    margin: 0 0 4px;
+}
+.vib-raw-markdown h1, .vib-raw-markdown h2, .vib-raw-markdown h3 {
+    font-size: 13px;
+    margin: 8px 0 4px;
+}
+
 /* Self-hosted fonts */
 @font-face {
     font-family: "Work Sans";

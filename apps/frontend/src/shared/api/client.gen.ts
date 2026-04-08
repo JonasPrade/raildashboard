@@ -635,6 +635,44 @@ const BvwpProjectDataSchema = z
     bvwp_additional_informations: z.union([z.string(), z.null()]).optional(),
   })
   .passthrough();
+const VibPfaEntrySchema = z
+  .object({
+    id: z.number().int(),
+    abschnitt_label: z.union([z.string(), z.null()]).optional(),
+    nr_pfa: z.union([z.string(), z.null()]).optional(),
+    oertlichkeit: z.union([z.string(), z.null()]).optional(),
+    entwurfsplanung: z.union([z.string(), z.null()]).optional(),
+    abschluss_finve: z.union([z.string(), z.null()]).optional(),
+    datum_pfb: z.union([z.string(), z.null()]).optional(),
+    baubeginn: z.union([z.string(), z.null()]).optional(),
+    inbetriebnahme: z.union([z.string(), z.null()]).optional(),
+  })
+  .passthrough();
+const VibEntryForProjectSchema = z
+  .object({
+    id: z.number().int(),
+    year: z.number().int(),
+    drucksache_nr: z.union([z.string(), z.null()]).optional(),
+    vib_section: z.union([z.string(), z.null()]).optional(),
+    vib_name_raw: z.string(),
+    category: z.string(),
+    bauaktivitaeten: z.union([z.string(), z.null()]).optional(),
+    teilinbetriebnahmen: z.union([z.string(), z.null()]).optional(),
+    verkehrliche_zielsetzung: z.union([z.string(), z.null()]).optional(),
+    durchgefuehrte_massnahmen: z.union([z.string(), z.null()]).optional(),
+    noch_umzusetzende_massnahmen: z.union([z.string(), z.null()]).optional(),
+    raw_text: z.union([z.string(), z.null()]).optional(),
+    strecklaenge_km: z.union([z.number(), z.null()]).optional(),
+    gesamtkosten_mio_eur: z.union([z.number(), z.null()]).optional(),
+    entwurfsgeschwindigkeit: z.union([z.string(), z.null()]).optional(),
+    planungsstand: z.union([z.string(), z.null()]).optional(),
+    status_planung: z.boolean().optional().default(false),
+    status_bau: z.boolean().optional().default(false),
+    status_abgeschlossen: z.boolean().optional().default(false),
+    ai_extracted: z.boolean().optional().default(false),
+    pfa_entries: z.array(VibPfaEntrySchema).optional().default([]),
+  })
+  .passthrough();
 const TitelEntrySchema = z
   .object({
     titel_key: z.string(),
@@ -1001,6 +1039,143 @@ const AppSettingsSchema = z
 const AppSettingsUpdate = z
   .object({ map_group_mode: z.enum(["preconfigured", "all"]) })
   .passthrough();
+const VibAiAvailableResponse = z
+  .object({
+    available: z.boolean(),
+    model: z.union([z.string(), z.null()]).optional(),
+  })
+  .passthrough();
+const VibOcrAvailableResponse = z
+  .object({
+    available: z.boolean(),
+    model: z.union([z.string(), z.null()]).optional(),
+  })
+  .passthrough();
+const Body_start_vib_parse_api_v1_import_vib_parse_post = z
+  .object({
+    pdf: z.instanceof(File),
+    year: z.number().int(),
+    start_page: z.union([z.number(), z.null()]).optional(),
+    end_page: z.union([z.number(), z.null()]).optional(),
+    strip_headers_footers: z.boolean().optional().default(true),
+  })
+  .passthrough();
+const VibPfaEntryProposed = z
+  .object({
+    abschnitt_label: z.union([z.string(), z.null()]),
+    nr_pfa: z.union([z.string(), z.null()]),
+    oertlichkeit: z.union([z.string(), z.null()]),
+    entwurfsplanung: z.union([z.string(), z.null()]),
+    abschluss_finve: z.union([z.string(), z.null()]),
+    datum_pfb: z.union([z.string(), z.null()]),
+    baubeginn: z.union([z.string(), z.null()]),
+    inbetriebnahme: z.union([z.string(), z.null()]),
+  })
+  .partial()
+  .passthrough();
+const VibEntryProposed = z
+  .object({
+    vib_section: z.union([z.string(), z.null()]).optional(),
+    vib_lfd_nr: z.union([z.string(), z.null()]).optional(),
+    vib_name_raw: z.string(),
+    category: z.string().optional().default("laufend"),
+    verkehrliche_zielsetzung: z.union([z.string(), z.null()]).optional(),
+    durchgefuehrte_massnahmen: z.union([z.string(), z.null()]).optional(),
+    noch_umzusetzende_massnahmen: z.union([z.string(), z.null()]).optional(),
+    bauaktivitaeten: z.union([z.string(), z.null()]).optional(),
+    teilinbetriebnahmen: z.union([z.string(), z.null()]).optional(),
+    raw_text: z.union([z.string(), z.null()]).optional(),
+    strecklaenge_km: z.union([z.number(), z.null()]).optional(),
+    gesamtkosten_mio_eur: z.union([z.number(), z.null()]).optional(),
+    entwurfsgeschwindigkeit: z.union([z.string(), z.null()]).optional(),
+    planungsstand: z.union([z.string(), z.null()]).optional(),
+    status_planung: z.boolean().optional().default(false),
+    status_bau: z.boolean().optional().default(false),
+    status_abgeschlossen: z.boolean().optional().default(false),
+    pfa_entries: z.array(VibPfaEntryProposed).optional().default([]),
+    pfa_raw_markdown: z.union([z.string(), z.null()]).optional(),
+    sonstiges: z.union([z.string(), z.null()]).optional(),
+    project_ids: z.array(z.number().int()).optional().default([]),
+    suggested_project_ids: z.array(z.number().int()).optional().default([]),
+    ai_extracted: z.boolean().optional().default(false),
+    ai_extraction_failed: z.boolean().optional().default(false),
+    ai_extraction_error: z.union([z.string(), z.null()]).optional(),
+  })
+  .passthrough();
+const VibParseTaskResult_Output = z
+  .object({
+    year: z.number().int(),
+    drucksache_nr: z.union([z.string(), z.null()]).optional(),
+    report_date: z.union([z.string(), z.null()]).optional(),
+    entries: z.array(VibEntryProposed).optional().default([]),
+  })
+  .passthrough();
+const VibConfirmEntryInput = z
+  .object({
+    vib_section: z.union([z.string(), z.null()]).optional(),
+    vib_lfd_nr: z.union([z.string(), z.null()]).optional(),
+    vib_name_raw: z.string(),
+    category: z.string().optional().default("laufend"),
+    verkehrliche_zielsetzung: z.union([z.string(), z.null()]).optional(),
+    durchgefuehrte_massnahmen: z.union([z.string(), z.null()]).optional(),
+    noch_umzusetzende_massnahmen: z.union([z.string(), z.null()]).optional(),
+    bauaktivitaeten: z.union([z.string(), z.null()]).optional(),
+    teilinbetriebnahmen: z.union([z.string(), z.null()]).optional(),
+    raw_text: z.union([z.string(), z.null()]).optional(),
+    strecklaenge_km: z.union([z.number(), z.null()]).optional(),
+    gesamtkosten_mio_eur: z.union([z.number(), z.null()]).optional(),
+    entwurfsgeschwindigkeit: z.union([z.string(), z.null()]).optional(),
+    planungsstand: z.union([z.string(), z.null()]).optional(),
+    status_planung: z.boolean().optional().default(false),
+    status_bau: z.boolean().optional().default(false),
+    status_abgeschlossen: z.boolean().optional().default(false),
+    pfa_entries: z.array(VibPfaEntryProposed).optional().default([]),
+    pfa_raw_markdown: z.union([z.string(), z.null()]).optional(),
+    sonstiges: z.union([z.string(), z.null()]).optional(),
+    project_ids: z.array(z.number().int()).optional().default([]),
+  })
+  .passthrough();
+const VibConfirmRequest = z
+  .object({
+    task_id: z.string(),
+    year: z.number().int(),
+    drucksache_nr: z.union([z.string(), z.null()]).optional(),
+    report_date: z.union([z.string(), z.null()]).optional(),
+    entries: z.array(VibConfirmEntryInput).optional().default([]),
+  })
+  .passthrough();
+const VibConfirmResponse = z
+  .object({
+    report_id: z.number().int(),
+    entries_created: z.number().int(),
+    pfa_entries_created: z.number().int(),
+  })
+  .passthrough();
+const VibDraftSchema = z
+  .object({
+    task_id: z.string(),
+    year: z.number().int(),
+    created_at: z.string(),
+  })
+  .passthrough();
+const VibParseTaskResult_Input = z
+  .object({
+    year: z.number().int(),
+    drucksache_nr: z.union([z.string(), z.null()]).optional(),
+    report_date: z.union([z.string(), z.null()]).optional(),
+    entries: z.array(VibEntryProposed).optional().default([]),
+  })
+  .passthrough();
+const VibReportSchema = z
+  .object({
+    id: z.number().int(),
+    year: z.number().int(),
+    drucksache_nr: z.union([z.string(), z.null()]).optional(),
+    report_date: z.union([z.string(), z.null()]).optional(),
+    imported_at: z.string(),
+    entry_count: z.number().int().optional().default(0),
+  })
+  .passthrough();
 
 export const schemas = {
   SessionCredentials,
@@ -1012,6 +1187,8 @@ export const schemas = {
   ProjectSchema,
   ProjectUpdate,
   BvwpProjectDataSchema,
+  VibPfaEntrySchema,
+  VibEntryForProjectSchema,
   TitelEntrySchema,
   BudgetSummarySchema,
   FinveWithBudgetsSchema,
@@ -1057,6 +1234,18 @@ export const schemas = {
   FinveListItemSchema,
   AppSettingsSchema,
   AppSettingsUpdate,
+  VibAiAvailableResponse,
+  VibOcrAvailableResponse,
+  Body_start_vib_parse_api_v1_import_vib_parse_post,
+  VibPfaEntryProposed,
+  VibEntryProposed,
+  VibParseTaskResult_Output,
+  VibConfirmEntryInput,
+  VibConfirmRequest,
+  VibConfirmResponse,
+  VibDraftSchema,
+  VibParseTaskResult_Input,
+  VibReportSchema,
 };
 
 const endpoints = makeApi([
@@ -1257,6 +1446,302 @@ for that haushalt_year are also removed so the year can be re-imported.`,
       },
     ],
     response: UnmatchedBudgetRowSchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/import/vib/ai-available",
+    alias: "vib_ai_available_api_v1_import_vib_ai_available_get",
+    description: `Return whether LLM-based AI extraction is configured.`,
+    requestFormat: "json",
+    response: VibAiAvailableResponse,
+  },
+  {
+    method: "post",
+    path: "/api/v1/import/vib/confirm",
+    alias: "confirm_vib_import_api_v1_import_vib_confirm_post",
+    description: `Confirm a VIB parse result and write VibReport + VibEntry rows to DB.
+
+Guard: if a VibReport for the given year already exists, returns 409.
+Delete the existing report first if re-import is needed.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: VibConfirmRequest,
+      },
+    ],
+    response: VibConfirmResponse,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "patch",
+    path: "/api/v1/import/vib/draft/:parse_task_id",
+    alias: "save_vib_draft_api_v1_import_vib_draft__parse_task_id__patch",
+    description: `Overwrite the draft&#x27;s raw_result_json with the current review state.
+
+Called by the review UI to persist edits so work survives page reloads.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: VibParseTaskResult_Input,
+      },
+      {
+        name: "parse_task_id",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: z.void(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/import/vib/draft/:task_id/image/:image_id",
+    alias:
+      "get_vib_draft_image_api_v1_import_vib_draft__task_id__image__image_id__get",
+    description: `Return a single OCR image extracted from the Mistral OCR response.
+
+image_id matches the id returned by the OCR API, e.g. &quot;img-0.jpeg&quot;.
+The image bytes are decoded from base64 and returned with the appropriate
+content type (image/jpeg or image/png).`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "task_id",
+        type: "Path",
+        schema: z.string(),
+      },
+      {
+        name: "image_id",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: z.unknown(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/import/vib/draft/:task_id/images",
+    alias: "list_vib_draft_images_api_v1_import_vib_draft__task_id__images_get",
+    description: `Return metadata for all OCR images extracted from a draft (id, page_index).
+
+Does NOT return base64 data — fetch individual images via
+GET /draft/{task_id}/image/{image_id}.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "task_id",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: z.unknown(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/import/vib/drafts",
+    alias: "list_vib_drafts_api_v1_import_vib_drafts_get",
+    description: `Return metadata for all unconfirmed VIB drafts, newest first.`,
+    requestFormat: "json",
+    response: z.array(VibDraftSchema),
+  },
+  {
+    method: "delete",
+    path: "/api/v1/import/vib/drafts/:task_id",
+    alias: "delete_vib_draft_api_v1_import_vib_drafts__task_id__delete",
+    description: `Discard an unconfirmed VIB draft.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "task_id",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: z.void(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/api/v1/import/vib/extract-ai/:parse_task_id",
+    alias:
+      "start_vib_ai_extraction_api_v1_import_vib_extract_ai__parse_task_id__post",
+    description: `Start the LLM extraction Celery task for a parsed VIB draft.
+
+The parse_task_id must refer to a completed parse task whose draft is saved in DB.
+Returns a new task_id for polling via GET /api/v1/tasks/{task_id}.
+When the task reaches SUCCESS, the draft in DB is updated with AI-extracted content.
+Retrieve the updated parse result via GET /parse-result/{parse_task_id}.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "parse_task_id",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: z.object({ task_id: z.string() }).passthrough(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/api/v1/import/vib/extract-ai/:parse_task_id/entry/:entry_idx",
+    alias:
+      "retry_vib_ai_for_entry_api_v1_import_vib_extract_ai__parse_task_id__entry__entry_idx__post",
+    description: `Re-run LLM extraction synchronously for a single entry and persist the result.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "parse_task_id",
+        type: "Path",
+        schema: z.string(),
+      },
+      {
+        name: "entry_idx",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: VibEntryProposed,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/import/vib/ocr-available",
+    alias: "vib_ocr_available_api_v1_import_vib_ocr_available_get",
+    description: `Return whether Mistral OCR is configured.`,
+    requestFormat: "json",
+    response: VibOcrAvailableResponse,
+  },
+  {
+    method: "post",
+    path: "/api/v1/import/vib/parse",
+    alias: "start_vib_parse_api_v1_import_vib_parse_post",
+    description: `Upload a VIB PDF and start a background parse task.
+
+start_page / end_page (optional, 1-indexed): restrict OCR to these pages only.
+strip_headers_footers: remove repeated page headers/footers from OCR output (default True).
+
+Returns the Celery task_id for polling via GET /api/v1/tasks/{task_id}.`,
+    requestFormat: "form-data",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: Body_start_vib_parse_api_v1_import_vib_parse_post,
+      },
+    ],
+    response: z.object({ task_id: z.string() }).passthrough(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/import/vib/parse-result/:task_id",
+    alias: "get_vib_parse_result_api_v1_import_vib_parse_result__task_id__get",
+    description: `Retrieve the parse result for a completed Celery task.
+
+Tries Redis first (Celery result backend). Falls back to the
+vib_draft_report DB table if the Redis entry has been evicted.
+Returns 202 if the task is still running; 422 if it failed.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "task_id",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: VibParseTaskResult_Output,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/import/vib/reports",
+    alias: "list_vib_reports_api_v1_import_vib_reports_get",
+    description: `Return metadata for all imported VIB reports, newest year first.`,
+    requestFormat: "json",
+    response: z.array(VibReportSchema),
+  },
+  {
+    method: "delete",
+    path: "/api/v1/import/vib/reports/:report_id",
+    alias: "delete_vib_report_api_v1_import_vib_reports__report_id__delete",
+    description: `Delete a VIB report and all associated VibEntry / VibPfaEntry rows.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "report_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: z.void(),
     errors: [
       {
         status: 422,
@@ -1637,6 +2122,28 @@ The existing route (identified by route_id) is updated in-place.`,
       },
     ],
     response: z.array(TextChangeLogRead),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/projects/:project_id/vib",
+    alias: "get_project_vib_api_v1_projects__project_id__vib_get",
+    description: `Return all VIB entries linked to a project, newest year first.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "project_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: z.array(VibEntryForProjectSchema),
     errors: [
       {
         status: 422,
