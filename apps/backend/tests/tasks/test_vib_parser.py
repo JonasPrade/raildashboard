@@ -36,12 +36,22 @@ class TestVorhabenSectionRe:
     def test_matches_standard_format(self):
         m = _VORHABEN_SECTION_RE.search("B.4.1.3  Some long heading with artifacts")
         assert m is not None
-        assert m.group(1).replace(" ", ".") == "B.4.1.3"
+        assert (m.group(1) or m.group(2)).replace(" ", ".") == "B.4.1.3"
 
     def test_matches_ocr_space_variant(self):
         m = _VORHABEN_SECTION_RE.search("B 4.2.1  Heading text")
         assert m is not None
-        assert m.group(1).replace(" ", ".") == "B.4.2.1"
+        assert (m.group(1) or m.group(2)).replace(" ", ".") == "B.4.2.1"
+
+    def test_matches_markdown_heading_format(self):
+        m = _VORHABEN_SECTION_RE.search("# B.4.1.3  Heading with hash prefix")
+        assert m is not None
+        assert (m.group(1) or m.group(2)).replace(" ", ".") == "B.4.1.3"
+
+    def test_matches_double_hash_heading(self):
+        m = _VORHABEN_SECTION_RE.search("## B.4.2.5  Another heading")
+        assert m is not None
+        assert (m.group(1) or m.group(2)).replace(" ", ".") == "B.4.2.5"
 
     def test_does_not_match_toc_subsection(self):
         # B.4 without two trailing levels must not match
@@ -54,24 +64,56 @@ class TestVorhabenSectionRe:
         assert m is not None
 
 
-from dashboard_backend.tasks.vib import _extract_project_status
+from dashboard_backend.tasks.vib import _extract_status_flags
 
 
-class TestExtractProjectStatus:
+class TestExtractStatusFlags:
     def test_detects_bau(self):
-        assert _extract_project_status("Projektstand: Bau\nEinige weitere Infos") == "Bau"
+        _, bau, _ = _extract_status_flags("Projektstand: Bau\nEinige weitere Infos")
+        assert bau is True
 
     def test_detects_planung(self):
-        assert _extract_project_status("Planungsstand: Planung\nDetails") == "Planung"
+        planung, _, _ = _extract_status_flags("Planungsstand: Planung\nDetails")
+        assert planung is True
 
-    def test_returns_none_when_absent(self):
-        assert _extract_project_status("Kein Hinweis auf Status") is None
+    def test_returns_all_false_when_absent(self):
+        assert _extract_status_flags("Kein Hinweis auf Status") == (False, False, False)
 
-    def test_returns_none_for_none_input(self):
-        assert _extract_project_status(None) is None
+    def test_returns_all_false_for_none_input(self):
+        assert _extract_status_flags(None) == (False, False, False)
 
     def test_case_insensitive_bau(self):
-        assert _extract_project_status("Status: bau") == "Bau"
+        _, bau, _ = _extract_status_flags("Status: bau")
+        assert bau is True
 
     def test_case_insensitive_planung(self):
-        assert _extract_project_status("Status: planung") == "Planung"
+        planung, _, _ = _extract_status_flags("Status: planung")
+        assert planung is True
+
+    def test_detects_abgeschlossen(self):
+        _, _, abgeschlossen = _extract_status_flags("Der Abschnitt ist abgeschlossen.")
+        assert abgeschlossen is True
+
+    def test_multiple_flags(self):
+        planung, bau, _ = _extract_status_flags("Planung läuft, Bau begonnen")
+        assert planung is True
+        assert bau is True
+
+
+class TestVibEntryProposedProjectIds:
+    """Parser must produce project_ids (list), not project_id (scalar)."""
+
+    def test_suggested_ids_become_project_ids(self):
+        from dashboard_backend.schemas.vib import VibEntryProposed
+        entry = VibEntryProposed(
+            vib_name_raw="Test",
+            project_ids=[42],
+            suggested_project_ids=[42],
+        )
+        assert entry.project_ids == [42]
+        assert not hasattr(entry, "project_id")
+
+    def test_no_suggestions_gives_empty_project_ids(self):
+        from dashboard_backend.schemas.vib import VibEntryProposed
+        entry = VibEntryProposed(vib_name_raw="Test")
+        assert entry.project_ids == []

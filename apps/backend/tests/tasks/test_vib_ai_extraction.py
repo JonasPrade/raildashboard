@@ -14,23 +14,31 @@ class TestMergeAiResult:
             "durchgefuehrte_massnahmen": None,
             "noch_umzusetzende_massnahmen": None,
             "planungsstand": None,
-            "project_status": None,
+            "status_planung": False,
+            "status_bau": False,
+            "status_abgeschlossen": False,
             "strecklaenge_km": None,
             "gesamtkosten_mio_eur": None,
             "entwurfsgeschwindigkeit": None,
             "pfa_entries": [],
-            "project_id": None,
+            "project_ids": [],
             "suggested_project_ids": [],
             "vib_lfd_nr": None,
         }
 
     def test_merges_text_fields(self):
         entry = self._base_entry()
-        ai = {"bauaktivitaeten": "Gleiserneuerung", "project_status": "Bau"}
+        ai = {"bauaktivitaeten": "Gleiserneuerung"}
         result = _merge_ai_result(entry, ai)
         assert result["bauaktivitaeten"] == "Gleiserneuerung"
-        assert result["project_status"] == "Bau"
         assert result["ai_extracted"] is True
+
+    def test_merges_status_booleans(self):
+        entry = self._base_entry()
+        ai = {"status_bau": True, "status_planung": False}
+        result = _merge_ai_result(entry, ai)
+        assert result["status_bau"] is True
+        assert result["status_planung"] is False
 
     def test_merges_numeric_fields(self):
         entry = self._base_entry()
@@ -57,3 +65,15 @@ class TestMergeAiResult:
         ai = {"bauaktivitaeten": None}
         result = _merge_ai_result(entry, ai)
         assert result["bauaktivitaeten"] == "existing value"
+
+    def test_list_coerced_to_string(self):
+        entry = self._base_entry()
+        ai = {"noch_umzusetzende_massnahmen": ["Teil 1", "Teil 2"]}
+        result = _merge_ai_result(entry, ai)
+        assert result["noch_umzusetzende_massnahmen"] == "Teil 1\nTeil 2"
+
+    def test_teilinbetriebnahmen_keine_normalized(self):
+        entry = self._base_entry()
+        ai = {"teilinbetriebnahmen": "- Keine."}
+        result = _merge_ai_result(entry, ai)
+        assert result["teilinbetriebnahmen"] is None
