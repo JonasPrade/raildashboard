@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_serializer, field_validator
 
 
 # ---------------------------------------------------------------------------
@@ -46,16 +46,34 @@ class VibEntryProposed(BaseModel):
     gesamtkosten_mio_eur: Optional[float] = None
     entwurfsgeschwindigkeit: Optional[str] = None
     planungsstand: Optional[str] = None
-    project_status: Optional[str] = None   # "Planung" | "Bau" | None
+
+    @field_validator("entwurfsgeschwindigkeit", mode="before")
+    @classmethod
+    def coerce_geschwindigkeit_to_str(cls, v: object) -> str | None:
+        """LLMs sometimes return this as an integer (e.g. 160). Coerce to string."""
+        if v is None:
+            return None
+        return str(v) if not isinstance(v, str) else v
+
+    # Project phase status (multiple can be true simultaneously)
+    status_planung: bool = False
+    status_bau: bool = False
+    status_abgeschlossen: bool = False
 
     pfa_entries: list[VibPfaEntryProposed] = []
+    pfa_raw_markdown: Optional[str] = None  # complete markdown pipe table, unmodified
+    sonstiges: Optional[str] = None         # leftover text: footnotes, preambles, unclassified
 
-    # Matching result — editable by user in review UI
-    project_id: Optional[int] = None
+    # Matching result — editable by user in review UI (m:n: multiple projects allowed)
+    project_ids: list[int] = []
     # Auto-suggestion computed during parse (read-only hint for review UI)
     suggested_project_ids: list[int] = []
     # Set to True after LLM extraction has been applied
     ai_extracted: bool = False
+    # Set to True when LLM extraction was attempted but failed for this entry
+    ai_extraction_failed: bool = False
+    # Short error description when ai_extraction_failed=True (e.g. "429 capacity exceeded")
+    ai_extraction_error: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
@@ -94,10 +112,22 @@ class VibConfirmEntryInput(BaseModel):
     gesamtkosten_mio_eur: Optional[float] = None
     entwurfsgeschwindigkeit: Optional[str] = None
     planungsstand: Optional[str] = None
-    project_status: Optional[str] = None
+
+    @field_validator("entwurfsgeschwindigkeit", mode="before")
+    @classmethod
+    def coerce_geschwindigkeit_to_str(cls, v: object) -> str | None:
+        if v is None:
+            return None
+        return str(v) if not isinstance(v, str) else v
+
+    status_planung: bool = False
+    status_bau: bool = False
+    status_abgeschlossen: bool = False
 
     pfa_entries: list[VibPfaEntryProposed] = []
-    project_id: Optional[int] = None
+    pfa_raw_markdown: Optional[str] = None  # complete markdown pipe table, unmodified
+    sonstiges: Optional[str] = None         # leftover text: footnotes, preambles, unclassified
+    project_ids: list[int] = []
 
 
 class VibConfirmRequest(BaseModel):
@@ -118,6 +148,13 @@ class VibConfirmResponse(BaseModel):
 # Report list schema
 # ---------------------------------------------------------------------------
 
+def _as_utc(dt: datetime) -> datetime:
+    """Ensure a datetime is timezone-aware (UTC). Treats naive datetimes as UTC."""
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
 class VibReportSchema(BaseModel):
     id: int
     year: int
@@ -127,6 +164,10 @@ class VibReportSchema(BaseModel):
     entry_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("imported_at")
+    def serialize_imported_at(self, dt: datetime) -> str:
+        return _as_utc(dt).isoformat()
 
 
 # ---------------------------------------------------------------------------
@@ -168,7 +209,10 @@ class VibEntryForProjectSchema(BaseModel):
     gesamtkosten_mio_eur: Optional[float] = None
     entwurfsgeschwindigkeit: Optional[str] = None
     planungsstand: Optional[str] = None
-    project_status: Optional[str] = None
+
+    status_planung: bool = False
+    status_bau: bool = False
+    status_abgeschlossen: bool = False
 
     ai_extracted: bool = False
 
@@ -177,6 +221,25 @@ class VibEntryForProjectSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class VibDraftSchema(BaseModel):
+    """Metadata for an unconfirmed VIB draft (excludes the raw JSON payload)."""
+
+    task_id: str
+    year: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("created_at")
+    def serialize_created_at(self, dt: datetime) -> str:
+        return _as_utc(dt).isoformat()
+
+
 class VibAiAvailableResponse(BaseModel):
+    available: bool
+    model: Optional[str] = None
+
+
+class VibOcrAvailableResponse(BaseModel):
     available: bool
     model: Optional[str] = None
