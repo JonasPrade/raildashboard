@@ -308,7 +308,7 @@ function VibEntryCard({
                     )}
                 </div>
 
-                {/* Bug 5: PFA raw markdown toggle */}
+                {/* PFA raw-markdown toggle */}
                 {entry.pfa_raw_markdown && (
                     <div>
                         <Button
@@ -512,7 +512,7 @@ export default function VibReviewPage() {
         try {
             const updated = await retryAi.mutateAsync({ taskId, entryIdx: idx });
             setEntries((prev) =>
-                (prev ?? parseResult!.entries).map((e, i) => (i === idx ? updated : e))
+                (prev ?? parseResult.entries).map((e, i) => (i === idx ? updated : e))
             );
             notifications.show({ color: "green", message: "KI-Extraktion erfolgreich." });
         } catch {
