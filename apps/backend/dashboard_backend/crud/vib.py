@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import Session, joinedload
 
 from dashboard_backend.models.vib.vib_draft_report import VibDraftReport
 from dashboard_backend.models.vib.vib_entry import VibEntry
+from dashboard_backend.models.vib.vib_entry_project import vib_entry_project
 from dashboard_backend.models.vib.vib_pfa_entry import VibPfaEntry
 from dashboard_backend.models.vib.vib_report import VibReport
 from dashboard_backend.schemas.vib import (
@@ -28,6 +29,10 @@ def save_draft_report(
     year: int,
     raw_result_json: str,
     user: "User | None",
+    ocr_raw_text: str | None = None,
+    ocr_status: str | None = None,
+    ocr_model: str | None = None,
+    ocr_images_json: str | None = None,
 ) -> VibDraftReport:
     """Upsert the raw parse result JSON for a given task_id.
 
@@ -38,6 +43,10 @@ def save_draft_report(
     if existing:
         existing.raw_result_json = raw_result_json
         existing.year = year
+        existing.ocr_raw_text = ocr_raw_text
+        existing.ocr_status = ocr_status
+        existing.ocr_model = ocr_model
+        existing.ocr_images_json = ocr_images_json
         db.flush()
         return existing
 
@@ -46,6 +55,10 @@ def save_draft_report(
         year=year,
         raw_result_json=raw_result_json,
         created_by_user_id=user.id if user else None,
+        ocr_raw_text=ocr_raw_text,
+        ocr_status=ocr_status,
+        ocr_model=ocr_model,
+        ocr_images_json=ocr_images_json,
     )
     db.add(draft)
     db.flush()
@@ -54,6 +67,11 @@ def save_draft_report(
 
 def get_draft_by_task_id(db: Session, task_id: str) -> VibDraftReport | None:
     return db.query(VibDraftReport).filter(VibDraftReport.task_id == task_id).first()
+
+
+def list_drafts(db: Session) -> list[VibDraftReport]:
+    """Return all drafts ordered by creation date, newest first."""
+    return db.query(VibDraftReport).order_by(VibDraftReport.created_at.desc()).all()
 
 
 def delete_draft(db: Session, task_id: str) -> None:
@@ -125,7 +143,7 @@ def create_vib_report_with_entries(
         year=year,
         drucksache_nr=drucksache_nr,
         report_date=parsed_date,
-        imported_at=datetime.utcnow(),
+        imported_at=datetime.now(timezone.utc),
         imported_by_user_id=user.id if user else None,
     )
     db.add(report)
@@ -137,7 +155,6 @@ def create_vib_report_with_entries(
     for entry_data in entries:
         vib_entry = VibEntry(
             vib_report_id=report.id,
-            project_id=entry_data.project_id,
             vib_section=entry_data.vib_section,
             vib_lfd_nr=entry_data.vib_lfd_nr,
             vib_name_raw=entry_data.vib_name_raw,
@@ -152,10 +169,19 @@ def create_vib_report_with_entries(
             gesamtkosten_mio_eur=entry_data.gesamtkosten_mio_eur,
             entwurfsgeschwindigkeit=entry_data.entwurfsgeschwindigkeit,
             planungsstand=entry_data.planungsstand,
-            project_status=entry_data.project_status,
+            status_planung=entry_data.status_planung,
+            status_bau=entry_data.status_bau,
+            status_abgeschlossen=entry_data.status_abgeschlossen,
         )
         db.add(vib_entry)
         db.flush()  # get vib_entry.id
+
+        if entry_data.project_ids:
+            db.execute(
+                vib_entry_project.insert(),
+                [{"vib_entry_id": vib_entry.id, "project_id": pid} for pid in entry_data.project_ids],
+            )
+
         entries_created += 1
 
         for pfa_data in entry_data.pfa_entries:
@@ -187,7 +213,8 @@ def get_vib_entries_for_project(db: Session, project_id: int) -> list[VibEntry]:
     """Return all VibEntry rows linked to a project, newest report year first."""
     return (
         db.query(VibEntry)
-        .filter(VibEntry.project_id == project_id)
+        .join(vib_entry_project, vib_entry_project.c.vib_entry_id == VibEntry.id)
+        .filter(vib_entry_project.c.project_id == project_id)
         .join(VibEntry.report)
         .order_by(VibReport.year.desc())
         .options(
