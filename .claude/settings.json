@@ -1,5 +1,15 @@
 {
   "hooks": {
+    "WorktreeCreate": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/jonas/Documents/coding/raildashboard/.claude/hooks/worktree-setup.sh"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Edit|Write",
