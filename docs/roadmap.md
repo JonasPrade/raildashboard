@@ -18,98 +18,16 @@ This tasks must be done by human:
 
 ## Mid-Term Features
 
-### Verkehrsinvestitionsbericht (VIB) Import
-
-Jährlicher Import des Bundestagsdrucksache-PDFs (Abschnitt B: Schienenwege). Vollständig implementiert: DB-Modelle, Mistral-OCR-Pipeline, Parser, KI-Inhaltsextraktion, Review-UI, API-Endpunkte, Import-UI und ProjectDetail-Anzeige.
-
-Siehe: `docs/features/feature-vib-import.md`
-
-**Phase 1 — Parser-Fixes (kein LLM):**
-- [x] Per-Seite Spaltentyp-Erkennung (bimodal x0-Analyse statt festem COL_BOUNDARY)
-- [x] TOC-verankerte Blockgrenzen (Sektionsnummer als Anker)
-- [x] Debug-Script `scripts/dump_vib_parse_result.py`
-- [x] `project_status` aus Planungsstand-Block extrahieren
-
-**Phase 2 — LLM-Inhaltsextraktion:**
-- [x] Celery-Task `extract_vib_blocks` + Endpoint
-- [x] `VibStructurePreviewPage`: Strukturvorschau nach Parse → direkt "Weiter zum Review" (kein Batch-KI-Schritt mehr)
-- [x] Nach Parse → Redirect zu Preview (statt direkt zu Review)
-- [x] KI-Badge auf extrahierten Karten
-- [x] **KI-Extraktion pro Vorhaben**: Im Review "KI extrahieren"-Button pro Eintrag (single-entry endpoint); ersetzt den früheren Batch-KI-Schritt. Begründung: Mistral OCR Qualität ist hoch genug, dass Batch-KI redundant ist; KI bleibt als optionales Werkzeug für einzelne Einträge verfügbar.
-
-**Phase 3 — Review-UI:**
-- [x] Sub-Block-Felder editierbar (Textareas)
-- [x] PFA-Tabelle inline editierbar
-
-**Phase 4 — Mistral OCR Pipeline:**
-- [x] `tasks/vib_ocr.py`: Mistral OCR API integration (`mistral-ocr-latest`); pymupdf fallback when no API key
-- [x] `_inline_tables()`: Resolves `[tbl-N.md](tbl-N.md)` placeholders in `page.markdown` with `page.tables[i].content` — ensures PFA tables and all other markdown tables are present in `raw_text`
-- [x] `_page_to_text()`: Strips `page.header` / `page.footer` (API-separated fields) when `strip_headers_footers=True`; strips `![img-N.*](img-N.*)` image references via regex
-- [x] `extract_pages_as_pdf()`: Extracts sub-PDF for a given page range (1-indexed, pymupdf); sent to Mistral OCR instead of full PDF
-- [x] Import-UI: optional "von Seite / bis Seite" inputs (page range for OCR); "Kopf- und Fußzeilen ignorieren" checkbox (default on); PDF preview (iframe); timezone Europe/Berlin
-- [x] Parser: `_VORHABEN_SECTION_RE` extended to match both plain `B.4.1.3` and markdown heading `# B.4.1.3` formats; `_RAW_TEXT_MAX_CHARS` raised to 30,000; "Termine" added to `_BLOCK_LABELS`; `_parse_pfa_table_markdown()` for pipe-table PFA parsing
-- [x] `VibStructurePreviewPage`: richer raw text display — sub-section detection badges, char-count quality indicator, expandable rows with stats; removed false-positive alerts; raw text rendered as Markdown (`react-markdown` + `remark-gfm`) so pipe tables, headings, and bold text are displayed properly instead of as raw characters
-- [x] `_collect_images()`: collects `{page_index, id, image_base64}` from `page.images` for all OCR pages; stored as JSON in `vib_draft_report.ocr_images_json`
-- [x] API endpoints `GET /draft/{task_id}/images` (list metadata) and `GET /draft/{task_id}/image/{image_id}` (serve bytes) — base64-decoded, correct content-type for jpeg/png/webp
-
----
-
 ### Vervollständigung und Automatisierung Tests
 
-**Status:** Implementiert (Steps 1–6 abgeschlossen)
+**Status:** API- und Unit-Tests implementiert (Steps 1–4 abgeschlossen). CI-Automatisierung offen.
 
-#### Analyse Ist-Zustand
-
-**Backend** (`apps/backend/tests/`)
-- Abgedeckt: `route`, `project_groups`, `project_routes_api`, `users`, `tasks`, routing-Service, Route-Domain
-- **Nicht abgedeckt (7 Endpoint-Module):**
-  - `projects.py` — GET list/detail, POST, PATCH, changelog, revert (größte Lücke)
-  - `auth.py` — Session-Login (POST /auth/session), Logout (DELETE), Cookie-Handling
-  - `finves.py` — GET /finves/ Listenendpunkt
-  - `haushalt_import.py` — POST /parse, GET /parse-result, POST /confirm, PATCH /unmatched
-  - `project_texts.py` — CRUD Texte, Anhänge (Upload/Download/Delete), Dokument-Verknüpfungen
-  - `settings.py` — GET/PATCH Settings
-  - `operational_points.py` (geplant, Step 1 Routing) — noch nicht implementiert
-- **Nicht abgedeckte Business-Logik:**
-  - `tasks/haushalt.py` — Parser-Funktionen (`_parse_combined_id_cell`, `_extract_project_name`, `_extract_inline_titel_entries`, `_build_sv_raw_lookup`, Seitenumbruch-Recovery)
-  - `tasks/finve_matching.py` — Fuzzy-Matching-Logik
-  - `tasks/vib.py` + `tasks/vib_matching.py` — VIB-Parser und Matching
-  - `utils/file_storage.py` — Path-Traversal-Guard, MIME-Validierung
-
-**Frontend** (`apps/frontend/src/`)
-- Konfiguriert: Vitest + jsdom (vite.config.ts), `pnpm test` funktioniert — aber **0 eigene Tests vorhanden**
-- Testbare Einheiten:
-  - `features/projects/projectFeatureConfig.ts` — pure Data-Konfiguration (featureGroups, trainCategoryLabels)
-  - `lib/auth.ts` — AuthProvider, useAuth-Hook (mit @testing-library/react)
-  - `shared/api/queries.ts` — Query-Hooks (mit msw + React Query)
-  - Utility-Funktionen falls vorhanden
-
-#### Plan
-
-**Schritt 1 — Backend: Konftest erweitern**
-- [x] `tests/api/conftest.py` um weitere Tabellen ergänzen: `AppSettings`, `ProjectTextType`, `ProjectText`
-
-**Schritt 2 — Backend: fehlende API-Tests**
-- [x] `tests/api/test_projects.py` — GET /projects/, GET /projects/{id}, PATCH (editor), PATCH unauth (401/403), changelog GET, revert POST
-- [x] `tests/api/test_auth.py` — POST /auth/session success/fail, DELETE /auth/session, Cookie wird gesetzt
-- [x] `tests/api/test_finves.py` — GET /finves/ gibt Liste zurück (monkeypatch CRUD)
-- [x] `tests/api/test_project_texts.py` — CRUD Texte, Visibility-Prüfung (öffentlich vs. auth-only), Delete
-- [x] `tests/api/test_settings.py` — GET/PATCH Settings, Rolle-Guard, Roundtrip
-
-**Schritt 3 — Backend: Parser-Unit-Tests**
-- [x] `tests/unit/test_finve_matching.py` — `_normalize`, `_score`, `suggest_projects_for_finve`, `suggest_per_erlaeuterung_project`, `suggest_projects_for_sv_erlaeuterung`
-- [x] `tests/unit/test_file_storage.py` — Path-Traversal-Guard, erlaubte MIME-Types, `delete_attachment_file` silent on missing
-- [ ] `tests/unit/test_haushalt_parser.py` — Fixtures aus realen PDF-Zeilen (als String), Tests für `_parse_combined_id_cell`, `_extract_project_name`, etc. *(aufwändig, späteres Ticket)*
-
-**Schritt 4 — Frontend: Basis-Setup + erste Tests**
-- [x] `@testing-library/react`, `@testing-library/user-event`, `jsdom` als Dev-Dependencies hinzugefügt
-- [x] `src/features/projects/projectFeatureConfig.test.ts` — featureGroups enthält alle erwarteten Keys, keine Duplikate, trainCategoryLabels korrekt
-- [x] `src/lib/auth.test.tsx` — useAuth Login/Logout-Flow mit gemocktem fetch (17 Tests)
-
-**Schritt 5 — Automatisierung (CI)**
-- [ ] Backend-Tests in CI: `pytest apps/backend/tests/` als GitHub-Actions-Step
-- [ ] Frontend-Tests in CI: `pnpm test` in `apps/frontend/`
-- [ ] Coverage-Report generieren (`pytest --cov`, `vitest --coverage`) und als Artefakt speichern
+- [x] Backend conftest erweitert (`AppSettings`, `ProjectTextType`, `ProjectText`)
+- [x] API-Tests: `test_projects.py`, `test_auth.py`, `test_finves.py`, `test_project_texts.py`, `test_settings.py`
+- [x] Unit-Tests: `test_finve_matching.py` (Fuzzy-Matching), `test_file_storage.py` (Path-Traversal, MIME)
+- [x] Frontend: `@testing-library/react` Setup + Tests für `projectFeatureConfig` und `useAuth` (17 Tests)
+- [ ] `tests/unit/test_haushalt_parser.py` — Parser-Fixture-Tests *(aufwändig, späteres Ticket)*
+- [ ] CI: `pytest` + `pnpm test` als GitHub-Actions-Steps mit Coverage-Report
 
 - [ ] **Special view of Generalsanierung. Timeline when which Generalsanierung is started and when it is finished**
 
@@ -184,7 +102,6 @@ Add to `queries.ts`:
 
 - [ ] **BVWP-Datenimport** — Übernahme der BVWP-Daten aus der Legacy-Datenbank. Voraussetzung für die Anzeige der BVWP-Bewertung (Display-Feature bereits implementiert).
 
-- [ ] **Vervollständigung und Automatisierung Tests**
 - [ ] Cleanup Database structure. Evaluate
 - [ ] Bug-Report: A Button in the right corner where everybody can report Bugs or Problems (logged in users dont have to add there contact information). Bugs should be collect in fitting tool and solved by ai
 - [ ] Kennzahlen Marktuntersuchungsbericht Bundesnetzagentur -> wichtigsten Entwicklungskennzahlen online stellen
@@ -234,33 +151,33 @@ Priorität:
 ## Finished
 
 ### Claude Code Setup
-- [x] **Hooks**: Pre-edit guard `.env`, post-edit reminders für `make gen-api`, Alembic-Migration und roadmap sync, macOS-Notification bei Bedarf
-- [x] **Skills**: `/commit` (Conventional Commit helper), `/gen-api`, `/update-roadmap`, `/new-api-route` (Route-Scaffold-Wizard)
-- [x] **Plugins**: `feature-dev`, `frontend-design`, `pyright-lsp` (Python Code Intelligence), `typescript-lsp`
+- [x] Hooks (pre-edit `.env` guard, post-edit reminders for `make gen-api`, Alembic, roadmap sync, macOS notifications)
+- [x] Skills: `/commit`, `/gen-api`, `/update-roadmap`, `/new-api-route`
+- [x] Plugins: `feature-dev`, `frontend-design`, `pyright-lsp`, `typescript-lsp`
+
+### Verkehrsinvestitionsbericht (VIB) Import
+
+Jährlicher Import des VIB-PDFs (Abschnitt B: Schienenwege). Vollständig implementiert über Phases 1–4.
+
+Siehe: `docs/features/feature-vib-import.md`
+
+- [x] **Parser** — per-page column detection (bimodal x0), TOC-anchored block boundaries, `_VORHABEN_SECTION_RE` for plain and Markdown headings, PFA pipe-table parsing, debug script `scripts/dump_vib_parse_result.py`
+- [x] **Mistral OCR Pipeline** — `tasks/vib_ocr.py`: `mistral-ocr-latest` API + pymupdf fallback; inline table resolution; header/footer stripping; page-range extraction; image collection stored as JSON in `vib_draft_report.ocr_images_json`
+- [x] **API** — Celery task `extract_vib_blocks`; image endpoints `GET /draft/{task_id}/images` + `/image/{id}`; single-entry AI extraction endpoint
+- [x] **Review-UI** — `VibStructurePreviewPage` with Markdown rendering, quality indicators, sub-section badges; `VibReviewPage` with editable sub-block fields and inline PFA table; per-entry "KI extrahieren" button; m:n project assignment (`project_ids`)
 
 ### UI / UX
-- [x] **BVWP-Bewertung in Projektdetail** — `GET /api/v1/projects/{id}/bvwp` endpoint; `BvwpProjectDataSchema` (Pydantic) + `get_bvwp_data` CRUD; `BvwpDataSection.tsx` in `ProjectDetail` with 11 tab groups (Grunddaten, Kosten, Prognose PV/GV, Nutzen PV/GV, Weitere Nutzenwirkungen, Umwelt, Raumordnung, Kapazität, Sonstiges); NKV shown as badge; tabs hidden when all fields are null; section hidden for projects without BVWP data
-- [x] Project search on map and list view — client-side substring filter by name / project number / description; search input in `MapControls` overlay (map) and list header; `?search=` URL param with 200 ms debounce; result count, clear button, and empty-state messages
-- [x] Admin-configurable ProjectGroup visibility (`is_visible`) and default selection (`is_default_selected`) on map; group filter drawer redesigned as clickable button list
-- [x] Admin-configurable map group mode (`AppSettings.map_group_mode`: `preconfigured` / `all`) in `/admin/project-groups`
-- [x] Zoom initial map view on project detail page reduced (zoom 7 → 6)
-- [x] Login via Enter-Taste (nicht nur Button-Klick) — `LoginModal.tsx`: `PasswordInput.onKeyDown` → `doLogin()`
-- [x] Inhaltsverzeichnis in Projektdarstellung (links, ausklappbar; klappt Abschnitte beim Anklicken auf)
-- [x] Header-Menü kollabiert zu Burger-Menü bei schmalen Fenstern (Kollaps-Schwellwert angepasst)
-- [x] Projektkarte zentriert beim Laden auf den Projektmittelpunkt (Koordinate in `project`-Tabelle)
-- [x] Karte/Liste als Tab-Toggle auf Route `/` (`?view=map` / `?view=list`); `/projects` → Redirect
-- [x] Gruppen-Persistenz als URL-Param (`?group=id1,id2`) zwischen Karte und Liste
-- [x] Toggle „Nur übergeordnete Projekte" (filtert auf `superior_project_id IS NULL`)
-- [x] Kartenauswahl zeigt Projektnummer + Beschreibung (nicht nur Name)
-- [x] Liniendicke (4 px Standard) und Punktgröße auf Karte einstellbar
-- [x] Lücken zwischen Liniensegmenten behoben (MultiLineString + `line-cap: round`)
-- [x] Punkte aus GeoJSON auf Karte (separater Circle-Layer)
-- [x] Projektdetails + Beschreibung neben Karte (Karte rechts, 2/3 Breite bei ausreichend Platz)
-- [x] Projekteigenschaften (inkl. Verkehrsarten, Merkmale) in Box „Projektdetails"; alte ID entfernt
-- [x] Kurzansicht-Komponente für Projekte auf Karte und in Projektdetail (Unter-/Oberprojekte)
-- [x] Datum-/Zeitanzeige durchgehend auf Zeitzone Europe/Berlin umgestellt (Changelog, Import, Nutzerverwaltung)
-- [x] Nach Bestätigung des Haushalt-Reviews automatische Weiterleitung zur Import-Übersicht
-- [x] SV-FinVes in Projektdetailseite als kompakter Tag dargestellt (kein Diagramm)
+- [x] **Chronicle design system rollout** — Noto Serif font (self-hosted), design tokens CSS, 4 components (ChronicleHeadline, ChronicleDataChip, ChronicleCard, ChronicleButton); showcase pages: Projects page + MapControls glassmorphic panel. See `docs/features/feature-design-system.md`
+- [x] **BVWP-Bewertung in Projektdetail** — `GET /api/v1/projects/{id}/bvwp`; `BvwpDataSection.tsx` mit 11 Tab-Gruppen; NKV als Badge; Sektion ausgeblendet wenn kein BVWP-Datensatz vorhanden
+- [x] Projektsuche auf Karte und Listenansicht — client-seitiger Filter nach Name/Nummer/Beschreibung; `?search=` URL-Param mit Debounce
+- [x] Admin-konfigurierbare ProjectGroup-Sichtbarkeit (`is_visible`, `is_default_selected`) und Kartenmodus (`map_group_mode`: `preconfigured` / `all`)
+- [x] Inhaltsverzeichnis in Projektdarstellung (links, ausklappbar)
+- [x] Karte/Liste als Tab-Toggle auf `/` (`?view=map` / `?view=list`); Gruppen-Persistenz als `?group=`-Param
+- [x] Toggle „Nur übergeordnete Projekte"; Kartenauswahl zeigt Projektnummer + Beschreibung
+- [x] Kartengeometrie: einstellbare Liniendicke/Punktgröße, `line-cap: round` für Lückenbehebung, separater Circle-Layer für GeoJSON-Punkte
+- [x] Projektdetail: Projekteigenschaften-Box, Kurzansicht-Komponente für Unter-/Oberprojekte, Zentrierung auf Projektmittelpunkt
+- [x] Datum-/Zeitanzeige auf Zeitzone Europe/Berlin; Login per Enter-Taste; Burger-Menü bei schmalen Fenstern
+- [x] SV-FinVes in Projektdetailseite als kompakter Tag dargestellt
 
 ### Texte & Kommentare
 - [x] Projekttexte anzeigen (über übergeordnetes Projekt), erstellen, bearbeiten
@@ -283,61 +200,27 @@ Priorität:
 
 ### Haushaltsberichte-Import (vollständig)
 
-Jährlicher Import der Anlage VWIB, Teil B (Bundeshaushalt) als PDF.
-Die Tabelle enthält alle Bedarfsplanmaßnahmen des Schienenwegeinvestitionsprogramms
-mit FinVe-Nummern, Kostenschätzungen und Jahresansätzen je Haushaltskonto.
+Jährlicher Import der Anlage VWIB, Teil B (Bundeshaushalt) als PDF. Enthält alle Bedarfsplanmaßnahmen des Schienenwegeinvestitionsprogramms mit FinVe-Nummern, Kostenschätzungen und Jahresansätzen.
 
-**PDF-Spalten-Mapping** (Werte in €1.000, außer %):
+Siehe: `docs/features/feature-haushalt-import.md`
 
-| Spalte | Header | Ziel-Feld |
-|--------|--------|-----------|
-| 1 | Lfd. Nr. | `Budget.lfd_nr` (z.B. "B0080") |
-| 2 | Nr. FinVe | `Finve.id` (Integer, Matching-Schlüssel) |
-| 3 | Nr. Bedarfsplan Schiene | `Budget.bedarfsplan_number` |
-| 4 | Bezeichnung der Investitionsmaßnahme | `Finve.name` |
-| 5 | Aufnahme Jahr | `Finve.starting_year` |
-| 6 | Gesamtausgaben ursprünglich | `Budget.cost_estimate_original` |
-| 7 | Gesamtausgaben Vorjahr | `Budget.cost_estimate_last_year` |
-| 8 | Gesamtausgaben aktuell | `Budget.cost_estimate_actual` |
-| 9 | Δ zum Vorjahr (€1.000) | `Budget.delta_previous_year` |
-| 10 | Δ zum Vorjahr (%) | `Budget.delta_previous_year_relativ` |
-| 11 | Gründe | `Budget.delta_previous_year_reasons` |
-| 12 | Verausgabt bis Y-2 | `Budget.spent_two_years_previous` |
-| 13 | Bewilligt Y-1 | `Budget.allowed_previous_year` |
-| 14 | Übertragene Ausgabereste | `Budget.spending_residues` |
-| 15 | Veranschlagt Y | `Budget.year_planned` |
-| 16 | Vorhalten Y+1 ff. | `Budget.next_years` |
+- [x] Celery-Task `parse_haushalt_pdf` (`tasks/haushalt.py`) mit `pdfplumber`; Parser für 2026-Format (zusammengeführte Spalten, mehrzeilige Zellen, Haushaltstitel-Lookup auto-erweiterbar via `get_or_create`)
+- [x] DB-Modelle: `HaushaltTitel`, `BudgetTitelEntry`, `HaushaltsParseResult`, `FinveChangeLog`, `BudgetChangeLog`, `UnmatchedBudgetRow`
+- [x] API: `POST /parse`, `GET /parse-result`, `POST /confirm`, `GET/PATCH /unmatched`
+- [x] Frontend: Upload-Flow mit Celery-Polling, Review-Tabelle (neu/geändert/unmatched), Projektzuordnung per MultiSelect, Import-Anleitung unter `/admin/haushalt-import/guide`
+- [x] Fuzzy-Matching (`tasks/finve_matching.py`, SequenceMatcher + Token-Overlap, Threshold 0.45); FinVe → mehrere Projekte (bidirektionale Sync beim Confirm)
+- [x] **SV-FinVes**: Erkennung via Regex, `is_sammel_finve`-Flag, flat-table-Ansatz für Seitenumbruch-Recovery, eigene Review-Sektion mit per-Projekt-Unterzeilen + Fuzzy-Vorschlägen; `finve_to_project.haushalt_year` für Jahrestracking
+- [x] **FinVe-Übersicht** (`/finves`): Kartenansicht aller FinVes, Suche, Typ-Filter, ausklappbare Budget-Diagramme (BarChart/LineChart/Detailtabelle), verknüpfte Projekt-Mini-Cards
 
-Titelunterzeilen (Spalten 7, 8, 12–16) → `BudgetTitelEntry` verknüpft mit `HaushaltTitel`.
-Nachrichtlich-Zeilen (kursiv) werden ebenfalls als `is_nachrichtlich=True` gespeichert.
-
-**Haushaltstitel im PDF 2026** (Lookup-Tabelle `haushalt_titel`, auto-erweiterbar):
-- `891_01` → Kap. 1202, Titel 891 01
-- `891_03` → Kap. 1202, Titel 891 03
-- `891_04` → Kap. 1202, Titel 891 04
-- `891_52` → Kap. 1408, Titel 891 52
-- `891_91` → Kap. 1202 (alt), Titel 891 91 – IIP Schiene
-- `891_11` → Kap. 1202 (alt), Titel 891 11 – LUFV (alt)
-
-Neue Titel in künftigen PDFs werden automatisch per `get_or_create` registriert.
-
-- [x] DB-Modelle: `HaushaltTitel`, `BudgetTitelEntry`, `HaushaltsParseResult`, `FinveChangeLog`, `BudgetChangeLog`, `UnmatchedBudgetRow` + Alembic-Migration
-- [x] Pydantic-Schemas (`haushalt_import.py`), CRUD-Funktionen (`crud/haushalt_import.py`)
-- [x] Celery-Task `parse_haushalt_pdf` (`tasks/haushalt.py`) mit `pdfplumber`; Parser-Fixes für 2026-Format (zusammengeführte Spalten, mehrzeilige Zellen, `_KAP_TITEL_RE` mit `(alt)`-Zusatz, `_BHO_NOTE_RE`)
-- [x] API unter `/api/v1/import/haushalt`: `POST /parse`, `GET /parse-result`, `POST /confirm`, `GET/PATCH /unmatched`
-- [x] Frontend `features/haushalt-import/`: Upload-Flow mit Celery-Polling, Review-Tabelle (neu/geändert/unmatched), Projektzuordnung per MultiSelect, Unmatched-Nachbearbeitung
-- [x] Fuzzy-Matching (`tasks/finve_matching.py`, SequenceMatcher + Token-Overlap, Threshold 0.45) für automatische Projektzuordnungs-Vorschläge
-- [x] FinVe → mehrere Projekte (bidirektionale Sync beim Confirm; MultiSelect auch bei update-Rows)
-- [x] FinVe-Anzeige in `ProjectDetail`: `GET /api/v1/projects/{id}/finves`, `FinveSection.tsx` mit 3 Tabs (Budgetverteilung BarChart, Kostenentwicklung LineChart, Detailtabelle); `@mantine/charts` + `recharts`
-- [x] **Sammelfinanzierungsvereinbarungen (SV-FinVes)**: Erkennung via Regex im Parser, `is_sammel_finve`-Flag in DB (`finve`-Tabelle) + Alembic-Migration, eigene Review-Sektion "Sammel-FinVes (Phase 2)" in der UI, per-Projekt-Unterzeilen mit Fuzzy-Vorschlägen aus dem Erläuterungstext, Erkennung mehrseitiger Erläuterungen (flat-table-Ansatz + Continuation-Detection), Wiederherstellung von Zeilen mit fehlendem YYY-Identifier via Raw-Text-Lookup. `finve_to_project` um `haushalt_year`-Spalte erweitert: reguläre FinVes nutzen `NULL` (permanente Zuordnung), SV-FinVes speichern Mitgliedschaft pro Jahr → historische Projektzu-/abgänge bleiben erhalten.
-- [x] **FinVe-Übersicht** (`/finves`): Neue Seite mit Kartenansicht aller Finanzierungsvereinbarungen, Volltextsuche, Typ-Filter (Alle / Regulär / Sammel-FinVes). Jede Karte zeigt Kenndaten, verknüpfte Projekte als anklickbare Mini-Cards (Link → Projektdetailseite) sowie ausklappbare Budget-Diagramme (Stacked BarChart, LineChart, Detailtabelle) analog zu `FinveSection.tsx`. Backend: `GET /api/v1/finves` (auth required) + CRUD mit Eager-Load Budgets + Titel.
-- [x] **Import-Anleitung** (`/admin/haushalt-import/guide`): Schritt-für-Schritt-Dokumentation für Endnutzer; verlinkt von Import- und Review-Seite.
+### Tests (Phases 1–4)
+- [x] Backend API-Tests: `test_projects`, `test_auth`, `test_finves`, `test_project_texts`, `test_settings`; conftest mit `AppSettings`, `ProjectTextType`, `ProjectText`
+- [x] Backend Unit-Tests: `test_finve_matching` (Fuzzy-Matching), `test_file_storage` (Path-Traversal, MIME)
+- [x] Frontend: `@testing-library/react` Setup + `projectFeatureConfig.test.ts` + `auth.test.tsx` (17 Tests)
 
 ### Infrastruktur
-- [x] Docker: Dev (nur DB + Redis), Prod (DB + Backend + Frontend/nginx + Worker); Entrypoint-Skript mit Alembic-Migration, Makefile-Targets
+- [x] Docker: Dev (DB + Redis), Prod (DB + Backend + Frontend/nginx + Worker); Entrypoint mit Alembic-Migration
 - [x] Celery Task Queue mit Redis-Broker; Task-Status-Endpoint `GET /api/v1/tasks/{task_id}`
-- [x] Backup & Restore: `scripts/backup_db.sh`, `scripts/restore_db.sh`, Makefile-Targets; Doku in `docs/production_setup.md`
-- [x] Backend-Authentifizierung: httpOnly-Cookie-Session (HMAC-signed token); Rollen viewer/editor/admin
-- [x] Routing-Algorithmus implementiert (pgRouting / GrassHopper-Microservice)
-- [x] Docs bereinigt: `docs/architecture.md` als zentrale Architekturdokumentation
-- [x] Comprehensive test coverage: backend API tests, parser unit tests, frontend component tests
+- [x] Backup & Restore: `scripts/backup_db.sh` / `restore_db.sh`; Doku in `docs/production_setup.md`
+- [x] Backend-Auth: httpOnly-Cookie-Session (HMAC-signed); Rollen viewer/editor/admin
+- [x] Routing-Microservice (GraphHopper/pgRouting) Docker-Integration
+- [x] `docs/architecture.md` als zentrale Architekturdokumentation
