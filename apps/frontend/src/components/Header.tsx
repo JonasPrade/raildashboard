@@ -1,9 +1,10 @@
 import React from "react";
-import { Burger, Drawer, Group, Stack } from "@mantine/core";
+import { Badge, Burger, Drawer, Group, Stack } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { LoginModal } from "../features/auth/LoginModal";
+import { useUnassignedFinves, useUnassignedVibEntries } from "../shared/api/queries";
 import { ChronicleButton, ChronicleHeadline } from "./chronicle";
 
 const desktopNavLinkStyle: React.CSSProperties = {
@@ -43,6 +44,13 @@ export function Header() {
     const [drawerOpened, { open: openDrawer, close: closeDrawer }] = useDisclosure(false);
     const isMobile = useMediaQuery("(max-width: 100em)");
 
+    const isEditorOrAdmin = user?.role === "editor" || user?.role === "admin";
+    const { data: unassignedFinves } = useUnassignedFinves(isEditorOrAdmin);
+    const { data: unassignedVibEntries } = useUnassignedVibEntries(isEditorOrAdmin);
+    const totalUnassigned = isEditorOrAdmin
+        ? (unassignedFinves?.length ?? 0) + (unassignedVibEntries?.length ?? 0)
+        : 0;
+
     const desktopNavLinks = (
         <>
             <NavLink to="/" end style={({ isActive }) => isActive ? desktopNavLinkActiveStyle : desktopNavLinkStyle} onClick={closeDrawer}>
@@ -59,6 +67,22 @@ export function Header() {
             {(user?.role === "editor" || user?.role === "admin") && (
                 <NavLink to="/admin/vib-import" style={({ isActive }) => isActive ? desktopNavLinkActiveStyle : desktopNavLinkStyle} onClick={closeDrawer}>
                     VIB-Import
+                </NavLink>
+            )}
+            {isEditorOrAdmin && (
+                <NavLink
+                    to="/admin/unassigned"
+                    style={({ isActive }) => isActive ? desktopNavLinkActiveStyle : desktopNavLinkStyle}
+                    onClick={closeDrawer}
+                >
+                    <Group gap={6} align="center">
+                        Offene Zuordnungen
+                        {totalUnassigned > 0 && (
+                            <Badge color="red" size="xs" variant="filled" circle>
+                                {totalUnassigned}
+                            </Badge>
+                        )}
+                    </Group>
                 </NavLink>
             )}
             {user?.role === "admin" && (
@@ -85,6 +109,18 @@ export function Header() {
             {(user?.role === "editor" || user?.role === "admin") && (
                 <NavLink to="/admin/vib-import" style={({ isActive }) => isActive ? drawerNavLinkActiveStyle : drawerNavLinkStyle} onClick={closeDrawer}>
                     VIB-Import
+                </NavLink>
+            )}
+            {isEditorOrAdmin && (
+                <NavLink to="/admin/unassigned" style={({ isActive }) => isActive ? drawerNavLinkActiveStyle : drawerNavLinkStyle} onClick={closeDrawer}>
+                    <Group gap={6} align="center">
+                        Offene Zuordnungen
+                        {totalUnassigned > 0 && (
+                            <Badge color="red" size="xs" variant="filled" circle>
+                                {totalUnassigned}
+                            </Badge>
+                        )}
+                    </Group>
                 </NavLink>
             )}
             {user?.role === "admin" && (

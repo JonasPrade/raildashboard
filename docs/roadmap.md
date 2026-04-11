@@ -57,11 +57,11 @@ Siehe: `docs/features/feature-routing.md`
 
 ### Admin: Offene Zuordnungen (BudgetFinVe & VIB)
 
-- [ ] In der Admin-Übersicht anzeigen, welche importierten Datensätze noch kein Projekt zugeordnet haben:
+- [x] In der Admin-Übersicht anzeigen, welche importierten Datensätze noch kein Projekt zugeordnet haben:
   - **Haushalt / BudgetFinVe**: FinVes ohne verknüpftes Projekt (aus `finve_to_project`-Tabelle)
   - **VIB-Einträge**: bestätigte VIB-Einträge (`vib_entry`) ohne `project_id`
   - Seite `/admin/unassigned` mit zwei Sektionen (FinVe + VIB); Inline-Zuweisung per durchsuchbarem MultiSelect direkt in der Tabellenzeile
-  - Direkter Link zur jeweiligen Detailseite/Import
+  - Header-Badge zeigt Gesamtzahl offener Zuordnungen für editor/admin
 
 - [ ] **Neues Projekt aus Zuordnungsseite anlegen** — Auf `/admin/unassigned` einen "Neues Projekt anlegen"-Button bereitstellen, damit unzugeordnete FinVes/VIB-Einträge direkt einem neu angelegten Projekt zugeordnet werden können, ohne die Seite wechseln zu müssen.
 
