@@ -100,7 +100,7 @@ export function Header() {
     return (
         <>
             <Group justify="space-between" px="md" py="xs">
-                <NavLink to="/" style={baseStyle}><Title order={2}>Schienenprojekte-Dashboard</Title></NavLink>
+                <NavLink to="/" className="header-title-link"><Title order={2}>Schienenprojekte-Dashboard</Title></NavLink>
                 {isMobile ? (
                     <Burger opened={drawerOpened} onClick={openDrawer} aria-label="Navigation öffnen" />
                 ) : (

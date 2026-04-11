@@ -6,8 +6,8 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 
 ## Short-Term Features
 
-- [ ] make the "Schienenprojekte-Dashboard" clickable -> return to Start Page
-- [ ] Show Button Haushalt in menu for all - not only logged in users
+- [x] make the "Schienenprojekte-Dashboard" clickable -> return to Start Page
+- [x] Show Button Haushalt in menu for all - not only logged in users
 - [ ] integrate the new design described in `docs/DESIGN.md`
 
 This tasks must be done by human:

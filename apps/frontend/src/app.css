@@ -24,6 +24,16 @@
     margin: 8px 0 4px;
 }
 
+/* Header title link */
+.header-title-link {
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+}
+.header-title-link:hover {
+    opacity: 0.75;
+}
+
 /* Self-hosted fonts */
 @font-face {
     font-family: "Work Sans";
