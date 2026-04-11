@@ -32,9 +32,9 @@ This tasks must be done by human:
 
 ---
 
-### Routenvorschlag per GrassHopper *(Backend + Frontend)*
+### ✅ Routenvorschlag per GrassHopper *(Backend + Frontend)*
 
-Backend-Infrastruktur vollständig implementiert (GraphHopper HTTP client, RouteService, Endpoints, ORM, CRUD, Tests, Docker). Offen: Frontend-Workflow + OperationalPoints-Endpoint.
+Vollständig implementiert. Backend-Infrastruktur (GraphHopper HTTP client, RouteService, Endpoints, ORM, CRUD, Tests, Docker) und Frontend-Workflow ("Geometrie verwalten" Modal in ProjectDetail) sind abgeschlossen.
 
 **Prerequisite (human task):** OSM-PBF unter `data/graphhopper/map.osm.pbf` ablegen.
 
@@ -47,42 +47,13 @@ Siehe: `docs/features/feature-routing.md`
 - `.env.example` — `ROUTING_BASE_URL=http://graphhopper:8989` (was broken `localhost`)
 - `docs/production_setup.md` — GraphHopper setup section (PBF placement, first start, cache invalidation)
 
-#### Step 1 — Expose OperationalPoints as a searchable API endpoint *(Backend)*
-- Add `GET /api/v1/operational-points?q=<name_or_id>&limit=20` in a new file `api/v1/endpoints/operational_points.py`
-- Pydantic response schema: `OperationalPointRef { id, op_id, name, type, latitude, longitude }`
-- CRUD function `search_operational_points(db, query, limit)` — `ILIKE` filter on `name` and `op_id`
-- Register router in `api/v1/router.py` (public, no auth required)
-- Run `make gen-api` to sync the frontend client
-
-#### Step 2 — Route calculation dialog *(Frontend)*
-New component `RouteCalculatorModal.tsx` inside `features/routing/`:
-- Visible in `ProjectDetail` only for `editor` / `admin` roles; triggered by a button "Route berechnen"
-- Two `Combobox` / `Select` inputs (searchable via the new endpoint) for start and end OperationalPoint
-- "Berechnen"-button → `POST /api/v1/routes/calculate` with `{ waypoints: [{lat, lon}, {lat, lon}], profile: "rail_default", options: {} }`
-- Loading state, error handling (502 → "Routing-Dienst nicht erreichbar", 422 → "Kein Pfad gefunden")
-- On success: store the returned `RoutePreviewOut` GeoJSON Feature in local state
-
-#### Step 3 — Route preview on map *(Frontend)*
-- In `ProjectDetail` (or a dedicated `RoutePreviewMap`), add a temporary MapLibre `LineLayer` sourced from the preview GeoJSON
-- Style: dashed blue line, distinct from the solid project geometry
-- Show distance (km) and duration (min) from `properties.distance_m` / `properties.duration_ms`
-
-#### Step 4 — Accept / Reject flow *(Frontend)*
-- **Accept** → `POST /api/v1/projects/{id}/routes` with `{ feature: <RoutePreviewOut> }` → invalidate `projectRoutesQuery`; additionally `PATCH /api/v1/projects/{id}` to update `geojson_representation` so the route appears on the main map
-- **Reject** → clear preview state; no API call
-- After accept: show success notification, close modal, map re-renders with persisted route
-
-#### Step 5 — Saved routes list *(Frontend)*
-- Small section in `ProjectDetail` (editor/admin only) listing saved routes via `GET /api/v1/projects/{id}/routes`
-- Each row: date, distance, duration, "Als aktive Geometrie setzen"-button (PATCH geojson_representation) and "Ersetzen"-button (PUT replace)
-- Mutation hooks: `useConfirmRoute`, `useReplaceRoute`, `useSetProjectGeometry`
-
-#### Step 6 — Frontend query hooks *(Frontend)*
-Add to `queries.ts`:
-- `useOperationalPointSearch(query)` — debounced, enabled when `query.length >= 2`
-- `useCalculateRoute()` — mutation
-- `useConfirmRoute(projectId)` — mutation
-- `useReplaceRoute(projectId)` — mutation
+#### ✅ Done — Frontend routing UI (Steps 1–6)
+- `GET /api/v1/operational-points?q=&limit=20` — `OperationalPointRef` schema, CRUD, endpoint registered
+- `features/routing/GeometryManagementModal.tsx` — full-screen modal ("Geometrie verwalten" button in ProjectDetail, editor/admin only)
+- `features/routing/RouteCalculatorForm.tsx` — start / via (dynamic) / end station comboboxes with debounced search
+- `features/routing/GeometryPreviewMap.tsx` — MapLibre map: solid blue (existing) + dashed orange (preview); auto-fits bounds
+- Accept flow: confirm route in DB (`POST /projects/{id}/routes`) + PATCH `geojson_representation`; delete = PATCH with null; upload = PATCH with uploaded GeoJSON
+- Query hooks in `queries.ts`: `useOperationalPointSearch`, `useCalculateRoute`, `useConfirmRoute`, `useUpdateProjectGeometry`
 
 ---
 

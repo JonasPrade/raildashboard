@@ -28,6 +28,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/operational-points/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search Ops
+         * @description Search operational points (stations/stops) by name or ID. Public endpoint.
+         */
+        get: operations["search_ops_api_v1_operational_points__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/route/": {
         parameters: {
             query?: never;
@@ -1094,14 +1114,6 @@ export interface components {
             /** Year */
             year: number;
         };
-        /** Body_upload_attachment_api_v1_projects_texts__text_id__attachments_post */
-        Body_upload_attachment_api_v1_projects_texts__text_id__attachments_post: {
-            /**
-             * File
-             * Format: binary
-             */
-            file: string;
-        };
         /** Body_start_vib_parse_api_v1_import_vib_parse_post */
         Body_start_vib_parse_api_v1_import_vib_parse_post: {
             /**
@@ -1120,6 +1132,14 @@ export interface components {
              * @default true
              */
             strip_headers_footers: boolean;
+        };
+        /** Body_upload_attachment_api_v1_projects_texts__text_id__attachments_post */
+        Body_upload_attachment_api_v1_projects_texts__text_id__attachments_post: {
+            /**
+             * File
+             * Format: binary
+             */
+            file: string;
         };
         /** BudgetSummarySchema */
         BudgetSummarySchema: {
@@ -1743,6 +1763,24 @@ export interface components {
              * @default []
              */
             project_ids: number[];
+        };
+        /**
+         * OperationalPointRef
+         * @description Lightweight schema for station search results.
+         */
+        OperationalPointRef: {
+            /** Id */
+            id: number;
+            /** Op Id */
+            op_id?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Type */
+            type?: string | null;
+            /** Latitude */
+            latitude?: number | null;
+            /** Longitude */
+            longitude?: number | null;
         };
         /** ParseResultPublicSchema */
         ParseResultPublicSchema: {
@@ -3076,6 +3114,39 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_ops_api_v1_operational_points__get: {
+        parameters: {
+            query?: {
+                /** @description Search by name or op_id */
+                q?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationalPointRef"][];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -4578,7 +4649,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4591,6 +4664,15 @@ export interface operations {
                     "application/json": components["schemas"]["VibAiAvailableResponse"];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     vib_ocr_available_api_v1_import_vib_ocr_available_get: {
@@ -4598,7 +4680,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4611,6 +4695,15 @@ export interface operations {
                     "application/json": components["schemas"]["VibOcrAvailableResponse"];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     start_vib_parse_api_v1_import_vib_parse_post: {
@@ -4618,7 +4711,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -4653,7 +4748,9 @@ export interface operations {
             path: {
                 task_id: string;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4682,7 +4779,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -4717,7 +4816,9 @@ export interface operations {
             path: {
                 parse_task_id: string;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4746,7 +4847,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4759,6 +4862,15 @@ export interface operations {
                     "application/json": components["schemas"]["VibDraftSchema"][];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     delete_vib_draft_api_v1_import_vib_drafts__task_id__delete: {
@@ -4768,7 +4880,9 @@ export interface operations {
             path: {
                 task_id: string;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4797,7 +4911,9 @@ export interface operations {
             path: {
                 parse_task_id: string;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -4831,7 +4947,9 @@ export interface operations {
                 parse_task_id: string;
                 entry_idx: number;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4863,7 +4981,9 @@ export interface operations {
                 task_id: string;
                 image_id: string;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4894,7 +5014,9 @@ export interface operations {
             path: {
                 task_id: string;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4923,7 +5045,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4936,6 +5060,15 @@ export interface operations {
                     "application/json": components["schemas"]["VibReportSchema"][];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     delete_vib_report_api_v1_import_vib_reports__report_id__delete: {
@@ -4945,7 +5078,9 @@ export interface operations {
             path: {
                 report_id: number;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {

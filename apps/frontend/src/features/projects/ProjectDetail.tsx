@@ -25,6 +25,7 @@ import {
     useProjects,
 } from "../../shared/api/queries";
 import ProjectEdit, { type ProjectEditFormValues } from "./ProjectEdit";
+import GeometryManagementModal from "../routing/GeometryManagementModal";
 import ProjectSummaryCard from "./ProjectSummaryCard";
 import MapView, { type MapViewProject } from "../map/MapView";
 import ProjectHistorySection from "../changelog/ProjectHistorySection";
@@ -173,6 +174,7 @@ export default function ProjectDetail() {
     const [searchParams] = useSearchParams();
     const queryClient = useQueryClient();
     const [editOpened, setEditOpened] = useState(false);
+    const [geometryModalOpen, setGeometryModalOpen] = useState(false);
     const [subProjectsOpen, setSubProjectsOpen] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
 
@@ -424,7 +426,12 @@ export default function ProjectDetail() {
                             Zur Projektübersicht
                         </Button>
                         {canEdit && (
-                            <Button onClick={() => setEditOpened(true)}>Bearbeiten</Button>
+                            <>
+                                <Button variant="default" onClick={() => setGeometryModalOpen(true)}>
+                                    Geometrie verwalten
+                                </Button>
+                                <Button onClick={() => setEditOpened(true)}>Bearbeiten</Button>
+                            </>
                         )}
                     </Group>
                 </Group>
@@ -701,6 +708,14 @@ export default function ProjectDetail() {
                 isSubmitting={mutation.isPending}
                 errorMessage={mutationErrorMessage}
             />
+
+            {geometryModalOpen && (
+                <GeometryManagementModal
+                    project={project}
+                    opened={geometryModalOpen}
+                    onClose={() => setGeometryModalOpen(false)}
+                />
+            )}
         </Container>
     );
 }

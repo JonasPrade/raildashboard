@@ -17,6 +17,16 @@ const HTTPValidationError = z
   .object({ detail: z.array(ValidationError) })
   .partial()
   .passthrough();
+const OperationalPointRef = z
+  .object({
+    id: z.number().int(),
+    op_id: z.union([z.string(), z.null()]).optional(),
+    name: z.union([z.string(), z.null()]).optional(),
+    type: z.union([z.string(), z.null()]).optional(),
+    latitude: z.union([z.number(), z.null()]).optional(),
+    longitude: z.union([z.number(), z.null()]).optional(),
+  })
+  .passthrough();
 const RouteRequest = z
   .object({ start_op: z.string(), end_op: z.string() })
   .passthrough();
@@ -1181,6 +1191,7 @@ export const schemas = {
   SessionCredentials,
   ValidationError,
   HTTPValidationError,
+  OperationalPointRef,
   RouteRequest,
   RouteResponse,
   ProjectGroupRef,
@@ -1461,6 +1472,13 @@ for that haushalt_year are also removed so the year can be re-imported.`,
     description: `Return whether LLM-based AI extraction is configured.`,
     requestFormat: "json",
     response: VibAiAvailableResponse,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
   },
   {
     method: "post",
@@ -1580,6 +1598,13 @@ GET /draft/{task_id}/image/{image_id}.`,
     description: `Return metadata for all unconfirmed VIB drafts, newest first.`,
     requestFormat: "json",
     response: z.array(VibDraftSchema),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
   },
   {
     method: "delete",
@@ -1666,6 +1691,13 @@ Retrieve the updated parse result via GET /parse-result/{parse_task_id}.`,
     description: `Return whether Mistral OCR is configured.`,
     requestFormat: "json",
     response: VibOcrAvailableResponse,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
   },
   {
     method: "post",
@@ -1727,6 +1759,13 @@ Returns 202 if the task is still running; 422 if it failed.`,
     description: `Return metadata for all imported VIB reports, newest year first.`,
     requestFormat: "json",
     response: z.array(VibReportSchema),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
   },
   {
     method: "delete",
@@ -1742,6 +1781,33 @@ Returns 202 if the task is still running; 422 if it failed.`,
       },
     ],
     response: z.void(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/operational-points/",
+    alias: "search_ops_api_v1_operational_points__get",
+    description: `Search operational points (stations/stops) by name or ID. Public endpoint.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "q",
+        type: "Query",
+        schema: z.string().optional().default(""),
+      },
+      {
+        name: "limit",
+        type: "Query",
+        schema: z.number().int().gte(1).lte(100).optional().default(20),
+      },
+    ],
+    response: z.array(OperationalPointRef),
     errors: [
       {
         status: 422,
