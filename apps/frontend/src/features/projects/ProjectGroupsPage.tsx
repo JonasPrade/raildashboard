@@ -15,6 +15,8 @@ import {
 } from "@mantine/core";
 
 import { useProjectGroups, type Project, type ProjectGroup } from "../../shared/api/queries";
+import { ChronicleCard, ChronicleDataChip, ChronicleHeadline } from "../../components/chronicle";
+import "../../components/chronicle/tokens.css";
 
 const hasNumericId = (
     group: ProjectGroup,
@@ -193,61 +195,49 @@ export function ProjectCard({ project }: { project: Project }) {
     const hasProjectId = typeof project.id === "number" && Number.isFinite(project.id);
 
     const cardContent = (
-        <Stack gap="sm">
-            <Stack gap={4}>
-                <Title order={4}>{project.name}</Title>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-editorial)" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <span style={{ fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: "1rem", color: "var(--c-on-surface)" }}>
+                    {project.name}
+                </span>
                 {project.project_number && (
-                    <Text size="sm" c="dimmed">
+                    <span style={{ fontFamily: "var(--font-sans)", fontSize: "0.8125rem", color: "var(--c-secondary)", opacity: 0.8 }}>
                         Projektnummer: {project.project_number}
-                    </Text>
+                    </span>
                 )}
-            </Stack>
+            </div>
 
             {project.description ? (
-                <Text size="sm" c="dimmed" lineClamp={3}>
+                <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.875rem", color: "var(--c-on-surface)", opacity: 0.7, margin: 0, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
                     {project.description}
-                </Text>
+                </p>
             ) : (
-                <Text size="sm" c="dimmed" style={{ fontStyle: "italic" }}>
+                <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.875rem", fontStyle: "italic", color: "var(--c-on-surface)", opacity: 0.5, margin: 0 }}>
                     Keine Projektbeschreibung vorhanden.
-                </Text>
+                </p>
             )}
 
-            <Group gap="xs">
-                {lengthValue && (
-                    <Badge variant="light" color="blue">
-                        Länge: {lengthValue} km
-                    </Badge>
-                )}
-                {project.elektrification && (
-                    <Badge variant="light" color="green">
-                        Elektrifizierung
-                    </Badge>
-                )}
-                {project.second_track && (
-                    <Badge variant="light" color="teal">
-                        Zweigleisiger Ausbau
-                    </Badge>
-                )}
-                {project.new_station && (
-                    <Badge variant="light" color="violet">
-                        Neuer Bahnhof
-                    </Badge>
-                )}
-            </Group>
-        </Stack>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {lengthValue && <ChronicleDataChip>Länge: {lengthValue} km</ChronicleDataChip>}
+                {project.elektrification && <ChronicleDataChip>Elektrifizierung</ChronicleDataChip>}
+                {project.second_track && <ChronicleDataChip>Zweigleisiger Ausbau</ChronicleDataChip>}
+                {project.new_station && <ChronicleDataChip>Neuer Bahnhof</ChronicleDataChip>}
+            </div>
+        </div>
     );
 
     if (hasProjectId) {
         return (
-            <Card component={Link} to={`/projects/${project.id}`} style={{ textDecoration: "none" }} withBorder shadow="xs" radius="md" padding="lg">
-                {cardContent}
-            </Card>
+            <Link to={`/projects/${project.id}`} style={{ textDecoration: "none", display: "block" }}>
+                <ChronicleCard accent>
+                    {cardContent}
+                </ChronicleCard>
+            </Link>
         );
     }
     return (
-        <Card withBorder shadow="xs" radius="md" padding="lg">
+        <ChronicleCard>
             {cardContent}
-        </Card>
+        </ChronicleCard>
     );
 }
