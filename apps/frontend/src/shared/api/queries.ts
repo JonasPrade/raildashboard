@@ -1023,17 +1023,19 @@ export type UnassignedVibEntry = {
     report_year: number;
 };
 
-export function useUnassignedFinves() {
+export function useUnassignedFinves(enabled = true) {
     return useQuery({
         queryKey: ["admin-unassigned-finves"],
         queryFn: () => api<UnassignedFinve[]>("/api/v1/admin/unassigned-finves"),
+        enabled,
     });
 }
 
-export function useUnassignedVibEntries() {
+export function useUnassignedVibEntries(enabled = true) {
     return useQuery({
         queryKey: ["admin-unassigned-vib-entries"],
         queryFn: () => api<UnassignedVibEntry[]>("/api/v1/admin/unassigned-vib-entries"),
+        enabled,
     });
 }
 
