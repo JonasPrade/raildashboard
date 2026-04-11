@@ -1003,3 +1003,66 @@ export function useDeleteVibDraft() {
         },
     });
 }
+
+// ---------------------------------------------------------------------------
+// Admin: Offene Zuordnungen (unassigned FinVe / VIB entries)
+// ---------------------------------------------------------------------------
+
+export type UnassignedFinve = {
+    id: number;
+    name: string | null;
+    is_sammel_finve: boolean;
+    starting_year: number | null;
+};
+
+export type UnassignedVibEntry = {
+    id: number;
+    vib_name_raw: string;
+    vib_section: string | null;
+    category: string;
+    report_year: number;
+};
+
+export function useUnassignedFinves() {
+    return useQuery({
+        queryKey: ["admin-unassigned-finves"],
+        queryFn: () => api<UnassignedFinve[]>("/api/v1/admin/unassigned-finves"),
+    });
+}
+
+export function useUnassignedVibEntries() {
+    return useQuery({
+        queryKey: ["admin-unassigned-vib-entries"],
+        queryFn: () => api<UnassignedVibEntry[]>("/api/v1/admin/unassigned-vib-entries"),
+    });
+}
+
+export function useAssignFinve() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ finveId, projectIds }: { finveId: number; projectIds: number[] }) =>
+            api<void>(`/api/v1/admin/unassigned-finves/${finveId}/assign`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ project_ids: projectIds }),
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["admin-unassigned-finves"] });
+        },
+    });
+}
+
+export function useAssignVibEntry() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ entryId, projectIds }: { entryId: number; projectIds: number[] }) =>
+            api<void>(`/api/v1/admin/unassigned-vib-entries/${entryId}/assign`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ project_ids: projectIds }),
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["admin-unassigned-vib-entries"] });
+        },
+    });
+}
