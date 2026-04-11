@@ -3,7 +3,6 @@ import { Link, useSearchParams } from "react-router-dom";
 import {
     Alert,
     Badge,
-    Card,
     Container,
     Group,
     Loader,
@@ -11,11 +10,10 @@ import {
     SimpleGrid,
     Stack,
     Text,
-    Title,
 } from "@mantine/core";
 
 import { useProjectGroups, type Project, type ProjectGroup } from "../../shared/api/queries";
-import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
+import { ChronicleCard, ChronicleDataChip, ChronicleHeadline } from "../../components/chronicle";
 import "../../components/chronicle/tokens.css";
 
 const hasNumericId = (
@@ -73,10 +71,11 @@ export default function ProjectGroupsPage() {
         : undefined;
 
     return (
+        <div className="chronicle-theme">
         <Container size="xl" py="xl">
             <Stack gap="xl">
                 <Stack gap="xs">
-                    <Title order={2}>Projekte nach Projektgruppen</Title>
+                    <ChronicleHeadline as="h2">Projekte nach Projektgruppen</ChronicleHeadline>
                     <Text size="sm" c="dimmed">
                         Wähle eine Projektgruppe aus, um alle zugehörigen Projekte zu sehen.
                     </Text>
@@ -104,11 +103,11 @@ export default function ProjectGroupsPage() {
                 </Stack>
 
                 {selectedGroup && (
-                    <Card withBorder radius="md" padding="lg" shadow="xs">
+                    <ChronicleCard>
                         <Stack gap="xs">
                             <Group justify="space-between" align="flex-start">
                                 <Stack gap={4}>
-                                    <Title order={3}>{selectedGroup.name}</Title>
+                                    <ChronicleHeadline as="h3">{selectedGroup.name}</ChronicleHeadline>
                                     <Text size="sm" c="dimmed">
                                         Kurzname: {selectedGroup.short_name}
                                     </Text>
@@ -144,7 +143,7 @@ export default function ProjectGroupsPage() {
                                 </Text>
                             )}
                         </Stack>
-                    </Card>
+                    </ChronicleCard>
                 )}
 
                 {!isLoading && groups.length === 0 && (
@@ -160,7 +159,7 @@ export default function ProjectGroupsPage() {
                 ) : selectedGroup ? (
                     <Stack gap="md">
                         <Group justify="space-between" align="center">
-                            <Title order={3}>Projekte</Title>
+                            <ChronicleHeadline as="h3">Projekte</ChronicleHeadline>
                             <Text size="sm" c="dimmed">
                                 {projects.length === 1
                                     ? "1 Projekt in dieser Gruppe"
@@ -187,6 +186,7 @@ export default function ProjectGroupsPage() {
                 ) : null}
             </Stack>
         </Container>
+        </div>
     );
 }
 
