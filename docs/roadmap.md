@@ -6,9 +6,7 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 
 ## Short-Term Features
 
-- [ ] make the "Schienenprojekte-Dashboard" clickable -> return to Start Page
-- [ ] Show Button Haushalt in menu for all - not only logged in users
-- [ ] integrate the new design described in `docs/DESIGN.md`
+- [x] integrate the new design described in `docs/DESIGN.md`
 
 This tasks must be done by human:
 - [ ] Import of the Haushalt Berichte 2020 - 2025
@@ -140,7 +138,8 @@ Siehe: `docs/features/feature-vib-import.md`
 - [x] **Review-UI** — `VibStructurePreviewPage` with Markdown rendering, quality indicators, sub-section badges; `VibReviewPage` with editable sub-block fields and inline PFA table; per-entry "KI extrahieren" button; m:n project assignment (`project_ids`)
 
 ### UI / UX
-- [x] **Chronicle design system rollout** — Noto Serif font (self-hosted), design tokens CSS, 4 components (ChronicleHeadline, ChronicleDataChip, ChronicleCard, ChronicleButton); showcase pages: Projects page + MapControls glassmorphic panel. See `docs/features/feature-design-system.md`
+- [x] **Chronicle design system — full rollout** — Tokens at `:root` (global); Mantine `defaultRadius: "xs"`; dark header bar; `ChronicleHeadline`/`ChronicleCard`/`ChronicleDataChip`/`ChronicleButton` applied to all pages. See `docs/features/feature-design-system.md`
+- [x] Header title ("Schienenprojekte-Dashboard") links back to start page; Haushalt nav item visible to all users (no auth gate)
 - [x] **BVWP-Bewertung in Projektdetail** — `GET /api/v1/projects/{id}/bvwp`; `BvwpDataSection.tsx` mit 11 Tab-Gruppen; NKV als Badge; Sektion ausgeblendet wenn kein BVWP-Datensatz vorhanden
 - [x] Projektsuche auf Karte und Listenansicht — client-seitiger Filter nach Name/Nummer/Beschreibung; `?search=` URL-Param mit Debounce
 - [x] Admin-konfigurierbare ProjectGroup-Sichtbarkeit (`is_visible`, `is_default_selected`) und Kartenmodus (`map_group_mode`: `preconfigured` / `all`)
