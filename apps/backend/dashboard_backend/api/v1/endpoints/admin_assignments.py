@@ -7,13 +7,13 @@ from dashboard_backend.core.security import require_roles
 from dashboard_backend.crud.admin_assignments import (
     assign_finve_to_projects,
     assign_vib_entry_to_projects,
+    get_finve,
+    get_vib_entry,
     list_unassigned_finves,
     list_unassigned_vib_entries,
 )
 from dashboard_backend.database import get_db
-from dashboard_backend.models.projects.finve import Finve
 from dashboard_backend.models.users import User
-from dashboard_backend.models.vib.vib_entry import VibEntry
 from dashboard_backend.routing.auth_router import AuthRouter
 from dashboard_backend.schemas.admin_assignments import (
     AssignProjectsInput,
@@ -50,7 +50,7 @@ def assign_finve(
     db: Session = Depends(get_db),
     _current_user: User = _require_editor,
 ) -> None:
-    finve = db.get(Finve, finve_id)
+    finve = get_finve(db, finve_id)
     if not finve:
         raise HTTPException(status_code=404, detail="FinVe not found")
     if not body.project_ids:
@@ -66,7 +66,7 @@ def assign_vib_entry(
     db: Session = Depends(get_db),
     _current_user: User = _require_editor,
 ) -> None:
-    entry = db.get(VibEntry, entry_id)
+    entry = get_vib_entry(db, entry_id)
     if not entry:
         raise HTTPException(status_code=404, detail="VIB entry not found")
     if not body.project_ids:

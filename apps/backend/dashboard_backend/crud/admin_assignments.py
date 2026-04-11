@@ -58,6 +58,14 @@ def list_unassigned_vib_entries(db: Session) -> list[UnassignedVibEntrySchema]:
     ]
 
 
+def get_finve(db: Session, finve_id: int) -> Finve | None:
+    return db.get(Finve, finve_id)
+
+
+def get_vib_entry(db: Session, entry_id: int) -> VibEntry | None:
+    return db.get(VibEntry, entry_id)
+
+
 def assign_finve_to_projects(db: Session, finve_id: int, project_ids: list[int]) -> None:
     """Insert finve_to_project rows (haushalt_year=NULL). Skips existing links."""
     for pid in project_ids:
