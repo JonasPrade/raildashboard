@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import {
     Alert,
     Button,
-    Card,
     Container,
     Group,
     Loader,
@@ -12,8 +11,8 @@ import {
     Stack,
     Table,
     Text,
-    Title,
 } from "@mantine/core";
+import { ChronicleHeadline, ChronicleCard, ChronicleButton } from "../../components/chronicle";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { useAuth } from "../../lib/auth";
@@ -102,8 +101,8 @@ export default function UsersPage() {
         <Container size="lg" py="xl">
             <Stack gap="lg">
                 <Group justify="space-between">
-                    <Title order={2}>Benutzerverwaltung</Title>
-                    <Button onClick={openCreate}>Neuen Nutzer anlegen</Button>
+                    <ChronicleHeadline as="h1">Benutzerverwaltung</ChronicleHeadline>
+                    <ChronicleButton onClick={openCreate}>Neuen Nutzer anlegen</ChronicleButton>
                 </Group>
 
                 <Table striped highlightOnHover withTableBorder>
@@ -195,14 +194,16 @@ export default function UsersPage() {
                     </Table.Tbody>
                 </Table>
 
-                <Title order={3}>Einstellungen</Title>
+                <ChronicleHeadline as="h2">Einstellungen</ChronicleHeadline>
                 <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
-                    <Card withBorder radius="md" padding="md" component={Link} to="/admin/project-groups" style={{ textDecoration: "none" }}>
+                    <ChronicleCard style={{ textDecoration: "none" }}>
+                        <Link to="/admin/project-groups" style={{ textDecoration: "none", color: "inherit" }}>
                         <Stack gap={4}>
                             <Text fw={500}>Projektgruppen</Text>
                             <Text size="sm" c="dimmed">Standardauswahl auf der Karte konfigurieren</Text>
                         </Stack>
-                    </Card>
+                        </Link>
+                    </ChronicleCard>
                 </SimpleGrid>
             </Stack>
 

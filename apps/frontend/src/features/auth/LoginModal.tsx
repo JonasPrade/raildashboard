@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from "react";
-import { Alert, Button, Modal, PasswordInput, Stack, TextInput } from "@mantine/core";
+import { Alert, Modal, PasswordInput, Stack, TextInput } from "@mantine/core";
 import { useAuth } from "../../lib/auth";
+import { ChronicleButton } from "../../components/chronicle";
 
 type Props = {
     opened: boolean;
@@ -68,9 +69,9 @@ export function LoginModal({ opened, onClose }: Props) {
                             }
                         }}
                     />
-                    <Button type="submit" loading={loading} fullWidth mt="xs">
-                        Anmelden
-                    </Button>
+                    <ChronicleButton type="submit" disabled={loading} style={{ width: "100%", marginTop: "0.5rem" }}>
+                        {loading ? "…" : "Anmelden"}
+                    </ChronicleButton>
                 </Stack>
             </form>
         </Modal>

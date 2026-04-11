@@ -1,19 +1,16 @@
 import { useMemo } from "react";
 import {
     Alert,
-    Badge,
-    Card,
     Container,
-    Divider,
     Group,
     Loader,
     SegmentedControl,
     Stack,
     Switch,
     Text,
-    Title,
     Tooltip,
 } from "@mantine/core";
+import { ChronicleHeadline, ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import { notifications } from "@mantine/notifications";
 import {
     useProjectGroups,
@@ -92,13 +89,13 @@ export default function ProjectGroupsAdminPage() {
         <Container size="md" py="xl">
             <Stack gap="xl">
                 <Stack gap="xs">
-                    <Title order={2}>Projektgruppen – Kartenansicht</Title>
+                    <ChronicleHeadline as="h1">Projektgruppen – Kartenansicht</ChronicleHeadline>
                     <Text c="dimmed" size="sm">
                         Lege fest, welche Projektgruppen auf der Karte angezeigt und vorausgewählt werden.
                     </Text>
                 </Stack>
 
-                <Card withBorder radius="md" padding="md">
+                <ChronicleCard>
                     <Stack gap="sm">
                         <Text size="sm" fw={500}>Anzeigemodus</Text>
                         <SegmentedControl
@@ -111,9 +108,7 @@ export default function ProjectGroupsAdminPage() {
                             <Text size="xs" c="dimmed">{activeMode.description}</Text>
                         )}
                     </Stack>
-                </Card>
-
-                <Divider label="Projektgruppen" labelPosition="center" />
+                </ChronicleCard>
 
                 {isError && (
                     <Alert color="red" variant="light" title="Fehler beim Laden">
@@ -144,12 +139,7 @@ export default function ProjectGroupsAdminPage() {
                         )}
 
                         {sortedGroups.map((group) => (
-                            <Card
-                                key={group.id}
-                                withBorder
-                                radius="md"
-                                padding="md"
-                            >
+                            <ChronicleCard key={group.id}>
                                 <Group justify="space-between" align="center">
                                     <Group gap="sm" align="center" style={{ opacity: group.is_visible ? 1 : 0.4 }}>
                                         <span
@@ -170,10 +160,10 @@ export default function ProjectGroupsAdminPage() {
                                             </Text>
                                         </Stack>
                                         {!group.is_visible && (
-                                            <Badge size="xs" color="gray" variant="light">Ausgeblendet</Badge>
+                                            <ChronicleDataChip>Ausgeblendet</ChronicleDataChip>
                                         )}
                                         {group.is_visible && group.is_default_selected && (
-                                            <Badge size="xs" color="blue" variant="light">Vorausgewählt</Badge>
+                                            <ChronicleDataChip>Vorausgewählt</ChronicleDataChip>
                                         )}
                                     </Group>
 
@@ -194,7 +184,7 @@ export default function ProjectGroupsAdminPage() {
                                         />
                                     </Group>
                                 </Group>
-                            </Card>
+                            </ChronicleCard>
                         ))}
 
                         {sortedGroups.length === 0 && (

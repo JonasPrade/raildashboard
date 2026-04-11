@@ -3,23 +3,20 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
     ActionIcon,
     Alert,
-    Badge,
     Box,
     Button,
-    Card,
     Checkbox,
     Container,
     Group,
     Loader,
     MultiSelect,
-    Paper,
     Stack,
     Table,
     Text,
     Textarea,
-    Title,
     Tooltip,
 } from "@mantine/core";
+import { ChronicleHeadline, ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
@@ -83,7 +80,7 @@ function VibEntryCard({
               : "none";
 
     return (
-        <Card withBorder radius="md" padding="lg" shadow="xs">
+        <ChronicleCard>
             <Stack gap="md">
                 {/* Section label + AI status badges */}
                 <Group gap="xs" align="center">
@@ -93,11 +90,11 @@ function VibEntryCard({
                         </Text>
                     )}
                     {entry.ai_extracted && (
-                        <Badge size="xs" color="violet" variant="light">KI</Badge>
+                        <ChronicleDataChip>KI</ChronicleDataChip>
                     )}
                     {entry.ai_extraction_failed && (
                         <Tooltip label={entry.ai_extraction_error ?? "KI-Extraktion fehlgeschlagen"} withArrow>
-                            <Badge size="xs" color="orange" variant="light">KI fehlgeschlagen</Badge>
+                            <ChronicleDataChip>KI fehlgeschlagen</ChronicleDataChip>
                         </Tooltip>
                     )}
                     {onRetryAi && (
@@ -153,20 +150,9 @@ function VibEntryCard({
                     />
                     {hasSuggestion && (
                         <Tooltip label={`KI-Vorschlag: ${entry.suggested_project_ids.map(id => projectOptions.find(o => o.value === String(id))?.label ?? String(id)).join(", ")}`}>
-                            <Badge
-                                size="xs"
-                                color={
-                                    confidence === "high"
-                                        ? "green"
-                                        : confidence === "manual"
-                                          ? "yellow"
-                                          : "red"
-                                }
-                                variant="dot"
-                                style={{ cursor: "default", marginBottom: 6 }}
-                            >
+                            <ChronicleDataChip style={{ cursor: "default", marginBottom: 6 }}>
                                 {confidence === "high" ? "✓" : confidence === "manual" ? "~" : "?"}
-                            </Badge>
+                            </ChronicleDataChip>
                         </Tooltip>
                     )}
                 </Group>
@@ -257,7 +243,7 @@ function VibEntryCard({
                         </Button>
                     </Group>
                     {entry.pfa_entries.length > 0 ? (
-                        <Paper withBorder p={0} style={{ overflow: "auto" }}>
+                        <ChronicleCard style={{ overflow: "auto", padding: 0 }}>
                             <Table withTableBorder withColumnBorders fz="xs" style={{ fontSize: 11 }}>
                                 <Table.Thead>
                                     <Table.Tr>
@@ -302,7 +288,7 @@ function VibEntryCard({
                                     ))}
                                 </Table.Tbody>
                             </Table>
-                        </Paper>
+                        </ChronicleCard>
                     ) : (
                         <Text size="xs" c="dimmed">Keine PFA-Einträge.</Text>
                     )}
@@ -369,7 +355,7 @@ function VibEntryCard({
                     />
                 )}
             </Stack>
-        </Card>
+        </ChronicleCard>
     );
 }
 
@@ -556,7 +542,7 @@ export default function VibReviewPage() {
                 {/* Header */}
                 <Group justify="space-between" align="flex-start">
                     <Stack gap={2}>
-                        <Title order={2}>VIB-Review — Berichtsjahr {parseResult.year}</Title>
+                        <ChronicleHeadline as="h1">VIB-Review — Berichtsjahr {parseResult.year}</ChronicleHeadline>
                         <Text size="sm" c="dimmed">
                             {parseResult.drucksache_nr
                                 ? `Drucksache ${parseResult.drucksache_nr}`
@@ -570,15 +556,15 @@ export default function VibReviewPage() {
                         </Text>
                         {failedAiCount > 0 && (
                             <Tooltip label={`${failedAiCount} Einträge: KI-Extraktion fehlgeschlagen`} withArrow>
-                                <Badge size="sm" color="orange" variant="light">
+                                <ChronicleDataChip>
                                     {failedAiCount} KI ✗
-                                </Badge>
+                                </ChronicleDataChip>
                             </Tooltip>
                         )}
                         <Tooltip label={ocrAvailable?.available ? `OCR: ${ocrAvailable.model}` : "Texterkennung: pymupdf"}>
-                            <Badge size="xs" variant="outline" color={ocrAvailable?.available ? "violet" : "gray"}>
+                            <ChronicleDataChip>
                                 {ocrAvailable?.available ? "Mistral OCR" : "pymupdf"}
-                            </Badge>
+                            </ChronicleDataChip>
                         </Tooltip>
                         <Button
                             variant="light"
@@ -618,16 +604,12 @@ export default function VibReviewPage() {
                     <Text fw={600} lineClamp={1} style={{ maxWidth: 500 }}>
                         {currentEntry.vib_name_raw}
                     </Text>
-                    <Badge
-                        size="sm"
-                        color={CATEGORY_COLORS[currentEntry.category] ?? "gray"}
-                        variant="light"
-                    >
+                    <ChronicleDataChip>
                         {currentEntry.category}
-                    </Badge>
+                    </ChronicleDataChip>
                     {currentEntry.ai_extraction_failed && (
                         <Tooltip label={currentEntry.ai_extraction_error ?? "KI-Extraktion fehlgeschlagen – Wiederholen im Eintrag möglich"} withArrow>
-                            <Badge size="sm" color="orange" variant="filled">KI ✗</Badge>
+                            <ChronicleDataChip>KI ✗</ChronicleDataChip>
                         </Tooltip>
                     )}
                 </Group>

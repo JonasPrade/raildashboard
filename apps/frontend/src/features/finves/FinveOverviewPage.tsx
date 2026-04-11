@@ -2,24 +2,21 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
     Alert,
-    Badge,
     Box,
-    Card,
     Collapse,
     ColorSwatch,
     Container,
     Group,
     Loader,
-    Paper,
     SegmentedControl,
     Stack,
     Table,
     Tabs,
     Text,
     TextInput,
-    Title,
     UnstyledButton,
 } from "@mantine/core";
+import { ChronicleHeadline, ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import { DonutChart, LineChart } from "@mantine/charts";
 import { useFinves, type BudgetSummary, type FinveListItem, type TitelEntry } from "../../shared/api/queries";
 
@@ -167,26 +164,20 @@ function FinveCard({ finve }: { finve: FinveListItem }) {
     const firstTab = hasMultipleYears ? "costs" : hasTitelEntries ? "budget" : "table";
 
     return (
-        <Card withBorder radius="md" padding="lg" shadow="xs">
+        <ChronicleCard>
             <Stack gap="md">
                 {/* ── Header row ─────────────────────────────────────────── */}
                 <Group justify="space-between" align="flex-start" wrap="wrap" gap="sm">
                     <Stack gap={4}>
                         <Group gap="sm" align="center">
-                            <Badge
-                                variant="filled"
-                                color={finve.is_sammel_finve ? "violet" : "blue"}
-                                size="md"
-                                radius="sm"
-                                ff="monospace"
-                            >
+                            <ChronicleDataChip>
                                 {finve.id}
-                            </Badge>
+                            </ChronicleDataChip>
                             {finve.is_sammel_finve && (
-                                <Badge variant="light" color="violet" size="sm">Sammel-FinVe</Badge>
+                                <ChronicleDataChip>Sammel-FinVe</ChronicleDataChip>
                             )}
                             {finve.temporary_finve_number && (
-                                <Badge variant="outline" color="orange" size="sm">vorläufig</Badge>
+                                <ChronicleDataChip>vorläufig</ChronicleDataChip>
                             )}
                         </Group>
                         <Text fw={600} size="md" lh={1.3}>
@@ -224,34 +215,24 @@ function FinveCard({ finve }: { finve: FinveListItem }) {
                         </Text>
                         <Group gap="xs" wrap="wrap">
                             {finve.projects.map((p) => (
-                                <Paper
+                                <Link
                                     key={p.id}
-                                    component={Link}
                                     to={`/projects/${p.id}`}
-                                    withBorder
-                                    radius="sm"
-                                    px="sm"
-                                    py={4}
                                     style={{
                                         textDecoration: "none",
                                         cursor: "pointer",
                                         display: "inline-flex",
                                         alignItems: "center",
                                         gap: 6,
+                                        padding: "4px 8px",
+                                        border: "1px solid var(--mantine-color-default-border)",
+                                        borderRadius: 4,
                                         transition: "background 0.15s",
-                                    }}
-                                    styles={{
-                                        root: {
-                                            "&:hover": {
-                                                backgroundColor: "var(--mantine-color-blue-0)",
-                                                borderColor: "var(--mantine-color-blue-4)",
-                                            },
-                                        },
                                     }}
                                 >
                                     <Text size="xs" c="dimmed" ff="monospace">{p.id}</Text>
                                     <Text size="xs" fw={500} c="dark">{p.name}</Text>
-                                </Paper>
+                                </Link>
                             ))}
                         </Group>
                     </Stack>
@@ -354,7 +335,7 @@ function FinveCard({ finve }: { finve: FinveListItem }) {
                     </>
                 )}
             </Stack>
-        </Card>
+        </ChronicleCard>
     );
 }
 
@@ -385,7 +366,7 @@ export default function FinveOverviewPage() {
     return (
         <Container size="xl" py="xl">
             <Stack gap="lg">
-                <Title order={2}>Finanzierungsvereinbarungen</Title>
+                <ChronicleHeadline as="h1">Finanzierungsvereinbarungen</ChronicleHeadline>
 
                 <Group>
                     <TextInput
