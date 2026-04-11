@@ -14,7 +14,6 @@ import {
 
 import { useProjectGroups, type Project, type ProjectGroup } from "../../shared/api/queries";
 import { ChronicleCard, ChronicleDataChip, ChronicleHeadline } from "../../components/chronicle";
-import "../../components/chronicle/tokens.css";
 
 const hasNumericId = (
     group: ProjectGroup,
@@ -71,7 +70,6 @@ export default function ProjectGroupsPage() {
         : undefined;
 
     return (
-        <div className="chronicle-theme">
         <Container size="xl" py="xl">
             <Stack gap="xl">
                 <Stack gap="xs">
@@ -186,7 +184,6 @@ export default function ProjectGroupsPage() {
                 ) : null}
             </Stack>
         </Container>
-        </div>
     );
 }
 

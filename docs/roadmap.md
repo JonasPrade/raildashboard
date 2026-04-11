@@ -6,9 +6,7 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 
 ## Short-Term Features
 
-- [ ] make the "Schienenprojekte-Dashboard" clickable -> return to Start Page
-- [ ] Show Button Haushalt in menu for all - not only logged in users
-- [ ] integrate the new design described in `docs/DESIGN.md`
+- [x] integrate the new design described in `docs/DESIGN.md`
 
 This tasks must be done by human:
 - [ ] Import of the Haushalt Berichte 2020 - 2025
@@ -32,9 +30,9 @@ This tasks must be done by human:
 
 ---
 
-### Routenvorschlag per GrassHopper *(Backend + Frontend)*
+### ✅ Routenvorschlag per GrassHopper *(Backend + Frontend)*
 
-Backend-Infrastruktur vollständig implementiert (GraphHopper HTTP client, RouteService, Endpoints, ORM, CRUD, Tests, Docker). Offen: Frontend-Workflow + OperationalPoints-Endpoint.
+Vollständig implementiert. Backend-Infrastruktur (GraphHopper HTTP client, RouteService, Endpoints, ORM, CRUD, Tests, Docker) und Frontend-Workflow ("Geometrie verwalten" Modal in ProjectDetail) sind abgeschlossen.
 
 **Prerequisite (human task):** OSM-PBF unter `data/graphhopper/map.osm.pbf` ablegen.
 
@@ -47,42 +45,13 @@ Siehe: `docs/features/feature-routing.md`
 - `.env.example` — `ROUTING_BASE_URL=http://graphhopper:8989` (was broken `localhost`)
 - `docs/production_setup.md` — GraphHopper setup section (PBF placement, first start, cache invalidation)
 
-#### Step 1 — Expose OperationalPoints as a searchable API endpoint *(Backend)*
-- Add `GET /api/v1/operational-points?q=<name_or_id>&limit=20` in a new file `api/v1/endpoints/operational_points.py`
-- Pydantic response schema: `OperationalPointRef { id, op_id, name, type, latitude, longitude }`
-- CRUD function `search_operational_points(db, query, limit)` — `ILIKE` filter on `name` and `op_id`
-- Register router in `api/v1/router.py` (public, no auth required)
-- Run `make gen-api` to sync the frontend client
-
-#### Step 2 — Route calculation dialog *(Frontend)*
-New component `RouteCalculatorModal.tsx` inside `features/routing/`:
-- Visible in `ProjectDetail` only for `editor` / `admin` roles; triggered by a button "Route berechnen"
-- Two `Combobox` / `Select` inputs (searchable via the new endpoint) for start and end OperationalPoint
-- "Berechnen"-button → `POST /api/v1/routes/calculate` with `{ waypoints: [{lat, lon}, {lat, lon}], profile: "rail_default", options: {} }`
-- Loading state, error handling (502 → "Routing-Dienst nicht erreichbar", 422 → "Kein Pfad gefunden")
-- On success: store the returned `RoutePreviewOut` GeoJSON Feature in local state
-
-#### Step 3 — Route preview on map *(Frontend)*
-- In `ProjectDetail` (or a dedicated `RoutePreviewMap`), add a temporary MapLibre `LineLayer` sourced from the preview GeoJSON
-- Style: dashed blue line, distinct from the solid project geometry
-- Show distance (km) and duration (min) from `properties.distance_m` / `properties.duration_ms`
-
-#### Step 4 — Accept / Reject flow *(Frontend)*
-- **Accept** → `POST /api/v1/projects/{id}/routes` with `{ feature: <RoutePreviewOut> }` → invalidate `projectRoutesQuery`; additionally `PATCH /api/v1/projects/{id}` to update `geojson_representation` so the route appears on the main map
-- **Reject** → clear preview state; no API call
-- After accept: show success notification, close modal, map re-renders with persisted route
-
-#### Step 5 — Saved routes list *(Frontend)*
-- Small section in `ProjectDetail` (editor/admin only) listing saved routes via `GET /api/v1/projects/{id}/routes`
-- Each row: date, distance, duration, "Als aktive Geometrie setzen"-button (PATCH geojson_representation) and "Ersetzen"-button (PUT replace)
-- Mutation hooks: `useConfirmRoute`, `useReplaceRoute`, `useSetProjectGeometry`
-
-#### Step 6 — Frontend query hooks *(Frontend)*
-Add to `queries.ts`:
-- `useOperationalPointSearch(query)` — debounced, enabled when `query.length >= 2`
-- `useCalculateRoute()` — mutation
-- `useConfirmRoute(projectId)` — mutation
-- `useReplaceRoute(projectId)` — mutation
+#### ✅ Done — Frontend routing UI (Steps 1–6)
+- `GET /api/v1/operational-points?q=&limit=20` — `OperationalPointRef` schema, CRUD, endpoint registered
+- `features/routing/GeometryManagementModal.tsx` — full-screen modal ("Geometrie verwalten" button in ProjectDetail, editor/admin only)
+- `features/routing/RouteCalculatorForm.tsx` — start / via (dynamic) / end station comboboxes with debounced search
+- `features/routing/GeometryPreviewMap.tsx` — MapLibre map: solid blue (existing) + dashed orange (preview); auto-fits bounds
+- Accept flow: confirm route in DB (`POST /projects/{id}/routes`) + PATCH `geojson_representation`; delete = PATCH with null; upload = PATCH with uploaded GeoJSON
+- Query hooks in `queries.ts`: `useOperationalPointSearch`, `useCalculateRoute`, `useConfirmRoute`, `useUpdateProjectGeometry`
 
 ---
 
@@ -169,7 +138,8 @@ Siehe: `docs/features/feature-vib-import.md`
 - [x] **Review-UI** — `VibStructurePreviewPage` with Markdown rendering, quality indicators, sub-section badges; `VibReviewPage` with editable sub-block fields and inline PFA table; per-entry "KI extrahieren" button; m:n project assignment (`project_ids`)
 
 ### UI / UX
-- [x] **Chronicle design system rollout** — Noto Serif font (self-hosted), design tokens CSS, 4 components (ChronicleHeadline, ChronicleDataChip, ChronicleCard, ChronicleButton); showcase pages: Projects page + MapControls glassmorphic panel. See `docs/features/feature-design-system.md`
+- [x] **Chronicle design system — full rollout** — Tokens at `:root` (global); Mantine `defaultRadius: "xs"`; dark header bar; `ChronicleHeadline`/`ChronicleCard`/`ChronicleDataChip`/`ChronicleButton` applied to all pages. See `docs/features/feature-design-system.md`
+- [x] Header title ("Schienenprojekte-Dashboard") links back to start page; Haushalt nav item visible to all users (no auth gate)
 - [x] **BVWP-Bewertung in Projektdetail** — `GET /api/v1/projects/{id}/bvwp`; `BvwpDataSection.tsx` mit 11 Tab-Gruppen; NKV als Badge; Sektion ausgeblendet wenn kein BVWP-Datensatz vorhanden
 - [x] Projektsuche auf Karte und Listenansicht — client-seitiger Filter nach Name/Nummer/Beschreibung; `?search=` URL-Param mit Debounce
 - [x] Admin-konfigurierbare ProjectGroup-Sichtbarkeit (`is_visible`, `is_default_selected`) und Kartenmodus (`map_group_mode`: `preconfigured` / `all`)

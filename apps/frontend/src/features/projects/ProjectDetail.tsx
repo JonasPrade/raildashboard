@@ -3,9 +3,7 @@ import { useAuth } from "../../lib/auth";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
     Alert,
-    Badge,
     Button,
-    Card,
     Collapse,
     Container,
     Grid,
@@ -13,8 +11,8 @@ import {
     Loader,
     Stack,
     Text,
-    Title,
 } from "@mantine/core";
+import { ChronicleCard, ChronicleDataChip, ChronicleHeadline } from "../../components/chronicle";
 import { notifications } from "@mantine/notifications";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -27,6 +25,7 @@ import {
     useProjects,
 } from "../../shared/api/queries";
 import ProjectEdit, { type ProjectEditFormValues } from "./ProjectEdit";
+import GeometryManagementModal from "../routing/GeometryManagementModal";
 import ProjectSummaryCard from "./ProjectSummaryCard";
 import MapView, { type MapViewProject } from "../map/MapView";
 import ProjectHistorySection from "../changelog/ProjectHistorySection";
@@ -175,6 +174,7 @@ export default function ProjectDetail() {
     const [searchParams] = useSearchParams();
     const queryClient = useQueryClient();
     const [editOpened, setEditOpened] = useState(false);
+    const [geometryModalOpen, setGeometryModalOpen] = useState(false);
     const [subProjectsOpen, setSubProjectsOpen] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
 
@@ -408,12 +408,10 @@ export default function ProjectDetail() {
             <Stack gap="xl">
                 <Group justify="space-between" align="flex-start">
                     <Stack gap={4}>
-                        <Group gap="sm">
-                            <Title order={2}>{project.name}</Title>
+                        <Group gap="sm" align="baseline">
+                            <ChronicleHeadline as="h1" style={{ fontSize: "1.5rem" }}>{project.name}</ChronicleHeadline>
                             {project.project_number && (
-                                <Badge color="gray" variant="light">
-                                    {project.project_number}
-                                </Badge>
+                                <ChronicleDataChip>{project.project_number}</ChronicleDataChip>
                             )}
                         </Group>
                         <Text size="sm" c="dimmed">
@@ -428,7 +426,12 @@ export default function ProjectDetail() {
                             Zur Projektübersicht
                         </Button>
                         {canEdit && (
-                            <Button onClick={() => setEditOpened(true)}>Bearbeiten</Button>
+                            <>
+                                <Button variant="default" onClick={() => setGeometryModalOpen(true)}>
+                                    Geometrie verwalten
+                                </Button>
+                                <Button onClick={() => setEditOpened(true)}>Bearbeiten</Button>
+                            </>
                         )}
                     </Group>
                 </Group>
@@ -439,9 +442,9 @@ export default function ProjectDetail() {
                     <Grid gutter="md" align="stretch">
                         <Grid.Col span={{ base: 12, md: 4 }}>
                             <Stack gap="md" style={{ height: "100%" }}>
-                                <Card withBorder radius="md" padding="lg" shadow="xs">
+                                <ChronicleCard>
                                     <Stack gap="sm">
-                                        <Title order={4}>Projektdetails</Title>
+                                        <ChronicleHeadline as="h2">Projektdetails</ChronicleHeadline>
                                         {visibleDetailRows.length > 0 && (
                                             <Stack gap={8}>
                                                 {visibleDetailRows.map(({ label, value }) => (
@@ -451,16 +454,15 @@ export default function ProjectDetail() {
                                         )}
                                         <Text size="xs" fw={600} c="dimmed" tt="uppercase" lts={0.5}>Verkehrsarten</Text>
                                         <Group gap="xs">
-                                            {trainCategoryLabels.map(({ key, label, color }) => {
+                                            {trainCategoryLabels.map(({ key, label }) => {
                                                 const isActive = Boolean(project[key]);
                                                 return (
-                                                    <Badge
+                                                    <ChronicleDataChip
                                                         key={String(key)}
-                                                        variant={isActive ? "light" : "outline"}
-                                                        color={isActive ? color : "gray"}
+                                                        style={{ opacity: isActive ? 1 : 0.4 }}
                                                     >
                                                         {label}
-                                                    </Badge>
+                                                    </ChronicleDataChip>
                                                 );
                                             })}
                                         </Group>
@@ -473,9 +475,9 @@ export default function ProjectDetail() {
                                                             <Text size="xs" fw={600} c="dimmed">{groupLabel}</Text>
                                                             <Group gap="xs">
                                                                 {activeFeatures.map(({ key, label }) => (
-                                                                    <Badge key={String(key)} variant="light" color="blue">
+                                                                    <ChronicleDataChip key={String(key)}>
                                                                         {label}
-                                                                    </Badge>
+                                                                    </ChronicleDataChip>
                                                                 ))}
                                                             </Group>
                                                         </Stack>
@@ -484,23 +486,23 @@ export default function ProjectDetail() {
                                             </>
                                         )}
                                     </Stack>
-                                </Card>
+                                </ChronicleCard>
                                 {project.description && project.description.trim() !== "" && (
-                                    <Card withBorder radius="md" padding="lg" shadow="xs">
+                                    <ChronicleCard>
                                         <Stack gap="sm">
-                                            <Title order={4}>Beschreibung</Title>
+                                            <ChronicleHeadline as="h2">Beschreibung</ChronicleHeadline>
                                             <Text size="sm">{project.description}</Text>
                                         </Stack>
-                                    </Card>
+                                    </ChronicleCard>
                                 )}
                             </Stack>
                         </Grid.Col>
                         <Grid.Col span={{ base: 12, md: 8 }}>
-                            <Card withBorder radius="md" padding="lg" shadow="xs" style={{ height: "100%" }}>
+                            <ChronicleCard style={{ height: "100%" }}>
                                 <Stack gap="sm" style={{ height: "100%" }}>
-                                    <Title order={4}>
+                                    <ChronicleHeadline as="h2">
                                         {subProjects.length > 0 ? "Karte – Unterprojekte" : "Karte"}
-                                    </Title>
+                                    </ChronicleHeadline>
                                     <div style={{ flex: 1, minHeight: 400 }}>
                                         <MapView
                                             projects={mapProjects}
@@ -510,14 +512,14 @@ export default function ProjectDetail() {
                                         />
                                     </div>
                                 </Stack>
-                            </Card>
+                            </ChronicleCard>
                         </Grid.Col>
                     </Grid>
                 ) : (
                     <>
-                        <Card withBorder radius="md" padding="lg" shadow="xs">
+                        <ChronicleCard>
                             <Stack gap="sm">
-                                <Title order={4}>Projektdetails</Title>
+                                <ChronicleHeadline as="h2">Projektdetails</ChronicleHeadline>
                                 {visibleDetailRows.length > 0 && (
                                     <Stack gap={8}>
                                         {visibleDetailRows.map(({ label, value }) => (
@@ -527,16 +529,15 @@ export default function ProjectDetail() {
                                 )}
                                 <Text size="xs" fw={600} c="dimmed" tt="uppercase" lts={0.5}>Verkehrsarten</Text>
                                 <Group gap="xs">
-                                    {trainCategoryLabels.map(({ key, label, color }) => {
+                                    {trainCategoryLabels.map(({ key, label }) => {
                                         const isActive = Boolean(project[key]);
                                         return (
-                                            <Badge
+                                            <ChronicleDataChip
                                                 key={String(key)}
-                                                variant={isActive ? "light" : "outline"}
-                                                color={isActive ? color : "gray"}
+                                                style={{ opacity: isActive ? 1 : 0.4 }}
                                             >
                                                 {label}
-                                            </Badge>
+                                            </ChronicleDataChip>
                                         );
                                     })}
                                 </Group>
@@ -549,9 +550,9 @@ export default function ProjectDetail() {
                                                     <Text size="xs" fw={600} c="dimmed">{groupLabel}</Text>
                                                     <Group gap="xs">
                                                         {activeFeatures.map(({ key, label }) => (
-                                                            <Badge key={String(key)} variant="light" color="blue">
+                                                            <ChronicleDataChip key={String(key)}>
                                                                 {label}
-                                                            </Badge>
+                                                            </ChronicleDataChip>
                                                         ))}
                                                     </Group>
                                                 </Stack>
@@ -560,14 +561,14 @@ export default function ProjectDetail() {
                                     </>
                                 )}
                             </Stack>
-                        </Card>
+                        </ChronicleCard>
                         {project.description && project.description.trim() !== "" && (
-                            <Card withBorder radius="md" padding="lg" shadow="xs">
+                            <ChronicleCard>
                                 <Stack gap="sm">
-                                    <Title order={4}>Beschreibung</Title>
+                                    <ChronicleHeadline as="h2">Beschreibung</ChronicleHeadline>
                                     <Text size="sm">{project.description}</Text>
                                 </Stack>
-                            </Card>
+                            </ChronicleCard>
                         )}
                     </>
                 )}
@@ -581,12 +582,12 @@ export default function ProjectDetail() {
                 {/* Begründung */}
                 {project.justification && project.justification.trim() !== "" && (
                     <div ref={justificationRef}>
-                    <Card withBorder radius="md" padding="lg" shadow="xs">
+                    <ChronicleCard>
                         <Stack gap="sm">
-                            <Title order={4}>Begründung</Title>
+                            <ChronicleHeadline as="h2">Begründung</ChronicleHeadline>
                             <Text size="sm">{project.justification}</Text>
                         </Stack>
-                    </Card>
+                    </ChronicleCard>
                     </div>
                 )}
 
@@ -610,10 +611,10 @@ export default function ProjectDetail() {
                 {/* Übergeordnetes Projekt */}
                 {superiorProject && (
                     <div ref={superiorRef}>
-                    <Card withBorder radius="md" padding="lg" shadow="xs">
+                    <ChronicleCard>
                         <Stack gap="sm">
-                            <Title order={4}>Übergeordnetes Projekt</Title>
-                            <Card withBorder radius="sm" padding="md">
+                            <ChronicleHeadline as="h2">Übergeordnetes Projekt</ChronicleHeadline>
+                            <ChronicleCard>
                                 <Stack gap="sm">
                                     <ProjectSummaryCard project={superiorProject} />
                                     <Button
@@ -625,19 +626,19 @@ export default function ProjectDetail() {
                                         Zum Projekt
                                     </Button>
                                 </Stack>
-                            </Card>
+                            </ChronicleCard>
                         </Stack>
-                    </Card>
+                    </ChronicleCard>
                     </div>
                 )}
 
                 {/* Unterprojekte */}
                 {subProjects.length > 0 && (
                     <div ref={subProjectsRef}>
-                    <Card withBorder radius="md" padding="lg" shadow="xs">
+                    <ChronicleCard>
                         <Stack gap="sm">
                             <Group justify="space-between" align="center">
-                                <Title order={4}>Unterprojekte ({subProjects.length})</Title>
+                                <ChronicleHeadline as="h2">Unterprojekte ({subProjects.length})</ChronicleHeadline>
                                 <Button
                                     size="xs"
                                     variant="subtle"
@@ -650,7 +651,7 @@ export default function ProjectDetail() {
                             <Collapse in={subProjectsOpen}>
                                 <Stack gap="sm">
                                     {subProjects.map((sub) => (
-                                        <Card key={sub.id} withBorder radius="sm" padding="md">
+                                        <ChronicleCard key={sub.id}>
                                             <Stack gap="sm">
                                                 <ProjectSummaryCard project={sub} />
                                                 <Button
@@ -662,22 +663,22 @@ export default function ProjectDetail() {
                                                     Zum Projekt
                                                 </Button>
                                             </Stack>
-                                        </Card>
+                                        </ChronicleCard>
                                     ))}
                                 </Stack>
                             </Collapse>
                         </Stack>
-                    </Card>
+                    </ChronicleCard>
                     </div>
                 )}
 
                 {/* Versionshistorie – nur für eingeloggte Nutzer sichtbar */}
                 {user !== null && (
                     <div ref={historyRef}>
-                    <Card withBorder radius="md" padding="lg" shadow="xs">
+                    <ChronicleCard>
                         <Stack gap="sm">
                             <Group justify="space-between" align="center">
-                                <Title order={4}>Versionshistorie</Title>
+                                <ChronicleHeadline as="h2">Versionshistorie</ChronicleHeadline>
                                 <Button
                                     size="xs"
                                     variant="subtle"
@@ -691,7 +692,7 @@ export default function ProjectDetail() {
                                 <ProjectHistorySection projectId={projectId} canEdit={canEdit} />
                             </Collapse>
                         </Stack>
-                    </Card>
+                    </ChronicleCard>
                     </div>
                 )}
 
@@ -707,6 +708,14 @@ export default function ProjectDetail() {
                 isSubmitting={mutation.isPending}
                 errorMessage={mutationErrorMessage}
             />
+
+            {geometryModalOpen && (
+                <GeometryManagementModal
+                    project={project}
+                    opened={geometryModalOpen}
+                    onClose={() => setGeometryModalOpen(false)}
+                />
+            )}
         </Container>
     );
 }

@@ -2,20 +2,18 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
     Alert,
-    Badge,
     Box,
     Button,
     Container,
     Group,
     Loader,
-    Paper,
     ScrollArea,
     Stack,
     Table,
     Text,
-    Title,
     Tooltip,
 } from "@mantine/core";
+import { ChronicleHeadline, ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useAuth } from "../../lib/auth";
@@ -68,30 +66,30 @@ function RawTextCell({
         <Stack gap={4} style={{ cursor: "pointer" }} onClick={onToggle}>
             <Group gap={6} wrap="nowrap">
                 <Tooltip label={`${len} Zeichen`} withArrow>
-                    <Badge size="xs" color={qualityColor} variant="filled">
+                    <ChronicleDataChip>
                         {len > 0 ? `${(len / 1000).toFixed(1)}k` : "leer"}
-                    </Badge>
+                    </ChronicleDataChip>
                 </Tooltip>
                 {entry.pfa_entries.length > 0 ? (
-                    <Badge size="xs" color="teal" variant="light">
+                    <ChronicleDataChip>
                         {entry.pfa_entries.length} PFA
-                    </Badge>
+                    </ChronicleDataChip>
                 ) : (
-                    <Badge size="xs" color="orange" variant="light">
+                    <ChronicleDataChip>
                         0 PFA
-                    </Badge>
+                    </ChronicleDataChip>
                 )}
             </Group>
             <Group gap={4} wrap="wrap">
                 {detected.map((s) => (
-                    <Badge key={s.key} size="xs" color="blue" variant="dot">
+                    <ChronicleDataChip key={s.key}>
                         {s.label}
-                    </Badge>
+                    </ChronicleDataChip>
                 ))}
                 {missing.map((s) => (
-                    <Badge key={s.key} size="xs" color="gray" variant="outline">
+                    <ChronicleDataChip key={s.key}>
                         {s.label}
-                    </Badge>
+                    </ChronicleDataChip>
                 ))}
             </Group>
             <Text size="xs" c="blue">
@@ -138,9 +136,9 @@ function ExpandedRawText({ entry }: { entry: VibEntryProposed }) {
                     <Text size="xs" c="dimmed">Erkannt:</Text>
                     {detected.length > 0
                         ? detected.map((s) => (
-                              <Badge key={s.key} size="xs" color="blue">
+                              <ChronicleDataChip key={s.key}>
                                   ✓ {s.label}
-                              </Badge>
+                              </ChronicleDataChip>
                           ))
                         : <Text size="xs" c="dimmed">–</Text>}
                 </Group>
@@ -148,9 +146,9 @@ function ExpandedRawText({ entry }: { entry: VibEntryProposed }) {
                     <Group gap={6}>
                         <Text size="xs" c="dimmed">Nicht gefunden:</Text>
                         {missing.map((s) => (
-                            <Badge key={s.key} size="xs" color="gray" variant="outline">
+                            <ChronicleDataChip key={s.key}>
                                 ✗ {s.label}
-                            </Badge>
+                            </ChronicleDataChip>
                         ))}
                     </Group>
                 )}
@@ -231,14 +229,14 @@ export default function VibStructurePreviewPage() {
         <Container size="lg" py="xl">
             <Stack gap="xl">
                 <div>
-                    <Title order={2}>VIB-Import — Strukturvorschau</Title>
+                    <ChronicleHeadline as="h1">VIB-Import — Strukturvorschau</ChronicleHeadline>
                     <Text c="dimmed" size="sm" mt={4}>
                         Struktur erkannt. Prüfen Sie die Vorhaben und wechseln Sie zum Review.
                         KI-Extraktion ist pro Vorhaben im Review verfügbar.
                     </Text>
                 </div>
 
-                <Paper withBorder p="md">
+                <ChronicleCard>
                     <Group gap="xl">
                         <div>
                             <Text size="xs" c="dimmed">Projekte erkannt</Text>
@@ -259,10 +257,10 @@ export default function VibStructurePreviewPage() {
                             </Text>
                         </div>
                     </Group>
-                </Paper>
+                </ChronicleCard>
 
 
-                <Paper withBorder p={0}>
+                <ChronicleCard style={{ padding: 0 }}>
                     <Table withTableBorder>
                         <Table.Thead>
                             <Table.Tr>
@@ -290,9 +288,9 @@ export default function VibStructurePreviewPage() {
                                             <Text size="sm" lineClamp={2}>{e.vib_name_raw}</Text>
                                         </Table.Td>
                                         <Table.Td>
-                                            <Badge size="xs" color={CATEGORY_COLORS[e.category] ?? "gray"}>
+                                            <ChronicleDataChip>
                                                 {e.category}
-                                            </Badge>
+                                            </ChronicleDataChip>
                                         </Table.Td>
                                         <Table.Td>
                                             <RawTextCell
@@ -313,7 +311,7 @@ export default function VibStructurePreviewPage() {
                             ))}
                         </Table.Tbody>
                     </Table>
-                </Paper>
+                </ChronicleCard>
 
                 <Group justify="flex-end" gap="sm">
                     <Button variant="subtle" onClick={() => navigate("/admin/vib-import")}>

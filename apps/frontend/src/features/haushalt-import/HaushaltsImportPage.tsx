@@ -9,12 +9,11 @@ import {
     Group,
     Loader,
     NumberInput,
-    Paper,
     Progress,
     Stack,
     Text,
-    Title,
 } from "@mantine/core";
+import { ChronicleHeadline, ChronicleCard } from "../../components/chronicle";
 import { notifications } from "@mantine/notifications";
 import { useAuth } from "../../lib/auth";
 import {
@@ -82,16 +81,16 @@ export default function HaushaltsImportPage() {
         <Container size="lg" py="xl">
             <Stack gap="xl">
                 <Group justify="space-between" align="center">
-                    <Title order={2}>Haushalts-Import</Title>
+                    <ChronicleHeadline as="h1">Haushalts-Import</ChronicleHeadline>
                     <Anchor component={Link} to="/admin/haushalt-import/guide" size="sm">
                         Anleitung anzeigen →
                     </Anchor>
                 </Group>
 
                 {/* A — New import */}
-                <Paper withBorder p="md">
+                <ChronicleCard>
                     <Stack gap="md">
-                        <Title order={4}>Neuer Import</Title>
+                        <Text fw={600} size="md">Neuer Import</Text>
                         <Group align="flex-end" gap="sm" wrap="wrap">
                             <FileInput
                                 label="PDF-Datei (Anlage VWIB Teil B)"
@@ -138,19 +137,19 @@ export default function HaushaltsImportPage() {
                             </Stack>
                         )}
                     </Stack>
-                </Paper>
+                </ChronicleCard>
 
                 {/* B — Existing results */}
-                <Paper withBorder p="md">
+                <ChronicleCard>
                     <Stack gap="md">
-                        <Title order={4}>Vergangene Import-Läufe</Title>
+                        <Text fw={600} size="md">Vergangene Import-Läufe</Text>
                         {resultsLoading ? (
                             <Group justify="center"><Loader /></Group>
                         ) : (
                             <ParseResultList results={results ?? []} />
                         )}
                     </Stack>
-                </Paper>
+                </ChronicleCard>
             </Stack>
         </Container>
     );

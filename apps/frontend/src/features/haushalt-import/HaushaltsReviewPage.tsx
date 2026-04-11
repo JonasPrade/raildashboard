@@ -3,15 +3,14 @@ import { useState } from "react";
 import {
     Alert,
     Anchor,
-    Badge,
     Button,
     Container,
     Group,
     Loader,
     Stack,
     Text,
-    Title,
 } from "@mantine/core";
+import { ChronicleHeadline, ChronicleDataChip } from "../../components/chronicle";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
 import { useAuth } from "../../lib/auth";
@@ -121,9 +120,9 @@ export default function HaushaltsReviewPage() {
                 <Group justify="space-between" wrap="wrap">
                     <Stack gap={2}>
                         <Group gap="sm" align="center">
-                            <Title order={2}>
+                            <ChronicleHeadline as="h1">
                                 Review – Haushalt {result.haushalt_year}
-                            </Title>
+                            </ChronicleHeadline>
                             <Anchor component={Link} to="/admin/haushalt-import/guide" size="sm" c="dimmed">
                                 Anleitung →
                             </Anchor>
@@ -135,10 +134,10 @@ export default function HaushaltsReviewPage() {
                     </Stack>
 
                     {isConfirmed ? (
-                        <Badge color="green" size="lg" variant="light">
+                        <ChronicleDataChip>
                             Importiert am {new Date(result.confirmed_at!).toLocaleString("de-DE", { timeZone: "Europe/Berlin" })}
                             {result.confirmed_by_snapshot ? ` von ${result.confirmed_by_snapshot}` : ""}
-                        </Badge>
+                        </ChronicleDataChip>
                     ) : (
                         <Group gap="xs">
                             <Button

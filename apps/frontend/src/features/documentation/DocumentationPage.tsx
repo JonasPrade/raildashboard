@@ -1,11 +1,12 @@
-import { Anchor, Badge, Card, Divider, Group, List, Stack, Text, Title } from "@mantine/core";
+import { Anchor, Group, List, Stack, Text } from "@mantine/core";
+import { ChronicleHeadline, ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import { featureHighlights, qualityGates, techStack, workflows } from "./documentationData";
 
 export default function DocumentationPage() {
     return (
         <Stack gap="xl" p="xl" maw={960} mx="auto">
             <Stack gap="xs">
-                <Title order={1}>Railway dashboard – feature & developer documentation</Title>
+                <ChronicleHeadline as="h1">Railway dashboard – feature & developer documentation</ChronicleHeadline>
                 <Text c="dimmed">
                     This page complements the <Anchor component="a" href="/README.md" target="_blank">README</Anchor> and
                     outlines the currently available features, workflows, and quality requirements of the frontend.
@@ -13,11 +14,11 @@ export default function DocumentationPage() {
                 </Text>
             </Stack>
 
-            <Card withBorder shadow="sm" radius="md" padding="xl">
+            <ChronicleCard>
                 <Stack gap="sm">
                     <Group justify="space-between" align="flex-start">
-                        <Title order={2}>Technology stack</Title>
-                        <Badge color="petrol" variant="light">Updated: {new Date().getFullYear()}</Badge>
+                        <ChronicleHeadline as="h2">Technology stack</ChronicleHeadline>
+                        <ChronicleDataChip>Updated: {new Date().getFullYear()}</ChronicleDataChip>
                     </Group>
                     <List spacing="xs">
                         {techStack.map((entry) => (
@@ -25,15 +26,15 @@ export default function DocumentationPage() {
                         ))}
                     </List>
                 </Stack>
-            </Card>
+            </ChronicleCard>
 
             <Stack gap="md">
-                <Title order={2}>Feature highlights</Title>
+                <ChronicleHeadline as="h2">Feature highlights</ChronicleHeadline>
                 {featureHighlights.map((feature) => (
-                    <Card key={feature.title} withBorder radius="md" padding="lg" shadow="xs">
+                    <ChronicleCard key={feature.title}>
                         <Stack gap="xs">
                             <Group gap="xs">
-                                <Title order={3}>{feature.title}</Title>
+                                <Text fw={600} size="lg">{feature.title}</Text>
                             </Group>
                             <Text>{feature.description}</Text>
                             {feature.details && (
@@ -44,33 +45,31 @@ export default function DocumentationPage() {
                                 </List>
                             )}
                         </Stack>
-                    </Card>
+                    </ChronicleCard>
                 ))}
             </Stack>
 
-            <Divider label="Workflows & quality" labelPosition="center" my="lg" />
-
             <Stack gap="lg">
                 {workflows.map((workflow) => (
-                    <Card key={workflow.title} withBorder radius="md" padding="lg">
+                    <ChronicleCard key={workflow.title}>
                         <Stack gap="xs">
-                            <Title order={3}>{workflow.title}</Title>
+                            <Text fw={600} size="lg">{workflow.title}</Text>
                             <List spacing="xs" type="ordered">
                                 {workflow.steps.map((step) => (
                                     <List.Item key={step}>{step}</List.Item>
                                 ))}
                             </List>
                         </Stack>
-                    </Card>
+                    </ChronicleCard>
                 ))}
 
-                <Card withBorder radius="md" padding="lg" shadow="xs">
+                <ChronicleCard>
                     <Stack gap="xs">
                         <Group gap="xs">
-                            <Title order={3}>Quality requirements</Title>
-                            <Badge color="green" variant="light">
+                            <Text fw={600} size="lg">Quality requirements</Text>
+                            <ChronicleDataChip>
                                 mandatory
-                            </Badge>
+                            </ChronicleDataChip>
                         </Group>
                         <List spacing="xs">
                             {qualityGates.map((gate) => (
@@ -78,12 +77,12 @@ export default function DocumentationPage() {
                             ))}
                         </List>
                     </Stack>
-                </Card>
+                </ChronicleCard>
             </Stack>
 
-            <Card withBorder radius="md" padding="lg">
+            <ChronicleCard>
                 <Stack gap="xs">
-                    <Title order={3}>Further resources</Title>
+                    <Text fw={600} size="lg">Further resources</Text>
                     <List spacing="xs">
                         <List.Item>
                             <Anchor component="a" href="/README.md" target="_blank" rel="noopener noreferrer">
@@ -104,7 +103,7 @@ export default function DocumentationPage() {
                         </List.Item>
                     </List>
                 </Stack>
-            </Card>
+            </ChronicleCard>
         </Stack>
     );
 }

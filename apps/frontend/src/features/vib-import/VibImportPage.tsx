@@ -9,13 +9,12 @@ import {
     Group,
     Loader,
     NumberInput,
-    Paper,
     Progress,
     Stack,
     Table,
     Text,
-    Title,
 } from "@mantine/core";
+import { ChronicleHeadline, ChronicleCard } from "../../components/chronicle";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
 import { useAuth } from "../../lib/auth";
@@ -127,12 +126,12 @@ export default function VibImportPage() {
     return (
         <Container size="lg" py="xl">
             <Stack gap="xl">
-                <Title order={2}>VIB-Import (Verkehrsinvestitionsbericht)</Title>
+                <ChronicleHeadline as="h1">VIB-Import (Verkehrsinvestitionsbericht)</ChronicleHeadline>
 
                 {/* A — New import */}
-                <Paper withBorder p="md">
+                <ChronicleCard>
                     <Stack gap="md">
-                        <Title order={4}>Neuer Import</Title>
+                        <Text fw={600} size="md">Neuer Import</Text>
                         <Text size="sm" c="dimmed">
                             PDF des Bundestagsdrucksache „Verkehrsinvestitionsbericht für das
                             Berichtsjahr XXXX" hochladen. Es wird nur Abschnitt B
@@ -220,24 +219,24 @@ export default function VibImportPage() {
                             </Stack>
                         )}
                     </Stack>
-                </Paper>
+                </ChronicleCard>
 
                 {/* PDF preview — shown when a file is selected */}
                 {pdfUrl && (
-                    <Paper withBorder p={0} style={{ overflow: "hidden" }}>
+                    <ChronicleCard style={{ overflow: "hidden", padding: 0 }}>
                         <iframe
                             src={pdfUrl}
                             title="PDF-Vorschau"
                             style={{ width: "100%", height: "75vh", border: "none", display: "block" }}
                         />
-                    </Paper>
+                    </ChronicleCard>
                 )}
 
                 {/* B — Open drafts */}
                 {(draftsLoading || (drafts && drafts.length > 0)) && (
-                    <Paper withBorder p="md">
+                    <ChronicleCard>
                         <Stack gap="md">
-                            <Title order={4}>Offene Entwürfe</Title>
+                            <Text fw={600} size="md">Offene Entwürfe</Text>
                             <Text size="sm" c="dimmed">
                                 Geparste PDFs, die noch nicht bestätigt wurden. Entwürfe können weiterbearbeitet werden.
                             </Text>
@@ -305,13 +304,13 @@ export default function VibImportPage() {
                                 </Table>
                             )}
                         </Stack>
-                    </Paper>
+                    </ChronicleCard>
                 )}
 
                 {/* C — Imported reports */}
-                <Paper withBorder p="md">
+                <ChronicleCard>
                     <Stack gap="md">
-                        <Title order={4}>Importierte Berichte</Title>
+                        <Text fw={600} size="md">Importierte Berichte</Text>
                         {reportsLoading ? (
                             <Group justify="center">
                                 <Loader />
@@ -361,7 +360,7 @@ export default function VibImportPage() {
                             </Text>
                         )}
                     </Stack>
-                </Paper>
+                </ChronicleCard>
             </Stack>
         </Container>
     );

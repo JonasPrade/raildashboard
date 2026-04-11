@@ -64,6 +64,7 @@ export type ProjectUpdatePayload = {
     sanierung?: boolean;
     closure?: boolean;
     project_group_ids?: number[];
+    geojson_representation?: string | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -1065,6 +1066,84 @@ export function useAssignVibEntry() {
             }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin-unassigned-vib-entries"] });
+        },
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Routing / Geometry management
+// ---------------------------------------------------------------------------
+
+export type OperationalPointRef = {
+    id: number;
+    op_id: string | null;
+    name: string | null;
+    type: string | null;
+    latitude: number | null;
+    longitude: number | null;
+};
+
+export type RoutePreviewFeature = {
+    type: "Feature";
+    geometry: { type: "LineString"; coordinates: number[][] };
+    properties: {
+        distance_m: number;
+        duration_ms: number;
+        profile: string;
+        graph_version: string;
+        bbox: number[];
+        details: Record<string, unknown>;
+        cache_key: string;
+    };
+};
+
+export function useOperationalPointSearch(q: string) {
+    return useQuery({
+        queryKey: ["operational-points", q],
+        enabled: q.length >= 2,
+        queryFn: () =>
+            api<OperationalPointRef[]>(`/api/v1/operational-points/?q=${encodeURIComponent(q)}&limit=20`),
+        staleTime: 30_000,
+    });
+}
+
+export function useCalculateRoute() {
+    return useMutation({
+        mutationFn: (payload: {
+            waypoints: Array<{ lat: number; lon: number }>;
+            profile?: string;
+        }) =>
+            api<RoutePreviewFeature>("/api/v1/routes/calculate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ profile: "rail_default", options: {}, ...payload }),
+            }),
+    });
+}
+
+export function useConfirmRoute(projectId: number) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (feature: RoutePreviewFeature) =>
+            api<ProjectRoute>(`/api/v1/projects/${projectId}/routes`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ feature }),
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: projectRoutesQueryKey(projectId) });
+        },
+    });
+}
+
+export function useUpdateProjectGeometry(projectId: number) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (geojson_representation: string | null) =>
+            updateProject(projectId, { geojson_representation }),
+        onSuccess: (updatedProject) => {
+            queryClient.setQueryData(["project", projectId], updatedProject);
+            queryClient.invalidateQueries({ queryKey: ["projects"] });
         },
     });
 }

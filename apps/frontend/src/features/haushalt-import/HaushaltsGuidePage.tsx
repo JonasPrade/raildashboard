@@ -2,16 +2,15 @@ import {
     Accordion,
     Alert,
     Anchor,
-    Badge,
     Box,
     Container,
-    Divider,
     Group,
     List,
     Stack,
     Text,
     Title,
 } from "@mantine/core";
+import { ChronicleHeadline, ChronicleDataChip } from "../../components/chronicle";
 import { Link } from "react-router-dom";
 
 const STEPS: { title: string; nr: string; content: React.ReactNode }[] = [
@@ -84,15 +83,15 @@ const STEPS: { title: string; nr: string; content: React.ReactNode }[] = [
                 </Text>
                 <List size="sm" spacing="xs">
                     <List.Item>
-                        <Badge color="green" size="xs" variant="light">Neu</Badge>{" "}
+                        <ChronicleDataChip>Neu</ChronicleDataChip>{" "}
                         — FinVe wurde noch nie importiert, wird neu angelegt.
                     </List.Item>
                     <List.Item>
-                        <Badge color="blue" size="xs" variant="light">Aktualisiert</Badge>{" "}
+                        <ChronicleDataChip>Aktualisiert</ChronicleDataChip>{" "}
                         — FinVe existiert bereits, Budgetdaten werden ergänzt.
                     </List.Item>
                     <List.Item>
-                        <Badge color="orange" size="xs" variant="light">Unbekannt</Badge>{" "}
+                        <ChronicleDataChip>Unbekannt</ChronicleDataChip>{" "}
                         — FinVe konnte keinem Projekt zugeordnet werden.
                     </List.Item>
                 </List>
@@ -185,8 +184,8 @@ export default function HaushaltsGuidePage() {
             <Stack gap="xl">
                 <Stack gap="xs">
                     <Group gap="xs" align="center">
-                        <Title order={2}>Anleitung: Haushalts-Import</Title>
-                        <Badge color="blue" variant="light">Schritt für Schritt</Badge>
+                        <ChronicleHeadline as="h1">Anleitung: Haushalts-Import</ChronicleHeadline>
+                        <ChronicleDataChip>Schritt für Schritt</ChronicleDataChip>
                     </Group>
                     <Text c="dimmed" size="sm">
                         Diese Anleitung erklärt den vollständigen Import-Prozess der jährlichen
@@ -207,9 +206,9 @@ export default function HaushaltsGuidePage() {
                         <Accordion.Item key={step.nr} value={`step-${step.nr}`}>
                             <Accordion.Control>
                                 <Group gap="sm" align="center">
-                                    <Badge size="lg" variant="filled" color="blue" w={28} p={0} style={{ flexShrink: 0 }}>
+                                    <ChronicleDataChip>
                                         {step.nr}
-                                    </Badge>
+                                    </ChronicleDataChip>
                                     <Text fw={500}>{step.title}</Text>
                                 </Group>
                             </Accordion.Control>
@@ -221,8 +220,6 @@ export default function HaushaltsGuidePage() {
                         </Accordion.Item>
                     ))}
                 </Accordion>
-
-                <Divider label="Häufige Probleme" labelPosition="center" />
 
                 <Accordion variant="contained" radius="md">
                     <Accordion.Item value="wrong-year">
