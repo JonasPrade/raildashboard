@@ -15,7 +15,7 @@ import {
 } from "@mantine/core";
 
 import { useProjectGroups, type Project, type ProjectGroup } from "../../shared/api/queries";
-import { ChronicleCard, ChronicleDataChip, ChronicleHeadline } from "../../components/chronicle";
+import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import "../../components/chronicle/tokens.css";
 
 const hasNumericId = (
