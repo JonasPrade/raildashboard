@@ -6,6 +6,8 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 
 ## Short-Term Features
 
+- [ ] make the "Schienenprojekte-Dashboard" clickable -> return to Start Page
+- [ ] Show Button Haushalt in menu for all - not only logged in users
 - [ ] integrate the new design described in `docs/DESIGN.md`
 
 This tasks must be done by human:
@@ -19,7 +21,6 @@ This tasks must be done by human:
 ### Vervollständigung und Automatisierung Tests
 
 **Status:** API- und Unit-Tests implementiert (Steps 1–4 abgeschlossen). CI-Automatisierung offen.
-
 - [x] Backend conftest erweitert (`AppSettings`, `ProjectTextType`, `ProjectText`)
 - [x] API-Tests: `test_projects.py`, `test_auth.py`, `test_finves.py`, `test_project_texts.py`, `test_settings.py`
 - [x] Unit-Tests: `test_finve_matching.py` (Fuzzy-Matching), `test_file_storage.py` (Path-Traversal, MIME)
@@ -90,7 +91,10 @@ Add to `queries.ts`:
 - [ ] In der Admin-Übersicht anzeigen, welche importierten Datensätze noch kein Projekt zugeordnet haben:
   - **Haushalt / BudgetFinVe**: FinVes ohne verknüpftes Projekt (aus `finve_to_project`-Tabelle)
   - **VIB-Einträge**: bestätigte VIB-Einträge (`vib_entry`) ohne `project_id`
-  - Darstellung als kompakte Warnsektionen auf einer Admin-Seite (z.B. `/admin/unassigned`) oder eingebettet in die jeweilige Import-Übersicht; direkter Link zum Bearbeiten des Eintrags
+  - Seite `/admin/unassigned` mit zwei Sektionen (FinVe + VIB); Inline-Zuweisung per durchsuchbarem MultiSelect direkt in der Tabellenzeile
+  - Direkter Link zur jeweiligen Detailseite/Import
+
+- [ ] **Neues Projekt aus Zuordnungsseite anlegen** — Auf `/admin/unassigned` einen "Neues Projekt anlegen"-Button bereitstellen, damit unzugeordnete FinVes/VIB-Einträge direkt einem neu angelegten Projekt zugeordnet werden können, ohne die Seite wechseln zu müssen.
 
 ### Sonstiges
 
@@ -166,7 +170,6 @@ Siehe: `docs/features/feature-vib-import.md`
 
 ### UI / UX
 - [x] **Chronicle design system rollout** — Noto Serif font (self-hosted), design tokens CSS, 4 components (ChronicleHeadline, ChronicleDataChip, ChronicleCard, ChronicleButton); showcase pages: Projects page + MapControls glassmorphic panel. See `docs/features/feature-design-system.md`
-- [x] Header title ("Schienenprojekte-Dashboard") links back to start page with hover effect; Haushalt nav item visible to all users (no auth gate)
 - [x] **BVWP-Bewertung in Projektdetail** — `GET /api/v1/projects/{id}/bvwp`; `BvwpDataSection.tsx` mit 11 Tab-Gruppen; NKV als Badge; Sektion ausgeblendet wenn kein BVWP-Datensatz vorhanden
 - [x] Projektsuche auf Karte und Listenansicht — client-seitiger Filter nach Name/Nummer/Beschreibung; `?search=` URL-Param mit Debounce
 - [x] Admin-konfigurierbare ProjectGroup-Sichtbarkeit (`is_visible`, `is_default_selected`) und Kartenmodus (`map_group_mode`: `preconfigured` / `all`)
