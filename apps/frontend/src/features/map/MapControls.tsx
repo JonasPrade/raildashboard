@@ -1,5 +1,7 @@
-import { ActionIcon, Box, Button, Paper, Slider, Stack, Switch, Text, TextInput } from "@mantine/core";
+import { ActionIcon, Box, Slider, Stack, Switch, Text, TextInput } from "@mantine/core";
 import { IconSearch, IconX } from "@tabler/icons-react";
+import { ChronicleButton } from "../../components/chronicle";
+import "../../components/chronicle/tokens.css";
 
 type Props = {
     onOpenFilters: () => void;
@@ -37,7 +39,18 @@ export default function MapControls({
                 zIndex: 10,
             }}
         >
-            <Paper p="sm" radius="md" shadow="sm" withBorder>
+            <div
+                className="chronicle-theme"
+                style={{
+                    background: "rgba(251, 249, 248, 0.85)",
+                    backdropFilter: "blur(20px)",
+                    WebkitBackdropFilter: "blur(20px)",
+                    borderRadius: "var(--radius-sharp)",
+                    boxShadow: "var(--shadow-float)",
+                    padding: "12px",
+                    border: "1px solid var(--c-outline-ghost)",
+                }}
+            >
                 <Stack gap="sm">
                     <TextInput
                         placeholder="Projekt suchen…"
@@ -59,9 +72,9 @@ export default function MapControls({
                             {filteredCount} von {totalProjects} Projekten
                         </Text>
                     )}
-                    <Button size="sm" color="petrol" onClick={onOpenFilters}>
+                    <ChronicleButton onClick={onOpenFilters}>
                         Projektgruppen
-                    </Button>
+                    </ChronicleButton>
                     <Switch
                         label="Nur Hauptprojekte"
                         checked={onlySuperior}
@@ -97,7 +110,7 @@ export default function MapControls({
                         />
                     </Stack>
                 </Stack>
-            </Paper>
+            </div>
         </Box>
     );
 }

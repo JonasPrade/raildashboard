@@ -1,0 +1,40 @@
+/* Chronicle Design System — token layer
+   All properties are scoped to .chronicle-theme.
+   Pages without this class are completely unaffected. */
+
+.chronicle-theme {
+    /* --- Colors --- */
+    --c-primary:             #041920;
+    --c-secondary:           #006a6a;
+    --c-surface:             #fbf9f8;
+    --c-surface-low:         #f5f3f3;
+    --c-surface-lowest:      #ffffff;
+    --c-surface-high:        #e8e5e4;
+    --c-tertiary-container:  #dff0ef;
+    --c-outline-ghost:       rgba(194, 199, 202, 0.15);
+    --c-shadow:              rgba(27, 28, 28, 0.06);
+    --c-on-primary:          #ffffff;
+    --c-on-surface:          #041920;
+
+    /* --- Typography --- */
+    --font-serif: "Noto Serif", Georgia, serif;
+    --font-sans:  "Inter", system-ui, -apple-system, sans-serif;
+
+    --font-size-display:  2rem;
+    --font-size-headline: 1.25rem;
+    --font-size-label:    0.75rem;
+
+    --letter-spacing-tight: -0.02em;
+    --letter-spacing-data:   0.05em;
+
+    /* --- Shape & Depth --- */
+    --radius-sharp:   0.125rem;
+    --shadow-float:   0 12px 32px -4px var(--c-shadow);
+    --border-accent:  3px solid var(--c-secondary);
+    --gap-editorial:  1.5rem;
+
+    /* Apply surface color to the page root */
+    background-color: var(--c-surface);
+    color: var(--c-on-surface);
+    font-family: var(--font-sans);
+}

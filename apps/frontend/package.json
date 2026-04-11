@@ -26,14 +26,15 @@
     "openapi-zod-client": "^1.18.3",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-pdf": "^10.4.1",
     "react-markdown": "^10.1.0",
+    "react-pdf": "^10.4.1",
     "react-router-dom": "^7.8.0",
     "recharts": "^3.8.0",
     "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
+    "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@types/maplibre-gl": "^1.14.0",
