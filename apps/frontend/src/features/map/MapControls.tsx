@@ -1,7 +1,6 @@
 import { ActionIcon, Box, Slider, Stack, Switch, Text, TextInput } from "@mantine/core";
 import { IconSearch, IconX } from "@tabler/icons-react";
 import { ChronicleButton } from "../../components/chronicle";
-import "../../components/chronicle/tokens.css";
 
 type Props = {
     onOpenFilters: () => void;
@@ -40,7 +39,6 @@ export default function MapControls({
             }}
         >
             <div
-                className="chronicle-theme"
                 style={{
                     background: "rgba(251, 249, 248, 0.85)",
                     backdropFilter: "blur(20px)",
