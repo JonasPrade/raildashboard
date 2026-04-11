@@ -34,6 +34,14 @@
     opacity: 0.75;
 }
 
+/* Chronicle global base */
+body {
+    background-color: var(--c-surface);
+    color: var(--c-on-surface);
+    font-family: var(--font-sans);
+    margin: 0;
+}
+
 /* Self-hosted fonts */
 @font-face {
     font-family: "Work Sans";

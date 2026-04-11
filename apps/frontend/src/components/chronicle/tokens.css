@@ -1,8 +1,7 @@
-/* Chronicle Design System — token layer
-   All properties are scoped to .chronicle-theme.
-   Pages without this class are completely unaffected. */
+/* Chronicle Design System — global token layer
+   Tokens are available on every element. No wrapper class needed. */
 
-.chronicle-theme {
+:root {
     /* --- Colors --- */
     --c-primary:             #041920;
     --c-secondary:           #006a6a;
@@ -32,9 +31,4 @@
     --shadow-float:   0 12px 32px -4px var(--c-shadow);
     --border-accent:  3px solid var(--c-secondary);
     --gap-editorial:  1.5rem;
-
-    /* Apply surface color to the page root */
-    background-color: var(--c-surface);
-    color: var(--c-on-surface);
-    font-family: var(--font-sans);
 }
