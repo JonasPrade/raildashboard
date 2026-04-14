@@ -3,26 +3,19 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
     ActionIcon,
     Alert,
-    Box,
     Button,
-    Checkbox,
     Container,
     Group,
     Loader,
-    MultiSelect,
+    Select,
     Stack,
-    Table,
     Text,
-    Textarea,
     Tooltip,
 } from "@mantine/core";
-import { ChronicleHeadline, ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { ChronicleHeadline, ChronicleDataChip } from "../../components/chronicle";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import { useAuth } from "../../lib/auth";
-import { filterProjectOption } from "../../lib/filterProjectOption";
 import {
     useVibParseResult,
     useConfirmVibImport,
@@ -34,332 +27,7 @@ import {
     type VibEntryProposed,
     type VibConfirmEntryInput,
 } from "../../shared/api/queries";
-
-const CATEGORY_COLORS: Record<string, string> = {
-    laufend: "blue",
-    neu: "green",
-    potentiell: "yellow",
-    abgeschlossen: "gray",
-};
-
-function VibEntryCard({
-    entry,
-    projectOptions,
-    onProjectChange,
-    onStatusChange,
-    onRawTextChange,
-    onFieldChange,
-    onPfaChange,
-    onPfaAdd,
-    onPfaRemove,
-    onRetryAi,
-    isRetryingAi,
-}: {
-    entry: VibEntryProposed;
-    projectOptions: { value: string; label: string }[];
-    onProjectChange: (projectIds: number[]) => void;
-    onStatusChange: (field: "status_planung" | "status_bau" | "status_abgeschlossen", value: boolean) => void;
-    onRawTextChange: (text: string) => void;
-    onFieldChange: (field: keyof VibEntryProposed, value: string) => void;
-    onPfaChange: (pfaIndex: number, field: string, value: string) => void;
-    onPfaAdd: () => void;
-    onPfaRemove: (pfaIndex: number) => void;
-    onRetryAi?: () => void;
-    isRetryingAi?: boolean;
-}) {
-    const [showRawPfa, setShowRawPfa] = useState(false);
-
-    const hasSuggestion =
-        entry.project_ids.length > 0 ||
-        (entry.suggested_project_ids && entry.suggested_project_ids.length > 0);
-    const confidence =
-        entry.project_ids.length > 0 &&
-        entry.suggested_project_ids.some((id) => entry.project_ids.includes(id))
-            ? "high"
-            : entry.project_ids.length > 0
-              ? "manual"
-              : "none";
-
-    return (
-        <ChronicleCard>
-            <Stack gap="md">
-                {/* Section label + AI status badges */}
-                <Group gap="xs" align="center">
-                    {entry.vib_section && (
-                        <Text size="xs" c="dimmed" ff="monospace">
-                            {entry.vib_section}
-                        </Text>
-                    )}
-                    {entry.ai_extracted && (
-                        <ChronicleDataChip>KI</ChronicleDataChip>
-                    )}
-                    {entry.ai_extraction_failed && (
-                        <Tooltip label={entry.ai_extraction_error ?? "KI-Extraktion fehlgeschlagen"} withArrow>
-                            <ChronicleDataChip>KI fehlgeschlagen</ChronicleDataChip>
-                        </Tooltip>
-                    )}
-                    {onRetryAi && (
-                        <Button
-                            size="xs"
-                            variant="light"
-                            color={entry.ai_extraction_failed ? "orange" : "violet"}
-                            loading={isRetryingAi}
-                            onClick={onRetryAi}
-                        >
-                            {entry.ai_extracted || entry.ai_extraction_failed
-                                ? "KI wiederholen"
-                                : "KI extrahieren"}
-                        </Button>
-                    )}
-                </Group>
-
-                {/* Projektkenndaten */}
-                {(entry.strecklaenge_km !== null ||
-                    entry.gesamtkosten_mio_eur !== null ||
-                    entry.entwurfsgeschwindigkeit) && (
-                    <Group gap="lg">
-                        {entry.strecklaenge_km !== null && (
-                            <Text size="sm">
-                                <b>Länge:</b> {entry.strecklaenge_km} km
-                            </Text>
-                        )}
-                        {entry.gesamtkosten_mio_eur !== null && (
-                            <Text size="sm">
-                                <b>Gesamtkosten:</b> {entry.gesamtkosten_mio_eur} Mio. €
-                            </Text>
-                        )}
-                        {entry.entwurfsgeschwindigkeit && (
-                            <Text size="sm">
-                                <b>Vmax:</b> {entry.entwurfsgeschwindigkeit} km/h
-                            </Text>
-                        )}
-                    </Group>
-                )}
-
-                {/* Project mapping */}
-                <Group gap="sm" align="flex-end" wrap="wrap">
-                    <MultiSelect
-                        label="Projekte zuordnen"
-                        size="sm"
-                        clearable
-                        searchable
-                        filter={filterProjectOption}
-                        placeholder="Projekte zuordnen…"
-                        data={projectOptions}
-                        value={entry.project_ids.map(String)}
-                        onChange={(vs) => onProjectChange(vs.map(Number))}
-                        style={{ flex: 1, minWidth: 200 }}
-                    />
-                    {hasSuggestion && (
-                        <Tooltip label={`KI-Vorschlag: ${entry.suggested_project_ids.map(id => projectOptions.find(o => o.value === String(id))?.label ?? String(id)).join(", ")}`}>
-                            <ChronicleDataChip style={{ cursor: "default", marginBottom: 6 }}>
-                                {confidence === "high" ? "✓" : confidence === "manual" ? "~" : "?"}
-                            </ChronicleDataChip>
-                        </Tooltip>
-                    )}
-                </Group>
-
-                {/* Projektstatus – drei Checkboxen */}
-                <Group gap="lg">
-                    <Text size="sm" fw={500} style={{ minWidth: 100 }}>Projektstatus</Text>
-                    <Checkbox
-                        label="Planung"
-                        checked={entry.status_planung}
-                        onChange={(e) => onStatusChange("status_planung", e.currentTarget.checked)}
-                    />
-                    <Checkbox
-                        label="Bau"
-                        checked={entry.status_bau}
-                        onChange={(e) => onStatusChange("status_bau", e.currentTarget.checked)}
-                    />
-                    <Checkbox
-                        label="Abgeschlossen"
-                        checked={entry.status_abgeschlossen}
-                        onChange={(e) => onStatusChange("status_abgeschlossen", e.currentTarget.checked)}
-                    />
-                </Group>
-
-                {/* Bauaktivitäten */}
-                <Textarea
-                    label="Bauaktivitäten"
-                    autosize
-                    minRows={3}
-                    maxRows={12}
-                    value={entry.bauaktivitaeten ?? ""}
-                    onChange={(e) => onFieldChange("bauaktivitaeten", e.currentTarget.value)}
-                    styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
-                />
-
-                {/* Teilinbetriebnahmen */}
-                <Textarea
-                    label="Teilinbetriebnahmen"
-                    autosize
-                    minRows={3}
-                    maxRows={12}
-                    value={entry.teilinbetriebnahmen ?? ""}
-                    onChange={(e) => onFieldChange("teilinbetriebnahmen", e.currentTarget.value)}
-                    styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
-                />
-
-                {/* Verkehrliche Zielsetzung */}
-                <Textarea
-                    label="Verkehrliche Zielsetzung"
-                    autosize
-                    minRows={3}
-                    maxRows={12}
-                    value={entry.verkehrliche_zielsetzung ?? ""}
-                    onChange={(e) => onFieldChange("verkehrliche_zielsetzung", e.currentTarget.value)}
-                    styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
-                />
-
-                {/* Durchgeführte Maßnahmen */}
-                <Textarea
-                    label="Durchgeführte Maßnahmen"
-                    autosize
-                    minRows={3}
-                    maxRows={12}
-                    value={entry.durchgefuehrte_massnahmen ?? ""}
-                    onChange={(e) => onFieldChange("durchgefuehrte_massnahmen", e.currentTarget.value)}
-                    styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
-                />
-
-                {/* Noch umzusetzende Maßnahmen */}
-                <Textarea
-                    label="Noch umzusetzende Maßnahmen"
-                    autosize
-                    minRows={3}
-                    maxRows={12}
-                    value={entry.noch_umzusetzende_massnahmen ?? ""}
-                    onChange={(e) => onFieldChange("noch_umzusetzende_massnahmen", e.currentTarget.value)}
-                    styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
-                />
-
-                {/* PFA-Tabelle — always shown, inline editable */}
-                <div>
-                    <Group justify="space-between" mb={6}>
-                        <Text size="sm" fw={600}>
-                            PFA-Tabelle ({entry.pfa_entries.length} Einträge)
-                        </Text>
-                        <Button size="xs" variant="light" onClick={onPfaAdd}>
-                            + Zeile
-                        </Button>
-                    </Group>
-                    {entry.pfa_entries.length > 0 ? (
-                        <ChronicleCard style={{ overflow: "auto", padding: 0 }}>
-                            <Table withTableBorder withColumnBorders fz="xs" style={{ fontSize: 11 }}>
-                                <Table.Thead>
-                                    <Table.Tr>
-                                        <Table.Th>Nr.</Table.Th>
-                                        <Table.Th>Örtlichkeit</Table.Th>
-                                        <Table.Th>Entwurfspl.</Table.Th>
-                                        <Table.Th>Abschluss FinVe</Table.Th>
-                                        <Table.Th>PFB</Table.Th>
-                                        <Table.Th>Baubeginn</Table.Th>
-                                        <Table.Th>IBM</Table.Th>
-                                        <Table.Th />
-                                    </Table.Tr>
-                                </Table.Thead>
-                                <Table.Tbody>
-                                    {entry.pfa_entries.map((pfa, pi) => (
-                                        <Table.Tr key={pi}>
-                                            {(["nr_pfa", "oertlichkeit", "entwurfsplanung", "abschluss_finve", "datum_pfb", "baubeginn", "inbetriebnahme"] as const).map((field) => (
-                                                <Table.Td key={field}>
-                                                    <input
-                                                        style={{
-                                                            width: field === "oertlichkeit" ? 140 : 80,
-                                                            border: "none",
-                                                            background: "transparent",
-                                                            fontSize: 11,
-                                                            fontFamily: "inherit",
-                                                        }}
-                                                        value={(pfa as Record<string, string | null>)[field] ?? ""}
-                                                        onChange={(e) => onPfaChange(pi, field, e.currentTarget.value)}
-                                                    />
-                                                </Table.Td>
-                                            ))}
-                                            <Table.Td>
-                                                <button
-                                                    style={{ cursor: "pointer", background: "none", border: "none", color: "red" }}
-                                                    onClick={() => onPfaRemove(pi)}
-                                                    title="Zeile löschen"
-                                                >
-                                                    ×
-                                                </button>
-                                            </Table.Td>
-                                        </Table.Tr>
-                                    ))}
-                                </Table.Tbody>
-                            </Table>
-                        </ChronicleCard>
-                    ) : (
-                        <Text size="xs" c="dimmed">Keine PFA-Einträge.</Text>
-                    )}
-                </div>
-
-                {/* PFA raw-markdown toggle */}
-                {entry.pfa_raw_markdown && (
-                    <div>
-                        <Button
-                            size="xs"
-                            variant="subtle"
-                            onClick={() => setShowRawPfa((v) => !v)}
-                            mb={4}
-                        >
-                            {showRawPfa ? "Roh-Markdown ausblenden" : "PFA Roh-Markdown anzeigen"}
-                        </Button>
-                        {showRawPfa && (
-                            <Box
-                                p="xs"
-                                style={{
-                                    fontSize: 12,
-                                    fontFamily: "var(--mantine-font-family-monospace)",
-                                    background: "var(--mantine-color-gray-0)",
-                                    borderRadius: 4,
-                                    overflowX: "auto",
-                                }}
-                                className="vib-raw-markdown"
-                            >
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                    {entry.pfa_raw_markdown}
-                                </ReactMarkdown>
-                            </Box>
-                        )}
-                    </div>
-                )}
-
-                {/* Sonstiges — leftover text not assigned to any sub-section, always shown */}
-                <Textarea
-                    label="Sonstiger Text (nicht zugeordnet)"
-                    autosize
-                    minRows={3}
-                    maxRows={12}
-                    value={entry.sonstiges ?? ""}
-                    onChange={(e) => onFieldChange("sonstiges", e.currentTarget.value)}
-                    styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
-                />
-
-                {/* Volltext — always shown, editable */}
-                {entry.raw_text !== null && entry.raw_text !== undefined && (
-                    <Textarea
-                        label="Volltext"
-                        autosize
-                        minRows={6}
-                        maxRows={24}
-                        value={entry.raw_text}
-                        onChange={(e) => onRawTextChange(e.currentTarget.value)}
-                        styles={{
-                            input: {
-                                fontFamily: "monospace",
-                                fontSize: 12,
-                                lineHeight: 1.6,
-                            },
-                        }}
-                    />
-                )}
-            </Stack>
-        </ChronicleCard>
-    );
-}
+import VibEntryEditForm from "./VibEntryEditForm";
 
 export default function VibReviewPage() {
     const { taskId } = useParams<{ taskId: string }>();
@@ -423,57 +91,6 @@ export default function VibReviewPage() {
             const base = prev ?? parseResult.entries;
             return base.map((e, i) => (i === currentIndex ? { ...e, ...patch } : e));
         });
-    };
-
-    const handleFieldChange = (idx: number) => (field: keyof VibEntryProposed, value: string) => {
-        setEntries((prev) =>
-            (prev ?? parseResult.entries).map((e, i) => (i === idx ? { ...e, [field]: value || null } : e))
-        );
-    };
-
-    const handlePfaChange = (idx: number) => (pfaIdx: number, field: string, value: string) => {
-        setEntries((prev) =>
-            (prev ?? parseResult.entries).map((e, i) => {
-                if (i !== idx) return e;
-                const newPfa = e.pfa_entries.map((p, pi) =>
-                    pi === pfaIdx ? { ...p, [field]: value || null } : p
-                );
-                return { ...e, pfa_entries: newPfa };
-            })
-        );
-    };
-
-    const handlePfaAdd = (idx: number) => () => {
-        setEntries((prev) =>
-            (prev ?? parseResult.entries).map((e, i) => {
-                if (i !== idx) return e;
-                return {
-                    ...e,
-                    pfa_entries: [
-                        ...e.pfa_entries,
-                        {
-                            nr_pfa: null,
-                            oertlichkeit: null,
-                            entwurfsplanung: null,
-                            abschluss_finve: null,
-                            datum_pfb: null,
-                            baubeginn: null,
-                            inbetriebnahme: null,
-                            abschnitt_label: null,
-                        },
-                    ],
-                };
-            })
-        );
-    };
-
-    const handlePfaRemove = (idx: number) => (pfaIdx: number) => {
-        setEntries((prev) =>
-            (prev ?? parseResult.entries).map((e, i) => {
-                if (i !== idx) return e;
-                return { ...e, pfa_entries: e.pfa_entries.filter((_, pi) => pi !== pfaIdx) };
-            })
-        );
     };
 
     const handleSaveDraft = async () => {
@@ -593,9 +210,19 @@ export default function VibReviewPage() {
                     >
                         <IconChevronLeft size={16} />
                     </ActionIcon>
-                    <Text size="sm" fw={500} style={{ minWidth: 52, textAlign: "center" }}>
-                        {currentIndex + 1} / {total}
-                    </Text>
+                    <Group gap={4} align="center">
+                        <Select
+                            data={displayEntries.map((_, i) => ({ value: String(i + 1), label: String(i + 1) }))}
+                            value={String(currentIndex + 1)}
+                            onChange={(v) => v && setCurrentIndex(Number(v) - 1)}
+                            searchable
+                            size="xs"
+                            w={70}
+                            styles={{ input: { textAlign: "center", fontWeight: 500 } }}
+                            comboboxProps={{ withinPortal: true }}
+                        />
+                        <Text size="sm" fw={500}>/ {total}</Text>
+                    </Group>
                     <ActionIcon
                         variant="default"
                         onClick={() => setCurrentIndex((i) => i + 1)}
@@ -616,20 +243,12 @@ export default function VibReviewPage() {
                     )}
                 </Group>
 
-                {/* Entry card */}
+                {/* Entry form */}
                 {currentEntry && (
-                    <VibEntryCard
+                    <VibEntryEditForm
                         entry={currentEntry}
                         projectOptions={projectOptions}
-                        onProjectChange={(projectIds) => updateCurrentEntry({ project_ids: projectIds })}
-                        onStatusChange={(field, value) =>
-                            updateCurrentEntry({ [field]: value })
-                        }
-                        onRawTextChange={(text) => updateCurrentEntry({ raw_text: text })}
-                        onFieldChange={handleFieldChange(currentIndex)}
-                        onPfaChange={handlePfaChange(currentIndex)}
-                        onPfaAdd={handlePfaAdd(currentIndex)}
-                        onPfaRemove={handlePfaRemove(currentIndex)}
+                        onChange={updateCurrentEntry}
                         onRetryAi={aiAvailable?.available ? () => handleRetryAi(currentIndex) : undefined}
                         isRetryingAi={retryingIdx === currentIndex}
                     />
