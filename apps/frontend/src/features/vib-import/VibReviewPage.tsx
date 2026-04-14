@@ -22,6 +22,7 @@ import remarkGfm from "remark-gfm";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import { useAuth } from "../../lib/auth";
+import { filterProjectOption } from "../../lib/filterProjectOption";
 import {
     useVibParseResult,
     useConfirmVibImport,
@@ -142,6 +143,7 @@ function VibEntryCard({
                         size="sm"
                         clearable
                         searchable
+                        filter={filterProjectOption}
                         placeholder="Projekte zuordnen…"
                         data={projectOptions}
                         value={entry.project_ids.map(String)}

@@ -962,6 +962,7 @@ export function useStartVibAiExtraction() {
 }
 
 export function useSaveVibDraft() {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: ({ taskId, data }: { taskId: string; data: VibParseTaskResult }) =>
             api<void>(`/api/v1/import/vib/draft/${taskId}`, {
@@ -969,6 +970,9 @@ export function useSaveVibDraft() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(data),
             }),
+        onSuccess: (_, { taskId, data }) => {
+            queryClient.setQueryData(["vib-parse-result", taskId], data);
+        },
     });
 }
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+    ActionIcon,
     Alert,
     Box,
     Button,
@@ -15,10 +16,11 @@ import {
 import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import { notifications } from "@mantine/notifications";
 
-import type { Project, RoutePreviewFeature } from "../../shared/api/queries";
+import type { OperationalPointRef, Project, RoutePreviewFeature } from "../../shared/api/queries";
 import { useConfirmRoute, useUpdateProjectGeometry } from "../../shared/api/queries";
 import GeometryPreviewMap from "./GeometryPreviewMap";
 import RouteCalculatorForm from "./RouteCalculatorForm";
+import StationSelect from "./StationSelect";
 
 type Props = {
     project: Project;
@@ -34,14 +36,10 @@ export default function GeometryManagementModal({ project, opened, onClose }: Pr
     const [uploadedGeojson, setUploadedGeojson] = useState<string | null>(null);
     const [uploadError, setUploadError] = useState<string | null>(null);
     const [routeError, setRouteError] = useState<string | null>(null);
+    const [selectedPoints, setSelectedPoints] = useState<OperationalPointRef[]>([]);
+    const [pointSelectKey, setPointSelectKey] = useState(0);
 
     const hasExisting = !!project.geojson_representation;
-
-    // Active new geometry: route preview takes precedence over upload
-    const activeNewGeojson: string | null =
-        previewFeature
-            ? JSON.stringify(previewFeature)
-            : uploadedGeojson;
 
     const confirmRoute = useConfirmRoute(projectId);
     const updateGeometry = useUpdateProjectGeometry(projectId);
@@ -54,6 +52,8 @@ export default function GeometryManagementModal({ project, opened, onClose }: Pr
         setUploadedGeojson(null);
         setUploadError(null);
         setRouteError(null);
+        setSelectedPoints([]);
+        setPointSelectKey(0);
     }
 
     function handleClose() {
@@ -61,25 +61,62 @@ export default function GeometryManagementModal({ project, opened, onClose }: Pr
         onClose();
     }
 
+    function buildNewGeometry(): string | null {
+        const hasPoints = selectedPoints.length > 0;
+
+        // Upload-only (no route, no points): return as-is
+        if (!previewFeature && !hasPoints && uploadedGeojson) {
+            return uploadedGeojson;
+        }
+
+        const features: object[] = [];
+
+        if (previewFeature) {
+            features.push({ type: "Feature", geometry: previewFeature.geometry, properties: {} });
+        } else if (uploadedGeojson) {
+            try {
+                const p = JSON.parse(uploadedGeojson);
+                if (p.type === "FeatureCollection") features.push(...(p.features ?? []));
+                else if (p.type === "Feature") features.push(p);
+                else features.push({ type: "Feature", geometry: p, properties: {} });
+            } catch { /* ignore */ }
+        }
+
+        for (const op of selectedPoints) {
+            if (op.latitude != null && op.longitude != null) {
+                features.push({
+                    type: "Feature",
+                    geometry: { type: "Point", coordinates: [op.longitude, op.latitude] },
+                    properties: { name: op.name ?? null, op_id: op.op_id ?? null, feature_type: "operational_point" },
+                });
+            }
+        }
+
+        return features.length > 0
+            ? JSON.stringify({ type: "FeatureCollection", features })
+            : null;
+    }
+
     async function handleAccept() {
-        if (!activeNewGeojson && !deleteExisting) {
-            // Nothing to do
+        const hasPoints = selectedPoints.length > 0;
+        const hasNewGeometry = !!previewFeature || !!uploadedGeojson || hasPoints;
+
+        if (!hasNewGeometry && !deleteExisting) {
             handleClose();
             return;
         }
 
         try {
             if (previewFeature) {
-                // 1. Confirm route in DB
                 await confirmRoute.mutateAsync(previewFeature);
-                // 2. Only update project geometry when there is nothing yet, or the user
-                //    explicitly asked to replace the existing one.
-                if (!hasExisting || deleteExisting) {
-                    await updateGeometry.mutateAsync(JSON.stringify(previewFeature.geometry));
-                }
-            } else if (uploadedGeojson) {
+            }
+
+            if (hasNewGeometry && (!hasExisting || deleteExisting)) {
+                await updateGeometry.mutateAsync(buildNewGeometry());
+            } else if (hasNewGeometry && hasExisting && !deleteExisting && !previewFeature && !hasPoints) {
+                // Upload-only with existing geometry and no toggle: apply anyway (legacy behaviour)
                 await updateGeometry.mutateAsync(uploadedGeojson);
-            } else if (deleteExisting) {
+            } else if (!hasNewGeometry && deleteExisting) {
                 await updateGeometry.mutateAsync(null);
             }
 
@@ -123,7 +160,8 @@ export default function GeometryManagementModal({ project, opened, onClose }: Pr
         reader.readAsText(file);
     }
 
-    const canAccept = activeNewGeojson !== null || deleteExisting;
+    const hasPoints = selectedPoints.length > 0;
+    const canAccept = !!previewFeature || !!uploadedGeojson || hasPoints || deleteExisting;
 
     return (
         <Modal
@@ -182,6 +220,40 @@ export default function GeometryManagementModal({ project, opened, onClose }: Pr
                                 onError={setRouteError}
                             />
 
+                            <Divider label="Betriebsstellen hinzufügen" labelPosition="left" />
+
+                            <StationSelect
+                                key={pointSelectKey}
+                                label="Betriebsstelle suchen"
+                                value={null}
+                                onChange={(op) => {
+                                    if (op && !selectedPoints.some((p) => p.id === op.id)) {
+                                        setSelectedPoints((prev) => [...prev, op]);
+                                    }
+                                    setPointSelectKey((k) => k + 1);
+                                }}
+                            />
+
+                            {selectedPoints.map((op) => (
+                                <Group key={op.id} justify="space-between" align="center" gap="xs">
+                                    <div>
+                                        <Text size="sm" fw={500}>● {op.name ?? op.op_id}</Text>
+                                        {op.op_id && op.name && (
+                                            <Text size="xs" c="dimmed">{op.op_id}</Text>
+                                        )}
+                                    </div>
+                                    <ActionIcon
+                                        variant="subtle"
+                                        color="red"
+                                        size="sm"
+                                        onClick={() => setSelectedPoints((prev) => prev.filter((p) => p.id !== op.id))}
+                                        aria-label="Entfernen"
+                                    >
+                                        ×
+                                    </ActionIcon>
+                                </Group>
+                            ))}
+
                             <Divider label="Oder: GeoJSON hochladen" labelPosition="left" />
 
                             {uploadError && (
@@ -227,9 +299,9 @@ export default function GeometryManagementModal({ project, opened, onClose }: Pr
                                 onClick={handleAccept}
                                 loading={isPending}
                                 disabled={!canAccept}
-                                color={deleteExisting && !activeNewGeojson ? "red" : undefined}
+                                color={deleteExisting && !previewFeature && !uploadedGeojson && !hasPoints ? "red" : undefined}
                             >
-                                {deleteExisting && !activeNewGeojson
+                                {deleteExisting && !previewFeature && !uploadedGeojson && !hasPoints
                                     ? "Geometrie löschen"
                                     : "Übernehmen"}
                             </Button>
@@ -246,6 +318,7 @@ export default function GeometryManagementModal({ project, opened, onClose }: Pr
                         existingGeojson={project.geojson_representation ?? null}
                         previewFeature={previewFeature ?? (uploadedGeojson ? buildUploadPreview(uploadedGeojson) : null)}
                         showExisting={!deleteExisting}
+                        previewPoints={selectedPoints}
                         height={undefined}
                     />
                 </Box>
