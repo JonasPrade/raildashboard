@@ -511,6 +511,22 @@ def _entry_to_schema(entry) -> VibEntrySchema:
 
 
 # ---------------------------------------------------------------------------
+# GET /entries/{entry_id} — fetch a single confirmed VIB entry
+# ---------------------------------------------------------------------------
+
+@router.get("/entries/{entry_id}", response_model=VibEntrySchema)
+def get_vib_entry_endpoint(
+    entry_id: int,
+    db: Session = Depends(get_db),
+):
+    """Return a single confirmed VibEntry by ID."""
+    entry = get_vib_entry_full(db, entry_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail="VIB-Eintrag nicht gefunden")
+    return _entry_to_schema(entry)
+
+
+# ---------------------------------------------------------------------------
 # PATCH /entries/{entry_id} — update a confirmed VIB entry
 # ---------------------------------------------------------------------------
 

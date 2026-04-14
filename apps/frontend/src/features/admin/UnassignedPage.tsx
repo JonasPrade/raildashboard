@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
     Alert,
+    Button,
     Container,
     Group,
     Loader,
@@ -20,12 +21,16 @@ import {
     useUnassignedVibEntries,
     useAssignFinve,
     useAssignVibEntry,
+    useVibEntry,
 } from "../../shared/api/queries";
+import VibEntryEditDrawer from "../vib-import/VibEntryEditDrawer";
 
 export default function UnassignedPage() {
     const { user } = useAuth();
     const [finveSelections, setFinveSelections] = useState<Record<number, string[]>>({});
     const [vibSelections, setVibSelections] = useState<Record<number, string[]>>({});
+    const [editingVibId, setEditingVibId] = useState<number | null>(null);
+    const { data: editingVibEntry } = useVibEntry(editingVibId);
 
     const { data: finves, isLoading: finvesLoading } = useUnassignedFinves();
     const { data: vibEntries, isLoading: vibLoading } = useUnassignedVibEntries();
@@ -159,12 +164,13 @@ export default function UnassignedPage() {
                                     <Table.Th>Kategorie</Table.Th>
                                     <Table.Th>VIB-Jahr</Table.Th>
                                     <Table.Th>Projekte zuweisen</Table.Th>
+                                    <Table.Th />
                                 </Table.Tr>
                             </Table.Thead>
                             <Table.Tbody>
                                 {(vibEntries ?? []).length === 0 && (
                                     <Table.Tr>
-                                        <Table.Td colSpan={6}>
+                                        <Table.Td colSpan={7}>
                                             <Text c="dimmed" size="sm" ta="center">Keine offenen VIB-Einträge.</Text>
                                         </Table.Td>
                                     </Table.Tr>
@@ -200,6 +206,11 @@ export default function UnassignedPage() {
                                                 </ChronicleButton>
                                             </Group>
                                         </Table.Td>
+                                        <Table.Td>
+                                            <Button size="xs" variant="light" onClick={() => setEditingVibId(e.id)}>
+                                                Bearbeiten
+                                            </Button>
+                                        </Table.Td>
                                     </Table.Tr>
                                 ))}
                             </Table.Tbody>
@@ -207,6 +218,12 @@ export default function UnassignedPage() {
                     )}
                 </Stack>
             </Stack>
+
+            <VibEntryEditDrawer
+                entry={editingVibEntry ?? null}
+                opened={editingVibId !== null}
+                onClose={() => setEditingVibId(null)}
+            />
         </Container>
     );
 }

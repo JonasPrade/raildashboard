@@ -984,6 +984,14 @@ export function useUpdateVibEntry() {
     });
 }
 
+export function useVibEntry(entryId: number | null) {
+    return useQuery({
+        queryKey: ["vib-entry", entryId],
+        queryFn: () => api<VibEntrySchema>(`/api/v1/import/vib/entries/${entryId}`),
+        enabled: entryId !== null,
+    });
+}
+
 export function useVibAiAvailable() {
     return useQuery({
         queryKey: ["vib-ai-available"],
