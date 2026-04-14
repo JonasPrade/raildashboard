@@ -40,6 +40,7 @@ export default function GeometryManagementModal({ project, opened, onClose }: Pr
     const [pointSelectKey, setPointSelectKey] = useState(0);
 
     const hasExisting = !!project.geojson_representation;
+    const hasPoints = selectedPoints.length > 0;
 
     const confirmRoute = useConfirmRoute(projectId);
     const updateGeometry = useUpdateProjectGeometry(projectId);
@@ -62,8 +63,6 @@ export default function GeometryManagementModal({ project, opened, onClose }: Pr
     }
 
     function buildNewGeometry(): string | null {
-        const hasPoints = selectedPoints.length > 0;
-
         // Upload-only (no route, no points): return as-is
         if (!previewFeature && !hasPoints && uploadedGeojson) {
             return uploadedGeojson;
@@ -98,7 +97,6 @@ export default function GeometryManagementModal({ project, opened, onClose }: Pr
     }
 
     async function handleAccept() {
-        const hasPoints = selectedPoints.length > 0;
         const hasNewGeometry = !!previewFeature || !!uploadedGeojson || hasPoints;
 
         if (!hasNewGeometry && !deleteExisting) {
@@ -160,7 +158,6 @@ export default function GeometryManagementModal({ project, opened, onClose }: Pr
         reader.readAsText(file);
     }
 
-    const hasPoints = selectedPoints.length > 0;
     const canAccept = !!previewFeature || !!uploadedGeojson || hasPoints || deleteExisting;
 
     return (

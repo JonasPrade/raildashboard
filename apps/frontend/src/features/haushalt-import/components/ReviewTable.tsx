@@ -13,6 +13,7 @@ import {
 } from "@mantine/core";
 import { useState } from "react";
 import type { HaushaltsParseRow, Project } from "../../../shared/api/queries";
+import { filterProjectOption } from "../../../lib/filterProjectOption";
 
 function fmt(val: number | null) {
     if (val === null) return "–";
@@ -168,6 +169,7 @@ function DataRow({
                                         }
                                         placeholder="Projekte wählen..."
                                         searchable
+                                        filter={filterProjectOption}
                                         size="xs"
                                         style={{ width: "100%" }}
                                     />
@@ -240,6 +242,7 @@ function DataRow({
                             placeholder="Projekt suchen & zuordnen..."
                             searchable
                             clearable
+                            filter={filterProjectOption}
                             size="xs"
                             style={{ width: "100%" }}
                             leftSection={suggestions[idx] != null && subAssignments[idx] === suggestions[idx]
@@ -268,6 +271,7 @@ function DataRow({
                             placeholder="Weitere Projekte manuell hinzufügen..."
                             searchable
                             clearable
+                            filter={filterProjectOption}
                             size="xs"
                             style={{ width: "100%" }}
                         />

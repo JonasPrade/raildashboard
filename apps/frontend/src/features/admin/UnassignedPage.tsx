@@ -13,6 +13,7 @@ import {
 import { ChronicleButton, ChronicleDataChip } from "../../components/chronicle";
 import { notifications } from "@mantine/notifications";
 import { useAuth } from "../../lib/auth";
+import { filterProjectOption } from "../../lib/filterProjectOption";
 import {
     useProjects,
     useUnassignedFinves,
@@ -122,6 +123,7 @@ export default function UnassignedPage() {
                                                     }
                                                     placeholder="Projekt suchen…"
                                                     searchable
+                                                    filter={filterProjectOption}
                                                     size="xs"
                                                     w={300}
                                                 />
@@ -186,6 +188,7 @@ export default function UnassignedPage() {
                                                     }
                                                     placeholder="Projekt suchen…"
                                                     searchable
+                                                    filter={filterProjectOption}
                                                     size="xs"
                                                     w={300}
                                                 />
