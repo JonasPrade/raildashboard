@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+    Button,
     Collapse,
     Group,
     Loader,
@@ -9,38 +10,84 @@ import {
     Text,
     Title,
 } from "@mantine/core";
-import { type VibEntryForProject, useProjectVibEntries } from "../../../shared/api/queries";
+import { type VibEntryForProject, type VibEntrySchema, useProjectVibEntries } from "../../../shared/api/queries";
 import { ChronicleCard, ChronicleDataChip } from "../../../components/chronicle";
+import { useAuth } from "../../../lib/auth";
+import VibEntryEditDrawer from "../../vib-import/VibEntryEditDrawer";
 
-function VibTabContent({ entry }: { entry: VibEntryForProject }) {
+function toVibEntrySchema(entry: VibEntryForProject): VibEntrySchema {
+    return {
+        id: entry.id,
+        vib_report_id: 0,
+        vib_section: entry.vib_section,
+        vib_lfd_nr: null,
+        vib_name_raw: entry.vib_name_raw,
+        category: entry.category,
+        raw_text: entry.raw_text,
+        bauaktivitaeten: entry.bauaktivitaeten,
+        teilinbetriebnahmen: entry.teilinbetriebnahmen,
+        verkehrliche_zielsetzung: entry.verkehrliche_zielsetzung,
+        durchgefuehrte_massnahmen: entry.durchgefuehrte_massnahmen,
+        noch_umzusetzende_massnahmen: entry.noch_umzusetzende_massnahmen,
+        sonstiges: entry.sonstiges,
+        strecklaenge_km: entry.strecklaenge_km,
+        gesamtkosten_mio_eur: entry.gesamtkosten_mio_eur,
+        entwurfsgeschwindigkeit: entry.entwurfsgeschwindigkeit,
+        planungsstand: entry.planungsstand,
+        status_planung: entry.status_planung,
+        status_bau: entry.status_bau,
+        status_abgeschlossen: entry.status_abgeschlossen,
+        ai_extracted: entry.ai_extracted,
+        pfa_entries: entry.pfa_entries,
+        project_ids: entry.project_ids,
+        report_year: entry.year,
+    };
+}
+
+function VibTabContent({
+    entry,
+    canEdit,
+    onEdit,
+}: {
+    entry: VibEntryForProject;
+    canEdit: boolean;
+    onEdit: (entry: VibEntryForProject) => void;
+}) {
     const [rawExpanded, setRawExpanded] = useState(false);
     const [pfaExpanded, setPfaExpanded] = useState(false);
 
     return (
         <Stack gap="md">
-            <Group gap="sm">
-                <ChronicleDataChip>{entry.category}</ChronicleDataChip>
-                {entry.vib_section && (
-                    <Text size="xs" c="dimmed" ff="monospace">
-                        {entry.vib_section}
-                    </Text>
-                )}
-                {entry.drucksache_nr && (
-                    <Text size="xs" c="dimmed">
-                        Drucksache {entry.drucksache_nr}
-                    </Text>
-                )}
-                {entry.ai_extracted && (
-                    <ChronicleDataChip>KI-extrahiert</ChronicleDataChip>
-                )}
-                {entry.status_planung && (
-                    <ChronicleDataChip>Planung</ChronicleDataChip>
-                )}
-                {entry.status_bau && (
-                    <ChronicleDataChip>Bau</ChronicleDataChip>
-                )}
-                {entry.status_abgeschlossen && (
-                    <ChronicleDataChip>Abgeschlossen</ChronicleDataChip>
+            <Group gap="sm" justify="space-between" align="flex-start">
+                <Group gap="sm">
+                    <ChronicleDataChip>{entry.category}</ChronicleDataChip>
+                    {entry.vib_section && (
+                        <Text size="xs" c="dimmed" ff="monospace">
+                            {entry.vib_section}
+                        </Text>
+                    )}
+                    {entry.drucksache_nr && (
+                        <Text size="xs" c="dimmed">
+                            Drucksache {entry.drucksache_nr}
+                        </Text>
+                    )}
+                    {entry.ai_extracted && (
+                        <ChronicleDataChip>KI-extrahiert</ChronicleDataChip>
+                    )}
+                    {entry.status_planung && (
+                        <ChronicleDataChip>Planung</ChronicleDataChip>
+                    )}
+                    {entry.status_bau && (
+                        <ChronicleDataChip>Bau</ChronicleDataChip>
+                    )}
+                    {entry.status_abgeschlossen && (
+                        <ChronicleDataChip>Abgeschlossen</ChronicleDataChip>
+                    )}
+                </Group>
+                {canEdit && (
+                    <Button size="xs" variant="light" onClick={() => onEdit(entry)}>
+                        Bearbeiten
+                    </Button>
                 )}
             </Group>
 
@@ -169,6 +216,10 @@ function VibTabContent({ entry }: { entry: VibEntryForProject }) {
 
 export default function VibSection({ projectId }: { projectId: number }) {
     const { data: entries, isLoading } = useProjectVibEntries(projectId);
+    const { user } = useAuth();
+    const [editingEntry, setEditingEntry] = useState<VibEntrySchema | null>(null);
+
+    const canEdit = user?.role === "editor" || user?.role === "admin";
 
     if (isLoading) {
         return (
@@ -191,31 +242,44 @@ export default function VibSection({ projectId }: { projectId: number }) {
     const years = [...new Set(entries.map((e) => e.year))];
 
     return (
-        <ChronicleCard>
-            <Stack gap="md">
-                <Title order={4}>Verkehrsinvestitionsberichte</Title>
-                <Tabs defaultValue={String(years[0])}>
-                    <Tabs.List>
-                        {years.map((year) => (
-                            <Tabs.Tab key={year} value={String(year)}>
-                                {year}
-                            </Tabs.Tab>
-                        ))}
-                    </Tabs.List>
-                    {years.map((year) => {
-                        const yearEntries = entries.filter((e) => e.year === year);
-                        return (
-                            <Tabs.Panel key={year} value={String(year)} pt="md">
-                                <Stack gap="xl">
-                                    {yearEntries.map((entry) => (
-                                        <VibTabContent key={entry.id} entry={entry} />
-                                    ))}
-                                </Stack>
-                            </Tabs.Panel>
-                        );
-                    })}
-                </Tabs>
-            </Stack>
-        </ChronicleCard>
+        <>
+            <ChronicleCard>
+                <Stack gap="md">
+                    <Title order={4}>Verkehrsinvestitionsberichte</Title>
+                    <Tabs defaultValue={String(years[0])}>
+                        <Tabs.List>
+                            {years.map((year) => (
+                                <Tabs.Tab key={year} value={String(year)}>
+                                    {year}
+                                </Tabs.Tab>
+                            ))}
+                        </Tabs.List>
+                        {years.map((year) => {
+                            const yearEntries = entries.filter((e) => e.year === year);
+                            return (
+                                <Tabs.Panel key={year} value={String(year)} pt="md">
+                                    <Stack gap="xl">
+                                        {yearEntries.map((entry) => (
+                                            <VibTabContent
+                                                key={entry.id}
+                                                entry={entry}
+                                                canEdit={canEdit}
+                                                onEdit={(e) => setEditingEntry(toVibEntrySchema(e))}
+                                            />
+                                        ))}
+                                    </Stack>
+                                </Tabs.Panel>
+                            );
+                        })}
+                    </Tabs>
+                </Stack>
+            </ChronicleCard>
+
+            <VibEntryEditDrawer
+                entry={editingEntry}
+                opened={editingEntry !== null}
+                onClose={() => setEditingEntry(null)}
+            />
+        </>
     );
 }
