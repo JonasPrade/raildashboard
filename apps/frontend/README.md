@@ -128,6 +128,28 @@ PDF attachments additionally show an eye icon (`IconEye`) that opens `PdfPreview
 
 The backend download endpoint (`GET /api/v1/projects/texts/{text_id}/attachments/{attachment_id}/download`) accepts `?inline=true` to serve PDFs with `Content-Disposition: inline`; all non-PDF types ignore the param and always force download.
 
+### Geometry management (`features/routing/`)
+
+Available inside the project detail page via "Geometrie verwalten" (editor/admin only). A full-screen modal with two panels:
+
+- **Left panel** — controls: current geometry status, optional "delete existing" toggle, route calculator form, GeoJSON file upload
+- **Right panel** — MapLibre preview map showing existing geometry (blue) and the new preview geometry (orange dashed)
+
+**Route calculator flow:**
+1. User picks start/via/end operational points in `RouteCalculatorForm`
+2. `useCalculateRoute()` → `POST /api/v1/routes/calculate` — returns a `RoutePreviewFeature` (not persisted)
+3. Preview renders on the map
+4. On "Übernehmen": `useConfirmRoute()` → `POST /api/v1/projects/{id}/routes` saves the route; `useUpdateProjectGeometry()` → `PATCH /api/v1/projects/{id}` updates `geojson_representation` **only if** there is no existing geometry or the "delete existing" toggle is active
+
+**GeoJSON upload flow:** Parses the uploaded file client-side, validates basic GeoJSON structure, previews on map, then calls `useUpdateProjectGeometry()` on confirm.
+
+**Delete-only flow:** Toggling "delete existing" without providing new geometry clears `geojson_representation` via `useUpdateProjectGeometry(null)`.
+
+Key hooks (all in `shared/api/queries.ts`):
+- `useCalculateRoute()` — mutation for the calculate endpoint
+- `useConfirmRoute(projectId)` — mutation for the confirm endpoint
+- `useUpdateProjectGeometry(projectId)` — mutation wrapping `updateProject` for the `geojson_representation` field
+
 ### Haushalt PDF import (`features/haushalt-import/`)
 
 Multi-step import workflow for federal budget PDFs. The `ReviewTable` shows auto-suggested project assignments (marked with ✦) computed during the Celery parse task via fuzzy name matching. The Projektzuordnung column has a minimum width of 320 px.

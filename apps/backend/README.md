@@ -281,15 +281,52 @@ In addition to the parsed data, the admin can set per entry:
 `tasks/vib_matching.py` — VDE-number extraction (highest confidence) + fuzzy name matching (SequenceMatcher + token overlap, threshold 0.50). Top suggestions stored in `suggested_project_ids` in the parse result.
 
 ## Routing API
-The backend persists rail routes that are computed via the routing microservice. The following REST endpoints are available:
 
-- `POST /api/v1/projects/{project_id}/routes`: triggers the routing microservice, stores the result in PostGIS, and returns the
-  persisted route. Identical waypoint/profile/option combinations reuse the cached record.
-- `GET /api/v1/projects/{project_id}/routes`: lists previously computed routes for a project with optional pagination
-  parameters `limit` and `offset`.
-- `GET /api/v1/routes/{route_id}`: retrieves the details of a stored route, including bounding box and GeoJSON geometry.
+Rail routes are computed and persisted in a two-step flow. `project_id` in all route endpoints is an **integer** (FK to `project.id`); `route_id` is a UUID.
 
-Routes are hashed with the routing graph version to keep the cache consistent with the deployed microservice.
+### Step 1 — Calculate (no DB write)
+
+```
+POST /api/v1/routes/calculate
+Body: { waypoints: [{lat, lon}, …], profile: "rail_default", options: {} }
+```
+
+Calls the routing microservice (GraphHopper), returns a GeoJSON `Feature` with `properties.cache_key`, `distance_m`, `duration_ms`, `bbox`, and `details`. Nothing is written to the database. Requires `editor` or `admin` role.
+
+Errors:
+- `422` — routing service returned no paths
+- `502` — upstream routing microservice error
+
+### Step 2 — Confirm (DB write)
+
+```
+POST /api/v1/projects/{project_id}/routes          → 201
+Body: { "feature": <GeoJSON Feature from step 1> }
+```
+
+Persists the feature to the `routes` table and links it to the project. Returns `RouteOut` (`route_id`, `project_id`, `distance_m`, `duration_ms`, `bbox`, `geom_geojson`, `details`). Requires `editor` or `admin` role.
+
+```
+PUT /api/v1/projects/{project_id}/routes/{route_id}
+Body: { "feature": <GeoJSON Feature from step 1> }
+```
+
+Replaces an existing route in-place. Returns `404` if the route does not belong to the project.
+
+### Other endpoints
+
+```
+GET /api/v1/projects/{project_id}/routes?limit=50&offset=0   # list routes for a project
+GET /api/v1/routes/{route_id}                                 # single route detail
+```
+
+### Caching
+
+Routes are hashed (SHA-256) from waypoints, profile, options, and `GRAPH_VERSION`. Increment `GRAPH_VERSION` in `.env` whenever a new OSM extract is deployed to bust the cache.
+
+### Parent GeoJSON auto-merge
+
+When `geojson_representation` is updated on any project via `PATCH /api/v1/projects/{id}`, the CRUD layer (`crud/projects/projects.py :: recompute_parent_geojson`) automatically recomputes the `geojson_representation` of all ancestor projects as a `FeatureCollection` of their children's features. The cascade walks up the `superior_project_id` chain recursively until it reaches a root project. Sub-projects without a geometry are ignored.
 
 ## Testing
 Pytest drives automated tests:

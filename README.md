@@ -72,9 +72,10 @@ All runtime configuration is managed through a single `.env` file in the reposit
 | `RINF_API_URL` | Backend | ERA RINF API base URL |
 | `RINF_USERNAME` | Backend | ERA RINF username |
 | `RINF_PASSWORD` | Backend | ERA RINF password |
-| `ROUTING_BASE_URL` | Backend | Routing microservice base URL |
+| `ROUTING_BASE_URL` | Backend | Routing microservice base URL (e.g. `http://graphhopper:8989`) |
 | `ROUTING_TIMEOUT_SECONDS` | Backend | Request timeout for routing client (default: `20`) |
-| `GRAPH_VERSION` | Backend | Routing graph build identifier |
+| `GRAPH_VERSION` | Backend | Routing graph build identifier — increment when a new OSM extract is deployed |
+| `GH_OSM_URL` | GraphHopper | Optional URL to auto-download an OSM PBF extract on first start. Leave unset to place `map.osm.pbf` manually in `data/graphhopper/` |
 | `ENVIRONMENT` | Backend | Selects an alternative `.env` file (e.g. `.env.test`) |
 | `OSM_PBF_DIR` | Backend | Directory for `.osm.pbf` extracts (default: `data/osm`) |
 | `USE_GEOMETRY` | Backend | Set to `0` to skip geometry creation on OSM import |
