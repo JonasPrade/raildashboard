@@ -203,6 +203,7 @@ class VibEntryForProjectSchema(BaseModel):
     verkehrliche_zielsetzung: Optional[str] = None
     durchgefuehrte_massnahmen: Optional[str] = None
     noch_umzusetzende_massnahmen: Optional[str] = None
+    sonstiges: Optional[str] = None
     raw_text: Optional[str] = None
 
     strecklaenge_km: Optional[float] = None
@@ -217,6 +218,7 @@ class VibEntryForProjectSchema(BaseModel):
     ai_extracted: bool = False
 
     pfa_entries: list[VibPfaEntrySchema] = []
+    project_ids: list[int] = []
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -243,3 +245,59 @@ class VibAiAvailableResponse(BaseModel):
 class VibOcrAvailableResponse(BaseModel):
     available: bool
     model: Optional[str] = None
+
+
+# ---------------------------------------------------------------------------
+# PATCH entry: update schema + full read schema
+# ---------------------------------------------------------------------------
+
+class VibEntryUpdateSchema(BaseModel):
+    """All fields optional — only non-None fields are applied."""
+    vib_name_raw: Optional[str] = None
+    category: Optional[str] = None
+    verkehrliche_zielsetzung: Optional[str] = None
+    durchgefuehrte_massnahmen: Optional[str] = None
+    noch_umzusetzende_massnahmen: Optional[str] = None
+    bauaktivitaeten: Optional[str] = None
+    teilinbetriebnahmen: Optional[str] = None
+    sonstiges: Optional[str] = None
+    raw_text: Optional[str] = None
+    strecklaenge_km: Optional[float] = None
+    gesamtkosten_mio_eur: Optional[float] = None
+    entwurfsgeschwindigkeit: Optional[str] = None
+    planungsstand: Optional[str] = None
+    status_planung: Optional[bool] = None
+    status_bau: Optional[bool] = None
+    status_abgeschlossen: Optional[bool] = None
+    pfa_entries: Optional[list[VibPfaEntryProposed]] = None
+    project_ids: Optional[list[int]] = None
+
+
+class VibEntrySchema(BaseModel):
+    """Full VIB entry as returned by the PATCH endpoint."""
+    id: int
+    vib_report_id: int
+    vib_section: Optional[str] = None
+    vib_lfd_nr: Optional[str] = None
+    vib_name_raw: str
+    category: str
+    raw_text: Optional[str] = None
+    bauaktivitaeten: Optional[str] = None
+    teilinbetriebnahmen: Optional[str] = None
+    verkehrliche_zielsetzung: Optional[str] = None
+    durchgefuehrte_massnahmen: Optional[str] = None
+    noch_umzusetzende_massnahmen: Optional[str] = None
+    sonstiges: Optional[str] = None
+    strecklaenge_km: Optional[float] = None
+    gesamtkosten_mio_eur: Optional[float] = None
+    entwurfsgeschwindigkeit: Optional[str] = None
+    planungsstand: Optional[str] = None
+    status_planung: bool = False
+    status_bau: bool = False
+    status_abgeschlossen: bool = False
+    ai_extracted: bool = False
+    pfa_entries: list[VibPfaEntrySchema] = []
+    project_ids: list[int] = []
+    report_year: int
+
+    model_config = ConfigDict(from_attributes=True)
