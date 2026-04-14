@@ -13,6 +13,7 @@ from dashboard_backend.models.vib.vib_report import VibReport
 from dashboard_backend.schemas.vib import (
     VibConfirmEntryInput,
     VibConfirmResponse,
+    VibEntryUpdateSchema,
 )
 
 if TYPE_CHECKING:
@@ -165,6 +166,7 @@ def create_vib_report_with_entries(
             verkehrliche_zielsetzung=entry_data.verkehrliche_zielsetzung,
             durchgefuehrte_massnahmen=entry_data.durchgefuehrte_massnahmen,
             noch_umzusetzende_massnahmen=entry_data.noch_umzusetzende_massnahmen,
+            sonstiges=entry_data.sonstiges,
             strecklaenge_km=entry_data.strecklaenge_km,
             gesamtkosten_mio_eur=entry_data.gesamtkosten_mio_eur,
             entwurfsgeschwindigkeit=entry_data.entwurfsgeschwindigkeit,
@@ -220,7 +222,89 @@ def get_vib_entries_for_project(db: Session, project_id: int) -> list[VibEntry]:
         .order_by(VibReport.year.desc())
         .options(
             joinedload(VibEntry.pfa_entries),
+            joinedload(VibEntry.projects),
             joinedload(VibEntry.report),
         )
         .all()
     )
+
+
+# ---------------------------------------------------------------------------
+# VibEntry PATCH
+# ---------------------------------------------------------------------------
+
+_SCALAR_FIELDS = [
+    "vib_name_raw", "category", "verkehrliche_zielsetzung",
+    "durchgefuehrte_massnahmen", "noch_umzusetzende_massnahmen",
+    "bauaktivitaeten", "teilinbetriebnahmen", "sonstiges", "raw_text",
+    "strecklaenge_km", "gesamtkosten_mio_eur", "entwurfsgeschwindigkeit",
+    "planungsstand", "status_planung", "status_bau", "status_abgeschlossen",
+]
+
+
+def get_vib_entry_full(db: Session, entry_id: int) -> VibEntry | None:
+    """Load a VibEntry with pfa_entries, projects, and report eager-loaded."""
+    return (
+        db.query(VibEntry)
+        .filter(VibEntry.id == entry_id)
+        .options(
+            joinedload(VibEntry.pfa_entries),
+            joinedload(VibEntry.projects),
+            joinedload(VibEntry.report),
+        )
+        .first()
+    )
+
+
+def update_vib_entry(db: Session, entry_id: int, data: VibEntryUpdateSchema) -> VibEntry | None:
+    """Apply a partial update to a confirmed VibEntry.
+
+    - Scalar fields: applied when non-None in data.
+    - pfa_entries: if provided, all existing children are replaced.
+    - project_ids: if provided, all existing project links are replaced.
+    Returns the updated entry (relationships eager-loaded), or None if not found.
+    """
+    entry = get_vib_entry_full(db, entry_id)
+    if entry is None:
+        return None
+
+    # Apply scalar fields
+    for field in _SCALAR_FIELDS:
+        value = getattr(data, field)
+        if value is not None:
+            setattr(entry, field, value)
+
+    # Replace PFA children
+    if data.pfa_entries is not None:
+        entry.pfa_entries.clear()
+        db.flush()
+        for pfa_data in data.pfa_entries:
+            entry.pfa_entries.append(VibPfaEntry(
+                vib_entry_id=entry_id,
+                abschnitt_label=pfa_data.abschnitt_label,
+                nr_pfa=pfa_data.nr_pfa,
+                oertlichkeit=pfa_data.oertlichkeit,
+                entwurfsplanung=pfa_data.entwurfsplanung,
+                abschluss_finve=pfa_data.abschluss_finve,
+                datum_pfb=pfa_data.datum_pfb,
+                baubeginn=pfa_data.baubeginn,
+                inbetriebnahme=pfa_data.inbetriebnahme,
+            ))
+
+    # Replace project links
+    if data.project_ids is not None:
+        db.execute(
+            vib_entry_project.delete().where(
+                vib_entry_project.c.vib_entry_id == entry_id
+            )
+        )
+        if data.project_ids:
+            unique_pids = list(dict.fromkeys(data.project_ids))
+            db.execute(
+                vib_entry_project.insert(),
+                [{"vib_entry_id": entry_id, "project_id": pid} for pid in unique_pids],
+            )
+
+    db.flush()
+    db.expire(entry)
+    return get_vib_entry_full(db, entry_id)
