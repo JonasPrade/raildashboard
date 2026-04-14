@@ -36,6 +36,11 @@ Vollständig implementiert. Backend-Infrastruktur (GraphHopper HTTP client, Rout
 
 **Prerequisite (human task):** OSM-PBF unter `data/graphhopper/map.osm.pbf` ablegen.
 
+#### Open Routing Tasks
+- [ ] **Add stations to GeoJSON** — When a route is confirmed, add the start/via/end stations as GeoJSON Point features to the geometry, consistent with how other points are already stored.
+- [ ] **Selective GeoJSON object removal** — In the geometry management UI, let the user select individual GeoJSON features (e.g. segments or points) and remove only those, instead of deleting the entire geometry.
+- [ ] **Parent GeoJSON auto-merge** — When a sub-project's `geojson_representation` changes, automatically recompute all ancestor projects' geometry as a FeatureCollection of their children's features (arbitrary depth, synchronous, no migration needed). See: `docs/features/feature-parent-geojson-merge.md`
+
 Siehe: `docs/features/feature-routing.md`
 
 #### ✅ Done — Docker infrastructure
@@ -74,6 +79,7 @@ Siehe: `docs/features/feature-routing.md`
 - [ ] **BVWP-Datenimport** — Übernahme der BVWP-Daten aus der Legacy-Datenbank. Voraussetzung für die Anzeige der BVWP-Bewertung (Display-Feature bereits implementiert).
 
 - [ ] Cleanup Database structure. Evaluate
+- [ ] **Design Bug: "Abmelden" button** — Font color and background color are nearly identical, making the button unreadable. Fix contrast in header/auth button styles.
 - [ ] Bug-Report: A Button in the right corner where everybody can report Bugs or Problems (logged in users dont have to add there contact information). Bugs should be collect in fitting tool and solved by ai
 - [ ] Kennzahlen Marktuntersuchungsbericht Bundesnetzagentur -> wichtigsten Entwicklungskennzahlen online stellen
 - [ ] Integration API Bauinfoportal zu Dashboard

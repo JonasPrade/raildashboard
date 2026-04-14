@@ -1083,6 +1083,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/unassigned-finves": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Unassigned Finves */
+        get: operations["get_unassigned_finves_api_v1_admin_unassigned_finves_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/unassigned-vib-entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Unassigned Vib Entries */
+        get: operations["get_unassigned_vib_entries_api_v1_admin_unassigned_vib_entries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/unassigned-finves/{finve_id}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Assign Finve */
+        patch: operations["assign_finve_api_v1_admin_unassigned_finves__finve_id__assign_patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/unassigned-vib-entries/{entry_id}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Assign Vib Entry */
+        patch: operations["assign_vib_entry_api_v1_admin_unassigned_vib_entries__entry_id__assign_patch"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1103,6 +1171,11 @@ export interface components {
              * @enum {string}
              */
             map_group_mode: "preconfigured" | "all";
+        };
+        /** AssignProjectsInput */
+        AssignProjectsInput: {
+            /** Project Ids */
+            project_ids: number[];
         };
         /** Body_start_parse_api_v1_import_haushalt_parse_post */
         Body_start_parse_api_v1_import_haushalt_parse_post: {
@@ -2423,11 +2496,8 @@ export interface components {
              * Format: uuid
              */
             route_id: string;
-            /**
-             * Project Id
-             * Format: uuid
-             */
-            project_id: string;
+            /** Project Id */
+            project_id: number;
             /** Distance M */
             distance_m: number;
             /** Duration Ms */
@@ -2615,6 +2685,30 @@ export interface components {
             veranschlagt?: number | null;
             /** Vorhalten Future */
             vorhalten_future?: number | null;
+        };
+        /** UnassignedFinveSchema */
+        UnassignedFinveSchema: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string | null;
+            /** Is Sammel Finve */
+            is_sammel_finve: boolean;
+            /** Starting Year */
+            starting_year: number | null;
+        };
+        /** UnassignedVibEntrySchema */
+        UnassignedVibEntrySchema: {
+            /** Id */
+            id: number;
+            /** Vib Name Raw */
+            vib_name_raw: string;
+            /** Vib Section */
+            vib_section: string | null;
+            /** Category */
+            category: string;
+            /** Report Year */
+            report_year: number;
         };
         /** UnmatchedBudgetRowResolveRequest */
         UnmatchedBudgetRowResolveRequest: {
@@ -3776,7 +3870,7 @@ export interface operations {
             };
             header?: never;
             path: {
-                project_id: string;
+                project_id: number;
             };
             cookie?: never;
         };
@@ -3807,7 +3901,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                project_id: string;
+                project_id: number;
             };
             cookie?: {
                 session?: string | null;
@@ -3844,7 +3938,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                project_id: string;
+                project_id: number;
                 route_id: string;
             };
             cookie?: {
@@ -5083,6 +5177,138 @@ export interface operations {
             };
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_unassigned_finves_api_v1_admin_unassigned_finves_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnassignedFinveSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_unassigned_vib_entries_api_v1_admin_unassigned_vib_entries_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnassignedVibEntrySchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assign_finve_api_v1_admin_unassigned_finves__finve_id__assign_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                finve_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignProjectsInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assign_vib_entry_api_v1_admin_unassigned_vib_entries__entry_id__assign_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignProjectsInput"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             204: {

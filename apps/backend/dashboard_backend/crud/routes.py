@@ -22,7 +22,7 @@ def get_route_by_id(db: Session, route_id: UUID) -> Optional[Route]:
 
 def list_routes_for_project(
     db: Session,
-    project_id: UUID,
+    project_id: int,
     *,
     limit: int = 50,
     offset: int = 0,
@@ -51,7 +51,7 @@ def persist_route(db: Session, route: Route) -> Route:
     return route
 
 
-def update_route(db: Session, route_id: UUID, project_id: UUID, **fields) -> Optional[Route]:
+def update_route(db: Session, route_id: UUID, project_id: int, **fields) -> Optional[Route]:
     """Replace an existing route's geometry and metadata in-place.
 
     Returns None if no route with that id/project_id combination exists.

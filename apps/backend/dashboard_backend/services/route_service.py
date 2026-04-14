@@ -28,7 +28,7 @@ class RouteService:
     async def create_and_store(
         self,
         db: Session,
-        project_id: UUID,
+        project_id: int,
         waypoints: Iterable[Dict[str, float]],
         profile: str,
         options: Dict[str, Any],
@@ -57,7 +57,7 @@ class RouteService:
         return persist_route(db, route)
 
     async def list_for_project(
-        self, db: Session, project_id: UUID, *, limit: int, offset: int
+        self, db: Session, project_id: int, *, limit: int, offset: int
     ) -> Sequence[Route]:
         return list_routes_for_project(db, project_id, limit=limit, offset=offset)
 
@@ -101,7 +101,7 @@ class RouteService:
     def confirm_and_store(
         self,
         db: Session,
-        project_id: UUID,
+        project_id: int,
         feature: Dict[str, Any],
     ) -> Route:
         """Persist a previously calculated GeoJSON Feature as a new route."""
@@ -123,7 +123,7 @@ class RouteService:
     def confirm_and_replace(
         self,
         db: Session,
-        project_id: UUID,
+        project_id: int,
         route_id: UUID,
         feature: Dict[str, Any],
     ) -> Route | None:

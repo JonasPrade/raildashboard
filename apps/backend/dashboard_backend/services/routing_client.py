@@ -34,6 +34,6 @@ class RoutingClient:
             try:
                 response = await client.get(f"{self._base_url}/route", params=params)
                 response.raise_for_status()
-            except (httpx.HTTPStatusError, httpx.TimeoutException) as exc:
+            except (httpx.HTTPStatusError, httpx.TimeoutException, httpx.ConnectError) as exc:
                 raise RoutingUpstreamError(str(exc)) from exc
         return response.json()

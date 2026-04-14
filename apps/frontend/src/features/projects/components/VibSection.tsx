@@ -1,11 +1,8 @@
 import { useState } from "react";
 import {
-    Badge,
-    Card,
     Collapse,
     Group,
     Loader,
-    Paper,
     Stack,
     Table,
     Tabs,
@@ -13,13 +10,7 @@ import {
     Title,
 } from "@mantine/core";
 import { type VibEntryForProject, useProjectVibEntries } from "../../../shared/api/queries";
-
-const CATEGORY_COLORS: Record<string, string> = {
-    laufend: "blue",
-    neu: "green",
-    potentiell: "yellow",
-    abgeschlossen: "gray",
-};
+import { ChronicleCard, ChronicleDataChip } from "../../../components/chronicle";
 
 function VibTabContent({ entry }: { entry: VibEntryForProject }) {
     const [rawExpanded, setRawExpanded] = useState(false);
@@ -28,9 +19,7 @@ function VibTabContent({ entry }: { entry: VibEntryForProject }) {
     return (
         <Stack gap="md">
             <Group gap="sm">
-                <Badge size="sm" color={CATEGORY_COLORS[entry.category] ?? "gray"} variant="light">
-                    {entry.category}
-                </Badge>
+                <ChronicleDataChip>{entry.category}</ChronicleDataChip>
                 {entry.vib_section && (
                     <Text size="xs" c="dimmed" ff="monospace">
                         {entry.vib_section}
@@ -42,18 +31,16 @@ function VibTabContent({ entry }: { entry: VibEntryForProject }) {
                     </Text>
                 )}
                 {entry.ai_extracted && (
-                    <Badge size="xs" color="violet" variant="dot">
-                        KI-extrahiert
-                    </Badge>
+                    <ChronicleDataChip>KI-extrahiert</ChronicleDataChip>
                 )}
                 {entry.status_planung && (
-                    <Badge size="sm" color="orange" variant="light">Planung</Badge>
+                    <ChronicleDataChip>Planung</ChronicleDataChip>
                 )}
                 {entry.status_bau && (
-                    <Badge size="sm" color="cyan" variant="light">Bau</Badge>
+                    <ChronicleDataChip>Bau</ChronicleDataChip>
                 )}
                 {entry.status_abgeschlossen && (
-                    <Badge size="sm" color="green" variant="light">Abgeschlossen</Badge>
+                    <ChronicleDataChip>Abgeschlossen</ChronicleDataChip>
                 )}
             </Group>
 
@@ -125,7 +112,7 @@ function VibTabContent({ entry }: { entry: VibEntryForProject }) {
                         </Text>
                     </Group>
                     <Collapse in={pfaExpanded}>
-                        <Paper withBorder p={0} style={{ overflow: "auto" }}>
+                        <div style={{ overflow: "auto", background: "var(--c-surface-lowest)", borderRadius: "var(--radius-sharp)" }}>
                             <Table withTableBorder withColumnBorders fz="xs" style={{ fontSize: 11 }}>
                                 <Table.Thead>
                                     <Table.Tr>
@@ -153,7 +140,7 @@ function VibTabContent({ entry }: { entry: VibEntryForProject }) {
                                     ))}
                                 </Table.Tbody>
                             </Table>
-                        </Paper>
+                        </div>
                     </Collapse>
                 </div>
             )}
@@ -185,14 +172,14 @@ export default function VibSection({ projectId }: { projectId: number }) {
 
     if (isLoading) {
         return (
-            <Card withBorder radius="md" padding="lg" shadow="xs">
+            <ChronicleCard>
                 <Stack gap="sm">
                     <Title order={4}>Verkehrsinvestitionsberichte</Title>
                     <Group justify="center">
                         <Loader size="sm" />
                     </Group>
                 </Stack>
-            </Card>
+            </ChronicleCard>
         );
     }
 
@@ -204,7 +191,7 @@ export default function VibSection({ projectId }: { projectId: number }) {
     const years = [...new Set(entries.map((e) => e.year))];
 
     return (
-        <Card withBorder radius="md" padding="lg" shadow="xs">
+        <ChronicleCard>
             <Stack gap="md">
                 <Title order={4}>Verkehrsinvestitionsberichte</Title>
                 <Tabs defaultValue={String(years[0])}>
@@ -229,6 +216,6 @@ export default function VibSection({ projectId }: { projectId: number }) {
                     })}
                 </Tabs>
             </Stack>
-        </Card>
+        </ChronicleCard>
     );
 }

@@ -80,7 +80,7 @@ async def calculate_route(
     status_code=201,
 )
 async def confirm_route(
-    project_id: UUID,
+    project_id: int,
     request: RouteConfirmIn,
     db: Session = Depends(get_db),
     service: RouteService = Depends(get_route_service),
@@ -103,7 +103,7 @@ async def confirm_route(
     response_model=RouteOut,
 )
 async def replace_route(
-    project_id: UUID,
+    project_id: int,
     route_id: UUID,
     request: RouteConfirmIn,
     db: Session = Depends(get_db),
@@ -130,7 +130,7 @@ async def replace_route(
     response_model=List[RouteOut],
 )
 async def list_routes(
-    project_id: UUID,
+    project_id: int,
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActionIcon, Paper, Stack, Text, Tooltip, UnstyledButton } from "@mantine/core";
+import { ActionIcon, Stack, Text, Tooltip, UnstyledButton } from "@mantine/core";
 
 export interface TocSection {
     id: string;
@@ -111,7 +111,13 @@ export function ProjectTableOfContents({ sections }: Props) {
 
             {/* Section list panel */}
             {open && (
-                <Paper shadow="md" p="xs" withBorder style={{ minWidth: 200 }}>
+                <div style={{
+                    minWidth: 200,
+                    background: "var(--c-surface-lowest)",
+                    boxShadow: "var(--shadow-float)",
+                    borderRadius: "var(--radius-sharp)",
+                    padding: "8px",
+                }}>
                     <Stack gap={2}>
                         {visibleSections.map((section) => (
                             <UnstyledButton
@@ -119,10 +125,10 @@ export function ProjectTableOfContents({ sections }: Props) {
                                 onClick={() => handleClick(section)}
                                 style={{
                                     padding: "5px 8px",
-                                    borderRadius: 4,
+                                    borderRadius: "var(--radius-sharp)",
                                     backgroundColor:
                                         activeId === section.id
-                                            ? "var(--mantine-color-petrol-1)"
+                                            ? "var(--c-tertiary-container)"
                                             : undefined,
                                     transition: "background-color 100ms ease",
                                 }}
@@ -133,7 +139,7 @@ export function ProjectTableOfContents({ sections }: Props) {
                             </UnstyledButton>
                         ))}
                     </Stack>
-                </Paper>
+                </div>
             )}
         </div>
     );

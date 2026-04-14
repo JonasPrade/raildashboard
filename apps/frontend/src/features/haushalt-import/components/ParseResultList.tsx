@@ -1,4 +1,5 @@
-import { Badge, Button, Group, Table, Text } from "@mantine/core";
+import { Button, Group, Table, Text } from "@mantine/core";
+import { ChronicleDataChip } from "../../../components/chronicle";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
 import { useNavigate } from "react-router-dom";
@@ -6,12 +7,7 @@ import type { ParseResultPublic } from "../../../shared/api/queries";
 import { useDeleteParseResult } from "../../../shared/api/queries";
 
 function StatusBadge({ status }: { status: ParseResultPublic["status"] }) {
-    const colorMap: Record<ParseResultPublic["status"], string> = {
-        PENDING: "yellow",
-        SUCCESS: "green",
-        FAILURE: "red",
-    };
-    return <Badge color={colorMap[status]} variant="light">{status}</Badge>;
+    return <ChronicleDataChip>{status}</ChronicleDataChip>;
 }
 
 type Props = {

@@ -3,9 +3,7 @@ import {
     ActionIcon,
     Alert,
     Anchor,
-    Badge,
     Button,
-    Card,
     Group,
     Loader,
     Modal,
@@ -17,6 +15,7 @@ import {
     Title,
     Tooltip,
 } from "@mantine/core";
+import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import { IconEye } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
@@ -371,9 +370,7 @@ function AttachmentList({ attachments, textId, projectId, canEdit }: AttachmentL
                             >
                                 {a.filename}
                             </Anchor>
-                            <Badge size="xs" variant="outline" color="gray">
-                                {formatBytes(a.file_size)}
-                            </Badge>
+                            <ChronicleDataChip>{formatBytes(a.file_size)}</ChronicleDataChip>
                         </Group>
                         <Group gap={4} wrap="nowrap">
                             {a.mime_type === "application/pdf" && (
@@ -571,7 +568,7 @@ function TextCard({ projectText, canEdit, projectId }: TextCardProps) {
 
     return (
         <>
-            <Card withBorder radius="sm" padding="md">
+            <ChronicleCard>
                 <Stack gap="xs">
                     <Group justify="space-between" align="flex-start">
                         <Stack gap={2}>
@@ -617,7 +614,7 @@ function TextCard({ projectText, canEdit, projectId }: TextCardProps) {
                         <AttachmentUploadArea textId={projectText.id} projectId={projectId} />
                     )}
                 </Stack>
-            </Card>
+            </ChronicleCard>
 
             <TextFormModal
                 opened={editOpened}
@@ -689,19 +686,19 @@ export default function ProjectTextsSection({ projectId, canEdit }: ProjectTexts
 
     if (isLoading) {
         return (
-            <Card withBorder radius="md" padding="lg" shadow="xs">
+            <ChronicleCard>
                 <Loader size="sm" />
-            </Card>
+            </ChronicleCard>
         );
     }
 
     if (isError) {
         return (
-            <Card withBorder radius="md" padding="lg" shadow="xs">
+            <ChronicleCard>
                 <Alert color="red" variant="light">
                     Texte konnten nicht geladen werden.
                 </Alert>
-            </Card>
+            </ChronicleCard>
         );
     }
 
@@ -713,7 +710,7 @@ export default function ProjectTextsSection({ projectId, canEdit }: ProjectTexts
 
     return (
         <>
-            <Card withBorder radius="md" padding="lg" shadow="xs">
+            <ChronicleCard>
                 <Stack gap="sm">
                     <Group justify="space-between" align="center">
                         <Title order={4}>Texte</Title>
@@ -735,7 +732,7 @@ export default function ProjectTextsSection({ projectId, canEdit }: ProjectTexts
                         </Text>
                     )}
                 </Stack>
-            </Card>
+            </ChronicleCard>
 
             <TextFormModal
                 opened={createOpened}

@@ -2,9 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
     ActionIcon,
     Alert,
-    Badge,
     Box,
-    Card,
     Container,
     Group,
     List,
@@ -19,6 +17,7 @@ import {
     TextInput,
     Title,
 } from "@mantine/core";
+import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import { useDisclosure } from "@mantine/hooks";
 import { IconHelp, IconSearch, IconX } from "@tabler/icons-react";
 import { useSearchParams } from "react-router-dom";
@@ -299,7 +298,7 @@ export default function MapPage() {
                     </Stack>
 
                     {selectedGroup && (
-                        <Card withBorder radius="md" padding="lg" shadow="xs">
+                        <ChronicleCard>
                             <Stack gap="xs">
                                 <Group justify="space-between" align="flex-start">
                                     <Stack gap={4}>
@@ -309,24 +308,21 @@ export default function MapPage() {
                                         </Text>
                                     </Stack>
                                     <Group gap="xs">
-                                        <Badge
-                                            variant="light"
-                                            color="gray"
-                                            leftSection={
-                                                <span
-                                                    aria-hidden
-                                                    style={{
-                                                        display: "inline-block",
-                                                        width: 10,
-                                                        height: 10,
-                                                        borderRadius: "50%",
-                                                        backgroundColor: selectedGroup.color,
-                                                    }}
-                                                />
-                                            }
-                                        >
+                                        <ChronicleDataChip>
+                                            <span
+                                                aria-hidden
+                                                style={{
+                                                    display: "inline-block",
+                                                    width: 8,
+                                                    height: 8,
+                                                    borderRadius: "50%",
+                                                    backgroundColor: selectedGroup.color,
+                                                    marginRight: 6,
+                                                    verticalAlign: "middle",
+                                                }}
+                                            />
                                             {selectedGroup.projects?.length ?? 0} Projekte
-                                        </Badge>
+                                        </ChronicleDataChip>
                                     </Group>
                                 </Group>
                                 {selectedGroup.description ? (
@@ -339,7 +335,7 @@ export default function MapPage() {
                                     </Text>
                                 )}
                             </Stack>
-                        </Card>
+                        </ChronicleCard>
                     )}
 
                     {!isLoading && groups.length === 0 && (

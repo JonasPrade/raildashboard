@@ -1,19 +1,18 @@
 import { useState } from "react";
 import {
     Alert,
-    Badge,
     Box,
     Button,
     Divider,
     FileInput,
     Group,
     Modal,
-    Paper,
     ScrollArea,
     Stack,
     Switch,
     Text,
 } from "@mantine/core";
+import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import { notifications } from "@mantine/notifications";
 
 import type { Project, RoutePreviewFeature } from "../../shared/api/queries";
@@ -73,8 +72,11 @@ export default function GeometryManagementModal({ project, opened, onClose }: Pr
             if (previewFeature) {
                 // 1. Confirm route in DB
                 await confirmRoute.mutateAsync(previewFeature);
-                // 2. Update project geometry to the route's LineString
-                await updateGeometry.mutateAsync(JSON.stringify(previewFeature.geometry));
+                // 2. Only update project geometry when there is nothing yet, or the user
+                //    explicitly asked to replace the existing one.
+                if (!hasExisting || deleteExisting) {
+                    await updateGeometry.mutateAsync(JSON.stringify(previewFeature.geometry));
+                }
             } else if (uploadedGeojson) {
                 await updateGeometry.mutateAsync(uploadedGeojson);
             } else if (deleteExisting) {
@@ -149,12 +151,9 @@ export default function GeometryManagementModal({ project, opened, onClose }: Pr
                                 <Text size="xs" fw={600} c="dimmed" tt="uppercase" mb={6}>
                                     Aktuelle Geometrie
                                 </Text>
-                                <Badge
-                                    color={hasExisting ? "green" : "gray"}
-                                    variant="light"
-                                >
+                                <ChronicleDataChip>
                                     {hasExisting ? "Geometrie vorhanden" : "Keine Geometrie"}
-                                </Badge>
+                                </ChronicleDataChip>
                             </div>
 
                             {hasExisting && (
@@ -200,7 +199,7 @@ export default function GeometryManagementModal({ project, opened, onClose }: Pr
 
                             {/* Preview info */}
                             {previewFeature && (
-                                <Paper withBorder p="sm" radius="md">
+                                <ChronicleCard>
                                     <Stack gap={4}>
                                         <Text size="sm" fw={600}>Berechnete Route</Text>
                                         <Text size="sm" c="dimmed">
@@ -210,13 +209,13 @@ export default function GeometryManagementModal({ project, opened, onClose }: Pr
                                             Dauer: {Math.round(previewFeature.properties.duration_ms / 60_000)} min
                                         </Text>
                                     </Stack>
-                                </Paper>
+                                </ChronicleCard>
                             )}
 
                             {uploadedGeojson && !previewFeature && (
-                                <Paper withBorder p="sm" radius="md">
+                                <ChronicleCard>
                                     <Text size="sm" fw={600} c="green">GeoJSON geladen — bitte prüfen</Text>
-                                </Paper>
+                                </ChronicleCard>
                             )}
                         </Stack>
                     </ScrollArea>

@@ -1,4 +1,5 @@
-import { Alert, Drawer, Stack, Button, Group, Text, Loader, UnstyledButton, Badge } from "@mantine/core";
+import { Alert, Drawer, Stack, Button, Group, Text, Loader, UnstyledButton } from "@mantine/core";
+import { ChronicleDataChip } from "../../components/chronicle";
 import { useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 
@@ -95,7 +96,7 @@ export default function GroupFilterDrawer({ opened, onClose, groups = [], loadin
                                 />
                                 <Text size="sm" style={{ flex: 1 }}>{group.name}</Text>
                                 {typeof group.count === "number" && (
-                                    <Badge size="xs" variant="light" color="gray">{group.count}</Badge>
+                                    <ChronicleDataChip>{group.count}</ChronicleDataChip>
                                 )}
                             </UnstyledButton>
                         );

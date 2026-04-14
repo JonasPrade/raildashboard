@@ -1,8 +1,6 @@
 import { useState } from "react";
 import {
-    Badge,
     Box,
-    Card,
     Collapse,
     ColorSwatch,
     Group,
@@ -13,6 +11,7 @@ import {
     Text,
     Title,
 } from "@mantine/core";
+import { ChronicleCard, ChronicleDataChip } from "../../../components/chronicle";
 import { DonutChart, LineChart } from "@mantine/charts";
 import {
     type FinveWithBudgets,
@@ -185,25 +184,19 @@ function FinveCard({ finve }: { finve: FinveWithBudgets }) {
     if (finve.is_sammel_finve) {
         return (
             <Group gap="xs" align="center">
-                <Badge variant="light" color="orange" size="md">
-                    Sammel-FinVe
-                </Badge>
-                <Badge variant="outline" color="indigo" size="md">
-                    FinVe {finve.id}
-                </Badge>
+                <ChronicleDataChip>Sammel-FinVe</ChronicleDataChip>
+                <ChronicleDataChip>FinVe {finve.id}</ChronicleDataChip>
                 <Text size="sm" c="dimmed">{finve.name ?? "–"}</Text>
             </Group>
         );
     }
 
     return (
-        <Card withBorder radius="md" padding="md" shadow="xs">
+        <ChronicleCard>
             <Stack gap="sm">
                 <Group justify="space-between" align="flex-start" wrap="wrap">
                     <Group gap="sm" align="center">
-                        <Badge variant="light" color="indigo" size="md">
-                            FinVe {finve.id}
-                        </Badge>
+                        <ChronicleDataChip>FinVe {finve.id}</ChronicleDataChip>
                         <Text size="sm" fw={500}>{finve.name ?? "–"}</Text>
                     </Group>
                     <Group gap="xl">
@@ -319,7 +312,7 @@ function FinveCard({ finve }: { finve: FinveWithBudgets }) {
                     </Collapse>
                 )}
             </Stack>
-        </Card>
+        </ChronicleCard>
     );
 }
 
@@ -334,13 +327,13 @@ export default function FinveSection({ projectId }: { projectId: number }) {
     if (!finves || finves.length === 0) return null;
 
     return (
-        <Card withBorder radius="md" padding="lg" shadow="xs">
+        <ChronicleCard>
             <Stack gap="md">
                 <Title order={4}>Finanzierungsvereinbarungen (FinVe)</Title>
                 {finves.map((finve) => (
                     <FinveCard key={finve.id} finve={finve} />
                 ))}
             </Stack>
-        </Card>
+        </ChronicleCard>
     );
 }

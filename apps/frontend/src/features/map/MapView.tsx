@@ -1,9 +1,10 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Button, Paper, Stack } from "@mantine/core";
+import { Stack } from "@mantine/core";
 import maplibregl from "maplibre-gl";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import type { Project } from "../../shared/api/queries";
 import ProjectSummaryCard from "../projects/ProjectSummaryCard";
+import { ChronicleButton } from "../../components/chronicle";
 
 const tileLayerUrl = import.meta.env.REACT_APP_TILE_LAYER_URL as string | undefined;
 const tileAttribution =
@@ -511,11 +512,8 @@ export default function MapView({ projects, lineWidth = 4, pointSize = 5, height
         <div style={{ height: `${height}px`, position: "relative" }}>
             <div ref={mapContainerRef} style={{ height: "100%" }} />
             {selectedProject && (
-                <Paper
+                <div
                     ref={overlayRef}
-                    shadow="md"
-                    p="md"
-                    radius="md"
                     style={{
                         position: "absolute",
                         left: selectedProject.x,
@@ -524,22 +522,28 @@ export default function MapView({ projects, lineWidth = 4, pointSize = 5, height
                         minWidth: "260px",
                         maxWidth: "340px",
                         zIndex: 10,
+                        background: "rgba(251, 249, 248, 0.92)",
+                        backdropFilter: "blur(20px)",
+                        WebkitBackdropFilter: "blur(20px)",
+                        boxShadow: "var(--shadow-float)",
+                        borderRadius: "var(--radius-sharp)",
+                        padding: "16px",
                     }}
                 >
                     <Stack gap="sm">
                         <ProjectSummaryCard project={selectedProject.project} />
-                        <Button
-                            size="xs"
+                        <ChronicleButton
                             onClick={() => {
                                 const groupParam = searchParams.get("group");
                                 navigate(`/projects/${selectedProject.project.id}${groupParam ? `?group=${groupParam}` : ""}`);
                                 setSelectedProject(null);
                             }}
+                            style={{ width: "100%" }}
                         >
                             Auswählen
-                        </Button>
+                        </ChronicleButton>
                     </Stack>
-                </Paper>
+                </div>
             )}
         </div>
     );

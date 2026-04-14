@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import {
     Accordion,
     Alert,
-    Badge,
     Button,
     Group,
     Loader,
@@ -10,6 +9,7 @@ import {
     Table,
     Text,
 } from "@mantine/core";
+import { ChronicleDataChip } from "../../components/chronicle";
 import { notifications } from "@mantine/notifications";
 
 import {
@@ -108,20 +108,6 @@ function formatValue(value: string | null | undefined): string {
     }
 }
 
-function actionBadgeColor(action: string): string {
-    switch (action) {
-        case "REVERT":
-            return "orange";
-        case "PATCH":
-            return "blue";
-        case "CREATE":
-            return "green";
-        case "DELETE":
-            return "red";
-        default:
-            return "gray";
-    }
-}
 
 function actionLabel(action: string): string {
     switch (action) {
@@ -162,18 +148,14 @@ function ChangeLogItem({ log, canEdit, revertingEntryId, onRevert }: ChangeLogIt
             <Text size="sm" fw={500} style={{ minWidth: 130 }}>
                 {date}
             </Text>
-            <Badge size="xs" variant="outline" color="petrol">
-                Projekt
-            </Badge>
-            <Badge size="sm" color={actionBadgeColor(log.action)} variant="light">
-                {actionLabel(log.action)}
-            </Badge>
+            <ChronicleDataChip>Projekt</ChronicleDataChip>
+            <ChronicleDataChip>{actionLabel(log.action)}</ChronicleDataChip>
             <Text size="sm" c="dimmed">
                 {log.username_snapshot ?? "–"}
             </Text>
-            <Badge size="xs" variant="outline" color="gray">
+            <ChronicleDataChip>
                 {log.entries.length} {log.entries.length === 1 ? "Feld" : "Felder"}
-            </Badge>
+            </ChronicleDataChip>
         </Group>
     );
 
@@ -243,12 +225,8 @@ function TextChangeLogItem({ log }: TextChangeLogItemProps) {
             <Text size="sm" fw={500} style={{ minWidth: 130 }}>
                 {date}
             </Text>
-            <Badge size="xs" variant="outline" color="violet">
-                Text
-            </Badge>
-            <Badge size="sm" color={actionBadgeColor(log.action)} variant="light">
-                {actionLabel(log.action)}
-            </Badge>
+            <ChronicleDataChip>Text</ChronicleDataChip>
+            <ChronicleDataChip>{actionLabel(log.action)}</ChronicleDataChip>
             <Text size="sm" c="dimmed">
                 {log.username_snapshot ?? "–"}
             </Text>
@@ -258,9 +236,9 @@ function TextChangeLogItem({ log }: TextChangeLogItemProps) {
                 </Text>
             )}
             {log.entries.length > 0 && (
-                <Badge size="xs" variant="outline" color="gray">
+                <ChronicleDataChip>
                     {log.entries.length} {log.entries.length === 1 ? "Feld" : "Felder"}
-                </Badge>
+                </ChronicleDataChip>
             )}
         </Group>
     );

@@ -1,6 +1,4 @@
 import {
-    Badge,
-    Card,
     Group,
     Loader,
     SimpleGrid,
@@ -11,6 +9,7 @@ import {
     Title,
 } from "@mantine/core";
 import { type BvwpProjectData, useProjectBvwp } from "../../../shared/api/queries";
+import { ChronicleCard, ChronicleDataChip } from "../../../components/chronicle";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -353,15 +352,6 @@ function KapazitaetTab({ data }: { data: BvwpProjectData }) {
 // Priority badge
 // ---------------------------------------------------------------------------
 
-function priorityColor(priority: string | null | undefined): string {
-    if (!priority) return "gray";
-    const p = priority.toLowerCase();
-    if (p.includes("vordringlich") && !p.includes("weitere")) return "green";
-    if (p.includes("weitere")) return "yellow";
-    if (p.includes("potential")) return "blue";
-    return "gray";
-}
-
 // ---------------------------------------------------------------------------
 // Tab definition
 // ---------------------------------------------------------------------------
@@ -461,12 +451,12 @@ export default function BvwpDataSection({ projectId }: Props) {
 
     if (isLoading) {
         return (
-            <Card withBorder radius="md" padding="lg" shadow="xs">
+            <ChronicleCard>
                 <Group>
                     <Loader size="sm" />
                     <Text size="sm" c="dimmed">BVWP-Daten werden geladen …</Text>
                 </Group>
-            </Card>
+            </ChronicleCard>
         );
     }
 
@@ -476,19 +466,15 @@ export default function BvwpDataSection({ projectId }: Props) {
     const visibleTabs = TABS.filter((t) => t.hasData(data));
 
     return (
-        <Card withBorder radius="md" padding="lg" shadow="xs">
+        <ChronicleCard>
             <Stack gap="md">
                 <Group gap="md" align="center">
                     <Title order={4}>BVWP-Bewertung</Title>
                     {data.nkv != null && (
-                        <Badge size="lg" variant="filled" color="blue">
-                            NKV {fmtFloat(data.nkv)}
-                        </Badge>
+                        <ChronicleDataChip>NKV {fmtFloat(data.nkv)}</ChronicleDataChip>
                     )}
                     {data.priority && (
-                        <Badge size="md" variant="light" color={priorityColor(data.priority)}>
-                            {data.priority}
-                        </Badge>
+                        <ChronicleDataChip>{data.priority}</ChronicleDataChip>
                     )}
                 </Group>
 
@@ -511,6 +497,6 @@ export default function BvwpDataSection({ projectId }: Props) {
                     </Tabs>
                 )}
             </Stack>
-        </Card>
+        </ChronicleCard>
     );
 }

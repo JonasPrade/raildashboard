@@ -36,7 +36,7 @@ class RouteConfirmIn(BaseModel):
 
 class RouteOut(BaseModel):
     route_id: UUID
-    project_id: UUID
+    project_id: int
     distance_m: float
     duration_ms: int
     bbox: List[float]

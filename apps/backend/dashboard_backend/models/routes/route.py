@@ -7,7 +7,7 @@ from typing import Any, Iterable
 
 from geoalchemy2 import Geography
 from geoalchemy2.elements import WKBElement
-from sqlalchemy import BigInteger, Column, Float, JSON, String
+from sqlalchemy import BigInteger, Column, Float, Integer, JSON, String
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.types import LargeBinary, TypeDecorator
 
@@ -88,7 +88,7 @@ class Route(Base):
     __tablename__ = "routes"
 
     id = Column(_UUID_TYPE, primary_key=True, default=uuid.uuid4)
-    project_id = Column(_UUID_TYPE, nullable=False, index=True)
+    project_id = Column(Integer, nullable=False, index=True)
     profile = Column(String, nullable=False)
     graph_version = Column(String, nullable=False)
     distance_m = Column(Float, nullable=False)

@@ -1,8 +1,6 @@
 import { useState } from "react";
 import {
     Alert,
-    Badge,
-    Button,
     Container,
     Group,
     Loader,
@@ -12,6 +10,7 @@ import {
     Text,
     Title,
 } from "@mantine/core";
+import { ChronicleButton, ChronicleDataChip } from "../../components/chronicle";
 import { notifications } from "@mantine/notifications";
 import { useAuth } from "../../lib/auth";
 import {
@@ -81,7 +80,7 @@ export default function UnassignedPage() {
                 <Stack gap="sm">
                     <Group gap="xs">
                         <Title order={4}>FinVes ohne Projektzuordnung</Title>
-                        <Badge color="red" variant="filled">{finves?.length ?? "…"}</Badge>
+                        <ChronicleDataChip>{finves?.length ?? "…"}</ChronicleDataChip>
                     </Group>
                     {finvesLoading && <Loader size="sm" />}
                     {!finvesLoading && (
@@ -108,10 +107,9 @@ export default function UnassignedPage() {
                                         <Table.Td>{f.id}</Table.Td>
                                         <Table.Td>{f.name ?? "–"}</Table.Td>
                                         <Table.Td>
-                                            {f.is_sammel_finve
-                                                ? <Badge color="violet" variant="light" size="sm">SV-FinVe</Badge>
-                                                : <Badge color="blue" variant="light" size="sm">FinVe</Badge>
-                                            }
+                                            <ChronicleDataChip>
+                                                {f.is_sammel_finve ? "SV-FinVe" : "FinVe"}
+                                            </ChronicleDataChip>
                                         </Table.Td>
                                         <Table.Td>{f.starting_year ?? "–"}</Table.Td>
                                         <Table.Td>
@@ -127,14 +125,12 @@ export default function UnassignedPage() {
                                                     size="xs"
                                                     w={300}
                                                 />
-                                                <Button
-                                                    size="xs"
+                                                <ChronicleButton
                                                     disabled={!(finveSelections[f.id]?.length)}
-                                                    loading={assignFinve.isPending}
                                                     onClick={() => handleAssignFinve(f.id)}
                                                 >
                                                     Zuweisen
-                                                </Button>
+                                                </ChronicleButton>
                                             </Group>
                                         </Table.Td>
                                     </Table.Tr>
@@ -148,7 +144,7 @@ export default function UnassignedPage() {
                 <Stack gap="sm">
                     <Group gap="xs">
                         <Title order={4}>VIB-Einträge ohne Projektzuordnung</Title>
-                        <Badge color="red" variant="filled">{vibEntries?.length ?? "…"}</Badge>
+                        <ChronicleDataChip>{vibEntries?.length ?? "…"}</ChronicleDataChip>
                     </Group>
                     {vibLoading && <Loader size="sm" />}
                     {!vibLoading && (
@@ -177,7 +173,7 @@ export default function UnassignedPage() {
                                         <Table.Td style={{ maxWidth: 300 }}>{e.vib_name_raw}</Table.Td>
                                         <Table.Td>{e.vib_section ?? "–"}</Table.Td>
                                         <Table.Td>
-                                            <Badge variant="light" size="sm">{e.category}</Badge>
+                                            <ChronicleDataChip>{e.category}</ChronicleDataChip>
                                         </Table.Td>
                                         <Table.Td>{e.report_year}</Table.Td>
                                         <Table.Td>
@@ -193,14 +189,12 @@ export default function UnassignedPage() {
                                                     size="xs"
                                                     w={300}
                                                 />
-                                                <Button
-                                                    size="xs"
+                                                <ChronicleButton
                                                     disabled={!(vibSelections[e.id]?.length)}
-                                                    loading={assignVib.isPending}
                                                     onClick={() => handleAssignVib(e.id)}
                                                 >
                                                     Zuweisen
-                                                </Button>
+                                                </ChronicleButton>
                                             </Group>
                                         </Table.Td>
                                     </Table.Tr>

@@ -817,7 +817,7 @@ const RouteConfirmIn = z
 const RouteOut = z
   .object({
     route_id: z.string().uuid(),
-    project_id: z.string().uuid(),
+    project_id: z.number().int(),
     distance_m: z.number(),
     duration_ms: z.number().int(),
     bbox: z.array(z.number()),
@@ -1186,6 +1186,26 @@ const VibReportSchema = z
     entry_count: z.number().int().optional().default(0),
   })
   .passthrough();
+const UnassignedFinveSchema = z
+  .object({
+    id: z.number().int(),
+    name: z.union([z.string(), z.null()]),
+    is_sammel_finve: z.boolean(),
+    starting_year: z.union([z.number(), z.null()]),
+  })
+  .passthrough();
+const UnassignedVibEntrySchema = z
+  .object({
+    id: z.number().int(),
+    vib_name_raw: z.string(),
+    vib_section: z.union([z.string(), z.null()]),
+    category: z.string(),
+    report_year: z.number().int(),
+  })
+  .passthrough();
+const AssignProjectsInput = z
+  .object({ project_ids: z.array(z.number().int()) })
+  .passthrough();
 
 export const schemas = {
   SessionCredentials,
@@ -1257,9 +1277,94 @@ export const schemas = {
   VibDraftSchema,
   VibParseTaskResult_Input,
   VibReportSchema,
+  UnassignedFinveSchema,
+  UnassignedVibEntrySchema,
+  AssignProjectsInput,
 };
 
 const endpoints = makeApi([
+  {
+    method: "get",
+    path: "/api/v1/admin/unassigned-finves",
+    alias: "get_unassigned_finves_api_v1_admin_unassigned_finves_get",
+    requestFormat: "json",
+    response: z.array(UnassignedFinveSchema),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "patch",
+    path: "/api/v1/admin/unassigned-finves/:finve_id/assign",
+    alias:
+      "assign_finve_api_v1_admin_unassigned_finves__finve_id__assign_patch",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: AssignProjectsInput,
+      },
+      {
+        name: "finve_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: z.void(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/admin/unassigned-vib-entries",
+    alias: "get_unassigned_vib_entries_api_v1_admin_unassigned_vib_entries_get",
+    requestFormat: "json",
+    response: z.array(UnassignedVibEntrySchema),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "patch",
+    path: "/api/v1/admin/unassigned-vib-entries/:entry_id/assign",
+    alias:
+      "assign_vib_entry_api_v1_admin_unassigned_vib_entries__entry_id__assign_patch",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: AssignProjectsInput,
+      },
+      {
+        name: "entry_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: z.void(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
   {
     method: "post",
     path: "/api/v1/auth/session",
@@ -2044,7 +2149,7 @@ The route is persisted to the database and linked to the given project.`,
       {
         name: "project_id",
         type: "Path",
-        schema: z.string().uuid(),
+        schema: z.number().int(),
       },
     ],
     response: RouteOut,
@@ -2065,7 +2170,7 @@ The route is persisted to the database and linked to the given project.`,
       {
         name: "project_id",
         type: "Path",
-        schema: z.string().uuid(),
+        schema: z.number().int(),
       },
       {
         name: "limit",
@@ -2107,7 +2212,7 @@ The existing route (identified by route_id) is updated in-place.`,
       {
         name: "project_id",
         type: "Path",
-        schema: z.string().uuid(),
+        schema: z.number().int(),
       },
       {
         name: "route_id",

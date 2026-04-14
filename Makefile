@@ -77,8 +77,8 @@ help:
 	@echo "    gen-api            Regenerate frontend API client from OpenAPI schema"
 	@echo "                       (requires backend running at http://localhost:8000)"
 	@echo ""
-	@echo "  Docker – development (DB + Redis only)"
-	@echo "    docker-dev-up      Start the dev DB + Redis containers"
+	@echo "  Docker – development (DB + Redis + GraphHopper)"
+	@echo "    docker-dev-up      Start the dev DB, Redis, and GraphHopper containers"
 	@echo "    docker-dev-down    Stop the dev containers (data volume is preserved)"
 	@echo ""
 	@echo "  Celery"
@@ -119,6 +119,7 @@ install-frontend:
 # Start both services in the foreground using a simple parallel shell trick.
 # Ctrl-C stops both processes.
 dev:
+	docker compose -f docker-compose.dev.yml --profile routing up -d
 	@trap 'kill 0' INT; \
 	  $(MAKE) dev-backend & \
 	  $(MAKE) dev-frontend & \
@@ -253,7 +254,7 @@ celery-worker:
 # ---------------------------------------------------------------------------
 
 docker-dev-up:
-	docker compose -f docker-compose.dev.yml up -d
+	docker compose -f docker-compose.dev.yml --profile routing up -d
 
 docker-dev-down:
 	docker compose -f docker-compose.dev.yml down

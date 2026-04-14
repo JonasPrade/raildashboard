@@ -1,6 +1,7 @@
-import { Badge, Group, Stack, Text } from "@mantine/core";
+import { Group, Stack, Text } from "@mantine/core";
 import type { Project } from "../../shared/api/queries";
 import { trainCategoryLabels, featureGroups } from "./projectFeatureConfig";
+import { ChronicleDataChip } from "../../components/chronicle";
 
 type Props = {
     project: Project;
@@ -21,9 +22,7 @@ export default function ProjectSummaryCard({ project }: Props) {
             <Group gap="xs" align="center" wrap="wrap">
                 <Text fw={600}>{project.name}</Text>
                 {project.project_number && (
-                    <Badge color="gray" variant="light" size="sm">
-                        {project.project_number}
-                    </Badge>
+                    <ChronicleDataChip>{project.project_number}</ChronicleDataChip>
                 )}
             </Group>
 
@@ -39,10 +38,8 @@ export default function ProjectSummaryCard({ project }: Props) {
                 <Group gap={4} wrap="wrap">
                     {trainCategoryLabels
                         .filter(({ key }) => Boolean(project[key]))
-                        .map(({ key, label, color }) => (
-                            <Badge key={String(key)} size="xs" variant="light" color={color}>
-                                {label}
-                            </Badge>
+                        .map(({ key, label }) => (
+                            <ChronicleDataChip key={String(key)}>{label}</ChronicleDataChip>
                         ))}
                 </Group>
             )}
@@ -51,9 +48,7 @@ export default function ProjectSummaryCard({ project }: Props) {
             {activeFeatures.length > 0 && (
                 <Group gap={4} wrap="wrap">
                     {activeFeatures.map(({ key, label }) => (
-                        <Badge key={String(key)} size="xs" variant="light" color="blue">
-                            {label}
-                        </Badge>
+                        <ChronicleDataChip key={String(key)}>{label}</ChronicleDataChip>
                     ))}
                 </Group>
             )}

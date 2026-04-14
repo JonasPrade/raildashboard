@@ -6,6 +6,7 @@ import { Notifications } from "@mantine/notifications";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { pdfjs } from "react-pdf";
 import "@mantine/core/styles.css";
+import "./components/chronicle/tokens.css";
 import "@mantine/charts/styles.css";
 import "@mantine/notifications/styles.css";
 import "maplibre-gl/dist/maplibre-gl.css";

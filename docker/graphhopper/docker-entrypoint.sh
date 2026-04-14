@@ -21,4 +21,4 @@ if [ ! -f "$OSM_FILE" ]; then
   echo "Download complete."
 fi
 
-exec java ${JAVA_OPTS:-} -jar /graphhopper.jar server /graphhopper/config.yml
+exec java ${JAVA_OPTS:-} -jar /railway_routing.jar server /graphhopper/config.yml

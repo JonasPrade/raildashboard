@@ -2,7 +2,6 @@ import { useEffect, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
     Alert,
-    Badge,
     Container,
     Group,
     Loader,
@@ -111,24 +110,21 @@ export default function ProjectGroupsPage() {
                                     </Text>
                                 </Stack>
                                 <Group gap="xs">
-                                    <Badge
-                                        variant="light"
-                                        color="gray"
-                                        leftSection={
-                                            <span
-                                                aria-hidden
-                                                style={{
-                                                    display: "inline-block",
-                                                    width: 10,
-                                                    height: 10,
-                                                    borderRadius: "50%",
-                                                    backgroundColor: selectedGroup.color,
-                                                }}
-                                            />
-                                        }
-                                    >
+                                    <ChronicleDataChip>
+                                        <span
+                                            aria-hidden
+                                            style={{
+                                                display: "inline-block",
+                                                width: 8,
+                                                height: 8,
+                                                borderRadius: "50%",
+                                                backgroundColor: selectedGroup.color,
+                                                marginRight: 6,
+                                                verticalAlign: "middle",
+                                            }}
+                                        />
                                         {selectedGroup.projects?.length ?? 0} Projekte
-                                    </Badge>
+                                    </ChronicleDataChip>
                                 </Group>
                             </Group>
                             {selectedGroup.description ? (

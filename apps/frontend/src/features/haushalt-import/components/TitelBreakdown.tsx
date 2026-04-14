@@ -1,4 +1,5 @@
-import { Badge, Collapse, Group, Stack, Table, Text, UnstyledButton } from "@mantine/core";
+import { Collapse, Group, Stack, Table, Text, UnstyledButton } from "@mantine/core";
+import { ChronicleDataChip } from "../../../components/chronicle";
 import { useState } from "react";
 import type { TitelEntryProposed } from "../../../shared/api/queries";
 
@@ -45,9 +46,7 @@ export function TitelBreakdown({ entries }: Props) {
                                     <Group gap={4}>
                                         <Text>{e.label}</Text>
                                         {e.is_nachrichtlich && (
-                                            <Badge size="xs" variant="outline" color="gray">
-                                                nachrichtl.
-                                            </Badge>
+                                            <ChronicleDataChip>nachrichtl.</ChronicleDataChip>
                                         )}
                                     </Group>
                                 </Table.Td>

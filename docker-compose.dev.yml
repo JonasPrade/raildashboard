@@ -50,7 +50,11 @@ services:
   # GraphHopper will build the graph on first launch and cache it in data/graphhopper/graph-cache/.
   graphhopper:
     profiles: [routing]
-    image: graphhopper/graphhopper:9.1
+    build:
+      context: docker/graphhopper
+    platform: linux/amd64
+    environment:
+      GH_OSM_URL: ${GH_OSM_URL:-}
     volumes:
       - ./docker/graphhopper/config.yml:/graphhopper/config.yml:ro
       - ./data/graphhopper:/data

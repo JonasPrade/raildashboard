@@ -1,36 +1,48 @@
-# GraphHopper 9.x configuration for the Schienendashboard routing microservice.
-#
-# This file is baked into the Docker image at build time (COPY in Dockerfile).
-# It does not need to exist on the server — Docker fetches it from GitHub.
-#
-# Migration note: GraphHopper 9.x removed the `vehicle` property from profiles.
-# The encoder is now declared via graph.flag_encoders at the top level.
+# OpenRailRouting v1.1 (GraphHopper 11.0) configuration
+# https://github.com/geofabrik/OpenRailRouting
 
 graphhopper:
   datareader.file: /data/map.osm.pbf
+  graph.location: /data/graph-cache
 
-  # ---- Encoder -----------------------------------------------------------------
-  # Declare the rail encoder at the top level (replaces per-profile `vehicle` from 8.x).
-  graph.flag_encoders: rail
+  # Railway-specific encoded values required by the custom model files
+  graph.encoded_values: gauge,voltage,electrified,frequency,road_environment,max_speed,rail_access,rail_average_speed,railway_class,railway_service,preferred_direction
 
-  # ---- Profiles ----------------------------------------------------------------
+  # Skip road-only highway types to reduce graph size
+  import.osm.ignored_highways: footway,construction,cycleway,path,steps
+
   profiles:
     - name: rail_default
-      weighting: fastest
-      turn_costs: false
+      turn_costs:
+        vehicle_types: [train]
+        u_turn_costs: 300
+        enable_uturn_times: true
+      custom_model_files: [rail.json]
 
-  # Contraction Hierarchies speed up queries significantly.
   profiles_ch:
     - profile: rail_default
 
-  # ---- Storage -----------------------------------------------------------------
-  graph.location: /data/graph-cache
+  prepare.min_network_size: 200
+  prepare.subnetworks.threads: 1
 
-  # ---- Server ------------------------------------------------------------------
-  server:
-    application_connectors:
-      - type: http
-        port: 8989
-        bind_host: 0.0.0.0
-    request_log:
-      appenders: []
+  routing.snap_preventions_default: tunnel, bridge, ferry
+  routing.non_ch.max_waypoint_distance: 1000000
+
+server:
+  application_connectors:
+    - type: http
+      port: 8989
+      bind_host: 0.0.0.0
+  request_log:
+    appenders: []
+  admin_connectors:
+    - type: http
+      port: 8990
+      bind_host: 0.0.0.0
+
+logging:
+  level: INFO
+  appenders:
+    - type: console
+      time_zone: UTC
+      log_format: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
