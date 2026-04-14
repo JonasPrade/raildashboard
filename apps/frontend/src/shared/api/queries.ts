@@ -835,6 +835,33 @@ export type VibPfaEntrySchema = {
     inbetriebnahme: string | null;
 };
 
+export type VibEntrySchema = {
+    id: number;
+    vib_report_id: number;
+    vib_section: string | null;
+    vib_lfd_nr: string | null;
+    vib_name_raw: string;
+    category: string;
+    raw_text: string | null;
+    bauaktivitaeten: string | null;
+    teilinbetriebnahmen: string | null;
+    verkehrliche_zielsetzung: string | null;
+    durchgefuehrte_massnahmen: string | null;
+    noch_umzusetzende_massnahmen: string | null;
+    sonstiges: string | null;
+    strecklaenge_km: number | null;
+    gesamtkosten_mio_eur: number | null;
+    entwurfsgeschwindigkeit: string | null;
+    planungsstand: string | null;
+    status_planung: boolean;
+    status_bau: boolean;
+    status_abgeschlossen: boolean;
+    ai_extracted: boolean;
+    pfa_entries: VibPfaEntrySchema[];
+    project_ids: number[];
+    report_year: number;
+};
+
 export type VibEntryForProject = {
     id: number;
     year: number;
@@ -847,6 +874,7 @@ export type VibEntryForProject = {
     verkehrliche_zielsetzung: string | null;
     durchgefuehrte_massnahmen: string | null;
     noch_umzusetzende_massnahmen: string | null;
+    sonstiges: string | null;
     raw_text: string | null;
     strecklaenge_km: number | null;
     gesamtkosten_mio_eur: number | null;
@@ -857,6 +885,7 @@ export type VibEntryForProject = {
     status_abgeschlossen: boolean;
     ai_extracted: boolean;
     pfa_entries: VibPfaEntrySchema[];
+    project_ids: number[];
 };
 
 export function useVibParseResult(taskId: string | null) {
@@ -935,6 +964,23 @@ export function useProjectVibEntries(projectId: number) {
     return useQuery({
         queryKey: ["project-vib", projectId],
         queryFn: () => api<VibEntryForProject[]>(`/api/v1/projects/${projectId}/vib`),
+    });
+}
+
+export function useUpdateVibEntry() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ entryId, data }: { entryId: number; data: Partial<VibEntryProposed> }) =>
+            api<VibEntrySchema>(`/api/v1/import/vib/entries/${entryId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["projects"] });
+            queryClient.invalidateQueries({ queryKey: ["project-vib"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-unassigned-vib-entries"] });
+        },
     });
 }
 
