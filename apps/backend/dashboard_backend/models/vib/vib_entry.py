@@ -24,6 +24,7 @@ class VibEntry(Base):
     verkehrliche_zielsetzung = Column(Text, nullable=True)
     durchgefuehrte_massnahmen = Column(Text, nullable=True)
     noch_umzusetzende_massnahmen = Column(Text, nullable=True)
+    sonstiges = Column(Text, nullable=True)
 
     strecklaenge_km = Column(Float, nullable=True)
     gesamtkosten_mio_eur = Column(Float, nullable=True)
