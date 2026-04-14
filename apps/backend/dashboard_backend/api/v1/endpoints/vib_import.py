@@ -16,9 +16,11 @@ from dashboard_backend.crud.vib import (
     delete_report,
     get_draft_by_task_id,
     get_report_by_year,
+    get_vib_entry_full,
     list_drafts,
     list_reports,
     update_draft_ai_result,
+    update_vib_entry,
 )
 from dashboard_backend.database import get_db
 from dashboard_backend.models.users import User
@@ -31,6 +33,8 @@ from dashboard_backend.schemas.vib import (
     VibConfirmResponse,
     VibDraftSchema,
     VibEntryProposed,
+    VibEntrySchema,
+    VibEntryUpdateSchema,
     VibOcrAvailableResponse,
     VibParseTaskResult,
     VibReportSchema,
@@ -471,3 +475,59 @@ def delete_vib_report(
     if not deleted:
         raise HTTPException(status_code=404, detail="VIB-Bericht nicht gefunden")
     db.commit()
+
+
+# ---------------------------------------------------------------------------
+# Helper: build VibEntrySchema from a loaded VibEntry ORM object
+# ---------------------------------------------------------------------------
+
+def _entry_to_schema(entry) -> VibEntrySchema:
+    return VibEntrySchema(
+        id=entry.id,
+        vib_report_id=entry.vib_report_id,
+        vib_section=entry.vib_section,
+        vib_lfd_nr=entry.vib_lfd_nr,
+        vib_name_raw=entry.vib_name_raw,
+        category=entry.category,
+        raw_text=entry.raw_text,
+        bauaktivitaeten=entry.bauaktivitaeten,
+        teilinbetriebnahmen=entry.teilinbetriebnahmen,
+        verkehrliche_zielsetzung=entry.verkehrliche_zielsetzung,
+        durchgefuehrte_massnahmen=entry.durchgefuehrte_massnahmen,
+        noch_umzusetzende_massnahmen=entry.noch_umzusetzende_massnahmen,
+        sonstiges=entry.sonstiges,
+        strecklaenge_km=entry.strecklaenge_km,
+        gesamtkosten_mio_eur=entry.gesamtkosten_mio_eur,
+        entwurfsgeschwindigkeit=entry.entwurfsgeschwindigkeit,
+        planungsstand=entry.planungsstand,
+        status_planung=entry.status_planung,
+        status_bau=entry.status_bau,
+        status_abgeschlossen=entry.status_abgeschlossen,
+        ai_extracted=entry.ai_extracted,
+        pfa_entries=entry.pfa_entries,
+        project_ids=[p.id for p in entry.projects],
+        report_year=entry.report.year,
+    )
+
+
+# ---------------------------------------------------------------------------
+# PATCH /entries/{entry_id} — update a confirmed VIB entry
+# ---------------------------------------------------------------------------
+
+@router.patch("/entries/{entry_id}", response_model=VibEntrySchema)
+def patch_vib_entry(
+    entry_id: int,
+    body: VibEntryUpdateSchema,
+    current_user: User = Depends(require_roles(UserRole.editor, UserRole.admin)),
+    db: Session = Depends(get_db),
+):
+    """Update any field of a confirmed VibEntry.
+
+    pfa_entries (if provided): replaces all existing PFA child rows.
+    project_ids (if provided): replaces all existing project links.
+    """
+    entry = update_vib_entry(db, entry_id, body)
+    if entry is None:
+        raise HTTPException(status_code=404, detail="VIB-Eintrag nicht gefunden")
+    db.commit()
+    return _entry_to_schema(entry)

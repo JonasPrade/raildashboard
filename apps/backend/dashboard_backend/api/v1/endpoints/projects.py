@@ -79,12 +79,18 @@ def get_project_vib(project_id: int, db: Session = Depends(get_db)):
             verkehrliche_zielsetzung=e.verkehrliche_zielsetzung,
             durchgefuehrte_massnahmen=e.durchgefuehrte_massnahmen,
             noch_umzusetzende_massnahmen=e.noch_umzusetzende_massnahmen,
+            sonstiges=e.sonstiges,
             raw_text=e.raw_text,
             strecklaenge_km=e.strecklaenge_km,
             gesamtkosten_mio_eur=e.gesamtkosten_mio_eur,
             entwurfsgeschwindigkeit=e.entwurfsgeschwindigkeit,
+            planungsstand=e.planungsstand,
+            status_planung=e.status_planung,
+            status_bau=e.status_bau,
+            status_abgeschlossen=e.status_abgeschlossen,
             ai_extracted=e.ai_extracted,
             pfa_entries=e.pfa_entries,
+            project_ids=[p.id for p in e.projects],
         ))
     return result
 
