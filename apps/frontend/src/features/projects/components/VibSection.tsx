@@ -10,6 +10,8 @@ import {
     Text,
     Title,
 } from "@mantine/core";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { type VibEntryForProject, type VibEntrySchema, useProjectVibEntries } from "../../../shared/api/queries";
 import { ChronicleCard, ChronicleDataChip } from "../../../components/chronicle";
 import { useAuth } from "../../../lib/auth";
@@ -117,9 +119,37 @@ function VibTabContent({
                     <Text size="sm" fw={600} mb={4}>
                         Planungsstand
                     </Text>
-                    <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>
-                        {entry.planungsstand}
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{entry.planungsstand}</ReactMarkdown>
+                </div>
+            )}
+
+            {/* Verkehrliche Zielsetzung */}
+            {entry.verkehrliche_zielsetzung && (
+                <div>
+                    <Text size="sm" fw={600} mb={4}>
+                        Verkehrliche Zielsetzung
                     </Text>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{entry.verkehrliche_zielsetzung}</ReactMarkdown>
+                </div>
+            )}
+
+            {/* Durchgeführte Maßnahmen */}
+            {entry.durchgefuehrte_massnahmen && (
+                <div>
+                    <Text size="sm" fw={600} mb={4}>
+                        Durchgeführte Maßnahmen
+                    </Text>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{entry.durchgefuehrte_massnahmen}</ReactMarkdown>
+                </div>
+            )}
+
+            {/* Noch umzusetzende Maßnahmen */}
+            {entry.noch_umzusetzende_massnahmen && (
+                <div>
+                    <Text size="sm" fw={600} mb={4}>
+                        Noch umzusetzende Maßnahmen
+                    </Text>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{entry.noch_umzusetzende_massnahmen}</ReactMarkdown>
                 </div>
             )}
 
@@ -129,9 +159,7 @@ function VibTabContent({
                     <Text size="sm" fw={600} mb={4}>
                         Bauaktivitäten {entry.year}
                     </Text>
-                    <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>
-                        {entry.bauaktivitaeten}
-                    </Text>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{entry.bauaktivitaeten}</ReactMarkdown>
                 </div>
             )}
 
@@ -141,9 +169,7 @@ function VibTabContent({
                     <Text size="sm" fw={600} mb={4}>
                         Teilinbetriebnahmen {entry.year}
                     </Text>
-                    <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>
-                        {entry.teilinbetriebnahmen}
-                    </Text>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{entry.teilinbetriebnahmen}</ReactMarkdown>
                 </div>
             )}
 
