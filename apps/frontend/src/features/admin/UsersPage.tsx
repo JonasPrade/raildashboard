@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
     Alert,
+    Badge,
     Button,
     Container,
     Group,
@@ -16,7 +17,13 @@ import { ChronicleHeadline, ChronicleCard, ChronicleButton } from "../../compone
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { useAuth } from "../../lib/auth";
-import { useDeleteUser, useUpdateUserRole, useUsers } from "../../shared/api/queries";
+import {
+    useDeleteUser,
+    useUnassignedFinves,
+    useUnassignedVibEntries,
+    useUpdateUserRole,
+    useUsers,
+} from "../../shared/api/queries";
 import { CreateUserModal } from "./CreateUserModal";
 import { SetPasswordModal } from "./SetPasswordModal";
 
@@ -32,35 +39,23 @@ export default function UsersPage() {
     const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
     const [passwordUserId, setPasswordUserId] = useState<number | null>(null);
 
-    const { data: users, isLoading, isError } = useUsers();
+    const isAdmin = currentUser?.role === "admin";
+    const isEditorOrAdmin = currentUser?.role === "editor" || isAdmin;
+
+    const { data: users, isLoading: usersLoading, isError: usersError } = useUsers();
+    const { data: unassignedFinves } = useUnassignedFinves(isEditorOrAdmin);
+    const { data: unassignedVibEntries } = useUnassignedVibEntries(isEditorOrAdmin);
+    const totalUnassigned =
+        (unassignedFinves?.length ?? 0) + (unassignedVibEntries?.length ?? 0);
+
     const updateRole = useUpdateUserRole();
     const deleteUser = useDeleteUser();
 
-    if (currentUser?.role !== "admin") {
+    if (!isEditorOrAdmin) {
         return (
             <Container size="sm" py="xl">
                 <Alert color="red" variant="light" title="Kein Zugriff">
-                    Diese Seite ist nur für Administratoren zugänglich.
-                </Alert>
-            </Container>
-        );
-    }
-
-    if (isLoading) {
-        return (
-            <Container size="md" py="xl">
-                <Group justify="center">
-                    <Loader />
-                </Group>
-            </Container>
-        );
-    }
-
-    if (isError) {
-        return (
-            <Container size="md" py="xl">
-                <Alert color="red" variant="light" title="Fehler">
-                    Nutzerliste konnte nicht geladen werden.
+                    Diese Seite ist nur für Editoren und Administratoren zugänglich.
                 </Alert>
             </Container>
         );
@@ -100,11 +95,64 @@ export default function UsersPage() {
     return (
         <Container size="lg" py="xl">
             <Stack gap="lg">
-                <Group justify="space-between">
-                    <ChronicleHeadline as="h1">Benutzerverwaltung</ChronicleHeadline>
-                    <ChronicleButton onClick={openCreate}>Neuen Nutzer anlegen</ChronicleButton>
-                </Group>
+                <ChronicleHeadline as="h1">Administration</ChronicleHeadline>
 
+                <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="sm">
+                    <ChronicleCard style={{ textDecoration: "none" }}>
+                        <Link to="/admin/unassigned" style={{ textDecoration: "none", color: "inherit" }}>
+                            <Stack gap={4}>
+                                <Group gap={6} align="center">
+                                    <Text fw={500}>Offene Zuordnungen</Text>
+                                    {totalUnassigned > 0 && (
+                                        <Badge color="red" size="xs" variant="filled" circle>
+                                            {totalUnassigned}
+                                        </Badge>
+                                    )}
+                                </Group>
+                                <Text size="sm" c="dimmed">FinVes und VIB-Einträge ohne Projektzuordnung</Text>
+                            </Stack>
+                        </Link>
+                    </ChronicleCard>
+                    <ChronicleCard style={{ textDecoration: "none" }}>
+                        <Link to="/admin/haushalt-import" style={{ textDecoration: "none", color: "inherit" }}>
+                            <Stack gap={4}>
+                                <Text fw={500}>Haushalts-Import</Text>
+                                <Text size="sm" c="dimmed">Jährlichen VWIB-Bundeshaushalt importieren</Text>
+                            </Stack>
+                        </Link>
+                    </ChronicleCard>
+                    <ChronicleCard style={{ textDecoration: "none" }}>
+                        <Link to="/admin/projects/new" style={{ textDecoration: "none", color: "inherit" }}>
+                            <Stack gap={4}>
+                                <Text fw={500}>Neues Projekt anlegen</Text>
+                                <Text size="sm" c="dimmed">Wizard: Stammdaten, Geometrie, Eigenschaften, FinVes, VIB</Text>
+                            </Stack>
+                        </Link>
+                    </ChronicleCard>
+                    <ChronicleCard style={{ textDecoration: "none" }}>
+                        <Link to="/admin/project-groups" style={{ textDecoration: "none", color: "inherit" }}>
+                            <Stack gap={4}>
+                                <Text fw={500}>Projektgruppen</Text>
+                                <Text size="sm" c="dimmed">Standardauswahl auf der Karte konfigurieren</Text>
+                            </Stack>
+                        </Link>
+                    </ChronicleCard>
+                </SimpleGrid>
+
+                {isAdmin && (
+                    <>
+                        <Group justify="space-between">
+                            <ChronicleHeadline as="h2">Benutzerverwaltung</ChronicleHeadline>
+                            <ChronicleButton onClick={openCreate}>Neuen Nutzer anlegen</ChronicleButton>
+                        </Group>
+
+                        {usersLoading ? (
+                            <Group justify="center" py="md"><Loader /></Group>
+                        ) : usersError ? (
+                            <Alert color="red" variant="light" title="Fehler">
+                                Nutzerliste konnte nicht geladen werden.
+                            </Alert>
+                        ) : (
                 <Table striped highlightOnHover withTableBorder>
                     <Table.Thead>
                         <Table.Tr>
@@ -193,29 +241,12 @@ export default function UsersPage() {
                         })}
                     </Table.Tbody>
                 </Table>
-
-                <ChronicleHeadline as="h2">Einstellungen</ChronicleHeadline>
-                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
-                    <ChronicleCard style={{ textDecoration: "none" }}>
-                        <Link to="/admin/projects/new" style={{ textDecoration: "none", color: "inherit" }}>
-                        <Stack gap={4}>
-                            <Text fw={500}>Neues Projekt anlegen</Text>
-                            <Text size="sm" c="dimmed">Wizard: Stammdaten, Geometrie, Eigenschaften, FinVes, VIB</Text>
-                        </Stack>
-                        </Link>
-                    </ChronicleCard>
-                    <ChronicleCard style={{ textDecoration: "none" }}>
-                        <Link to="/admin/project-groups" style={{ textDecoration: "none", color: "inherit" }}>
-                        <Stack gap={4}>
-                            <Text fw={500}>Projektgruppen</Text>
-                            <Text size="sm" c="dimmed">Standardauswahl auf der Karte konfigurieren</Text>
-                        </Stack>
-                        </Link>
-                    </ChronicleCard>
-                </SimpleGrid>
+                        )}
+                    </>
+                )}
             </Stack>
 
-            <CreateUserModal opened={createOpened} onClose={closeCreate} />
+            {isAdmin && <CreateUserModal opened={createOpened} onClose={closeCreate} />}
             {passwordUserId !== null && (() => {
                 const u = users?.find((u) => u.id === passwordUserId);
                 return u ? (

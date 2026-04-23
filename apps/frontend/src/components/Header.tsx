@@ -59,35 +59,21 @@ export function Header() {
             <NavLink to="/finves" style={({ isActive }) => isActive ? desktopNavLinkActiveStyle : desktopNavLinkStyle} onClick={closeDrawer}>
                 Haushalt
             </NavLink>
-            {(user?.role === "editor" || user?.role === "admin") && (
-                <NavLink to="/admin/haushalt-import" style={({ isActive }) => isActive ? desktopNavLinkActiveStyle : desktopNavLinkStyle} onClick={closeDrawer}>
-                    Haushalts-Import
-                </NavLink>
-            )}
-            {(user?.role === "editor" || user?.role === "admin") && (
+            {isEditorOrAdmin && (
                 <NavLink to="/admin/vib-import" style={({ isActive }) => isActive ? desktopNavLinkActiveStyle : desktopNavLinkStyle} onClick={closeDrawer}>
                     VIB-Import
                 </NavLink>
             )}
             {isEditorOrAdmin && (
-                <NavLink
-                    to="/admin/unassigned"
-                    style={({ isActive }) => isActive ? desktopNavLinkActiveStyle : desktopNavLinkStyle}
-                    onClick={closeDrawer}
-                >
+                <NavLink to="/admin" style={({ isActive }) => isActive ? desktopNavLinkActiveStyle : desktopNavLinkStyle} onClick={closeDrawer}>
                     <Group gap={6} align="center">
-                        Offene Zuordnungen
+                        Administration
                         {totalUnassigned > 0 && (
                             <Badge color="red" size="xs" variant="filled" circle>
                                 {totalUnassigned}
                             </Badge>
                         )}
                     </Group>
-                </NavLink>
-            )}
-            {user?.role === "admin" && (
-                <NavLink to="/admin" style={({ isActive }) => isActive ? desktopNavLinkActiveStyle : desktopNavLinkStyle} onClick={closeDrawer}>
-                    Administration
                 </NavLink>
             )}
         </>
@@ -101,31 +87,21 @@ export function Header() {
             <NavLink to="/finves" style={({ isActive }) => isActive ? drawerNavLinkActiveStyle : drawerNavLinkStyle} onClick={closeDrawer}>
                 Haushalt
             </NavLink>
-            {(user?.role === "editor" || user?.role === "admin") && (
-                <NavLink to="/admin/haushalt-import" style={({ isActive }) => isActive ? drawerNavLinkActiveStyle : drawerNavLinkStyle} onClick={closeDrawer}>
-                    Haushalts-Import
-                </NavLink>
-            )}
-            {(user?.role === "editor" || user?.role === "admin") && (
+            {isEditorOrAdmin && (
                 <NavLink to="/admin/vib-import" style={({ isActive }) => isActive ? drawerNavLinkActiveStyle : drawerNavLinkStyle} onClick={closeDrawer}>
                     VIB-Import
                 </NavLink>
             )}
             {isEditorOrAdmin && (
-                <NavLink to="/admin/unassigned" style={({ isActive }) => isActive ? drawerNavLinkActiveStyle : drawerNavLinkStyle} onClick={closeDrawer}>
+                <NavLink to="/admin" style={({ isActive }) => isActive ? drawerNavLinkActiveStyle : drawerNavLinkStyle} onClick={closeDrawer}>
                     <Group gap={6} align="center">
-                        Offene Zuordnungen
+                        Administration
                         {totalUnassigned > 0 && (
                             <Badge color="red" size="xs" variant="filled" circle>
                                 {totalUnassigned}
                             </Badge>
                         )}
                     </Group>
-                </NavLink>
-            )}
-            {user?.role === "admin" && (
-                <NavLink to="/admin" style={({ isActive }) => isActive ? drawerNavLinkActiveStyle : drawerNavLinkStyle} onClick={closeDrawer}>
-                    Administration
                 </NavLink>
             )}
         </>
