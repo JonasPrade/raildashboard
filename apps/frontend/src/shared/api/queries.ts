@@ -298,6 +298,69 @@ export function updateProject(id: number, payload: ProjectUpdatePayload) {
 }
 
 // ---------------------------------------------------------------------------
+// Project wizard (POST /api/v1/projects + link helpers)
+// ---------------------------------------------------------------------------
+
+export type ProjectCreatePayload = {
+    name: string;
+    project_number?: string | null;
+    description?: string | null;
+    justification?: string | null;
+    superior_project_id?: number | null;
+    project_group_ids?: number[];
+};
+
+export function useCreateProject() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (payload: ProjectCreatePayload) =>
+            api<Project>("/api/v1/projects/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            }),
+        onSuccess: (created) => {
+            queryClient.invalidateQueries({ queryKey: ["projects"] });
+            if (created.id != null) {
+                queryClient.setQueryData(["project", created.id], created);
+            }
+        },
+    });
+}
+
+export function useLinkFinvesToProject(projectId: number) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (finveIds: number[]) =>
+            api<void>(`/api/v1/projects/${projectId}/finves`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ finve_ids: finveIds }),
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["project-finves", projectId] });
+            queryClient.invalidateQueries({ queryKey: ["finves"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-unassigned-finves"] });
+        },
+    });
+}
+
+export type ConfirmedVibEntry = {
+    id: number;
+    vib_name_raw: string | null;
+    report_year: number;
+    project_ids: number[];
+};
+
+export function useConfirmedVibEntries(enabled: boolean = true) {
+    return useQuery({
+        queryKey: ["vib-entries-confirmed"],
+        queryFn: () => api<ConfirmedVibEntry[]>("/api/v1/import/vib/entries"),
+        enabled,
+    });
+}
+
+// ---------------------------------------------------------------------------
 // Change tracking
 // ---------------------------------------------------------------------------
 
