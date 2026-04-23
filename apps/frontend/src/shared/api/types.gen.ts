@@ -78,7 +78,11 @@ export interface paths {
          */
         get: operations["read_all_projects_api_v1_projects__get"];
         put?: never;
-        post?: never;
+        /**
+         * Create Project Endpoint
+         * @description Create a new project. Only `name` is required.
+         */
+        post: operations["create_project_endpoint_api_v1_projects__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -163,7 +167,12 @@ export interface paths {
          */
         get: operations["get_project_finves_api_v1_projects__project_id__finves_get"];
         put?: never;
-        post?: never;
+        /**
+         * Link Finves To Project
+         * @description Link a list of existing FinVes to this project. Reuses the unassigned-finve
+         *     assignment helper so existing links are preserved.
+         */
+        post: operations["link_finves_to_project_api_v1_projects__project_id__finves_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1083,6 +1092,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/import/vib/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Vib Entries
+         * @description Return all confirmed VIB entries, newest-id first. Used by the project wizard.
+         */
+        get: operations["list_vib_entries_api_v1_import_vib_entries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/vib/entries/{entry_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Vib Entry Endpoint
+         * @description Return a single confirmed VibEntry by ID.
+         */
+        get: operations["get_vib_entry_endpoint_api_v1_import_vib_entries__entry_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Patch Vib Entry
+         * @description Update any field of a confirmed VibEntry.
+         *
+         *     pfa_entries (if provided): replaces all existing PFA child rows.
+         *     project_ids (if provided): replaces all existing project links.
+         */
+        patch: operations["patch_vib_entry_api_v1_import_vib_entries__entry_id__patch"];
+        trace?: never;
+    };
     "/api/v1/admin/unassigned-finves": {
         parameters: {
             query?: never;
@@ -1837,6 +1893,11 @@ export interface components {
              */
             project_ids: number[];
         };
+        /** LinkFinvesInput */
+        LinkFinvesInput: {
+            /** Finve Ids */
+            finve_ids?: number[];
+        };
         /**
          * OperationalPointRef
          * @description Lightweight schema for station search results.
@@ -1882,6 +1943,124 @@ export interface components {
             result_json?: {
                 [key: string]: unknown;
             } | null;
+        };
+        /**
+         * ProjectCreate
+         * @description Create schema for Project. `name` is the only required field.
+         */
+        ProjectCreate: {
+            /** Name */
+            name: string;
+            /** Project Number */
+            project_number?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Justification */
+            justification?: string | null;
+            /** Superior Project Id */
+            superior_project_id?: number | null;
+            /** Length */
+            length?: number | null;
+            /** Effects Passenger Long Rail */
+            effects_passenger_long_rail?: boolean | null;
+            /** Effects Passenger Local Rail */
+            effects_passenger_local_rail?: boolean | null;
+            /** Effects Cargo Rail */
+            effects_cargo_rail?: boolean | null;
+            /** Nbs */
+            nbs?: boolean | null;
+            /** Abs */
+            abs?: boolean | null;
+            /** Elektrification */
+            elektrification?: boolean | null;
+            /** Charging Station */
+            charging_station?: boolean | null;
+            /** Small Charging Station */
+            small_charging_station?: boolean | null;
+            /** Second Track */
+            second_track?: boolean | null;
+            /** Third Track */
+            third_track?: boolean | null;
+            /** Fourth Track */
+            fourth_track?: boolean | null;
+            /** Curve */
+            curve?: boolean | null;
+            /** Platform */
+            platform?: boolean | null;
+            /** Junction Station */
+            junction_station?: boolean | null;
+            /** Number Junction Station */
+            number_junction_station?: number | null;
+            /** Overtaking Station */
+            overtaking_station?: boolean | null;
+            /** Number Overtaking Station */
+            number_overtaking_station?: number | null;
+            /** Double Occupancy */
+            double_occupancy?: boolean | null;
+            /** Block Increase */
+            block_increase?: boolean | null;
+            /** Flying Junction */
+            flying_junction?: boolean | null;
+            /** Tunnel Structural Gauge */
+            tunnel_structural_gauge?: boolean | null;
+            /** Increase Speed */
+            increase_speed?: boolean | null;
+            /** New Vmax */
+            new_vmax?: number | null;
+            /** Level Free Platform Entrance */
+            level_free_platform_entrance?: boolean | null;
+            /** Etcs */
+            etcs?: boolean | null;
+            /** Etcs Level */
+            etcs_level?: number | null;
+            /** Station Railroad Switches */
+            station_railroad_switches?: boolean | null;
+            /** New Station */
+            new_station?: boolean | null;
+            /** Depot */
+            depot?: boolean | null;
+            /** Battery */
+            battery?: boolean | null;
+            /** H2 */
+            h2?: boolean | null;
+            /** Efuel */
+            efuel?: boolean | null;
+            /** Closure */
+            closure?: boolean | null;
+            /** Optimised Electrification */
+            optimised_electrification?: boolean | null;
+            /** Filling Stations Efuel */
+            filling_stations_efuel?: boolean | null;
+            /** Filling Stations H2 */
+            filling_stations_h2?: boolean | null;
+            /** Filling Stations Diesel */
+            filling_stations_diesel?: boolean | null;
+            /** Filling Stations Count */
+            filling_stations_count?: number | null;
+            /** Sanierung */
+            sanierung?: boolean | null;
+            /** Sgv740M */
+            sgv740m?: boolean | null;
+            /** Railroad Crossing */
+            railroad_crossing?: boolean | null;
+            /** New Estw */
+            new_estw?: boolean | null;
+            /** New Dstw */
+            new_dstw?: boolean | null;
+            /** Noise Barrier */
+            noise_barrier?: boolean | null;
+            /** Overpass */
+            overpass?: boolean | null;
+            /** Buffer Track */
+            buffer_track?: boolean | null;
+            /** Gwb */
+            gwb?: boolean | null;
+            /** Simultaneous Train Entries */
+            simultaneous_train_entries?: boolean | null;
+            /** Tilting */
+            tilting?: boolean | null;
+            /** Project Group Ids */
+            project_group_ids?: number[] | null;
         };
         /** ProjectGroupRef */
         ProjectGroupRef: {
@@ -2923,6 +3102,8 @@ export interface components {
             durchgefuehrte_massnahmen?: string | null;
             /** Noch Umzusetzende Massnahmen */
             noch_umzusetzende_massnahmen?: string | null;
+            /** Sonstiges */
+            sonstiges?: string | null;
             /** Raw Text */
             raw_text?: string | null;
             /** Strecklaenge Km */
@@ -2958,6 +3139,28 @@ export interface components {
              * @default []
              */
             pfa_entries: components["schemas"]["VibPfaEntrySchema"][];
+            /**
+             * Project Ids
+             * @default []
+             */
+            project_ids: number[];
+        };
+        /**
+         * VibEntryListItemSchema
+         * @description Lean list item used by wizards to pick confirmed VIB entries.
+         */
+        VibEntryListItemSchema: {
+            /** Id */
+            id: number;
+            /** Vib Name Raw */
+            vib_name_raw?: string | null;
+            /** Report Year */
+            report_year: number;
+            /**
+             * Project Ids
+             * @default []
+             */
+            project_ids: number[];
         };
         /**
          * VibEntryProposed
@@ -3041,6 +3244,120 @@ export interface components {
             ai_extraction_failed: boolean;
             /** Ai Extraction Error */
             ai_extraction_error?: string | null;
+        };
+        /**
+         * VibEntrySchema
+         * @description Full VIB entry as returned by the PATCH endpoint.
+         */
+        VibEntrySchema: {
+            /** Id */
+            id: number;
+            /** Vib Report Id */
+            vib_report_id: number;
+            /** Vib Section */
+            vib_section?: string | null;
+            /** Vib Lfd Nr */
+            vib_lfd_nr?: string | null;
+            /** Vib Name Raw */
+            vib_name_raw: string;
+            /** Category */
+            category: string;
+            /** Raw Text */
+            raw_text?: string | null;
+            /** Bauaktivitaeten */
+            bauaktivitaeten?: string | null;
+            /** Teilinbetriebnahmen */
+            teilinbetriebnahmen?: string | null;
+            /** Verkehrliche Zielsetzung */
+            verkehrliche_zielsetzung?: string | null;
+            /** Durchgefuehrte Massnahmen */
+            durchgefuehrte_massnahmen?: string | null;
+            /** Noch Umzusetzende Massnahmen */
+            noch_umzusetzende_massnahmen?: string | null;
+            /** Sonstiges */
+            sonstiges?: string | null;
+            /** Strecklaenge Km */
+            strecklaenge_km?: number | null;
+            /** Gesamtkosten Mio Eur */
+            gesamtkosten_mio_eur?: number | null;
+            /** Entwurfsgeschwindigkeit */
+            entwurfsgeschwindigkeit?: string | null;
+            /** Planungsstand */
+            planungsstand?: string | null;
+            /**
+             * Status Planung
+             * @default false
+             */
+            status_planung: boolean;
+            /**
+             * Status Bau
+             * @default false
+             */
+            status_bau: boolean;
+            /**
+             * Status Abgeschlossen
+             * @default false
+             */
+            status_abgeschlossen: boolean;
+            /**
+             * Ai Extracted
+             * @default false
+             */
+            ai_extracted: boolean;
+            /**
+             * Pfa Entries
+             * @default []
+             */
+            pfa_entries: components["schemas"]["VibPfaEntrySchema"][];
+            /**
+             * Project Ids
+             * @default []
+             */
+            project_ids: number[];
+            /** Report Year */
+            report_year: number;
+        };
+        /**
+         * VibEntryUpdateSchema
+         * @description All fields optional — only non-None fields are applied.
+         */
+        VibEntryUpdateSchema: {
+            /** Vib Name Raw */
+            vib_name_raw?: string | null;
+            /** Category */
+            category?: string | null;
+            /** Verkehrliche Zielsetzung */
+            verkehrliche_zielsetzung?: string | null;
+            /** Durchgefuehrte Massnahmen */
+            durchgefuehrte_massnahmen?: string | null;
+            /** Noch Umzusetzende Massnahmen */
+            noch_umzusetzende_massnahmen?: string | null;
+            /** Bauaktivitaeten */
+            bauaktivitaeten?: string | null;
+            /** Teilinbetriebnahmen */
+            teilinbetriebnahmen?: string | null;
+            /** Sonstiges */
+            sonstiges?: string | null;
+            /** Raw Text */
+            raw_text?: string | null;
+            /** Strecklaenge Km */
+            strecklaenge_km?: number | null;
+            /** Gesamtkosten Mio Eur */
+            gesamtkosten_mio_eur?: number | null;
+            /** Entwurfsgeschwindigkeit */
+            entwurfsgeschwindigkeit?: string | null;
+            /** Planungsstand */
+            planungsstand?: string | null;
+            /** Status Planung */
+            status_planung?: boolean | null;
+            /** Status Bau */
+            status_bau?: boolean | null;
+            /** Status Abgeschlossen */
+            status_abgeschlossen?: boolean | null;
+            /** Pfa Entries */
+            pfa_entries?: components["schemas"]["VibPfaEntryProposed"][] | null;
+            /** Project Ids */
+            project_ids?: number[] | null;
         };
         /** VibOcrAvailableResponse */
         VibOcrAvailableResponse: {
@@ -3308,6 +3625,41 @@ export interface operations {
             };
         };
     };
+    create_project_endpoint_api_v1_projects__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     read_project_api_v1_projects__project_id__get: {
         parameters: {
             query?: never;
@@ -3457,6 +3809,41 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["FinveWithBudgetsSchema"][];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    link_finves_to_project_api_v1_projects__project_id__finves_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkFinvesInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -5184,6 +5571,94 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_vib_entries_api_v1_import_vib_entries_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VibEntryListItemSchema"][];
+                };
+            };
+        };
+    };
+    get_vib_entry_endpoint_api_v1_import_vib_entries__entry_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VibEntrySchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_vib_entry_api_v1_import_vib_entries__entry_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VibEntryUpdateSchema"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VibEntrySchema"];
+                };
             };
             /** @description Validation Error */
             422: {

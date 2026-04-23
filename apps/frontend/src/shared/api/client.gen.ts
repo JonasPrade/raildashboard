@@ -145,6 +145,68 @@ const ProjectSchema = z
     project_groups: z.array(ProjectGroupRef).optional().default([]),
   })
   .passthrough();
+const ProjectCreate = z
+  .object({
+    name: z.string().min(1),
+    project_number: z.union([z.string(), z.null()]).optional(),
+    description: z.union([z.string(), z.null()]).optional(),
+    justification: z.union([z.string(), z.null()]).optional(),
+    superior_project_id: z.union([z.number(), z.null()]).optional(),
+    length: z.union([z.number(), z.null()]).optional(),
+    effects_passenger_long_rail: z.union([z.boolean(), z.null()]).optional(),
+    effects_passenger_local_rail: z.union([z.boolean(), z.null()]).optional(),
+    effects_cargo_rail: z.union([z.boolean(), z.null()]).optional(),
+    nbs: z.union([z.boolean(), z.null()]).optional(),
+    abs: z.union([z.boolean(), z.null()]).optional(),
+    elektrification: z.union([z.boolean(), z.null()]).optional(),
+    charging_station: z.union([z.boolean(), z.null()]).optional(),
+    small_charging_station: z.union([z.boolean(), z.null()]).optional(),
+    second_track: z.union([z.boolean(), z.null()]).optional(),
+    third_track: z.union([z.boolean(), z.null()]).optional(),
+    fourth_track: z.union([z.boolean(), z.null()]).optional(),
+    curve: z.union([z.boolean(), z.null()]).optional(),
+    platform: z.union([z.boolean(), z.null()]).optional(),
+    junction_station: z.union([z.boolean(), z.null()]).optional(),
+    number_junction_station: z.union([z.number(), z.null()]).optional(),
+    overtaking_station: z.union([z.boolean(), z.null()]).optional(),
+    number_overtaking_station: z.union([z.number(), z.null()]).optional(),
+    double_occupancy: z.union([z.boolean(), z.null()]).optional(),
+    block_increase: z.union([z.boolean(), z.null()]).optional(),
+    flying_junction: z.union([z.boolean(), z.null()]).optional(),
+    tunnel_structural_gauge: z.union([z.boolean(), z.null()]).optional(),
+    increase_speed: z.union([z.boolean(), z.null()]).optional(),
+    new_vmax: z.union([z.number(), z.null()]).optional(),
+    level_free_platform_entrance: z.union([z.boolean(), z.null()]).optional(),
+    etcs: z.union([z.boolean(), z.null()]).optional(),
+    etcs_level: z.union([z.number(), z.null()]).optional(),
+    station_railroad_switches: z.union([z.boolean(), z.null()]).optional(),
+    new_station: z.union([z.boolean(), z.null()]).optional(),
+    depot: z.union([z.boolean(), z.null()]).optional(),
+    battery: z.union([z.boolean(), z.null()]).optional(),
+    h2: z.union([z.boolean(), z.null()]).optional(),
+    efuel: z.union([z.boolean(), z.null()]).optional(),
+    closure: z.union([z.boolean(), z.null()]).optional(),
+    optimised_electrification: z.union([z.boolean(), z.null()]).optional(),
+    filling_stations_efuel: z.union([z.boolean(), z.null()]).optional(),
+    filling_stations_h2: z.union([z.boolean(), z.null()]).optional(),
+    filling_stations_diesel: z.union([z.boolean(), z.null()]).optional(),
+    filling_stations_count: z.union([z.number(), z.null()]).optional(),
+    sanierung: z.union([z.boolean(), z.null()]).optional(),
+    sgv740m: z.union([z.boolean(), z.null()]).optional(),
+    railroad_crossing: z.union([z.boolean(), z.null()]).optional(),
+    new_estw: z.union([z.boolean(), z.null()]).optional(),
+    new_dstw: z.union([z.boolean(), z.null()]).optional(),
+    noise_barrier: z.union([z.boolean(), z.null()]).optional(),
+    overpass: z.union([z.boolean(), z.null()]).optional(),
+    buffer_track: z.union([z.boolean(), z.null()]).optional(),
+    gwb: z.union([z.boolean(), z.null()]).optional(),
+    simultaneous_train_entries: z.union([z.boolean(), z.null()]).optional(),
+    tilting: z.union([z.boolean(), z.null()]).optional(),
+    project_group_ids: z
+      .union([z.array(z.number().int()), z.null()])
+      .optional(),
+  })
+  .passthrough();
 const ProjectUpdate = z
   .object({
     name: z.union([z.string(), z.null()]),
@@ -671,6 +733,7 @@ const VibEntryForProjectSchema = z
     verkehrliche_zielsetzung: z.union([z.string(), z.null()]).optional(),
     durchgefuehrte_massnahmen: z.union([z.string(), z.null()]).optional(),
     noch_umzusetzende_massnahmen: z.union([z.string(), z.null()]).optional(),
+    sonstiges: z.union([z.string(), z.null()]).optional(),
     raw_text: z.union([z.string(), z.null()]).optional(),
     strecklaenge_km: z.union([z.number(), z.null()]).optional(),
     gesamtkosten_mio_eur: z.union([z.number(), z.null()]).optional(),
@@ -681,6 +744,7 @@ const VibEntryForProjectSchema = z
     status_abgeschlossen: z.boolean().optional().default(false),
     ai_extracted: z.boolean().optional().default(false),
     pfa_entries: z.array(VibPfaEntrySchema).optional().default([]),
+    project_ids: z.array(z.number().int()).optional().default([]),
   })
   .passthrough();
 const TitelEntrySchema = z
@@ -726,6 +790,10 @@ const FinveWithBudgetsSchema = z
     is_sammel_finve: z.boolean().optional().default(false),
     budgets: z.array(BudgetSummarySchema).optional().default([]),
   })
+  .passthrough();
+const LinkFinvesInput = z
+  .object({ finve_ids: z.array(z.number().int()) })
+  .partial()
   .passthrough();
 const ChangeLogEntryRead = z
   .object({
@@ -1186,6 +1254,65 @@ const VibReportSchema = z
     entry_count: z.number().int().optional().default(0),
   })
   .passthrough();
+const VibEntryListItemSchema = z
+  .object({
+    id: z.number().int(),
+    vib_name_raw: z.union([z.string(), z.null()]).optional(),
+    report_year: z.number().int(),
+    project_ids: z.array(z.number().int()).optional().default([]),
+  })
+  .passthrough();
+const VibEntrySchema = z
+  .object({
+    id: z.number().int(),
+    vib_report_id: z.number().int(),
+    vib_section: z.union([z.string(), z.null()]).optional(),
+    vib_lfd_nr: z.union([z.string(), z.null()]).optional(),
+    vib_name_raw: z.string(),
+    category: z.string(),
+    raw_text: z.union([z.string(), z.null()]).optional(),
+    bauaktivitaeten: z.union([z.string(), z.null()]).optional(),
+    teilinbetriebnahmen: z.union([z.string(), z.null()]).optional(),
+    verkehrliche_zielsetzung: z.union([z.string(), z.null()]).optional(),
+    durchgefuehrte_massnahmen: z.union([z.string(), z.null()]).optional(),
+    noch_umzusetzende_massnahmen: z.union([z.string(), z.null()]).optional(),
+    sonstiges: z.union([z.string(), z.null()]).optional(),
+    strecklaenge_km: z.union([z.number(), z.null()]).optional(),
+    gesamtkosten_mio_eur: z.union([z.number(), z.null()]).optional(),
+    entwurfsgeschwindigkeit: z.union([z.string(), z.null()]).optional(),
+    planungsstand: z.union([z.string(), z.null()]).optional(),
+    status_planung: z.boolean().optional().default(false),
+    status_bau: z.boolean().optional().default(false),
+    status_abgeschlossen: z.boolean().optional().default(false),
+    ai_extracted: z.boolean().optional().default(false),
+    pfa_entries: z.array(VibPfaEntrySchema).optional().default([]),
+    project_ids: z.array(z.number().int()).optional().default([]),
+    report_year: z.number().int(),
+  })
+  .passthrough();
+const VibEntryUpdateSchema = z
+  .object({
+    vib_name_raw: z.union([z.string(), z.null()]),
+    category: z.union([z.string(), z.null()]),
+    verkehrliche_zielsetzung: z.union([z.string(), z.null()]),
+    durchgefuehrte_massnahmen: z.union([z.string(), z.null()]),
+    noch_umzusetzende_massnahmen: z.union([z.string(), z.null()]),
+    bauaktivitaeten: z.union([z.string(), z.null()]),
+    teilinbetriebnahmen: z.union([z.string(), z.null()]),
+    sonstiges: z.union([z.string(), z.null()]),
+    raw_text: z.union([z.string(), z.null()]),
+    strecklaenge_km: z.union([z.number(), z.null()]),
+    gesamtkosten_mio_eur: z.union([z.number(), z.null()]),
+    entwurfsgeschwindigkeit: z.union([z.string(), z.null()]),
+    planungsstand: z.union([z.string(), z.null()]),
+    status_planung: z.union([z.boolean(), z.null()]),
+    status_bau: z.union([z.boolean(), z.null()]),
+    status_abgeschlossen: z.union([z.boolean(), z.null()]),
+    pfa_entries: z.union([z.array(VibPfaEntryProposed), z.null()]),
+    project_ids: z.union([z.array(z.number().int()), z.null()]),
+  })
+  .partial()
+  .passthrough();
 const UnassignedFinveSchema = z
   .object({
     id: z.number().int(),
@@ -1216,6 +1343,7 @@ export const schemas = {
   RouteResponse,
   ProjectGroupRef,
   ProjectSchema,
+  ProjectCreate,
   ProjectUpdate,
   BvwpProjectDataSchema,
   VibPfaEntrySchema,
@@ -1223,6 +1351,7 @@ export const schemas = {
   TitelEntrySchema,
   BudgetSummarySchema,
   FinveWithBudgetsSchema,
+  LinkFinvesInput,
   ChangeLogEntryRead,
   ChangeLogRead,
   RevertFieldRequest,
@@ -1277,6 +1406,9 @@ export const schemas = {
   VibDraftSchema,
   VibParseTaskResult_Input,
   VibReportSchema,
+  VibEntryListItemSchema,
+  VibEntrySchema,
+  VibEntryUpdateSchema,
   UnassignedFinveSchema,
   UnassignedVibEntrySchema,
   AssignProjectsInput,
@@ -1734,6 +1866,66 @@ GET /draft/{task_id}/image/{image_id}.`,
     ],
   },
   {
+    method: "get",
+    path: "/api/v1/import/vib/entries",
+    alias: "list_vib_entries_api_v1_import_vib_entries_get",
+    description: `Return all confirmed VIB entries, newest-id first. Used by the project wizard.`,
+    requestFormat: "json",
+    response: z.array(VibEntryListItemSchema),
+  },
+  {
+    method: "get",
+    path: "/api/v1/import/vib/entries/:entry_id",
+    alias: "get_vib_entry_endpoint_api_v1_import_vib_entries__entry_id__get",
+    description: `Return a single confirmed VibEntry by ID.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "entry_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: VibEntrySchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "patch",
+    path: "/api/v1/import/vib/entries/:entry_id",
+    alias: "patch_vib_entry_api_v1_import_vib_entries__entry_id__patch",
+    description: `Update any field of a confirmed VibEntry.
+
+pfa_entries (if provided): replaces all existing PFA child rows.
+project_ids (if provided): replaces all existing project links.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: VibEntryUpdateSchema,
+      },
+      {
+        name: "entry_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: VibEntrySchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
     method: "post",
     path: "/api/v1/import/vib/extract-ai/:parse_task_id",
     alias:
@@ -1984,6 +2176,28 @@ Returns 202 if the task is still running; 422 if it failed.`,
     response: z.array(ProjectSchema),
   },
   {
+    method: "post",
+    path: "/api/v1/projects/",
+    alias: "create_project_endpoint_api_v1_projects__post",
+    description: `Create a new project. Only &#x60;name&#x60; is required.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: ProjectCreate,
+      },
+    ],
+    response: ProjectSchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
     method: "get",
     path: "/api/v1/projects/:project_id",
     alias: "read_project_api_v1_projects__project_id__get",
@@ -2121,6 +2335,34 @@ including per-Haushaltstiteln breakdown.`,
       },
     ],
     response: z.array(FinveWithBudgetsSchema),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/api/v1/projects/:project_id/finves",
+    alias: "link_finves_to_project_api_v1_projects__project_id__finves_post",
+    description: `Link a list of existing FinVes to this project. Reuses the unassigned-finve
+assignment helper so existing links are preserved.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: LinkFinvesInput,
+      },
+      {
+        name: "project_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: z.void(),
     errors: [
       {
         status: 422,
