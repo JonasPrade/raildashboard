@@ -12,7 +12,12 @@ from dashboard_backend.crud.changelog import (
     get_project_changelog,
 )
 from dashboard_backend.crud.projects.bvwp import get_bvwp_data
-from dashboard_backend.crud.projects.projects import get_project_by_id, get_projects, update_project
+from dashboard_backend.crud.projects.projects import (
+    create_project,
+    get_project_by_id,
+    get_projects,
+    update_project,
+)
 from dashboard_backend.crud.vib import get_vib_entries_for_project
 from dashboard_backend.database import get_db
 from dashboard_backend.models.users import User
@@ -24,6 +29,7 @@ from dashboard_backend.models.projects.finve import Finve
 from dashboard_backend.models.projects.budget import Budget
 from dashboard_backend.models.haushalt.budget_titel_entry import BudgetTitelEntry
 from dashboard_backend.schemas.projects.bvwp_schema import BvwpProjectDataSchema
+from dashboard_backend.schemas.projects.project_create_schema import ProjectCreate
 from dashboard_backend.schemas.projects.project_update_schema import ProjectUpdate
 from dashboard_backend.schemas.users import UserRole
 from dashboard_backend.schemas.vib import VibEntryForProjectSchema
@@ -35,6 +41,16 @@ router = AuthRouter()
 def read_all_projects(db: Session = Depends(get_db)):
     """Retrieve all projects."""
     return get_projects(db)
+
+
+@router.post("/", response_model=ProjectSchema, status_code=201)
+def create_project_endpoint(
+    body: ProjectCreate,
+    current_user: User = Depends(require_roles(UserRole.editor, UserRole.admin)),
+    db: Session = Depends(get_db),
+):
+    """Create a new project. Only `name` is required."""
+    return create_project(db, body.model_dump(exclude_unset=True))
 
 
 @router.get("/{project_id}", response_model=ProjectSchema)

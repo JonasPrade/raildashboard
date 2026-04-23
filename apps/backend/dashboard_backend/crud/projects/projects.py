@@ -79,6 +79,24 @@ def recompute_parent_geojson(db: Session, project: Project) -> None:
     recompute_parent_geojson(db, parent)
 
 
+def create_project(db: Session, data: dict) -> Project:
+    """Create a new project. `project_group_ids` is handled separately."""
+    data = dict(data)
+    group_ids = data.pop("project_group_ids", None)
+
+    filtered = {k: v for k, v in data.items() if v is not None}
+
+    project = Project(**filtered)
+    if group_ids:
+        project.project_groups = (
+            db.query(ProjectGroup).filter(ProjectGroup.id.in_(group_ids)).all()
+        )
+    db.add(project)
+    db.commit()
+    db.refresh(project)
+    return project
+
+
 def update_project(db: Session, project_id: int, update_data: dict):
     """Aktualisiert ein bestehendes Projekt."""
     project = get_project_by_id(db, project_id)

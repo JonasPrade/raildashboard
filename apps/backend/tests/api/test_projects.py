@@ -70,6 +70,55 @@ def test_get_project_not_found(client, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
+# POST /api/v1/projects/
+# ---------------------------------------------------------------------------
+
+
+def test_create_project_success(client, create_user, monkeypatch):
+    create_user("editor", "pass123", UserRole.editor)
+    created = _make_project(42, "Wizard Project")
+    captured = {}
+
+    def fake_create(db, data):
+        captured.update(data)
+        return created
+
+    monkeypatch.setattr(projects_route, "create_project", fake_create)
+
+    resp = client.post(
+        "/api/v1/projects/",
+        json={"name": "Wizard Project", "project_number": "1-042"},
+        headers=basic_auth_header("editor", "pass123"),
+    )
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["id"] == 42
+    assert body["name"] == "Wizard Project"
+    assert captured["name"] == "Wizard Project"
+    assert captured["project_number"] == "1-042"
+
+
+def test_create_project_requires_editor(client, create_user):
+    create_user("viewer", "pass123", UserRole.viewer)
+    resp = client.post(
+        "/api/v1/projects/",
+        json={"name": "X"},
+        headers=basic_auth_header("viewer", "pass123"),
+    )
+    assert resp.status_code == 403
+
+
+def test_create_project_rejects_empty_name(client, create_user):
+    create_user("editor", "pass123", UserRole.editor)
+    resp = client.post(
+        "/api/v1/projects/",
+        json={"name": ""},
+        headers=basic_auth_header("editor", "pass123"),
+    )
+    assert resp.status_code == 422
+
+
+# ---------------------------------------------------------------------------
 # PATCH /api/v1/projects/{project_id}
 # ---------------------------------------------------------------------------
 
