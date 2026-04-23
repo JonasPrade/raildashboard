@@ -1,0 +1,93 @@
+import { Alert, Button, Container, Group, Stack, Stepper, Text, Title } from "@mantine/core";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+import { useAuth } from "../../../lib/auth";
+import type { Project } from "../../../shared/api/queries";
+import Step1Stammdaten from "./Step1Stammdaten";
+
+export default function NewProjectPage() {
+    const { user } = useAuth();
+    const navigate = useNavigate();
+    const [active, setActive] = useState(0);
+    const [project, setProject] = useState<Project | null>(null);
+
+    if (user === null || (user.role !== "editor" && user.role !== "admin")) {
+        return (
+            <Container size="sm" py="xl">
+                <Alert color="red" variant="light" title="Kein Zugriff">
+                    Diese Seite ist nur für Editoren und Administratoren zugänglich.
+                </Alert>
+            </Container>
+        );
+    }
+
+    const handleFinish = () => {
+        if (project?.id != null) navigate(`/projects/${project.id}`);
+        else navigate("/admin/unassigned");
+    };
+
+    return (
+        <Container size="lg" py="xl">
+            <Stack gap="lg">
+                <Title order={2}>Neues Projekt anlegen</Title>
+                <Stepper active={active} allowNextStepsSelect={false}>
+                    <Stepper.Step label="Stammdaten" description="Pflicht">
+                        <Stack gap="md" pt="md">
+                            <Step1Stammdaten
+                                onCreated={(p) => {
+                                    setProject(p);
+                                    setActive(1);
+                                }}
+                            />
+                        </Stack>
+                    </Stepper.Step>
+                    <Stepper.Step label="Geometrie" description="Optional">
+                        <Stack gap="md" pt="md">
+                            <Text c="dimmed">Schritt 2 folgt.</Text>
+                        </Stack>
+                    </Stepper.Step>
+                    <Stepper.Step label="Eigenschaften" description="Optional">
+                        <Stack gap="md" pt="md">
+                            <Text c="dimmed">Schritt 3 folgt.</Text>
+                        </Stack>
+                    </Stepper.Step>
+                    <Stepper.Step label="FinVes" description="Optional">
+                        <Stack gap="md" pt="md">
+                            <Text c="dimmed">Schritt 4 folgt.</Text>
+                        </Stack>
+                    </Stepper.Step>
+                    <Stepper.Step label="VIB" description="Optional">
+                        <Stack gap="md" pt="md">
+                            <Text c="dimmed">Schritt 5 folgt.</Text>
+                        </Stack>
+                    </Stepper.Step>
+                    <Stepper.Completed>
+                        <Text pt="md">Projekt angelegt. Du wirst weitergeleitet.</Text>
+                    </Stepper.Completed>
+                </Stepper>
+                {project && (
+                    <Group justify="space-between">
+                        <Button
+                            variant="subtle"
+                            onClick={() => setActive((s) => Math.max(0, s - 1))}
+                            disabled={active === 0}
+                        >
+                            Zurück
+                        </Button>
+                        <Group>
+                            <Button
+                                variant="subtle"
+                                onClick={() => setActive((s) => s + 1)}
+                                disabled={active >= 4}
+                            >
+                                Überspringen
+                            </Button>
+                            <Button onClick={handleFinish}>Fertig</Button>
+                        </Group>
+                    </Group>
+                )}
+            </Stack>
+        </Container>
+    );
+}
