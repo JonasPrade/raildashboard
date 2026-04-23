@@ -7,6 +7,7 @@ import type { Project } from "../../../shared/api/queries";
 import Step1Stammdaten from "./Step1Stammdaten";
 import Step2Geometrie from "./Step2Geometrie";
 import Step3Properties from "./Step3Properties";
+import Step4Finves from "./Step4Finves";
 
 export default function NewProjectPage() {
     const { user } = useAuth();
@@ -66,7 +67,9 @@ export default function NewProjectPage() {
                     </Stepper.Step>
                     <Stepper.Step label="FinVes" description="Optional">
                         <Stack gap="md" pt="md">
-                            <Text c="dimmed">Schritt 4 folgt.</Text>
+                            {project?.id != null && (
+                                <Step4Finves projectId={project.id} onDone={() => setActive(4)} />
+                            )}
                         </Stack>
                     </Stepper.Step>
                     <Stepper.Step label="VIB" description="Optional">
