@@ -68,11 +68,11 @@ Siehe: `docs/features/feature-routing.md`
   - Seite `/admin/unassigned` mit zwei Sektionen (FinVe + VIB); Inline-Zuweisung per durchsuchbarem MultiSelect direkt in der Tabellenzeile
   - Header-Badge zeigt Gesamtzahl offener Zuordnungen für editor/admin
 
-- [ ] **Neues Projekt aus Zuordnungsseite anlegen** — Auf `/admin/unassigned` einen "Neues Projekt anlegen"-Button bereitstellen, damit unzugeordnete FinVes/VIB-Einträge direkt einem neu angelegten Projekt zugeordnet werden können, ohne die Seite wechseln zu müssen.
+- [x] **Neues Projekt aus Zuordnungsseite anlegen** — "Neues Projekt anlegen"-Button auf `/admin/unassigned` öffnet den Wizard.
 
 ### Neues Projekt anlegen *(Backend + Frontend)*
 
-- [ ] 5-step wizard at `/admin/projects/new`: Stammdaten → Geometrie → Projekteigenschaften → FinVes → VIB. Only step 1 is required; steps 2–5 are skippable. Requires `POST /api/v1/projects` (missing) and `ProjectEditFields` extraction from `ProjectEdit.tsx`.
+- [x] 5-step wizard at `/admin/projects/new`: Stammdaten → Geometrie → Projekteigenschaften → FinVes → VIB. Step 1 is required; steps 2–5 are skippable. Uses `POST /api/v1/projects`, `POST /projects/{id}/finves`, `GET /import/vib/entries`, and the extracted `ProjectEditFields`.
 
 Siehe: `docs/features/feature-new-project-wizard.md`
 
