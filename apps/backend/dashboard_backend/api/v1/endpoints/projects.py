@@ -6,6 +6,7 @@ from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 
 from dashboard_backend.core.security import require_roles
+from dashboard_backend.crud.admin_assignments import assign_finve_to_projects
 from dashboard_backend.crud.changelog import (
     create_changelog_for_patch,
     get_changelog_entry,
@@ -29,6 +30,7 @@ from dashboard_backend.models.projects.finve import Finve
 from dashboard_backend.models.projects.budget import Budget
 from dashboard_backend.models.haushalt.budget_titel_entry import BudgetTitelEntry
 from dashboard_backend.schemas.projects.bvwp_schema import BvwpProjectDataSchema
+from dashboard_backend.schemas.projects.link_finves_schema import LinkFinvesInput
 from dashboard_backend.schemas.projects.project_create_schema import ProjectCreate
 from dashboard_backend.schemas.projects.project_update_schema import ProjectUpdate
 from dashboard_backend.schemas.users import UserRole
@@ -189,6 +191,24 @@ def get_project_finves(project_id: int, db: Session = Depends(get_db)):
             )
         )
     return result
+
+
+@router.post("/{project_id}/finves", status_code=204)
+def link_finves_to_project(
+    project_id: int,
+    body: LinkFinvesInput,
+    current_user: User = Depends(require_roles(UserRole.editor, UserRole.admin)),
+    db: Session = Depends(get_db),
+):
+    """Link a list of existing FinVes to this project. Reuses the unassigned-finve
+    assignment helper so existing links are preserved."""
+    project = get_project_by_id(db, project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    for finve_id in body.finve_ids:
+        assign_finve_to_projects(db, finve_id, [project_id])
+    db.commit()
+    return None
 
 
 @router.get("/{project_id}/changelog", response_model=list[ChangeLogRead])

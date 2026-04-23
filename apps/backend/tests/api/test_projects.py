@@ -119,6 +119,53 @@ def test_create_project_rejects_empty_name(client, create_user):
 
 
 # ---------------------------------------------------------------------------
+# POST /api/v1/projects/{project_id}/finves
+# ---------------------------------------------------------------------------
+
+
+def test_link_finves_to_project_success(client, create_user, monkeypatch):
+    create_user("editor", "pass123", UserRole.editor)
+    calls: list = []
+
+    monkeypatch.setattr(projects_route, "get_project_by_id", lambda db, pid: _make_project(pid))
+    monkeypatch.setattr(
+        projects_route,
+        "assign_finve_to_projects",
+        lambda db, finve_id, project_ids: calls.append((finve_id, tuple(project_ids))),
+    )
+
+    resp = client.post(
+        "/api/v1/projects/7/finves",
+        json={"finve_ids": [11, 12]},
+        headers=basic_auth_header("editor", "pass123"),
+    )
+    assert resp.status_code == 204
+    assert calls == [(11, (7,)), (12, (7,))]
+
+
+def test_link_finves_to_project_404(client, create_user, monkeypatch):
+    create_user("editor", "pass123", UserRole.editor)
+    monkeypatch.setattr(projects_route, "get_project_by_id", lambda db, pid: None)
+
+    resp = client.post(
+        "/api/v1/projects/999/finves",
+        json={"finve_ids": [1]},
+        headers=basic_auth_header("editor", "pass123"),
+    )
+    assert resp.status_code == 404
+
+
+def test_link_finves_requires_editor(client, create_user):
+    create_user("viewer", "pass123", UserRole.viewer)
+    resp = client.post(
+        "/api/v1/projects/1/finves",
+        json={"finve_ids": [1]},
+        headers=basic_auth_header("viewer", "pass123"),
+    )
+    assert resp.status_code == 403
+
+
+# ---------------------------------------------------------------------------
 # PATCH /api/v1/projects/{project_id}
 # ---------------------------------------------------------------------------
 
