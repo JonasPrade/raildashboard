@@ -11,6 +11,7 @@ import {
     Text,
     Title,
 } from "@mantine/core";
+import { Link } from "react-router-dom";
 import { ChronicleButton, ChronicleDataChip } from "../../components/chronicle";
 import { notifications } from "@mantine/notifications";
 import { useAuth } from "../../lib/auth";
@@ -80,7 +81,12 @@ export default function UnassignedPage() {
     return (
         <Container size="xl" py="xl">
             <Stack gap="xl">
-                <Title order={2}>Offene Zuordnungen</Title>
+                <Group justify="space-between" align="center">
+                    <Title order={2}>Offene Zuordnungen</Title>
+                    <Button component={Link} to="/admin/projects/new">
+                        Neues Projekt anlegen
+                    </Button>
+                </Group>
 
                 {/* FinVe section */}
                 <Stack gap="sm">

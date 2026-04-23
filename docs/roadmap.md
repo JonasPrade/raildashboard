@@ -70,6 +70,12 @@ Siehe: `docs/features/feature-routing.md`
 
 - [ ] **Neues Projekt aus Zuordnungsseite anlegen** — Auf `/admin/unassigned` einen "Neues Projekt anlegen"-Button bereitstellen, damit unzugeordnete FinVes/VIB-Einträge direkt einem neu angelegten Projekt zugeordnet werden können, ohne die Seite wechseln zu müssen.
 
+### Neues Projekt anlegen *(Backend + Frontend)*
+
+- [ ] 5-step wizard at `/admin/projects/new`: Stammdaten → Geometrie → Projekteigenschaften → FinVes → VIB. Only step 1 is required; steps 2–5 are skippable. Requires `POST /api/v1/projects` (missing) and `ProjectEditFields` extraction from `ProjectEdit.tsx`.
+
+Siehe: `docs/features/feature-new-project-wizard.md`
+
 ### Sonstiges
 
 - [ ] **ProjectProgress** *(Backend + Frontend)*
@@ -79,6 +85,7 @@ Siehe: `docs/features/feature-routing.md`
 - [ ] **BVWP-Datenimport** — Übernahme der BVWP-Daten aus der Legacy-Datenbank. Voraussetzung für die Anzeige der BVWP-Bewertung (Display-Feature bereits implementiert).
 
 - [ ] Cleanup Database structure. Evaluate
+- [ ] **New Design** — Integrate a new design layout created by the user via Claude Design. Replace/extend the current Chronicle design system based on the provided layout.
 - [ ] **Design Bug: "Abmelden" button** — Font color and background color are nearly identical, making the button unreadable. Fix contrast in header/auth button styles.
 - [ ] Bug-Report: A Button in the right corner where everybody can report Bugs or Problems (logged in users dont have to add there contact information). Bugs should be collect in fitting tool and solved by ai
 - [ ] Kennzahlen Marktuntersuchungsbericht Bundesnetzagentur -> wichtigsten Entwicklungskennzahlen online stellen
@@ -106,6 +113,9 @@ Siehe: `docs/features/feature-routing.md`
 - [ ] **Passwort zurücksetzen per E-Mail** *(Backend + Frontend)*
   Reset-Link per E-Mail, Token-basiert (UUID4, 1h gültig). Admin hinterlegt E-Mail in Benutzerverwaltung.
   Siehe: `docs/features/feature-password-reset.md`
+
+- [ ] **VIB/Haushalt-Matching: Lernen aus manuellen Zuordnungen**
+  Der aktuelle Fuzzy-Matching-Algorithmus (`vib_matching.py`, `finve_matching.py`) berechnet Vorschläge einmalig beim Import und hat kein Gedächtnis. Bestätigte Zuordnungen aus vergangenen Importen (Tabellen `vib_entry_project`, `finve_to_project`) könnten als Trainingsgrundlage dienen: Wenn ein Vorhaben-/FinVe-Name bereits früher manuell einem Projekt zugeordnet wurde, sollte diese Entscheidung als starker Hinweis in zukünftigen Importen gewertet werden. Mögliche Ansätze: (a) Exact-/Near-Match gegen historische `(name_raw, project_id)`-Paare vor dem Fuzzy-Scoring; (b) Boost des Fuzzy-Scores für Projekte, die für ähnliche Namen bereits gewählt wurden. Kein Modell-Training nötig — reine Datenbankabfrage zur Parse-Zeit.
 
 ---
 
