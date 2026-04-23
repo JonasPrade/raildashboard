@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../lib/auth";
 import type { Project } from "../../../shared/api/queries";
 import Step1Stammdaten from "./Step1Stammdaten";
+import Step2Geometrie from "./Step2Geometrie";
 
 export default function NewProjectPage() {
     const { user } = useAuth();
@@ -44,7 +45,9 @@ export default function NewProjectPage() {
                     </Stepper.Step>
                     <Stepper.Step label="Geometrie" description="Optional">
                         <Stack gap="md" pt="md">
-                            <Text c="dimmed">Schritt 2 folgt.</Text>
+                            {project?.id != null && (
+                                <Step2Geometrie projectId={project.id} onDone={() => setActive(2)} />
+                            )}
                         </Stack>
                     </Stepper.Step>
                     <Stepper.Step label="Eigenschaften" description="Optional">
