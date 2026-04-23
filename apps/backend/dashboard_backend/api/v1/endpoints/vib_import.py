@@ -5,7 +5,7 @@ import json
 
 from fastapi import Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from dashboard_backend.celery_app import celery_app
 from dashboard_backend.core.config import settings
@@ -32,6 +32,7 @@ from dashboard_backend.schemas.vib import (
     VibConfirmRequest,
     VibConfirmResponse,
     VibDraftSchema,
+    VibEntryListItemSchema,
     VibEntryProposed,
     VibEntrySchema,
     VibEntryUpdateSchema,
@@ -508,6 +509,37 @@ def _entry_to_schema(entry) -> VibEntrySchema:
         project_ids=[p.id for p in entry.projects],
         report_year=entry.report.year,
     )
+
+
+def list_confirmed_vib_entries(db: Session):
+    """Return every confirmed VibEntry with eager-loaded report + projects."""
+    from dashboard_backend.models.vib.vib_entry import VibEntry
+
+    return (
+        db.query(VibEntry)
+        .options(joinedload(VibEntry.report), joinedload(VibEntry.projects))
+        .order_by(VibEntry.id.desc())
+        .all()
+    )
+
+
+# ---------------------------------------------------------------------------
+# GET /entries — list confirmed VIB entries (id, name, year, project_ids)
+# ---------------------------------------------------------------------------
+
+@router.get("/entries", response_model=list[VibEntryListItemSchema])
+def list_vib_entries(db: Session = Depends(get_db)):
+    """Return all confirmed VIB entries, newest-id first. Used by the project wizard."""
+    entries = list_confirmed_vib_entries(db)
+    return [
+        VibEntryListItemSchema(
+            id=e.id,
+            vib_name_raw=e.vib_name_raw,
+            report_year=e.report.year,
+            project_ids=[p.id for p in e.projects],
+        )
+        for e in entries
+    ]
 
 
 # ---------------------------------------------------------------------------

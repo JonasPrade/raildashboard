@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import base64
+from types import SimpleNamespace
+
 import dashboard_backend.api.v1.endpoints.vib_import as vib_route
 from dashboard_backend.schemas.vib import VibEntrySchema, VibPfaEntrySchema
 from dashboard_backend.schemas.users import UserRole
@@ -76,3 +78,36 @@ def test_patch_vib_entry_updates_fields(client, monkeypatch, create_user):
     assert body["project_ids"] == [5]
     assert body["report_year"] == 2024
     assert captured["entry_id"] == 1
+
+
+# ---------------------------------------------------------------------------
+# GET /api/v1/import/vib/entries — list all confirmed entries
+# ---------------------------------------------------------------------------
+
+
+def test_list_confirmed_vib_entries(client, monkeypatch):
+    fake_entries = [
+        SimpleNamespace(
+            id=1,
+            vib_name_raw="Projekt A",
+            report=SimpleNamespace(year=2024),
+            projects=[SimpleNamespace(id=10), SimpleNamespace(id=11)],
+        ),
+        SimpleNamespace(
+            id=2,
+            vib_name_raw="Projekt B",
+            report=SimpleNamespace(year=2024),
+            projects=[],
+        ),
+    ]
+    monkeypatch.setattr(vib_route, "list_confirmed_vib_entries", lambda db: fake_entries)
+
+    resp = client.get("/api/v1/import/vib/entries")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body) == 2
+    assert body[0]["id"] == 1
+    assert body[0]["vib_name_raw"] == "Projekt A"
+    assert body[0]["report_year"] == 2024
+    assert body[0]["project_ids"] == [10, 11]
+    assert body[1]["project_ids"] == []

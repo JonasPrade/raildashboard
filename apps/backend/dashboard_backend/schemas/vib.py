@@ -273,6 +273,16 @@ class VibEntryUpdateSchema(BaseModel):
     project_ids: Optional[list[int]] = None
 
 
+class VibEntryListItemSchema(BaseModel):
+    """Lean list item used by wizards to pick confirmed VIB entries."""
+    id: int
+    vib_name_raw: Optional[str] = None
+    report_year: int
+    project_ids: list[int] = []
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class VibEntrySchema(BaseModel):
     """Full VIB entry as returned by the PATCH endpoint."""
     id: int
