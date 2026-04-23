@@ -1,5 +1,5 @@
 import { Alert, Button, Container, Group, Stack, Stepper, Text, Title } from "@mantine/core";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../../lib/auth";
@@ -8,6 +8,7 @@ import Step1Stammdaten from "./Step1Stammdaten";
 import Step2Geometrie from "./Step2Geometrie";
 import Step3Properties from "./Step3Properties";
 import Step4Finves from "./Step4Finves";
+import Step5Vib from "./Step5Vib";
 
 export default function NewProjectPage() {
     const { user } = useAuth();
@@ -29,6 +30,11 @@ export default function NewProjectPage() {
         if (project?.id != null) navigate(`/projects/${project.id}`);
         else navigate("/admin/unassigned");
     };
+
+    useEffect(() => {
+        if (active === 5) handleFinish();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [active]);
 
     return (
         <Container size="lg" py="xl">
@@ -74,7 +80,9 @@ export default function NewProjectPage() {
                     </Stepper.Step>
                     <Stepper.Step label="VIB" description="Optional">
                         <Stack gap="md" pt="md">
-                            <Text c="dimmed">Schritt 5 folgt.</Text>
+                            {project?.id != null && (
+                                <Step5Vib projectId={project.id} onDone={() => setActive(5)} />
+                            )}
                         </Stack>
                     </Stepper.Step>
                     <Stepper.Completed>
