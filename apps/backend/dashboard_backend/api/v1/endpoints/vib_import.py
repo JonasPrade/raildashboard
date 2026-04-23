@@ -5,7 +5,7 @@ import json
 
 from fastapi import Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from dashboard_backend.celery_app import celery_app
 from dashboard_backend.core.config import settings
@@ -517,7 +517,7 @@ def list_confirmed_vib_entries(db: Session):
 
     return (
         db.query(VibEntry)
-        .options(joinedload(VibEntry.report), joinedload(VibEntry.projects))
+        .options(joinedload(VibEntry.report), selectinload(VibEntry.projects))
         .order_by(VibEntry.id.desc())
         .all()
     )

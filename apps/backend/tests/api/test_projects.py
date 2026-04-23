@@ -130,8 +130,8 @@ def test_link_finves_to_project_success(client, create_user, monkeypatch):
     monkeypatch.setattr(projects_route, "get_project_by_id", lambda db, pid: _make_project(pid))
     monkeypatch.setattr(
         projects_route,
-        "assign_finve_to_projects",
-        lambda db, finve_id, project_ids: calls.append((finve_id, tuple(project_ids))),
+        "link_project_to_finves",
+        lambda db, project_id, finve_ids: calls.append((project_id, tuple(finve_ids))),
     )
 
     resp = client.post(
@@ -140,7 +140,7 @@ def test_link_finves_to_project_success(client, create_user, monkeypatch):
         headers=basic_auth_header("editor", "pass123"),
     )
     assert resp.status_code == 204
-    assert calls == [(11, (7,)), (12, (7,))]
+    assert calls == [(7, (11, 12))]
 
 
 def test_link_finves_to_project_404(client, create_user, monkeypatch):

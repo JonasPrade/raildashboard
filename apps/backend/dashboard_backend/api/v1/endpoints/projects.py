@@ -6,7 +6,7 @@ from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 
 from dashboard_backend.core.security import require_roles
-from dashboard_backend.crud.admin_assignments import assign_finve_to_projects
+from dashboard_backend.crud.admin_assignments import link_project_to_finves
 from dashboard_backend.crud.changelog import (
     create_changelog_for_patch,
     get_changelog_entry,
@@ -200,13 +200,11 @@ def link_finves_to_project(
     current_user: User = Depends(require_roles(UserRole.editor, UserRole.admin)),
     db: Session = Depends(get_db),
 ):
-    """Link a list of existing FinVes to this project. Reuses the unassigned-finve
-    assignment helper so existing links are preserved."""
+    """Link a list of existing FinVes to this project. Existing links are preserved."""
     project = get_project_by_id(db, project_id)
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
-    for finve_id in body.finve_ids:
-        assign_finve_to_projects(db, finve_id, [project_id])
+    link_project_to_finves(db, project_id, body.finve_ids)
     db.commit()
     return None
 

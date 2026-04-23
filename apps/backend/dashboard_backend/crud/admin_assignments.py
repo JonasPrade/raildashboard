@@ -83,6 +83,29 @@ def assign_finve_to_projects(db: Session, finve_id: int, project_ids: list[int])
     db.flush()
 
 
+def link_project_to_finves(db: Session, project_id: int, finve_ids: list[int]) -> None:
+    """Link many FinVes to one project in a single batched insert.
+
+    Used by the new-project wizard. Existing (project_id, finve_id, NULL)
+    links are preserved.
+    """
+    if not finve_ids:
+        return
+    existing = (
+        db.query(FinveToProject.finve_id)
+        .filter(
+            FinveToProject.finve_id.in_(finve_ids),
+            FinveToProject.project_id == project_id,
+            FinveToProject.haushalt_year.is_(None),
+        )
+        .all()
+    )
+    existing_ids = {row[0] for row in existing}
+    for finve_id in finve_ids:
+        if finve_id not in existing_ids:
+            db.add(FinveToProject(finve_id=finve_id, project_id=project_id, haushalt_year=None))
+
+
 def assign_vib_entry_to_projects(db: Session, entry_id: int, project_ids: list[int]) -> None:
     """Insert vib_entry_project rows. Skips existing links."""
     rows = db.execute(

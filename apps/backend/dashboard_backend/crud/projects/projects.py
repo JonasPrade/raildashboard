@@ -84,9 +84,7 @@ def create_project(db: Session, data: dict) -> Project:
     data = dict(data)
     group_ids = data.pop("project_group_ids", None)
 
-    filtered = {k: v for k, v in data.items() if v is not None}
-
-    project = Project(**filtered)
+    project = Project(**data)
     if group_ids:
         project.project_groups = (
             db.query(ProjectGroup).filter(ProjectGroup.id.in_(group_ids)).all()
