@@ -6,6 +6,7 @@ import { useAuth } from "../../../lib/auth";
 import type { Project } from "../../../shared/api/queries";
 import Step1Stammdaten from "./Step1Stammdaten";
 import Step2Geometrie from "./Step2Geometrie";
+import Step3Properties from "./Step3Properties";
 
 export default function NewProjectPage() {
     const { user } = useAuth();
@@ -52,7 +53,15 @@ export default function NewProjectPage() {
                     </Stepper.Step>
                     <Stepper.Step label="Eigenschaften" description="Optional">
                         <Stack gap="md" pt="md">
-                            <Text c="dimmed">Schritt 3 folgt.</Text>
+                            {project && (
+                                <Step3Properties
+                                    project={project}
+                                    onDone={(updated) => {
+                                        setProject(updated);
+                                        setActive(3);
+                                    }}
+                                />
+                            )}
                         </Stack>
                     </Stepper.Step>
                     <Stepper.Step label="FinVes" description="Optional">
