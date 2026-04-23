@@ -122,6 +122,14 @@ export default function UsersPage() {
                         </Link>
                     </ChronicleCard>
                     <ChronicleCard style={{ textDecoration: "none" }}>
+                        <Link to="/admin/vib-import" style={{ textDecoration: "none", color: "inherit" }}>
+                            <Stack gap={4}>
+                                <Text fw={500}>VIB-Import</Text>
+                                <Text size="sm" c="dimmed">Verkehrsinvestitionsbericht (Schienenwege) importieren</Text>
+                            </Stack>
+                        </Link>
+                    </ChronicleCard>
+                    <ChronicleCard style={{ textDecoration: "none" }}>
                         <Link to="/admin/projects/new" style={{ textDecoration: "none", color: "inherit" }}>
                             <Stack gap={4}>
                                 <Text fw={500}>Neues Projekt anlegen</Text>

@@ -60,11 +60,6 @@ export function Header() {
                 Haushalt
             </NavLink>
             {isEditorOrAdmin && (
-                <NavLink to="/admin/vib-import" style={({ isActive }) => isActive ? desktopNavLinkActiveStyle : desktopNavLinkStyle} onClick={closeDrawer}>
-                    VIB-Import
-                </NavLink>
-            )}
-            {isEditorOrAdmin && (
                 <NavLink to="/admin" style={({ isActive }) => isActive ? desktopNavLinkActiveStyle : desktopNavLinkStyle} onClick={closeDrawer}>
                     <Group gap={6} align="center">
                         Administration
@@ -87,11 +82,6 @@ export function Header() {
             <NavLink to="/finves" style={({ isActive }) => isActive ? drawerNavLinkActiveStyle : drawerNavLinkStyle} onClick={closeDrawer}>
                 Haushalt
             </NavLink>
-            {isEditorOrAdmin && (
-                <NavLink to="/admin/vib-import" style={({ isActive }) => isActive ? drawerNavLinkActiveStyle : drawerNavLinkStyle} onClick={closeDrawer}>
-                    VIB-Import
-                </NavLink>
-            )}
             {isEditorOrAdmin && (
                 <NavLink to="/admin" style={({ isActive }) => isActive ? drawerNavLinkActiveStyle : drawerNavLinkStyle} onClick={closeDrawer}>
                     <Group gap={6} align="center">
