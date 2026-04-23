@@ -197,6 +197,14 @@ export default function UsersPage() {
                 <ChronicleHeadline as="h2">Einstellungen</ChronicleHeadline>
                 <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
                     <ChronicleCard style={{ textDecoration: "none" }}>
+                        <Link to="/admin/projects/new" style={{ textDecoration: "none", color: "inherit" }}>
+                        <Stack gap={4}>
+                            <Text fw={500}>Neues Projekt anlegen</Text>
+                            <Text size="sm" c="dimmed">Wizard: Stammdaten, Geometrie, Eigenschaften, FinVes, VIB</Text>
+                        </Stack>
+                        </Link>
+                    </ChronicleCard>
+                    <ChronicleCard style={{ textDecoration: "none" }}>
                         <Link to="/admin/project-groups" style={{ textDecoration: "none", color: "inherit" }}>
                         <Stack gap={4}>
                             <Text fw={500}>Projektgruppen</Text>
