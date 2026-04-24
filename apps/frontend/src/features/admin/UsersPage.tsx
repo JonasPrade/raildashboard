@@ -92,6 +92,106 @@ export default function UsersPage() {
         }
     };
 
+    const renderUsersTable = () => {
+        if (usersLoading) {
+            return <Group justify="center" py="md"><Loader /></Group>;
+        }
+        if (usersError) {
+            return (
+                <Alert color="red" variant="light" title="Fehler">
+                    Nutzerliste konnte nicht geladen werden.
+                </Alert>
+            );
+        }
+        return (
+            <Table striped highlightOnHover withTableBorder>
+                <Table.Thead>
+                    <Table.Tr>
+                        <Table.Th>Benutzername</Table.Th>
+                        <Table.Th>Rolle</Table.Th>
+                        <Table.Th>Erstellt am</Table.Th>
+                        <Table.Th>Aktionen</Table.Th>
+                    </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                    {users?.map((u) => {
+                        const isSelf = u.id === currentUser?.id;
+                        const isConfirmingDelete = confirmDeleteId === u.id;
+                        return (
+                            <Table.Tr key={u.id}>
+                                <Table.Td>
+                                    <Text fw={isSelf ? 600 : undefined}>
+                                        {u.username}
+                                        {isSelf && (
+                                            <Text span size="xs" c="dimmed" ml={6}>
+                                                (ich)
+                                            </Text>
+                                        )}
+                                    </Text>
+                                </Table.Td>
+                                <Table.Td>
+                                    <Select
+                                        data={ROLE_OPTIONS}
+                                        value={u.role}
+                                        onChange={(v) => v && handleRoleChange(u.id, v)}
+                                        disabled={isSelf || updateRole.isPending}
+                                        allowDeselect={false}
+                                        size="xs"
+                                        w={120}
+                                    />
+                                </Table.Td>
+                                <Table.Td>
+                                    <Text size="sm" c="dimmed">
+                                        {new Date(u.created_at).toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" })}
+                                    </Text>
+                                </Table.Td>
+                                <Table.Td>
+                                    <Group gap="xs">
+                                        <Button
+                                            size="xs"
+                                            variant="subtle"
+                                            onClick={() => setPasswordUserId(u.id)}
+                                        >
+                                            Passwort setzen
+                                        </Button>
+                                        {!isSelf && (isConfirmingDelete ? (
+                                            <>
+                                                <Button
+                                                    size="xs"
+                                                    color="red"
+                                                    loading={deleteUser.isPending}
+                                                    onClick={() => handleDelete(u.id, u.username)}
+                                                >
+                                                    Wirklich löschen
+                                                </Button>
+                                                <Button
+                                                    size="xs"
+                                                    variant="default"
+                                                    onClick={() => setConfirmDeleteId(null)}
+                                                >
+                                                    Abbrechen
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <Button
+                                                size="xs"
+                                                variant="subtle"
+                                                color="red"
+                                                onClick={() => setConfirmDeleteId(u.id)}
+                                            >
+                                                Löschen
+                                            </Button>
+                                        ))}
+                                    </Group>
+                                </Table.Td>
+                            </Table.Tr>
+                        );
+                    })}
+                </Table.Tbody>
+            </Table>
+        );
+    };
+
     return (
         <Container size="lg" py="xl">
             <Stack gap="lg">
@@ -153,103 +253,7 @@ export default function UsersPage() {
                             <ChronicleHeadline as="h2">Benutzerverwaltung</ChronicleHeadline>
                             <ChronicleButton onClick={openCreate}>Neuen Nutzer anlegen</ChronicleButton>
                         </Group>
-
-                        {usersLoading ? (
-                            <Group justify="center" py="md"><Loader /></Group>
-                        ) : usersError ? (
-                            <Alert color="red" variant="light" title="Fehler">
-                                Nutzerliste konnte nicht geladen werden.
-                            </Alert>
-                        ) : (
-                <Table striped highlightOnHover withTableBorder>
-                    <Table.Thead>
-                        <Table.Tr>
-                            <Table.Th>Benutzername</Table.Th>
-                            <Table.Th>Rolle</Table.Th>
-                            <Table.Th>Erstellt am</Table.Th>
-                            <Table.Th>Aktionen</Table.Th>
-                        </Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
-                        {users?.map((u) => {
-                            const isSelf = u.id === currentUser?.id;
-                            const isConfirmingDelete = confirmDeleteId === u.id;
-
-                            return (
-                                <Table.Tr key={u.id}>
-                                    <Table.Td>
-                                        <Text fw={isSelf ? 600 : undefined}>
-                                            {u.username}
-                                            {isSelf && (
-                                                <Text span size="xs" c="dimmed" ml={6}>
-                                                    (ich)
-                                                </Text>
-                                            )}
-                                        </Text>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Select
-                                            data={ROLE_OPTIONS}
-                                            value={u.role}
-                                            onChange={(v) => v && handleRoleChange(u.id, v)}
-                                            disabled={isSelf || updateRole.isPending}
-                                            allowDeselect={false}
-                                            size="xs"
-                                            w={120}
-                                        />
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Text size="sm" c="dimmed">
-                                            {new Date(u.created_at).toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" })}
-                                        </Text>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Group gap="xs">
-                                            <Button
-                                                size="xs"
-                                                variant="subtle"
-                                                onClick={() => setPasswordUserId(u.id)}
-                                            >
-                                                Passwort setzen
-                                            </Button>
-                                            {!isSelf && (
-                                                isConfirmingDelete ? (
-                                                    <>
-                                                        <Button
-                                                            size="xs"
-                                                            color="red"
-                                                            loading={deleteUser.isPending}
-                                                            onClick={() => handleDelete(u.id, u.username)}
-                                                        >
-                                                            Wirklich löschen
-                                                        </Button>
-                                                        <Button
-                                                            size="xs"
-                                                            variant="default"
-                                                            onClick={() => setConfirmDeleteId(null)}
-                                                        >
-                                                            Abbrechen
-                                                        </Button>
-                                                    </>
-                                                ) : (
-                                                    <Button
-                                                        size="xs"
-                                                        variant="subtle"
-                                                        color="red"
-                                                        onClick={() => setConfirmDeleteId(u.id)}
-                                                    >
-                                                        Löschen
-                                                    </Button>
-                                                )
-                                            )}
-                                        </Group>
-                                    </Table.Td>
-                                </Table.Tr>
-                            );
-                        })}
-                    </Table.Tbody>
-                </Table>
-                        )}
+                        {renderUsersTable()}
                     </>
                 )}
             </Stack>

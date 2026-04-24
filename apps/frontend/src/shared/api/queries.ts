@@ -1040,9 +1040,9 @@ export function useUpdateVibEntry() {
                 body: JSON.stringify(data),
             }),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["projects"] });
             queryClient.invalidateQueries({ queryKey: ["project-vib"] });
             queryClient.invalidateQueries({ queryKey: ["admin-unassigned-vib-entries"] });
+            queryClient.invalidateQueries({ queryKey: ["vib-entries-confirmed"] });
         },
     });
 }

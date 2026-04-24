@@ -8,10 +8,9 @@ type Props = {
     label: string;
     value: number | null;
     onChange: (id: number | null) => void;
-    excludeId?: number;
 };
 
-export default function ProjectSearchSelect({ label, value, onChange, excludeId }: Props) {
+export default function ProjectSearchSelect({ label, value, onChange }: Props) {
     const [query, setQuery] = useState("");
     const [debounced] = useDebouncedValue(query, 200);
     const combobox = useCombobox({ onDropdownClose: () => combobox.resetSelectedOption() });
@@ -24,17 +23,14 @@ export default function ProjectSearchSelect({ label, value, onChange, excludeId 
 
     const filtered = useMemo(() => {
         const q = debounced.trim().toLowerCase();
+        if (!q) return projects.slice(0, 20);
         return projects
-            .filter((p) => p.id !== excludeId)
-            .filter((p) => {
-                if (!q) return true;
-                return (
-                    (p.name ?? "").toLowerCase().includes(q) ||
-                    (p.project_number ?? "").toLowerCase().includes(q)
-                );
-            })
+            .filter((p) =>
+                (p.name ?? "").toLowerCase().includes(q) ||
+                (p.project_number ?? "").toLowerCase().includes(q),
+            )
             .slice(0, 20);
-    }, [projects, debounced, excludeId]);
+    }, [projects, debounced]);
 
     return (
         <Combobox

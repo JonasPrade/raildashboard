@@ -1,5 +1,5 @@
-import { Alert, Button, Container, Group, Stack, Stepper, Text, Title } from "@mantine/core";
-import { useEffect, useState } from "react";
+import { Alert, Button, Container, Group, Stack, Stepper, Title } from "@mantine/core";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../../lib/auth";
@@ -16,6 +16,11 @@ export default function NewProjectPage() {
     const [active, setActive] = useState(0);
     const [project, setProject] = useState<Project | null>(null);
 
+    const handleFinish = () => {
+        if (project?.id != null) navigate(`/projects/${project.id}`);
+        else navigate("/admin/unassigned");
+    };
+
     if (user === null || (user.role !== "editor" && user.role !== "admin")) {
         return (
             <Container size="sm" py="xl">
@@ -26,68 +31,45 @@ export default function NewProjectPage() {
         );
     }
 
-    const handleFinish = () => {
-        if (project?.id != null) navigate(`/projects/${project.id}`);
-        else navigate("/admin/unassigned");
-    };
-
-    useEffect(() => {
-        if (active === 5) handleFinish();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [active]);
-
     return (
         <Container size="lg" py="xl">
             <Stack gap="lg">
                 <Title order={2}>Neues Projekt anlegen</Title>
                 <Stepper active={active} allowNextStepsSelect={false}>
                     <Stepper.Step label="Stammdaten" description="Pflicht">
-                        <Stack gap="md" pt="md">
-                            <Step1Stammdaten
-                                onCreated={(p) => {
-                                    setProject(p);
-                                    setActive(1);
-                                }}
-                            />
-                        </Stack>
+                        <Step1Stammdaten
+                            onCreated={(p) => {
+                                setProject(p);
+                                setActive(1);
+                            }}
+                        />
                     </Stepper.Step>
                     <Stepper.Step label="Geometrie" description="Optional">
-                        <Stack gap="md" pt="md">
-                            {project?.id != null && (
-                                <Step2Geometrie projectId={project.id} onDone={() => setActive(2)} />
-                            )}
-                        </Stack>
+                        {project?.id != null && (
+                            <Step2Geometrie projectId={project.id} onDone={() => setActive(2)} />
+                        )}
                     </Stepper.Step>
                     <Stepper.Step label="Eigenschaften" description="Optional">
-                        <Stack gap="md" pt="md">
-                            {project && (
-                                <Step3Properties
-                                    project={project}
-                                    onDone={(updated) => {
-                                        setProject(updated);
-                                        setActive(3);
-                                    }}
-                                />
-                            )}
-                        </Stack>
+                        {project && (
+                            <Step3Properties
+                                project={project}
+                                onDone={(updated) => {
+                                    setProject(updated);
+                                    setActive(3);
+                                }}
+                            />
+                        )}
                     </Stepper.Step>
                     <Stepper.Step label="FinVes" description="Optional">
-                        <Stack gap="md" pt="md">
-                            {project?.id != null && (
-                                <Step4Finves projectId={project.id} onDone={() => setActive(4)} />
-                            )}
-                        </Stack>
+                        {project?.id != null && (
+                            <Step4Finves projectId={project.id} onDone={() => setActive(4)} />
+                        )}
                     </Stepper.Step>
                     <Stepper.Step label="VIB" description="Optional">
-                        <Stack gap="md" pt="md">
-                            {project?.id != null && (
-                                <Step5Vib projectId={project.id} onDone={() => setActive(5)} />
-                            )}
-                        </Stack>
+                        {project?.id != null && (
+                            <Step5Vib projectId={project.id} onDone={handleFinish} />
+                        )}
                     </Stepper.Step>
-                    <Stepper.Completed>
-                        <Text pt="md">Projekt angelegt. Du wirst weitergeleitet.</Text>
-                    </Stepper.Completed>
                 </Stepper>
                 {project && (
                     <Group justify="space-between">

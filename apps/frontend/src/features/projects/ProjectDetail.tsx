@@ -18,13 +18,12 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import {
     type Project,
-    type ProjectUpdatePayload,
     updateProject,
     useProject,
     useProjectBvwp,
     useProjects,
 } from "../../shared/api/queries";
-import ProjectEdit, { type ProjectEditFormValues } from "./ProjectEdit";
+import ProjectEdit, { createUpdatePayload, type ProjectEditFormValues } from "./ProjectEdit";
 import GeometryManagementModal from "../routing/GeometryManagementModal";
 import ProjectSummaryCard from "./ProjectSummaryCard";
 import MapView, { type MapViewProject } from "../map/MapView";
@@ -107,66 +106,6 @@ const detailRows: Array<{ label: string; getValue: (project: Project) => string 
                 : null,
     },
 ];
-
-function createUpdatePayload(values: ProjectEditFormValues): ProjectUpdatePayload {
-    return {
-        name: values.name.trim(),
-        project_number: values.project_number?.trim() || null,
-        description: values.description?.trim() || null,
-        justification: values.justification?.trim() || null,
-        length: typeof values.length === "number" ? values.length : null,
-        new_vmax: typeof values.new_vmax === "number" ? values.new_vmax : null,
-        etcs_level: typeof values.etcs_level === "number" ? values.etcs_level : null,
-        number_junction_station: typeof values.number_junction_station === "number" ? values.number_junction_station : null,
-        number_overtaking_station: typeof values.number_overtaking_station === "number" ? values.number_overtaking_station : null,
-        filling_stations_count: typeof values.filling_stations_count === "number" ? values.filling_stations_count : null,
-        effects_passenger_long_rail: values.effects_passenger_long_rail,
-        effects_passenger_local_rail: values.effects_passenger_local_rail,
-        effects_cargo_rail: values.effects_cargo_rail,
-        nbs: values.nbs,
-        abs: values.abs,
-        second_track: values.second_track,
-        third_track: values.third_track,
-        fourth_track: values.fourth_track,
-        curve: values.curve,
-        increase_speed: values.increase_speed,
-        tunnel_structural_gauge: values.tunnel_structural_gauge,
-        tilting: values.tilting,
-        new_station: values.new_station,
-        platform: values.platform,
-        junction_station: values.junction_station,
-        overtaking_station: values.overtaking_station,
-        depot: values.depot,
-        level_free_platform_entrance: values.level_free_platform_entrance,
-        double_occupancy: values.double_occupancy,
-        simultaneous_train_entries: values.simultaneous_train_entries,
-        buffer_track: values.buffer_track,
-        overpass: values.overpass,
-        noise_barrier: values.noise_barrier,
-        railroad_crossing: values.railroad_crossing,
-        gwb: values.gwb,
-        etcs: values.etcs,
-        new_estw: values.new_estw,
-        new_dstw: values.new_dstw,
-        block_increase: values.block_increase,
-        station_railroad_switches: values.station_railroad_switches,
-        flying_junction: values.flying_junction,
-        elektrification: values.elektrification,
-        optimised_electrification: values.optimised_electrification,
-        charging_station: values.charging_station,
-        small_charging_station: values.small_charging_station,
-        battery: values.battery,
-        h2: values.h2,
-        efuel: values.efuel,
-        filling_stations_efuel: values.filling_stations_efuel,
-        filling_stations_h2: values.filling_stations_h2,
-        filling_stations_diesel: values.filling_stations_diesel,
-        sgv740m: values.sgv740m,
-        sanierung: values.sanierung,
-        closure: values.closure,
-        project_group_ids: values.project_group_ids,
-    };
-}
 
 export default function ProjectDetail() {
     const params = useParams<RouteParams>();

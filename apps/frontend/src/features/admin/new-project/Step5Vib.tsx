@@ -32,16 +32,18 @@ export default function Step5Vib({ projectId, onDone }: Props) {
         setSaving(true);
         setErrorMessage(null);
         try {
-            for (const idStr of selected) {
-                const id = Number(idStr);
-                const entry = entries.find((e) => e.id === id);
-                if (!entry) continue;
-                const nextProjectIds = Array.from(new Set([...entry.project_ids, projectId]));
-                await updateVib.mutateAsync({
-                    entryId: id,
-                    data: { project_ids: nextProjectIds },
-                });
-            }
+            await Promise.all(
+                selected.map((idStr) => {
+                    const id = Number(idStr);
+                    const entry = entries.find((e) => e.id === id);
+                    if (!entry) return Promise.resolve();
+                    const nextProjectIds = Array.from(new Set([...entry.project_ids, projectId]));
+                    return updateVib.mutateAsync({
+                        entryId: id,
+                        data: { project_ids: nextProjectIds },
+                    });
+                }),
+            );
             onDone();
         } catch (err) {
             setErrorMessage((err as Error)?.message ?? "Unbekannter Fehler");

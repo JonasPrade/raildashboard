@@ -7,15 +7,14 @@ import {
     Textarea,
     TextInput,
 } from "@mantine/core";
+import { useMemo } from "react";
 
+import { useProjectGroups } from "../../shared/api/queries";
 import type { ProjectEditFormValues } from "./ProjectEdit";
-
-export type ProjectGroupOption = { value: string; label: string };
 
 export type ProjectEditFieldsProps = {
     values: ProjectEditFormValues;
     setValues: React.Dispatch<React.SetStateAction<ProjectEditFormValues>>;
-    projectGroupOptions: ProjectGroupOption[];
 };
 
 function SwitchField({
@@ -41,7 +40,13 @@ function SwitchField({
     );
 }
 
-export function ProjectEditFields({ values, setValues, projectGroupOptions }: ProjectEditFieldsProps) {
+export function ProjectEditFields({ values, setValues }: ProjectEditFieldsProps) {
+    const { data: groups = [] } = useProjectGroups();
+    const projectGroupOptions = useMemo(
+        () => groups.map((g) => ({ value: String(g.id), label: g.name })),
+        [groups],
+    );
+
     return (
         <Stack gap="md">
             <Divider label="Stammdaten" labelPosition="left" />

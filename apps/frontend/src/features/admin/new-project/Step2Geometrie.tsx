@@ -33,22 +33,17 @@ export default function Step2Geometrie({ projectId, onDone }: Props) {
     const updateGeometry = useUpdateProjectGeometry(projectId);
     const isPending = confirmRoute.isPending || updateGeometry.isPending;
 
-    const hasPoints = selectedPoints.length > 0;
-    const canSave = !!previewFeature || !!uploadedGeojson || hasPoints;
+    const canSave = !!previewFeature || !!uploadedGeojson || selectedPoints.length > 0;
 
     function buildNewGeometry(): string | null {
-        if (!previewFeature && !hasPoints && uploadedGeojson) return uploadedGeojson;
-
         const features: object[] = [];
         if (previewFeature) {
             features.push({ type: "Feature", geometry: previewFeature.geometry, properties: {} });
         } else if (uploadedGeojson) {
-            try {
-                const p = JSON.parse(uploadedGeojson);
-                if (p.type === "FeatureCollection") features.push(...(p.features ?? []));
-                else if (p.type === "Feature") features.push(p);
-                else features.push({ type: "Feature", geometry: p, properties: {} });
-            } catch { /* ignore */ }
+            const p = JSON.parse(uploadedGeojson);
+            if (p.type === "FeatureCollection") features.push(...(p.features ?? []));
+            else if (p.type === "Feature") features.push(p);
+            else features.push({ type: "Feature", geometry: p, properties: {} });
         }
         for (const op of selectedPoints) {
             if (op.latitude != null && op.longitude != null) {

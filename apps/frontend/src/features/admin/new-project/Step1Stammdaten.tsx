@@ -43,7 +43,7 @@ export default function Step1Stammdaten({ onCreated }: Props) {
             const created = await createProject.mutateAsync(payload);
             onCreated(created);
         } catch {
-            // error surfaces via createProject.error
+            /* surfaced via createProject.error */
         }
     };
 
