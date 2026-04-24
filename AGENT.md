@@ -27,6 +27,29 @@ Features are documented in two layers:
 2. Code is written only after the feature file exists.
 3. When the feature is done, mark it `[x]` in the roadmap.
 
+## Review Checklist
+
+After every **substantial** change — new endpoints, new UI, schema/migration changes, new features — rewrite `docs/review-checklist.md` from scratch. The file tells the user exactly what they must verify manually.
+
+**Scope:**
+- **Include:** concrete click paths and checks the user must perform (e.g. "open `/finves`, confirm SV-FinVes appear in their own section").
+- **Exclude:** blockers on the agent's side (API keys, credentials) and open questions / risks — those belong in `docs/roadmap.md` or `docs/features/feature-<name>.md`.
+
+**Format:** Written in German. Every item is an actionable checkbox (`- [ ]`) — never "check that everything works." File layout:
+
+```markdown
+# Review-Checkliste: <short task title>
+
+_Stand: YYYY-MM-DD_
+
+## Was du prüfen musst
+
+- [ ] <concrete click path / check>
+- [ ] <next check>
+```
+
+**Skip** the checklist for docs-only edits, typo fixes, comment/formatting changes, or anything that does not change behavior, UI, or data.
+
 ## Python Environment
 
 - Always use the project virtualenv: `apps/backend/.venv/bin/python` (Python 3.13)
