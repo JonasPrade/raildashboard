@@ -16,5 +16,5 @@ if [[ "$SCRIPT" != scripts/* ]]; then
   exit 1
 fi
 
-cd /Users/jonas/Documents/coding/raildashboard/apps/backend
+cd /home/phips/code/raildashboard/apps/backend
 exec .venv/bin/python3.11 "$SCRIPT" "$@"

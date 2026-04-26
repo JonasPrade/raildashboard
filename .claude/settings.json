@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash /Users/jonas/Documents/coding/raildashboard/.claude/hooks/worktree-setup.sh"
+            "command": "bash /home/phips/code/raildashboard/.claude/hooks/worktree-setup.sh"
           }
         ]
       }
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash /Users/jonas/Documents/coding/raildashboard/.claude/hooks/guard-env.sh"
+            "command": "bash /home/phips/code/raildashboard/.claude/hooks/guard-env.sh"
           }
         ]
       }
@@ -27,23 +27,23 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash /Users/jonas/Documents/coding/raildashboard/.claude/hooks/remind-gen-api.sh"
+            "command": "bash /home/phips/code/raildashboard/.claude/hooks/remind-gen-api.sh"
           },
           {
             "type": "command",
-            "command": "bash /Users/jonas/Documents/coding/raildashboard/.claude/hooks/remind-migration.sh"
+            "command": "bash /home/phips/code/raildashboard/.claude/hooks/remind-migration.sh"
           },
           {
             "type": "command",
-            "command": "bash /Users/jonas/Documents/coding/raildashboard/.claude/hooks/remind-roadmap.sh"
+            "command": "bash /home/phips/code/raildashboard/.claude/hooks/remind-roadmap.sh"
           },
           {
             "type": "command",
-            "command": "bash /Users/jonas/Documents/coding/raildashboard/.claude/hooks/remind-auth.sh"
+            "command": "bash /home/phips/code/raildashboard/.claude/hooks/remind-auth.sh"
           },
           {
             "type": "command",
-            "command": "cd /Users/jonas/Documents/coding/raildashboard/apps/frontend && npx tsc --noEmit 2>&1 | head -20"
+            "command": "cd /home/phips/code/raildashboard/apps/frontend && npx tsc --noEmit 2>&1 | head -20"
           }
         ]
       }
@@ -51,11 +51,7 @@
     "Notification": [
       {
         "hooks": [
-          {
-            "type": "command",
-            "command": "bash /Users/jonas/Documents/coding/raildashboard/.claude/hooks/notify-macos.sh"
-          }
-        ]
+          ]
       }
     ],
     "Stop": [
@@ -63,11 +59,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash /Users/jonas/Documents/coding/raildashboard/.claude/hooks/notify-macos.sh"
-          },
-          {
-            "type": "command",
-            "command": "bash /Users/jonas/Documents/coding/raildashboard/.claude/hooks/remind-usage-report.sh"
+            "command": "bash /home/phips/code/raildashboard/.claude/hooks/remind-usage-report.sh"
           }
         ]
       }

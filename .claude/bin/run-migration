@@ -2,5 +2,5 @@
 # Scoped alembic runner — only runs "upgrade head".
 # Prevents arbitrary alembic commands (downgrade, stamp, etc.) without approval.
 set -e
-cd /Users/jonas/Documents/coding/raildashboard/apps/backend
+cd /home/phips/code/raildashboard/apps/backend
 exec .venv/bin/alembic upgrade head

@@ -2,7 +2,7 @@
 # Runs on WorktreeCreate — symlinks apps/backend/.venv into the new worktree.
 set -euo pipefail
 
-REPO=/Users/jonas/Documents/coding/raildashboard
+REPO=/home/phips/code/raildashboard
 INPUT=$(cat)
 
 # Try common field names for the worktree path

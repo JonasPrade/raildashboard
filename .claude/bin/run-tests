@@ -2,5 +2,5 @@
 # Scoped pytest runner — only runs pytest from the backend venv.
 # Prevents arbitrary python execution via python:* wildcards.
 set -e
-cd /Users/jonas/Documents/coding/raildashboard/apps/backend
+cd /home/phips/code/raildashboard/apps/backend
 exec .venv/bin/pytest "$@"
