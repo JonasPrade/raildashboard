@@ -85,17 +85,6 @@ Siehe: `docs/features/feature-new-project-wizard.md`
 - [ ] **BVWP-Datenimport** — Übernahme der BVWP-Daten aus der Legacy-Datenbank. Voraussetzung für die Anzeige der BVWP-Bewertung (Display-Feature bereits implementiert).
 
 - [ ] Cleanup Database structure. Evaluate
-### Rebrand · Richtung F (Bahnhofshalle Tag)
-
-Brand-Wechsel weg vom FAZ-/Chronicle-Editorial hin zum Bahnsteig-Tafel-Idiom: warmweiße Flächen, Anthrazit, **Gold (#c98a00)** als Akzent, **Preußenblau (#0f2347)** als Gewicht, Archivo Narrow + IBM Plex Sans/Mono, scharfe Kanten, kein globaler Dark-Mode (dunkle Flächen nur in der neuen `Tafel`-Komponentenfamilie).
-
-Quelle: `docs/DESIGN.md` (am 2026-04-25 auf Richtung F neu geschrieben). Vollständiger Plan: `docs/features/feature-rebrand-direction-f.md`.
-
-- [x] **Phase 1 — Foundations**: Archivo Narrow + IBM Plex Sans/Mono via Google Fonts, `tokens.css` neu geschrieben, `theme.ts` auf `preussen` als primary umgestellt.
-- [x] **Phase 2 — Chronicle-Komponenten umbauen**: `ChronicleHeadline`/`Card`/`Button`/`DataChip` an F angepasst (Public Props erhalten).
-- [x] **Phase 3 — Tafel-Familie neu**: `apps/frontend/src/components/tafel/` mit `Wordmark`, `Signet`, `MiniBoard`, `FlapDigit`, `Ticker`, `KpiCard`, `SectionHead`, `Eyebrow`. Header trägt Wordmark + Signet.
-- [x] **Phase 4 — Sweep**: Noto Serif + Work Sans entfernt; alle alten `--c-*`-Tokens, `petrol`, `Schienengrün`-Referenzen aus Source eliminiert. Abmelden-Kontrast durch neue Token-Logik (Anthrazit auf Weiß) gelöst.
-- [ ] **Phase 5 — Visual QA**: Klick-Pfade durch alle Top-Level-Routen, Review-Checkliste neu schreiben.
 - [ ] Bug-Report: A Button in the right corner where everybody can report Bugs or Problems (logged in users dont have to add there contact information). Bugs should be collect in fitting tool and solved by ai
 - [ ] Kennzahlen Marktuntersuchungsbericht Bundesnetzagentur -> wichtigsten Entwicklungskennzahlen online stellen
 - [ ] Integration API Bauinfoportal zu Dashboard
@@ -162,8 +151,20 @@ Siehe: `docs/features/feature-vib-import.md`
 - [x] **API** — Celery task `extract_vib_blocks`; image endpoints `GET /draft/{task_id}/images` + `/image/{id}`; single-entry AI extraction endpoint
 - [x] **Review-UI** — `VibStructurePreviewPage` with Markdown rendering, quality indicators, sub-section badges; `VibReviewPage` with editable sub-block fields and inline PFA table; per-entry "KI extrahieren" button; m:n project assignment (`project_ids`)
 
+### Rebrand · Richtung F (Bahnhofshalle Tag)
+
+Brand-Wechsel weg vom FAZ-/Chronicle-Editorial hin zum Bahnsteig-Tafel-Idiom: warmweiße Flächen, Anthrazit, **Gold (#c98a00)** als Akzent, **Preußenblau (#0f2347)** als Gewicht, Archivo Narrow + IBM Plex Sans/Mono, scharfe Kanten, kein globaler Dark-Mode (dunkle Flächen nur in der `Tafel`-Komponentenfamilie). Ausgeliefert in v0.0.4.
+
+Quelle: `docs/DESIGN.md` (am 2026-04-25 auf Richtung F neu geschrieben). Vollständiger Plan: `docs/features/feature-rebrand-direction-f.md`.
+
+- [x] **Phase 1 — Foundations**: Archivo Narrow + IBM Plex Sans/Mono via Google Fonts, `tokens.css` neu geschrieben, `theme.ts` auf `preussen` als primary umgestellt.
+- [x] **Phase 2 — Chronicle-Komponenten umbauen**: `ChronicleHeadline`/`Card`/`Button`/`DataChip` an F angepasst (Public Props erhalten).
+- [x] **Phase 3 — Tafel-Familie neu**: `apps/frontend/src/components/tafel/` mit `Wordmark`, `Signet`, `MiniBoard`, `FlapDigit`, `Ticker`, `KpiCard`, `SectionHead`, `Eyebrow`. Header trägt Wordmark + Signet.
+- [x] **Phase 4 — Sweep**: Noto Serif + Work Sans entfernt; alle alten `--c-*`-Tokens, `petrol`, `Schienengrün`-Referenzen aus Source eliminiert. Abmelden-Kontrast durch neue Token-Logik (Anthrazit auf Weiß) gelöst.
+- [x] **Phase 5 — Visual QA**: Review-Checkliste neu geschrieben (`docs/review-checklist.md`); Klick-Pfade aller Top-Level-Routen am 2026-04-26 manuell verifiziert.
+
 ### UI / UX
-- [x] **Chronicle design system — full rollout** — Tokens at `:root` (global); Mantine `defaultRadius: "xs"`; dark header bar; `ChronicleHeadline`/`ChronicleCard`/`ChronicleDataChip`/`ChronicleButton` applied to all pages. See `docs/features/feature-design-system.md`
+- [x] **Chronicle design system — full rollout** — Tokens at `:root` (global); Mantine `defaultRadius: "xs"`; dark header bar; `ChronicleHeadline`/`ChronicleCard`/`ChronicleDataChip`/`ChronicleButton` applied to all pages. See `docs/features/feature-design-system.md` *(superseded by Direction F)*
 - [x] Header title ("Schienenprojekte-Dashboard") links back to start page; Haushalt nav item visible to all users (no auth gate)
 - [x] **BVWP-Bewertung in Projektdetail** — `GET /api/v1/projects/{id}/bvwp`; `BvwpDataSection.tsx` mit 11 Tab-Gruppen; NKV als Badge; Sektion ausgeblendet wenn kein BVWP-Datensatz vorhanden
 - [x] Projektsuche auf Karte und Listenansicht — client-seitiger Filter nach Name/Nummer/Beschreibung; `?search=` URL-Param mit Debounce
