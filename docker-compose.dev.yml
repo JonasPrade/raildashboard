@@ -19,7 +19,6 @@ services:
   db:
     build:
       context: docker/db
-    platform: linux/amd64   # no arm64 image available; Rosetta 2 emulates on Apple Silicon
     restart: unless-stopped
     environment:
       POSTGRES_DB:       raildashboard
@@ -52,7 +51,6 @@ services:
     profiles: [routing]
     build:
       context: docker/graphhopper
-    platform: linux/amd64
     environment:
       GH_OSM_URL: ${GH_OSM_URL:-}
     volumes:

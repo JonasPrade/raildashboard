@@ -3,7 +3,7 @@
 # The PostgreSQL apt repository is already configured in the base image, so the package
 # is available without additional source setup.
 
-FROM postgis/postgis:16-3.4
+FROM imresamu/postgis:16-3.4
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends postgresql-16-pgrouting \
