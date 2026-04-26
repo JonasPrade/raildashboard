@@ -185,7 +185,7 @@ function VibTabContent({
                         </Text>
                     </Group>
                     <Collapse in={pfaExpanded}>
-                        <div style={{ overflow: "auto", background: "var(--c-surface-lowest)", borderRadius: "var(--radius-sharp)" }}>
+                        <div style={{ overflow: "auto", background: "var(--bg)", border: "1px solid var(--rule)", borderRadius: 0 }}>
                             <Table withTableBorder withColumnBorders fz="xs" style={{ fontSize: 11 }}>
                                 <Table.Thead>
                                     <Table.Tr>

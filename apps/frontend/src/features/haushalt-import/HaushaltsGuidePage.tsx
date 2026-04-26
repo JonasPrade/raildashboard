@@ -8,7 +8,6 @@ import {
     List,
     Stack,
     Text,
-    Title,
 } from "@mantine/core";
 import { ChronicleHeadline, ChronicleDataChip } from "../../components/chronicle";
 import { Link } from "react-router-dom";

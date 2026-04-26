@@ -98,7 +98,7 @@ export function ProjectTableOfContents({ sections }: Props) {
             <Tooltip label={open ? "Schließen" : "Inhaltsverzeichnis"} position="right" withArrow>
                 <ActionIcon
                     variant="filled"
-                    color="petrol"
+                    color="preussen"
                     size={42}
                     radius={0}
                     style={{ borderRadius: "0 6px 6px 0" }}
@@ -113,9 +113,10 @@ export function ProjectTableOfContents({ sections }: Props) {
             {open && (
                 <div style={{
                     minWidth: 200,
-                    background: "var(--c-surface-lowest)",
+                    background: "var(--bg)",
+                    border: "1px solid var(--rule)",
                     boxShadow: "var(--shadow-float)",
-                    borderRadius: "var(--radius-sharp)",
+                    borderRadius: 0,
                     padding: "8px",
                 }}>
                     <Stack gap={2}>
@@ -125,10 +126,10 @@ export function ProjectTableOfContents({ sections }: Props) {
                                 onClick={() => handleClick(section)}
                                 style={{
                                     padding: "5px 8px",
-                                    borderRadius: "var(--radius-sharp)",
+                                    borderRadius: 0,
                                     backgroundColor:
                                         activeId === section.id
-                                            ? "var(--c-tertiary-container)"
+                                            ? "var(--bg2)"
                                             : undefined,
                                     transition: "background-color 100ms ease",
                                 }}

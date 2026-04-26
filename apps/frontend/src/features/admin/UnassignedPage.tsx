@@ -13,6 +13,7 @@ import {
 } from "@mantine/core";
 import { Link } from "react-router-dom";
 import { ChronicleButton, ChronicleDataChip } from "../../components/chronicle";
+import { SectionHead, FlapNumber, Eyebrow } from "../../components/tafel";
 import { notifications } from "@mantine/notifications";
 import { useAuth } from "../../lib/auth";
 import { filterProjectOption } from "../../lib/filterProjectOption";
@@ -78,11 +79,29 @@ export default function UnassignedPage() {
         }
     };
 
+    const totalOpen = (finves?.length ?? 0) + (vibEntries?.length ?? 0);
+
     return (
         <Container size="xl" py="xl">
             <Stack gap="xl">
-                <Group justify="space-between" align="center">
-                    <Title order={2}>Offene Zuordnungen</Title>
+                <SectionHead
+                    n={1}
+                    eyebrow="Admin · Reform-Tafel"
+                    description={
+                        <span>
+                            Importierte Datensätze ohne Projektzuordnung. Editor / Admin können hier inline zuweisen
+                            oder ein neues Projekt anlegen.
+                        </span>
+                    }
+                >
+                    Offene <em style={{ fontStyle: "normal", color: "var(--led)" }}>Zuordnungen</em>
+                </SectionHead>
+
+                <Group justify="space-between" align="center" wrap="nowrap">
+                    <Group gap="md" align="center" wrap="nowrap">
+                        <FlapNumber n={totalOpen} digits={String(totalOpen).length > 2 ? String(totalOpen).length : 2} width={48} height={56} fontSize={36} />
+                        <Eyebrow>{totalOpen === 1 ? "1 offene Zuordnung" : `${totalOpen} offene Zuordnungen`}</Eyebrow>
+                    </Group>
                     <Button component={Link} to="/admin/projects/new">
                         Neues Projekt anlegen
                     </Button>
@@ -90,8 +109,11 @@ export default function UnassignedPage() {
 
                 {/* FinVe section */}
                 <Stack gap="sm">
-                    <Group gap="xs">
-                        <Title order={4}>FinVes ohne Projektzuordnung</Title>
+                    <Group gap="xs" align="center">
+                        <FlapNumber n={2} digits={2} width={32} height={36} fontSize={22} />
+                        <Title order={4} style={{ fontFamily: "var(--font-display)", textTransform: "uppercase", margin: 0 }}>
+                            FinVes ohne Projektzuordnung
+                        </Title>
                         <ChronicleDataChip>{finves?.length ?? "…"}</ChronicleDataChip>
                     </Group>
                     {finvesLoading && <Loader size="sm" />}
@@ -155,8 +177,11 @@ export default function UnassignedPage() {
 
                 {/* VIB section */}
                 <Stack gap="sm">
-                    <Group gap="xs">
-                        <Title order={4}>VIB-Einträge ohne Projektzuordnung</Title>
+                    <Group gap="xs" align="center">
+                        <FlapNumber n={3} digits={2} width={32} height={36} fontSize={22} />
+                        <Title order={4} style={{ fontFamily: "var(--font-display)", textTransform: "uppercase", margin: 0 }}>
+                            VIB-Einträge ohne Projektzuordnung
+                        </Title>
                         <ChronicleDataChip>{vibEntries?.length ?? "…"}</ChronicleDataChip>
                     </Group>
                     {vibLoading && <Loader size="sm" />}

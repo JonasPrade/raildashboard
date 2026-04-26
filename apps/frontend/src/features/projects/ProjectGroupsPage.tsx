@@ -188,24 +188,64 @@ export function ProjectCard({ project }: { project: Project }) {
     const hasProjectId = typeof project.id === "number" && Number.isFinite(project.id);
 
     const cardContent = (
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-editorial)" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <span style={{ fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: "1rem", color: "var(--c-on-surface)" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <span
+                    style={{
+                        fontFamily: "var(--font-display)",
+                        fontWeight: 700,
+                        fontSize: "20px",
+                        lineHeight: 1.15,
+                        letterSpacing: "-0.005em",
+                        textTransform: "uppercase",
+                        color: "var(--ink)",
+                    }}
+                >
                     {project.name}
                 </span>
                 {project.project_number && (
-                    <span style={{ fontFamily: "var(--font-sans)", fontSize: "0.8125rem", color: "var(--c-secondary)", opacity: 0.8 }}>
-                        Projektnummer: {project.project_number}
+                    <span
+                        style={{
+                            fontFamily: "var(--font-mono)",
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            letterSpacing: "0.1em",
+                            textTransform: "uppercase",
+                            color: "var(--ink3)",
+                        }}
+                    >
+                        ▸ Nr. {project.project_number}
                     </span>
                 )}
             </div>
 
             {project.description ? (
-                <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.875rem", color: "var(--c-on-surface)", opacity: 0.7, margin: 0, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                <p
+                    style={{
+                        fontFamily: "var(--font-sans)",
+                        fontSize: "15px",
+                        lineHeight: 1.65,
+                        color: "var(--ink2)",
+                        margin: 0,
+                        display: "-webkit-box",
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                    }}
+                >
                     {project.description}
                 </p>
             ) : (
-                <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.875rem", fontStyle: "italic", color: "var(--c-on-surface)", opacity: 0.5, margin: 0 }}>
+                <p
+                    style={{
+                        fontFamily: "var(--font-sans)",
+                        fontSize: "15px",
+                        lineHeight: 1.65,
+                        fontStyle: "italic",
+                        color: "var(--ink3)",
+                        margin: 0,
+                    }}
+                >
                     Keine Projektbeschreibung vorhanden.
                 </p>
             )}

@@ -105,7 +105,7 @@ export default function GroupFilterDrawer({ opened, onClose, groups = [], loadin
 
                 <Group justify="space-between" mt="md">
                     <Button variant="default" onClick={onClose}>Abbrechen</Button>
-                    <Button color="petrol" onClick={apply} disabled={loading}>Übernehmen</Button>
+                    <Button color="preussen" onClick={apply} disabled={loading}>Übernehmen</Button>
                 </Group>
             </Stack>
         </Drawer>

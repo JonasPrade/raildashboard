@@ -18,6 +18,7 @@ import {
     Title,
 } from "@mantine/core";
 import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
+import { FlapNumber, Eyebrow } from "../../components/tafel";
 import { useDisclosure } from "@mantine/hooks";
 import { IconHelp, IconSearch, IconX } from "@tabler/icons-react";
 import { useSearchParams } from "react-router-dom";
@@ -245,9 +246,21 @@ export default function MapPage() {
             <Container size="xl" py="xl">
                 <Stack gap="xl">
                     {viewToggle}
-                    <Stack gap="xs">
-                        <Title order={2}>Projekte nach Projektgruppen</Title>
-                        <Text size="sm" c="dimmed">
+                    <Stack gap={6}>
+                        <Eyebrow>Schienenprojekte · Liste</Eyebrow>
+                        <Title
+                            order={2}
+                            style={{
+                                fontFamily: "var(--font-display)",
+                                textTransform: "uppercase",
+                                margin: 0,
+                                letterSpacing: "-0.015em",
+                                lineHeight: 0.95,
+                            }}
+                        >
+                            Projekte nach <em style={{ fontStyle: "normal", color: "var(--led)" }}>Projektgruppen</em>
+                        </Title>
+                        <Text size="sm" c="dimmed" style={{ maxWidth: 540 }}>
                             Wähle eine Projektgruppe aus, um alle zugehörigen Projekte zu sehen.
                         </Text>
                     </Stack>
@@ -350,9 +363,50 @@ export default function MapPage() {
                         </Group>
                     ) : selectedGroup ? (
                         <Stack gap="md">
-                            <Group justify="space-between" align="center">
-                                <Title order={3}>Projekte</Title>
-                                <Text size="sm" c="dimmed">
+                            <Group
+                                justify="space-between"
+                                align="center"
+                                wrap="nowrap"
+                                style={{
+                                    background: "var(--bg2)",
+                                    border: "1px solid var(--rule)",
+                                    borderLeft: "3px solid var(--info)",
+                                    padding: "16px 20px",
+                                }}
+                            >
+                                <Group gap="md" align="center" wrap="nowrap">
+                                    <FlapNumber
+                                        n={projects.length}
+                                        digits={Math.max(2, String(projects.length).length)}
+                                        width={42}
+                                        height={52}
+                                        fontSize={32}
+                                    />
+                                    <Stack gap={2}>
+                                        <Eyebrow>{selectedGroup.short_name ?? "Projektgruppe"}</Eyebrow>
+                                        <Title
+                                            order={3}
+                                            style={{
+                                                fontFamily: "var(--font-display)",
+                                                textTransform: "uppercase",
+                                                margin: 0,
+                                                letterSpacing: "-0.005em",
+                                            }}
+                                        >
+                                            Projekte
+                                        </Title>
+                                    </Stack>
+                                </Group>
+                                <Text
+                                    style={{
+                                        fontFamily: "var(--font-mono)",
+                                        fontSize: 11,
+                                        letterSpacing: "0.14em",
+                                        textTransform: "uppercase",
+                                        color: "var(--ink3)",
+                                        fontWeight: 700,
+                                    }}
+                                >
                                     {localSearch.trim()
                                         ? `${projects.length} von ${superiorFiltered.length} Projekten`
                                         : projects.length === 1

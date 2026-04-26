@@ -22,13 +22,6 @@ import {
     type VibEntryProposed,
 } from "../../shared/api/queries";
 
-const CATEGORY_COLORS: Record<string, string> = {
-    laufend: "blue",
-    neu: "green",
-    potentiell: "yellow",
-    abgeschlossen: "gray",
-};
-
 // Sub-sections we look for in raw_text
 const SUBSECTIONS: { key: string; label: string; pattern: RegExp }[] = [
     { key: "vz", label: "Verk. Zielsetzung", pattern: /Verkehrliche\s+Zielsetzung/i },
@@ -38,13 +31,6 @@ const SUBSECTIONS: { key: string; label: string; pattern: RegExp }[] = [
     { key: "ti", label: "Teilinbetriebnahmen", pattern: /Teilinbetriebnahmen/i },
     { key: "pk", label: "Projektkenndaten", pattern: /Projektkenndaten/i },
 ];
-
-function rawTextQualityColor(len: number): string {
-    if (len === 0) return "red";
-    if (len < 200) return "orange";
-    if (len < 800) return "yellow";
-    return "green";
-}
 
 function RawTextCell({
     entry,
@@ -57,7 +43,6 @@ function RawTextCell({
 }) {
     const raw = entry.raw_text ?? "";
     const len = raw.length;
-    const qualityColor = rawTextQualityColor(len);
 
     const detected = SUBSECTIONS.filter((s) => s.pattern.test(raw));
     const missing = SUBSECTIONS.filter((s) => !s.pattern.test(raw));

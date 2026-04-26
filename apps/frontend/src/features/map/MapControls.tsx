@@ -40,13 +40,13 @@ export default function MapControls({
         >
             <div
                 style={{
-                    background: "rgba(251, 249, 248, 0.85)",
+                    background: "rgba(255, 255, 255, 0.92)",
                     backdropFilter: "blur(20px)",
                     WebkitBackdropFilter: "blur(20px)",
-                    borderRadius: "var(--radius-sharp)",
+                    borderRadius: 0,
                     boxShadow: "var(--shadow-float)",
                     padding: "12px",
-                    border: "1px solid var(--c-outline-ghost)",
+                    border: "1px solid var(--rule)",
                 }}
             >
                 <Stack gap="sm">
