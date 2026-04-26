@@ -85,8 +85,17 @@ Siehe: `docs/features/feature-new-project-wizard.md`
 - [ ] **BVWP-Datenimport** — Übernahme der BVWP-Daten aus der Legacy-Datenbank. Voraussetzung für die Anzeige der BVWP-Bewertung (Display-Feature bereits implementiert).
 
 - [ ] Cleanup Database structure. Evaluate
-- [ ] **New Design** — Integrate a new design layout created by the user via Claude Design. Replace/extend the current Chronicle design system based on the provided layout.
-- [ ] **Design Bug: "Abmelden" button** — Font color and background color are nearly identical, making the button unreadable. Fix contrast in header/auth button styles.
+### Rebrand · Richtung F (Bahnhofshalle Tag)
+
+Brand-Wechsel weg vom FAZ-/Chronicle-Editorial hin zum Bahnsteig-Tafel-Idiom: warmweiße Flächen, Anthrazit, **Gold (#c98a00)** als Akzent, **Preußenblau (#0f2347)** als Gewicht, Archivo Narrow + IBM Plex Sans/Mono, scharfe Kanten, kein globaler Dark-Mode (dunkle Flächen nur in der neuen `Tafel`-Komponentenfamilie).
+
+Quelle: `docs/DESIGN.md` (am 2026-04-25 auf Richtung F neu geschrieben). Vollständiger Plan: `docs/features/feature-rebrand-direction-f.md`.
+
+- [x] **Phase 1 — Foundations**: Archivo Narrow + IBM Plex Sans/Mono via Google Fonts, `tokens.css` neu geschrieben, `theme.ts` auf `preussen` als primary umgestellt.
+- [x] **Phase 2 — Chronicle-Komponenten umbauen**: `ChronicleHeadline`/`Card`/`Button`/`DataChip` an F angepasst (Public Props erhalten).
+- [x] **Phase 3 — Tafel-Familie neu**: `apps/frontend/src/components/tafel/` mit `Wordmark`, `Signet`, `MiniBoard`, `FlapDigit`, `Ticker`, `KpiCard`, `SectionHead`, `Eyebrow`. Header trägt Wordmark + Signet.
+- [x] **Phase 4 — Sweep**: Noto Serif + Work Sans entfernt; alle alten `--c-*`-Tokens, `petrol`, `Schienengrün`-Referenzen aus Source eliminiert. Abmelden-Kontrast durch neue Token-Logik (Anthrazit auf Weiß) gelöst.
+- [ ] **Phase 5 — Visual QA**: Klick-Pfade durch alle Top-Level-Routen, Review-Checkliste neu schreiben.
 - [ ] Bug-Report: A Button in the right corner where everybody can report Bugs or Problems (logged in users dont have to add there contact information). Bugs should be collect in fitting tool and solved by ai
 - [ ] Kennzahlen Marktuntersuchungsbericht Bundesnetzagentur -> wichtigsten Entwicklungskennzahlen online stellen
 - [ ] Integration API Bauinfoportal zu Dashboard
