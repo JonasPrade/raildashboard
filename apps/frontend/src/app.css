@@ -34,34 +34,25 @@
     opacity: 0.75;
 }
 
-/* Chronicle global base */
+/* Global base */
 body {
-    background-color: var(--c-surface);
-    color: var(--c-on-surface);
+    background-color: var(--bg);
+    color: var(--ink);
     font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.6;
     margin: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-/* Self-hosted fonts */
+p { line-height: 1.65; }
+
+/* Self-hosted Inter as offline fallback for IBM Plex Sans
+   (Archivo Narrow / IBM Plex Sans / IBM Plex Mono load from Google Fonts in index.html) */
 @font-face {
     font-family: "Inter";
     src: url("/fonts/inter/Inter-VariableFont_opsz,wght.ttf") format("truetype");
-    font-weight: 100 900;
-    font-style: normal;
-    font-display: swap;
-}
-@font-face {
-    font-family: "Work Sans";
-    src: url("/fonts/work-sans/WorkSans-VariableFont_wght.ttf") format("truetype");
-    font-weight: 100 900;
-    font-style: normal;
-    font-display: swap;
-}
-
-/* Noto Serif — self-hosted for Chronicle design system */
-@font-face {
-    font-family: "Noto Serif";
-    src: url("/fonts/noto-serif/NotoSerif-VariableFont.ttf") format("truetype");
     font-weight: 100 900;
     font-style: normal;
     font-display: swap;

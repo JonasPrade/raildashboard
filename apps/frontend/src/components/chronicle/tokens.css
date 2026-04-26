@@ -1,23 +1,41 @@
-/* Chronicle Design System — global token layer
-   Tokens are available on every element. No wrapper class needed. */
+/* Design tokens — Direction F · Bahnhofshalle Tag.
+   Spec: docs/DESIGN.md. Migration plan: docs/features/feature-rebrand-direction-f.md. */
 
 :root {
-    /* --- Colors --- */
-    --c-primary:             #041920;
-    --c-secondary:           #006a6a;
-    --c-surface:             #fbf9f8;
-    --c-surface-low:         #f5f3f3;
-    --c-surface-lowest:      #ffffff;
-    --c-surface-high:        #e8e5e4;
-    --c-tertiary-container:  #dff0ef;
-    --c-outline-ghost:       rgba(194, 199, 202, 0.15);
-    --c-shadow:              rgba(27, 28, 28, 0.06);
-    --c-on-primary:          #ffffff;
-    --c-on-surface:          #041920;
+    /* ── Surfaces · Hallenlicht ─────────────────────────────────── */
+    --bg:        #ffffff;
+    --bg2:       #f3f1ec;
+    --bg3:       #e9e6df;
+    --bg4:       #dedad0;
+    --rule:      #d6d2c6;
+    --ruleHot:   #b8b2a3;
 
-    /* --- Typography --- */
-    --font-serif: "Noto Serif", Georgia, serif;
-    --font-sans:  "Inter", system-ui, -apple-system, sans-serif;
+    /* ── Ink ────────────────────────────────────────────────────── */
+    --ink:       #0d1013;
+    --ink2:      #3d4550;
+    --ink3:      #7a8390;
+
+    /* ── Accents ────────────────────────────────────────────────── */
+    --led:       #c98a00;
+    --ledHot:    #e8a417;
+    --ledDim:    #7a5300;
+    --info:      #0f2347;
+
+    /* ── Status ─────────────────────────────────────────────────── */
+    --signal:    #c41a1a;
+    --signalDim: #8a1818;
+    --go:        #058a44;
+    --goDim:     #03602e;
+
+    /* ── Tafel · dark surfaces (component-scoped) ───────────────── */
+    --board:     #111418;
+    --board2:    #1b2028;
+    --boardRule: #2a323b;
+
+    /* ── Typography ─────────────────────────────────────────────── */
+    --font-display: "Archivo Narrow", "Oswald", Impact, sans-serif;
+    --font-mono:    "IBM Plex Mono", "JetBrains Mono", ui-monospace, monospace;
+    --font-sans:    "IBM Plex Sans", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
 
     --font-size-display:  2rem;
     --font-size-headline: 1.25rem;
@@ -25,10 +43,12 @@
 
     --letter-spacing-tight: -0.02em;
     --letter-spacing-data:   0.05em;
+    --letter-spacing-mono:   0.14em;
 
-    /* --- Shape & Depth --- */
-    --radius-sharp:   0.125rem;
-    --shadow-float:   0 12px 32px -4px var(--c-shadow);
-    --border-accent:  3px solid var(--c-secondary);
-    --gap-editorial:  1.5rem;
+    /* ── Shape & depth ──────────────────────────────────────────── */
+    --radius-sharp:  0;
+    --shadow-float:  0 6px 14px -8px rgba(13, 16, 19, 0.2);
+    --border-accent: 2px solid var(--ink);
+    --gap-editorial: 1.5rem;
+
 }
