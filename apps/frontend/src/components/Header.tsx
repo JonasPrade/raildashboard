@@ -5,37 +5,36 @@ import { NavLink } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { LoginModal } from "../features/auth/LoginModal";
 import { useUnassignedFinves, useUnassignedVibEntries } from "../shared/api/queries";
-import { ChronicleButton, ChronicleHeadline } from "./chronicle";
+import { ChronicleButton } from "./chronicle";
+import { Wordmark, Signet } from "./tafel";
 
-const desktopNavLinkStyle: React.CSSProperties = {
+const navLinkBase: React.CSSProperties = {
     textDecoration: "none",
-    color: "rgba(255,255,255,0.75)",
-    padding: "6px 12px",
-    borderRadius: 2,
-    fontWeight: 500,
-    fontSize: "0.9375rem",
-};
-
-const desktopNavLinkActiveStyle: React.CSSProperties = {
-    ...desktopNavLinkStyle,
-    color: "#ffffff",
-    borderBottom: "2px solid var(--c-secondary)",
-};
-
-const drawerNavLinkStyle: React.CSSProperties = {
-    textDecoration: "none",
-    color: "var(--c-on-surface)",
+    color: "var(--ink2)",
     padding: "8px 12px",
-    borderRadius: 2,
-    fontWeight: 500,
-    fontSize: "0.9375rem",
-    display: "block",
+    fontFamily: "var(--font-mono)",
+    fontWeight: 700,
+    fontSize: "12px",
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
 };
 
-const drawerNavLinkActiveStyle: React.CSSProperties = {
-    ...drawerNavLinkStyle,
-    color: "var(--c-secondary)",
-    borderBottom: "2px solid var(--c-secondary)",
+const navLinkActive: React.CSSProperties = {
+    ...navLinkBase,
+    color: "var(--ink)",
+    borderBottom: "2px solid var(--led)",
+};
+
+const drawerNavBase: React.CSSProperties = {
+    ...navLinkBase,
+    display: "block",
+    padding: "10px 12px",
+};
+
+const drawerNavActive: React.CSSProperties = {
+    ...drawerNavBase,
+    color: "var(--ink)",
+    borderBottom: "2px solid var(--led)",
 };
 
 export function Header() {
@@ -53,18 +52,18 @@ export function Header() {
 
     const desktopNavLinks = (
         <>
-            <NavLink to="/" end style={({ isActive }) => isActive ? desktopNavLinkActiveStyle : desktopNavLinkStyle} onClick={closeDrawer}>
-                Projekte
+            <NavLink to="/" end style={({ isActive }) => isActive ? navLinkActive : navLinkBase} onClick={closeDrawer}>
+                ▸ Projekte
             </NavLink>
-            <NavLink to="/finves" style={({ isActive }) => isActive ? desktopNavLinkActiveStyle : desktopNavLinkStyle} onClick={closeDrawer}>
-                Haushalt
+            <NavLink to="/finves" style={({ isActive }) => isActive ? navLinkActive : navLinkBase} onClick={closeDrawer}>
+                ▸ Haushalt
             </NavLink>
             {isEditorOrAdmin && (
-                <NavLink to="/admin" style={({ isActive }) => isActive ? desktopNavLinkActiveStyle : desktopNavLinkStyle} onClick={closeDrawer}>
-                    <Group gap={6} align="center">
-                        Administration
+                <NavLink to="/admin" style={({ isActive }) => isActive ? navLinkActive : navLinkBase} onClick={closeDrawer}>
+                    <Group gap={6} align="center" wrap="nowrap">
+                        <span>▸ Admin</span>
                         {totalUnassigned > 0 && (
-                            <Badge color="red" size="xs" variant="filled" circle>
+                            <Badge color="gold.5" size="xs" variant="filled" circle styles={{ root: { color: "var(--ink)" } }}>
                                 {totalUnassigned}
                             </Badge>
                         )}
@@ -76,18 +75,18 @@ export function Header() {
 
     const drawerNavLinks = (
         <>
-            <NavLink to="/" end style={({ isActive }) => isActive ? drawerNavLinkActiveStyle : drawerNavLinkStyle} onClick={closeDrawer}>
-                Projekte
+            <NavLink to="/" end style={({ isActive }) => isActive ? drawerNavActive : drawerNavBase} onClick={closeDrawer}>
+                ▸ Projekte
             </NavLink>
-            <NavLink to="/finves" style={({ isActive }) => isActive ? drawerNavLinkActiveStyle : drawerNavLinkStyle} onClick={closeDrawer}>
-                Haushalt
+            <NavLink to="/finves" style={({ isActive }) => isActive ? drawerNavActive : drawerNavBase} onClick={closeDrawer}>
+                ▸ Haushalt
             </NavLink>
             {isEditorOrAdmin && (
-                <NavLink to="/admin" style={({ isActive }) => isActive ? drawerNavLinkActiveStyle : drawerNavLinkStyle} onClick={closeDrawer}>
-                    <Group gap={6} align="center">
-                        Administration
+                <NavLink to="/admin" style={({ isActive }) => isActive ? drawerNavActive : drawerNavBase} onClick={closeDrawer}>
+                    <Group gap={6} align="center" wrap="nowrap">
+                        <span>▸ Admin</span>
                         {totalUnassigned > 0 && (
-                            <Badge color="red" size="xs" variant="filled" circle>
+                            <Badge color="gold.5" size="xs" variant="filled" circle styles={{ root: { color: "var(--ink)" } }}>
                                 {totalUnassigned}
                             </Badge>
                         )}
@@ -97,40 +96,43 @@ export function Header() {
         </>
     );
 
+    const userBadge = user && (
+        <span
+            style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "10.5px",
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: "var(--ink3)",
+                fontWeight: 700,
+            }}
+        >
+            ▸ {user.username}
+        </span>
+    );
+
     const authSection = user ? (
         <Group gap="xs">
-            <span style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.875rem" }}>
-                {user.username}
-            </span>
-            <ChronicleButton
-                variant="ghost"
-                onClick={logout}
-                style={{ color: "var(--c-on-primary)", borderColor: "rgba(255,255,255,0.2)", fontSize: "0.875rem", padding: "4px 12px" }}
-            >
+            {userBadge}
+            <ChronicleButton variant="ghost" size="sm" onClick={logout}>
                 Abmelden
             </ChronicleButton>
         </Group>
     ) : (
-        <ChronicleButton
-            variant="ghost"
-            onClick={() => { closeDrawer(); openLogin(); }}
-            style={{ color: "var(--c-on-primary)", borderColor: "rgba(255,255,255,0.2)" }}
-        >
+        <ChronicleButton variant="primary" size="sm" onClick={() => { closeDrawer(); openLogin(); }}>
             Anmelden
         </ChronicleButton>
     );
 
     const drawerAuthSection = user ? (
         <Group gap="xs">
-            <span style={{ fontSize: "0.875rem", color: "var(--c-on-surface)", opacity: 0.6 }}>
-                {user.username}
-            </span>
-            <ChronicleButton variant="ghost" onClick={logout} style={{ fontSize: "0.875rem", padding: "4px 12px" }}>
+            {userBadge}
+            <ChronicleButton variant="ghost" size="sm" onClick={logout}>
                 Abmelden
             </ChronicleButton>
         </Group>
     ) : (
-        <ChronicleButton onClick={() => { closeDrawer(); openLogin(); }}>
+        <ChronicleButton variant="primary" size="sm" onClick={() => { closeDrawer(); openLogin(); }}>
             Anmelden
         </ChronicleButton>
     );
@@ -140,16 +142,29 @@ export function Header() {
             <Group
                 justify="space-between"
                 px="md"
-                py="xs"
-                style={{ backgroundColor: "var(--c-primary)", height: "100%" }}
+                py={6}
+                style={{
+                    backgroundColor: "var(--bg)",
+                    height: "100%",
+                    borderTop: "2px solid var(--ink)",
+                    borderBottom: "1px solid var(--rule)",
+                }}
             >
-                <NavLink to="/" className="header-title-link">
-                    <ChronicleHeadline as="h1" style={{ color: "var(--c-on-primary)", fontSize: "1.25rem" }}>
-                        Schienenprojekte-Dashboard
-                    </ChronicleHeadline>
+                <NavLink
+                    to="/"
+                    className="header-title-link"
+                    style={{ display: "inline-flex", alignItems: "center", gap: 12 }}
+                >
+                    <Signet size={36} title="Schienendashboard" />
+                    <Wordmark size="sm">Schienendashboard</Wordmark>
                 </NavLink>
                 {isMobile ? (
-                    <Burger opened={drawerOpened} onClick={openDrawer} aria-label="Navigation öffnen" color="white" />
+                    <Burger
+                        opened={drawerOpened}
+                        onClick={openDrawer}
+                        aria-label="Navigation öffnen"
+                        color="var(--ink)"
+                    />
                 ) : (
                     <Group gap="xs">
                         {desktopNavLinks}
