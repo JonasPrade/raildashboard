@@ -21,9 +21,9 @@ describe("ChronicleButton", () => {
         expect(screen.getByRole("button")).toBeDisabled();
     });
 
-    it("renders ghost variant without gradient background", () => {
+    it("renders ghost variant with transparent background", () => {
         const { container } = render(<ChronicleButton variant="ghost">Ghost</ChronicleButton>);
         const btn = container.firstChild as HTMLElement;
-        expect(btn.style.background).toBe("");
+        expect(btn.style.background).toBe("transparent");
     });
 });
