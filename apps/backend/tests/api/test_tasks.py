@@ -12,6 +12,7 @@ def celery_eager(monkeypatch):
     """Run Celery tasks synchronously in-process; no broker needed."""
     monkeypatch.setattr(celery_app.conf, "task_always_eager", True)
     monkeypatch.setattr(celery_app.conf, "task_eager_propagates", True)
+    monkeypatch.setattr(celery_app.conf, "task_store_eager_result", True)
 
 
 @pytest.fixture(autouse=True)
