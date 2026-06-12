@@ -2,6 +2,10 @@
 
 Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`.
 
+> **Steuerung läuft über das GitHub-Projects-Board** (`docs/github-projects.md`),
+> nicht über diese Datei. Diese Roadmap ist eine Lese-Übersicht; verbindliche
+> Reihenfolge und Status stehen im Board. Lose Ideen → `docs/user-backlog.md`.
+
 ---
 
 ## Short-Term Features
@@ -11,6 +15,81 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 This tasks must be done by human:
 - [ ] Import of the Haushalt Berichte 2020 - 2025
 - [ ] Update time slots Hochleistungskorridore
+
+---
+
+## v0.0.5 — geplant: Operations & Resilience
+
+Themenschwerpunkt: die im v0.0.4-Rollout aufgedeckten Stabilitäts- und Tooling-Lücken schließen, plus zwei kleinere User-Features. Bewusst überschaubarer Scope, damit die Version zügig ausgeliefert werden kann.
+
+### Operations (alle aus dem v0.0.4-Rollout)
+
+- [x] **Backup um Docker-Volumes erweitern** — *Priorität: hoch*
+  `scripts/backup_db.sh` erzeugt jetzt pro Lauf paarig `raildashboard_<ts>.dump` + `uploads_<ts>.tar.gz` (tar.gz des Volumes `raildashboard_uploads`, via `docker run alpine`). 14-Tage-Retention für beide Datei-Typen separat. Steuerung per `SKIP_UPLOADS_BACKUP=1` / `UPLOADS_VOLUME=…`. `scripts/restore_db.sh` findet das paarige Tar automatisch und restored es (Volume wird vor extract geleert); `UPLOADS=none` / `UPLOADS=<pfad>` als Overrides. Makefile-Target `docker-backup-db` analog erweitert. Doku in `docs/production_setup.md` (Sektionen "Tägliches Backup via Docker", "Uploads-Volume", "Backup-System"). Systemd-Service bleibt unverändert, da er bereits `scripts/backup_db.sh` aufruft.
+
+- [x] **Migrations-Race zwischen `backend` und `worker` beheben** — *Priorität: hoch*
+  Entrypoint `apps/backend/docker-entrypoint.sh` respektiert jetzt `"$@"` (statt hardcoded `exec uvicorn`) und überspringt den Alembic-Schritt wenn `SKIP_MIGRATIONS=1`. Dockerfile bekommt ein `CMD` mit dem Standard-Uvicorn, damit das Backend unverändert läuft. Worker-Service in `docker-compose.yml` setzt `SKIP_MIGRATIONS=1` und `depends_on.backend.condition: service_started`. Damit migriert nur noch das Backend, der Worker exec()t seine `command: celery ...`-Zeile (was vorher übrigens auch nicht passierte — siehe Doku-Update in `apps/backend/README.md`).
+
+- [x] **`scripts/transfer_db.sh` robust machen** — *Priorität: mittel*
+  Skript komplett umgebaut: Non-empty-Verifikation lokal+remote, Pre-Restore-Safety-Backup von prod (`prod_BEFORE_dev_overwrite_<ts>.dump`), Backend+Worker werden vorm Restore gestoppt und am Ende immer wieder gestartet, `pg_terminate_backend`, `grep -v '^SET transaction_timeout'`, `psql -v ON_ERROR_STOP=1 --single-transaction`, `COUNT(*)`-Vergleich auf `project`/`finve`/`change_log`. Gilt für beide Richtungen (`dev-to-prod` und `prod-to-dev`). Doku in `docs/production_setup.md` aktualisiert; manueller Pfad bleibt als Debug-Fallback dokumentiert.
+
+### Features
+
+- [ ] **ProjectProgress — Fortschrittsanzeige End-to-End** *(Backend + Frontend)* — *Priorität: hoch, das große Thema von v0.0.5*
+
+  Strukturierte Erfassung und Visualisierung des Projektfortschritts (Vorplanung → Entwurfsplanung → Genehmigungsplanung/PFA → Ausführungsplanung → Bau → Inbetriebnahme → abgeschlossen). Mehrere Quellen schreiben in dasselbe Modell (manuell, VIB, später Haushalt/Presse). Ziel: in jeder Projektsicht (Detail, Liste, Karte, Übersicht) sofort erkennbar machen, in welcher Phase ein Projekt steht und wann der nächste Meilenstein erreicht wurde.
+
+  Bestehendes Feature-Doc: `docs/features/feature-project-progress.md` — Datenmodell, Endpoints und Komponentenname sind dort bereits skizziert; **dieser Roadmap-Eintrag erweitert den Scope um Aggregation, Listen-/Karten-Anzeige und Filterung**, weil reine Timeline allein zu wenig ist.
+
+  **Phase 1 — Foundation (Daten + API)**
+  - [ ] Enum `ProjectProgressStatus` (`vorplanung`, `entwurfsplanung`, `genehmigungsplanung`, `ausfuehrungsplanung`, `bau`, `inbetriebnahme`, `abgeschlossen`) — als Python-Enum **und** Postgres-Check-Constraint, damit die Anzeige konsistent bleibt.
+  - [ ] Tabelle `project_progress` (id, project_id, status, date, source, comment, created_at, created_by_user_id) + Alembic-Migration.
+  - [ ] Schemas `ProjectProgressCreate` / `ProjectProgressRead`; CRUD `crud/project_progress.py`.
+  - [ ] Endpoints unter `api/v1/endpoints/project_progress.py`: `GET /projects/{id}/progress` (public), `POST /projects/{id}/progress` (editor/admin), `DELETE /projects/{id}/progress/{entry_id}` (editor/admin). `make gen-api` nach Fertigstellung.
+  - [ ] Akzeptanzkriterium: API-Tests (`apps/backend/tests/api/test_project_progress.py`) für Create/Read/Delete + Rollen-Check.
+
+  **Phase 2 — Detail-View: Timeline pro Projekt**
+  - [ ] `features/projects/components/ProjectProgressSection.tsx` — Mantine-`Timeline` mit chronologischer Sortierung; pro Eintrag: Status-Badge, Datum, Quelle (`vib_2024`, `manual`, …) als sekundäres Tag, Kommentar als Fließtext.
+  - [ ] Inline-Formular zum Anlegen (Mantine-Form, Date-Picker, Status-Select, Quelle = `manual` automatisch); nur für editor/admin sichtbar.
+  - [ ] Lösch-Button pro Eintrag (editor/admin), mit Confirm-Modal.
+  - [ ] Akzeptanzkriterium: ProjectDetail zeigt für ein Projekt mit ≥2 Einträgen aus verschiedenen Quellen eine korrekt sortierte Timeline; Anlegen + Löschen funktioniert.
+
+  **Phase 3 — Aktueller Phasen-Status auf Projekt-Ebene**
+  - [ ] Helper `compute_current_phase(project_id)` (Backend-Side, in `crud/project_progress.py`) — gibt jüngsten Eintrag oder `None` zurück. Verwendung: in `ProjectListItemSchema` als optionales Feld `current_phase: ProjectProgressStatus | None` mitliefern.
+  - [ ] Performance: in der Listen-API per `joinedload` / Aggregat-Subquery laden, **nicht** N+1.
+  - [ ] Frontend: Phase-Badge in `ProjectCard` (Liste + Karten-Popup) und ProjectDetail-Header. Farbschema in `tokens.css`: Vorplanung=neutral, Bau=Gold (Direction-F-Akzent), Inbetriebnahme=Preußenblau, abgeschlossen=grün.
+  - [ ] Akzeptanzkriterium: Listenansicht mit 800+ Projekten lädt in <500 ms (kein N+1 in `pg_stat_statements` sichtbar).
+
+  **Phase 4 — Filterung & Übersicht**
+  - [ ] Filter-Chip "Phase" auf `/` (Karten- und Listenansicht); URL-Param `?phase=bau`. Mehrfach-Auswahl möglich.
+  - [ ] In `ProjectGroup` neues Feld `default_phase_filter` (optional) — z. B. eine Gruppe "Im Bau" preselektiert `phase=bau`. Migration + Admin-UI.
+  - [ ] Akzeptanzkriterium: `?phase=bau` zeigt nur Projekte mit `current_phase=bau`; Phase-Chip ist mit ProjectGroup-Wechsel kompatibel.
+
+  **Phase 5 — Aggregation auf Parent-Projekte**
+  - [ ] Für übergeordnete Projekte (mit `subprojects`): Phasen-Verteilung der direkten Kinder berechnen und als Mini-Stacked-Bar in der ProjectCard anzeigen ("3 Bau · 1 Planung · 1 Inbetrieb"). Read-only, keine eigene DB-Spalte.
+  - [ ] Akzeptanzkriterium: ein Parent-Projekt mit 5 Sub-Projekten in unterschiedlichen Phasen zeigt den korrekten Stacked-Bar; Klick auf Segment filtert die Sub-Projekt-Liste.
+
+  **Phase 6 — Auto-Extraktion aus VIB**
+  - [ ] In `tasks/vib_ai_extraction.py` zusätzlich `planungsstand` → `ProjectProgressStatus` mappen (LLM-Output normalisieren). Beim Confirm eines VIB-Imports: pro zugeordnetem Projekt einen Eintrag mit `source="vib_{year}"` erzeugen, **nur wenn nicht bereits identischer Status+Quelle+Datum vorhanden** (Idempotenz).
+  - [ ] Akzeptanzkriterium: erneuter VIB-Import desselben Berichts erzeugt keine Duplikate; ein neuer Bericht mit anderem Planungsstand erzeugt einen zusätzlichen Timeline-Eintrag.
+
+  **Out-of-Scope für v0.0.5:**
+  - Auto-Extraktion aus Pressemitteilungen (eigenes Feature, Long-Term).
+  - Gantt-Übersicht über mehrere Projekte (eigenes Feature, Long-Term).
+  - Konfliktauflösung / Deduplizierung zwischen Quellen — alle Einträge bleiben vorerst sichtbar.
+
+- [x] **Add stations to GeoJSON beim Routenakzeptieren** — *Priorität: mittel*
+  `RouteCalculatorForm.onResult` reicht jetzt die Start/Via/End-Stationen ans `GeometryManagementModal` mit. `buildNewGeometry` packt sie als Point-Features in die FeatureCollection — dedupliziert per `op.id` gegen die manuell über „Betriebsstellen hinzufügen" gewählten Punkte, sodass dieselbe OP nicht zweimal landet. Properties: `name`, `op_id`, `feature_type: "operational_point"`.
+
+- [x] **Selective GeoJSON object removal** — *Priorität: niedrig*
+  Im Geometrie-Management neuer Toggle „Einzelne Features auswählen & löschen". Aktiv → existing-line/existing-points-circle-Layer reagieren auf Klicks; ausgewählte Features werden via maplibre-`case`-Paint-Expression rot eingefärbt (statt blau). Selection-State lebt im Modal (`Set<number>` der Feature-Indizes aus der ursprünglichen FeatureCollection). „Auswahl löschen"-Button rebuildet die FC ohne die selektierten Indizes und PATCHt sie via `useUpdateProjectGeometry` (oder löscht die Geometrie ganz, wenn nichts übrig bleibt). Dedupliziert nicht mit „Bestehende Geometrie löschen" — die beiden Toggles sind gegenseitig disabled.
+
+### Out-of-Scope für v0.0.5 (bewusst auf später)
+
+- BVWP-Datenimport (zu groß)
+- VIB-OCR-Bilder im Review (eigener Long-Term-Block)
+- Passwort-Reset per E-Mail (eigener Block)
+- ProjectProgress: Pressemitteilungs-Auto-Extraktion + Gantt-Übersicht (Long-Term)
 
 ---
 
@@ -24,7 +103,7 @@ This tasks must be done by human:
 - [x] Unit-Tests: `test_finve_matching.py` (Fuzzy-Matching), `test_file_storage.py` (Path-Traversal, MIME)
 - [x] Frontend: `@testing-library/react` Setup + Tests für `projectFeatureConfig` und `useAuth` (17 Tests)
 - [ ] `tests/unit/test_haushalt_parser.py` — Parser-Fixture-Tests *(aufwändig, späteres Ticket)*
-- [ ] CI: `pytest` + `pnpm test` als GitHub-Actions-Steps mit Coverage-Report
+- CI-Automatisierung: nach Long-Term verschoben (siehe Long-Term → **CI: Tests in GitHub Actions**)
 
 - [ ] **Special view of Generalsanierung. Timeline when which Generalsanierung is started and when it is finished**
 
@@ -37,8 +116,8 @@ Vollständig implementiert. Backend-Infrastruktur (GraphHopper HTTP client, Rout
 **Prerequisite (human task):** OSM-PBF unter `data/graphhopper/map.osm.pbf` ablegen.
 
 #### Open Routing Tasks
-- [ ] **Add stations to GeoJSON** — When a route is confirmed, add the start/via/end stations as GeoJSON Point features to the geometry, consistent with how other points are already stored.
-- [ ] **Selective GeoJSON object removal** — In the geometry management UI, let the user select individual GeoJSON features (e.g. segments or points) and remove only those, instead of deleting the entire geometry.
+- [x] **Add stations to GeoJSON** — When a route is confirmed, add the start/via/end stations as GeoJSON Point features to the geometry, consistent with how other points are already stored. *(done 2026-05-21; siehe v0.0.5-Eintrag oben)*
+- [x] **Selective GeoJSON object removal** — In the geometry management UI, let the user select individual GeoJSON features (e.g. segments or points) and remove only those, instead of deleting the entire geometry. *(done 2026-05-21; siehe v0.0.5-Eintrag oben)*
 - [x] **Parent GeoJSON auto-merge** — When a sub-project's `geojson_representation` changes, automatically recompute all ancestor projects' geometry as a FeatureCollection of their children's features (arbitrary depth, synchronous, no migration needed). See: `docs/features/feature-parent-geojson-merge.md`
 
 Siehe: `docs/features/feature-routing.md`
@@ -78,10 +157,6 @@ Siehe: `docs/features/feature-new-project-wizard.md`
 
 ### Sonstiges
 
-- [ ] **ProjectProgress** *(Backend + Frontend)*
-  Fortschrittsstand eines Projekts (Planungs-, Genehmigungs-, Bauphase) aus mehreren Quellen (VIB, manuell, Pressemitteilungen).
-  Siehe: `docs/features/feature-project-progress.md`
-
 - [ ] **BVWP-Datenimport** — Übernahme der BVWP-Daten aus der Legacy-Datenbank. Voraussetzung für die Anzeige der BVWP-Bewertung (Display-Feature bereits implementiert).
 
 - [ ] Cleanup Database structure. Evaluate
@@ -114,6 +189,9 @@ Siehe: `docs/features/feature-new-project-wizard.md`
 
 - [ ] **VIB/Haushalt-Matching: Lernen aus manuellen Zuordnungen**
   Der aktuelle Fuzzy-Matching-Algorithmus (`vib_matching.py`, `finve_matching.py`) berechnet Vorschläge einmalig beim Import und hat kein Gedächtnis. Bestätigte Zuordnungen aus vergangenen Importen (Tabellen `vib_entry_project`, `finve_to_project`) könnten als Trainingsgrundlage dienen: Wenn ein Vorhaben-/FinVe-Name bereits früher manuell einem Projekt zugeordnet wurde, sollte diese Entscheidung als starker Hinweis in zukünftigen Importen gewertet werden. Mögliche Ansätze: (a) Exact-/Near-Match gegen historische `(name_raw, project_id)`-Paare vor dem Fuzzy-Scoring; (b) Boost des Fuzzy-Scores für Projekte, die für ähnliche Namen bereits gewählt wurden. Kein Modell-Training nötig — reine Datenbankabfrage zur Parse-Zeit.
+
+- [ ] **CI: Tests in GitHub Actions** *(aus v0.0.5 hierher verschoben)*
+  `pytest` (Backend) + `pnpm test` (Frontend) als GitHub-Actions-Steps; Coverage-Report als Artifact. Trigger: Push auf `master` und Pull-Requests. Backend-Job startet einen Postgres-Service-Container; Frontend-Job führt `pnpm install --frozen-lockfile && pnpm test`. Akzeptanzkriterium: roter CI-Status bei fehlschlagenden Tests blockiert Merge in `master`.
 
 ---
 

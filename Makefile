@@ -18,6 +18,7 @@ ALEMBIC      := .venv/bin/alembic
         lint lint-frontend \
         migrate migrate-create \
         backup-db restore-db list-backups \
+        release-check \
         list-users create-user change-password \
         gen-api \
         list-parse-results dump-parse-result \
@@ -66,6 +67,11 @@ help:
 	@echo "                       Usage: make restore-db BACKUP=backups/file.dump"
 	@echo "                       Optional: DB_URL=... ENV_FILE=... UPLOADS=none|path"
 	@echo "    list-backups       List all local dump files with size and date"
+	@echo ""
+	@echo "  Release"
+	@echo "    release-check      Fail if the release milestone has open issues"
+	@echo "                       Usage: make release-check MILESTONE=v0.0.5"
+	@echo "                       Required green before tagging a new release version"
 	@echo ""
 	@echo "  User management"
 	@echo "    list-users         List all users with their roles"
@@ -188,6 +194,38 @@ restore-db:
 	    echo "Usage: make restore-db BACKUP=backups/<dateiname>.dump"; exit 1; \
 	fi
 	@DB_URL="$(DB_URL)" ENV_FILE="$(ENV_FILE)" bash scripts/restore_db.sh "$(BACKUP)"
+
+# ---------------------------------------------------------------------------
+# Release gate
+# ---------------------------------------------------------------------------
+
+# Fail if the release milestone still has open issues (incl. "Needs User Test").
+# Must be green before tagging a new release version (see AGENT.md → Release Gate,
+# docs/github-projects.md). Usage: make release-check MILESTONE=v0.0.5
+REPO ?= JonasPrade/raildashboard
+release-check:
+	@if [ -z "$(MILESTONE)" ]; then \
+	    echo "Usage: make release-check MILESTONE=v0.0.5"; exit 2; \
+	fi
+	@command -v gh >/dev/null 2>&1 || { echo "Fehler: gh CLI nicht gefunden."; exit 1; }
+	@OPEN=$$(gh issue list --repo $(REPO) --milestone "$(MILESTONE)" --state open --json number --jq 'length' 2>/dev/null); \
+	if [ -z "$$OPEN" ]; then \
+	    echo "Fehler: Milestone '$(MILESTONE)' nicht gefunden oder gh nicht autorisiert."; exit 1; \
+	fi; \
+	if [ "$$OPEN" -gt 0 ]; then \
+	    echo ""; \
+	    echo "✗ Release blockiert: $$OPEN offene(s) Issue(s) im Milestone $(MILESTONE) (inkl. 'Needs User Test')."; \
+	    echo ""; \
+	    gh issue list --repo $(REPO) --milestone "$(MILESTONE)" --state open; \
+	    echo ""; \
+	    echo "→ Issues abschließen (oder Status 'Done'), dann erneut: make release-check MILESTONE=$(MILESTONE)"; \
+	    exit 1; \
+	fi
+	@echo "✓ Milestone $(MILESTONE) hat keine offenen Issues — bereit für den Release-Tag."
+
+# ---------------------------------------------------------------------------
+# Backups (cont.)
+# ---------------------------------------------------------------------------
 
 # List all local backup files (DB dumps + uploads tarballs) with size and date.
 list-backups:

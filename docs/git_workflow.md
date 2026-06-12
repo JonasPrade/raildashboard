@@ -8,3 +8,7 @@
   - `fix(api): correct bounding-box serialisation`
   - `docs: update OSM import instructions`
   - `chore: add Makefile`
+
+### Cutting a release tag
+
+Before `git tag vX.Y.Z`, `make release-check MILESTONE=vX.Y.Z` must exit 0. It blocks the release if the milestone still has open issues (incl. `Needs User Test`). Background and workflow: see `AGENT.md` → Release Gate and `docs/github-projects.md`.

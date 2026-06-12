@@ -1,5 +1,12 @@
 Before doing any work in this repository, always read AGENT.md in full.
 
+## Roadmap-Steuerung
+
+Die Roadmap wird über ein **GitHub-Projects-Board** gesteuert — Regeln für die
+Zusammenarbeit (Status-Wechsel, Issue-Format, User-Backlog, Release-Gate) stehen
+in [`docs/github-projects.md`](docs/github-projects.md). `docs/roadmap.md` ist
+nur noch Lese-Übersicht; lose Ideen kommen in `docs/user-backlog.md`.
+
 ## Alembic / Database Migrations
 
 Use the Makefile commands for all Alembic interactions — never call `alembic` directly.

@@ -6,10 +6,10 @@ This file applies to the entire repository. Read it before making any substantia
 
 -  **Default language:** English. Write code, comments, documentation, commit messages, and PR descriptions in English. UI strings displayed to end users are in German.
 -  **Commit messages must always be in English** — no exceptions, even if the conversation is in German.
-- When asked to update or edit the roadmap, modify roadmap.md directly. Do NOT implement features unless explicitly asked to implement them.
+- **Steuerung läuft über das GitHub-Projects-Board**, nicht über `roadmap.md` — siehe `docs/github-projects.md`. Neue Arbeit entsteht als Issue im Board. `docs/roadmap.md` ist nur noch Lese-Übersicht (referenziert Issue-Codes, keine Issue-Nummern) und wird bei Phasenabschluss nachgezogen; beim Bearbeiten direkt editieren, aber keine Steuerungs-Semantik mehr hineinlegen. Do NOT implement features unless explicitly asked to implement them.
 - Never attempt roadmap items explicitly marked as **human task** — skip them entirely.
 - When updating documentation, update ALL documentation layers (README, AGENT.md, roadmap.md, frontend docs, etc.) — not just a single file. Look also at the section ## Keep documentation in this file
-- **Roadmap Style**: if a task is marked with [p] it means that it has to be planned first. If user asks for doing - create a plan and notice the whole plan in the roadmap.md - substitute the open task with a section started by a header with ###
+- **Roadmap Style**: `docs/roadmap.md` ist eine Lese-Übersicht. Planung und Status passieren im GitHub-Projects-Board (`docs/github-projects.md`), nicht über `[p]`/`[ ]`-Checkboxen in der Roadmap.
  
 ## Feature Development Workflow
 
@@ -27,28 +27,18 @@ Features are documented in two layers:
 2. Code is written only after the feature file exists.
 3. When the feature is done, mark it `[x]` in the roadmap.
 
-## Review Checklist
+## Manuelle Tests & Release-Gate
 
-After every **substantial** change — new endpoints, new UI, schema/migration changes, new features — rewrite `docs/review-checklist.md` from scratch. The file tells the user exactly what they must verify manually.
+Manuelle Verifikation läuft über das **GitHub-Projects-Board**, nicht mehr über eine `review-checklist.md`. Vollständige Regeln: `docs/github-projects.md`.
 
-**Scope:**
-- **Include:** concrete click paths and checks the user must perform (e.g. "open `/finves`, confirm SV-FinVes appear in their own section").
-- **Exclude:** blockers on the agent's side (API keys, credentials) and open questions / risks — those belong in `docs/roadmap.md` or `docs/features/feature-<name>.md`.
+- **Sofort testbare** Verifikation einer substanziellen Änderung → das zugehörige Issue auf Board-Status `Needs User Test` setzen und eine konkrete Test-Checkliste als Issue-Kommentar posten (was klicken, welches Ergebnis erwarten, wie bei Fehler reagieren). Issue **nicht** selbst schließen.
+- **Aufgeschobene** Tests (heute nicht ausführbar, z. B. fehlendes Setup oder externe Quelle) → in `docs/manual-tests-backlog.md` eintragen; das Issue darf dann nach `Done`. Das spätere Issue, das den Test ermöglicht, zieht den Eintrag in seine Test-Checkliste hoch.
+- Test-Punkte sind in German, jeder ein konkreter, abhakbarer Klickpfad (`- [ ]`) — nie „prüfen, dass alles funktioniert".
+- **Skip** für reine Doku-Edits, Tippfehler, Kommentar-/Format-Änderungen oder alles ohne Verhaltens-/UI-/Datenänderung.
 
-**Format:** Written in German. Every item is an actionable checkbox (`- [ ]`) — never "check that everything works." File layout:
+### Release Gate
 
-```markdown
-# Review-Checkliste: <short task title>
-
-_Stand: YYYY-MM-DD_
-
-## Was du prüfen musst
-
-- [ ] <concrete click path / check>
-- [ ] <next check>
-```
-
-**Skip** the checklist for docs-only edits, typo fixes, comment/formatting changes, or anything that does not change behavior, UI, or data.
+Eine Version `v0.0.x` wird erst getaggt, wenn ihr Milestone **kein** offenes Issue und **kein** Issue im Status `Needs User Test` mehr hat. `make release-check` fragt diesen Zustand per `gh` ab und muss 0 zurückgeben, bevor der Release-Tag gesetzt wird.
 
 ## Python Environment
 
