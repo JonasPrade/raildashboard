@@ -147,6 +147,82 @@ make restore-db BACKUP=backups/<datei>.dump \
 make docker-prod-up
 ```
 
+### Späterer dev → prod DB-Transfer (laufender Betrieb)
+
+Wenn die prod-DB nach dem ersten Datenimport nochmal mit dem aktuellen dev-Stand überschrieben werden soll, kann jetzt direkt `scripts/transfer_db.sh dev-to-prod` verwendet werden. Das Skript wurde nach dem v0.0.4-Rollout-Vorfall (2026-04-27, lautlos fehlgeschlagen + halbrestaurierter Zustand möglich) auf folgende Safety Rails aufgerüstet:
+
+- Non-empty-Verifikation des lokalen Dumps **und** der Upload-Zieldatei auf dem Server.
+- **Pre-Restore-Safety-Backup von prod** (`backups/prod_BEFORE_dev_overwrite_<ts>.dump`) — Rollback-Artefakt bleibt lokal liegen.
+- Backend + Worker werden auf dem Server vor dem Restore gestoppt und am Ende **immer** wieder gestartet, auch bei Restore-Failure.
+- `pg_terminate_backend` auf alle verbliebenen DB-Connections.
+- Filter `SET transaction_timeout` (PG17 → PG16 Header-Mismatch).
+- `psql -v ON_ERROR_STOP=1 --single-transaction` → ein Fehler rollt atomar zurück, prod bleibt im pre-restore Zustand.
+- `COUNT(*)`-Vergleich auf `project`/`finve`/`change_log` lokal vs. prod nach dem Restore; ungleiche Zahlen → Exit ≠ 0.
+
+```bash
+./scripts/transfer_db.sh dev-to-prod   # mit Bestätigungs-Prompt vor dem Schreib-Schritt
+./scripts/transfer_db.sh prod-to-dev   # umgekehrt; gleiche Safety-Rails
+```
+
+Bei einem Fehler bleibt der Dump immer in `backups/` liegen, sodass der manuell beschriebene Pfad unten als Fallback weiterhin nutzbar ist.
+
+**Manueller Pfad — falls das Skript nicht passt oder ein Step debuggt werden muss:**
+
+```bash
+# === Auf dem Laptop ===
+cd ~/code/raildashboard
+
+# 1. Frischen Plain-SQL-Dump aus dev erzeugen
+DUMP="backups/dev_to_prod_$(date +%Y%m%d_%H%M%S).sql"
+LOCAL_URL=$(grep ^DATABASE_URL .env | cut -d= -f2- | tr -d '"' \
+  | sed -E 's|^postgresql\+[a-z0-9]+://|postgresql://|')
+pg_dump --format=plain --clean --if-exists --no-owner --no-privileges \
+  "$LOCAL_URL" > "$DUMP"
+ls -lh "$DUMP"
+
+# 2. Sicherheits-Backup der prod-DB ziehen (vor dem Überschreiben!)
+ssh contabo "cd /srv/raildashboard && \
+  docker compose exec -T db pg_dump -U raildashboard -Fc raildashboard" \
+  > "backups/prod_BEFORE_dev_overwrite_$(date +%Y%m%d_%H%M%S).dump"
+
+# 3. Dump auf den Server schieben
+scp "$DUMP" contabo:/srv/raildashboard/backups/
+
+# === Auf dem Server (oder via ssh contabo "...") ===
+cd /srv/raildashboard
+DUMP=backups/dev_to_prod_<TIMESTAMP>.sql   # exakten Namen aus Schritt 3 einsetzen
+
+# 4. Backend + Worker stoppen — sonst blockieren offene Connections die DROPs
+docker compose stop backend worker
+
+# 5. Aktive Verbindungen zur DB hart kappen (Sicherheitsgurt)
+docker compose exec -T db psql -U raildashboard -d postgres -c "
+  SELECT pg_terminate_backend(pid) FROM pg_stat_activity
+  WHERE datname = 'raildashboard' AND pid <> pg_backend_pid();
+"
+
+# 6. Restore mit Fehlerstopp + Transaktion. transaction_timeout filtern,
+#    weil pg_dump ab Postgres 17 dieses Setting in den Header schreibt,
+#    Postgres 16 (im prod-Image) es aber nicht kennt.
+grep -v '^SET transaction_timeout' "$DUMP" | \
+  docker compose exec -T db psql -U raildashboard -d raildashboard \
+    -v ON_ERROR_STOP=1 --single-transaction
+
+# 7. Backend + Worker wieder starten
+docker compose up -d backend worker
+
+# 8. PFLICHT: Verifizieren, dass dev-Stand wirklich angekommen ist
+docker compose exec -T db psql -U raildashboard -d raildashboard -c "
+  SELECT 'projects' AS tbl, COUNT(*) FROM project
+  UNION ALL SELECT 'change_log',   COUNT(*) FROM change_log
+  UNION ALL SELECT 'project_text', COUNT(*) FROM project_text;
+"
+```
+
+Auf dem Laptop denselben `COUNT(*)`-Vergleich gegen dev laufen lassen — die Zahlen müssen exakt übereinstimmen. Tun sie das nicht, ist der Restore nicht durchgelaufen (z. B. Schritt 6 mit Fehler abgebrochen → durch `--single-transaction` automatisch zurückgerollt → prod im alten Stand). Output von `psql` analysieren, Fehler beheben, Schritt 6 wiederholen.
+
+**Hinweis:** `scripts/transfer_db.sh dev-to-prod` macht genau diese Schritte mittlerweile selbst — der manuelle Pfad bleibt hier als Fallback / Debug-Referenz dokumentiert.
+
 ### Nutzerverwaltung (Docker)
 
 ```bash
@@ -173,11 +249,11 @@ docker compose --env-file .env logs -f backend
 # Celery-Worker (PDF-Parsing, Hintergrundaufgaben)
 make docker-worker-logs
 
-# Health-Check des Backends abfragen
-curl http://localhost/api/health
+# Health-Check des Backends abfragen (200 + {"status":"ok"} bei healthy)
+curl http://localhost/api/v1/health
 ```
 
-Der Backend-Container führt beim Start automatisch `alembic upgrade head` aus (`docker-entrypoint.sh`) — Migrationen müssen daher nicht manuell angestoßen werden. Falls Migrationen manuell ausgeführt werden müssen:
+Der Backend-Container führt beim Start automatisch `alembic upgrade head` aus (`docker-entrypoint.sh`) — Migrationen müssen daher nicht manuell angestoßen werden. Der Worker-Container überspringt diesen Schritt via `SKIP_MIGRATIONS=1` und wartet zusätzlich per `depends_on.backend.condition: service_healthy` (Backend-Healthcheck pollt `/api/v1/health`, gibt 200 erst zurück nachdem alembic fertig ist und uvicorn lauscht), damit beide Container nicht parallel auf derselben Migration rennen (das führte beim v0.0.4-Rollout zu `psycopg2.errors.UniqueViolation: pg_class_relname_nsp_index`). Falls Migrationen manuell ausgeführt werden müssen:
 
 ```bash
 make docker-migrate
@@ -186,34 +262,38 @@ make docker-migrate
 ### Tägliches Backup via Docker
 
 ```bash
-make docker-backup-db   # schreibt in backups/raildashboard_<timestamp>.dump
+make docker-backup-db
+# schreibt pro Lauf zwei Dateien mit identischem Timestamp:
+#   backups/raildashboard_<timestamp>.dump      (pg_dump -Fc)
+#   backups/uploads_<timestamp>.tar.gz          (Inhalt von Volume raildashboard_uploads)
 ```
 
 ### Uploads-Volume (Dateianhänge)
 
-Das Docker-Volume `uploads` (gemountet unter `/app/uploads` im Backend-Container) enthält alle Dateianhänge von Projekttexten. Es wird **nicht** durch `make docker-backup-db` gesichert, da dieses nur `pg_dump` ausführt.
+Das Docker-Volume `raildashboard_uploads` (im Compose-Stack als `uploads` deklariert, gemountet unter `/app/uploads` im Backend-Container) enthält alle Dateianhänge von Projekttexten. Es wird seit v0.0.5 **automatisch** zusammen mit dem DB-Dump gesichert — sowohl von `make backup-db` (systemd-Timer-Pfad) als auch von `make docker-backup-db`.
 
-**Wichtig:** Wenn die Datenbank ohne das uploads-Volume wiederhergestellt wird, zeigen alle `text_attachment`-Zeilen auf nicht vorhandene Dateien.
+**Warum das wichtig ist:** Ohne paariges Uploads-Tar zeigen nach einem Restore alle `text_attachment`-Zeilen auf nicht vorhandene Dateien.
 
-Backup des Uploads-Volumes (z. B. als zusätzlicher Schritt im systemd-Timer):
+**Verhalten beim Backup:**
+- DB-Dump und Uploads-Tar erhalten denselben Timestamp → sie bilden ein Paar.
+- Retention 14 Tage gilt für beide Datei-Typen separat.
+- Steht Docker nicht zur Verfügung oder existiert das Volume nicht (z. B. lokales Setup gegen Postgres ohne Docker), wird der Uploads-Schritt mit Hinweis übersprungen — der DB-Dump läuft weiter.
+- Manuell unterdrückbar: `SKIP_UPLOADS_BACKUP=1 make backup-db`.
+- Anderes Volume: `UPLOADS_VOLUME=other_name make backup-db`.
 
-```bash
-docker run --rm \
-  -v raildashboard_uploads:/data:ro \
-  -v $(pwd)/backups:/out \
-  alpine tar czf /out/uploads_$(date +%Y%m%d_%H%M%S).tar.gz -C /data .
-```
+**Verhalten beim Restore:** `make restore-db BACKUP=backups/raildashboard_<ts>.dump` sucht automatisch nach `uploads_<ts>.tar.gz` im selben Verzeichnis und restored es ins Volume (Inhalt wird vorher geleert, damit gelöschte Dateien nicht erhalten bleiben). Steuerung:
+- `UPLOADS=none` → nur DB restoren, Volume nicht anfassen.
+- `UPLOADS=backups/uploads_other.tar.gz` → explizit anderes Tar verwenden.
 
-Wiederherstellen:
+Manueller Einzelschritt (z. B. nur Uploads zurückspielen):
 
 ```bash
 docker run --rm \
   -v raildashboard_uploads:/data \
-  -v $(pwd)/backups:/out \
-  alpine tar xzf /out/uploads_<timestamp>.tar.gz -C /data
+  -v $(pwd)/backups:/out:ro \
+  alpine sh -c "rm -rf /data/* /data/.[!.]* 2>/dev/null; \
+                tar xzf /out/uploads_<timestamp>.tar.gz -C /data"
 ```
-
-Beide Befehle in den systemd-Timer eintragen (nach dem `pg_dump`-Schritt), damit DB und Dateien immer gemeinsam gesichert werden.
 
 ### HTTPS / TLS (empfohlen für Produktion)
 
@@ -258,6 +338,8 @@ make docker-prod-build   # baut alle Images vom neuen GitHub-Tag
 make docker-prod-down
 make docker-prod-up      # Migrationen laufen automatisch beim Start
 ```
+
+> **Voraussetzung beim Tag-Cut (im Repo, vor `git tag`):** `make release-check` muss exit 0 liefern — sonst hängen noch offene manuelle Verifikationen in `docs/review-checklist.md`. Details: `AGENT.md` → Release Gate.
 
 ### Entwicklung: nur DB in Docker
 
@@ -306,26 +388,34 @@ make docker-prod-up
 ### Manuell (sofort einsatzbereit)
 
 Die Skripte `scripts/backup_db.sh` und `scripts/restore_db.sh` sind im Repo vorhanden.
-Dumps werden in `backups/` abgelegt (nicht im Git, durch `.gitignore` ausgeschlossen).
+Dumps und Uploads-Tarballs werden in `backups/` abgelegt (nicht im Git, durch `.gitignore` ausgeschlossen).
 
 ```bash
-# Backup erstellen (liest DATABASE_URL aus .env)
+# Backup erstellen (DB-Dump + Uploads-Volume-Tar; liest DATABASE_URL aus .env)
 make backup-db
 
 # Mit produktionsspezifischer .env-Datei
 make backup-db ENV_FILE=.env
 
-# Alle lokalen Dumps auflisten
+# Nur DB, ohne Uploads (z. B. lokales Setup ohne Docker)
+SKIP_UPLOADS_BACKUP=1 make backup-db
+
+# Alle lokalen Backups auflisten (Dumps + Uploads-Tars)
 make list-backups
 
-# Wiederherstellen (fragt zur Sicherheit nach Bestätigung)
+# Wiederherstellen — paariges uploads_<ts>.tar.gz wird automatisch mit-restored
 make restore-db BACKUP=backups/raildashboard_20260101_020000.dump ENV_FILE=.env
+
+# Nur DB restoren, Uploads-Volume nicht anfassen
+UPLOADS=none make restore-db BACKUP=backups/raildashboard_20260101_020000.dump
 ```
 
-Das Skript:
+Das Backup-Skript:
+- erstellt zwei Dateien pro Lauf mit identischem Timestamp: `raildashboard_<ts>.dump` (pg_dump -Fc) und `uploads_<ts>.tar.gz` (tar.gz des Docker-Volumes `raildashboard_uploads`)
 - strippt automatisch den SQLAlchemy-Treiber-Qualifier (`+psycopg2`) aus der URL, den `pg_dump` nicht versteht
 - maskiert das Passwort im Output (`postgresql://user:***@host/db`)
-- löscht Dumps die älter als 14 Tage sind (lokale Rotation)
+- löscht Backups die älter als 14 Tage sind — DB-Dumps und Uploads-Tars separat (lokale Rotation)
+- überspringt den Uploads-Teil mit Hinweis, wenn Docker fehlt oder das Volume nicht existiert
 
 ### Automatisierung via systemd-Timer
 

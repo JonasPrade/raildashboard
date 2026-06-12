@@ -1,6 +1,12 @@
 #!/bin/bash
 # docker-entrypoint.sh
-# Waits for the database to be ready, runs Alembic migrations, then starts uvicorn.
+# Waits for the database, optionally runs Alembic migrations, then exec()s the
+# command passed by docker (Dockerfile CMD or compose `command:`).
+#
+# SKIP_MIGRATIONS=1 disables the Alembic step — used by the worker container so
+# only the backend service runs `alembic upgrade head`. Without this, both
+# containers race on the same migration and one crashes with
+# `psycopg2.errors.UniqueViolation: pg_class_relname_nsp_index`.
 set -e
 
 echo "[entrypoint] Waiting for database..."
@@ -25,8 +31,12 @@ else:
     sys.exit(1)
 EOF
 
-echo "[entrypoint] Running Alembic migrations..."
-alembic upgrade head
+if [ "${SKIP_MIGRATIONS:-0}" = "1" ]; then
+    echo "[entrypoint] SKIP_MIGRATIONS=1 — Alembic step übersprungen."
+else
+    echo "[entrypoint] Running Alembic migrations..."
+    alembic upgrade head
+fi
 
-echo "[entrypoint] Starting uvicorn..."
-exec uvicorn main:app --host 0.0.0.0 --port 8000
+echo "[entrypoint] exec: $*"
+exec "$@"

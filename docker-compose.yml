@@ -52,6 +52,15 @@ services:
       UPLOAD_DIR: /app/uploads/text-attachments
     volumes:
       - uploads:/app/uploads
+    # Healthy = uvicorn responding AND a `SELECT 1` against the DB succeeded.
+    # By the time /api/v1/health returns 200, alembic has finished and the app is reachable.
+    # start_period gives Alembic up to 60s to run pending migrations.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/api/v1/health', timeout=3).status == 200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     depends_on:
       db:
         condition: service_healthy
@@ -68,11 +77,19 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: "postgresql+psycopg2://${DB_USER}:${DB_PASSWORD}@db:5432/raildashboard"
+      # Backend runs `alembic upgrade head`; worker must NOT race on the same migrations
+      # (otherwise both containers may try the same CREATE TABLE and one crashes with
+      #  psycopg2.errors.UniqueViolation on pg_class_relname_nsp_index).
+      SKIP_MIGRATIONS: "1"
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_started
+      # Wait until backend reports healthy via /api/v1/health, which means alembic
+      # has finished and the schema is in place before the worker imports task modules.
+      backend:
+        condition: service_healthy
     networks:
       - raildashboard-net
 

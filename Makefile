@@ -59,11 +59,12 @@ help:
 	@echo "    migrate            Apply all pending Alembic migrations"
 	@echo "    migrate-create     Create a new Alembic revision"
 	@echo "                       Usage: make migrate-create MSG='your message'"
-	@echo "    backup-db          Create a pg_dump of the configured database"
+	@echo "    backup-db          pg_dump + tar.gz of the uploads Docker volume"
 	@echo "                       Optional: DB_URL=postgresql://... or ENV_FILE=.env"
-	@echo "    restore-db         Restore a dump into the configured database"
+	@echo "                                 SKIP_UPLOADS_BACKUP=1 to skip the volume"
+	@echo "    restore-db         Restore a dump; auto-restores paired uploads_<ts>.tar.gz"
 	@echo "                       Usage: make restore-db BACKUP=backups/file.dump"
-	@echo "                       Optional: DB_URL=postgresql://... or ENV_FILE=.env"
+	@echo "                       Optional: DB_URL=... ENV_FILE=... UPLOADS=none|path"
 	@echo "    list-backups       List all local dump files with size and date"
 	@echo ""
 	@echo "  User management"
@@ -91,7 +92,7 @@ help:
 	@echo "    docker-migrate     Run Alembic migrations inside the backend container"
 	@echo "    docker-create-user Create a user inside the backend container"
 	@echo "                       Usage: make docker-create-user USERNAME=admin ROLE=admin"
-	@echo "    docker-backup-db   pg_dump via docker exec on the db container"
+	@echo "    docker-backup-db   pg_dump (docker exec) + tar.gz of the uploads volume"
 	@echo "    docker-worker-logs Tail Celery worker logs in the prod stack"
 	@echo ""
 	@echo "  Cleanup"
@@ -188,12 +189,13 @@ restore-db:
 	fi
 	@DB_URL="$(DB_URL)" ENV_FILE="$(ENV_FILE)" bash scripts/restore_db.sh "$(BACKUP)"
 
-# List all local dump files with size and date.
+# List all local backup files (DB dumps + uploads tarballs) with size and date.
 list-backups:
-	@if [ ! -d backups ] || [ -z "$$(ls backups/raildashboard_*.dump 2>/dev/null)" ]; then \
+	@if [ ! -d backups ] || ! ls backups/raildashboard_*.dump backups/uploads_*.tar.gz >/dev/null 2>&1; then \
 	    echo "Keine Backup-Dateien in backups/ gefunden."; \
 	else \
-	    ls -lh backups/raildashboard_*.dump | awk '{print $$5, $$6, $$7, $$8, $$9}'; \
+	    ls -lh backups/raildashboard_*.dump backups/uploads_*.tar.gz 2>/dev/null \
+	      | awk '{print $$5, $$6, $$7, $$8, $$9}'; \
 	fi
 
 # ---------------------------------------------------------------------------
@@ -292,14 +294,25 @@ docker-delete-user:
 docker-worker-logs:
 	docker compose --env-file .env logs -f worker
 
-# Create a pg_dump via docker exec on the db container.
-# The dump is written to the local backups/ directory.
+# Create a pg_dump via docker exec on the db container *and* tar the uploads volume.
+# Both files share the same timestamp so they form a pair for restore.
 docker-backup-db:
 	@mkdir -p backups
 	@TIMESTAMP=$$(date +%Y%m%d_%H%M%S); \
-	  FILE="backups/raildashboard_$${TIMESTAMP}.dump"; \
-	  docker compose exec db pg_dump -U raildashboard -Fc raildashboard > "$$FILE" && \
-	  echo "Backup written to $$FILE"
+	  DUMP="backups/raildashboard_$${TIMESTAMP}.dump"; \
+	  UPLOADS="backups/uploads_$${TIMESTAMP}.tar.gz"; \
+	  VOLUME="$${UPLOADS_VOLUME:-raildashboard_uploads}"; \
+	  docker compose exec db pg_dump -U raildashboard -Fc raildashboard > "$$DUMP" && \
+	    echo "DB-Backup geschrieben: $$DUMP"; \
+	  if docker volume inspect "$$VOLUME" >/dev/null 2>&1; then \
+	    docker run --rm \
+	      -v "$$VOLUME":/data:ro \
+	      -v "$(PWD)/backups":/out \
+	      alpine tar czf "/out/$$(basename $$UPLOADS)" -C /data . && \
+	    echo "Uploads-Tar geschrieben: $$UPLOADS"; \
+	  else \
+	    echo "Uploads-Backup übersprungen: Volume '$$VOLUME' existiert nicht."; \
+	  fi
 
 # ---------------------------------------------------------------------------
 # Cleanup
