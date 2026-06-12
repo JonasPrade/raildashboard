@@ -234,18 +234,50 @@ export function useProjectGroups() {
     });
 }
 
+export type ProjectGroupCreatePayload = {
+    name: string;
+    short_name: string;
+    description?: string | null;
+    public?: boolean;
+    color?: string;
+    plot_only_superior_projects?: boolean;
+    is_visible?: boolean;
+    is_default_selected?: boolean;
+};
+
+export type ProjectGroupUpdatePayload = Partial<ProjectGroupCreatePayload>;
+
+export function useCreateProjectGroup() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (payload: ProjectGroupCreatePayload) =>
+            api<ProjectGroup>("/api/v1/project_groups/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            }),
+        onSuccess: () => qc.invalidateQueries({ queryKey: ["projectGroups"] }),
+    });
+}
+
 export function useUpdateProjectGroup() {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: ({ groupId, isVisible, isDefaultSelected }: { groupId: number; isVisible?: boolean; isDefaultSelected?: boolean }) =>
+        mutationFn: ({ groupId, ...payload }: { groupId: number } & ProjectGroupUpdatePayload) =>
             api<ProjectGroup>(`/api/v1/project_groups/${groupId}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    ...(isVisible !== undefined && { is_visible: isVisible }),
-                    ...(isDefaultSelected !== undefined && { is_default_selected: isDefaultSelected }),
-                }),
+                body: JSON.stringify(payload),
             }),
+        onSuccess: () => qc.invalidateQueries({ queryKey: ["projectGroups"] }),
+    });
+}
+
+export function useDeleteProjectGroup() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (groupId: number) =>
+            api<void>(`/api/v1/project_groups/${groupId}`, { method: "DELETE" }),
         onSuccess: () => qc.invalidateQueries({ queryKey: ["projectGroups"] }),
     });
 }

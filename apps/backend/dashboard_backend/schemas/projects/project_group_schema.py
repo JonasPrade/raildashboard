@@ -18,3 +18,14 @@ class ProjectGroupSchema(BaseModel):
     projects: List[ProjectSchema] = Field(default_factory=list, description="List of projects associated with this project group")
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ProjectGroupCreate(BaseModel):
+    name: str
+    short_name: str
+    description: Optional[str] = None
+    public: bool = False
+    color: str = "#FF0000"
+    plot_only_superior_projects: bool = True
+    is_visible: bool = True
+    is_default_selected: bool = False

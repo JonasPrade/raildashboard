@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+    "/api/v1/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Health
+         * @description Liveness + DB-readiness probe — used by the docker-compose healthcheck.
+         */
+        get: operations["health_api_v1_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/session": {
         parameters: {
             query?: never;
@@ -169,8 +189,7 @@ export interface paths {
         put?: never;
         /**
          * Link Finves To Project
-         * @description Link a list of existing FinVes to this project. Reuses the unassigned-finve
-         *     assignment helper so existing links are preserved.
+         * @description Link a list of existing FinVes to this project. Existing links are preserved.
          */
         post: operations["link_finves_to_project_api_v1_projects__project_id__finves_post"];
         delete?: never;
@@ -229,7 +248,8 @@ export interface paths {
         /** Read Project Groups */
         get: operations["read_project_groups_api_v1_project_groups__get"];
         put?: never;
-        post?: never;
+        /** Create Project Group Endpoint */
+        post: operations["create_project_group_endpoint_api_v1_project_groups__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -247,7 +267,8 @@ export interface paths {
         get: operations["read_project_group_api_v1_project_groups__group_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete Project Group Endpoint */
+        delete: operations["delete_project_group_endpoint_api_v1_project_groups__group_id__delete"];
         options?: never;
         head?: never;
         /** Patch Project Group */
@@ -1235,20 +1256,14 @@ export interface components {
         };
         /** Body_start_parse_api_v1_import_haushalt_parse_post */
         Body_start_parse_api_v1_import_haushalt_parse_post: {
-            /**
-             * Pdf
-             * Format: binary
-             */
+            /** Pdf */
             pdf: string;
             /** Year */
             year: number;
         };
         /** Body_start_vib_parse_api_v1_import_vib_parse_post */
         Body_start_vib_parse_api_v1_import_vib_parse_post: {
-            /**
-             * Pdf
-             * Format: binary
-             */
+            /** Pdf */
             pdf: string;
             /** Year */
             year: number;
@@ -1264,10 +1279,7 @@ export interface components {
         };
         /** Body_upload_attachment_api_v1_projects_texts__text_id__attachments_post */
         Body_upload_attachment_api_v1_projects_texts__text_id__attachments_post: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
         };
         /** BudgetSummarySchema */
@@ -1946,7 +1958,7 @@ export interface components {
         };
         /**
          * ProjectCreate
-         * @description Create schema for Project. `name` is the only required field.
+         * @description Create schema for Project. Only `name` is required.
          */
         ProjectCreate: {
             /** Name */
@@ -2062,6 +2074,40 @@ export interface components {
             /** Project Group Ids */
             project_group_ids?: number[] | null;
         };
+        /** ProjectGroupCreate */
+        ProjectGroupCreate: {
+            /** Name */
+            name: string;
+            /** Short Name */
+            short_name: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Public
+             * @default false
+             */
+            public: boolean;
+            /**
+             * Color
+             * @default #FF0000
+             */
+            color: string;
+            /**
+             * Plot Only Superior Projects
+             * @default true
+             */
+            plot_only_superior_projects: boolean;
+            /**
+             * Is Visible
+             * @default true
+             */
+            is_visible: boolean;
+            /**
+             * Is Default Selected
+             * @default false
+             */
+            is_default_selected: boolean;
+        };
         /** ProjectGroupRef */
         ProjectGroupRef: {
             /** Id */
@@ -2118,6 +2164,18 @@ export interface components {
         };
         /** ProjectGroupUpdate */
         ProjectGroupUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Short Name */
+            short_name?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Public */
+            public?: boolean | null;
+            /** Color */
+            color?: string | null;
+            /** Plot Only Superior Projects */
+            plot_only_superior_projects?: boolean | null;
             /** Is Visible */
             is_visible?: boolean | null;
             /** Is Default Selected */
@@ -2458,7 +2516,7 @@ export interface components {
         };
         /**
          * ProjectUpdate
-         * @description Partial update schema for Project (PATCH semantics – all fields optional).
+         * @description Partial update schema for Project (PATCH semantics — all fields optional).
          */
         ProjectUpdate: {
             /** Name */
@@ -2471,14 +2529,14 @@ export interface components {
             justification?: string | null;
             /** Superior Project Id */
             superior_project_id?: number | null;
+            /** Length */
+            length?: number | null;
             /** Effects Passenger Long Rail */
             effects_passenger_long_rail?: boolean | null;
             /** Effects Passenger Local Rail */
             effects_passenger_local_rail?: boolean | null;
             /** Effects Cargo Rail */
             effects_cargo_rail?: boolean | null;
-            /** Length */
-            length?: number | null;
             /** Nbs */
             nbs?: boolean | null;
             /** Abs */
@@ -2571,10 +2629,10 @@ export interface components {
             simultaneous_train_entries?: boolean | null;
             /** Tilting */
             tilting?: boolean | null;
-            /** Geojson Representation */
-            geojson_representation?: string | null;
             /** Project Group Ids */
             project_group_ids?: number[] | null;
+            /** Geojson Representation */
+            geojson_representation?: string | null;
         };
         /**
          * ProposedBudget
@@ -3370,24 +3428,7 @@ export interface components {
          * VibParseTaskResult
          * @description Complete result returned by the parse_vib_pdf Celery task.
          */
-        "VibParseTaskResult-Input": {
-            /** Year */
-            year: number;
-            /** Drucksache Nr */
-            drucksache_nr?: string | null;
-            /** Report Date */
-            report_date?: string | null;
-            /**
-             * Entries
-             * @default []
-             */
-            entries: components["schemas"]["VibEntryProposed"][];
-        };
-        /**
-         * VibParseTaskResult
-         * @description Complete result returned by the parse_vib_pdf Celery task.
-         */
-        "VibParseTaskResult-Output": {
+        VibParseTaskResult: {
             /** Year */
             year: number;
             /** Drucksache Nr */
@@ -3477,6 +3518,28 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    health_api_v1_health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+        };
+    };
     create_session_api_v1_auth_session_post: {
         parameters: {
             query?: never;
@@ -3946,6 +4009,41 @@ export interface operations {
             };
         };
     };
+    create_project_group_endpoint_api_v1_project_groups__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectGroupCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectGroupSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     read_project_group_api_v1_project_groups__group_id__get: {
         parameters: {
             query?: never;
@@ -3965,6 +4063,37 @@ export interface operations {
                 content: {
                     "application/json": unknown;
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_project_group_endpoint_api_v1_project_groups__group_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -5241,7 +5370,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["VibParseTaskResult-Output"];
+                    "application/json": components["schemas"]["VibParseTaskResult"];
                 };
             };
             /** @description Validation Error */
@@ -5398,7 +5527,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["VibParseTaskResult-Input"];
+                "application/json": components["schemas"]["VibParseTaskResult"];
             };
         };
         responses: {
