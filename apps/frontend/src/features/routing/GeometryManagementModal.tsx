@@ -33,11 +33,15 @@ export default function GeometryManagementModal({ project, opened, onClose }: Pr
 
     const [deleteExisting, setDeleteExisting] = useState(false);
     const [previewFeature, setPreviewFeature] = useState<RoutePreviewFeature | null>(null);
+    const [routeStations, setRouteStations] = useState<OperationalPointRef[]>([]);
     const [uploadedGeojson, setUploadedGeojson] = useState<string | null>(null);
     const [uploadError, setUploadError] = useState<string | null>(null);
     const [routeError, setRouteError] = useState<string | null>(null);
     const [selectedPoints, setSelectedPoints] = useState<OperationalPointRef[]>([]);
     const [pointSelectKey, setPointSelectKey] = useState(0);
+    // Selective feature deletion: when active, clicks on the map select existing features.
+    const [selectionMode, setSelectionMode] = useState(false);
+    const [selectedFeatureIndices, setSelectedFeatureIndices] = useState<Set<number>>(new Set());
 
     const hasExisting = !!project.geojson_representation;
     const hasPoints = selectedPoints.length > 0;
@@ -50,11 +54,61 @@ export default function GeometryManagementModal({ project, opened, onClose }: Pr
     function resetState() {
         setDeleteExisting(false);
         setPreviewFeature(null);
+        setRouteStations([]);
         setUploadedGeojson(null);
         setUploadError(null);
         setRouteError(null);
         setSelectedPoints([]);
         setPointSelectKey(0);
+        setSelectionMode(false);
+        setSelectedFeatureIndices(new Set());
+    }
+
+    function toggleFeatureSelection(idx: number) {
+        setSelectedFeatureIndices((prev) => {
+            const next = new Set(prev);
+            if (next.has(idx)) next.delete(idx); else next.add(idx);
+            return next;
+        });
+    }
+
+    async function handleDeleteSelectedFeatures() {
+        if (!project.geojson_representation || selectedFeatureIndices.size === 0) return;
+
+        let parsed: unknown;
+        try { parsed = JSON.parse(project.geojson_representation); } catch { return; }
+
+        // Normalize to a flat list of features so we can filter by their original index.
+        const root = parsed as Record<string, unknown> | null;
+        let features: unknown[] = [];
+        if (root && root.type === "FeatureCollection" && Array.isArray(root.features)) {
+            features = root.features as unknown[];
+        } else if (root && root.type === "Feature") {
+            features = [root];
+        } else if (root && typeof root.type === "string") {
+            features = [{ type: "Feature", geometry: root, properties: {} }];
+        }
+
+        const remaining = features.filter((_, idx) => !selectedFeatureIndices.has(idx));
+        const newGeojson = remaining.length > 0
+            ? JSON.stringify({ type: "FeatureCollection", features: remaining })
+            : null;
+
+        try {
+            await updateGeometry.mutateAsync(newGeojson);
+            notifications.show({
+                color: "green",
+                title: "Features gelöscht",
+                message: `${selectedFeatureIndices.size} Feature(s) entfernt.`,
+            });
+            handleClose();
+        } catch {
+            notifications.show({
+                color: "red",
+                title: "Fehler",
+                message: "Die ausgewählten Features konnten nicht gelöscht werden.",
+            });
+        }
     }
 
     function handleClose() {
@@ -64,7 +118,7 @@ export default function GeometryManagementModal({ project, opened, onClose }: Pr
 
     function buildNewGeometry(): string | null {
         // Upload-only (no route, no points): return as-is
-        if (!previewFeature && !hasPoints && uploadedGeojson) {
+        if (!previewFeature && !hasPoints && !routeStations.length && uploadedGeojson) {
             return uploadedGeojson;
         }
 
@@ -81,14 +135,26 @@ export default function GeometryManagementModal({ project, opened, onClose }: Pr
             } catch { /* ignore */ }
         }
 
-        for (const op of selectedPoints) {
-            if (op.latitude != null && op.longitude != null) {
-                features.push({
-                    type: "Feature",
-                    geometry: { type: "Point", coordinates: [op.longitude, op.latitude] },
-                    properties: { name: op.name ?? null, op_id: op.op_id ?? null, feature_type: "operational_point" },
-                });
+        // Merge route start/via/end stations + manually-added points, dedup by id.
+        // Route stations are only included when the route is actually about to be saved
+        // (i.e. previewFeature is non-null).
+        const pointsToInclude: OperationalPointRef[] = [];
+        const seen = new Set<number>();
+        const pushOnce = (op: OperationalPointRef) => {
+            if (!seen.has(op.id) && op.latitude != null && op.longitude != null) {
+                seen.add(op.id);
+                pointsToInclude.push(op);
             }
+        };
+        if (previewFeature) routeStations.forEach(pushOnce);
+        selectedPoints.forEach(pushOnce);
+
+        for (const op of pointsToInclude) {
+            features.push({
+                type: "Feature",
+                geometry: { type: "Point", coordinates: [op.longitude, op.latitude] },
+                properties: { name: op.name ?? null, op_id: op.op_id ?? null, feature_type: "operational_point" },
+            });
         }
 
         return features.length > 0
@@ -158,7 +224,9 @@ export default function GeometryManagementModal({ project, opened, onClose }: Pr
         reader.readAsText(file);
     }
 
-    const canAccept = !!previewFeature || !!uploadedGeojson || hasPoints || deleteExisting;
+    // In selectionMode, the "Übernehmen" button is suppressed — users delete features via
+    // the dedicated "Auswahl löschen" button instead.
+    const canAccept = !selectionMode && (!!previewFeature || !!uploadedGeojson || hasPoints || deleteExisting);
 
     return (
         <Modal
@@ -197,7 +265,54 @@ export default function GeometryManagementModal({ project, opened, onClose }: Pr
                                     checked={deleteExisting}
                                     onChange={(e) => setDeleteExisting(e.currentTarget.checked)}
                                     color="red"
+                                    disabled={selectionMode}
                                 />
+                            )}
+
+                            {hasExisting && (
+                                <>
+                                    <Switch
+                                        label="Einzelne Features auswählen & löschen"
+                                        checked={selectionMode}
+                                        onChange={(e) => {
+                                            setSelectionMode(e.currentTarget.checked);
+                                            if (!e.currentTarget.checked) setSelectedFeatureIndices(new Set());
+                                        }}
+                                        color="red"
+                                        disabled={deleteExisting}
+                                    />
+                                    {selectionMode && (
+                                        <Stack gap="xs">
+                                            <Text size="xs" c="dimmed">
+                                                Klicke auf der Karte einzelne Linien oder Punkte, um sie auszuwählen.
+                                                Ausgewählte Features erscheinen rot.
+                                            </Text>
+                                            <Group justify="space-between" align="center">
+                                                <ChronicleDataChip>
+                                                    {selectedFeatureIndices.size} ausgewählt
+                                                </ChronicleDataChip>
+                                                {selectedFeatureIndices.size > 0 && (
+                                                    <Button
+                                                        size="xs"
+                                                        variant="subtle"
+                                                        onClick={() => setSelectedFeatureIndices(new Set())}
+                                                    >
+                                                        Zurücksetzen
+                                                    </Button>
+                                                )}
+                                            </Group>
+                                            <Button
+                                                color="red"
+                                                size="sm"
+                                                disabled={selectedFeatureIndices.size === 0 || updateGeometry.isPending}
+                                                loading={updateGeometry.isPending}
+                                                onClick={handleDeleteSelectedFeatures}
+                                            >
+                                                Auswahl löschen ({selectedFeatureIndices.size})
+                                            </Button>
+                                        </Stack>
+                                    )}
+                                </>
                             )}
 
                             <Divider label="Route berechnen" labelPosition="left" />
@@ -209,10 +324,11 @@ export default function GeometryManagementModal({ project, opened, onClose }: Pr
                             )}
 
                             <RouteCalculatorForm
-                                onResult={(feature) => {
+                                onResult={(feature, stations) => {
                                     setRouteError(null);
                                     setUploadedGeojson(null);
                                     setPreviewFeature(feature);
+                                    setRouteStations(stations);
                                 }}
                                 onError={setRouteError}
                             />
@@ -316,6 +432,9 @@ export default function GeometryManagementModal({ project, opened, onClose }: Pr
                         previewFeature={previewFeature ?? (uploadedGeojson ? buildUploadPreview(uploadedGeojson) : null)}
                         showExisting={!deleteExisting}
                         previewPoints={selectedPoints}
+                        selectionMode={selectionMode}
+                        selectedIndices={selectedFeatureIndices}
+                        onFeatureClick={toggleFeatureSelection}
                         height={undefined}
                     />
                 </Box>

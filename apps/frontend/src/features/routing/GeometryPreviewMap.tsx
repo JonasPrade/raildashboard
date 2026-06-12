@@ -13,6 +13,15 @@ type Props = {
     showExisting: boolean;
     /** Newly selected operational points to preview as orange circles. */
     previewPoints?: OperationalPointRef[];
+    /**
+     * Selection mode: when active, existing features become clickable and selected
+     * ones are highlighted in red. Modal uses this for the "delete individual features" flow.
+     */
+    selectionMode?: boolean;
+    /** Indices of currently selected existing features (matches `__idx` on each feature). */
+    selectedIndices?: Set<number>;
+    /** Fired with the clicked feature's __idx when selectionMode is on. */
+    onFeatureClick?: (idx: number) => void;
     height?: number;
 };
 
@@ -66,14 +75,73 @@ function buildPointFeatureCollection(coords: Array<[number, number]>) {
     };
 }
 
-export default function GeometryPreviewMap({ existingGeojson, previewFeature, showExisting, previewPoints = [], height = 500 }: Props) {
+/**
+ * Parse the existing geojson_representation and split into a line FC and a point FC,
+ * each feature stamped with `__idx` (matching the index in the original FeatureCollection)
+ * and `__selected` (looked up from `selectedIndices`). Used in selection mode so the map
+ * can fire click events that identify a single feature for deletion.
+ *
+ * Indexing follows the order features appear in the parent FeatureCollection. If the input
+ * is a bare Feature or Geometry it's treated as index 0.
+ */
+function splitIndexedFC(raw: string | null, selected: Set<number>) {
+    const emptyFC = { type: "FeatureCollection" as const, features: [] as GeoJSON.Feature[] };
+    if (!raw) return { lines: emptyFC, points: emptyFC };
+
+    let parsed: unknown;
+    try { parsed = JSON.parse(raw); } catch { return { lines: emptyFC, points: emptyFC }; }
+
+    const rawFeatures: GeoJSON.Feature[] = [];
+    const root = parsed as Record<string, unknown> | null;
+    if (root && root.type === "FeatureCollection" && Array.isArray(root.features)) {
+        rawFeatures.push(...(root.features as GeoJSON.Feature[]));
+    } else if (root && root.type === "Feature") {
+        rawFeatures.push(root as unknown as GeoJSON.Feature);
+    } else if (root && typeof root.type === "string") {
+        rawFeatures.push({ type: "Feature", geometry: root as unknown as GeoJSON.Geometry, properties: {} });
+    }
+
+    const lines: GeoJSON.Feature[] = [];
+    const points: GeoJSON.Feature[] = [];
+    rawFeatures.forEach((f, idx) => {
+        const stamped: GeoJSON.Feature = {
+            ...f,
+            properties: {
+                ...(f.properties ?? {}),
+                __idx: idx,
+                __selected: selected.has(idx),
+            },
+        };
+        const gtype = f.geometry?.type;
+        if (gtype === "LineString" || gtype === "MultiLineString") lines.push(stamped);
+        else if (gtype === "Point" || gtype === "MultiPoint") points.push(stamped);
+    });
+
+    return {
+        lines: { type: "FeatureCollection" as const, features: lines },
+        points: { type: "FeatureCollection" as const, features: points },
+    };
+}
+
+export default function GeometryPreviewMap({ existingGeojson, previewFeature, showExisting, previewPoints = [], selectionMode = false, selectedIndices, onFeatureClick, height = 500 }: Props) {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const mapRef = useRef<maplibregl.Map | null>(null);
     const [isReady, setIsReady] = useState(false);
+    // Refs so the click handler (registered once on load) always sees the latest values.
+    const selectionModeRef = useRef(selectionMode);
+    const onFeatureClickRef = useRef(onFeatureClick);
+    selectionModeRef.current = selectionMode;
+    onFeatureClickRef.current = onFeatureClick;
 
     // Init map once
     useLayoutEffect(() => {
         if (!containerRef.current || !tileLayerUrl) return;
+
+        // In selection mode, existing features colour by feature property `__selected`.
+        // The expression resolves to blue/red statically when not in mode (no __selected
+        // property → false branch → blue), so it's safe to use always.
+        const selectionLineColor: maplibregl.ExpressionSpecification = ["case", ["==", ["get", "__selected"], true], "#dc2626", "#2563eb"];
+        const selectionCircleColor: maplibregl.ExpressionSpecification = ["case", ["==", ["get", "__selected"], true], "#dc2626", "#2563eb"];
 
         const map = new maplibregl.Map({
             container: containerRef.current,
@@ -93,7 +161,7 @@ export default function GeometryPreviewMap({ existingGeojson, previewFeature, sh
                         type: "line",
                         source: "existing",
                         layout: { "line-cap": "round", "line-join": "round" },
-                        paint: { "line-color": "#2563eb", "line-width": 4 },
+                        paint: { "line-color": selectionLineColor, "line-width": 4 },
                     },
                     {
                         id: "preview-line",
@@ -110,7 +178,7 @@ export default function GeometryPreviewMap({ existingGeojson, previewFeature, sh
                         id: "existing-points-circle",
                         type: "circle",
                         source: "existing-points",
-                        paint: { "circle-color": "#2563eb", "circle-radius": 7, "circle-stroke-width": 2, "circle-stroke-color": "#fff" },
+                        paint: { "circle-color": selectionCircleColor, "circle-radius": 7, "circle-stroke-width": 2, "circle-stroke-color": "#fff" },
                     },
                     {
                         id: "preview-points-circle",
@@ -126,8 +194,25 @@ export default function GeometryPreviewMap({ existingGeojson, previewFeature, sh
         mapRef.current = map;
         map.on("load", () => { setIsReady(true); });
 
+        // Click handler — only acts when parent is in selection mode and a __idx is present.
+        const handleClick = (e: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] }) => {
+            if (!selectionModeRef.current || !onFeatureClickRef.current) return;
+            const f = e.features?.[0];
+            const idx = f?.properties?.__idx;
+            if (typeof idx === "number") onFeatureClickRef.current(idx);
+        };
+        map.on("click", "existing-line", handleClick);
+        map.on("click", "existing-points-circle", handleClick);
+
+        // Pointer cursor on hover when in selection mode.
+        const enterCursor = () => { if (selectionModeRef.current) map.getCanvas().style.cursor = "pointer"; };
+        const leaveCursor = () => { if (selectionModeRef.current) map.getCanvas().style.cursor = ""; };
+        map.on("mouseenter", "existing-line", enterCursor);
+        map.on("mouseleave", "existing-line", leaveCursor);
+        map.on("mouseenter", "existing-points-circle", enterCursor);
+        map.on("mouseleave", "existing-points-circle", leaveCursor);
+
         return () => { map.remove(); mapRef.current = null; setIsReady(false); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Update existing layer + fit bounds
@@ -135,17 +220,39 @@ export default function GeometryPreviewMap({ existingGeojson, previewFeature, sh
         const map = mapRef.current;
         if (!isReady || !map) return;
 
-        const parsed = showExisting ? parseGeojson(existingGeojson) : null;
-        const lineCoords = extractLineCoords(parsed);
-        const pointCoords = extractPointCoords(parsed);
-        (map.getSource("existing") as maplibregl.GeoJSONSource)?.setData(buildLineFeatureCollection(lineCoords) as unknown as GeoJSON.FeatureCollection);
-        (map.getSource("existing-points") as maplibregl.GeoJSONSource)?.setData(buildPointFeatureCollection(pointCoords) as unknown as GeoJSON.FeatureCollection);
+        let lineFC: GeoJSON.FeatureCollection;
+        let pointFC: GeoJSON.FeatureCollection;
+        let lineCoordsForFit: number[][][];
+        let pointCoordsForFit: Array<[number, number]>;
+
+        if (!showExisting) {
+            lineFC = { type: "FeatureCollection", features: [] };
+            pointFC = { type: "FeatureCollection", features: [] };
+            lineCoordsForFit = [];
+            pointCoordsForFit = [];
+        } else if (selectionMode) {
+            // Preserve original features with __idx + __selected so clicks and highlighting work.
+            const split = splitIndexedFC(existingGeojson, selectedIndices ?? new Set());
+            lineFC = split.lines as GeoJSON.FeatureCollection;
+            pointFC = split.points as GeoJSON.FeatureCollection;
+            lineCoordsForFit = extractLineCoords(JSON.parse(existingGeojson ?? "null"));
+            pointCoordsForFit = extractPointCoords(JSON.parse(existingGeojson ?? "null"));
+        } else {
+            const parsed = parseGeojson(existingGeojson);
+            lineCoordsForFit = extractLineCoords(parsed);
+            pointCoordsForFit = extractPointCoords(parsed);
+            lineFC = buildLineFeatureCollection(lineCoordsForFit) as unknown as GeoJSON.FeatureCollection;
+            pointFC = buildPointFeatureCollection(pointCoordsForFit) as unknown as GeoJSON.FeatureCollection;
+        }
+
+        (map.getSource("existing") as maplibregl.GeoJSONSource)?.setData(lineFC);
+        (map.getSource("existing-points") as maplibregl.GeoJSONSource)?.setData(pointFC);
 
         const allLineCoords = [
-            ...lineCoords,
+            ...lineCoordsForFit,
             ...(previewFeature ? extractLineCoords(previewFeature) : []),
         ].flat();
-        const allPointCoords = [...pointCoords, ...previewPoints.filter(op => op.latitude != null && op.longitude != null).map(op => [op.longitude!, op.latitude!] as [number, number])];
+        const allPointCoords = [...pointCoordsForFit, ...previewPoints.filter(op => op.latitude != null && op.longitude != null).map(op => [op.longitude!, op.latitude!] as [number, number])];
         const allCoords = [...allLineCoords, ...allPointCoords];
         if (allCoords.length > 0) {
             const lngs = allCoords.map(([lng]) => lng);
@@ -156,7 +263,7 @@ export default function GeometryPreviewMap({ existingGeojson, previewFeature, sh
             );
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [existingGeojson, showExisting, isReady]);
+    }, [existingGeojson, showExisting, isReady, selectionMode, selectedIndices]);
 
     // Update preview line + point layers
     useEffect(() => {

@@ -10,7 +10,7 @@ import { useCalculateRoute } from "../../shared/api/queries";
 import StationSelect from "./StationSelect";
 
 type Props = {
-    onResult: (feature: RoutePreviewFeature) => void;
+    onResult: (feature: RoutePreviewFeature, stations: OperationalPointRef[]) => void;
     onError: (message: string) => void;
 };
 
@@ -48,10 +48,14 @@ export default function RouteCalculatorForm({ onResult, onError }: Props) {
             onError("Start- und Zielbahnhof müssen angegeben werden.");
             return;
         }
+        const stations = [start, ...viaList, end].filter(
+            (op): op is OperationalPointRef =>
+                op !== null && op.latitude !== null && op.longitude !== null,
+        );
         calculate(
             { waypoints },
             {
-                onSuccess: (feature) => onResult(feature),
+                onSuccess: (feature) => onResult(feature, stations),
                 onError: (err) => {
                     const status = (err as { status?: number }).status;
                     if (status === 502) {
