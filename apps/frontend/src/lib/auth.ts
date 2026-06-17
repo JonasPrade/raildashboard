@@ -17,13 +17,18 @@ import { queryClient } from "./query";
 export type AuthUser = {
   id: number;
   username: string;
-  role: "viewer" | "editor" | "admin";
+  // Role name — a system role (viewer/editor/admin) or a custom role.
+  role: string;
+  // Effective capability keys (admin receives the full catalog from the API).
+  permissions: string[];
 };
 
 type AuthContextType = {
   user: AuthUser | null;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** Whether the current user holds a capability. */
+  can: (permission: string) => boolean;
 };
 
 // ---------------------------------------------------------------------------
@@ -34,6 +39,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   login: async () => {},
   logout: async () => {},
+  can: () => false,
 });
 
 // ---------------------------------------------------------------------------
@@ -74,13 +80,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryClient.clear();
   }, []);
 
+  const can = useCallback(
+    (permission: string) => user?.permissions?.includes(permission) ?? false,
+    [user],
+  );
+
   if (!initialized) {
     return null;
   }
 
   return createElement(
     AuthContext.Provider,
-    { value: { user, login, logout } },
+    { value: { user, login, logout, can } },
     children,
   );
 }

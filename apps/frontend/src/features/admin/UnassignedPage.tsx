@@ -28,7 +28,7 @@ import {
 import VibEntryEditDrawer from "../vib-import/VibEntryEditDrawer";
 
 export default function UnassignedPage() {
-    const { user } = useAuth();
+    const { can } = useAuth();
     const [finveSelections, setFinveSelections] = useState<Record<number, string[]>>({});
     const [vibSelections, setVibSelections] = useState<Record<number, string[]>>({});
     const [editingVibId, setEditingVibId] = useState<number | null>(null);
@@ -40,7 +40,7 @@ export default function UnassignedPage() {
     const assignFinve = useAssignFinve();
     const assignVib = useAssignVibEntry();
 
-    if (user?.role !== "editor" && user?.role !== "admin") {
+    if (!can("assignment.manage")) {
         return (
             <Container size="sm" py="xl">
                 <Alert color="red" variant="light" title="Kein Zugriff">

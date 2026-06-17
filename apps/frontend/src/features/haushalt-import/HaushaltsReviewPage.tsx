@@ -28,7 +28,7 @@ export default function HaushaltsReviewPage() {
     const id = Number(parseResultId);
 
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { can } = useAuth();
     const { data: result, isLoading, isError } = useParseResult(id);
     const { data: projects } = useProjects();
     const confirm = useConfirmHaushaltsImport();
@@ -36,7 +36,7 @@ export default function HaushaltsReviewPage() {
 
     const [rows, setRows] = useState<HaushaltsParseRow[] | null>(null);
 
-    if (user?.role !== "editor" && user?.role !== "admin") {
+    if (!can("haushalt.import")) {
         return (
             <Container size="sm" py="xl">
                 <Alert color="red" variant="light" title="Kein Zugriff">

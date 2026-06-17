@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { Alert, Button, Modal, Select, Stack, TextInput } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { useUpdateUser } from "../../shared/api/queries";
+import { useRoles, useUpdateUser } from "../../shared/api/queries";
 
 type EditableUser = {
     id: number;
@@ -17,18 +17,17 @@ type Props = {
     isSelf: boolean;
 };
 
-const ROLE_OPTIONS = [
-    { value: "viewer", label: "Viewer – nur lesen" },
-    { value: "editor", label: "Editor – lesen & bearbeiten" },
-    { value: "admin", label: "Admin – voller Zugriff" },
-];
-
 export function EditUserModal({ opened, onClose, user, isSelf }: Props) {
     const [username, setUsername] = useState("");
     const [role, setRole] = useState<string>("viewer");
     const [error, setError] = useState<string | null>(null);
 
     const updateUser = useUpdateUser();
+    const { data: roles } = useRoles();
+    const roleOptions = (roles ?? []).map((r) => ({
+        value: r.name,
+        label: r.description ? `${r.name} – ${r.description}` : r.name,
+    }));
 
     useEffect(() => {
         if (user) {
@@ -90,7 +89,7 @@ export function EditUserModal({ opened, onClose, user, isSelf }: Props) {
                     />
                     <Select
                         label="Rolle"
-                        data={ROLE_OPTIONS}
+                        data={roleOptions}
                         value={role}
                         onChange={(v) => setRole(v ?? "viewer")}
                         allowDeselect={false}

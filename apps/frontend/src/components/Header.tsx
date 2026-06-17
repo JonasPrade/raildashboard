@@ -38,15 +38,25 @@ const drawerNavActive: React.CSSProperties = {
 };
 
 export function Header() {
-    const { user, logout } = useAuth();
+    const { user, logout, can } = useAuth();
     const [loginOpened, { open: openLogin, close: closeLogin }] = useDisclosure(false);
     const [drawerOpened, { open: openDrawer, close: closeDrawer }] = useDisclosure(false);
     const isMobile = useMediaQuery("(max-width: 100em)");
 
-    const isEditorOrAdmin = user?.role === "editor" || user?.role === "admin";
-    const { data: unassignedFinves } = useUnassignedFinves(isEditorOrAdmin);
-    const { data: unassignedVibEntries } = useUnassignedVibEntries(isEditorOrAdmin);
-    const totalUnassigned = isEditorOrAdmin
+    // The Admin entry is shown when the user holds any admin-area capability.
+    const canAdmin =
+        can("assignment.manage") ||
+        can("haushalt.import") ||
+        can("vib.import") ||
+        can("project.create") ||
+        can("projectgroup.create") ||
+        can("projectgroup.edit") ||
+        can("user.manage") ||
+        can("role.manage");
+    const canAssignments = can("assignment.manage");
+    const { data: unassignedFinves } = useUnassignedFinves(canAssignments);
+    const { data: unassignedVibEntries } = useUnassignedVibEntries(canAssignments);
+    const totalUnassigned = canAssignments
         ? (unassignedFinves?.length ?? 0) + (unassignedVibEntries?.length ?? 0)
         : 0;
 
@@ -58,7 +68,7 @@ export function Header() {
             <NavLink to="/finves" style={({ isActive }) => isActive ? navLinkActive : navLinkBase} onClick={closeDrawer}>
                 ▸ Haushalt
             </NavLink>
-            {isEditorOrAdmin && (
+            {canAdmin && (
                 <NavLink to="/admin" style={({ isActive }) => isActive ? navLinkActive : navLinkBase} onClick={closeDrawer}>
                     <Group gap={6} align="center" wrap="nowrap">
                         <span>▸ Admin</span>
@@ -81,7 +91,7 @@ export function Header() {
             <NavLink to="/finves" style={({ isActive }) => isActive ? drawerNavActive : drawerNavBase} onClick={closeDrawer}>
                 ▸ Haushalt
             </NavLink>
-            {isEditorOrAdmin && (
+            {canAdmin && (
                 <NavLink to="/admin" style={({ isActive }) => isActive ? drawerNavActive : drawerNavBase} onClick={closeDrawer}>
                     <Group gap={6} align="center" wrap="nowrap">
                         <span>▸ Admin</span>

@@ -127,8 +127,8 @@ export default function ProjectDetail() {
     const superiorRef = useRef<HTMLDivElement>(null);
     const subProjectsRef = useRef<HTMLDivElement>(null);
     const historyRef = useRef<HTMLDivElement>(null);
-    const { user } = useAuth();
-    const canEdit = user !== null && (user.role === "editor" || user.role === "admin");
+    const { user, can } = useAuth();
+    const canEdit = can("project.edit");
     const projectId = Number(params.projectId);
 
     const isInvalidId = Number.isNaN(projectId);

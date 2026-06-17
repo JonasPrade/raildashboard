@@ -35,7 +35,7 @@ describe("AuthProvider — session restore on mount", () => {
     });
 
     it("sets user when /users/me succeeds", async () => {
-        const fakeUser = { id: 1, username: "alice", role: "viewer" as const };
+        const fakeUser = { id: 1, username: "alice", role: "viewer", permissions: [] };
         mockApi.mockResolvedValueOnce(fakeUser);
 
         const { result } = renderHook(() => useAuth(), { wrapper });
@@ -63,7 +63,7 @@ describe("useAuth — login", () => {
     });
 
     it("sets user on successful login", async () => {
-        const fakeUser = { id: 2, username: "bob", role: "editor" as const };
+        const fakeUser = { id: 2, username: "bob", role: "editor", permissions: ["project.edit"] };
         // First call: /users/me on mount → reject (not logged in)
         mockApi.mockRejectedValueOnce(new Error("401"));
         // Second call: POST /auth/session → success
@@ -80,6 +80,8 @@ describe("useAuth — login", () => {
 
         expect(result.current.user?.username).toBe("bob");
         expect(result.current.user?.role).toBe("editor");
+        expect(result.current.can("project.edit")).toBe(true);
+        expect(result.current.can("user.manage")).toBe(false);
     });
 
     it("throws on failed login", async () => {
@@ -109,7 +111,7 @@ describe("useAuth — logout", () => {
     });
 
     it("clears user and query cache on logout", async () => {
-        const fakeUser = { id: 1, username: "alice", role: "viewer" as const };
+        const fakeUser = { id: 1, username: "alice", role: "viewer", permissions: [] };
         // Mount: /users/me → return user (already logged in)
         mockApi.mockResolvedValueOnce(fakeUser);
         // Logout: DELETE /auth/session → success

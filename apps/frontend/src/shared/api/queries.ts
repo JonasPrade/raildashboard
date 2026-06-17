@@ -7,6 +7,8 @@ export type Project = components["schemas"]["ProjectSchema"];
 export type ProjectGroup = components["schemas"]["ProjectGroupSchema"];
 export type ProjectRoute = components["schemas"]["RouteOut"];
 export type User = components["schemas"]["UserRead"];
+export type Role = components["schemas"]["RoleRead"];
+export type Permission = components["schemas"]["PermissionSchema"];
 
 export type ProjectUpdatePayload = {
     name?: string;
@@ -543,6 +545,73 @@ export function useSetUserPassword() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ password }),
             }),
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Roles & permissions (admin)
+// ---------------------------------------------------------------------------
+
+export function useRoles() {
+    return useQuery({
+        queryKey: ["roles"],
+        queryFn: () => api<Role[]>("/api/v1/roles/"),
+    });
+}
+
+export function usePermissions() {
+    return useQuery({
+        queryKey: ["permissions"],
+        queryFn: () => api<Permission[]>("/api/v1/permissions/"),
+    });
+}
+
+export function useCreateRole() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (payload: { name: string; description?: string | null; permissions: string[] }) =>
+            api<Role>("/api/v1/roles/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["roles"] });
+        },
+    });
+}
+
+export function useUpdateRole() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({
+            roleId,
+            ...payload
+        }: {
+            roleId: number;
+            name?: string;
+            description?: string | null;
+            permissions?: string[];
+        }) =>
+            api<Role>(`/api/v1/roles/${roleId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["roles"] });
+        },
+    });
+}
+
+export function useDeleteRole() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (roleId: number) =>
+            api<void>(`/api/v1/roles/${roleId}`, { method: "DELETE" }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["roles"] });
+        },
     });
 }
 

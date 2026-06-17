@@ -167,7 +167,7 @@ function ExpandedRawText({ entry }: { entry: VibEntryProposed }) {
 export default function VibStructurePreviewPage() {
     const { taskId } = useParams<{ taskId: string }>();
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { can } = useAuth();
 
     const { data: parseResult, isLoading, isError } = useVibParseResult(taskId ?? null);
     const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
@@ -179,7 +179,7 @@ export default function VibStructurePreviewPage() {
             return next;
         });
 
-    if (user?.role !== "editor" && user?.role !== "admin") {
+    if (!can("vib.import")) {
         return (
             <Container size="sm" py="xl">
                 <Alert color="red" variant="light" title="Kein Zugriff">

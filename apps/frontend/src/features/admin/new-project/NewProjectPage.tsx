@@ -11,7 +11,7 @@ import Step4Finves from "./Step4Finves";
 import Step5Vib from "./Step5Vib";
 
 export default function NewProjectPage() {
-    const { user } = useAuth();
+    const { can } = useAuth();
     const navigate = useNavigate();
     const [active, setActive] = useState(0);
     const [project, setProject] = useState<Project | null>(null);
@@ -21,7 +21,7 @@ export default function NewProjectPage() {
         else navigate("/admin/unassigned");
     };
 
-    if (user === null || (user.role !== "editor" && user.role !== "admin")) {
+    if (!can("project.create")) {
         return (
             <Container size="sm" py="xl">
                 <Alert color="red" variant="light" title="Kein Zugriff">

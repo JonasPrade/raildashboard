@@ -19,6 +19,7 @@ import { notifications } from "@mantine/notifications";
 import { useAuth } from "../../lib/auth";
 import {
     useDeleteUser,
+    useRoles,
     useUpdateUserRole,
     useUsers,
 } from "../../shared/api/queries";
@@ -26,27 +27,23 @@ import { CreateUserModal } from "./CreateUserModal";
 import { EditUserModal } from "./EditUserModal";
 import { SetPasswordModal } from "./SetPasswordModal";
 
-const ROLE_OPTIONS = [
-    { value: "viewer", label: "Viewer" },
-    { value: "editor", label: "Editor" },
-    { value: "admin", label: "Admin" },
-];
-
 export default function UsersPage() {
-    const { user: currentUser } = useAuth();
+    const { user: currentUser, can } = useAuth();
     const [createOpened, { open: openCreate, close: closeCreate }] = useDisclosure(false);
     const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
     const [passwordUserId, setPasswordUserId] = useState<number | null>(null);
     const [editUserId, setEditUserId] = useState<number | null>(null);
 
-    const isAdmin = currentUser?.role === "admin";
+    const canManage = can("user.manage");
 
     const { data: users, isLoading: usersLoading, isError: usersError } = useUsers();
+    const { data: roles } = useRoles();
+    const roleOptions = (roles ?? []).map((r) => ({ value: r.name, label: r.name }));
 
     const updateRole = useUpdateUserRole();
     const deleteUser = useDeleteUser();
 
-    if (!isAdmin) {
+    if (!canManage) {
         return (
             <Container size="sm" py="xl">
                 <Alert color="red" variant="light" title="Kein Zugriff">
@@ -126,7 +123,7 @@ export default function UsersPage() {
                                 </Table.Td>
                                 <Table.Td>
                                     <Select
-                                        data={ROLE_OPTIONS}
+                                        data={roleOptions}
                                         value={u.role}
                                         onChange={(v) => v && handleRoleChange(u.id, v)}
                                         disabled={isSelf || updateRole.isPending}
