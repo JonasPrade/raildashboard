@@ -9,9 +9,10 @@ import {
     Stack,
     Switch,
     Text,
+    TextInput,
     Tooltip,
 } from "@mantine/core";
-import { IconPencil, IconPlus, IconTrash } from "@tabler/icons-react";
+import { IconPencil, IconPlus, IconSearch, IconTrash } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
 import { ChronicleHeadline, ChronicleCard, ChronicleDataChip, ChronicleButton } from "../../components/chronicle";
 import { notifications } from "@mantine/notifications";
@@ -48,6 +49,7 @@ export default function ProjectGroupsAdminPage() {
 
     const [modalOpened, setModalOpened] = useState(false);
     const [editingGroup, setEditingGroup] = useState<ProjectGroup | null>(null);
+    const [search, setSearch] = useState("");
 
     const currentMode: MapGroupMode = appSettings?.map_group_mode ?? "preconfigured";
 
@@ -135,6 +137,15 @@ export default function ProjectGroupsAdminPage() {
             ),
         [groups],
     );
+    const filteredGroups = useMemo(() => {
+        const query = search.trim().toLowerCase();
+        if (!query) return sortedGroups;
+        return sortedGroups.filter(
+            (group) =>
+                group.name.toLowerCase().includes(query) ||
+                (group.short_name ?? "").toLowerCase().includes(query),
+        );
+    }, [sortedGroups, search]);
 
     return (
         <Container size="md" py="xl">
@@ -142,6 +153,9 @@ export default function ProjectGroupsAdminPage() {
                 <Group justify="space-between" align="flex-start">
                     <Stack gap="xs">
                         <ChronicleHeadline as="h1">Projektgruppen – Kartenansicht</ChronicleHeadline>
+                        <Text c="dimmed" size="sm">
+                            Projektgruppen verwalten sowie Standardauswahl auf Karte
+                        </Text>
                         <Text c="dimmed" size="sm">
                             Lege fest, welche Projektgruppen auf der Karte angezeigt und vorausgewählt werden.
                         </Text>
@@ -178,8 +192,17 @@ export default function ProjectGroupsAdminPage() {
                     </Group>
                 ) : (
                     <Stack gap="sm">
-                        {/* Column headers */}
                         {sortedGroups.length > 0 && (
+                            <TextInput
+                                placeholder="Projektgruppe nach Name oder Kürzel suchen …"
+                                leftSection={<IconSearch size={16} />}
+                                value={search}
+                                onChange={(e) => setSearch(e.currentTarget.value)}
+                                aria-label="Projektgruppen durchsuchen"
+                            />
+                        )}
+                        {/* Column headers */}
+                        {filteredGroups.length > 0 && (
                             <Group justify="flex-end" gap="xl" pr={4}>
                                 <Tooltip label={"Gruppe auf der Karte anzeigen"} withArrow>
                                     <Text size="xs" c="dimmed" fw={500} style={{ minWidth: 80, textAlign: "center" }}>
@@ -194,7 +217,7 @@ export default function ProjectGroupsAdminPage() {
                             </Group>
                         )}
 
-                        {sortedGroups.map((group) => (
+                        {filteredGroups.map((group) => (
                             <ChronicleCard key={group.id}>
                                 <Group justify="space-between" align="center">
                                     <Group gap="sm" align="center" style={{ opacity: group.is_visible ? 1 : 0.4 }}>
@@ -269,6 +292,12 @@ export default function ProjectGroupsAdminPage() {
                         {sortedGroups.length === 0 && (
                             <Alert color="gray" variant="light" title="Keine Projektgruppen">
                                 Es sind noch keine Projektgruppen vorhanden.
+                            </Alert>
+                        )}
+
+                        {sortedGroups.length > 0 && filteredGroups.length === 0 && (
+                            <Alert color="gray" variant="light" title="Keine Treffer">
+                                Keine Projektgruppe passt zur Suche „{search}".
                             </Alert>
                         )}
                     </Stack>
