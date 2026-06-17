@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class UserRole(str, Enum):
@@ -12,21 +12,25 @@ class UserRole(str, Enum):
     admin = "admin"
 
 
-class UserBase(BaseModel):
+class UserCreate(BaseModel):
     username: str = Field(min_length=3, max_length=50)
     role: UserRole
-
-
-class UserCreate(UserBase):
     password: str = Field(min_length=8, max_length=128)
 
 
-class UserRead(UserBase):
+class UserRead(BaseModel):
     id: int
+    username: str
+    role: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("role", mode="before")
+    @classmethod
+    def _role_to_name(cls, value: object) -> object:
+        # Accept either the related Role object or a plain role-name string.
+        return getattr(value, "name", value)
 
 
 class UserUpdate(BaseModel):
@@ -36,4 +40,3 @@ class UserUpdate(BaseModel):
 
 class UserPasswordUpdate(BaseModel):
     password: str = Field(min_length=8, max_length=128)
-

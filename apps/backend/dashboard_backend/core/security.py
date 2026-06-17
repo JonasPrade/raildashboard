@@ -82,7 +82,7 @@ def require_roles(*roles: UserRole):
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Not authenticated",
             )
-        if allowed_roles is not None and user.role not in allowed_roles:
+        if allowed_roles is not None and user.role_name not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Not enough privileges",

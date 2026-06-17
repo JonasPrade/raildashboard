@@ -8,11 +8,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from dashboard_backend.core.security import hash_password
+from dashboard_backend.crud import roles as roles_crud
 from dashboard_backend.database import get_db
 from dashboard_backend.dependencies.routes import get_route_service
 from dashboard_backend.models.app_settings import AppSettings
 from dashboard_backend.models.projects.project_text import ProjectText
 from dashboard_backend.models.projects.project_text_type import ProjectTextType
+from dashboard_backend.models.roles import Role, RolePermission
 from dashboard_backend.models.users import User
 from dashboard_backend.models.routes import Route
 from dashboard_backend.models.projects.project_group import ProjectGroup
@@ -27,6 +29,8 @@ TestingSessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=Fals
 
 
 TABLES = [
+    Role.__table__,  # must precede User (FK dependency)
+    RolePermission.__table__,
     User.__table__,
     ProjectGroup.__table__,
     Route.__table__,
@@ -65,6 +69,13 @@ class RoutingClientStub:
 def prepare_database():
     for table in TABLES:
         table.create(bind=engine, checkfirst=True)
+    # Seed the system roles once; committed here so they survive the per-test
+    # transaction rollback (matches the production migration seed).
+    seed_session = TestingSessionLocal(bind=engine)
+    try:
+        roles_crud.seed_system_roles(seed_session)
+    finally:
+        seed_session.close()
     yield
     for table in reversed(TABLES):
         table.drop(bind=engine, checkfirst=True)
@@ -121,7 +132,8 @@ def client(db_session):
 @pytest.fixture()
 def create_user(db_session):
     def _create_user(username: str, password: str, role: UserRole) -> User:
-        user = User(username=username, hashed_password=hash_password(password), role=role.value)
+        role_obj = db_session.query(Role).filter(Role.name == role.value).one()
+        user = User(username=username, hashed_password=hash_password(password), role_id=role_obj.id)
         db_session.add(user)
         db_session.commit()
         db_session.refresh(user)

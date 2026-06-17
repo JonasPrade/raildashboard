@@ -53,7 +53,7 @@ def main() -> int:
             print(f"Failed to create user: {exc}", file=sys.stderr)
             return 1
 
-    print(f"Created user '{user.username}' with role '{user.role}'")
+    print(f"Created user '{user.username}' with role '{user.role_name}'")
     return 0
 
 

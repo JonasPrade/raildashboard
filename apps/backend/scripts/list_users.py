@@ -22,7 +22,7 @@ def main() -> int:
     print(f"{'Username':<{col_w}}  Role")
     print(f"{'-' * col_w}  ----")
     for user in users:
-        print(f"{user.username:<{col_w}}  {user.role}")
+        print(f"{user.username:<{col_w}}  {user.role_name}")
 
     return 0
 
