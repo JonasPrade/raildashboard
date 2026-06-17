@@ -1,6 +1,6 @@
 # dashboard_backend/api/v1/api.py
 from fastapi import APIRouter
-from .endpoints import auth, health, operational_points, project_routes, project_texts, route, projects, project_groups, users, tasks, haushalt_import, finves, settings, vib_import, admin_assignments
+from .endpoints import auth, health, operational_points, project_routes, project_texts, route, projects, project_groups, users, tasks, haushalt_import, finves, settings, vib_import, admin_assignments, roles, permissions
 
 api_router = APIRouter()
 api_router.include_router(health.router, tags=["health"])
@@ -18,3 +18,5 @@ api_router.include_router(finves.router, prefix="/finves", tags=["finves"])
 api_router.include_router(settings.router, prefix="/settings", tags=["settings"])
 api_router.include_router(vib_import.router, prefix="/import/vib", tags=["vib-import"])
 api_router.include_router(admin_assignments.router, prefix="/admin", tags=["admin-assignments"])
+api_router.include_router(roles.router, prefix="/roles", tags=["roles"])
+api_router.include_router(permissions.router, prefix="/permissions", tags=["permissions"])

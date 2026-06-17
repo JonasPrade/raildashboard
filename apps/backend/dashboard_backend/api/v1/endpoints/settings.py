@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from dashboard_backend.models.app_settings import AppSettings
 from dashboard_backend.database import get_db
 from dashboard_backend.routing.auth_router import AuthRouter
-from dashboard_backend.core.security import require_roles, UserRole
+from dashboard_backend.core.security import require_permission
 
 router = AuthRouter()
 
@@ -38,7 +38,7 @@ def get_settings(db: Session = Depends(get_db)):
 @router.patch("/", response_model=AppSettingsSchema)
 def patch_settings(
     body: AppSettingsUpdate,
-    _: None = Depends(require_roles(UserRole.admin)),
+    _: None = Depends(require_permission("settings.manage")),
     db: Session = Depends(get_db),
 ):
     row = _get_or_create(db)

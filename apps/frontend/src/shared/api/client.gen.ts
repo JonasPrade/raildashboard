@@ -857,26 +857,26 @@ const ProjectGroupUpdate = z
   })
   .partial()
   .passthrough();
-const UserRole = z.enum(["viewer", "editor", "admin"]);
 const UserRead = z
   .object({
-    username: z.string().min(3).max(50),
-    role: UserRole,
     id: z.number().int(),
+    username: z.string(),
+    role: z.string(),
+    permissions: z.array(z.string()),
     created_at: z.string().datetime({ offset: true }),
   })
   .passthrough();
 const UserCreate = z
   .object({
     username: z.string().min(3).max(50),
-    role: UserRole,
+    role: z.string().min(1).max(50),
     password: z.string().min(8).max(128),
   })
   .passthrough();
 const UserUpdate = z
   .object({
     username: z.union([z.string(), z.null()]),
-    role: z.union([UserRole, z.null()]),
+    role: z.union([z.string(), z.null()]),
   })
   .partial()
   .passthrough();
@@ -1349,6 +1349,34 @@ const UnassignedVibEntrySchema = z
 const AssignProjectsInput = z
   .object({ project_ids: z.array(z.number().int()) })
   .passthrough();
+const RoleRead = z
+  .object({
+    id: z.number().int(),
+    name: z.string(),
+    description: z.union([z.string(), z.null()]),
+    is_system: z.boolean(),
+    permissions: z.array(z.string()),
+    created_at: z.string().datetime({ offset: true }),
+  })
+  .passthrough();
+const RoleCreate = z
+  .object({
+    name: z.string().min(1).max(50),
+    description: z.union([z.string(), z.null()]).optional(),
+    permissions: z.array(z.string()).optional(),
+  })
+  .passthrough();
+const RoleUpdate = z
+  .object({
+    name: z.union([z.string(), z.null()]),
+    description: z.union([z.string(), z.null()]),
+    permissions: z.union([z.array(z.string()), z.null()]),
+  })
+  .partial()
+  .passthrough();
+const PermissionSchema = z
+  .object({ key: z.string(), label: z.string(), group: z.string() })
+  .passthrough();
 
 export const schemas = {
   SessionCredentials,
@@ -1374,7 +1402,6 @@ export const schemas = {
   ProjectGroupSchema,
   ProjectGroupCreate,
   ProjectGroupUpdate,
-  UserRole,
   UserRead,
   UserCreate,
   UserUpdate,
@@ -1428,6 +1455,10 @@ export const schemas = {
   UnassignedFinveSchema,
   UnassignedVibEntrySchema,
   AssignProjectsInput,
+  RoleRead,
+  RoleCreate,
+  RoleUpdate,
+  PermissionSchema,
 };
 
 const endpoints = makeApi([
@@ -2139,6 +2170,21 @@ Returns 202 if the task is still running; 422 if it failed.`,
   },
   {
     method: "get",
+    path: "/api/v1/permissions/",
+    alias: "list_permissions_api_v1_permissions__get",
+    description: `Return the capability catalog (keys + labels + groups) for the admin UI.`,
+    requestFormat: "json",
+    response: z.array(PermissionSchema),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
     path: "/api/v1/project_groups/",
     alias: "read_project_groups_api_v1_project_groups__get",
     requestFormat: "json",
@@ -2795,6 +2841,88 @@ Security:
       },
     ],
     response: z.unknown(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/roles/",
+    alias: "list_roles_api_v1_roles__get",
+    requestFormat: "json",
+    response: z.array(RoleRead),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/api/v1/roles/",
+    alias: "create_role_api_v1_roles__post",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: RoleCreate,
+      },
+    ],
+    response: RoleRead,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "patch",
+    path: "/api/v1/roles/:role_id",
+    alias: "update_role_api_v1_roles__role_id__patch",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: RoleUpdate,
+      },
+      {
+        name: "role_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: RoleRead,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "delete",
+    path: "/api/v1/roles/:role_id",
+    alias: "delete_role_api_v1_roles__role_id__delete",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "role_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: z.void(),
     errors: [
       {
         status: 422,

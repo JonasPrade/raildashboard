@@ -8,7 +8,7 @@ from geoalchemy2.shape import to_shape
 from shapely.geometry import LineString
 from sqlalchemy.orm import Session
 
-from dashboard_backend.core.security import require_roles
+from dashboard_backend.core.security import require_permission
 from dashboard_backend.crud.routes import get_route_by_id
 from dashboard_backend.database import get_db
 from dashboard_backend.dependencies.routes import get_route_service
@@ -21,7 +21,6 @@ from dashboard_backend.schemas.routes import (
     RouteOut,
     RoutePreviewOut,
 )
-from dashboard_backend.schemas.users import UserRole
 from dashboard_backend.services.exceptions import RoutingNoPathError, RoutingUpstreamError
 from dashboard_backend.services.route_service import RouteService
 
@@ -54,7 +53,7 @@ def _to_route_out(route: Route) -> RouteOut:
 )
 async def calculate_route(
     request: RouteIn,
-    current_user: User = Depends(require_roles(UserRole.editor, UserRole.admin)),
+    current_user: User = Depends(require_permission("project.edit")),
     service: RouteService = Depends(get_route_service),
 ) -> Dict[str, Any]:
     """Calculate a route and return it as a GeoJSON Feature preview.

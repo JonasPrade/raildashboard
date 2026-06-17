@@ -5,7 +5,7 @@ import json
 from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 
-from dashboard_backend.core.security import require_roles
+from dashboard_backend.core.security import require_auth, require_permission
 from dashboard_backend.crud.admin_assignments import link_project_to_finves
 from dashboard_backend.crud.changelog import (
     create_changelog_for_patch,
@@ -33,7 +33,6 @@ from dashboard_backend.schemas.projects.bvwp_schema import BvwpProjectDataSchema
 from dashboard_backend.schemas.projects.link_finves_schema import LinkFinvesInput
 from dashboard_backend.schemas.projects.project_create_schema import ProjectCreate
 from dashboard_backend.schemas.projects.project_update_schema import ProjectUpdate
-from dashboard_backend.schemas.users import UserRole
 from dashboard_backend.schemas.vib import VibEntryForProjectSchema
 
 router = AuthRouter()
@@ -48,7 +47,7 @@ def read_all_projects(db: Session = Depends(get_db)):
 @router.post("/", response_model=ProjectSchema, status_code=201)
 def create_project_endpoint(
     body: ProjectCreate,
-    current_user: User = Depends(require_roles(UserRole.editor, UserRole.admin)),
+    current_user: User = Depends(require_permission("project.create")),
     db: Session = Depends(get_db),
 ):
     """Create a new project. Only `name` is required."""
@@ -117,7 +116,7 @@ def get_project_vib(project_id: int, db: Session = Depends(get_db)):
 def patch_project(
     project_id: int,
     body: ProjectUpdate,
-    current_user: User = Depends(require_roles(UserRole.editor, UserRole.admin)),
+    current_user: User = Depends(require_permission("project.edit")),
     db: Session = Depends(get_db),
 ):
     """Update project fields. All changed fields are recorded in the changelog."""
@@ -197,7 +196,7 @@ def get_project_finves(project_id: int, db: Session = Depends(get_db)):
 def link_finves_to_project(
     project_id: int,
     body: LinkFinvesInput,
-    current_user: User = Depends(require_roles(UserRole.editor, UserRole.admin)),
+    current_user: User = Depends(require_permission("finve.edit")),
     db: Session = Depends(get_db),
 ):
     """Link a list of existing FinVes to this project. Existing links are preserved."""
@@ -212,7 +211,7 @@ def link_finves_to_project(
 @router.get("/{project_id}/changelog", response_model=list[ChangeLogRead])
 def read_project_changelog(
     project_id: int,
-    current_user: User = Depends(require_roles()),
+    current_user: User = Depends(require_auth()),
     db: Session = Depends(get_db),
 ):
     """Return the full changelog for a project, newest entries first."""
@@ -226,7 +225,7 @@ def read_project_changelog(
 def revert_project_field(
     project_id: int,
     body: RevertFieldRequest,
-    current_user: User = Depends(require_roles(UserRole.editor, UserRole.admin)),
+    current_user: User = Depends(require_permission("project.edit")),
     db: Session = Depends(get_db),
 ):
     """Revert a single field to its previous value as recorded in the given ChangeLogEntry."""

@@ -4,7 +4,9 @@ from collections.abc import Callable
 
 from sqlalchemy.orm import Session
 
+from dashboard_backend.core.permissions import ADMIN_ROLE_NAME
 from dashboard_backend.crud import roles as roles_crud
+from dashboard_backend.models.roles import Role
 from dashboard_backend.models.users import User
 from dashboard_backend.schemas.users import UserCreate
 
@@ -29,7 +31,7 @@ def create_user(db: Session, user_in: UserCreate, password_hasher: Callable[[str
     db_user = User(
         username=user_in.username,
         hashed_password=hashed,
-        role_id=_resolve_role_id(db, user_in.role.value),
+        role_id=_resolve_role_id(db, user_in.role),
     )
     db.add(db_user)
     db.commit()
@@ -39,6 +41,12 @@ def create_user(db: Session, user_in: UserCreate, password_hasher: Callable[[str
 
 def count_users(db: Session) -> int:
     return db.query(User).count()
+
+
+def count_admins(db: Session) -> int:
+    """Number of users holding the ``admin`` system role."""
+
+    return db.query(User).join(Role).filter(Role.name == ADMIN_ROLE_NAME).count()
 
 
 def update_password(db: Session, user: User, new_hashed_password: str) -> User:

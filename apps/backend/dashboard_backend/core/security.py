@@ -94,6 +94,47 @@ def require_roles(*roles: UserRole):
     return dependency
 
 
+def require_permission(*keys: str):
+    """FastAPI dependency: require the authenticated user to hold every given
+    capability key.
+
+    Accepts a session cookie or HTTP Basic credentials (like ``require_auth``).
+    The ``admin`` system role bypasses the check (see ``User.has_permission``).
+    Not authenticated → 401; authenticated but missing a capability → 403.
+    """
+
+    required_keys = tuple(keys)
+
+    def dependency(
+        session: Optional[str] = Cookie(default=None, alias=_SESSION_COOKIE),
+        credentials: Optional[HTTPBasicCredentials] = Depends(_optional_security),
+        db: Session = Depends(get_db),
+    ):
+        user = None
+        if session:
+            user_id = verify_session_token(session)
+            if user_id is not None:
+                user = users_crud.get_user_by_id(db, user_id)
+        if user is None and credentials:
+            user = _authenticate(credentials, db)
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not authenticated",
+            )
+        for key in required_keys:
+            if not user.has_permission(key):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Not enough privileges",
+                )
+        return user
+
+    dependency.__is_role_dependency__ = True  # type: ignore[attr-defined]
+    dependency.__required_permissions__ = required_keys  # type: ignore[attr-defined]
+    return dependency
+
+
 _SESSION_COOKIE = "session"
 _SESSION_MAX_AGE = 7 * 24 * 3600  # 7 days in seconds
 

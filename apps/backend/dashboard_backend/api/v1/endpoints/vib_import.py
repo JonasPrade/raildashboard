@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 
 from dashboard_backend.celery_app import celery_app
 from dashboard_backend.core.config import settings
-from dashboard_backend.core.security import require_roles
+from dashboard_backend.core.security import require_permission
 from dashboard_backend.crud.vib import (
     create_vib_report_with_entries,
     delete_draft,
@@ -26,7 +26,6 @@ from dashboard_backend.database import get_db
 from dashboard_backend.models.users import User
 from dashboard_backend.routing.auth_router import AuthRouter
 from dashboard_backend.schemas.tasks import TaskLaunchResponse
-from dashboard_backend.schemas.users import UserRole
 from dashboard_backend.schemas.vib import (
     VibAiAvailableResponse,
     VibConfirmRequest,
@@ -45,7 +44,7 @@ from dashboard_backend.tasks.vib_ai_extraction import extract_vib_blocks
 
 router = AuthRouter()
 
-_require_editor = Depends(require_roles(UserRole.editor, UserRole.admin))
+_require_editor = Depends(require_permission("vib.import"))
 
 
 def _draft_result(db: Session, task_id: str) -> VibParseTaskResult | None:
@@ -103,7 +102,7 @@ async def start_vib_parse(
     start_page: int | None = Form(None),
     end_page: int | None = Form(None),
     strip_headers_footers: bool = Form(True),
-    current_user: User = Depends(require_roles(UserRole.editor, UserRole.admin)),
+    current_user: User = Depends(require_permission("vib.import")),
 ):
     """Upload a VIB PDF and start a background parse task.
 
@@ -179,7 +178,7 @@ def get_vib_parse_result(task_id: str, db: Session = Depends(get_db)):
 @router.post("/confirm", response_model=VibConfirmResponse)
 def confirm_vib_import(
     body: VibConfirmRequest,
-    current_user: User = Depends(require_roles(UserRole.editor, UserRole.admin)),
+    current_user: User = Depends(require_permission("vib.import")),
     db: Session = Depends(get_db),
 ):
     """Confirm a VIB parse result and write VibReport + VibEntry rows to DB.
@@ -244,7 +243,7 @@ def confirm_vib_import(
 )
 def start_vib_ai_extraction(
     parse_task_id: str,
-    current_user: User = Depends(require_roles(UserRole.editor, UserRole.admin)),
+    current_user: User = Depends(require_permission("vib.import")),
     db: Session = Depends(get_db),
 ):
     """Start the LLM extraction Celery task for a parsed VIB draft.
@@ -283,7 +282,7 @@ def list_vib_drafts(db: Session = Depends(get_db)):
 @router.delete("/drafts/{task_id}", status_code=204)
 def delete_vib_draft(
     task_id: str,
-    current_user: User = Depends(require_roles(UserRole.editor, UserRole.admin)),
+    current_user: User = Depends(require_permission("vib.import")),
     db: Session = Depends(get_db),
 ):
     """Discard an unconfirmed VIB draft."""
@@ -468,7 +467,7 @@ def list_vib_reports(db: Session = Depends(get_db)):
 @router.delete("/reports/{report_id}", status_code=204)
 def delete_vib_report(
     report_id: int,
-    current_user: User = Depends(require_roles(UserRole.editor, UserRole.admin)),
+    current_user: User = Depends(require_permission("vib.import")),
     db: Session = Depends(get_db),
 ):
     """Delete a VIB report and all associated VibEntry / VibPfaEntry rows."""
@@ -566,7 +565,7 @@ def get_vib_entry_endpoint(
 def patch_vib_entry(
     entry_id: int,
     body: VibEntryUpdateSchema,
-    current_user: User = Depends(require_roles(UserRole.editor, UserRole.admin)),
+    current_user: User = Depends(require_permission("vib.import")),
     db: Session = Depends(get_db),
 ):
     """Update any field of a confirmed VibEntry.

@@ -36,6 +36,12 @@ class User(Base):
             return set()
         return effective_permissions_for(self.role.name, self.role.permission_keys)
 
+    @property
+    def permissions(self) -> list[str]:
+        """Effective capability keys as a stable, serialisable list."""
+
+        return sorted(self.effective_permissions)
+
     def has_permission(self, key: str) -> bool:
         """Whether the user holds a capability (admin bypasses the check)."""
 

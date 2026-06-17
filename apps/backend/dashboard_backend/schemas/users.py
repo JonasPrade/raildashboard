@@ -14,7 +14,8 @@ class UserRole(str, Enum):
 
 class UserCreate(BaseModel):
     username: str = Field(min_length=3, max_length=50)
-    role: UserRole
+    # Role name (system role or a custom role).
+    role: str = Field(min_length=1, max_length=50)
     password: str = Field(min_length=8, max_length=128)
 
 
@@ -22,6 +23,7 @@ class UserRead(BaseModel):
     id: int
     username: str
     role: str
+    permissions: list[str]
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -35,7 +37,7 @@ class UserRead(BaseModel):
 
 class UserUpdate(BaseModel):
     username: str | None = Field(default=None, min_length=3, max_length=50)
-    role: UserRole | None = None
+    role: str | None = Field(default=None, min_length=1, max_length=50)
 
 
 class UserPasswordUpdate(BaseModel):

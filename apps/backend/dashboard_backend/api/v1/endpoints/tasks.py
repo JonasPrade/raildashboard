@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends
 
 from dashboard_backend.celery_app import celery_app
-from dashboard_backend.core.security import require_roles
+from dashboard_backend.core.security import require_auth
 from dashboard_backend.schemas.tasks import DebugTaskRequest, TaskLaunchResponse, TaskStatusResponse
 from dashboard_backend.tasks.debug import add
 
 router = APIRouter()
 
-_require_login = Depends(require_roles())
+_require_login = Depends(require_auth())
 
 
 @router.get("/{task_id}", response_model=TaskStatusResponse, dependencies=[_require_login])

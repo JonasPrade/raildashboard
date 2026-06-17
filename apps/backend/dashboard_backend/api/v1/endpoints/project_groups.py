@@ -13,7 +13,7 @@ from dashboard_backend.crud.projects.project_groups import (
 from dashboard_backend.database import get_db
 from dashboard_backend.schemas.projects import ProjectGroupSchema, ProjectGroupCreate
 from dashboard_backend.routing.auth_router import AuthRouter
-from dashboard_backend.core.security import require_roles, UserRole
+from dashboard_backend.core.security import require_permission
 
 router = AuthRouter()
 
@@ -45,7 +45,7 @@ def read_project_group(group_id: int, db: Session = Depends(get_db)):
 @router.post("/", response_model=ProjectGroupSchema, status_code=201)
 def create_project_group_endpoint(
     body: ProjectGroupCreate,
-    _: None = Depends(require_roles(UserRole.admin)),
+    _: None = Depends(require_permission("projectgroup.create")),
     db: Session = Depends(get_db),
 ):
     if get_project_group_by_short_name(db, body.short_name):
@@ -57,7 +57,7 @@ def create_project_group_endpoint(
 def patch_project_group(
     group_id: int,
     body: ProjectGroupUpdate,
-    _: None = Depends(require_roles(UserRole.admin)),
+    _: None = Depends(require_permission("projectgroup.edit")),
     db: Session = Depends(get_db),
 ):
     updates = body.model_dump(exclude_unset=True)
@@ -77,7 +77,7 @@ def patch_project_group(
 @router.delete("/{group_id}", status_code=204)
 def delete_project_group_endpoint(
     group_id: int,
-    _: None = Depends(require_roles(UserRole.admin)),
+    _: None = Depends(require_permission("projectgroup.edit")),
     db: Session = Depends(get_db),
 ):
     group = delete_project_group(db, group_id)
