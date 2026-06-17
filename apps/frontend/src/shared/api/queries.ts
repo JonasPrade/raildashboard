@@ -506,6 +506,24 @@ export function useUpdateUserRole() {
     });
 }
 
+export function useUpdateUser() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ userId, username, role }: { userId: number; username?: string; role?: string }) =>
+            api<User>(`/api/v1/users/${userId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    ...(username !== undefined ? { username } : {}),
+                    ...(role !== undefined ? { role } : {}),
+                }),
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["users"] });
+        },
+    });
+}
+
 export function useDeleteUser() {
     const queryClient = useQueryClient();
     return useMutation({

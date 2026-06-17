@@ -873,7 +873,13 @@ const UserCreate = z
     password: z.string().min(8).max(128),
   })
   .passthrough();
-const UserUpdate = z.object({ role: UserRole }).passthrough();
+const UserUpdate = z
+  .object({
+    username: z.union([z.string(), z.null()]),
+    role: z.union([UserRole, z.null()]),
+  })
+  .partial()
+  .passthrough();
 const UserPasswordUpdate = z
   .object({ password: z.string().min(8).max(128) })
   .passthrough();

@@ -47,6 +47,22 @@ def update_user_role(db: Session, user: User, new_role: str) -> User:
     return user
 
 
+def update_user(
+    db: Session,
+    user: User,
+    *,
+    username: str | None = None,
+    role: str | None = None,
+) -> User:
+    if username is not None:
+        user.username = username
+    if role is not None:
+        user.role = role
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 def delete_user(db: Session, user: User) -> None:
     db.delete(user)
     db.commit()

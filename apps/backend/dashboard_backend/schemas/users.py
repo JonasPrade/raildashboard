@@ -30,7 +30,8 @@ class UserRead(UserBase):
 
 
 class UserUpdate(BaseModel):
-    role: UserRole
+    username: str | None = Field(default=None, min_length=3, max_length=50)
+    role: UserRole | None = None
 
 
 class UserPasswordUpdate(BaseModel):

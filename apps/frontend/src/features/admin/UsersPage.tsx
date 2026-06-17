@@ -12,7 +12,7 @@ import {
     Table,
     Text,
 } from "@mantine/core";
-import { IconChevronLeft } from "@tabler/icons-react";
+import { IconChevronLeft, IconPencil } from "@tabler/icons-react";
 import { ChronicleHeadline, ChronicleButton } from "../../components/chronicle";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
@@ -23,6 +23,7 @@ import {
     useUsers,
 } from "../../shared/api/queries";
 import { CreateUserModal } from "./CreateUserModal";
+import { EditUserModal } from "./EditUserModal";
 import { SetPasswordModal } from "./SetPasswordModal";
 
 const ROLE_OPTIONS = [
@@ -36,6 +37,7 @@ export default function UsersPage() {
     const [createOpened, { open: openCreate, close: closeCreate }] = useDisclosure(false);
     const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
     const [passwordUserId, setPasswordUserId] = useState<number | null>(null);
+    const [editUserId, setEditUserId] = useState<number | null>(null);
 
     const isAdmin = currentUser?.role === "admin";
 
@@ -143,6 +145,14 @@ export default function UsersPage() {
                                         <Button
                                             size="xs"
                                             variant="subtle"
+                                            leftSection={<IconPencil size={14} />}
+                                            onClick={() => setEditUserId(u.id)}
+                                        >
+                                            Bearbeiten
+                                        </Button>
+                                        <Button
+                                            size="xs"
+                                            variant="subtle"
                                             onClick={() => setPasswordUserId(u.id)}
                                         >
                                             Passwort setzen
@@ -203,6 +213,17 @@ export default function UsersPage() {
             </Stack>
 
             <CreateUserModal opened={createOpened} onClose={closeCreate} />
+            {editUserId !== null && (() => {
+                const u = users?.find((u) => u.id === editUserId);
+                return u ? (
+                    <EditUserModal
+                        opened
+                        onClose={() => setEditUserId(null)}
+                        user={{ id: u.id, username: u.username, role: u.role }}
+                        isSelf={u.id === currentUser?.id}
+                    />
+                ) : null;
+            })()}
             {passwordUserId !== null && (() => {
                 const u = users?.find((u) => u.id === passwordUserId);
                 return u ? (

@@ -102,6 +102,61 @@ def test_update_user_role_requires_admin(client, create_user):
     assert response.status_code == 403
 
 
+def test_update_user_username_success(client, create_user, db_session):
+    create_user("admin", "adminpass", UserRole.admin)
+    target = create_user("editor", "editorpass", UserRole.editor)
+
+    response = client.patch(
+        f"/api/v1/users/{target.id}",
+        json={"username": "renamed"},
+        headers=basic_auth_header("admin", "adminpass"),
+    )
+    assert response.status_code == 200
+    assert response.json()["username"] == "renamed"
+    assert response.json()["role"] == UserRole.editor.value
+    assert users_crud.get_user_by_username(db_session, "renamed") is not None
+
+
+def test_update_user_username_conflict(client, create_user):
+    create_user("admin", "adminpass", UserRole.admin)
+    create_user("taken", "takenpass", UserRole.viewer)
+    target = create_user("editor", "editorpass", UserRole.editor)
+
+    response = client.patch(
+        f"/api/v1/users/{target.id}",
+        json={"username": "taken"},
+        headers=basic_auth_header("admin", "adminpass"),
+    )
+    assert response.status_code == 400
+
+
+def test_update_user_username_self_allowed(client, create_user):
+    admin = create_user("admin", "adminpass", UserRole.admin)
+
+    response = client.patch(
+        f"/api/v1/users/{admin.id}",
+        json={"username": "admin-renamed"},
+        headers=basic_auth_header("admin", "adminpass"),
+    )
+    assert response.status_code == 200
+    assert response.json()["username"] == "admin-renamed"
+
+
+def test_update_user_username_and_role_together(client, create_user):
+    create_user("admin", "adminpass", UserRole.admin)
+    target = create_user("editor", "editorpass", UserRole.editor)
+
+    response = client.patch(
+        f"/api/v1/users/{target.id}",
+        json={"username": "renamed", "role": UserRole.admin.value},
+        headers=basic_auth_header("admin", "adminpass"),
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["username"] == "renamed"
+    assert payload["role"] == UserRole.admin.value
+
+
 def test_delete_user_success(client, create_user, db_session):
     create_user("admin", "adminpass", UserRole.admin)
     target = create_user("tobedeleted", "pass123", UserRole.viewer)

@@ -3008,7 +3008,9 @@ export interface components {
         UserRole: "viewer" | "editor" | "admin";
         /** UserUpdate */
         UserUpdate: {
-            role: components["schemas"]["UserRole"];
+            /** Username */
+            username?: string | null;
+            role?: components["schemas"]["UserRole"] | null;
         };
         /** ValidationError */
         ValidationError: {

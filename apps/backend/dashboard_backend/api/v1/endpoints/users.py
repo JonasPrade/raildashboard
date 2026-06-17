@@ -48,12 +48,25 @@ def update_user(
     current_user: User = Depends(require_roles(UserRole.admin)),
     db: Session = Depends(get_db),
 ):
-    if user_id == current_user.id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot change your own role")
     user = users_crud.get_user_by_id(db, user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    return users_crud.update_user_role(db, user, body.role.value)
+    if body.role is not None and user_id == current_user.id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot change your own role")
+
+    new_username: str | None = None
+    if body.username is not None and body.username != user.username:
+        existing = users_crud.get_user_by_username(db, body.username)
+        if existing and existing.id != user_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already exists")
+        new_username = body.username
+
+    return users_crud.update_user(
+        db,
+        user,
+        username=new_username,
+        role=body.role.value if body.role is not None else None,
+    )
 
 
 @router.patch("/{user_id}/password", status_code=status.HTTP_204_NO_CONTENT)
