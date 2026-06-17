@@ -6,6 +6,7 @@ import MapPage from "./features/map/MapPage";
 import DocumentationPage from "./features/documentation/DocumentationPage";
 import ProjectDetail from "./features/projects/ProjectDetail";
 
+const AdminOverviewPage = lazy(() => import("./features/admin/AdminOverviewPage"));
 const UsersPage = lazy(() => import("./features/admin/UsersPage"));
 const ProjectGroupsAdminPage = lazy(() => import("./features/admin/ProjectGroupsAdminPage"));
 const HaushaltsImportPage = lazy(() => import("./features/haushalt-import/HaushaltsImportPage"));
@@ -43,6 +44,14 @@ export const router = createBrowserRouter([
             { path: "projects/:projectId", element: <ProjectDetail /> },
             {
                 path: "admin",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <AdminOverviewPage />
+                    </Suspense>
+                ),
+            },
+            {
+                path: "admin/users",
                 element: (
                     <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
                         <UsersPage />
