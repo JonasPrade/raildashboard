@@ -8,6 +8,7 @@ import ProjectDetail from "./features/projects/ProjectDetail";
 
 const AdminOverviewPage = lazy(() => import("./features/admin/AdminOverviewPage"));
 const UsersPage = lazy(() => import("./features/admin/UsersPage"));
+const RolesAdminPage = lazy(() => import("./features/admin/RolesAdminPage"));
 const ProjectGroupsAdminPage = lazy(() => import("./features/admin/ProjectGroupsAdminPage"));
 const HaushaltsImportPage = lazy(() => import("./features/haushalt-import/HaushaltsImportPage"));
 const HaushaltsReviewPage = lazy(() => import("./features/haushalt-import/HaushaltsReviewPage"));
@@ -55,6 +56,14 @@ export const router = createBrowserRouter([
                 element: (
                     <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
                         <UsersPage />
+                    </Suspense>
+                ),
+            },
+            {
+                path: "admin/roles",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <RolesAdminPage />
                     </Suspense>
                 ),
             },

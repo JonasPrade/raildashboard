@@ -118,6 +118,16 @@ export default function AdminOverviewPage() {
                             </Link>
                         </ChronicleCard>
                     )}
+                    {canRoles && (
+                        <ChronicleCard style={{ textDecoration: "none" }}>
+                            <Link to="/admin/roles" style={{ textDecoration: "none", color: "inherit" }}>
+                                <Stack gap={4}>
+                                    <Text fw={500}>Rollen & Berechtigungen</Text>
+                                    <Text size="sm" c="dimmed">Rollen anlegen und granulare Rechte zuweisen</Text>
+                                </Stack>
+                            </Link>
+                        </ChronicleCard>
+                    )}
                 </SimpleGrid>
             </Stack>
         </Container>
