@@ -6,7 +6,7 @@ from typing import Any, Callable, Sequence
 from fastapi import APIRouter, Depends
 from fastapi.params import Depends as DependsParam
 
-from dashboard_backend.core.security import ensure_authenticated_dependency, has_role_dependency, require_roles
+from dashboard_backend.core.security import ensure_authenticated_dependency, has_role_dependency, require_auth
 
 
 class AuthRouter(APIRouter):
@@ -26,7 +26,7 @@ class AuthRouter(APIRouter):
 
         if not ensure_authenticated_dependency(dependencies) and not self._endpoint_requires_roles(endpoint):
             if any(method.upper() != "GET" for method in methods):
-                dependencies.append(Depends(require_roles()))
+                dependencies.append(Depends(require_auth()))
 
         super().add_api_route(
             path,

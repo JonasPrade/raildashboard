@@ -2,6 +2,8 @@
 
 GitHub-Issue: [#36 „Benutzerverwaltung"](https://github.com/JonasPrade/raildashboard/issues/36)
 
+**Status: implementiert (2026-06-17)** — alle 5 Phasen umgesetzt; Backend-/Frontend-Tests grün.
+
 ## Ziel
 
 Admins können **eigene Rollen anlegen** und jeder Rolle **granulare

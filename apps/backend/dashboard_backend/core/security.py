@@ -16,7 +16,6 @@ from sqlalchemy.orm import Session
 
 from dashboard_backend.crud import users as users_crud
 from dashboard_backend.database import get_db
-from dashboard_backend.schemas.users import UserRole
 
 
 PasswordHasher = Callable[[str], str]
@@ -60,38 +59,6 @@ def _authenticate(credentials: HTTPBasicCredentials, db: Session):
             headers={"WWW-Authenticate": "Basic"},
         )
     return user
-
-
-def require_roles(*roles: UserRole):
-    allowed_roles: set[str] | None = {role.value for role in roles} if roles else None
-
-    def dependency(
-        session: Optional[str] = Cookie(default=None, alias=_SESSION_COOKIE),
-        credentials: Optional[HTTPBasicCredentials] = Depends(_optional_security),
-        db: Session = Depends(get_db),
-    ):
-        user = None
-        if session:
-            user_id = verify_session_token(session)
-            if user_id is not None:
-                user = users_crud.get_user_by_id(db, user_id)
-        if user is None and credentials:
-            user = _authenticate(credentials, db)
-        if user is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Not authenticated",
-            )
-        if allowed_roles is not None and user.role_name not in allowed_roles:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not enough privileges",
-            )
-        return user
-
-    dependency.__is_role_dependency__ = True  # type: ignore[attr-defined]
-    dependency.__required_roles__ = allowed_roles  # type: ignore[attr-defined]
-    return dependency
 
 
 def require_permission(*keys: str):

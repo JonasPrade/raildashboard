@@ -105,7 +105,7 @@ All changeable runtime data lives in `apps/backend/data/`.
 
 The backend uses **HTTP Basic Auth**. The `AuthRouter` class (`routing/auth_router.py`) automatically enforces authentication on all non-GET endpoints. Use it instead of the standard `APIRouter` for any router that handles write operations.
 
-Roles: `viewer` (read-only), `editor` (can write projects/routes), `admin` (full access, user management). Protect endpoints with `Depends(require_roles(UserRole.editor))` from `core/security.py`.
+**Roles & permissions:** Authorisation is capability-based. The capability catalog lives in `core/permissions.py`; roles map to capability keys via the `roles` / `role_permissions` tables, and every user has exactly one role (`users.role_id`). Protect endpoints with `Depends(require_permission("project.edit"))` from `core/security.py` (admin is an implicit super-admin that bypasses the check). `viewer`/`editor`/`admin` are seeded as system roles reproducing the historic behaviour; admins can create further custom roles via `/admin/roles`. The frontend mirrors this with the `can(key)` helper (`lib/auth.ts`), fed by the effective permissions returned from `/users/me`. See `docs/features/feature-user-roles-permissions.md`.
 
 **Visibility of sensitive data:** Version history (changelog) and any data containing usernames or internal change records must **only be visible to logged-in users**. Anonymous visitors (unauthenticated viewers) must not see this data. This rule applies everywhere change tracking is displayed, not only in `ProjectHistorySection`.
 
