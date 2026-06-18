@@ -34,7 +34,7 @@ def read_project_groups(db: Session = Depends(get_db)):
     return get_project_groups(db)
 
 
-@router.get("/{group_id}")
+@router.get("/{group_id}", response_model=ProjectGroupSchema)
 def read_project_group(group_id: int, db: Session = Depends(get_db)):
     group = get_project_group_by_id(db, group_id)
     if not group:

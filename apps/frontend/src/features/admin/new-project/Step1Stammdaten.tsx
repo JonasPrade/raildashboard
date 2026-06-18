@@ -2,6 +2,7 @@ import { Alert, Button, Group, MultiSelect, Stack, TextInput, Textarea } from "@
 import { useMemo, useState } from "react";
 
 import {
+    updateProject,
     useCreateProject,
     useProjectGroups,
     type Project,
@@ -10,29 +11,59 @@ import {
 import ProjectSearchSelect from "../../projects/ProjectSearchSelect";
 
 type Props = {
+    /** When set, the step edits this existing draft (PATCH) instead of creating a new one. */
+    project?: Project | null;
     onCreated: (project: Project) => void;
 };
 
-export default function Step1Stammdaten({ onCreated }: Props) {
+export default function Step1Stammdaten({ project, onCreated }: Props) {
+    const isEdit = project != null;
     const createProject = useCreateProject();
     const { data: groups = [] } = useProjectGroups();
-    const [name, setName] = useState("");
-    const [projectNumber, setProjectNumber] = useState("");
-    const [description, setDescription] = useState("");
-    const [justification, setJustification] = useState("");
-    const [superiorId, setSuperiorId] = useState<number | null>(null);
-    const [groupIds, setGroupIds] = useState<string[]>([]);
+    const [name, setName] = useState(project?.name ?? "");
+    const [projectNumber, setProjectNumber] = useState(project?.project_number ?? "");
+    const [description, setDescription] = useState(project?.description ?? "");
+    const [justification, setJustification] = useState(project?.justification ?? "");
+    const [superiorId, setSuperiorId] = useState<number | null>(project?.superior_project_id ?? null);
+    const [groupIds, setGroupIds] = useState<string[]>(
+        (project?.project_groups ?? []).map((g) => String(g.id)),
+    );
+    const [saving, setSaving] = useState(false);
+    const [editError, setEditError] = useState<string | null>(null);
 
     const groupOptions = useMemo(
         () => groups.map((g) => ({ value: String(g.id), label: g.name })),
         [groups],
     );
 
-    const disabled = name.trim().length === 0 || createProject.isPending;
+    const pending = createProject.isPending || saving;
+    const disabled = name.trim().length === 0 || pending;
 
     const handleSubmit = async () => {
+        if (isEdit && project?.id != null) {
+            setEditError(null);
+            setSaving(true);
+            try {
+                const updated = await updateProject(project.id, {
+                    name: name.trim(),
+                    project_number: projectNumber || null,
+                    description: description || null,
+                    justification: justification || null,
+                    superior_project_id: superiorId,
+                    project_group_ids: groupIds.map(Number),
+                });
+                onCreated(updated);
+            } catch (e) {
+                setEditError((e as Error | null)?.message ?? "Unbekannter Fehler");
+            } finally {
+                setSaving(false);
+            }
+            return;
+        }
+
         const payload: ProjectCreatePayload = {
             name: name.trim(),
+            is_draft: true,
             project_number: projectNumber || null,
             description: description || null,
             justification: justification || null,
@@ -89,14 +120,14 @@ export default function Step1Stammdaten({ onCreated }: Props) {
                 clearable
                 placeholder="Gruppen auswählen…"
             />
-            {createProject.isError && (
+            {(createProject.isError || editError) && (
                 <Alert color="red" variant="light" title="Speichern fehlgeschlagen">
-                    {(createProject.error as Error | null)?.message ?? "Unbekannter Fehler"}
+                    {editError ?? (createProject.error as Error | null)?.message ?? "Unbekannter Fehler"}
                 </Alert>
             )}
             <Group justify="flex-end">
-                <Button onClick={handleSubmit} disabled={disabled} loading={createProject.isPending}>
-                    Projekt anlegen
+                <Button onClick={handleSubmit} disabled={disabled} loading={pending}>
+                    {isEdit ? "Speichern & Weiter" : "Projekt anlegen"}
                 </Button>
             </Group>
         </Stack>

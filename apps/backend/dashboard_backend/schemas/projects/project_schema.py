@@ -103,6 +103,7 @@ class ProjectSchema(BaseModel):
     superior_project_old_id: Optional[int] = None
     description: Optional[str] = None
     justification: Optional[str] = None
+    is_draft: bool = False
 
     effects_passenger_long_rail: Optional[bool] = False
     effects_passenger_local_rail: Optional[bool] = False

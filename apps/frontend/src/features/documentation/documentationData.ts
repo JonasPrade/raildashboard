@@ -61,6 +61,19 @@ export const featureHighlights: FeatureHighlight[] = [
         ]
     },
     {
+        title: "Projekt-Entwürfe (Zwischenspeichern)",
+        description:
+            "Im Anlege-Wizard begonnene Projekte werden als Entwurf zwischengespeichert (is_draft). " +
+            "Entwürfe sind nicht öffentlich sichtbar (Liste/Karte blenden sie aus) und werden unter /admin/drafts verwaltet.",
+        details: [
+            "Schritt 1 des Wizards legt das Projekt als Entwurf an (is_draft=true)",
+            "'Projekt fertigstellen' setzt is_draft=false (öffentlich sichtbar); 'Als Entwurf speichern' verlässt den Wizard ohne Finalisierung",
+            "Admin-Seite /admin/drafts: Weiter bearbeiten, Fertigstellen, Verwerfen",
+            "GET /projects/ liefert nur finalisierte Projekte; GET /projects/drafts die Entwürfe (project.create)",
+            "Nur für editor/admin sichtbar"
+        ]
+    },
+    {
         title: "Projekttexte & Dateianhänge",
         description:
             "Editors können jedem Projekttext Dateien anhängen (PDF, Word, Excel, JPEG, PNG, max. 50 MB). " +

@@ -10,7 +10,7 @@ import {
 } from "@mantine/core";
 import { ChronicleHeadline, ChronicleCard } from "../../components/chronicle";
 import { useAuth } from "../../lib/auth";
-import { useUnassignedFinves, useUnassignedVibEntries } from "../../shared/api/queries";
+import { useDraftProjects, useUnassignedFinves, useUnassignedVibEntries } from "../../shared/api/queries";
 
 export default function AdminOverviewPage() {
     const { can } = useAuth();
@@ -34,6 +34,9 @@ export default function AdminOverviewPage() {
     const { data: unassignedVibEntries } = useUnassignedVibEntries(canAssignments);
     const totalUnassigned =
         (unassignedFinves?.length ?? 0) + (unassignedVibEntries?.length ?? 0);
+
+    const { data: drafts } = useDraftProjects(canCreateProject);
+    const draftCount = drafts?.length ?? 0;
 
     if (!hasAnyAdmin) {
         return (
@@ -94,6 +97,23 @@ export default function AdminOverviewPage() {
                                 <Stack gap={4}>
                                     <Text fw={500}>Neues Projekt anlegen</Text>
                                     <Text size="sm" c="dimmed">Wizard: Stammdaten, Geometrie, Eigenschaften, FinVes, VIB</Text>
+                                </Stack>
+                            </Link>
+                        </ChronicleCard>
+                    )}
+                    {canCreateProject && (
+                        <ChronicleCard style={{ textDecoration: "none" }}>
+                            <Link to="/admin/drafts" style={{ textDecoration: "none", color: "inherit" }}>
+                                <Stack gap={4}>
+                                    <Group gap={6} align="center">
+                                        <Text fw={500}>Projekt-Entwürfe</Text>
+                                        {draftCount > 0 && (
+                                            <Badge color="orange" size="xs" variant="filled" circle>
+                                                {draftCount}
+                                            </Badge>
+                                        )}
+                                    </Group>
+                                    <Text size="sm" c="dimmed">Begonnene, noch nicht finalisierte Projekte fertigstellen</Text>
                                 </Stack>
                             </Link>
                         </ChronicleCard>

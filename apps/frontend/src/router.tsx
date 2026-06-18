@@ -20,6 +20,7 @@ const VibReviewPage = lazy(() => import("./features/vib-import/VibReviewPage"));
 const VibStructurePreviewPage = lazy(() => import("./features/vib-import/VibStructurePreviewPage"));
 const UnassignedPage = lazy(() => import("./features/admin/UnassignedPage"));
 const NewProjectPage = lazy(() => import("./features/admin/new-project/NewProjectPage"));
+const DraftsPage = lazy(() => import("./features/admin/drafts/DraftsPage"));
 
 function Layout() {
     return (
@@ -152,6 +153,22 @@ export const router = createBrowserRouter([
                 element: (
                     <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
                         <NewProjectPage />
+                    </Suspense>
+                ),
+            },
+            {
+                path: "admin/projects/new/:projectId",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <NewProjectPage />
+                    </Suspense>
+                ),
+            },
+            {
+                path: "admin/drafts",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <DraftsPage />
                     </Suspense>
                 ),
             },
