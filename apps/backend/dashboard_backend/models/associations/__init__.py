@@ -1,5 +1,6 @@
 from .document_to_projects import DocumentToProject
 from .finve_to_project import FinveToProject
+from .progress_track_document import ProgressTrackDocument
 from .project_to_project_group import ProjectToProjectGroup
 from .project_to_section_of_line import ProjectToSectionOfLine
 from .project_to_operation_point import ProjectToOperationPoint

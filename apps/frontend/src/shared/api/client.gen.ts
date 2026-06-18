@@ -820,6 +820,188 @@ const ChangeLogRead = z
 const RevertFieldRequest = z
   .object({ changelog_entry_id: z.number().int() })
   .passthrough();
+const ProgressObservationSchema = z
+  .object({
+    id: z.number().int(),
+    source_type: z.enum([
+      "VIB",
+      "FINVE",
+      "FULDA_RUNDE",
+      "BAUPORTAL",
+      "MEDIEN",
+      "MANUELL",
+    ]),
+    track: z.enum(["MAIN", "PF", "PARL"]),
+    asserted_state: z.string(),
+    observed_date: z.union([z.string(), z.null()]).optional(),
+    confidence: z.union([z.number(), z.null()]).optional(),
+    note: z.union([z.string(), z.null()]).optional(),
+    is_derived: z.boolean(),
+    username_snapshot: z.union([z.string(), z.null()]).optional(),
+    created_at: z.string().datetime({ offset: true }),
+  })
+  .passthrough();
+const SourceContributionSchema = z
+  .object({
+    observation_id: z.union([z.number(), z.null()]).optional(),
+    source_type: z.enum([
+      "VIB",
+      "FINVE",
+      "FULDA_RUNDE",
+      "BAUPORTAL",
+      "MEDIEN",
+      "MANUELL",
+    ]),
+    track: z.enum(["MAIN", "PF", "PARL"]),
+    asserted_state: z.string(),
+    observed_date: z.union([z.string(), z.null()]).optional(),
+    effective_confidence: z.number(),
+    was_decisive: z.boolean(),
+  })
+  .passthrough();
+const DocumentRefSchema = z
+  .object({
+    id: z.number().int(),
+    title: z.string(),
+    file_path: z.string(),
+    date: z.null().optional(),
+    source: z.union([z.string(), z.null()]).optional(),
+  })
+  .passthrough();
+const TrackDocumentSchema = z
+  .object({
+    id: z.number().int(),
+    track: z.enum(["PF", "PARL"]),
+    document: DocumentRefSchema,
+  })
+  .passthrough();
+const ProgressChildSchema = z
+  .object({
+    project_id: z.number().int(),
+    name: z.string(),
+    effective_phase: z.enum([
+      "NICHT_GESTARTET",
+      "VORPLANUNG",
+      "GENEHMIGUNGSPLANUNG",
+      "BAU",
+      "IN_BETRIEB",
+    ]),
+    lifecycle_status: z.enum(["AKTIV", "PAUSIERT", "ABGEBROCHEN"]),
+  })
+  .passthrough();
+const ProjectProgressSchema = z
+  .object({
+    project_id: z.number().int(),
+    effective_phase: z.enum([
+      "NICHT_GESTARTET",
+      "VORPLANUNG",
+      "GENEHMIGUNGSPLANUNG",
+      "BAU",
+      "IN_BETRIEB",
+    ]),
+    computed_phase: z.enum([
+      "NICHT_GESTARTET",
+      "VORPLANUNG",
+      "GENEHMIGUNGSPLANUNG",
+      "BAU",
+      "IN_BETRIEB",
+    ]),
+    computed_confidence: z.number(),
+    is_overridden: z.boolean(),
+    manual_override_note: z.union([z.string(), z.null()]).optional(),
+    computed_at: z.union([z.string(), z.null()]).optional(),
+    has_planfeststellung: z.boolean(),
+    parl_befassung_relevant: z.boolean(),
+    parl_befassung_relevant_override: z
+      .union([z.boolean(), z.null()])
+      .optional(),
+    lifecycle_status: z.enum(["AKTIV", "PAUSIERT", "ABGEBROCHEN"]),
+    pf_state: z
+      .union([z.enum(["OFFEN", "LAEUFT", "ABGESCHLOSSEN"]), z.null()])
+      .optional(),
+    parl_state: z
+      .union([z.enum(["OFFEN", "LAEUFT", "ABGESCHLOSSEN"]), z.null()])
+      .optional(),
+    observations: z.array(ProgressObservationSchema).optional().default([]),
+    contributions: z.array(SourceContributionSchema).optional().default([]),
+    pf_documents: z.array(TrackDocumentSchema).optional().default([]),
+    parl_documents: z.array(TrackDocumentSchema).optional().default([]),
+    is_superior: z.boolean().optional().default(false),
+    span_min_phase: z
+      .union([
+        z.enum([
+          "NICHT_GESTARTET",
+          "VORPLANUNG",
+          "GENEHMIGUNGSPLANUNG",
+          "BAU",
+          "IN_BETRIEB",
+        ]),
+        z.null(),
+      ])
+      .optional(),
+    span_max_phase: z
+      .union([
+        z.enum([
+          "NICHT_GESTARTET",
+          "VORPLANUNG",
+          "GENEHMIGUNGSPLANUNG",
+          "BAU",
+          "IN_BETRIEB",
+        ]),
+        z.null(),
+      ])
+      .optional(),
+    children: z.array(ProgressChildSchema).optional().default([]),
+  })
+  .passthrough();
+const ProjectProgressUpdate = z
+  .object({
+    has_planfeststellung: z.union([z.boolean(), z.null()]),
+    parl_befassung_relevant: z.union([z.boolean(), z.null()]),
+    lifecycle_status: z.union([
+      z.enum(["AKTIV", "PAUSIERT", "ABGEBROCHEN"]),
+      z.null(),
+    ]),
+    manual_phase_override: z.union([
+      z.enum([
+        "NICHT_GESTARTET",
+        "VORPLANUNG",
+        "GENEHMIGUNGSPLANUNG",
+        "BAU",
+        "IN_BETRIEB",
+      ]),
+      z.null(),
+    ]),
+    manual_override_note: z.union([z.string(), z.null()]),
+    pf_state_override: z.union([
+      z.enum(["OFFEN", "LAEUFT", "ABGESCHLOSSEN"]),
+      z.null(),
+    ]),
+    parl_state_override: z.union([
+      z.enum(["OFFEN", "LAEUFT", "ABGESCHLOSSEN"]),
+      z.null(),
+    ]),
+    clear_phase_override: z.union([z.boolean(), z.null()]),
+    clear_parl_relevant: z.union([z.boolean(), z.null()]),
+  })
+  .partial()
+  .passthrough();
+const ProgressObservationCreate = z
+  .object({
+    source_type: z
+      .enum(["VIB", "FINVE", "FULDA_RUNDE", "BAUPORTAL", "MEDIEN", "MANUELL"])
+      .optional()
+      .default("MANUELL"),
+    track: z.enum(["MAIN", "PF", "PARL"]),
+    asserted_state: z.string(),
+    observed_date: z.union([z.string(), z.null()]).optional(),
+    confidence: z.union([z.number(), z.null()]).optional(),
+    note: z.union([z.string(), z.null()]).optional(),
+  })
+  .passthrough();
+const LinkDocumentInput = z
+  .object({ document_id: z.number().int() })
+  .passthrough();
 const ProjectGroupSchema = z
   .object({
     id: z.union([z.number(), z.null()]).optional(),
@@ -1402,6 +1584,15 @@ export const schemas = {
   ChangeLogEntryRead,
   ChangeLogRead,
   RevertFieldRequest,
+  ProgressObservationSchema,
+  SourceContributionSchema,
+  DocumentRefSchema,
+  TrackDocumentSchema,
+  ProgressChildSchema,
+  ProjectProgressSchema,
+  ProjectProgressUpdate,
+  ProgressObservationCreate,
+  LinkDocumentInput,
   ProjectGroupSchema,
   ProjectGroupCreate,
   ProjectGroupUpdate,
@@ -2226,7 +2417,7 @@ Returns 202 if the task is still running; 422 if it failed.`,
         schema: z.number().int(),
       },
     ],
-    response: z.unknown(),
+    response: ProjectGroupSchema,
     errors: [
       {
         status: 422,
@@ -2523,6 +2714,199 @@ including per-Haushaltstiteln breakdown.`,
       },
     ],
     response: z.void(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/projects/:project_id/progress",
+    alias: "read_progress_api_v1_projects__project_id__progress_get",
+    description: `Public: derived planning state for a project (lazy-recomputed).`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "project_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: ProjectProgressSchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "patch",
+    path: "/api/v1/projects/:project_id/progress",
+    alias: "patch_progress_api_v1_projects__project_id__progress_patch",
+    description: `Update flags, lifecycle and manual overrides.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: ProjectProgressUpdate,
+      },
+      {
+        name: "project_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: ProjectProgressSchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/api/v1/projects/:project_id/progress/observations",
+    alias:
+      "add_observation_api_v1_projects__project_id__progress_observations_post",
+    description: `Add a manual observation (always &#x60;&#x60;is_derived&#x3D;False&#x60;&#x60;).`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: ProgressObservationCreate,
+      },
+      {
+        name: "project_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: ProjectProgressSchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "delete",
+    path: "/api/v1/projects/:project_id/progress/observations/:observation_id",
+    alias:
+      "remove_observation_api_v1_projects__project_id__progress_observations__observation_id__delete",
+    description: `Delete a manual observation. Derived observations are protected (409).`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "project_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+      {
+        name: "observation_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: ProjectProgressSchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/api/v1/projects/:project_id/progress/recompute",
+    alias: "recompute_api_v1_projects__project_id__progress_recompute_post",
+    description: `Force a recomputation of the cached headline.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "project_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: ProjectProgressSchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/api/v1/projects/:project_id/progress/tracks/:track/documents",
+    alias:
+      "link_document_api_v1_projects__project_id__progress_tracks__track__documents_post",
+    description: `Link a document behind the PF / parliamentary track.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: z.object({ document_id: z.number().int() }).passthrough(),
+      },
+      {
+        name: "project_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+      {
+        name: "track",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: ProjectProgressSchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "delete",
+    path: "/api/v1/projects/:project_id/progress/tracks/:track/documents/:document_id",
+    alias:
+      "unlink_document_api_v1_projects__project_id__progress_tracks__track__documents__document_id__delete",
+    description: `Remove a document link from the PF / parliamentary track.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "project_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+      {
+        name: "track",
+        type: "Path",
+        schema: z.string(),
+      },
+      {
+        name: "document_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: ProjectProgressSchema,
     errors: [
       {
         status: 422,

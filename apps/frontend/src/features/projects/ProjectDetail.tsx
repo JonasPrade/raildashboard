@@ -31,6 +31,7 @@ import ProjectHistorySection from "../changelog/ProjectHistorySection";
 import ProjectTextsSection from "./ProjectTextsSection";
 import { ProjectTableOfContents, type TocSection } from "./ProjectTableOfContents";
 import FinveSection from "./components/FinveSection";
+import ProgressSection from "./components/progress/ProgressSection";
 import BvwpDataSection from "./components/BvwpDataSection";
 import VibSection from "./components/VibSection";
 
@@ -119,6 +120,7 @@ export default function ProjectDetail() {
 
     // Section refs for the table of contents
     const detailsRef = useRef<HTMLDivElement>(null);
+    const progressRef = useRef<HTMLDivElement>(null);
     const textsRef = useRef<HTMLDivElement>(null);
     const justificationRef = useRef<HTMLDivElement>(null);
     const finveRef = useRef<HTMLDivElement>(null);
@@ -291,6 +293,7 @@ export default function ProjectDetail() {
 
     const tocSections: TocSection[] = [
         { id: "details", label: "Projektdetails", ref: detailsRef, visible: true },
+        { id: "progress", label: "Planungsstand", ref: progressRef, visible: true },
         { id: "texts", label: "Texte", ref: textsRef, visible: true },
         {
             id: "justification",
@@ -511,6 +514,11 @@ export default function ProjectDetail() {
                         )}
                     </>
                 )}
+                </div>
+
+                {/* Planungsstand */}
+                <div ref={progressRef}>
+                    <ProgressSection projectId={projectId} />
                 </div>
 
                 {/* Texte */}

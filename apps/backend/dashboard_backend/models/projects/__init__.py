@@ -4,6 +4,8 @@ from .document import Document
 from .finve import Finve
 from .project import Project
 from .project_group import ProjectGroup
+from .project_progress import ProjectProgress
+from .progress_observation import ProgressObservation
 from .project_text import ProjectText
 from .project_text_type import ProjectTextType
 from .text_attachment import TextAttachment

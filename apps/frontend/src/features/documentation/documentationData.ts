@@ -61,6 +61,25 @@ export const featureHighlights: FeatureHighlight[] = [
         ]
     },
     {
+        title: "Planungsstand (Projektfortschritt)",
+        description:
+            "Die ProjectDetail-Seite zeigt einen abgeleiteten Planungsstand: einen horizontalen " +
+            "Phasen-Stepper (Nicht gestartet → Vorplanung → Genehmigungsplanung → Bau → In Betrieb), " +
+            "bedingte Parallelspuren für Planfeststellung und parlamentarische Befassung, ein " +
+            "Lebenszyklus-Overlay (Pausiert/Abgebrochen) und einen Aufklappbereich mit der " +
+            "Quellen-Aufschlüsselung. Die Anzeige ist öffentlich; Bearbeiten erfordert progress.edit.",
+        details: [
+            "Headline-Phase = max() über die glaubwürdigen Untergrenzen der manuellen Beobachtungen (Recency-gewichtet)",
+            "Manueller Phasen-Override gewinnt immer über den berechneten Wert (Badge 'übersteuert')",
+            "Parl. Befassung ist bei BSWAG-Projektgruppen vorbelegt; nullable Override pro Projekt",
+            "Pausiert/Abgebrochen überblendet die gesamte Darstellung (Banner + abgeblendeter Stepper)",
+            "Übergeordnete Projekte zeigen eine Phasen-Spanne (min..max) + ihre Unterprojekte",
+            "Dokumente lassen sich hinter Planfeststellung und parl. Befassung verlinken",
+            "API: GET (public) / PATCH / POST+DELETE observations / tracks/{track}/documents / recompute unter /api/v1/projects/{id}/progress",
+            "Aus Importen abgeleitete Beobachtungen (is_derived) sind nicht manuell löschbar (folgt in Phase 2: VIB/FinVe)"
+        ]
+    },
+    {
         title: "Projekt-Entwürfe (Zwischenspeichern)",
         description:
             "Im Anlege-Wizard begonnene Projekte werden als Entwurf zwischengespeichert (is_draft). " +

@@ -17,6 +17,7 @@ GROUP_PROJECTS = "Projekte"
 GROUP_PROJECT_GROUPS = "Projektgruppen"
 GROUP_FINANCING = "Finanzierung"
 GROUP_CONTENT = "Inhalte"
+GROUP_PROGRESS = "Planungsstand"
 GROUP_ADMINISTRATION = "Administration"
 
 
@@ -39,6 +40,7 @@ PERMISSIONS: tuple[Permission, ...] = (
     Permission("finve.edit", "Finanzierungsvereinbarungen einarbeiten", GROUP_FINANCING),
     Permission("projecttext.edit", "Projekttexte bearbeiten", GROUP_CONTENT),
     Permission("assignment.manage", "Offene Zuordnungen verwalten", GROUP_CONTENT),
+    Permission("progress.edit", "Planungsstand bearbeiten", GROUP_PROGRESS),
     Permission("user.manage", "Nutzer verwalten", GROUP_ADMINISTRATION),
     Permission("role.manage", "Rollen & Rechte verwalten", GROUP_ADMINISTRATION),
     Permission("settings.manage", "App-Einstellungen", GROUP_ADMINISTRATION),
@@ -77,6 +79,7 @@ _EDITOR_PERMISSIONS: frozenset[str] = frozenset(
         "finve.edit",
         "projecttext.edit",
         "assignment.manage",
+        "progress.edit",
     }
 )
 

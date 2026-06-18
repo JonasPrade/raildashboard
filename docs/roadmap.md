@@ -41,6 +41,15 @@ Themenschwerpunkt: die im v0.0.4-Rollout aufgedeckten Stabilitäts- und Tooling-
 
   Bestehendes Feature-Doc: `docs/features/feature-project-progress.md` — Datenmodell, Endpoints und Komponentenname sind dort bereits skizziert; **dieser Roadmap-Eintrag erweitert den Scope um Aggregation, Listen-/Karten-Anzeige und Filterung**, weil reine Timeline allein zu wenig ist.
 
+  > **Hinweis (Stand v0.0.5):** Die Umsetzung folgt dem **überarbeiteten** Modell im Feature-Doc
+  > (Mehrquellen-*Beobachtungen* + Hybrid-Ableitung mit Untergrenzen, Parallelspuren PF /
+  > parl. Befassung, Lebenszyklus-Overlay, Unterprojekt-Spanne, Dokument-Verknüpfung) statt der
+  > einfacheren Timeline-Skizze in der Phasenliste unten. **Phase 1 (Modell + manuelle Erfassung +
+  > Visualisierung) ist implementiert** (Issue #41): Tabellen/Enums, CRUD, GET/PATCH/Observation-/
+  > Dokument-Endpoints, Permission `progress.edit`, Ableitungs-Service und ein „Planungsstand"-Block
+  > in der ProjectDetail-Seite. Phase 2–4 (VIB/FinVe-Materialisierung, Prognose, externe Quellen)
+  > folgen separat; die Phasenliste unten wird beim nächsten Durchgang an das neue Modell angeglichen.
+
   **Phase 1 — Foundation (Daten + API)**
   - [ ] Enum `ProjectProgressStatus` (`vorplanung`, `entwurfsplanung`, `genehmigungsplanung`, `ausfuehrungsplanung`, `bau`, `inbetriebnahme`, `abgeschlossen`) — als Python-Enum **und** Postgres-Check-Constraint, damit die Anzeige konsistent bleibt.
   - [ ] Tabelle `project_progress` (id, project_id, status, date, source, comment, created_at, created_by_user_id) + Alembic-Migration.

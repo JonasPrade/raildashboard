@@ -220,6 +220,117 @@ export function useProjects() {
     });
 }
 
+// ---------------------------------------------------------------------------
+// Project progress / planning state (Planungsstand)
+// ---------------------------------------------------------------------------
+
+export type ProjectProgress = components["schemas"]["ProjectProgressSchema"];
+export type ProgressObservation = components["schemas"]["ProgressObservationSchema"];
+export type ProgressObservationCreate = components["schemas"]["ProgressObservationCreate"];
+export type ProjectProgressUpdate = components["schemas"]["ProjectProgressUpdate"];
+export type TrackDocument = components["schemas"]["TrackDocumentSchema"];
+export type SourceContribution = components["schemas"]["SourceContributionSchema"];
+export type ProgressChild = components["schemas"]["ProgressChildSchema"];
+
+const progressKey = (projectId: number) => ["project-progress", projectId];
+
+export function useProjectProgress(projectId: number) {
+    return useQuery({
+        queryKey: progressKey(projectId),
+        enabled: Number.isFinite(projectId),
+        queryFn: () => api<ProjectProgress>(`/api/v1/projects/${projectId}/progress`),
+    });
+}
+
+export function useUpdateProjectProgress(projectId: number) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (payload: ProjectProgressUpdate) =>
+            api<ProjectProgress>(`/api/v1/projects/${projectId}/progress`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: progressKey(projectId) });
+        },
+    });
+}
+
+export function useAddProgressObservation(projectId: number) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (payload: ProgressObservationCreate) =>
+            api<ProjectProgress>(`/api/v1/projects/${projectId}/progress/observations`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: progressKey(projectId) });
+        },
+    });
+}
+
+export function useDeleteProgressObservation(projectId: number) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (observationId: number) =>
+            api<ProjectProgress>(
+                `/api/v1/projects/${projectId}/progress/observations/${observationId}`,
+                { method: "DELETE" },
+            ),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: progressKey(projectId) });
+        },
+    });
+}
+
+export function useLinkTrackDocument(projectId: number) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ track, documentId }: { track: "PF" | "PARL"; documentId: number }) =>
+            api<ProjectProgress>(
+                `/api/v1/projects/${projectId}/progress/tracks/${track}/documents`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ document_id: documentId }),
+                },
+            ),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: progressKey(projectId) });
+        },
+    });
+}
+
+export function useUnlinkTrackDocument(projectId: number) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ track, documentId }: { track: "PF" | "PARL"; documentId: number }) =>
+            api<ProjectProgress>(
+                `/api/v1/projects/${projectId}/progress/tracks/${track}/documents/${documentId}`,
+                { method: "DELETE" },
+            ),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: progressKey(projectId) });
+        },
+    });
+}
+
+export function useRecomputeProgress(projectId: number) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: () =>
+            api<ProjectProgress>(`/api/v1/projects/${projectId}/progress/recompute`, {
+                method: "POST",
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: progressKey(projectId) });
+        },
+    });
+}
+
 export function useProject(id: number) {
     return useQuery({
         queryKey: ["project", id],

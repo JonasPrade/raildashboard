@@ -1,74 +1,233 @@
-# Feature: ProjectProgress
+# Feature: Projektfortschritt / Planungsstand
 
-## Ziel
+> Diese Datei ersetzt die frühere, einfachere `ProjectProgress`-Skizze. Das hier
+> beschriebene Modell subsumiert sie: Mehrquellen-Darstellung **mit** Konfliktauflösung
+> (Hybrid-Ableitung), Parallelspuren, Lebenszyklus-Overlay, Unterprojekt-Aggregation,
+> Dokument-Verknüpfung und Prognose.
 
-Fortschrittsstand eines Projekts (Planungs-, Genehmigungs-, Bauphase) strukturiert speichern und in der Projektdetailseite als Zeitleiste anzeigen. Mehrere Quellen (VIB, Pressemitteilungen, manuelle Eingabe) schreiben in dasselbe Modell.
+## Kontext / Ziel
 
-## Scope
+Der Planungsstand von Bahnprojekten ist schwer zu ermitteln: Es gibt mehrere Quellen
+mit unterschiedlicher Verlässlichkeit, unterschiedlichem Projektzuschnitt und
+unterschiedlicher Aktualität. Bisher gibt es **kein** Status-/Phasen-Feld am Projekt
+(Greenfield; in `models/projects/project.py:118` liegt nur ein auskommentierter
+`# project_progress`-Hinweis).
 
-- Backend: `ProjectProgress`-Datenmodell mit Status, Datum, Quelle, Kommentar
-- Frontend: Zeitleiste / Meilenstein-Ansicht in `ProjectDetail`
-- Schreibzugriff für editor / admin (manueller Eintrag)
-- VIB-LLM-Extraktion schreibt in dieses Modell (sobald beide implementiert sind)
+Ziel: Pro Projekt einen **abgeleiteten Planungsstand** anzeigen, der sich aus dem
+Übereinanderlegen mehrerer Quellen ergibt, plus eine aufklappbare Aufschlüsselung,
+welche Quelle was zum Stand sagt, plus eine Prognose (Restdauer der aktuellen Phase +
+nächste Schritte). Darstellung als horizontaler Verlauf mit **Kreisen + Pfeilen**.
 
-## Nicht im Scope
+## Inhaltliches Modell
 
-- Automatische Extraktion aus Pressemitteilungen (eigenes Feature)
-- Konfliktauflösung zwischen Quellen (zunächst: alle Einträge sichtbar, keine Deduplizierung)
+**Drei Dimensionen pro Projekt:**
 
-## Verhalten
+1. **Hauptspur (linear, immer vorhanden)** — geordnete Phasen:
+   `NICHT_GESTARTET → VORPLANUNG (LP1-2) → GENEHMIGUNGSPLANUNG (LP3-4) → BAU → IN_BETRIEB`
 
-- Zeitleiste zeigt alle Progress-Einträge eines Projekts chronologisch
-- Quelle ist immer sichtbar (z.B. "VIB 2024", "Manuell")
-- Nur editor / admin kann Einträge anlegen oder löschen
+2. **Parallelspuren (bedingt, nur bei manchen Projekten; einfache Zustände
+   `offen / läuft / abgeschlossen`):**
+   - **Planfeststellung** — läuft *parallel* zu `GENEHMIGUNGSPLANUNG`; Flag pro Projekt
+     „hat PF" (manche Projekte haben keine PF).
+   - **Parlamentarische Befassung** — Flag pro Projekt; **Voreinstellung aus Projektgruppe**
+     (Bedarfsplan Schiene / BSWAG → an), manuell übersteuerbar.
+
+3. **Lebenszyklus-Overlay (orthogonal):** `AKTIV / PAUSIERT / ABGEBROCHEN`.
+   Nicht in die Phasenkette gemischt; **nicht** standardmäßig angezeigt. Bei
+   `PAUSIERT`/`ABGEBROCHEN` wird die **gesamte** Darstellung überblendet
+   (Banner + abgeblendeter Stepper); die zuletzt bekannte Phase bleibt erhalten.
+
+**Ableitung = HYBRID:** Ein Algorithmus erzeugt einen *Vorschlag* für die Headline-Phase
+(die meisten Quellen sind **monotone Untergrenzen**: Phase ≥ max der glaubwürdigen
+Untergrenzen). Der Vorschlag ist redaktionell **übersteuerbar**. Konflikte werden nie
+weggerechnet, sondern im Aufklappbereich transparent gezeigt.
+
+**Quellen → Beobachtungen:** Jede Quelle erzeugt eine oder mehrere *Beobachtungen*
+`(source_type, track, asserted_state, observed_date, confidence)`.
+Quellentypen: `VIB, FINVE, FULDA_RUNDE, BAUPORTAL, MEDIEN, MANUELL`.
+- **VIB** und **FINVE** sind bereits importiert & m:n verknüpft → Beobachtungen werden
+  daraus **abgeleitet/materialisiert** (nicht neu erfasst).
+- **FULDA_RUNDE, BAUPORTAL, MEDIEN** existieren noch nicht → zunächst manuelle Erfassung.
+
+**Vertrauensmodell:** Default-Vertrauen pro Quellentyp × Aktualitätsverfall
+(`recency_decay`; wichtig für den „immer veralteten" VIB), pro Beobachtung übersteuerbar.
+
+**Mehrere Abschnitte = Unterprojekte:** Projekte mit mehreren Planfeststellungs-
+abschnitten sind bereits als **Unterprojekte** modelliert (`Project.superior_project_id`
+/ `superior_project`). Der Fortschritt hängt am **Blatt-Projekt** (genau ein Stand). Ein
+**übergeordnetes Projekt aggregiert** seine Kinder: Headline als **Spanne** (min..max der
+Kinder), Kinder im Aufklappbereich gelistet.
+
+**Dokumente:** Hinter **Planfeststellung** und **Parlamentarischer Befassung** sollen sich
+**Dokumente verlinken** lassen (bestehendes `Document`-Modell wiederverwenden).
+
+**Prognose:** kombiniert BVWP-Dauern (`bvwp_duration_of_outstanding_planning/_build/
+_operating`) + VIB-PFA-Termine (`baubeginn`, `inbetriebnahme`, `datum_pfb`) +
+Fulda-Runde-Vorankündigungen → Restdauer der aktuellen Phase + nächste Schritte.
+
+## Datenmodell (Backend)
+
+Neue Dateien unter `apps/backend/dashboard_backend/models/projects/`, registriert in
+`models/projects/__init__.py`; Enums in `models/projects/progress_enums.py`
+(als `enum.Enum`, in DB als `String` gespeichert — wie `vib_entry.category`).
+
+**Enums:** `MainPhase` (geordnet, mit `order`-Helfer für `max()`-Untergrenzen),
+`ParallelState (OFFEN/LAEUFT/ABGESCHLOSSEN)`, `LifecycleStatus (AKTIV/PAUSIERT/
+ABGEBROCHEN)`, `SourceType`, `ObservationTrack (MAIN/PF/PARL)`.
+
+**`project_progress`** (1:1 zum Blatt-Projekt; ersetzt die auskommentierte Relation in
+`project.py:118`):
+- `project_id` (FK unique, CASCADE)
+- `has_planfeststellung: bool`
+- `parl_befassung_relevant: bool | None` (`None` = Gruppen-Default verwenden)
+- `lifecycle_status: str` (default `AKTIV`)
+- `computed_phase / computed_confidence / computed_at`
+- `manual_phase_override: str | None`, `manual_override_note: str | None`
+- `pf_state_override / parl_state_override: str | None`
+- `updated_at`
+
+**`progress_observation`** (eine Zeile je atomarer Aussage; manuell = persistent,
+VIB/FinVe = materialisiert mit `is_derived=True` + Provenienz-FKs):
+- `project_id` (FK, CASCADE, indiziert), `source_type`, `track`, `asserted_state`,
+  `observed_date`, `confidence`, `note`
+- Provenienz: `vib_entry_id`, `vib_pfa_entry_id`, `finve_id` (nullable, `SET NULL`)
+- `is_derived: bool`, `created_at`, `created_by_user_id`, `username_snapshot`
+  (Provenienz-Muster aus `change_log.py`)
+
+**`progress_track_document`** (neue Association — Dokumente hinter PF/parl. Befassung):
+- `project_id` (FK, CASCADE), `track` (`ObservationTrack`, hier PF/PARL),
+  `document_id` (FK→`document.id`, CASCADE), UniqueConstraint über die drei Felder.
+- Wiederverwendung des bestehenden `Document`-Modells (`models/projects/document.py`)
+  + `document_to_project`-Muster.
+
+**Migration:** `make migrate-create MSG="add project progress and observations"`
+→ `make migrate`. Modelle vorher in `__init__.py` registrieren, damit Autogenerate sie
+sieht. Backend-Python: `apps/backend/.venv/bin/python`.
+
+## Ableitungs-Service
+
+- **Reine Logik** in `services/progress_derivation.py` (neues Package, ohne DB-Session,
+  unit-testbar): `derive_headline(observations, *, has_pf, parl_relevant, lifecycle)`.
+  - Effektives Vertrauen je Beobachtung = `confidence ?? SOURCE_TYPE_DEFAULT_TRUST ×
+    recency_decay(observed_date)`.
+  - Hauptphase = `max(order)` über glaubwürdige MAIN-Untergrenzen.
+  - PF/PARL-Zustand nur ableiten, wenn Spur aktiv.
+  - Lebenszyklus als Overlay-Flag zurückgeben (ändert Phasenwert nicht).
+  - Output: `computed_phase`, `confidence`, `pf_state`, `parl_state`, Beitrag je Quelle
+    (`was_decisive`), `effective_headline = manual_phase_override ?? computed_phase`.
+- **DB-Zugriff** in `crud/projects/progress.py`:
+  - `sync_derived_observations(db, project_id)` — löscht `is_derived=True`-Zeilen und
+    regeneriert sie aus aktuell verknüpften VIB/FinVe-Records (**materialisieren**, nicht
+    derive-on-read). Lazy bei stalem `computed_at` im GET + explizit per „recompute".
+  - Mapping VIB: `status_planung→≥VORPLANUNG`, `status_bau→≥BAU`,
+    `status_abgeschlossen→≥IN_BETRIEB`; PFA-Felder → PF-Spur + Prognose.
+  - Mapping FinVe: aktive Verknüpfung → `≥GENEHMIGUNGSPLANUNG/BAU`; Sammel-FinVe schwächer.
+  - `get_aggregated_progress(db, superior_id)` — Spanne über Blatt-Kinder + Kinderliste.
+
+## API
+
+Neuer Router `api/v1/endpoints/project_progress.py`, eingebunden in `api/v1/api.py`
+mit Prefix `/projects`. Neue Permission `progress.edit` in `core/permissions.py`
+(+ Admin-Rollenbündel). GET offen, Mutationen hinter `require_permission("progress.edit")`.
+Schemas in `schemas/projects/progress_schema.py` (`ConfigDict(from_attributes=True)`,
+Enums als `Literal[...]`/str für saubere TS-Unions via `make gen-api`).
+
+- `GET /projects/{id}/progress` → `ProjectProgressSchema` (effektive Headline, computed +
+  override, Flags, Lebenszyklus, aufgelöste Parallelspuren inkl. verlinkter Dokumente,
+  Quellen-Aufschlüsselung, Prognose; bei Superior: Spanne + `children[]`). Lazy-Resync bei
+  stalem `computed_at`.
+- `PATCH /projects/{id}/progress` → Flags, Lebenszyklus, manueller Phasen-Override,
+  Spur-Overrides.
+- `POST/DELETE /projects/{id}/progress/observations` → manuelle Beobachtungen
+  (Löschen von `is_derived=True` verweigern).
+- `POST/DELETE /projects/{id}/progress/tracks/{track}/documents` → Dokument-Verknüpfung
+  hinter PF/parl. Befassung.
+- `POST /projects/{id}/progress/recompute` → Force-Resync + Neuberechnung.
+
+## Frontend
+
+Neuer Komponentenbaum `features/projects/components/progress/`, eingehängt in
+`ProjectDetail.tsx` (neue Sektion oben + TOC-Eintrag „Planungsstand"):
+- `ProgressSection.tsx` — Wrapper (ChronicleCard/Headline), `useProjectProgress(projectId)`.
+- `PhaseStepper.tsx` — horizontaler Custom-Stepper (5 Kreise + Pfeile/Chevrons), aktuelle =
+  effektive Headline; bei Superior Spanne hervorheben. (Mantine `Stepper` ist für
+  Custom-Pfeile unpraktisch → Flex-Row im Stil der vorhandenen Chips/Cards.)
+- `ParallelLanes.tsx` — bedingte Sub-Spuren PF / parl. Befassung (`offen/läuft/
+  abgeschlossen`) inkl. verlinkter Dokumente je Spur.
+- `LifecycleOverlay.tsx` — Banner/Abblendung bei `PAUSIERT`/`ABGEBROCHEN`.
+- `SourceBreakdown.tsx` — `<Collapse>` mit Beitrag je Quelle (Typ, Aussage, Datum,
+  Vertrauen, „entscheidend"); bei Superior Kinderliste mit Links; manuelle Beobachtungen
+  hinzufügen/löschen (gated `progress.edit`).
+- `ForecastPanel.tsx` — Restdauer + nächste Schritte.
+
+React-Query-Hooks in `shared/api/queries.ts`: `useProjectProgress`,
+`useUpdateProjectProgress`, `useCreate/DeleteProgressObservation`,
+`useLink/UnlinkTrackDocument`, `useRecomputeProgress` (Invalidate
+`["project-progress", projectId]`). Typen via `make gen-api` → `types.gen.ts`.
+Flags/Lebenszyklus **inline** in `ProgressSection` bearbeiten (nicht in das große
+`ProjectEdit`-Formular mischen, da andere Tabelle), gated `can("progress.edit")`.
+
+## Implementierungsreihenfolge (Phasen-Rollout)
+
+1. **Modell + manuelle Erfassung + Visualisierung**: Tabellen/Enums, CRUD, GET/PATCH/
+   Observation-Endpoints, `progress.edit`, reine Ableitung über manuelle Beobachtungen +
+   Flags + Lebenszyklus, voller Stepper, Superior-Aggregation (Spanne), Dokument-Verknüpfung.
+2. **VIB/FinVe-Ableitung**: `sync_derived_observations`, Lazy-Resync, `recompute`,
+   Provenienz im Breakdown.
+3. **Prognose**: `ProgressForecastSchema` aus BVWP-Dauern + VIB-PFA-Terminen + Fulda.
+4. **Neue externe Quellen**: reichere manuelle Erfassung für FULDA_RUNDE/BAUPORTAL/MEDIEN,
+   später eigene Importer (`is_derived`).
+
+## Offene Punkte / Risiken / Edge Cases
+
+- **`parl_befassung_relevant`-Default**: `project_group` hat kein stabiles Typ-Flag →
+  Identifikation von „Bedarfsplan Schiene / BSWAG" per `short_name`/id klären; nullable
+  Override hält Re-Gruppierung live.
+- **VIB-Datumsfelder sind Freitext** (`baubeginn`, `datum_pfb`, …) → tolerantes Parsen +
+  Fallback „nicht parsebar" (geringes Recency-Gewicht).
+- **Echte Phasen-Rückschritte** (Reset) widersprechen der Untergrenzen-Regel → über
+  manuellen Override / Lebenszyklus auffangen.
+- **Sammel-FinVe** (`is_sammel_finve`, jahres-skaliert) schwächer gewichten.
+- **Superior ohne/gemischte Kinder** sowie Superior, das selbst Blatt ist (keine Kinder).
+- **Derived-Observation-Churn**: regenerierte `is_derived`-Zeilen nicht ins Changelog;
+  nur manuelle Edits auditieren.
+- **Staleness-Fenster** für Lazy-Resync definieren (nicht bei jedem GET neu rechnen).
+- **Sichtbarkeit**: GET offen (wie BVWP) oder login-gated (wie VIB) — entscheiden.
 
 ## Akzeptanzkriterien
 
-- Eintrag kann mit Status, Datum, Quelle und Kommentar angelegt werden
-- Zeitleiste wird in ProjectDetail angezeigt
-- Mehrere Einträge aus unterschiedlichen Quellen sind korrekt sortiert
-- VIB-Extraktion kann `source="vib_{year}"` schreiben
+> Stand: **Phase 1 umgesetzt** (Issue #41). VIB/FinVe-Materialisierung folgt in Phase 2.
 
-## Technische Hinweise
+- [x] Headline-Phase wird aus den verknüpften Quellen abgeleitet und ist redaktionell
+  übersteuerbar; der Override gewinnt über den berechneten Wert.
+- [x] Parallelspuren PF / parl. Befassung werden nur bei zutreffenden Projekten angezeigt;
+  parl. Befassung wird per Projektgruppe (`short_name`-Prefix `BSWAG`) vorbelegt.
+- [x] `PAUSIERT`/`ABGEBROCHEN` überblendet die gesamte Darstellung.
+- [x] Aufklappbereich zeigt je Quelle Aussage, Datum und Vertrauen; Konflikte bleiben sichtbar.
+- [x] Übergeordnete Projekte zeigen eine Spanne + ihre Unterprojekte.
+- [x] Dokumente lassen sich hinter PF und parl. Befassung verlinken.
+- [~] VIB/FinVe-Beobachtungen werden materialisiert und sind nicht manuell löschbar.
+  *(Guard gegen Löschen von `is_derived=True` ist umgesetzt; die Materialisierung selbst
+  ist Phase 2.)*
 
-### Datenmodell
+### Entscheidungen (Phase 1)
 
-```python
-class ProjectProgress(Base):
-    __tablename__ = "project_progress"
-    id: int
-    project_id: int             # FK → projects.id
-    status: str                 # z.B. "Planung", "Genehmigung", "Bau", "Inbetrieb"
-    date: date | None           # Datum des Meilensteins
-    source: str                 # z.B. "vib_2024", "manual", "press"
-    comment: str | None
-    created_at: datetime
-    created_by_user_id: int | None  # FK → users.id
-```
+- **Sichtbarkeit `GET /progress`:** offen (wie BVWP); nur Mutationen hinter `progress.edit`.
+- **`parl_befassung_relevant`-Default:** Mitgliedschaft in einer Projektgruppe mit
+  `short_name`-Prefix `BSWAG` (`crud/projects/progress.py:BEDARFSPLAN_GROUP_SHORT_NAME_PREFIX`);
+  nullable Override bleibt maßgeblich.
+- **Staleness-Fenster (Lazy-Resync, Phase 2):** `STALENESS_WINDOW = 24h`
+  (`services/progress_derivation.py`), in Phase 1 noch ungenutzt.
 
-Alembic-Migration erforderlich.
+## Verifikation
 
-### Backend
-
-- Schema: `schemas/project_progress.py` — `ProjectProgressCreate`, `ProjectProgressRead`
-- CRUD: `crud/project_progress.py` — `get_for_project`, `create`, `delete`
-- Endpoint: `api/v1/endpoints/project_progress.py`
-  - `GET /api/v1/projects/{id}/progress` — public
-  - `POST /api/v1/projects/{id}/progress` — editor/admin
-  - `DELETE /api/v1/projects/{id}/progress/{entry_id}` — editor/admin
-- `make gen-api` nach Endpoint-Erstellung
-
-### Frontend
-
-- Query: `useProjectProgress(projectId)` in `queries.ts`
-- Mutation: `useCreateProjectProgress()`, `useDeleteProjectProgress()`
-- Komponente: `features/projects/components/ProjectProgressSection.tsx`
-  - Zeitleiste mit Mantine `Timeline` oder ähnlich
-  - Formular zum Anlegen (editor/admin only)
-
-## Implementierungsreihenfolge
-
-1. [ ] DB-Modell + Alembic-Migration
-2. [ ] Pydantic-Schema + CRUD
-3. [ ] API-Endpoints + `make gen-api`
-4. [ ] Frontend: `ProjectProgressSection.tsx` + Queries
+- Backend-Tests: `cd apps/backend && .venv/bin/python -m pytest` — Unit-Tests für
+  `derive_headline` (Untergrenzen, Recency-Verfall, Lebenszyklus-Overlay, Superior-Spanne)
+  und Endpoint-Tests (PATCH-Override gewinnt, derived nicht löschbar). Neue Tabellen ins
+  Test-Schema (`TABLES`) eintragen.
+- Migration lokal anwenden (`make migrate-create` → `make migrate`), Modelle vorher
+  registriert.
+- API-Client: `make gen-api` nach Schemas.
+- End-to-end manuell: Projekt mit Unterprojekten → Stepper + Parallelspuren +
+  Aufklappbereich; Projekt auf `PAUSIERT` → Overlay; Dokument hinter PF verlinken;
+  Override setzen → gewinnt über computed.
