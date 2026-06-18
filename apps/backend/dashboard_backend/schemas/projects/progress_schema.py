@@ -122,6 +122,23 @@ class ProjectProgressUpdate(BaseModel):
     clear_parl_relevant: Optional[bool] = None
 
 
+# --- Forecast (Phase 3) ------------------------------------------------------
+
+
+class ForecastStepSchema(BaseModel):
+    phase: MainPhaseLiteral
+    expected_date: Optional[date] = None
+    source: str  # "VIB-PFA" | "Fulda-Runde" | "BVWP" | "Schätzung"
+
+
+class ProgressForecastSchema(BaseModel):
+    current_phase: MainPhaseLiteral
+    remaining_text: Optional[str] = None
+    estimated_phase_end: Optional[date] = None
+    next_steps: list[ForecastStepSchema] = []
+    has_data: bool = False
+
+
 # --- GET response ------------------------------------------------------------
 
 
@@ -157,3 +174,6 @@ class ProjectProgressSchema(BaseModel):
     span_min_phase: Optional[MainPhaseLiteral] = None
     span_max_phase: Optional[MainPhaseLiteral] = None
     children: list[ProgressChildSchema] = []
+
+    # Forecast (Phase 3): remaining duration of the current phase + next steps.
+    forecast: Optional[ProgressForecastSchema] = None

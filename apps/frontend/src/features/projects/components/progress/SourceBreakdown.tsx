@@ -7,6 +7,7 @@ import {
     Collapse,
     Divider,
     Group,
+    NumberInput,
     Select,
     Stack,
     Table,
@@ -60,10 +61,16 @@ function ContributionRow({ c }: { c: SourceContribution }) {
     );
 }
 
+// Source types that can be captured manually. VIB/FINVE are materialised from
+// imports and are therefore not offered here.
+const MANUAL_SOURCE_TYPES: SourceType[] = ["MANUELL", "FULDA_RUNDE", "BAUPORTAL", "MEDIEN"];
+
 function AddObservationForm({ projectId }: { projectId: number }) {
+    const [sourceType, setSourceType] = useState<SourceType>("MANUELL");
     const [track, setTrack] = useState<ObservationTrack>("MAIN");
     const [state, setState] = useState<string>("VORPLANUNG");
     const [date, setDate] = useState("");
+    const [confidence, setConfidence] = useState<string>("");
     const [note, setNote] = useState("");
     const add = useAddProgressObservation(projectId);
 
@@ -73,18 +80,21 @@ function AddObservationForm({ projectId }: { projectId: number }) {
             : PARALLEL_STATES.map((s) => ({ value: s, label: PARALLEL_STATE_LABEL[s] }));
 
     const submit = () => {
+        const conf = confidence.trim() === "" ? null : Number(confidence);
         add.mutate(
             {
-                source_type: "MANUELL",
+                source_type: sourceType,
                 track,
                 asserted_state: state,
                 observed_date: date || null,
+                confidence: conf !== null && Number.isFinite(conf) ? conf : null,
                 note: note || null,
             },
             {
                 onSuccess: () => {
                     setNote("");
                     setDate("");
+                    setConfidence("");
                 },
             },
         );
@@ -92,6 +102,14 @@ function AddObservationForm({ projectId }: { projectId: number }) {
 
     return (
         <Group gap="sm" align="flex-end" wrap="wrap">
+            <Select
+                size="xs"
+                label="Quelle"
+                value={sourceType}
+                onChange={(v) => setSourceType((v as SourceType) ?? "MANUELL")}
+                data={MANUAL_SOURCE_TYPES.map((s) => ({ value: s, label: SOURCE_LABEL[s] }))}
+                w={140}
+            />
             <Select
                 size="xs"
                 label="Spur"
@@ -124,9 +142,21 @@ function AddObservationForm({ projectId }: { projectId: number }) {
                 onChange={(e) => setDate(e.currentTarget.value)}
                 w={150}
             />
+            <NumberInput
+                size="xs"
+                label="Vertrauen"
+                description="0–1, optional"
+                value={confidence}
+                onChange={(v) => setConfidence(v === "" ? "" : String(v))}
+                min={0}
+                max={1}
+                step={0.1}
+                decimalScale={2}
+                w={110}
+            />
             <TextInput
                 size="xs"
-                label="Notiz"
+                label="Notiz / Quelle"
                 value={note}
                 onChange={(e) => setNote(e.currentTarget.value)}
                 w={200}

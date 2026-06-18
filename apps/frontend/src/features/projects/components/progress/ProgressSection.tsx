@@ -19,6 +19,7 @@ import {
     useRecomputeProgress,
     useUpdateProjectProgress,
 } from "../../../../shared/api/queries";
+import ForecastPanel from "./ForecastPanel";
 import LifecycleOverlay from "./LifecycleOverlay";
 import ParallelLanes from "./ParallelLanes";
 import PhaseStepper from "./PhaseStepper";
@@ -137,6 +138,15 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
                     parlDocuments={progress.parl_documents}
                     canEdit={canEdit}
                 />
+
+                {!isDimmed && (
+                    <Stack gap="xs">
+                        <Text size="sm" fw={700} c="dimmed" tt="uppercase" style={{ letterSpacing: 0.5 }}>
+                            Prognose
+                        </Text>
+                        <ForecastPanel forecast={progress.forecast} />
+                    </Stack>
+                )}
 
                 {canEdit && (
                     <Stack gap="sm">

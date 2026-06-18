@@ -889,6 +889,34 @@ const ProgressChildSchema = z
     lifecycle_status: z.enum(["AKTIV", "PAUSIERT", "ABGEBROCHEN"]),
   })
   .passthrough();
+const ForecastStepSchema = z
+  .object({
+    phase: z.enum([
+      "NICHT_GESTARTET",
+      "VORPLANUNG",
+      "GENEHMIGUNGSPLANUNG",
+      "BAU",
+      "IN_BETRIEB",
+    ]),
+    expected_date: z.union([z.string(), z.null()]).optional(),
+    source: z.string(),
+  })
+  .passthrough();
+const ProgressForecastSchema = z
+  .object({
+    current_phase: z.enum([
+      "NICHT_GESTARTET",
+      "VORPLANUNG",
+      "GENEHMIGUNGSPLANUNG",
+      "BAU",
+      "IN_BETRIEB",
+    ]),
+    remaining_text: z.union([z.string(), z.null()]).optional(),
+    estimated_phase_end: z.union([z.string(), z.null()]).optional(),
+    next_steps: z.array(ForecastStepSchema).optional().default([]),
+    has_data: z.boolean().optional().default(false),
+  })
+  .passthrough();
 const ProjectProgressSchema = z
   .object({
     project_id: z.number().int(),
@@ -952,6 +980,7 @@ const ProjectProgressSchema = z
       ])
       .optional(),
     children: z.array(ProgressChildSchema).optional().default([]),
+    forecast: z.union([ProgressForecastSchema, z.null()]).optional(),
   })
   .passthrough();
 const ProjectProgressUpdate = z
@@ -1589,6 +1618,8 @@ export const schemas = {
   DocumentRefSchema,
   TrackDocumentSchema,
   ProgressChildSchema,
+  ForecastStepSchema,
+  ProgressForecastSchema,
   ProjectProgressSchema,
   ProjectProgressUpdate,
   ProgressObservationCreate,

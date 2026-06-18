@@ -44,11 +44,13 @@ Themenschwerpunkt: die im v0.0.4-Rollout aufgedeckten Stabilitäts- und Tooling-
   > **Hinweis (Stand v0.0.5):** Die Umsetzung folgt dem **überarbeiteten** Modell im Feature-Doc
   > (Mehrquellen-*Beobachtungen* + Hybrid-Ableitung mit Untergrenzen, Parallelspuren PF /
   > parl. Befassung, Lebenszyklus-Overlay, Unterprojekt-Spanne, Dokument-Verknüpfung) statt der
-  > einfacheren Timeline-Skizze in der Phasenliste unten. **Phase 1 (Modell + manuelle Erfassung +
-  > Visualisierung) ist implementiert** (Issue #41): Tabellen/Enums, CRUD, GET/PATCH/Observation-/
-  > Dokument-Endpoints, Permission `progress.edit`, Ableitungs-Service und ein „Planungsstand"-Block
-  > in der ProjectDetail-Seite. Phase 2–4 (VIB/FinVe-Materialisierung, Prognose, externe Quellen)
-  > folgen separat; die Phasenliste unten wird beim nächsten Durchgang an das neue Modell angeglichen.
+  > einfacheren Timeline-Skizze in der Phasenliste unten. **Phasen 1–4 sind implementiert**
+  > (Issues #41/#43/#44/#45): Tabellen/Enums, CRUD, GET/PATCH/Observation-/Dokument-Endpoints,
+  > Permission `progress.edit`, Ableitungs-Service und „Planungsstand"-Block in ProjectDetail
+  > (Phase 1); VIB/FinVe-Materialisierung mit Lazy-Resync (Phase 2); Prognose-Panel aus
+  > BVWP-Dauern + VIB-PFA-Terminen + Fulda-Beobachtungen (Phase 3); reichere manuelle Erfassung
+  > mit Quellentyp + Vertrauen (Phase 4). Offen bleiben nur **automatische** externe Importer
+  > (keine APIs vorhanden). Die Phasenliste unten beschreibt die ältere Timeline-Skizze.
 
   **Phase 1 — Foundation (Daten + API)**
   - [ ] Enum `ProjectProgressStatus` (`vorplanung`, `entwurfsplanung`, `genehmigungsplanung`, `ausfuehrungsplanung`, `bau`, `inbetriebnahme`, `abgeschlossen`) — als Python-Enum **und** Postgres-Check-Constraint, damit die Anzeige konsistent bleibt.

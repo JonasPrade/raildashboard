@@ -71,13 +71,24 @@ def test_low_confidence_observation_is_ignored():
 
 
 def test_recency_decay_monotonic_and_floored():
+    from dashboard_backend.services.progress_derivation import RECENCY_FLOOR
+
     fresh = recency_decay(TODAY, TODAY)
     one_year = recency_decay(date(2025, 6, 18), TODAY)
     ancient = recency_decay(date(2000, 1, 1), TODAY)
     assert fresh == 1.0
     assert one_year == pytest.approx(0.5, abs=0.02)
-    assert ancient >= 0.1  # floored
-    assert fresh > one_year > ancient or ancient == 0.1
+    assert ancient == pytest.approx(RECENCY_FLOOR)  # floored
+    assert fresh > one_year > ancient
+
+
+def test_structured_source_keeps_lower_bound_when_old():
+    # A multi-year-old VIB "in Betrieb" must still count as a credible lower
+    # bound (progress does not un-happen).
+    old_vib = _main("IN_BETRIEB", source=SourceType.VIB, dt=date(2019, 12, 31), oid=1)
+    result = derive_headline([old_vib], has_pf=False, parl_relevant=False, today=TODAY)
+    assert result.computed_phase is MainPhase.IN_BETRIEB
+    assert result.contributions[0].effective_confidence >= CREDIBILITY_THRESHOLD
 
 
 def test_old_vib_loses_against_fresh_manual():

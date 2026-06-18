@@ -72,6 +72,15 @@ export const SOURCE_LABEL: Record<SourceType, string> = {
     MANUELL: "Manuell",
 };
 
+// Milestone-style labels for the forecast (the *event* that starts the phase).
+export const MILESTONE_LABEL: Record<MainPhase, string> = {
+    NICHT_GESTARTET: "Projektstart",
+    VORPLANUNG: "Vorplanung",
+    GENEHMIGUNGSPLANUNG: "Genehmigung / PFB",
+    BAU: "Baubeginn",
+    IN_BETRIEB: "Inbetriebnahme",
+};
+
 export function mainPhaseIndex(phase: MainPhase): number {
     return MAIN_PHASES.indexOf(phase);
 }

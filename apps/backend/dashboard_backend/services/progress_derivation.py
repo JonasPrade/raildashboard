@@ -42,8 +42,12 @@ SOURCE_TYPE_DEFAULT_TRUST: dict[SourceType, float] = {
 # recency multiplier has halved — this is what makes the "always outdated" VIB
 # fade against fresher sources.
 RECENCY_HALF_LIFE_DAYS = 365
-# Recency multiplier never drops below this floor (old data still counts a bit).
-RECENCY_FLOOR = 0.1
+# Recency multiplier never drops below this floor. Chosen so that a structured
+# source (VIB 0.6, FinVe 0.7) keeps its monotone lower bound regardless of age
+# (0.6 × 0.3 = 0.18 ≥ CREDIBILITY_THRESHOLD) — progress doesn't un-happen, so an
+# old "in Betrieb" must not be dropped — while fully-decayed low-trust media
+# (0.4 × 0.3 = 0.12) can still fall below the threshold.
+RECENCY_FLOOR = 0.3
 # Recency multiplier for observations without a parseable date.
 NO_DATE_RECENCY = 0.6
 

@@ -196,7 +196,10 @@ Flags/Lebenszyklus **inline** in `ProgressSection` bearbeiten (nicht in das gro�
 
 ## Akzeptanzkriterien
 
-> Stand: **Phase 1 umgesetzt** (Issue #41). VIB/FinVe-Materialisierung folgt in Phase 2.
+> Stand: **Phasen 1–4 umgesetzt** (Issues #41/#43/#44/#45). Phase 1: Modell + manuelle
+> Erfassung + Visualisierung. Phase 2: VIB/FinVe-Materialisierung + Lazy-Resync. Phase 3:
+> Prognose. Phase 4: reichere manuelle Erfassung (Quellentyp + Vertrauen). Offen bleiben nur
+> eigene **automatische** Importer für FULDA_RUNDE/BAUPORTAL/MEDIEN (keine externen APIs vorhanden).
 
 - [x] Headline-Phase wird aus den verknüpften Quellen abgeleitet und ist redaktionell
   übersteuerbar; der Override gewinnt über den berechneten Wert.
@@ -206,9 +209,25 @@ Flags/Lebenszyklus **inline** in `ProgressSection` bearbeiten (nicht in das gro�
 - [x] Aufklappbereich zeigt je Quelle Aussage, Datum und Vertrauen; Konflikte bleiben sichtbar.
 - [x] Übergeordnete Projekte zeigen eine Spanne + ihre Unterprojekte.
 - [x] Dokumente lassen sich hinter PF und parl. Befassung verlinken.
-- [~] VIB/FinVe-Beobachtungen werden materialisiert und sind nicht manuell löschbar.
-  *(Guard gegen Löschen von `is_derived=True` ist umgesetzt; die Materialisierung selbst
-  ist Phase 2.)*
+- [x] VIB/FinVe-Beobachtungen werden materialisiert (`sync_derived_observations`) und sind
+  nicht manuell löschbar; Lazy-Resync bei stalem `computed_at` (24h) + `recompute`.
+- [x] Prognose: Restdauer der aktuellen Phase + nächste Schritte aus BVWP-Dauern +
+  VIB-PFA-Terminen (tolerantes Parsen) + Fulda-Runde-Beobachtungen.
+- [x] Reichere manuelle Erfassung: Quellentyp (MANUELL/FULDA_RUNDE/BAUPORTAL/MEDIEN) +
+  Vertrauens-Override pro Beobachtung.
+
+### Umsetzungsdetails (Phasen 2–4)
+
+- **Materialisierung** (`services/progress_materialization.py`, rein/unit-getestet):
+  VIB-Status → stärkste MAIN-Untergrenze; PFA → PF-Spur (`datum_pfb` → ABGESCHLOSSEN,
+  sonst LAEUFT); FinVe → MAIN ≥ Bau, Sammel-FinVe schwächer (`confidence=0.35`).
+  PFA-Evidenz schaltet `has_planfeststellung` automatisch ein. Beobachtungsdatum = VIB-
+  **Report-Jahr** (das Freitext-`report_date` ist unzuverlässig).
+- **Recency-Floor** auf `0.3` angehoben, damit strukturierte Quellen (VIB/FinVe) ihre
+  monotone Untergrenze über Jahre halten (Fortschritt „passiert nicht rückwärts"), während
+  veraltete Medien-Beobachtungen unter die Glaubwürdigkeitsschwelle fallen können.
+- **Prognose** (`services/progress_forecast.py` + `services/progress_dates.py`): konkrete
+  Termine (PFA/Fulda) schlagen BVWP-Schätzungen; Restdauer wird humanisiert.
 
 ### Entscheidungen (Phase 1)
 

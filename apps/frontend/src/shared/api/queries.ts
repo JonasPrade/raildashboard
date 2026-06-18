@@ -231,6 +231,8 @@ export type ProjectProgressUpdate = components["schemas"]["ProjectProgressUpdate
 export type TrackDocument = components["schemas"]["TrackDocumentSchema"];
 export type SourceContribution = components["schemas"]["SourceContributionSchema"];
 export type ProgressChild = components["schemas"]["ProgressChildSchema"];
+export type ProgressForecast = components["schemas"]["ProgressForecastSchema"];
+export type ForecastStep = components["schemas"]["ForecastStepSchema"];
 
 const progressKey = (projectId: number) => ["project-progress", projectId];
 

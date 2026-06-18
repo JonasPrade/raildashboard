@@ -24,16 +24,35 @@ from dashboard_backend.models.projects.progress_enums import (
     ParallelState,
     SourceType,
 )
+from dashboard_backend.models.associations.finve_to_project import FinveToProject
+from dashboard_backend.models.projects.finve import Finve
 from dashboard_backend.models.projects.progress_observation import ProgressObservation
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.projects.project_progress import ProjectProgress
 from dashboard_backend.models.users import User
+from dashboard_backend.models.vib.vib_entry import VibEntry, vib_entry_project
 from dashboard_backend.services.progress_derivation import (
+    STALENESS_WINDOW,
     DerivationResult,
     ObservationInput,
     aggregate_span,
     derive_headline,
 )
+from dashboard_backend.services.progress_dates import parse_flexible_date
+from dashboard_backend.services.progress_forecast import (
+    BvwpDurations,
+    PfaForecastInput,
+    build_forecast,
+)
+from dashboard_backend.services.progress_materialization import (
+    DerivedSpec,
+    PfaInput,
+    finve_to_spec,
+    pfa_has_pf_evidence,
+    vib_entry_to_specs,
+)
+from dashboard_backend.models.projects.bvwp_project_data import BvwpProjectData
+from dashboard_backend.models.vib.vib_pfa_entry import VibPfaEntry
 
 # A project whose group membership includes a "BSWAG*" group (Bedarfsplan
 # Schiene / BSWAG) defaults to parliamentary relevance. The nullable
@@ -112,8 +131,16 @@ def derive_for_project(
     project: Project,
     progress: ProjectProgress,
     today: date,
+    *,
+    persist_timestamp: bool = True,
 ) -> DerivationResult:
-    """Run the pure derivation for one project and cache the computed values."""
+    """Run the pure derivation for one project and cache the computed values.
+
+    ``persist_timestamp`` controls ``computed_at``, which doubles as the
+    lazy-resync staleness marker: it is only bumped when a real derived-data
+    resync happened, so cheap headline recomputes on every GET don't keep the
+    cache perpetually "fresh" and starve the resync (see ``_ensure_fresh``).
+    """
 
     observations = (
         db.query(ProgressObservation)
@@ -131,11 +158,217 @@ def derive_for_project(
         parl_state_override=_enum_or_none(ParallelState, progress.parl_state_override),
         today=today,
     )
-    # Cache the computed (not the override-effective) values.
+    # Cache the computed (not the override-effective) values for list views.
     progress.computed_phase = result.computed_phase.value
     progress.computed_confidence = result.computed_confidence
-    progress.computed_at = datetime.utcnow()
+    if persist_timestamp:
+        progress.computed_at = datetime.utcnow()
     return result
+
+
+# --- Phase 2: materialisation of derived (VIB/FinVe) observations ------------
+
+
+def sync_derived_observations(db: Session, project_id: int) -> int:
+    """Delete and regenerate all ``is_derived=True`` observations for a project.
+
+    Materialises observations from the currently linked VIB entries (status
+    flags → MAIN, PFA → PF track) and FinVe records. Returns the number of
+    derived rows written. Derived churn is intentionally **not** audited.
+    """
+
+    db.query(ProgressObservation).filter(
+        ProgressObservation.project_id == project_id,
+        ProgressObservation.is_derived.is_(True),
+    ).delete(synchronize_session=False)
+
+    specs: list[DerivedSpec] = []
+    any_pf_evidence = False
+
+    # --- VIB entries linked to the project (m:n) ---
+    vib_entries = (
+        db.query(VibEntry)
+        .join(vib_entry_project, vib_entry_project.c.vib_entry_id == VibEntry.id)
+        .filter(vib_entry_project.c.project_id == project_id)
+        .all()
+    )
+    for entry in vib_entries:
+        report = entry.report
+        # Use the authoritative report ``year`` (year-end), not ``report_date``:
+        # the latter is freetext-parsed and observed to be unreliable
+        # (e.g. 1993-12-31 stored on a 2023 report).
+        observed = date(report.year, 12, 31) if report is not None else None
+        pfas = [
+            PfaInput(
+                id=pfa.id,
+                nr_pfa=pfa.nr_pfa,
+                abschnitt_label=pfa.abschnitt_label,
+                datum_pfb=pfa.datum_pfb,
+                baubeginn=pfa.baubeginn,
+                inbetriebnahme=pfa.inbetriebnahme,
+            )
+            for pfa in entry.pfa_entries
+        ]
+        if pfa_has_pf_evidence(pfas):
+            any_pf_evidence = True
+        specs.extend(
+            vib_entry_to_specs(
+                vib_entry_id=entry.id,
+                status_planung=bool(entry.status_planung),
+                status_bau=bool(entry.status_bau),
+                status_abgeschlossen=bool(entry.status_abgeschlossen),
+                observed_date=observed,
+                has_planfeststellung_flag=False,
+                pfas=pfas,
+            )
+        )
+
+    # --- FinVe records linked to the project ---
+    finve_rows = (
+        db.query(Finve, FinveToProject.haushalt_year)
+        .join(FinveToProject, FinveToProject.finve_id == Finve.id)
+        .filter(FinveToProject.project_id == project_id)
+        .all()
+    )
+    seen_finve: set[int] = set()
+    for finve, _year in finve_rows:
+        if finve.id in seen_finve:
+            continue  # a Sammel-FinVe can have several year-scoped links
+        seen_finve.add(finve.id)
+        specs.append(
+            finve_to_spec(
+                finve_id=finve.id,
+                is_sammel=bool(finve.is_sammel_finve),
+                starting_year=finve.starting_year,
+            )
+        )
+
+    for spec in specs:
+        db.add(
+            ProgressObservation(
+                project_id=project_id,
+                source_type=spec.source_type.value,
+                track=spec.track.value,
+                asserted_state=spec.asserted_state,
+                observed_date=spec.observed_date,
+                confidence=spec.confidence,
+                note=spec.note,
+                is_derived=True,
+                vib_entry_id=spec.vib_entry_id,
+                vib_pfa_entry_id=spec.vib_pfa_entry_id,
+                finve_id=spec.finve_id,
+            )
+        )
+
+    # Auto-enable the PF lane when VIB documents a Planfeststellungsverfahren.
+    if any_pf_evidence:
+        progress = (
+            db.query(ProjectProgress)
+            .filter(ProjectProgress.project_id == project_id)
+            .first()
+        )
+        if progress is not None and not progress.has_planfeststellung:
+            progress.has_planfeststellung = True
+
+    db.flush()
+    return len(specs)
+
+
+def _ensure_fresh(
+    db: Session,
+    project: Project,
+    progress: ProjectProgress,
+    today: date,
+    *,
+    force: bool = False,
+) -> DerivationResult:
+    """Lazy resync: re-materialise derived observations only when the cache is
+    stale (``computed_at`` older than ``STALENESS_WINDOW``) or ``force``."""
+
+    stale = (
+        force
+        or progress.computed_at is None
+        or (datetime.utcnow() - progress.computed_at) > STALENESS_WINDOW
+    )
+    if stale:
+        sync_derived_observations(db, project.id)
+    return derive_for_project(db, project, progress, today, persist_timestamp=stale)
+
+
+def _build_forecast_for_project(
+    db: Session, project_id: int, effective_phase: MainPhase, today: date
+) -> dict:
+    """Gather forecast inputs (PFA dates, BVWP durations, Fulda announcements)
+    and run the pure forecast. Returns a dict matching ProgressForecastSchema."""
+
+    # PFA milestone dates from linked VIB entries.
+    pfa_rows = (
+        db.query(VibPfaEntry)
+        .join(VibEntry, VibEntry.id == VibPfaEntry.vib_entry_id)
+        .join(vib_entry_project, vib_entry_project.c.vib_entry_id == VibEntry.id)
+        .filter(vib_entry_project.c.project_id == project_id)
+        .all()
+    )
+    pfas = [
+        PfaForecastInput(
+            datum_pfb=parse_flexible_date(p.datum_pfb),
+            baubeginn=parse_flexible_date(p.baubeginn),
+            inbetriebnahme=parse_flexible_date(p.inbetriebnahme),
+        )
+        for p in pfa_rows
+    ]
+
+    bvwp_row = (
+        db.query(BvwpProjectData)
+        .filter(BvwpProjectData.project_id == project_id)
+        .first()
+    )
+    bvwp = None
+    if bvwp_row is not None:
+        bvwp = BvwpDurations(
+            outstanding_planning=bvwp_row.bvwp_duration_of_outstanding_planning,
+            build=bvwp_row.bvwp_duration_of_build,
+            operating=bvwp_row.bvwp_duration_operating,
+        )
+
+    # Fulda-Runde announcements: manual MAIN observations with a date.
+    fulda_obs = (
+        db.query(ProgressObservation)
+        .filter(
+            ProgressObservation.project_id == project_id,
+            ProgressObservation.source_type == SourceType.FULDA_RUNDE.value,
+            ProgressObservation.track == ObservationTrack.MAIN.value,
+            ProgressObservation.observed_date.isnot(None),
+        )
+        .all()
+    )
+    fulda: list[tuple[MainPhase, date]] = []
+    for obs in fulda_obs:
+        phase = _enum_or_none(MainPhase, obs.asserted_state)
+        if phase is not None:
+            fulda.append((phase, obs.observed_date))
+
+    result = build_forecast(
+        effective_phase=effective_phase,
+        today=today,
+        pfas=pfas,
+        bvwp=bvwp,
+        fulda=fulda,
+    )
+    return {
+        "current_phase": result.current_phase.value,
+        "remaining_text": result.remaining_text,
+        "estimated_phase_end": result.estimated_phase_end,
+        "next_steps": [
+            {
+                "phase": step.phase.value,
+                "expected_date": step.expected_date,
+                "source": step.source,
+            }
+            for step in result.next_steps
+        ],
+        "has_data": result.has_data,
+    }
 
 
 # --- Read --------------------------------------------------------------------
@@ -153,7 +386,7 @@ def get_progress_view(db: Session, project_id: int, today: date | None = None) -
         return None
 
     progress = get_or_create_progress(db, project_id)
-    result = derive_for_project(db, project, progress, today)
+    result = _ensure_fresh(db, project, progress, today)
     db.commit()
 
     observations = (
@@ -177,7 +410,7 @@ def get_progress_view(db: Session, project_id: int, today: date | None = None) -
         child_phases: list[MainPhase] = []
         for child in children:
             child_progress = get_or_create_progress(db, child.id)
-            child_result = derive_for_project(db, child, child_progress, today)
+            child_result = _ensure_fresh(db, child, child_progress, today)
             child_phases.append(child_result.effective_phase)
             child_payloads.append(
                 {
@@ -225,6 +458,9 @@ def get_progress_view(db: Session, project_id: int, today: date | None = None) -
         "span_min_phase": span_min,
         "span_max_phase": span_max,
         "children": child_payloads,
+        "forecast": _build_forecast_for_project(
+            db, project_id, result.effective_phase, today
+        ),
     }
 
 
@@ -397,6 +633,6 @@ def recompute_progress(db: Session, project_id: int, today: date | None = None) 
     if project is None:
         return False
     progress = get_or_create_progress(db, project_id)
-    derive_for_project(db, project, progress, today)
+    _ensure_fresh(db, project, progress, today, force=True)
     db.commit()
     return True

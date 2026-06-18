@@ -2071,6 +2071,18 @@ export interface components {
              */
             budgets: components["schemas"]["BudgetSummarySchema"][];
         };
+        /** ForecastStepSchema */
+        ForecastStepSchema: {
+            /**
+             * Phase
+             * @enum {string}
+             */
+            phase: "NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB";
+            /** Expected Date */
+            expected_date?: string | null;
+            /** Source */
+            source: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -2229,6 +2241,28 @@ export interface components {
              * @enum {string}
              */
             lifecycle_status: "AKTIV" | "PAUSIERT" | "ABGEBROCHEN";
+        };
+        /** ProgressForecastSchema */
+        ProgressForecastSchema: {
+            /**
+             * Current Phase
+             * @enum {string}
+             */
+            current_phase: "NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB";
+            /** Remaining Text */
+            remaining_text?: string | null;
+            /** Estimated Phase End */
+            estimated_phase_end?: string | null;
+            /**
+             * Next Steps
+             * @default []
+             */
+            next_steps: components["schemas"]["ForecastStepSchema"][];
+            /**
+             * Has Data
+             * @default false
+             */
+            has_data: boolean;
         };
         /** ProgressObservationCreate */
         ProgressObservationCreate: {
@@ -2582,6 +2616,7 @@ export interface components {
              * @default []
              */
             children: components["schemas"]["ProgressChildSchema"][];
+            forecast?: components["schemas"]["ProgressForecastSchema"] | null;
         };
         /** ProjectProgressUpdate */
         ProjectProgressUpdate: {
