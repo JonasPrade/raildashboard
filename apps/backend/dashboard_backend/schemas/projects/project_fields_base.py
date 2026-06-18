@@ -17,6 +17,9 @@ class ProjectFieldsBase(BaseModel):
     justification: Optional[str] = None
     superior_project_id: Optional[int] = None
 
+    # Draft state: set to True by the creation wizard, cleared on finalize.
+    is_draft: Optional[bool] = None
+
     length: Optional[float] = None
 
     effects_passenger_long_rail: Optional[bool] = None

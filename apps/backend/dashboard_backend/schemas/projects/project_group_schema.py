@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import Optional, List
 from dashboard_backend.schemas.projects import ProjectSchema
 
@@ -18,6 +18,12 @@ class ProjectGroupSchema(BaseModel):
     projects: List[ProjectSchema] = Field(default_factory=list, description="List of projects associated with this project group")
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("projects", mode="after")
+    @classmethod
+    def exclude_draft_projects(cls, value: List[ProjectSchema]) -> List[ProjectSchema]:
+        """Drafts are hidden from the public map/group views."""
+        return [p for p in value if not p.is_draft]
 
 
 class ProjectGroupCreate(BaseModel):

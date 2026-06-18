@@ -17,6 +17,11 @@ class Project(Base):
     description = Column(String, nullable=True)
     justification = Column(String, nullable=True)
 
+    # Draft state: new projects started in the creation wizard are drafts until
+    # explicitly finalized. Drafts are hidden from the public list/map (see
+    # get_projects) and managed under /admin/drafts.
+    is_draft = Column(Boolean, nullable=False, default=False, server_default="false")
+
     # which train category is affected by the project
     effects_passenger_long_rail = Column(Boolean, default=False)
     effects_passenger_local_rail = Column(Boolean, default=False)

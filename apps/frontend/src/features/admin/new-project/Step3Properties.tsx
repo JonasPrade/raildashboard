@@ -38,7 +38,7 @@ export default function Step3Properties({ project, onDone }: Props) {
             <Text c="dimmed" size="sm">
                 Projekteigenschaften für dieses Projekt setzen (optional).
             </Text>
-            <ProjectEditFields values={values} setValues={setValues} />
+            <ProjectEditFields values={values} setValues={setValues} geojson={project.geojson_representation} />
             {errorMessage && (
                 <Alert color="red" variant="light" title="Speichern fehlgeschlagen">
                     {errorMessage}

@@ -12,9 +12,11 @@ export type Permission = components["schemas"]["PermissionSchema"];
 
 export type ProjectUpdatePayload = {
     name?: string;
+    is_draft?: boolean;
     project_number?: string | null;
     description?: string | null;
     justification?: string | null;
+    superior_project_id?: number | null;
     length?: number | null;
     new_vmax?: number | null;
     etcs_level?: number | null;
@@ -337,6 +339,7 @@ export function updateProject(id: number, payload: ProjectUpdatePayload) {
 
 export type ProjectCreatePayload = {
     name: string;
+    is_draft?: boolean;
     project_number?: string | null;
     description?: string | null;
     justification?: string | null;
@@ -355,9 +358,52 @@ export function useCreateProject() {
             }),
         onSuccess: (created) => {
             queryClient.invalidateQueries({ queryKey: ["projects"] });
+            queryClient.invalidateQueries({ queryKey: ["projectDrafts"] });
             if (created.id != null) {
                 queryClient.setQueryData(["project", created.id], created);
             }
+        },
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Project drafts (admin board)
+// ---------------------------------------------------------------------------
+
+/** List all draft (not yet finalized) projects. Admin-only (project.create). */
+export function useDraftProjects(enabled = true) {
+    return useQuery({
+        queryKey: ["projectDrafts"],
+        enabled,
+        queryFn: () => api<Project[]>("/api/v1/projects/drafts"),
+    });
+}
+
+/** Finalize a draft project (clears its draft state). */
+export function useFinalizeProject() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (projectId: number) =>
+            api<Project>(`/api/v1/projects/${projectId}/finalize`, { method: "POST" }),
+        onSuccess: (project) => {
+            queryClient.invalidateQueries({ queryKey: ["projects"] });
+            queryClient.invalidateQueries({ queryKey: ["projectDrafts"] });
+            if (project.id != null) {
+                queryClient.setQueryData(["project", project.id], project);
+            }
+        },
+    });
+}
+
+/** Delete a project (used to discard drafts). */
+export function useDeleteProject() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (projectId: number) =>
+            api<void>(`/api/v1/projects/${projectId}`, { method: "DELETE" }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["projects"] });
+            queryClient.invalidateQueries({ queryKey: ["projectDrafts"] });
         },
     });
 }

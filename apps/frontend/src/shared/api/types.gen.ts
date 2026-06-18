@@ -109,6 +109,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Draft Projects
+         * @description Retrieve all draft (not yet finalized) projects for the admin board.
+         */
+        get: operations["read_draft_projects_api_v1_projects_drafts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/finalize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Finalize Project Endpoint
+         * @description Finalize a draft project (mark it as no longer a draft).
+         */
+        post: operations["finalize_project_endpoint_api_v1_projects__project_id__finalize_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}": {
         parameters: {
             query?: never;
@@ -123,7 +163,11 @@ export interface paths {
         get: operations["read_project_api_v1_projects__project_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete Project Endpoint
+         * @description Delete a project (used to discard drafts).
+         */
+        delete: operations["delete_project_endpoint_api_v1_projects__project_id__delete"];
         options?: never;
         head?: never;
         /**
@@ -2039,6 +2083,8 @@ export interface components {
             justification?: string | null;
             /** Superior Project Id */
             superior_project_id?: number | null;
+            /** Is Draft */
+            is_draft?: boolean | null;
             /** Length */
             length?: number | null;
             /** Effects Passenger Long Rail */
@@ -2274,6 +2320,11 @@ export interface components {
             description?: string | null;
             /** Justification */
             justification?: string | null;
+            /**
+             * Is Draft
+             * @default false
+             */
+            is_draft: boolean;
             /**
              * Effects Passenger Long Rail
              * @default false
@@ -2597,6 +2648,8 @@ export interface components {
             justification?: string | null;
             /** Superior Project Id */
             superior_project_id?: number | null;
+            /** Is Draft */
+            is_draft?: boolean | null;
             /** Length */
             length?: number | null;
             /** Effects Passenger Long Rail */
@@ -3829,6 +3882,70 @@ export interface operations {
             };
         };
     };
+    read_draft_projects_api_v1_projects_drafts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finalize_project_endpoint_api_v1_projects__project_id__finalize_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     read_project_api_v1_projects__project_id__get: {
         parameters: {
             query?: never;
@@ -3848,6 +3965,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ProjectSchema"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_project_endpoint_api_v1_projects__project_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

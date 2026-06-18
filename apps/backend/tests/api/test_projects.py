@@ -119,6 +119,105 @@ def test_create_project_rejects_empty_name(client, create_user):
 
 
 # ---------------------------------------------------------------------------
+# GET /api/v1/projects/drafts
+# ---------------------------------------------------------------------------
+
+
+def test_list_drafts_requires_project_create(client, create_user):
+    create_user("viewer", "pass123", UserRole.viewer)
+    resp = client.get(
+        "/api/v1/projects/drafts",
+        headers=basic_auth_header("viewer", "pass123"),
+    )
+    assert resp.status_code == 403
+
+
+def test_list_drafts_returns_drafts(client, create_user, monkeypatch):
+    create_user("editor", "pass123", UserRole.editor)
+    monkeypatch.setattr(
+        projects_route, "get_draft_projects", lambda db: [_make_project(5, "Draft")]
+    )
+    resp = client.get(
+        "/api/v1/projects/drafts",
+        headers=basic_auth_header("editor", "pass123"),
+    )
+    assert resp.status_code == 200
+    assert [p["id"] for p in resp.json()] == [5]
+
+
+# ---------------------------------------------------------------------------
+# POST /api/v1/projects/{project_id}/finalize
+# ---------------------------------------------------------------------------
+
+
+def test_finalize_requires_project_create(client, create_user):
+    create_user("viewer", "pass123", UserRole.viewer)
+    resp = client.post(
+        "/api/v1/projects/1/finalize",
+        headers=basic_auth_header("viewer", "pass123"),
+    )
+    assert resp.status_code == 403
+
+
+def test_finalize_success(client, create_user, monkeypatch):
+    create_user("editor", "pass123", UserRole.editor)
+    monkeypatch.setattr(
+        projects_route, "finalize_project", lambda db, pid: _make_project(pid, "Done")
+    )
+    resp = client.post(
+        "/api/v1/projects/3/finalize",
+        headers=basic_auth_header("editor", "pass123"),
+    )
+    assert resp.status_code == 200
+    assert resp.json()["id"] == 3
+
+
+def test_finalize_not_found(client, create_user, monkeypatch):
+    create_user("editor", "pass123", UserRole.editor)
+    monkeypatch.setattr(projects_route, "finalize_project", lambda db, pid: None)
+    resp = client.post(
+        "/api/v1/projects/999/finalize",
+        headers=basic_auth_header("editor", "pass123"),
+    )
+    assert resp.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# DELETE /api/v1/projects/{project_id}
+# ---------------------------------------------------------------------------
+
+
+def test_delete_project_requires_project_delete(client, create_user):
+    # viewer lacks project.delete; editor/admin hold it in the seeded roles.
+    create_user("viewer", "pass123", UserRole.viewer)
+    resp = client.delete(
+        "/api/v1/projects/1",
+        headers=basic_auth_header("viewer", "pass123"),
+    )
+    assert resp.status_code == 403
+
+
+def test_delete_project_success(client, create_user, monkeypatch):
+    create_user("editor", "pass123", UserRole.editor)
+    monkeypatch.setattr(projects_route, "delete_project", lambda db, pid: True)
+    resp = client.delete(
+        "/api/v1/projects/4",
+        headers=basic_auth_header("editor", "pass123"),
+    )
+    assert resp.status_code == 204
+
+
+def test_delete_project_not_found(client, create_user, monkeypatch):
+    create_user("editor", "pass123", UserRole.editor)
+    monkeypatch.setattr(projects_route, "delete_project", lambda db, pid: False)
+    resp = client.delete(
+        "/api/v1/projects/999",
+        headers=basic_auth_header("editor", "pass123"),
+    )
+    assert resp.status_code == 404
+
+
+# ---------------------------------------------------------------------------
 # POST /api/v1/projects/{project_id}/finves
 # ---------------------------------------------------------------------------
 

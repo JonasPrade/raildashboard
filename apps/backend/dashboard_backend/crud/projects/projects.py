@@ -9,12 +9,17 @@ from dashboard_backend.models.projects.project_group import ProjectGroup
 
 
 def get_projects(db: Session):
-    """Gibt alle Projekte zurück."""
-    return db.query(Project).all()
+    """Gibt alle finalisierten Projekte zurück (Entwürfe ausgeblendet)."""
+    return db.query(Project).filter(Project.is_draft.is_(False)).all()
+
+
+def get_draft_projects(db: Session):
+    """Gibt alle noch nicht finalisierten Projekte (Entwürfe) zurück."""
+    return db.query(Project).filter(Project.is_draft.is_(True)).all()
 
 
 def get_project_by_id(db: Session, project_id: int):
-    """Gibt ein einzelnes Projekt anhand der ID zurück."""
+    """Gibt ein einzelnes Projekt anhand der ID zurück (auch Entwürfe)."""
     return db.query(Project).filter(Project.id == project_id).first()
 
 
@@ -121,11 +126,23 @@ def update_project(db: Session, project_id: int, update_data: dict):
 
     return project
 
-# def delete_project(db: Session, project_id: int):
-#     """Löscht ein Projekt anhand der ID."""
-#     project = get_project_by_id(db, project_id)
-#     if not project:
-#         return None
-#     db.delete(project)
-#     db.commit()
-#     return project
+
+def finalize_project(db: Session, project_id: int):
+    """Mark a draft project as finalized (no longer a draft)."""
+    project = get_project_by_id(db, project_id)
+    if not project:
+        return None
+    project.is_draft = False
+    db.commit()
+    db.refresh(project)
+    return project
+
+
+def delete_project(db: Session, project_id: int) -> bool:
+    """Delete a project by id. Returns True if a project was deleted."""
+    project = get_project_by_id(db, project_id)
+    if not project:
+        return False
+    db.delete(project)
+    db.commit()
+    return True

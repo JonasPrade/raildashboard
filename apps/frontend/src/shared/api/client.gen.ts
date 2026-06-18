@@ -51,6 +51,7 @@ const ProjectSchema = z
     superior_project_old_id: z.union([z.number(), z.null()]).optional(),
     description: z.union([z.string(), z.null()]).optional(),
     justification: z.union([z.string(), z.null()]).optional(),
+    is_draft: z.boolean().optional().default(false),
     effects_passenger_long_rail: z
       .union([z.boolean(), z.null()])
       .optional()
@@ -152,6 +153,7 @@ const ProjectCreate = z
     description: z.union([z.string(), z.null()]).optional(),
     justification: z.union([z.string(), z.null()]).optional(),
     superior_project_id: z.union([z.number(), z.null()]).optional(),
+    is_draft: z.union([z.boolean(), z.null()]).optional(),
     length: z.union([z.number(), z.null()]).optional(),
     effects_passenger_long_rail: z.union([z.boolean(), z.null()]).optional(),
     effects_passenger_local_rail: z.union([z.boolean(), z.null()]).optional(),
@@ -214,6 +216,7 @@ const ProjectUpdate = z
     description: z.union([z.string(), z.null()]),
     justification: z.union([z.string(), z.null()]),
     superior_project_id: z.union([z.number(), z.null()]),
+    is_draft: z.union([z.boolean(), z.null()]),
     length: z.union([z.number(), z.null()]),
     effects_passenger_long_rail: z.union([z.boolean(), z.null()]),
     effects_passenger_local_rail: z.union([z.boolean(), z.null()]),
@@ -2311,6 +2314,28 @@ Returns 202 if the task is still running; 422 if it failed.`,
     ],
   },
   {
+    method: "delete",
+    path: "/api/v1/projects/:project_id",
+    alias: "delete_project_endpoint_api_v1_projects__project_id__delete",
+    description: `Delete a project (used to discard drafts).`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "project_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: z.void(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
     method: "get",
     path: "/api/v1/projects/:project_id",
     alias: "read_project_api_v1_projects__project_id__get",
@@ -2418,6 +2443,29 @@ Returns 202 if the task is still running; 422 if it failed.`,
           .object({ changelog_entry_id: z.number().int() })
           .passthrough(),
       },
+      {
+        name: "project_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: ProjectSchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/api/v1/projects/:project_id/finalize",
+    alias:
+      "finalize_project_endpoint_api_v1_projects__project_id__finalize_post",
+    description: `Finalize a draft project (mark it as no longer a draft).`,
+    requestFormat: "json",
+    parameters: [
       {
         name: "project_id",
         type: "Path",
@@ -2669,6 +2717,21 @@ The existing route (identified by route_id) is updated in-place.`,
       },
     ],
     response: z.array(VibEntryForProjectSchema),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/projects/drafts",
+    alias: "read_draft_projects_api_v1_projects_drafts_get",
+    description: `Retrieve all draft (not yet finalized) projects for the admin board.`,
+    requestFormat: "json",
+    response: z.array(ProjectSchema),
     errors: [
       {
         status: 422,

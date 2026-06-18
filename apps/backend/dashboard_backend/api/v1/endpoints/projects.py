@@ -15,6 +15,9 @@ from dashboard_backend.crud.changelog import (
 from dashboard_backend.crud.projects.bvwp import get_bvwp_data
 from dashboard_backend.crud.projects.projects import (
     create_project,
+    delete_project,
+    finalize_project,
+    get_draft_projects,
     get_project_by_id,
     get_projects,
     update_project,
@@ -52,6 +55,42 @@ def create_project_endpoint(
 ):
     """Create a new project. Only `name` is required."""
     return create_project(db, body.model_dump(exclude_unset=True))
+
+
+# NOTE: must be declared before GET /{project_id} so "drafts" is not captured
+# as a project id.
+@router.get("/drafts", response_model=list[ProjectSchema])
+def read_draft_projects(
+    current_user: User = Depends(require_permission("project.create")),
+    db: Session = Depends(get_db),
+):
+    """Retrieve all draft (not yet finalized) projects for the admin board."""
+    return get_draft_projects(db)
+
+
+@router.post("/{project_id}/finalize", response_model=ProjectSchema)
+def finalize_project_endpoint(
+    project_id: int,
+    current_user: User = Depends(require_permission("project.create")),
+    db: Session = Depends(get_db),
+):
+    """Finalize a draft project (mark it as no longer a draft)."""
+    project = finalize_project(db, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return project
+
+
+@router.delete("/{project_id}", status_code=204)
+def delete_project_endpoint(
+    project_id: int,
+    current_user: User = Depends(require_permission("project.delete")),
+    db: Session = Depends(get_db),
+):
+    """Delete a project (used to discard drafts)."""
+    if not delete_project(db, project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
+    return None
 
 
 @router.get("/{project_id}", response_model=ProjectSchema)

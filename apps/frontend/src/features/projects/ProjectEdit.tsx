@@ -243,7 +243,7 @@ export function ProjectEdit({
             styles={{ body: { display: "flex", flexDirection: "column", height: "100%", padding: 0 } }}
         >
             <ScrollArea style={{ flex: 1 }} p="md">
-                <ProjectEditFields values={values} setValues={setValues} />
+                <ProjectEditFields values={values} setValues={setValues} geojson={project.geojson_representation} />
             </ScrollArea>
 
             <Box p="md" style={{ borderTop: "1px solid var(--mantine-color-default-border)" }}>

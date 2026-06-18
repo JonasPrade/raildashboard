@@ -294,5 +294,5 @@ export default function GeometryPreviewMap({ existingGeojson, previewFeature, sh
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [previewFeature, previewPoints, isReady]);
 
-    return <div ref={containerRef} style={{ width: "100%", height }} />;
+    return <div ref={containerRef} style={{ width: "100%", height: height ?? "100%" }} />;
 }
