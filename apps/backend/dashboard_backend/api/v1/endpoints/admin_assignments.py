@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from dashboard_backend.core.security import require_roles
+from dashboard_backend.core.security import require_permission
 from dashboard_backend.crud.admin_assignments import (
     assign_finve_to_projects,
     assign_vib_entry_to_projects,
@@ -20,11 +20,9 @@ from dashboard_backend.schemas.admin_assignments import (
     UnassignedFinveSchema,
     UnassignedVibEntrySchema,
 )
-from dashboard_backend.schemas.users import UserRole
-
 router = AuthRouter()
 
-_require_editor = Depends(require_roles(UserRole.editor, UserRole.admin))
+_require_editor = Depends(require_permission("assignment.manage"))
 
 
 @router.get("/unassigned-finves", response_model=list[UnassignedFinveSchema])

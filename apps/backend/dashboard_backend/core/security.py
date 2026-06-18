@@ -16,7 +16,6 @@ from sqlalchemy.orm import Session
 
 from dashboard_backend.crud import users as users_crud
 from dashboard_backend.database import get_db
-from dashboard_backend.schemas.users import UserRole
 
 
 PasswordHasher = Callable[[str], str]
@@ -62,8 +61,16 @@ def _authenticate(credentials: HTTPBasicCredentials, db: Session):
     return user
 
 
-def require_roles(*roles: UserRole):
-    allowed_roles: set[str] | None = {role.value for role in roles} if roles else None
+def require_permission(*keys: str):
+    """FastAPI dependency: require the authenticated user to hold every given
+    capability key.
+
+    Accepts a session cookie or HTTP Basic credentials (like ``require_auth``).
+    The ``admin`` system role bypasses the check (see ``User.has_permission``).
+    Not authenticated → 401; authenticated but missing a capability → 403.
+    """
+
+    required_keys = tuple(keys)
 
     def dependency(
         session: Optional[str] = Cookie(default=None, alias=_SESSION_COOKIE),
@@ -82,15 +89,16 @@ def require_roles(*roles: UserRole):
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Not authenticated",
             )
-        if allowed_roles is not None and user.role not in allowed_roles:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not enough privileges",
-            )
+        for key in required_keys:
+            if not user.has_permission(key):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Not enough privileges",
+                )
         return user
 
     dependency.__is_role_dependency__ = True  # type: ignore[attr-defined]
-    dependency.__required_roles__ = allowed_roles  # type: ignore[attr-defined]
+    dependency.__required_permissions__ = required_keys  # type: ignore[attr-defined]
     return dependency
 
 

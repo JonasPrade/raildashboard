@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 
-from dashboard_backend.core.security import require_roles
+from dashboard_backend.core.security import require_permission
 from dashboard_backend.crud.haushalt_import import (
     delete_parse_result,
     get_parse_result,
@@ -29,12 +29,11 @@ from dashboard_backend.schemas.haushalt_import import (
     UnmatchedBudgetRowSchema,
 )
 from dashboard_backend.schemas.tasks import TaskLaunchResponse
-from dashboard_backend.schemas.users import UserRole
 from dashboard_backend.tasks.haushalt import parse_haushalt_pdf
 
 router = AuthRouter()
 
-_require_editor = Depends(require_roles(UserRole.editor, UserRole.admin))
+_require_editor = Depends(require_permission("haushalt.import"))
 
 
 # ---------------------------------------------------------------------------
@@ -45,7 +44,7 @@ _require_editor = Depends(require_roles(UserRole.editor, UserRole.admin))
 async def start_parse(
     pdf: UploadFile = File(...),
     year: int = Form(...),
-    current_user: User = Depends(require_roles(UserRole.editor, UserRole.admin)),
+    current_user: User = Depends(require_permission("haushalt.import")),
 ):
     """Upload a Haushalt PDF and start a background parse task.
 
@@ -116,7 +115,7 @@ def delete_parse_run_result(
 @router.post("/confirm", response_model=HaushaltsConfirmResponse)
 def confirm_import(
     body: HaushaltsConfirmRequest,
-    current_user: User = Depends(require_roles(UserRole.editor, UserRole.admin)),
+    current_user: User = Depends(require_permission("haushalt.import")),
     db: Session = Depends(get_db),
 ):
     """Confirm a parse result and import Finve/Budget data.
@@ -238,7 +237,7 @@ def list_unmatched(resolved: bool | None = None, db: Session = Depends(get_db)):
 def patch_unmatched(
     row_id: int,
     body: UnmatchedBudgetRowResolveRequest,
-    current_user: User = Depends(require_roles(UserRole.editor, UserRole.admin)),
+    current_user: User = Depends(require_permission("haushalt.import")),
     db: Session = Depends(get_db),
 ):
     """Assign a Finve to an unmatched row. Triggers Budget + BudgetTitelEntry creation."""

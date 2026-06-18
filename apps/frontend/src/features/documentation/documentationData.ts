@@ -141,6 +141,20 @@ export const featureHighlights: FeatureHighlight[] = [
             "Route /admin/haushalt-import/review/:parseResultId — review a specific run",
             "Route /admin/haushalt-unmatched — manage open unmatched rows"
         ]
+    },
+    {
+        title: "Konfigurierbare Rollen & Berechtigungen",
+        description:
+            "Administrators can define custom roles and assign granular capabilities to each one. " +
+            "Backend gates and frontend visibility are driven by these capabilities instead of fixed role names. " +
+            "viewer/editor/admin ship as system roles that reproduce the previous behaviour; admin is an implicit super-admin.",
+        details: [
+            "Route /admin/roles — manage roles and their permissions (capability role.manage)",
+            "Capabilities are grouped (Projekte, Projektgruppen, Finanzierung, Inhalte, Administration) and toggled via checkboxes",
+            "System roles cannot be renamed or deleted, but their permissions stay editable",
+            "Each user is assigned exactly one role; the last admin is protected from demotion/deletion",
+            "The frontend can(key) helper reads the effective permissions returned by /users/me"
+        ]
     }
 ];
 

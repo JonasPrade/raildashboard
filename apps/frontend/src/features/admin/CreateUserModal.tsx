@@ -1,18 +1,12 @@
 import { type FormEvent, useState } from "react";
 import { Alert, Button, Modal, PasswordInput, Select, Stack, TextInput } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { useCreateUser } from "../../shared/api/queries";
+import { useCreateUser, useRoles } from "../../shared/api/queries";
 
 type Props = {
     opened: boolean;
     onClose: () => void;
 };
-
-const ROLE_OPTIONS = [
-    { value: "viewer", label: "Viewer – nur lesen" },
-    { value: "editor", label: "Editor – lesen & bearbeiten" },
-    { value: "admin", label: "Admin – voller Zugriff" },
-];
 
 export function CreateUserModal({ opened, onClose }: Props) {
     const [username, setUsername] = useState("");
@@ -22,6 +16,11 @@ export function CreateUserModal({ opened, onClose }: Props) {
     const [error, setError] = useState<string | null>(null);
 
     const createUser = useCreateUser();
+    const { data: roles } = useRoles();
+    const roleOptions = (roles ?? []).map((r) => ({
+        value: r.name,
+        label: r.description ? `${r.name} – ${r.description}` : r.name,
+    }));
 
     const reset = () => {
         setUsername("");
@@ -82,7 +81,7 @@ export function CreateUserModal({ opened, onClose }: Props) {
                     />
                     <Select
                         label="Rolle"
-                        data={ROLE_OPTIONS}
+                        data={roleOptions}
                         value={role}
                         onChange={(v) => setRole(v ?? "viewer")}
                         allowDeselect={false}

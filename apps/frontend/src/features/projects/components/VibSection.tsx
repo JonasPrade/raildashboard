@@ -242,10 +242,10 @@ function VibTabContent({
 
 export default function VibSection({ projectId }: { projectId: number }) {
     const { data: entries, isLoading } = useProjectVibEntries(projectId);
-    const { user } = useAuth();
+    const { can } = useAuth();
     const [editingEntry, setEditingEntry] = useState<VibEntrySchema | null>(null);
 
-    const canEdit = user?.role === "editor" || user?.role === "admin";
+    const canEdit = can("vib.import");
 
     if (isLoading) {
         return (

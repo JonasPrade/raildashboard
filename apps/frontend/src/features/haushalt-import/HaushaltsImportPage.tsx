@@ -25,7 +25,7 @@ import {
 import { ParseResultList } from "./components/ParseResultList";
 
 export default function HaushaltsImportPage() {
-    const { user } = useAuth();
+    const { can } = useAuth();
     const navigate = useNavigate();
 
     const [file, setFile] = useState<File | null>(null);
@@ -36,7 +36,7 @@ export default function HaushaltsImportPage() {
     const startImport = useStartHaushaltsImport();
     const taskStatus = useTaskStatus(taskId);
 
-    if (user?.role !== "editor" && user?.role !== "admin") {
+    if (!can("haushalt.import")) {
         return (
             <Container size="sm" py="xl">
                 <Alert color="red" variant="light" title="Kein Zugriff">

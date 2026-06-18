@@ -17,14 +17,14 @@ import { useAuth } from "../../lib/auth";
 import { useUnmatchedRows, useResolveUnmatchedRow } from "../../shared/api/queries";
 
 export default function HaushaltsUnmatchedPage() {
-    const { user } = useAuth();
+    const { can } = useAuth();
     const [showResolved, setShowResolved] = useState(false);
     const [resolveValues, setResolveValues] = useState<Record<number, number | "">>({});
 
     const { data: rows, isLoading, isError } = useUnmatchedRows(showResolved ? undefined : false);
     const resolve = useResolveUnmatchedRow();
 
-    if (user?.role !== "editor" && user?.role !== "admin") {
+    if (!can("haushalt.import")) {
         return (
             <Container size="sm" py="xl">
                 <Alert color="red" variant="light" title="Kein Zugriff">

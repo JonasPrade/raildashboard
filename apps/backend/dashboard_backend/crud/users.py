@@ -4,8 +4,18 @@ from collections.abc import Callable
 
 from sqlalchemy.orm import Session
 
+from dashboard_backend.core.permissions import ADMIN_ROLE_NAME
+from dashboard_backend.crud import roles as roles_crud
+from dashboard_backend.models.roles import Role
 from dashboard_backend.models.users import User
 from dashboard_backend.schemas.users import UserCreate
+
+
+def _resolve_role_id(db: Session, role_name: str) -> int:
+    role = roles_crud.get_role_by_name(db, role_name)
+    if role is None:
+        raise ValueError(f"Unknown role: {role_name}")
+    return role.id
 
 
 def get_user_by_username(db: Session, username: str) -> User | None:
@@ -18,7 +28,11 @@ def get_users(db: Session) -> list[User]:
 
 def create_user(db: Session, user_in: UserCreate, password_hasher: Callable[[str], str]) -> User:
     hashed = password_hasher(user_in.password)
-    db_user = User(username=user_in.username, hashed_password=hashed, role=user_in.role.value)
+    db_user = User(
+        username=user_in.username,
+        hashed_password=hashed,
+        role_id=_resolve_role_id(db, user_in.role),
+    )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
@@ -27,6 +41,12 @@ def create_user(db: Session, user_in: UserCreate, password_hasher: Callable[[str
 
 def count_users(db: Session) -> int:
     return db.query(User).count()
+
+
+def count_admins(db: Session) -> int:
+    """Number of users holding the ``admin`` system role."""
+
+    return db.query(User).join(Role).filter(Role.name == ADMIN_ROLE_NAME).count()
 
 
 def update_password(db: Session, user: User, new_hashed_password: str) -> User:
@@ -41,7 +61,23 @@ def get_user_by_id(db: Session, user_id: int) -> User | None:
 
 
 def update_user_role(db: Session, user: User, new_role: str) -> User:
-    user.role = new_role
+    user.role_id = _resolve_role_id(db, new_role)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def update_user(
+    db: Session,
+    user: User,
+    *,
+    username: str | None = None,
+    role: str | None = None,
+) -> User:
+    if username is not None:
+        user.username = username
+    if role is not None:
+        user.role_id = _resolve_role_id(db, role)
     db.commit()
     db.refresh(user)
     return user
@@ -50,4 +86,3 @@ def update_user_role(db: Session, user: User, new_role: str) -> User:
 def delete_user(db: Session, user: User) -> None:
     db.delete(user)
     db.commit()
-

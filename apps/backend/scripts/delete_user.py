@@ -28,7 +28,7 @@ def main() -> int:
             print(f"User '{args.username}' not found", file=sys.stderr)
             return 1
 
-        confirm = input(f"Delete user '{args.username}' (role: {user.role})? [y/N] ")
+        confirm = input(f"Delete user '{args.username}' (role: {user.role_name})? [y/N] ")
         if confirm.lower() != "y":
             print("Aborted.")
             return 0

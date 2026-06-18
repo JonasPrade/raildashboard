@@ -45,7 +45,7 @@ def main() -> int:
         try:
             user = users_crud.create_user(
                 db,
-                user_in=UserCreate(username=args.username, password=password, role=UserRole(args.role)),
+                user_in=UserCreate(username=args.username, password=password, role=args.role),
                 password_hasher=hash_password,
             )
         except IntegrityError as exc:  # pragma: no cover - safety net
@@ -53,7 +53,7 @@ def main() -> int:
             print(f"Failed to create user: {exc}", file=sys.stderr)
             return 1
 
-    print(f"Created user '{user.username}' with role '{user.role}'")
+    print(f"Created user '{user.username}' with role '{user.role_name}'")
     return 0
 
 

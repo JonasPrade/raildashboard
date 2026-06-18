@@ -32,7 +32,7 @@ import VibEntryEditForm from "./VibEntryEditForm";
 export default function VibReviewPage() {
     const { taskId } = useParams<{ taskId: string }>();
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { can } = useAuth();
 
     const { data: parseResult, isLoading, isError } = useVibParseResult(taskId ?? null);
     const { data: projects } = useProjects();
@@ -46,7 +46,7 @@ export default function VibReviewPage() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [retryingIdx, setRetryingIdx] = useState<number | null>(null);
 
-    if (user?.role !== "editor" && user?.role !== "admin") {
+    if (!can("vib.import")) {
         return (
             <Container size="sm" py="xl">
                 <Alert color="red" variant="light" title="Kein Zugriff">

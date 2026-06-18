@@ -134,10 +134,10 @@ dev:
 	  wait
 
 dev-backend:
-	cd $(BACKEND_DIR) && $(UVICORN) main:app --reload --host 127.0.0.1 --port 8000
+	cd $(BACKEND_DIR) && $(UVICORN) main:app --reload --host 127.0.0.1 --port 8001
 
 dev-frontend:
-	npm --prefix $(FRONTEND_DIR) run dev -- --host 127.0.0.1
+	npm --prefix $(FRONTEND_DIR) run dev -- --host 127.0.0.1 --port 5174
 
 # ---------------------------------------------------------------------------
 # Build

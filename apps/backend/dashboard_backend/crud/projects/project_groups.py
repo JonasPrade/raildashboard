@@ -9,6 +9,9 @@ def get_project_group_by_id(db: Session, group_id: int):
 def get_project_groups(db: Session):
     return db.query(ProjectGroup).all()
 
+def get_project_group_by_short_name(db: Session, short_name: str):
+    return db.query(ProjectGroup).filter(ProjectGroup.short_name == short_name).first()
+
 def update_project_group(db: Session, group_id: int, updates: dict):
     db_group = db.query(ProjectGroup).filter(ProjectGroup.id == group_id).first()
     if not db_group:
@@ -19,25 +22,19 @@ def update_project_group(db: Session, group_id: int, updates: dict):
     db.refresh(db_group)
     return db_group
 
-# def create_project_group(db: Session, group: dict):
-#     db_group = ProjectGroup(**group)
-#     db.add(db_group)
-#     db.commit()
-#     db.refresh(db_group)
-#     return db_group
 
-# def update_project_group(db: Session, group_id: int, updates: dict):
-#     db_group = db.query(ProjectGroup).filter(ProjectGroup.id == group_id).first()
-#     if db_group:
-#         for key, value in updates.items():
-#             setattr(db_group, key, value)
-#         db.commit()
-#         db.refresh(db_group)
-#     return db_group
+def create_project_group(db: Session, data: dict):
+    db_group = ProjectGroup(**data)
+    db.add(db_group)
+    db.commit()
+    db.refresh(db_group)
+    return db_group
 
-# def delete_project_group(db: Session, group_id: int):
-#     db_group = db.query(ProjectGroup).filter(ProjectGroup.id == group_id).first()
-#     if db_group:
-#         db.delete(db_group)
-#         db.commit()
-#     return db_group
+
+def delete_project_group(db: Session, group_id: int):
+    db_group = db.query(ProjectGroup).filter(ProjectGroup.id == group_id).first()
+    if not db_group:
+        return None
+    db.delete(db_group)
+    db.commit()
+    return db_group

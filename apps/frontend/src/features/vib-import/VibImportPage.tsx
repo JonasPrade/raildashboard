@@ -29,7 +29,7 @@ import {
 } from "../../shared/api/queries";
 
 export default function VibImportPage() {
-    const { user } = useAuth();
+    const { can } = useAuth();
     const navigate = useNavigate();
 
     const [file, setFile] = useState<File | null>(null);
@@ -54,7 +54,7 @@ export default function VibImportPage() {
     const { data: drafts, isLoading: draftsLoading } = useVibDrafts();
     const deleteDraft = useDeleteVibDraft();
 
-    if (user?.role !== "editor" && user?.role !== "admin") {
+    if (!can("vib.import")) {
         return (
             <Container size="sm" py="xl">
                 <Alert color="red" variant="light" title="Kein Zugriff">

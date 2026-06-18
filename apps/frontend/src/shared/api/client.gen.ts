@@ -214,10 +214,10 @@ const ProjectUpdate = z
     description: z.union([z.string(), z.null()]),
     justification: z.union([z.string(), z.null()]),
     superior_project_id: z.union([z.number(), z.null()]),
+    length: z.union([z.number(), z.null()]),
     effects_passenger_long_rail: z.union([z.boolean(), z.null()]),
     effects_passenger_local_rail: z.union([z.boolean(), z.null()]),
     effects_cargo_rail: z.union([z.boolean(), z.null()]),
-    length: z.union([z.number(), z.null()]),
     nbs: z.union([z.boolean(), z.null()]),
     abs: z.union([z.boolean(), z.null()]),
     elektrification: z.union([z.boolean(), z.null()]),
@@ -264,8 +264,8 @@ const ProjectUpdate = z
     gwb: z.union([z.boolean(), z.null()]),
     simultaneous_train_entries: z.union([z.boolean(), z.null()]),
     tilting: z.union([z.boolean(), z.null()]),
-    geojson_representation: z.union([z.string(), z.null()]),
     project_group_ids: z.union([z.array(z.number().int()), z.null()]),
+    geojson_representation: z.union([z.string(), z.null()]),
   })
   .partial()
   .passthrough();
@@ -832,30 +832,54 @@ const ProjectGroupSchema = z
     projects: z.array(ProjectSchema).optional(),
   })
   .passthrough();
+const ProjectGroupCreate = z
+  .object({
+    name: z.string(),
+    short_name: z.string(),
+    description: z.union([z.string(), z.null()]).optional(),
+    public: z.boolean().optional().default(false),
+    color: z.string().optional().default("#FF0000"),
+    plot_only_superior_projects: z.boolean().optional().default(true),
+    is_visible: z.boolean().optional().default(true),
+    is_default_selected: z.boolean().optional().default(false),
+  })
+  .passthrough();
 const ProjectGroupUpdate = z
   .object({
+    name: z.union([z.string(), z.null()]),
+    short_name: z.union([z.string(), z.null()]),
+    description: z.union([z.string(), z.null()]),
+    public: z.union([z.boolean(), z.null()]),
+    color: z.union([z.string(), z.null()]),
+    plot_only_superior_projects: z.union([z.boolean(), z.null()]),
     is_visible: z.union([z.boolean(), z.null()]),
     is_default_selected: z.union([z.boolean(), z.null()]),
   })
   .partial()
   .passthrough();
-const UserRole = z.enum(["viewer", "editor", "admin"]);
 const UserRead = z
   .object({
-    username: z.string().min(3).max(50),
-    role: UserRole,
     id: z.number().int(),
+    username: z.string(),
+    role: z.string(),
+    permissions: z.array(z.string()),
     created_at: z.string().datetime({ offset: true }),
   })
   .passthrough();
 const UserCreate = z
   .object({
     username: z.string().min(3).max(50),
-    role: UserRole,
+    role: z.string().min(1).max(50),
     password: z.string().min(8).max(128),
   })
   .passthrough();
-const UserUpdate = z.object({ role: UserRole }).passthrough();
+const UserUpdate = z
+  .object({
+    username: z.union([z.string(), z.null()]),
+    role: z.union([z.string(), z.null()]),
+  })
+  .partial()
+  .passthrough();
 const UserPasswordUpdate = z
   .object({ password: z.string().min(8).max(128) })
   .passthrough();
@@ -963,7 +987,7 @@ const ProjectTextUpdate = z
   .partial()
   .passthrough();
 const Body_upload_attachment_api_v1_projects_texts__text_id__attachments_post =
-  z.object({ file: z.instanceof(File) }).passthrough();
+  z.object({ file: z.string() }).passthrough();
 const TaskStatusResponse = z
   .object({
     task_id: z.string(),
@@ -977,7 +1001,7 @@ const DebugTaskRequest = z
   .passthrough();
 const TaskLaunchResponse = z.object({ task_id: z.string() }).passthrough();
 const Body_start_parse_api_v1_import_haushalt_parse_post = z
-  .object({ pdf: z.instanceof(File), year: z.number().int() })
+  .object({ pdf: z.string(), year: z.number().int() })
   .passthrough();
 const ParseResultPublicSchema = z
   .object({
@@ -1131,7 +1155,7 @@ const VibOcrAvailableResponse = z
   .passthrough();
 const Body_start_vib_parse_api_v1_import_vib_parse_post = z
   .object({
-    pdf: z.instanceof(File),
+    pdf: z.string(),
     year: z.number().int(),
     start_page: z.union([z.number(), z.null()]).optional(),
     end_page: z.union([z.number(), z.null()]).optional(),
@@ -1180,7 +1204,7 @@ const VibEntryProposed = z
     ai_extraction_error: z.union([z.string(), z.null()]).optional(),
   })
   .passthrough();
-const VibParseTaskResult_Output = z
+const VibParseTaskResult = z
   .object({
     year: z.number().int(),
     drucksache_nr: z.union([z.string(), z.null()]).optional(),
@@ -1234,14 +1258,6 @@ const VibDraftSchema = z
     task_id: z.string(),
     year: z.number().int(),
     created_at: z.string(),
-  })
-  .passthrough();
-const VibParseTaskResult_Input = z
-  .object({
-    year: z.number().int(),
-    drucksache_nr: z.union([z.string(), z.null()]).optional(),
-    report_date: z.union([z.string(), z.null()]).optional(),
-    entries: z.array(VibEntryProposed).optional().default([]),
   })
   .passthrough();
 const VibReportSchema = z
@@ -1333,6 +1349,34 @@ const UnassignedVibEntrySchema = z
 const AssignProjectsInput = z
   .object({ project_ids: z.array(z.number().int()) })
   .passthrough();
+const RoleRead = z
+  .object({
+    id: z.number().int(),
+    name: z.string(),
+    description: z.union([z.string(), z.null()]),
+    is_system: z.boolean(),
+    permissions: z.array(z.string()),
+    created_at: z.string().datetime({ offset: true }),
+  })
+  .passthrough();
+const RoleCreate = z
+  .object({
+    name: z.string().min(1).max(50),
+    description: z.union([z.string(), z.null()]).optional(),
+    permissions: z.array(z.string()).optional(),
+  })
+  .passthrough();
+const RoleUpdate = z
+  .object({
+    name: z.union([z.string(), z.null()]),
+    description: z.union([z.string(), z.null()]),
+    permissions: z.union([z.array(z.string()), z.null()]),
+  })
+  .partial()
+  .passthrough();
+const PermissionSchema = z
+  .object({ key: z.string(), label: z.string(), group: z.string() })
+  .passthrough();
 
 export const schemas = {
   SessionCredentials,
@@ -1356,8 +1400,8 @@ export const schemas = {
   ChangeLogRead,
   RevertFieldRequest,
   ProjectGroupSchema,
+  ProjectGroupCreate,
   ProjectGroupUpdate,
-  UserRole,
   UserRead,
   UserCreate,
   UserUpdate,
@@ -1399,12 +1443,11 @@ export const schemas = {
   Body_start_vib_parse_api_v1_import_vib_parse_post,
   VibPfaEntryProposed,
   VibEntryProposed,
-  VibParseTaskResult_Output,
+  VibParseTaskResult,
   VibConfirmEntryInput,
   VibConfirmRequest,
   VibConfirmResponse,
   VibDraftSchema,
-  VibParseTaskResult_Input,
   VibReportSchema,
   VibEntryListItemSchema,
   VibEntrySchema,
@@ -1412,6 +1455,10 @@ export const schemas = {
   UnassignedFinveSchema,
   UnassignedVibEntrySchema,
   AssignProjectsInput,
+  RoleRead,
+  RoleCreate,
+  RoleUpdate,
+  PermissionSchema,
 };
 
 const endpoints = makeApi([
@@ -1541,6 +1588,14 @@ const endpoints = makeApi([
     description: `Return all Finanzierungsvereinbarungen with linked project info.`,
     requestFormat: "json",
     response: z.array(FinveListItemSchema),
+  },
+  {
+    method: "get",
+    path: "/api/v1/health",
+    alias: "health_api_v1_health_get",
+    description: `Liveness + DB-readiness probe — used by the docker-compose healthcheck.`,
+    requestFormat: "json",
+    response: z.record(z.string()),
   },
   {
     method: "post",
@@ -1754,7 +1809,7 @@ Called by the review UI to persist edits so work survives page reloads.`,
       {
         name: "body",
         type: "Body",
-        schema: VibParseTaskResult_Input,
+        schema: VibParseTaskResult,
       },
       {
         name: "parse_task_id",
@@ -2040,7 +2095,7 @@ Returns 202 if the task is still running; 422 if it failed.`,
         schema: z.string(),
       },
     ],
-    response: VibParseTaskResult_Output,
+    response: VibParseTaskResult,
     errors: [
       {
         status: 422,
@@ -2115,10 +2170,46 @@ Returns 202 if the task is still running; 422 if it failed.`,
   },
   {
     method: "get",
+    path: "/api/v1/permissions/",
+    alias: "list_permissions_api_v1_permissions__get",
+    description: `Return the capability catalog (keys + labels + groups) for the admin UI.`,
+    requestFormat: "json",
+    response: z.array(PermissionSchema),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
     path: "/api/v1/project_groups/",
     alias: "read_project_groups_api_v1_project_groups__get",
     requestFormat: "json",
     response: z.array(ProjectGroupSchema),
+  },
+  {
+    method: "post",
+    path: "/api/v1/project_groups/",
+    alias: "create_project_group_endpoint_api_v1_project_groups__post",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: ProjectGroupCreate,
+      },
+    ],
+    response: ProjectGroupSchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
   },
   {
     method: "get",
@@ -2159,6 +2250,28 @@ Returns 202 if the task is still running; 422 if it failed.`,
       },
     ],
     response: ProjectGroupSchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "delete",
+    path: "/api/v1/project_groups/:group_id",
+    alias:
+      "delete_project_group_endpoint_api_v1_project_groups__group_id__delete",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "group_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: z.void(),
     errors: [
       {
         status: 422,
@@ -2347,8 +2460,7 @@ including per-Haushaltstiteln breakdown.`,
     method: "post",
     path: "/api/v1/projects/:project_id/finves",
     alias: "link_finves_to_project_api_v1_projects__project_id__finves_post",
-    description: `Link a list of existing FinVes to this project. Reuses the unassigned-finve
-assignment helper so existing links are preserved.`,
+    description: `Link a list of existing FinVes to this project. Existing links are preserved.`,
     requestFormat: "json",
     parameters: [
       {
@@ -2627,7 +2739,7 @@ Maximum file size: 50 MB.`,
       {
         name: "body",
         type: "Body",
-        schema: z.object({ file: z.instanceof(File) }).passthrough(),
+        schema: z.object({ file: z.string() }).passthrough(),
       },
       {
         name: "text_id",
@@ -2729,6 +2841,88 @@ Security:
       },
     ],
     response: z.unknown(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/roles/",
+    alias: "list_roles_api_v1_roles__get",
+    requestFormat: "json",
+    response: z.array(RoleRead),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/api/v1/roles/",
+    alias: "create_role_api_v1_roles__post",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: RoleCreate,
+      },
+    ],
+    response: RoleRead,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "patch",
+    path: "/api/v1/roles/:role_id",
+    alias: "update_role_api_v1_roles__role_id__patch",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: RoleUpdate,
+      },
+      {
+        name: "role_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: RoleRead,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "delete",
+    path: "/api/v1/roles/:role_id",
+    alias: "delete_role_api_v1_roles__role_id__delete",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "role_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: z.void(),
     errors: [
       {
         status: 422,

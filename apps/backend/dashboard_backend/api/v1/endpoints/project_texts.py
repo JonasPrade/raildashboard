@@ -6,7 +6,7 @@ from fastapi import Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from dashboard_backend.core.security import require_roles
+from dashboard_backend.core.security import require_auth, require_permission
 from dashboard_backend.crud.changelog import (
     create_text_changelog_for_create,
     create_text_changelog_for_delete,
@@ -42,7 +42,6 @@ from dashboard_backend.schemas.projects.project_text_schema import (
     ProjectTextUpdate,
     TextAttachmentSchema,
 )
-from dashboard_backend.schemas.users import UserRole
 from dashboard_backend.utils.file_storage import (
     MAX_FILE_SIZE,
     delete_attachment_file,
@@ -73,7 +72,7 @@ def list_text_types(db: Session = Depends(get_db)):
 @router.post("/text_types", response_model=ProjectTextTypeSchema, status_code=201, tags=["texts"])
 def create_project_text_type(
     body: ProjectTextTypeCreate,
-    current_user: User = Depends(require_roles(UserRole.editor, UserRole.admin)),
+    current_user: User = Depends(require_permission("projecttext.edit")),
     db: Session = Depends(get_db),
 ):
     """Create a new project text type. Requires editor or admin role."""
@@ -100,7 +99,7 @@ def list_project_texts(project_id: int, db: Session = Depends(get_db)):
 )
 def get_texts_changelog(
     project_id: int,
-    current_user: User = Depends(require_roles(UserRole.viewer, UserRole.editor, UserRole.admin)),
+    current_user: User = Depends(require_auth()),
     db: Session = Depends(get_db),
 ):
     """Return the text change history for a project. Requires authentication."""
@@ -119,7 +118,7 @@ def get_texts_changelog(
 def create_project_text(
     project_id: int,
     body: ProjectTextCreate,
-    current_user: User = Depends(require_roles(UserRole.editor, UserRole.admin)),
+    current_user: User = Depends(require_permission("projecttext.edit")),
     db: Session = Depends(get_db),
 ):
     """Create a new text and link it to a project. Requires editor or admin role."""
@@ -137,7 +136,7 @@ def create_project_text(
 def update_text(
     text_id: int,
     body: ProjectTextUpdate,
-    current_user: User = Depends(require_roles(UserRole.editor, UserRole.admin)),
+    current_user: User = Depends(require_permission("projecttext.edit")),
     db: Session = Depends(get_db),
 ):
     """Update an existing project text. Requires editor or admin role."""
@@ -156,7 +155,7 @@ def update_text(
 @router.delete("/projects/texts/{text_id}", status_code=204, tags=["texts"])
 def delete_text(
     text_id: int,
-    current_user: User = Depends(require_roles(UserRole.editor, UserRole.admin)),
+    current_user: User = Depends(require_permission("projecttext.edit")),
     db: Session = Depends(get_db),
 ):
     """Delete a project text. Requires editor or admin role."""
@@ -185,7 +184,7 @@ def delete_text(
 async def upload_attachment(
     text_id: int,
     file: UploadFile = File(...),
-    current_user: User = Depends(require_roles(UserRole.editor, UserRole.admin)),
+    current_user: User = Depends(require_permission("projecttext.edit")),
     db: Session = Depends(get_db),
 ):
     """Upload a file attachment to a project text. Requires editor or admin role.
@@ -268,7 +267,7 @@ def list_attachments(
 def remove_attachment(
     text_id: int,
     attachment_id: int,
-    current_user: User = Depends(require_roles(UserRole.editor, UserRole.admin)),
+    current_user: User = Depends(require_permission("projecttext.edit")),
     db: Session = Depends(get_db),
 ):
     """Delete an attachment. Requires editor or admin role."""
