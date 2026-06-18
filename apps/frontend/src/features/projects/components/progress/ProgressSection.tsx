@@ -22,12 +22,15 @@ import {
 import ForecastPanel from "./ForecastPanel";
 import LifecycleOverlay from "./LifecycleOverlay";
 import ParallelLanes from "./ParallelLanes";
-import PhaseStepper from "./PhaseStepper";
+import PhaseStepper, { type StepperChild } from "./PhaseStepper";
 import SourceBreakdown from "./SourceBreakdown";
+import SubprojectsTable from "./SubprojectsTable";
 import {
     LIFECYCLE_LABEL,
     MAIN_PHASES,
     MAIN_PHASE_LABEL,
+    UNKNOWN_LABEL,
+    groupChildrenByPhase,
     type LifecycleStatus,
     type MainPhase,
     type ParallelState,
@@ -71,6 +74,20 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
     const isDimmed = lifecycle !== "AKTIV";
     const effectivePhase = progress.effective_phase as MainPhase;
 
+    const hasSpan = Boolean(progress.span_min_phase && progress.span_max_phase);
+    // Leaf project with no phase information → render as "Unbekannt".
+    const isUnknownLeaf = !progress.is_superior && !progress.is_known;
+
+    // Subprojects grouped by phase, for the stepper hover tooltips.
+    const { byPhase: childrenByPhase } = groupChildrenByPhase(progress.children);
+    const stepperChildren: Partial<Record<MainPhase, StepperChild[]>> = {};
+    (Object.keys(childrenByPhase) as MainPhase[]).forEach((phase) => {
+        stepperChildren[phase] = (childrenByPhase[phase] ?? []).map((c) => ({
+            project_id: c.project_id,
+            name: c.name,
+        }));
+    });
+
     return (
         <ChronicleCard>
             <Stack gap="lg">
@@ -80,13 +97,21 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
                             Planungsstand
                         </ChronicleHeadline>
                         <Group gap="sm">
-                            {progress.is_superior &&
-                            progress.span_min_phase &&
-                            progress.span_max_phase ? (
+                            {progress.is_superior ? (
+                                hasSpan ? (
+                                    <Text size="sm" c="dimmed">
+                                        Spanne der Unterprojekte:{" "}
+                                        {MAIN_PHASE_LABEL[progress.span_min_phase as MainPhase]} –{" "}
+                                        {MAIN_PHASE_LABEL[progress.span_max_phase as MainPhase]}
+                                    </Text>
+                                ) : (
+                                    <Text size="sm" c="dimmed">
+                                        Status der Unterprojekte unbekannt
+                                    </Text>
+                                )
+                            ) : isUnknownLeaf ? (
                                 <Text size="sm" c="dimmed">
-                                    Spanne der Unterprojekte:{" "}
-                                    {MAIN_PHASE_LABEL[progress.span_min_phase as MainPhase]} –{" "}
-                                    {MAIN_PHASE_LABEL[progress.span_max_phase as MainPhase]}
+                                    Aktuelle Phase: {UNKNOWN_LABEL} (keine Datengrundlage)
                                 </Text>
                             ) : (
                                 <Text size="sm" c="dimmed">
@@ -126,7 +151,13 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
                     spanMin={progress.is_superior ? (progress.span_min_phase as MainPhase | null) : null}
                     spanMax={progress.is_superior ? (progress.span_max_phase as MainPhase | null) : null}
                     dimmed={isDimmed}
+                    unknown={isUnknownLeaf}
+                    childrenByPhase={progress.is_superior ? stepperChildren : undefined}
                 />
+
+                {progress.is_superior && progress.children.length > 0 && (
+                    <SubprojectsTable children={progress.children} />
+                )}
 
                 <ParallelLanes
                     projectId={projectId}
@@ -226,8 +257,6 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
                     projectId={projectId}
                     contributions={progress.contributions}
                     observations={progress.observations}
-                    children={progress.children}
-                    isSuperior={progress.is_superior}
                     canEdit={canEdit}
                 />
             </Stack>

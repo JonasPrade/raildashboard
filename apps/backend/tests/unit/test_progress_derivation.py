@@ -58,6 +58,37 @@ def test_no_observations_means_not_started():
     assert result.computed_confidence == 0.0
 
 
+def test_no_information_is_not_known():
+    # No credible MAIN observation and no override → "Unbekannt", not started.
+    result = derive_headline([], has_pf=False, parl_relevant=False, today=TODAY)
+    assert result.is_known is False
+
+
+def test_credible_observation_is_known():
+    result = derive_headline(
+        [_main("VORPLANUNG", oid=1)], has_pf=False, parl_relevant=False, today=TODAY
+    )
+    assert result.is_known is True
+
+
+def test_override_alone_is_known():
+    result = derive_headline(
+        [],
+        has_pf=False,
+        parl_relevant=False,
+        manual_phase_override=MainPhase.NICHT_GESTARTET,
+        today=TODAY,
+    )
+    # Explicitly asserting NICHT_GESTARTET is real information, unlike the fallback.
+    assert result.is_known is True
+
+
+def test_only_uncredible_observation_is_not_known():
+    weak = _main("BAU", source=SourceType.MEDIEN, conf=0.02, oid=1)
+    result = derive_headline([weak], has_pf=False, parl_relevant=False, today=TODAY)
+    assert result.is_known is False
+
+
 def test_low_confidence_observation_is_ignored():
     # Media with an explicit tiny confidence stays below the threshold.
     weak = _main("IN_BETRIEB", source=SourceType.MEDIEN, conf=0.05, oid=1)

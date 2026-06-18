@@ -411,13 +411,16 @@ def get_progress_view(db: Session, project_id: int, today: date | None = None) -
         for child in children:
             child_progress = get_or_create_progress(db, child.id)
             child_result = _ensure_fresh(db, child, child_progress, today)
-            child_phases.append(child_result.effective_phase)
+            # Only children with actual phase info contribute to the span.
+            if child_result.is_known:
+                child_phases.append(child_result.effective_phase)
             child_payloads.append(
                 {
                     "project_id": child.id,
                     "name": child.name,
                     "effective_phase": child_result.effective_phase.value,
                     "lifecycle_status": child_result.lifecycle.value,
+                    "is_known": child_result.is_known,
                 }
             )
         db.commit()
@@ -430,6 +433,7 @@ def get_progress_view(db: Session, project_id: int, today: date | None = None) -
         "effective_phase": result.effective_phase.value,
         "computed_phase": result.computed_phase.value,
         "computed_confidence": result.computed_confidence,
+        "is_known": result.is_known,
         "is_overridden": result.is_overridden,
         "manual_override_note": progress.manual_override_note,
         "computed_at": progress.computed_at,

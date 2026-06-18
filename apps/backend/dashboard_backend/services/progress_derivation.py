@@ -99,6 +99,10 @@ class DerivationResult:
     lifecycle: LifecycleStatus
     pf_state: ParallelState | None
     parl_state: ParallelState | None
+    # False when nothing tells us the main phase (no credible MAIN observation
+    # and no manual override). The frontend renders this as "Unbekannt" rather
+    # than the NICHT_GESTARTET fallback — "we don't know" ≠ "not started".
+    is_known: bool = False
     contributions: list[SourceContribution] = field(default_factory=list)
 
 
@@ -251,6 +255,7 @@ def derive_headline(
         )
 
     effective_phase = manual_phase_override or computed_phase
+    is_known = bool(credible_main) or manual_phase_override is not None
 
     return DerivationResult(
         computed_phase=computed_phase,
@@ -260,6 +265,7 @@ def derive_headline(
         lifecycle=lifecycle,
         pf_state=pf_state,
         parl_state=parl_state,
+        is_known=is_known,
         contributions=contributions,
     )
 

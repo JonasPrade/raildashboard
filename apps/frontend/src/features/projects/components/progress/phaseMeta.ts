@@ -27,6 +27,9 @@ export const MAIN_PHASES: MainPhase[] = [
     "IN_BETRIEB",
 ];
 
+// Shown when a project carries no phase information at all (is_known === false).
+export const UNKNOWN_LABEL = "Unbekannt";
+
 export const MAIN_PHASE_LABEL: Record<MainPhase, string> = {
     NICHT_GESTARTET: "Nicht gestartet",
     VORPLANUNG: "Vorplanung",
@@ -89,4 +92,22 @@ export function mainPhaseIndex(phase: MainPhase): number {
 export function stateLabel(track: ObservationTrack, state: string): string {
     if (track === "MAIN") return MAIN_PHASE_LABEL[state as MainPhase] ?? state;
     return PARALLEL_STATE_LABEL[state as ParallelState] ?? state;
+}
+
+/** Bucket subprojects by their effective phase; ``is_known === false`` →
+ * separate "unknown" bucket (not counted as NICHT_GESTARTET). */
+export function groupChildrenByPhase<T extends { effective_phase: string; is_known?: boolean }>(
+    children: T[],
+): { byPhase: Partial<Record<MainPhase, T[]>>; unknown: T[] } {
+    const byPhase: Partial<Record<MainPhase, T[]>> = {};
+    const unknown: T[] = [];
+    for (const c of children) {
+        if (c.is_known === false) {
+            unknown.push(c);
+            continue;
+        }
+        const phase = c.effective_phase as MainPhase;
+        (byPhase[phase] ??= []).push(c);
+    }
+    return { byPhase, unknown };
 }

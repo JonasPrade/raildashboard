@@ -2241,6 +2241,11 @@ export interface components {
              * @enum {string}
              */
             lifecycle_status: "AKTIV" | "PAUSIERT" | "ABGEBROCHEN";
+            /**
+             * Is Known
+             * @default true
+             */
+            is_known: boolean;
         };
         /** ProgressForecastSchema */
         ProgressForecastSchema: {
@@ -2561,6 +2566,11 @@ export interface components {
             computed_phase: "NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB";
             /** Computed Confidence */
             computed_confidence: number;
+            /**
+             * Is Known
+             * @default true
+             */
+            is_known: boolean;
             /** Is Overridden */
             is_overridden: boolean;
             /** Manual Override Note */

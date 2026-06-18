@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
     ActionIcon,
-    Anchor,
     Badge,
     Button,
     Collapse,
@@ -14,11 +13,9 @@ import {
     Text,
     TextInput,
 } from "@mantine/core";
-import { Link } from "react-router-dom";
 import { IconChevronDown, IconChevronRight, IconPlus, IconTrash } from "@tabler/icons-react";
 
 import {
-    type ProgressChild,
     type ProgressObservation,
     type SourceContribution,
     useAddProgressObservation,
@@ -27,12 +24,10 @@ import {
 import {
     MAIN_PHASES,
     MAIN_PHASE_LABEL,
-    MAIN_PHASE_SHORT,
     PARALLEL_STATES,
     PARALLEL_STATE_LABEL,
     SOURCE_LABEL,
     TRACK_LABEL,
-    type MainPhase,
     type ObservationTrack,
     type SourceType,
     stateLabel,
@@ -220,8 +215,6 @@ type Props = {
     projectId: number;
     contributions: SourceContribution[];
     observations: ProgressObservation[];
-    children?: ProgressChild[];
-    isSuperior: boolean;
     canEdit: boolean;
 };
 
@@ -229,8 +222,6 @@ export default function SourceBreakdown({
     projectId,
     contributions,
     observations,
-    children = [],
-    isSuperior,
     canEdit,
 }: Props) {
     const [open, setOpen] = useState(false);
@@ -250,31 +241,6 @@ export default function SourceBreakdown({
 
             <Collapse in={open}>
                 <Stack gap="md">
-                    {isSuperior && children.length > 0 && (
-                        <Stack gap={4}>
-                            <Text size="sm" fw={600}>
-                                Unterprojekte
-                            </Text>
-                            {children.map((child) => (
-                                <Group key={child.project_id} gap="sm">
-                                    <Anchor component={Link} to={`/projects/${child.project_id}`} size="sm">
-                                        {child.name}
-                                    </Anchor>
-                                    <Badge size="sm" variant="light">
-                                        {MAIN_PHASE_SHORT[child.effective_phase as MainPhase] ??
-                                            child.effective_phase}
-                                    </Badge>
-                                    {child.lifecycle_status !== "AKTIV" && (
-                                        <Badge size="xs" color="orange">
-                                            {child.lifecycle_status}
-                                        </Badge>
-                                    )}
-                                </Group>
-                            ))}
-                            <Divider my="xs" />
-                        </Stack>
-                    )}
-
                     {contributions.length > 0 ? (
                         <Table striped withTableBorder>
                             <Table.Thead>

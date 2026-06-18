@@ -887,6 +887,7 @@ const ProgressChildSchema = z
       "IN_BETRIEB",
     ]),
     lifecycle_status: z.enum(["AKTIV", "PAUSIERT", "ABGEBROCHEN"]),
+    is_known: z.boolean().optional().default(true),
   })
   .passthrough();
 const ForecastStepSchema = z
@@ -935,6 +936,7 @@ const ProjectProgressSchema = z
       "IN_BETRIEB",
     ]),
     computed_confidence: z.number(),
+    is_known: z.boolean().optional().default(true),
     is_overridden: z.boolean(),
     manual_override_note: z.union([z.string(), z.null()]).optional(),
     computed_at: z.union([z.string(), z.null()]).optional(),

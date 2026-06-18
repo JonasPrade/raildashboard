@@ -103,6 +103,7 @@ class ProgressChildSchema(BaseModel):
     name: str
     effective_phase: MainPhaseLiteral
     lifecycle_status: LifecycleStatusLiteral
+    is_known: bool = True  # False → no phase info ("Unbekannt")
 
 
 # --- PATCH input -------------------------------------------------------------
@@ -149,6 +150,7 @@ class ProjectProgressSchema(BaseModel):
     effective_phase: MainPhaseLiteral
     computed_phase: MainPhaseLiteral
     computed_confidence: float
+    is_known: bool = True  # False → no phase info ("Unbekannt"), not NICHT_GESTARTET
     is_overridden: bool
     manual_override_note: Optional[str] = None
     computed_at: Optional[datetime] = None
