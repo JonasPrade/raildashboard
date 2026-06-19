@@ -22,6 +22,10 @@ type Props = {
     dimmed?: boolean;
     /** Leaf project with no phase information → nothing active, "Unbekannt". */
     unknown?: boolean;
+    /** Suppress the green "completed" marking for phases before the span — used
+     * for superiors with unknown children, where we cannot claim every child
+     * has passed the earlier phases. */
+    noCompleted?: boolean;
     /** For superior projects: subprojects grouped by phase, shown on hover. */
     childrenByPhase?: Partial<Record<MainPhase, StepperChild[]>>;
 };
@@ -36,6 +40,7 @@ export default function PhaseStepper({
     spanMax,
     dimmed,
     unknown,
+    noCompleted,
     childrenByPhase,
 }: Props) {
     const isSpan = spanMin != null && spanMax != null;
@@ -53,7 +58,7 @@ export default function PhaseStepper({
             {MAIN_PHASES.map((phase, idx) => {
                 const inSpan = !unknown && idx >= minIdx && idx <= maxIdx;
                 const isCurrent = !unknown && (isSpan ? idx === minIdx || idx === maxIdx : idx === currentIdx);
-                const isDone = !unknown && idx < minIdx;
+                const isDone = !unknown && !noCompleted && idx < minIdx;
 
                 let circleColor = IDLE;
                 if (inSpan || isCurrent) circleColor = ACTIVE;

@@ -79,7 +79,10 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
     const isUnknownLeaf = !progress.is_superior && !progress.is_known;
 
     // Subprojects grouped by phase, for the stepper hover tooltips.
-    const { byPhase: childrenByPhase } = groupChildrenByPhase(progress.children);
+    const { byPhase: childrenByPhase, unknown: unknownChildren } = groupChildrenByPhase(
+        progress.children,
+    );
+    const hasUnknownChildren = unknownChildren.length > 0;
     const stepperChildren: Partial<Record<MainPhase, StepperChild[]>> = {};
     (Object.keys(childrenByPhase) as MainPhase[]).forEach((phase) => {
         stepperChildren[phase] = (childrenByPhase[phase] ?? []).map((c) => ({
@@ -152,6 +155,7 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
                     spanMax={progress.is_superior ? (progress.span_max_phase as MainPhase | null) : null}
                     dimmed={isDimmed}
                     unknown={isUnknownLeaf}
+                    noCompleted={progress.is_superior && hasUnknownChildren}
                     childrenByPhase={progress.is_superior ? stepperChildren : undefined}
                 />
 
