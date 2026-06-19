@@ -13,5 +13,9 @@ class Finve(Base):
     cost_estimate_original = Column(Integer)
     temporary_finve_number = Column(Boolean, default=False)  # if true the finve number is not known yet
     is_sammel_finve = Column(Boolean, default=False, nullable=False, server_default="false")
+    # Manual planning-phase mapping for ProjectProgress derivation (a MainPhase
+    # value). Overrides the auto-detection from the Sammel-FinVe name; used to
+    # resolve Sammel-FinVes whose Leistungsphase can't be parsed (e.g. EKrG).
+    progress_phase = Column(String(40), nullable=True)
 
 

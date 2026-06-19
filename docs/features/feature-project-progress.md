@@ -220,7 +220,11 @@ Flags/Lebenszyklus **inline** in `ProgressSection` bearbeiten (nicht in das gro�
 
 - **Materialisierung** (`services/progress_materialization.py`, rein/unit-getestet):
   VIB-Status → stärkste MAIN-Untergrenze; PFA → PF-Spur (`datum_pfb` → ABGESCHLOSSEN,
-  sonst LAEUFT); FinVe → MAIN ≥ Bau, Sammel-FinVe schwächer (`confidence=0.35`).
+  sonst LAEUFT); reguläre FinVe → MAIN = Bau. **Sammel-FinVe**: Phase aus der Leistungsphase
+  im Namen (`parse_sammel_finve_phase`: Lph 1/2 → VORPLANUNG, Lph 3/4 → GENEHMIGUNGSPLANUNG;
+  **nicht** auf EKrG-Nummern wie „3/2010" triggern), sonst manuelle Zuordnung über
+  `finve.progress_phase` (Admin-Seite „Sammel-FinVe Phasen"); ohne erkennbare/zugeordnete
+  Phase **keine** Beobachtung. Alle Sammel-FinVe schwächer (`confidence=0.35`).
   PFA-Evidenz schaltet `has_planfeststellung` automatisch ein. Beobachtungsdatum = VIB-
   **Report-Jahr** (das Freitext-`report_date` ist unzuverlässig).
 - **Recency-Floor** auf `0.3` angehoben, damit strukturierte Quellen (VIB/FinVe) ihre

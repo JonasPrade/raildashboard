@@ -89,3 +89,73 @@ def list_finves(db: Session) -> list[FinveListItemSchema]:
             )
         )
     return result
+
+
+def list_sammel_finves_progress(db: Session):
+    """List all Sammel-FinVes with their auto-detected vs. manual planning phase
+    and the projects they are linked to, for the admin assignment page."""
+    from dashboard_backend.schemas.projects.progress_schema import (
+        SammelFinveProgressSchema,
+        SammelFinveProjectRef,
+    )
+    from dashboard_backend.services.progress_materialization import (
+        parse_sammel_finve_phase,
+    )
+
+    finves = (
+        db.query(Finve)
+        .filter(Finve.is_sammel_finve.is_(True))
+        .order_by(Finve.name)
+        .all()
+    )
+    if not finves:
+        return []
+
+    finve_ids = [f.id for f in finves]
+    raw = (
+        db.query(FinveToProject.finve_id, Project.id, Project.name)
+        .join(Project, Project.id == FinveToProject.project_id)
+        .filter(FinveToProject.finve_id.in_(finve_ids))
+        .all()
+    )
+    seen: set[tuple[int, int]] = set()
+    projects_by_finve: dict[int, list[SammelFinveProjectRef]] = {}
+    for finve_id, project_id, project_name in raw:
+        key = (finve_id, project_id)
+        if key in seen:
+            continue
+        seen.add(key)
+        projects_by_finve.setdefault(finve_id, []).append(
+            SammelFinveProjectRef(id=project_id, name=project_name or "")
+        )
+
+    result = []
+    for f in finves:
+        auto = parse_sammel_finve_phase(f.name)
+        auto_value = auto.value if auto is not None else None
+        manual = f.progress_phase
+        effective = manual or auto_value
+        result.append(
+            SammelFinveProgressSchema(
+                finve_id=f.id,
+                name=f.name,
+                starting_year=f.starting_year,
+                progress_phase=manual,
+                auto_phase=auto_value,
+                effective_phase=effective,
+                needs_assignment=effective is None,
+                projects=projects_by_finve.get(f.id, []),
+            )
+        )
+    return result
+
+
+def set_finve_progress_phase(db: Session, finve_id: int, phase: str | None):
+    """Set or clear the manual planning-phase override on a FinVe."""
+    finve = db.query(Finve).filter(Finve.id == finve_id).first()
+    if finve is None:
+        return None
+    finve.progress_phase = phase
+    db.commit()
+    db.refresh(finve)
+    return finve

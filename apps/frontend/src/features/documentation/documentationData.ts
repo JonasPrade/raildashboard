@@ -78,7 +78,8 @@ export const featureHighlights: FeatureHighlight[] = [
             "Projekte ohne Datengrundlage werden klar als „Unbekannt“ markiert (nicht als „Nicht gestartet“)",
             "Dokumente lassen sich hinter Planfeststellung und parl. Befassung verlinken",
             "API: GET (public) / PATCH / POST+DELETE observations / tracks/{track}/documents / recompute unter /api/v1/projects/{id}/progress",
-            "VIB/FinVe-Beobachtungen werden materialisiert (is_derived): VIB-Status → Hauptspur, PFA → Planfeststellung, FinVe → Bau (Sammel-FinVe schwächer); nicht manuell löschbar",
+            "VIB/FinVe-Beobachtungen werden materialisiert (is_derived): VIB-Status → Hauptspur, PFA → Planfeststellung; reguläre FinVe → Bau; nicht manuell löschbar",
+            "Sammel-FinVe: Phase aus der Leistungsphase im Namen (Lph 1/2 → Vorplanung, Lph 3/4 → Genehmigungsplanung); ohne erkennbare Lph (z. B. EKrG) manuell zuordenbar unter Admin → „Sammel-FinVe Phasen“",
             "Lazy-Resync der abgeleiteten Beobachtungen bei stalem Cache (24h); „Neu berechnen\" erzwingt den Sync",
             "Prognose-Panel: Restdauer der aktuellen Phase + nächste Schritte aus BVWP-Dauern, VIB-PFA-Terminen und Fulda-Runde-Beobachtungen",
             "Manuelle Erfassung mit Quellentyp (MANUELL/FULDA_RUNDE/BAUPORTAL/MEDIEN) und optionalem Vertrauens-Override pro Beobachtung"

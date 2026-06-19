@@ -957,6 +957,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finves/sammel-progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Sammel Finve Progress
+         * @description Sammel-FinVes with auto-detected vs. manual planning-phase mapping.
+         */
+        get: operations["get_sammel_finve_progress_api_v1_finves_sammel_progress_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finves/{finve_id}/progress-phase": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Patch Finve Progress Phase
+         * @description Set/clear a FinVe's manual planning-phase override; returns the refreshed list.
+         */
+        patch: operations["patch_finve_progress_phase_api_v1_finves__finve_id__progress_phase_patch"];
+        trace?: never;
+    };
     "/api/v1/settings/": {
         parameters: {
             query?: never;
@@ -2049,6 +2089,11 @@ export interface components {
              * @default []
              */
             budgets: components["schemas"]["BudgetSummarySchema"][];
+        };
+        /** FinveProgressPhaseUpdate */
+        FinveProgressPhaseUpdate: {
+            /** Progress Phase */
+            progress_phase?: ("NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB") | null;
         };
         /** FinveWithBudgetsSchema */
         FinveWithBudgetsSchema: {
@@ -3292,6 +3337,35 @@ export interface components {
         RouteResponse: {
             /** Sectionofline Ids */
             sectionofline_ids: number[];
+        };
+        /** SammelFinveProgressSchema */
+        SammelFinveProgressSchema: {
+            /** Finve Id */
+            finve_id: number;
+            /** Name */
+            name?: string | null;
+            /** Starting Year */
+            starting_year?: number | null;
+            /** Progress Phase */
+            progress_phase?: ("NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB") | null;
+            /** Auto Phase */
+            auto_phase?: ("NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB") | null;
+            /** Effective Phase */
+            effective_phase?: ("NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB") | null;
+            /** Needs Assignment */
+            needs_assignment: boolean;
+            /**
+             * Projects
+             * @default []
+             */
+            projects: components["schemas"]["SammelFinveProjectRef"][];
+        };
+        /** SammelFinveProjectRef */
+        SammelFinveProjectRef: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
         };
         /** SessionCredentials */
         SessionCredentials: {
@@ -6088,6 +6162,63 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FinveListItemSchema"][];
+                };
+            };
+        };
+    };
+    get_sammel_finve_progress_api_v1_finves_sammel_progress_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SammelFinveProgressSchema"][];
+                };
+            };
+        };
+    };
+    patch_finve_progress_phase_api_v1_finves__finve_id__progress_phase_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                finve_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinveProgressPhaseUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SammelFinveProgressSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

@@ -235,13 +235,15 @@ def sync_derived_observations(db: Session, project_id: int) -> int:
         if finve.id in seen_finve:
             continue  # a Sammel-FinVe can have several year-scoped links
         seen_finve.add(finve.id)
-        specs.append(
-            finve_to_spec(
-                finve_id=finve.id,
-                is_sammel=bool(finve.is_sammel_finve),
-                starting_year=finve.starting_year,
-            )
+        finve_spec = finve_to_spec(
+            finve_id=finve.id,
+            is_sammel=bool(finve.is_sammel_finve),
+            starting_year=finve.starting_year,
+            name=finve.name,
+            manual_phase=_enum_or_none(MainPhase, finve.progress_phase),
         )
+        if finve_spec is not None:  # ambiguous Sammel-FinVe → skipped
+            specs.append(finve_spec)
 
     for spec in specs:
         db.add(

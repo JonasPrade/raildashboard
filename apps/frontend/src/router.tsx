@@ -19,6 +19,7 @@ const VibImportPage = lazy(() => import("./features/vib-import/VibImportPage"));
 const VibReviewPage = lazy(() => import("./features/vib-import/VibReviewPage"));
 const VibStructurePreviewPage = lazy(() => import("./features/vib-import/VibStructurePreviewPage"));
 const UnassignedPage = lazy(() => import("./features/admin/UnassignedPage"));
+const FinveProgressAdminPage = lazy(() => import("./features/admin/FinveProgressAdminPage"));
 const NewProjectPage = lazy(() => import("./features/admin/new-project/NewProjectPage"));
 const DraftsPage = lazy(() => import("./features/admin/drafts/DraftsPage"));
 
@@ -113,6 +114,14 @@ export const router = createBrowserRouter([
                 element: (
                     <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
                         <FinveOverviewPage />
+                    </Suspense>
+                ),
+            },
+            {
+                path: "admin/finve-progress",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <FinveProgressAdminPage />
                     </Suspense>
                 ),
             },

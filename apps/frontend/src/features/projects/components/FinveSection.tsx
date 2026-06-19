@@ -10,7 +10,9 @@ import {
     Tabs,
     Text,
     Title,
+    Anchor,
 } from "@mantine/core";
+import { Link } from "react-router-dom";
 import { ChronicleCard, ChronicleDataChip } from "../../../components/chronicle";
 import { DonutChart, LineChart } from "@mantine/charts";
 import {
@@ -180,14 +182,21 @@ function FinveCard({ finve }: { finve: FinveWithBudgets }) {
 
     const firstTab = hasMultipleYears ? "costs" : hasTitelEntries ? "budget" : "table";
 
-    // SammelFinVe: show compact tag only
+    // SammelFinVe: compact tag, linked to the FinVe overview (deep-linked by id).
     if (finve.is_sammel_finve) {
         return (
-            <Group gap="xs" align="center">
-                <ChronicleDataChip>Sammel-FinVe</ChronicleDataChip>
-                <ChronicleDataChip>FinVe {finve.id}</ChronicleDataChip>
-                <Text size="sm" c="dimmed">{finve.name ?? "–"}</Text>
-            </Group>
+            <Anchor
+                component={Link}
+                to={`/finves?q=${finve.id}`}
+                underline="never"
+                style={{ color: "inherit" }}
+            >
+                <Group gap="xs" align="center">
+                    <ChronicleDataChip>Sammel-FinVe</ChronicleDataChip>
+                    <ChronicleDataChip>FinVe {finve.id}</ChronicleDataChip>
+                    <Text size="sm" c="dimmed">{finve.name ?? "–"}</Text>
+                </Group>
+            </Anchor>
         );
     }
 

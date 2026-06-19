@@ -1348,6 +1348,69 @@ const FinveListItemSchema = z
     budgets: z.array(BudgetSummarySchema).optional().default([]),
   })
   .passthrough();
+const SammelFinveProjectRef = z
+  .object({ id: z.number().int(), name: z.string() })
+  .passthrough();
+const SammelFinveProgressSchema = z
+  .object({
+    finve_id: z.number().int(),
+    name: z.union([z.string(), z.null()]).optional(),
+    starting_year: z.union([z.number(), z.null()]).optional(),
+    progress_phase: z
+      .union([
+        z.enum([
+          "NICHT_GESTARTET",
+          "VORPLANUNG",
+          "GENEHMIGUNGSPLANUNG",
+          "BAU",
+          "IN_BETRIEB",
+        ]),
+        z.null(),
+      ])
+      .optional(),
+    auto_phase: z
+      .union([
+        z.enum([
+          "NICHT_GESTARTET",
+          "VORPLANUNG",
+          "GENEHMIGUNGSPLANUNG",
+          "BAU",
+          "IN_BETRIEB",
+        ]),
+        z.null(),
+      ])
+      .optional(),
+    effective_phase: z
+      .union([
+        z.enum([
+          "NICHT_GESTARTET",
+          "VORPLANUNG",
+          "GENEHMIGUNGSPLANUNG",
+          "BAU",
+          "IN_BETRIEB",
+        ]),
+        z.null(),
+      ])
+      .optional(),
+    needs_assignment: z.boolean(),
+    projects: z.array(SammelFinveProjectRef).optional().default([]),
+  })
+  .passthrough();
+const FinveProgressPhaseUpdate = z
+  .object({
+    progress_phase: z.union([
+      z.enum([
+        "NICHT_GESTARTET",
+        "VORPLANUNG",
+        "GENEHMIGUNGSPLANUNG",
+        "BAU",
+        "IN_BETRIEB",
+      ]),
+      z.null(),
+    ]),
+  })
+  .partial()
+  .passthrough();
 const AppSettingsSchema = z
   .object({
     map_group_mode: z.enum(["preconfigured", "all"]).default("preconfigured"),
@@ -1663,6 +1726,9 @@ export const schemas = {
   UnmatchedBudgetRowResolveRequest,
   ProjectRefSchema,
   FinveListItemSchema,
+  SammelFinveProjectRef,
+  SammelFinveProgressSchema,
+  FinveProgressPhaseUpdate,
   AppSettingsSchema,
   AppSettingsUpdate,
   VibAiAvailableResponse,
@@ -1815,6 +1881,42 @@ const endpoints = makeApi([
     description: `Return all Finanzierungsvereinbarungen with linked project info.`,
     requestFormat: "json",
     response: z.array(FinveListItemSchema),
+  },
+  {
+    method: "patch",
+    path: "/api/v1/finves/:finve_id/progress-phase",
+    alias:
+      "patch_finve_progress_phase_api_v1_finves__finve_id__progress_phase_patch",
+    description: `Set/clear a FinVe&#x27;s manual planning-phase override; returns the refreshed list.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: FinveProgressPhaseUpdate,
+      },
+      {
+        name: "finve_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: z.array(SammelFinveProgressSchema),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/finves/sammel-progress",
+    alias: "get_sammel_finve_progress_api_v1_finves_sammel_progress_get",
+    description: `Sammel-FinVes with auto-detected vs. manual planning-phase mapping.`,
+    requestFormat: "json",
+    response: z.array(SammelFinveProgressSchema),
   },
   {
     method: "get",

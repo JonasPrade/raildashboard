@@ -320,6 +320,32 @@ export function useUnlinkTrackDocument(projectId: number) {
     });
 }
 
+export type SammelFinveProgress = components["schemas"]["SammelFinveProgressSchema"];
+
+export function useSammelFinveProgress() {
+    return useQuery({
+        queryKey: ["sammel-finve-progress"],
+        queryFn: () => api<SammelFinveProgress[]>("/api/v1/finves/sammel-progress"),
+    });
+}
+
+export function useSetFinveProgressPhase() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ finveId, phase }: { finveId: number; phase: string | null }) =>
+            api<SammelFinveProgress[]>(`/api/v1/finves/${finveId}/progress-phase`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ progress_phase: phase }),
+            }),
+        onSuccess: (data) => {
+            queryClient.setQueryData(["sammel-finve-progress"], data);
+            // A changed mapping affects derived progress on linked projects.
+            queryClient.invalidateQueries({ queryKey: ["project-progress"] });
+        },
+    });
+}
+
 export function useRecomputeProgress(projectId: number) {
     const queryClient = useQueryClient();
     return useMutation({

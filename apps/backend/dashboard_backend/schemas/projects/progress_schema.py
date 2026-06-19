@@ -140,6 +140,33 @@ class ProgressForecastSchema(BaseModel):
     has_data: bool = False
 
 
+# --- Sammel-FinVe phase assignment (admin) -----------------------------------
+
+
+class SammelFinveProjectRef(BaseModel):
+    id: int
+    name: str
+
+
+class SammelFinveProgressSchema(BaseModel):
+    finve_id: int
+    name: Optional[str] = None
+    starting_year: Optional[int] = None
+    # Manual override (None = use auto-detection).
+    progress_phase: Optional[MainPhaseLiteral] = None
+    # Phase auto-detected from the Leistungsphase in the name (None = ambiguous).
+    auto_phase: Optional[MainPhaseLiteral] = None
+    # Effective phase used for derivation (manual ?? auto); None → needs assignment.
+    effective_phase: Optional[MainPhaseLiteral] = None
+    needs_assignment: bool
+    projects: list[SammelFinveProjectRef] = []
+
+
+class FinveProgressPhaseUpdate(BaseModel):
+    # None clears the manual override (falls back to auto-detection).
+    progress_phase: Optional[MainPhaseLiteral] = None
+
+
 # --- GET response ------------------------------------------------------------
 
 
