@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
     Alert,
     Box,
@@ -344,7 +344,8 @@ function FinveCard({ finve }: { finve: FinveListItem }) {
 // ---------------------------------------------------------------------------
 
 export default function FinveOverviewPage() {
-    const [search, setSearch] = useState("");
+    const [searchParams] = useSearchParams();
+    const [search, setSearch] = useState(searchParams.get("q") ?? "");
     const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
 
     const { data: finves, isLoading, isError } = useFinves();

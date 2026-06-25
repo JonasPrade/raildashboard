@@ -21,6 +21,13 @@ class VibPfaEntryProposed(BaseModel):
     datum_pfb: Optional[str] = None
     baubeginn: Optional[str] = None
     inbetriebnahme: Optional[str] = None
+    # Leaf subproject this section is assigned to (editor-confirmed). When set,
+    # the section's status is materialised on that subproject instead of being
+    # flattened onto the parent.
+    project_id: Optional[int] = None
+    # Read-only fuzzy suggestion (subproject of the viewing project) for the
+    # review UI; not persisted.
+    suggested_project_id: Optional[int] = None
 
 
 # ---------------------------------------------------------------------------
@@ -184,6 +191,9 @@ class VibPfaEntrySchema(BaseModel):
     datum_pfb: Optional[str] = None
     baubeginn: Optional[str] = None
     inbetriebnahme: Optional[str] = None
+    # Assigned leaf subproject + read-only fuzzy suggestion (see VibPfaEntryProposed).
+    project_id: Optional[int] = None
+    suggested_project_id: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)
 

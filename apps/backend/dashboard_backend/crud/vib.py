@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import Session, joinedload
 
+from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.vib.vib_draft_report import VibDraftReport
 from dashboard_backend.models.vib.vib_entry import VibEntry
 from dashboard_backend.models.vib.vib_entry_project import vib_entry_project
@@ -198,6 +199,7 @@ def create_vib_report_with_entries(
                 datum_pfb=pfa_data.datum_pfb,
                 baubeginn=pfa_data.baubeginn,
                 inbetriebnahme=pfa_data.inbetriebnahme,
+                project_id=pfa_data.project_id,
             ))
             pfa_entries_created += 1
 
@@ -213,8 +215,13 @@ def create_vib_report_with_entries(
 # ---------------------------------------------------------------------------
 
 def get_vib_entries_for_project(db: Session, project_id: int) -> list[VibEntry]:
-    """Return all VibEntry rows linked to a project, newest report year first."""
-    return (
+    """Return all VibEntry rows linked to a project, newest report year first.
+
+    Attaches a transient ``suggested_project_id`` to each not-yet-assigned PFA:
+    the candidates are the viewing project's leaf subprojects, so the review UI
+    can pre-fill the per-section subproject Select. Not persisted.
+    """
+    entries = (
         db.query(VibEntry)
         .join(vib_entry_project, vib_entry_project.c.vib_entry_id == VibEntry.id)
         .filter(vib_entry_project.c.project_id == project_id)
@@ -227,6 +234,27 @@ def get_vib_entries_for_project(db: Session, project_id: int) -> list[VibEntry]:
         )
         .all()
     )
+
+    # Lazy import: tasks/__init__ eagerly loads tasks.vib, which imports crud.vib
+    # — a top-level import here would create a cycle during module init.
+    from dashboard_backend.tasks.vib_matching import suggest_subproject_for_pfa
+
+    subprojects = (
+        db.query(Project).filter(Project.superior_project_id == project_id).all()
+    )
+    if subprojects:
+        for entry in entries:
+            for pfa in entry.pfa_entries:
+                if pfa.project_id is not None:
+                    continue
+                text = " ".join(
+                    t
+                    for t in (pfa.abschnitt_label, pfa.nr_pfa, pfa.oertlichkeit)
+                    if t
+                )
+                pfa.suggested_project_id = suggest_subproject_for_pfa(text, subprojects)
+
+    return entries
 
 
 # ---------------------------------------------------------------------------
@@ -289,6 +317,7 @@ def update_vib_entry(db: Session, entry_id: int, data: VibEntryUpdateSchema) -> 
                 datum_pfb=pfa_data.datum_pfb,
                 baubeginn=pfa_data.baubeginn,
                 inbetriebnahme=pfa_data.inbetriebnahme,
+                project_id=pfa_data.project_id,
             ))
 
     # Replace project links

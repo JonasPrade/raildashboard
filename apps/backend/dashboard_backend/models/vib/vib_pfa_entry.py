@@ -11,6 +11,13 @@ class VibPfaEntry(Base):
     vib_entry_id = Column(
         Integer, ForeignKey("vib_entry.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    # Leaf subproject this Planfeststellungsabschnitt maps to. Set by the editor
+    # (suggestion + confirmation) so the per-section status lands on the subproject
+    # rather than being flattened onto the parent. ON DELETE SET NULL: dropping the
+    # project must not delete the VIB record, only unlink it.
+    project_id = Column(
+        Integer, ForeignKey("project.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     abschnitt_label = Column(Text, nullable=True)
     nr_pfa = Column(String(50), nullable=True)
     oertlichkeit = Column(Text, nullable=True)

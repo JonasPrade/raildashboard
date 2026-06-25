@@ -55,6 +55,10 @@ _WHITESPACE = re.compile(r"\s+")
 _THRESHOLD = 0.50
 _MAX_SUGGESTIONS = 3
 
+# PFA section labels/localities are short and partial, so the threshold for
+# matching a PFA to a subproject is permissive — it is only a review-UI hint.
+_PFA_THRESHOLD = 0.35
+
 
 def _normalize(text: str) -> str:
     text = unicodedata.normalize("NFC", text)
@@ -125,3 +129,29 @@ def suggest_projects_for_vib_entry(
             break
 
     return result[:_MAX_SUGGESTIONS]
+
+
+def suggest_subproject_for_pfa(
+    pfa_text: str,
+    subprojects: list,  # list of Project ORM instances (.id, .name)
+) -> int | None:
+    """Best-matching subproject id for one PFA section, or None.
+
+    ``pfa_text`` is the combined section identifier (abschnitt_label / nr_pfa /
+    oertlichkeit). Returns the single best fuzzy match against the candidate
+    subproject names above ``_PFA_THRESHOLD``, or None when nothing is close
+    enough. Used to pre-fill the per-PFA subproject Select in the review UI; the
+    editor confirms or corrects it.
+    """
+    if not pfa_text or not pfa_text.strip():
+        return None
+    best_id: int | None = None
+    best_score = 0.0
+    for sub in subprojects:
+        if not sub.name:
+            continue
+        s = _score(pfa_text, sub.name)
+        if s > best_score:
+            best_score = s
+            best_id = sub.id
+    return best_id if best_score >= _PFA_THRESHOLD else None

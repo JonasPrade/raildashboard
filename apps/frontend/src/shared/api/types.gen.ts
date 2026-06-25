@@ -282,6 +282,130 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Progress
+         * @description Public: derived planning state for a project (lazy-recomputed).
+         */
+        get: operations["read_progress_api_v1_projects__project_id__progress_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Patch Progress
+         * @description Update flags, lifecycle and manual overrides.
+         */
+        patch: operations["patch_progress_api_v1_projects__project_id__progress_patch"];
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/progress/observations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Observation
+         * @description Add a manual observation (always ``is_derived=False``).
+         */
+        post: operations["add_observation_api_v1_projects__project_id__progress_observations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/progress/observations/{observation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove Observation
+         * @description Delete a manual observation. Derived observations are protected (409).
+         */
+        delete: operations["remove_observation_api_v1_projects__project_id__progress_observations__observation_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/progress/tracks/{track}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Link Document
+         * @description Link a document behind the PF / parliamentary track.
+         */
+        post: operations["link_document_api_v1_projects__project_id__progress_tracks__track__documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/progress/tracks/{track}/documents/{document_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Unlink Document
+         * @description Remove a document link from the PF / parliamentary track.
+         */
+        delete: operations["unlink_document_api_v1_projects__project_id__progress_tracks__track__documents__document_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/progress/recompute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Recompute
+         * @description Force a recomputation of the cached headline.
+         */
+        post: operations["recompute_api_v1_projects__project_id__progress_recompute_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/project_groups/": {
         parameters: {
             query?: never;
@@ -831,6 +955,46 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finves/sammel-progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Sammel Finve Progress
+         * @description Sammel-FinVes with auto-detected vs. manual planning-phase mapping.
+         */
+        get: operations["get_sammel_finve_progress_api_v1_finves_sammel_progress_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finves/{finve_id}/progress-phase": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Patch Finve Progress Phase
+         * @description Set/clear a FinVe's manual planning-phase override; returns the refreshed list.
+         */
+        patch: operations["patch_finve_progress_phase_api_v1_finves__finve_id__progress_phase_patch"];
         trace?: never;
     };
     "/api/v1/settings/": {
@@ -1884,6 +2048,19 @@ export interface components {
             /** Y */
             y: number;
         };
+        /** DocumentRefSchema */
+        DocumentRefSchema: {
+            /** Id */
+            id: number;
+            /** Title */
+            title: string;
+            /** File Path */
+            file_path: string;
+            /** Date */
+            date?: null;
+            /** Source */
+            source?: string | null;
+        };
         /** FinveListItemSchema */
         FinveListItemSchema: {
             /** Id */
@@ -1913,6 +2090,11 @@ export interface components {
              */
             budgets: components["schemas"]["BudgetSummarySchema"][];
         };
+        /** FinveProgressPhaseUpdate */
+        FinveProgressPhaseUpdate: {
+            /** Progress Phase */
+            progress_phase?: ("NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB") | null;
+        };
         /** FinveWithBudgetsSchema */
         FinveWithBudgetsSchema: {
             /** Id */
@@ -1933,6 +2115,18 @@ export interface components {
              * @default []
              */
             budgets: components["schemas"]["BudgetSummarySchema"][];
+        };
+        /** ForecastStepSchema */
+        ForecastStepSchema: {
+            /**
+             * Phase
+             * @enum {string}
+             */
+            phase: "NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB";
+            /** Expected Date */
+            expected_date?: string | null;
+            /** Source */
+            source: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -2005,6 +2199,11 @@ export interface components {
              */
             project_ids: number[];
         };
+        /** LinkDocumentInput */
+        LinkDocumentInput: {
+            /** Document Id */
+            document_id: number;
+        };
         /** LinkFinvesInput */
         LinkFinvesInput: {
             /** Finve Ids */
@@ -2067,6 +2266,107 @@ export interface components {
             label: string;
             /** Group */
             group: string;
+        };
+        /**
+         * ProgressChildSchema
+         * @description A leaf child shown under a superior project's aggregated progress.
+         */
+        ProgressChildSchema: {
+            /** Project Id */
+            project_id: number;
+            /** Name */
+            name: string;
+            /**
+             * Effective Phase
+             * @enum {string}
+             */
+            effective_phase: "NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB";
+            /**
+             * Lifecycle Status
+             * @enum {string}
+             */
+            lifecycle_status: "AKTIV" | "PAUSIERT" | "ABGEBROCHEN";
+            /**
+             * Is Known
+             * @default true
+             */
+            is_known: boolean;
+        };
+        /** ProgressForecastSchema */
+        ProgressForecastSchema: {
+            /**
+             * Current Phase
+             * @enum {string}
+             */
+            current_phase: "NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB";
+            /** Remaining Text */
+            remaining_text?: string | null;
+            /** Estimated Phase End */
+            estimated_phase_end?: string | null;
+            /**
+             * Next Steps
+             * @default []
+             */
+            next_steps: components["schemas"]["ForecastStepSchema"][];
+            /**
+             * Has Data
+             * @default false
+             */
+            has_data: boolean;
+        };
+        /** ProgressObservationCreate */
+        ProgressObservationCreate: {
+            /**
+             * Source Type
+             * @default MANUELL
+             * @enum {string}
+             */
+            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "MANUELL";
+            /**
+             * Track
+             * @enum {string}
+             */
+            track: "MAIN" | "PF" | "PARL";
+            /** Asserted State */
+            asserted_state: string;
+            /** Observed Date */
+            observed_date?: string | null;
+            /** Confidence */
+            confidence?: number | null;
+            /** Note */
+            note?: string | null;
+        };
+        /** ProgressObservationSchema */
+        ProgressObservationSchema: {
+            /** Id */
+            id: number;
+            /**
+             * Source Type
+             * @enum {string}
+             */
+            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "MANUELL";
+            /**
+             * Track
+             * @enum {string}
+             */
+            track: "MAIN" | "PF" | "PARL";
+            /** Asserted State */
+            asserted_state: string;
+            /** Observed Date */
+            observed_date?: string | null;
+            /** Confidence */
+            confidence?: number | null;
+            /** Note */
+            note?: string | null;
+            /** Is Derived */
+            is_derived: boolean;
+            /** Username Snapshot */
+            username_snapshot?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /**
          * ProjectCreate
@@ -2294,6 +2594,143 @@ export interface components {
             is_visible?: boolean | null;
             /** Is Default Selected */
             is_default_selected?: boolean | null;
+        };
+        /** ProjectProgressSchema */
+        ProjectProgressSchema: {
+            /** Project Id */
+            project_id: number;
+            /**
+             * Effective Phase
+             * @enum {string}
+             */
+            effective_phase: "NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB";
+            /**
+             * Computed Phase
+             * @enum {string}
+             */
+            computed_phase: "NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB";
+            /** Computed Confidence */
+            computed_confidence: number;
+            /**
+             * Is Known
+             * @default true
+             */
+            is_known: boolean;
+            /** Is Overridden */
+            is_overridden: boolean;
+            /** Manual Override Note */
+            manual_override_note?: string | null;
+            /** Computed At */
+            computed_at?: string | null;
+            /** Has Planfeststellung */
+            has_planfeststellung: boolean;
+            /** Parl Befassung Relevant */
+            parl_befassung_relevant: boolean;
+            /** Parl Befassung Relevant Override */
+            parl_befassung_relevant_override?: boolean | null;
+            /**
+             * Lifecycle Status
+             * @enum {string}
+             */
+            lifecycle_status: "AKTIV" | "PAUSIERT" | "ABGEBROCHEN";
+            /** Pf State */
+            pf_state?: ("OFFEN" | "LAEUFT" | "ABGESCHLOSSEN") | null;
+            /** Parl State */
+            parl_state?: ("OFFEN" | "LAEUFT" | "ABGESCHLOSSEN") | null;
+            /** Pf State Override */
+            pf_state_override?: ("OFFEN" | "LAEUFT" | "ABGESCHLOSSEN") | null;
+            /** Parl State Override */
+            parl_state_override?: ("OFFEN" | "LAEUFT" | "ABGESCHLOSSEN") | null;
+            /** Parl Befassung Text */
+            parl_befassung_text?: string | null;
+            /** Parl Drucksache Url */
+            parl_drucksache_url?: string | null;
+            /** Parl Befassung Date */
+            parl_befassung_date?: string | null;
+            /** Pf Text */
+            pf_text?: string | null;
+            /** Pf Links */
+            pf_links?: {
+                url: string;
+                comment?: string | null;
+            }[];
+            /** Pf Date */
+            pf_date?: string | null;
+            /**
+             * Observations
+             * @default []
+             */
+            observations: components["schemas"]["ProgressObservationSchema"][];
+            /**
+             * Contributions
+             * @default []
+             */
+            contributions: components["schemas"]["SourceContributionSchema"][];
+            /**
+             * Pf Documents
+             * @default []
+             */
+            pf_documents: components["schemas"]["TrackDocumentSchema"][];
+            /**
+             * Parl Documents
+             * @default []
+             */
+            parl_documents: components["schemas"]["TrackDocumentSchema"][];
+            /**
+             * Is Superior
+             * @default false
+             */
+            is_superior: boolean;
+            /** Span Min Phase */
+            span_min_phase?: ("NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB") | null;
+            /** Span Max Phase */
+            span_max_phase?: ("NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB") | null;
+            /**
+             * Children
+             * @default []
+             */
+            children: components["schemas"]["ProgressChildSchema"][];
+            forecast?: components["schemas"]["ProgressForecastSchema"] | null;
+        };
+        /** ProjectProgressUpdate */
+        ProjectProgressUpdate: {
+            /** Has Planfeststellung */
+            has_planfeststellung?: boolean | null;
+            /** Parl Befassung Relevant */
+            parl_befassung_relevant?: boolean | null;
+            /** Lifecycle Status */
+            lifecycle_status?: ("AKTIV" | "PAUSIERT" | "ABGEBROCHEN") | null;
+            /** Manual Phase Override */
+            manual_phase_override?: ("NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB") | null;
+            /** Manual Override Note */
+            manual_override_note?: string | null;
+            /** Pf State Override */
+            pf_state_override?: ("OFFEN" | "LAEUFT" | "ABGESCHLOSSEN") | null;
+            /** Parl State Override */
+            parl_state_override?: ("OFFEN" | "LAEUFT" | "ABGESCHLOSSEN") | null;
+            /** Parl Befassung Text */
+            parl_befassung_text?: string | null;
+            /** Parl Drucksache Url */
+            parl_drucksache_url?: string | null;
+            /** Parl Befassung Date */
+            parl_befassung_date?: string | null;
+            /** Pf Text */
+            pf_text?: string | null;
+            /** Pf Links */
+            pf_links?: {
+                url: string;
+                comment?: string | null;
+            }[] | null;
+            /** Pf Date */
+            pf_date?: string | null;
+            /** Clear Phase Override */
+            clear_phase_override?: boolean | null;
+            /** Clear Parl Relevant */
+            clear_parl_relevant?: boolean | null;
+            /** Clear Parl State Override */
+            clear_parl_state_override?: boolean | null;
+            /** Clear Pf State Override */
+            clear_pf_state_override?: boolean | null;
         };
         /** ProjectRefSchema */
         ProjectRefSchema: {
@@ -2939,12 +3376,67 @@ export interface components {
             /** Sectionofline Ids */
             sectionofline_ids: number[];
         };
+        /** SammelFinveProgressSchema */
+        SammelFinveProgressSchema: {
+            /** Finve Id */
+            finve_id: number;
+            /** Name */
+            name?: string | null;
+            /** Starting Year */
+            starting_year?: number | null;
+            /** Progress Phase */
+            progress_phase?: ("NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB") | null;
+            /** Auto Phase */
+            auto_phase?: ("NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB") | null;
+            /** Effective Phase */
+            effective_phase?: ("NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB") | null;
+            /** Needs Assignment */
+            needs_assignment: boolean;
+            /**
+             * Projects
+             * @default []
+             */
+            projects: components["schemas"]["SammelFinveProjectRef"][];
+        };
+        /** SammelFinveProjectRef */
+        SammelFinveProjectRef: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+        };
         /** SessionCredentials */
         SessionCredentials: {
             /** Username */
             username: string;
             /** Password */
             password: string;
+        };
+        /**
+         * SourceContributionSchema
+         * @description One observation annotated with its effective weight and decisive role.
+         */
+        SourceContributionSchema: {
+            /** Observation Id */
+            observation_id?: number | null;
+            /**
+             * Source Type
+             * @enum {string}
+             */
+            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "MANUELL";
+            /**
+             * Track
+             * @enum {string}
+             */
+            track: "MAIN" | "PF" | "PARL";
+            /** Asserted State */
+            asserted_state: string;
+            /** Observed Date */
+            observed_date?: string | null;
+            /** Effective Confidence */
+            effective_confidence: number;
+            /** Was Decisive */
+            was_decisive: boolean;
         };
         /** TaskLaunchResponse */
         TaskLaunchResponse: {
@@ -3079,6 +3571,20 @@ export interface components {
             veranschlagt?: number | null;
             /** Vorhalten Future */
             vorhalten_future?: number | null;
+        };
+        /**
+         * TrackDocumentSchema
+         * @description A document link scoped to a track, with the resolved document.
+         */
+        TrackDocumentSchema: {
+            /** Id */
+            id: number;
+            /**
+             * Track
+             * @enum {string}
+             */
+            track: "PF" | "PARL";
+            document: components["schemas"]["DocumentRefSchema"];
         };
         /** UnassignedFinveSchema */
         UnassignedFinveSchema: {
@@ -3621,6 +4127,10 @@ export interface components {
             baubeginn?: string | null;
             /** Inbetriebnahme */
             inbetriebnahme?: string | null;
+            /** Project Id */
+            project_id?: number | null;
+            /** Suggested Project Id */
+            suggested_project_id?: number | null;
         };
         /** VibPfaEntrySchema */
         VibPfaEntrySchema: {
@@ -3642,6 +4152,10 @@ export interface components {
             baubeginn?: string | null;
             /** Inbetriebnahme */
             inbetriebnahme?: string | null;
+            /** Project Id */
+            project_id?: number | null;
+            /** Suggested Project Id */
+            suggested_project_id?: number | null;
         };
         /** VibReportSchema */
         VibReportSchema: {
@@ -4243,6 +4757,251 @@ export interface operations {
             };
         };
     };
+    read_progress_api_v1_projects__project_id__progress_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectProgressSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_progress_api_v1_projects__project_id__progress_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectProgressUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectProgressSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_observation_api_v1_projects__project_id__progress_observations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProgressObservationCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectProgressSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_observation_api_v1_projects__project_id__progress_observations__observation_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+                observation_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectProgressSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    link_document_api_v1_projects__project_id__progress_tracks__track__documents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+                track: string;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkDocumentInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectProgressSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unlink_document_api_v1_projects__project_id__progress_tracks__track__documents__document_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+                track: string;
+                document_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectProgressSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recompute_api_v1_projects__project_id__progress_recompute_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectProgressSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     read_project_groups_api_v1_project_groups__get: {
         parameters: {
             query?: never;
@@ -4315,7 +5074,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["ProjectGroupSchema"];
                 };
             };
             /** @description Validation Error */
@@ -5449,6 +6208,63 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FinveListItemSchema"][];
+                };
+            };
+        };
+    };
+    get_sammel_finve_progress_api_v1_finves_sammel_progress_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SammelFinveProgressSchema"][];
+                };
+            };
+        };
+    };
+    patch_finve_progress_phase_api_v1_finves__finve_id__progress_phase_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                finve_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinveProgressPhaseUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SammelFinveProgressSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

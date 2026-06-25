@@ -19,6 +19,7 @@ EDITOR_KEYS = {
     "finve.edit",
     "projecttext.edit",
     "assignment.manage",
+    "progress.edit",
 }
 
 ADMIN_ONLY_KEYS = {"projectgroup.create", "projectgroup.edit", "user.manage", "role.manage", "settings.manage"}

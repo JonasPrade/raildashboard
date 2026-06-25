@@ -77,6 +77,33 @@ export const featureHighlights: FeatureHighlight[] = [
         ]
     },
     {
+        title: "Planungsstand (Projektfortschritt)",
+        description:
+            "Die ProjectDetail-Seite zeigt einen abgeleiteten Planungsstand: einen horizontalen " +
+            "Phasen-Stepper (Nicht gestartet → Vorplanung → Genehmigungsplanung → Bau → In Betrieb), " +
+            "bedingte Parallelspuren für Planfeststellung und parlamentarische Befassung, ein " +
+            "Lebenszyklus-Overlay (Pausiert/Abgebrochen) und einen Aufklappbereich mit der " +
+            "Quellen-Aufschlüsselung. Die Anzeige ist öffentlich; Bearbeiten erfordert progress.edit.",
+        details: [
+            "Headline-Phase = Beobachtung mit der höchsten effektiven Konfidenz (Recency-gewichtet); bei Gleichstand gewinnt die höhere Phase",
+            "Manueller Phasen-Override gewinnt immer über den berechneten Wert (Badge 'übersteuert')",
+            "Parl. Befassung ist bei BSWAG-Projektgruppen vorbelegt; nullable Override pro Projekt",
+            "Pausiert/Abgebrochen überblendet die gesamte Darstellung (Banner + abgeblendeter Stepper)",
+            "Übergeordnete Projekte zeigen eine Phasen-Spanne (min..max) + eine durchsuchbare Unterprojekt-Tabelle mit Status-Verteilung (z. B. „3× Bau · 1× Vorplanung · 2× Unbekannt“)",
+            "Hover über einen Phasen-Kreis im Stepper listet die Unterprojekte dieser Phase auf",
+            "Projekte ohne Datengrundlage werden klar als „Unbekannt“ markiert (nicht als „Nicht gestartet“)",
+            "Planfeststellung: Zustand, Datum, Notiz und mehrere kommentierte URL-Links; parl. Befassung: Zustand, Datum, Notiz und der DIP-Link zur Bundestagsdrucksache",
+            "Planfeststellung (PFB, zwischen Genehmigungsplanung und Bau) und parl. Befassung (zwischen Vorplanung und Genehmigungsplanung) erscheinen als Meilenstein-Rauten auf der Hauptzeitleiste — grün + Datum wenn abgeschlossen, blau wenn laufend, Umriss wenn offen",
+            "„Hat Planfeststellung\" wird automatisch aktiviert, sobald eine PF-Beobachtung oder ein PF-Detail erfasst wird — kein separates Anhaken nötig",
+            "API: GET (public) / PATCH / POST+DELETE observations / tracks/{track}/documents / recompute unter /api/v1/projects/{id}/progress",
+            "VIB/FinVe-Beobachtungen werden materialisiert (is_derived): VIB-Status → Leistungsphasen, PFA → Planfeststellung; reguläre FinVe → Bau; nicht manuell löschbar",
+            "Sammel-FinVe: Phase aus der Leistungsphase im Namen (Lph 1/2 → Vorplanung, Lph 3/4 → Genehmigungsplanung); ohne erkennbare Lph (z. B. EKrG) manuell zuordenbar unter Admin → „Sammel-FinVe Phasen“",
+            "Lazy-Resync der abgeleiteten Beobachtungen bei stalem Cache (24h); „Neu berechnen\" erzwingt den Sync",
+            "Prognose-Panel: Restdauer der aktuellen Phase + nächste Schritte aus BVWP-Dauern, VIB-PFA-Terminen und Fulda-Runde-Beobachtungen",
+            "Manuelle Beobachtungen erfassen nur Leistungsphasen (Quellentyp MANUELL/FULDA_RUNDE/BAUPORTAL/MEDIEN + optionaler Vertrauens-Override); Planfeststellung & parl. Befassung werden separat im Schaltmenü „Verfahren\" gepflegt"
+        ]
+    },
+    {
         title: "Projekt-Entwürfe (Zwischenspeichern)",
         description:
             "Im Anlege-Wizard begonnene Projekte werden als Entwurf zwischengespeichert (is_draft). " +

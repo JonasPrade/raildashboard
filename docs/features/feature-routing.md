@@ -1,5 +1,10 @@
 # Feature: Routenvorschlag per GrassHopper
 
+> **Abgrenzung:** Dieses Feature berechnet Bahnrouten automatisch über GraphHopper.
+> Das **freie Zeichnen** von Linien und Punkten von Hand (für Neubaustrecken,
+> Tram/U-Bahn ohne routbaren Pfad) ist separat: siehe
+> [`feature-manual-geometry.md`](feature-manual-geometry.md) (Issue #27).
+
 ## Ziel
 
 Editors und Admins können für ein Projekt eine Streckenroute über GraphHopper berechnen lassen, die Route auf der Karte vorschauen und als Projektgeometrie übernehmen.

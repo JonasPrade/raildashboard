@@ -21,6 +21,7 @@ export default function AdminOverviewPage() {
     const canProjectGroups = can("projectgroup.create") || can("projectgroup.edit");
     const canUsers = can("user.manage");
     const canRoles = can("role.manage");
+    const canProgress = can("progress.edit");
     const hasAnyAdmin =
         canAssignments ||
         canHaushalt ||
@@ -28,7 +29,8 @@ export default function AdminOverviewPage() {
         canCreateProject ||
         canProjectGroups ||
         canUsers ||
-        canRoles;
+        canRoles ||
+        canProgress;
 
     const { data: unassignedFinves } = useUnassignedFinves(canAssignments);
     const { data: unassignedVibEntries } = useUnassignedVibEntries(canAssignments);
@@ -87,6 +89,16 @@ export default function AdminOverviewPage() {
                                 <Stack gap={4}>
                                     <Text fw={500}>VIB-Import</Text>
                                     <Text size="sm" c="dimmed">Verkehrsinvestitionsbericht (Schienenwege) importieren</Text>
+                                </Stack>
+                            </Link>
+                        </ChronicleCard>
+                    )}
+                    {canProgress && (
+                        <ChronicleCard style={{ textDecoration: "none" }}>
+                            <Link to="/admin/finve-progress" style={{ textDecoration: "none", color: "inherit" }}>
+                                <Stack gap={4}>
+                                    <Text fw={500}>Sammel-FinVe Phasen</Text>
+                                    <Text size="sm" c="dimmed">Planungsphase von Sammel-FinVes zuordnen (Lph/EKrG)</Text>
                                 </Stack>
                             </Link>
                         </ChronicleCard>
