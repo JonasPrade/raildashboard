@@ -1,33 +1,19 @@
-import {
-    Badge,
-    Button,
-    Group,
-    Loader,
-    Select,
-    Stack,
-    Switch,
-    Text,
-    TextInput,
-} from "@mantine/core";
-import { IconRefresh } from "@tabler/icons-react";
+import { useState } from "react";
+import { Badge, Button, Group, Loader, Stack, Text } from "@mantine/core";
+import { IconPencil } from "@tabler/icons-react";
 
 import { ChronicleCard, ChronicleHeadline } from "../../../../components/chronicle";
 import { useAuth } from "../../../../lib/auth";
-import {
-    type ProjectProgressUpdate,
-    useProjectProgress,
-    useRecomputeProgress,
-    useUpdateProjectProgress,
-} from "../../../../shared/api/queries";
+import { useProjectProgress } from "../../../../shared/api/queries";
 import ForecastPanel from "./ForecastPanel";
 import LifecycleOverlay from "./LifecycleOverlay";
 import ParallelLanes from "./ParallelLanes";
 import PhaseStepper, { type StepperChild } from "./PhaseStepper";
+import ProgressEditDrawer from "./ProgressEditDrawer";
 import SourceBreakdown from "./SourceBreakdown";
 import SubprojectsTable from "./SubprojectsTable";
 import {
     LIFECYCLE_LABEL,
-    MAIN_PHASES,
     MAIN_PHASE_LABEL,
     UNKNOWN_LABEL,
     groupChildrenByPhase,
@@ -36,17 +22,11 @@ import {
     type ParallelState,
 } from "./phaseMeta";
 
-const PARL_STANDARD = "__standard__";
-const PHASE_NONE = "__none__";
-
 export default function ProgressSection({ projectId }: { projectId: number }) {
     const { can } = useAuth();
     const canEdit = can("progress.edit");
     const { data: progress, isLoading, isError } = useProjectProgress(projectId);
-    const update = useUpdateProjectProgress(projectId);
-    const recompute = useRecomputeProgress(projectId);
-
-    const patch = (payload: ProjectProgressUpdate) => update.mutate(payload);
+    const [editing, setEditing] = useState(false);
 
     if (isLoading) {
         return (
@@ -136,13 +116,12 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
                     </Stack>
                     {canEdit && (
                         <Button
-                            variant="subtle"
+                            variant="light"
                             size="xs"
-                            leftSection={<IconRefresh size={14} />}
-                            onClick={() => recompute.mutate()}
-                            loading={recompute.isPending}
+                            leftSection={<IconPencil size={14} />}
+                            onClick={() => setEditing(true)}
                         >
-                            Neu berechnen
+                            Bearbeiten
                         </Button>
                     )}
                 </Group>
@@ -157,6 +136,12 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
                     unknown={isUnknownLeaf}
                     noCompleted={progress.is_superior && hasUnknownChildren}
                     childrenByPhase={progress.is_superior ? stepperChildren : undefined}
+                    pfRelevant={!progress.is_superior && progress.has_planfeststellung}
+                    pfState={progress.pf_state as ParallelState | null}
+                    pfDate={progress.pf_date}
+                    parlRelevant={!progress.is_superior && progress.parl_befassung_relevant}
+                    parlState={progress.parl_state as ParallelState | null}
+                    parlDate={progress.parl_befassung_date}
                 />
 
                 {progress.is_superior && progress.children.length > 0 && (
@@ -164,14 +149,18 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
                 )}
 
                 <ParallelLanes
-                    projectId={projectId}
                     hasPf={progress.has_planfeststellung}
                     pfState={progress.pf_state as ParallelState | null}
                     parlRelevant={progress.parl_befassung_relevant}
                     parlState={progress.parl_state as ParallelState | null}
-                    pfDocuments={progress.pf_documents}
-                    parlDocuments={progress.parl_documents}
-                    canEdit={canEdit}
+                    parlText={progress.parl_befassung_text}
+                    parlDrucksacheUrl={progress.parl_drucksache_url}
+                    parlDate={progress.parl_befassung_date}
+                    pfText={progress.pf_text}
+                    pfLinks={progress.pf_links}
+                    pfDate={progress.pf_date}
+                    pfStateInGraphic={!progress.is_superior && progress.has_planfeststellung}
+                    parlStateInGraphic={!progress.is_superior && progress.parl_befassung_relevant}
                 />
 
                 {!isDimmed && (
@@ -183,87 +172,20 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
                     </Stack>
                 )}
 
-                {canEdit && (
-                    <Stack gap="sm">
-                        <Group gap="lg" align="flex-end" wrap="wrap">
-                            <Switch
-                                label="Hat Planfeststellung"
-                                checked={progress.has_planfeststellung}
-                                onChange={(e) =>
-                                    patch({ has_planfeststellung: e.currentTarget.checked })
-                                }
-                            />
-                            <Select
-                                size="xs"
-                                label="Parl. Befassung"
-                                w={180}
-                                value={
-                                    progress.parl_befassung_relevant_override === null ||
-                                    progress.parl_befassung_relevant_override === undefined
-                                        ? PARL_STANDARD
-                                        : progress.parl_befassung_relevant_override
-                                          ? "true"
-                                          : "false"
-                                }
-                                data={[
-                                    { value: PARL_STANDARD, label: "Gruppen-Standard" },
-                                    { value: "true", label: "Relevant" },
-                                    { value: "false", label: "Nicht relevant" },
-                                ]}
-                                onChange={(v) => {
-                                    if (v === PARL_STANDARD) patch({ clear_parl_relevant: true });
-                                    else patch({ parl_befassung_relevant: v === "true" });
-                                }}
-                            />
-                            <Select
-                                size="xs"
-                                label="Lebenszyklus"
-                                w={150}
-                                value={lifecycle}
-                                data={(["AKTIV", "PAUSIERT", "ABGEBROCHEN"] as LifecycleStatus[]).map(
-                                    (s) => ({ value: s, label: LIFECYCLE_LABEL[s] }),
-                                )}
-                                onChange={(v) =>
-                                    v && patch({ lifecycle_status: v as LifecycleStatus })
-                                }
-                            />
-                        </Group>
-
-                        <Group gap="lg" align="flex-end" wrap="wrap">
-                            <Select
-                                size="xs"
-                                label="Phasen-Override"
-                                w={200}
-                                value={progress.is_overridden ? progress.effective_phase : PHASE_NONE}
-                                data={[
-                                    { value: PHASE_NONE, label: "— berechnet —" },
-                                    ...MAIN_PHASES.map((p) => ({ value: p, label: MAIN_PHASE_LABEL[p] })),
-                                ]}
-                                onChange={(v) => {
-                                    if (!v || v === PHASE_NONE) patch({ clear_phase_override: true });
-                                    else patch({ manual_phase_override: v as MainPhase });
-                                }}
-                            />
-                            <TextInput
-                                size="xs"
-                                label="Override-Notiz"
-                                w={280}
-                                defaultValue={progress.manual_override_note ?? ""}
-                                onBlur={(e) =>
-                                    patch({ manual_override_note: e.currentTarget.value || null })
-                                }
-                            />
-                        </Group>
-                    </Stack>
-                )}
-
                 <SourceBreakdown
-                    projectId={projectId}
                     contributions={progress.contributions}
                     observations={progress.observations}
-                    canEdit={canEdit}
                 />
             </Stack>
+
+            {canEdit && (
+                <ProgressEditDrawer
+                    projectId={projectId}
+                    progress={progress}
+                    opened={editing}
+                    onClose={() => setEditing(false)}
+                />
+            )}
         </ChronicleCard>
     );
 }

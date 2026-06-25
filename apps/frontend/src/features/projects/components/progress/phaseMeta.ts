@@ -61,7 +61,7 @@ export const LIFECYCLE_LABEL: Record<LifecycleStatus, string> = {
 };
 
 export const TRACK_LABEL: Record<ObservationTrack, string> = {
-    MAIN: "Hauptspur",
+    MAIN: "Leistungsphasen",
     PF: "Planfeststellung",
     PARL: "Parlamentarische Befassung",
 };
@@ -92,6 +92,14 @@ export function mainPhaseIndex(phase: MainPhase): number {
 export function stateLabel(track: ObservationTrack, state: string): string {
     if (track === "MAIN") return MAIN_PHASE_LABEL[state as MainPhase] ?? state;
     return PARALLEL_STATE_LABEL[state as ParallelState] ?? state;
+}
+
+/** Format an ISO datetime as a short German date + time, e.g. "21.06.2026 14:08". */
+export function formatTimestamp(iso: string | null | undefined): string {
+    if (!iso) return "–";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "–";
+    return d.toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
 }
 
 /** Bucket subprojects by their effective phase; ``is_known === false`` →
