@@ -94,6 +94,52 @@ def _strongest_vib_main_phase(
     return None
 
 
+def _pfa_main_phase(pfa: PfaInput) -> tuple[MainPhase | None, date | None]:
+    """Derive a leaf MAIN phase + its date from a single PFA's milestone dates.
+
+    ``inbetriebnahme`` → IN_BETRIEB, else ``baubeginn`` → BAU, else ``datum_pfb``
+    (the Planfeststellungsbeschluss concludes the approval phase) →
+    GENEHMIGUNGSPLANUNG. No parseable milestone → no MAIN contribution.
+    """
+
+    ib = parse_flexible_date(pfa.inbetriebnahme)
+    if ib is not None:
+        return MainPhase.IN_BETRIEB, ib
+    bb = parse_flexible_date(pfa.baubeginn)
+    if bb is not None:
+        return MainPhase.BAU, bb
+    pfb = parse_flexible_date(pfa.datum_pfb)
+    if pfb is not None:
+        return MainPhase.GENEHMIGUNGSPLANUNG, pfb
+    return None, None
+
+
+def _pfa_pf_spec(pfa: PfaInput, observed_date: date | None, vib_entry_id: int) -> DerivedSpec:
+    """PF-track spec for one PFA: ABGESCHLOSSEN once a PFB date exists, else LAEUFT."""
+
+    pfb_date = parse_flexible_date(pfa.datum_pfb)
+    label = pfa.nr_pfa or pfa.abschnitt_label or "PFA"
+    if pfb_date is not None:
+        return DerivedSpec(
+            source_type=SourceType.VIB,
+            track=ObservationTrack.PF,
+            asserted_state=ParallelState.ABGESCHLOSSEN.value,
+            observed_date=observed_date,
+            note=f"{label}: PFB {pfa.datum_pfb}",
+            vib_entry_id=vib_entry_id,
+            vib_pfa_entry_id=pfa.id,
+        )
+    return DerivedSpec(
+        source_type=SourceType.VIB,
+        track=ObservationTrack.PF,
+        asserted_state=ParallelState.LAEUFT.value,
+        observed_date=observed_date,
+        note=f"{label}: Planfeststellung läuft",
+        vib_entry_id=vib_entry_id,
+        vib_pfa_entry_id=pfa.id,
+    )
+
+
 def vib_entry_to_specs(
     *,
     vib_entry_id: int,
@@ -103,58 +149,72 @@ def vib_entry_to_specs(
     observed_date: date | None,
     has_planfeststellung_flag: bool,
     pfas: list[PfaInput],
+    emit_main: bool = True,
 ) -> list[DerivedSpec]:
-    """Build derived specs for one linked VIB entry.
+    """Build derived specs for one linked VIB entry (parent/unassigned side).
 
-    The MAIN spec reflects the strongest true status flag. Each PFA produces a
-    PF-track spec (ABGESCHLOSSEN once a Planfeststellungsbeschluss date exists,
-    otherwise LAEUFT). ``has_planfeststellung_flag`` only affects the note —
-    the caller decides whether to flip the editorial flag.
+    The MAIN spec reflects the strongest true status flag, but is suppressed when
+    ``emit_main`` is False — used once the entry's sections are split out to
+    subprojects, so the parent aggregates via the children's span instead of the
+    flattened entry phase. Each passed PFA produces a PF-track spec.
+    ``has_planfeststellung_flag`` only affects the note — the caller decides
+    whether to flip the editorial flag.
     """
 
     specs: list[DerivedSpec] = []
 
-    main_phase = _strongest_vib_main_phase(status_planung, status_bau, status_abgeschlossen)
+    if emit_main:
+        main_phase = _strongest_vib_main_phase(
+            status_planung, status_bau, status_abgeschlossen
+        )
+        if main_phase is not None:
+            specs.append(
+                DerivedSpec(
+                    source_type=SourceType.VIB,
+                    track=ObservationTrack.MAIN,
+                    asserted_state=main_phase.value,
+                    observed_date=observed_date,
+                    note="aus VIB-Statusangaben",
+                    vib_entry_id=vib_entry_id,
+                )
+            )
+
+    for pfa in pfas:
+        specs.append(_pfa_pf_spec(pfa, observed_date, vib_entry_id))
+
+    return specs
+
+
+def pfa_to_specs(
+    *,
+    pfa: PfaInput,
+    vib_entry_id: int,
+    observed_fallback: date | None,
+) -> list[DerivedSpec]:
+    """Build derived specs for one PFA assigned to a leaf subproject.
+
+    Emits a MAIN spec derived from the section's own milestone dates (so the
+    status lands on the subproject, not the flattened parent) plus the PF-track
+    spec. ``observed_fallback`` (the report year-end) is used when the MAIN
+    milestone itself carries no parseable date.
+    """
+
+    specs: list[DerivedSpec] = []
+    main_phase, main_date = _pfa_main_phase(pfa)
+    label = pfa.nr_pfa or pfa.abschnitt_label or "PFA"
     if main_phase is not None:
         specs.append(
             DerivedSpec(
                 source_type=SourceType.VIB,
                 track=ObservationTrack.MAIN,
                 asserted_state=main_phase.value,
-                observed_date=observed_date,
-                note="aus VIB-Statusangaben",
+                observed_date=main_date or observed_fallback,
+                note=f"{label}: aus PFA-Terminen",
                 vib_entry_id=vib_entry_id,
+                vib_pfa_entry_id=pfa.id,
             )
         )
-
-    for pfa in pfas:
-        pfb_date = parse_flexible_date(pfa.datum_pfb)
-        label = pfa.nr_pfa or pfa.abschnitt_label or "PFA"
-        if pfb_date is not None:
-            specs.append(
-                DerivedSpec(
-                    source_type=SourceType.VIB,
-                    track=ObservationTrack.PF,
-                    asserted_state=ParallelState.ABGESCHLOSSEN.value,
-                    observed_date=observed_date,
-                    note=f"{label}: PFB {pfa.datum_pfb}",
-                    vib_entry_id=vib_entry_id,
-                    vib_pfa_entry_id=pfa.id,
-                )
-            )
-        else:
-            specs.append(
-                DerivedSpec(
-                    source_type=SourceType.VIB,
-                    track=ObservationTrack.PF,
-                    asserted_state=ParallelState.LAEUFT.value,
-                    observed_date=observed_date,
-                    note=f"{label}: Planfeststellung läuft",
-                    vib_entry_id=vib_entry_id,
-                    vib_pfa_entry_id=pfa.id,
-                )
-            )
-
+    specs.append(_pfa_pf_spec(pfa, observed_fallback, vib_entry_id))
     return specs
 
 

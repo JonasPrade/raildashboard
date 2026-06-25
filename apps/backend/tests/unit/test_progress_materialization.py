@@ -20,6 +20,7 @@ from dashboard_backend.services.progress_materialization import (
     finve_to_spec,
     parse_sammel_finve_phase,
     pfa_has_pf_evidence,
+    pfa_to_specs,
     vib_entry_to_specs,
 )
 
@@ -113,6 +114,76 @@ def test_vib_pfa_without_pfb_date_is_laeuft():
         has_planfeststellung_flag=False,
         pfas=[PfaInput(id=2, nr_pfa="PFA 2", datum_pfb="offen")],
     )
+    pf = [s for s in specs if s.track is ObservationTrack.PF]
+    assert pf[0].asserted_state == ParallelState.LAEUFT.value
+
+
+def test_vib_emit_main_false_suppresses_main_keeps_pf():
+    # Once sections are split out to subprojects, the flattened entry MAIN is
+    # suppressed but the PF track of unassigned sections still renders.
+    specs = vib_entry_to_specs(
+        vib_entry_id=7,
+        status_planung=True,
+        status_bau=True,
+        status_abgeschlossen=True,
+        observed_date=date(2023, 12, 31),
+        has_planfeststellung_flag=False,
+        pfas=[PfaInput(id=1, nr_pfa="PFA 1", datum_pfb="03/2022")],
+        emit_main=False,
+    )
+    assert all(s.track is not ObservationTrack.MAIN for s in specs)
+    pf = [s for s in specs if s.track is ObservationTrack.PF]
+    assert len(pf) == 1
+    assert pf[0].asserted_state == ParallelState.ABGESCHLOSSEN.value
+
+
+# --- Per-PFA → subproject MAIN derivation ------------------------------------
+
+
+def test_pfa_inbetriebnahme_maps_to_in_betrieb():
+    specs = pfa_to_specs(
+        pfa=PfaInput(
+            id=1, nr_pfa="PFA 1", datum_pfb="2018", baubeginn="2019", inbetriebnahme="06/2022"
+        ),
+        vib_entry_id=7,
+        observed_fallback=date(2023, 12, 31),
+    )
+    main = [s for s in specs if s.track is ObservationTrack.MAIN]
+    assert len(main) == 1
+    assert main[0].asserted_state == MainPhase.IN_BETRIEB.value
+    assert main[0].observed_date == date(2022, 6, 15)  # the milestone date, not the fallback
+    assert main[0].vib_pfa_entry_id == 1
+
+
+def test_pfa_baubeginn_maps_to_bau():
+    specs = pfa_to_specs(
+        pfa=PfaInput(id=2, nr_pfa="PFA 2", datum_pfb="2018", baubeginn="2020"),
+        vib_entry_id=7,
+        observed_fallback=date(2023, 12, 31),
+    )
+    main = [s for s in specs if s.track is ObservationTrack.MAIN]
+    assert main[0].asserted_state == MainPhase.BAU.value
+
+
+def test_pfa_only_pfb_maps_to_genehmigungsplanung_and_pf_abgeschlossen():
+    specs = pfa_to_specs(
+        pfa=PfaInput(id=3, nr_pfa="PFA 3", datum_pfb="01.03.2021"),
+        vib_entry_id=7,
+        observed_fallback=date(2023, 12, 31),
+    )
+    main = [s for s in specs if s.track is ObservationTrack.MAIN]
+    assert main[0].asserted_state == MainPhase.GENEHMIGUNGSPLANUNG.value
+    pf = [s for s in specs if s.track is ObservationTrack.PF]
+    assert pf[0].asserted_state == ParallelState.ABGESCHLOSSEN.value
+
+
+def test_pfa_without_dates_yields_no_main_but_pf_laeuft():
+    specs = pfa_to_specs(
+        pfa=PfaInput(id=4, nr_pfa="PFA 4"),
+        vib_entry_id=7,
+        observed_fallback=date(2023, 12, 31),
+    )
+    assert all(s.track is not ObservationTrack.MAIN for s in specs)
     pf = [s for s in specs if s.track is ObservationTrack.PF]
     assert pf[0].asserted_state == ParallelState.LAEUFT.value
 

@@ -6,6 +6,7 @@ import {
     Group,
     MultiSelect,
     NumberInput,
+    Select,
     Stack,
     Table,
     Text,
@@ -54,6 +55,13 @@ export default function VibEntryEditForm({
         onChange({ pfa_entries: newPfa });
     }
 
+    function handlePfaProjectChange(pfaIdx: number, value: string | null) {
+        const newPfa = entry.pfa_entries.map((p, pi) =>
+            pi === pfaIdx ? { ...p, project_id: value ? Number(value) : null } : p
+        );
+        onChange({ pfa_entries: newPfa });
+    }
+
     function handlePfaAdd() {
         onChange({
             pfa_entries: [
@@ -67,6 +75,8 @@ export default function VibEntryEditForm({
                     baubeginn: null,
                     inbetriebnahme: null,
                     abschnitt_label: null,
+                    project_id: null,
+                    suggested_project_id: null,
                 },
             ],
         });
@@ -264,6 +274,7 @@ export default function VibEntryEditForm({
                                         <Table.Th>PFB</Table.Th>
                                         <Table.Th>Baubeginn</Table.Th>
                                         <Table.Th>IBM</Table.Th>
+                                        <Table.Th>Unterprojekt</Table.Th>
                                         <Table.Th />
                                     </Table.Tr>
                                 </Table.Thead>
@@ -285,6 +296,24 @@ export default function VibEntryEditForm({
                                                     />
                                                 </Table.Td>
                                             ))}
+                                            <Table.Td>
+                                                <Select
+                                                    size="xs"
+                                                    searchable
+                                                    clearable
+                                                    filter={filterProjectOption}
+                                                    placeholder={
+                                                        pfa.suggested_project_id != null
+                                                            ? `✦ ${projectOptions.find((o) => o.value === String(pfa.suggested_project_id))?.label ?? "Vorschlag"}`
+                                                            : "– offen –"
+                                                    }
+                                                    data={projectOptions}
+                                                    value={pfa.project_id != null ? String(pfa.project_id) : null}
+                                                    onChange={(v) => handlePfaProjectChange(pi, v)}
+                                                    comboboxProps={{ withinPortal: true }}
+                                                    w={200}
+                                                />
+                                            </Table.Td>
                                             <Table.Td>
                                                 <button
                                                     style={{ cursor: "pointer", background: "none", border: "none", color: "red" }}

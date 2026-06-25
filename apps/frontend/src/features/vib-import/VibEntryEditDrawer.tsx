@@ -31,7 +31,7 @@ function toProposed(entry: VibEntrySchema): VibEntryProposed {
         gesamtkosten_mio_eur: entry.gesamtkosten_mio_eur,
         entwurfsgeschwindigkeit: entry.entwurfsgeschwindigkeit,
         planungsstand: entry.planungsstand,
-        pfa_entries: entry.pfa_entries.map(({ abschnitt_label, nr_pfa, oertlichkeit, entwurfsplanung, abschluss_finve, datum_pfb, baubeginn, inbetriebnahme }) => ({
+        pfa_entries: entry.pfa_entries.map(({ abschnitt_label, nr_pfa, oertlichkeit, entwurfsplanung, abschluss_finve, datum_pfb, baubeginn, inbetriebnahme, project_id, suggested_project_id }) => ({
             abschnitt_label,
             nr_pfa,
             oertlichkeit,
@@ -40,6 +40,8 @@ function toProposed(entry: VibEntrySchema): VibEntryProposed {
             datum_pfb,
             baubeginn,
             inbetriebnahme,
+            project_id,
+            suggested_project_id,
         })),
         pfa_raw_markdown: null,
         sonstiges: entry.sonstiges,
