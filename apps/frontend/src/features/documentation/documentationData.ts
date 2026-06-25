@@ -61,6 +61,22 @@ export const featureHighlights: FeatureHighlight[] = [
         ]
     },
     {
+        title: "Projektgeometrie erstellen & bearbeiten",
+        description:
+            "Editors und Admins legen die Geometrie eines Projekts über den geteilten Geometrie-Editor an — " +
+            "im Anlege-Wizard (Schritt 2) und im Bearbeiten-Modal. Die Geometrie entsteht auf vier Wegen und " +
+            "wird in project.geojson_representation gespeichert.",
+        details: [
+            "Route zwischen Betriebsstellen via GraphHopper berechnen",
+            "Einzelne Betriebsstellen als Punkte hinzufügen",
+            "Fertige GeoJSON-Datei hochladen",
+            "Linien und Punkte direkt auf der Karte zeichnen (terra-draw): Klicks setzen Stützpunkte, Doppelklick beendet eine Linie; im Bearbeiten-Modus Stützpunkte verschieben, einfügen und löschen",
+            "Gezeichnete Geometrie wird mit der bestehenden gemischt oder ersetzt sie („Bestehende Geometrie löschen“)",
+            "Zeichnen und „Einzelne Features auswählen & löschen“ schließen sich gegenseitig aus",
+            "Nur für editor/admin sichtbar"
+        ]
+    },
+    {
         title: "Planungsstand (Projektfortschritt)",
         description:
             "Die ProjectDetail-Seite zeigt einen abgeleiteten Planungsstand: einen horizontalen " +
