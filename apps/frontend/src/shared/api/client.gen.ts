@@ -721,6 +721,8 @@ const VibPfaEntrySchema = z
     datum_pfb: z.union([z.string(), z.null()]).optional(),
     baubeginn: z.union([z.string(), z.null()]).optional(),
     inbetriebnahme: z.union([z.string(), z.null()]).optional(),
+    project_id: z.union([z.number(), z.null()]).optional(),
+    suggested_project_id: z.union([z.number(), z.null()]).optional(),
   })
   .passthrough();
 const VibEntryForProjectSchema = z
@@ -952,6 +954,12 @@ const ProjectProgressSchema = z
     parl_state: z
       .union([z.enum(["OFFEN", "LAEUFT", "ABGESCHLOSSEN"]), z.null()])
       .optional(),
+    parl_state_override: z
+      .union([z.enum(["OFFEN", "LAEUFT", "ABGESCHLOSSEN"]), z.null()])
+      .optional(),
+    parl_befassung_text: z.union([z.string(), z.null()]).optional(),
+    parl_drucksache_url: z.union([z.string(), z.null()]).optional(),
+    parl_befassung_date: z.union([z.string(), z.null()]).optional(),
     observations: z.array(ProgressObservationSchema).optional().default([]),
     contributions: z.array(SourceContributionSchema).optional().default([]),
     pf_documents: z.array(TrackDocumentSchema).optional().default([]),
@@ -1012,8 +1020,12 @@ const ProjectProgressUpdate = z
       z.enum(["OFFEN", "LAEUFT", "ABGESCHLOSSEN"]),
       z.null(),
     ]),
+    parl_befassung_text: z.union([z.string(), z.null()]),
+    parl_drucksache_url: z.union([z.string(), z.null()]),
+    parl_befassung_date: z.union([z.string(), z.null()]),
     clear_phase_override: z.union([z.boolean(), z.null()]),
     clear_parl_relevant: z.union([z.boolean(), z.null()]),
+    clear_parl_state_override: z.union([z.boolean(), z.null()]),
   })
   .partial()
   .passthrough();
@@ -1451,6 +1463,8 @@ const VibPfaEntryProposed = z
     datum_pfb: z.union([z.string(), z.null()]),
     baubeginn: z.union([z.string(), z.null()]),
     inbetriebnahme: z.union([z.string(), z.null()]),
+    project_id: z.union([z.number(), z.null()]),
+    suggested_project_id: z.union([z.number(), z.null()]),
   })
   .partial()
   .passthrough();

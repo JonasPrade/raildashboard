@@ -1128,6 +1128,8 @@ export type VibPfaEntryProposed = {
     datum_pfb: string | null;
     baubeginn: string | null;
     inbetriebnahme: string | null;
+    project_id: number | null;
+    suggested_project_id: number | null;
 };
 
 export type VibEntryProposed = {
@@ -1200,6 +1202,8 @@ export type VibPfaEntrySchema = {
     datum_pfb: string | null;
     baubeginn: string | null;
     inbetriebnahme: string | null;
+    project_id: number | null;
+    suggested_project_id: number | null;
 };
 
 export type VibEntrySchema = {

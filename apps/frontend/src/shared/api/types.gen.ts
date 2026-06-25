@@ -2637,6 +2637,25 @@ export interface components {
             pf_state?: ("OFFEN" | "LAEUFT" | "ABGESCHLOSSEN") | null;
             /** Parl State */
             parl_state?: ("OFFEN" | "LAEUFT" | "ABGESCHLOSSEN") | null;
+            /** Pf State Override */
+            pf_state_override?: ("OFFEN" | "LAEUFT" | "ABGESCHLOSSEN") | null;
+            /** Parl State Override */
+            parl_state_override?: ("OFFEN" | "LAEUFT" | "ABGESCHLOSSEN") | null;
+            /** Parl Befassung Text */
+            parl_befassung_text?: string | null;
+            /** Parl Drucksache Url */
+            parl_drucksache_url?: string | null;
+            /** Parl Befassung Date */
+            parl_befassung_date?: string | null;
+            /** Pf Text */
+            pf_text?: string | null;
+            /** Pf Links */
+            pf_links?: {
+                url: string;
+                comment?: string | null;
+            }[];
+            /** Pf Date */
+            pf_date?: string | null;
             /**
              * Observations
              * @default []
@@ -2689,10 +2708,29 @@ export interface components {
             pf_state_override?: ("OFFEN" | "LAEUFT" | "ABGESCHLOSSEN") | null;
             /** Parl State Override */
             parl_state_override?: ("OFFEN" | "LAEUFT" | "ABGESCHLOSSEN") | null;
+            /** Parl Befassung Text */
+            parl_befassung_text?: string | null;
+            /** Parl Drucksache Url */
+            parl_drucksache_url?: string | null;
+            /** Parl Befassung Date */
+            parl_befassung_date?: string | null;
+            /** Pf Text */
+            pf_text?: string | null;
+            /** Pf Links */
+            pf_links?: {
+                url: string;
+                comment?: string | null;
+            }[] | null;
+            /** Pf Date */
+            pf_date?: string | null;
             /** Clear Phase Override */
             clear_phase_override?: boolean | null;
             /** Clear Parl Relevant */
             clear_parl_relevant?: boolean | null;
+            /** Clear Parl State Override */
+            clear_parl_state_override?: boolean | null;
+            /** Clear Pf State Override */
+            clear_pf_state_override?: boolean | null;
         };
         /** ProjectRefSchema */
         ProjectRefSchema: {
@@ -4089,6 +4127,10 @@ export interface components {
             baubeginn?: string | null;
             /** Inbetriebnahme */
             inbetriebnahme?: string | null;
+            /** Project Id */
+            project_id?: number | null;
+            /** Suggested Project Id */
+            suggested_project_id?: number | null;
         };
         /** VibPfaEntrySchema */
         VibPfaEntrySchema: {
@@ -4110,6 +4152,10 @@ export interface components {
             baubeginn?: string | null;
             /** Inbetriebnahme */
             inbetriebnahme?: string | null;
+            /** Project Id */
+            project_id?: number | null;
+            /** Suggested Project Id */
+            suggested_project_id?: number | null;
         };
         /** VibReportSchema */
         VibReportSchema: {
