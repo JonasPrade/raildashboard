@@ -1,27 +1,29 @@
-import { lazy, Suspense } from "react";
+import { Suspense } from "react";
 import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 import { AppShell, Loader, Group } from "@mantine/core";
 import { Header } from "./components/Header";
+import RouteErrorBoundary from "./components/RouteErrorBoundary";
+import { lazyWithRetry } from "./lib/lazyWithRetry";
 import MapPage from "./features/map/MapPage";
 import DocumentationPage from "./features/documentation/DocumentationPage";
 import ProjectDetail from "./features/projects/ProjectDetail";
 
-const AdminOverviewPage = lazy(() => import("./features/admin/AdminOverviewPage"));
-const UsersPage = lazy(() => import("./features/admin/UsersPage"));
-const RolesAdminPage = lazy(() => import("./features/admin/RolesAdminPage"));
-const ProjectGroupsAdminPage = lazy(() => import("./features/admin/ProjectGroupsAdminPage"));
-const HaushaltsImportPage = lazy(() => import("./features/haushalt-import/HaushaltsImportPage"));
-const HaushaltsReviewPage = lazy(() => import("./features/haushalt-import/HaushaltsReviewPage"));
-const HaushaltsUnmatchedPage = lazy(() => import("./features/haushalt-import/HaushaltsUnmatchedPage"));
-const HaushaltsGuidePage = lazy(() => import("./features/haushalt-import/HaushaltsGuidePage"));
-const FinveOverviewPage = lazy(() => import("./features/finves/FinveOverviewPage"));
-const VibImportPage = lazy(() => import("./features/vib-import/VibImportPage"));
-const VibReviewPage = lazy(() => import("./features/vib-import/VibReviewPage"));
-const VibStructurePreviewPage = lazy(() => import("./features/vib-import/VibStructurePreviewPage"));
-const UnassignedPage = lazy(() => import("./features/admin/UnassignedPage"));
-const FinveProgressAdminPage = lazy(() => import("./features/admin/FinveProgressAdminPage"));
-const NewProjectPage = lazy(() => import("./features/admin/new-project/NewProjectPage"));
-const DraftsPage = lazy(() => import("./features/admin/drafts/DraftsPage"));
+const AdminOverviewPage = lazyWithRetry(() => import("./features/admin/AdminOverviewPage"));
+const UsersPage = lazyWithRetry(() => import("./features/admin/UsersPage"));
+const RolesAdminPage = lazyWithRetry(() => import("./features/admin/RolesAdminPage"));
+const ProjectGroupsAdminPage = lazyWithRetry(() => import("./features/admin/ProjectGroupsAdminPage"));
+const HaushaltsImportPage = lazyWithRetry(() => import("./features/haushalt-import/HaushaltsImportPage"));
+const HaushaltsReviewPage = lazyWithRetry(() => import("./features/haushalt-import/HaushaltsReviewPage"));
+const HaushaltsUnmatchedPage = lazyWithRetry(() => import("./features/haushalt-import/HaushaltsUnmatchedPage"));
+const HaushaltsGuidePage = lazyWithRetry(() => import("./features/haushalt-import/HaushaltsGuidePage"));
+const FinveOverviewPage = lazyWithRetry(() => import("./features/finves/FinveOverviewPage"));
+const VibImportPage = lazyWithRetry(() => import("./features/vib-import/VibImportPage"));
+const VibReviewPage = lazyWithRetry(() => import("./features/vib-import/VibReviewPage"));
+const VibStructurePreviewPage = lazyWithRetry(() => import("./features/vib-import/VibStructurePreviewPage"));
+const UnassignedPage = lazyWithRetry(() => import("./features/admin/UnassignedPage"));
+const FinveProgressAdminPage = lazyWithRetry(() => import("./features/admin/FinveProgressAdminPage"));
+const NewProjectPage = lazyWithRetry(() => import("./features/admin/new-project/NewProjectPage"));
+const DraftsPage = lazyWithRetry(() => import("./features/admin/drafts/DraftsPage"));
 
 function Layout() {
     return (
@@ -40,6 +42,7 @@ export const router = createBrowserRouter([
     {
         path: "/",
         element: <Layout />,
+        errorElement: <RouteErrorBoundary />,
         children: [
             { index: true, element: <MapPage /> },
             { path: "documentation", element: <DocumentationPage /> },
