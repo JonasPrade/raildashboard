@@ -1,8 +1,25 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
+import {
+    TerraDraw,
+    TerraDrawLineStringMode,
+    TerraDrawPointMode,
+    TerraDrawSelectMode,
+} from "terra-draw";
+import { TerraDrawMapLibreGLAdapter } from "terra-draw-maplibre-gl-adapter";
 import type { OperationalPointRef, RoutePreviewFeature } from "../../shared/api/queries";
 
 const tileLayerUrl = import.meta.env.REACT_APP_TILE_LAYER_URL as string | undefined;
+
+/** Active hand-drawing mode (null = off, terra-draw sits in its neutral "static" mode). */
+export type DrawMode = "line" | "point" | "select" | null;
+
+/** Map our UI draw-mode names onto terra-draw's internal mode identifiers. */
+const TERRA_MODE: Record<NonNullable<DrawMode>, string> = {
+    line: "linestring",
+    point: "point",
+    select: "select",
+};
 
 type Props = {
     /** Existing project geojson_representation (JSON string). Shown as solid blue line/circles. */
@@ -22,6 +39,20 @@ type Props = {
     selectedIndices?: Set<number>;
     /** Fired with the clicked feature's __idx when selectionMode is on. */
     onFeatureClick?: (idx: number) => void;
+    /**
+     * Active hand-drawing mode. terra-draw owns its own layers/sources on top of the map;
+     * `null` parks it in the neutral "static" mode so the existing selection-mode click
+     * handlers keep working untouched.
+     */
+    drawMode?: DrawMode;
+    /**
+     * Controlled set of hand-drawn features (LineString/Point only). The parent mirrors
+     * terra-draw's internal store via `onDrawnFeaturesChange`; setting it back to `[]`
+     * (after a save or "reset") clears the terra-draw store.
+     */
+    drawnFeatures?: GeoJSON.Feature[];
+    /** Fired on every terra-draw snapshot change with the current hand-drawn line/point features. */
+    onDrawnFeaturesChange?: (features: GeoJSON.Feature[]) => void;
     height?: number;
 };
 
@@ -123,15 +154,18 @@ function splitIndexedFC(raw: string | null, selected: Set<number>) {
     };
 }
 
-export default function GeometryPreviewMap({ existingGeojson, previewFeature, showExisting, previewPoints = [], selectionMode = false, selectedIndices, onFeatureClick, height = 500 }: Props) {
+export default function GeometryPreviewMap({ existingGeojson, previewFeature, showExisting, previewPoints = [], selectionMode = false, selectedIndices, onFeatureClick, drawMode = null, drawnFeatures = [], onDrawnFeaturesChange, height = 500 }: Props) {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const mapRef = useRef<maplibregl.Map | null>(null);
+    const drawRef = useRef<TerraDraw | null>(null);
     const [isReady, setIsReady] = useState(false);
     // Refs so the click handler (registered once on load) always sees the latest values.
     const selectionModeRef = useRef(selectionMode);
     const onFeatureClickRef = useRef(onFeatureClick);
+    const onDrawnFeaturesChangeRef = useRef(onDrawnFeaturesChange);
     selectionModeRef.current = selectionMode;
     onFeatureClickRef.current = onFeatureClick;
+    onDrawnFeaturesChangeRef.current = onDrawnFeaturesChange;
 
     // Init map once
     useLayoutEffect(() => {
@@ -192,7 +226,42 @@ export default function GeometryPreviewMap({ existingGeojson, previewFeature, sh
             zoom: 5,
         });
         mapRef.current = map;
-        map.on("load", () => { setIsReady(true); });
+        map.on("load", () => {
+            // terra-draw manages its own sources/layers on top of the existing ones.
+            // Created after load so the style is ready; parked in "static" until a draw
+            // mode is selected, which keeps the selection-mode click handlers below intact.
+            const draw = new TerraDraw({
+                adapter: new TerraDrawMapLibreGLAdapter({ map }),
+                modes: [
+                    new TerraDrawLineStringMode(),
+                    new TerraDrawPointMode(),
+                    new TerraDrawSelectMode({
+                        flags: {
+                            linestring: {
+                                feature: {
+                                    draggable: true,
+                                    coordinates: { midpoints: true, draggable: true, deletable: true },
+                                },
+                            },
+                            point: { feature: { draggable: true } },
+                        },
+                    }),
+                ],
+            });
+            const emitDrawn = () => {
+                const drawn = draw
+                    .getSnapshot()
+                    .filter((f) => f.properties?.mode === "linestring" || f.properties?.mode === "point")
+                    .map((f) => ({ type: "Feature" as const, geometry: f.geometry, properties: {} }));
+                onDrawnFeaturesChangeRef.current?.(drawn as GeoJSON.Feature[]);
+            };
+            draw.start();
+            draw.setMode("static");
+            draw.on("change", emitDrawn);
+            draw.on("finish", emitDrawn);
+            drawRef.current = draw;
+            setIsReady(true);
+        });
 
         // Click handler — only acts when parent is in selection mode and a __idx is present.
         const handleClick = (e: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] }) => {
@@ -212,8 +281,37 @@ export default function GeometryPreviewMap({ existingGeojson, previewFeature, sh
         map.on("mouseenter", "existing-points-circle", enterCursor);
         map.on("mouseleave", "existing-points-circle", leaveCursor);
 
-        return () => { map.remove(); mapRef.current = null; setIsReady(false); };
+        return () => {
+            // Tear terra-draw down before the map so its adapter still has a live map.
+            if (drawRef.current) {
+                try { drawRef.current.stop(); } catch { /* map may already be torn down */ }
+                drawRef.current = null;
+            }
+            map.remove();
+            mapRef.current = null;
+            setIsReady(false);
+        };
     }, []);
+
+    // Switch terra-draw mode when the parent changes drawMode (null → neutral "static").
+    useEffect(() => {
+        const draw = drawRef.current;
+        if (!isReady || !draw) return;
+        draw.setMode(drawMode === null ? "static" : TERRA_MODE[drawMode]);
+    }, [drawMode, isReady]);
+
+    // Controlled reset: when the parent clears drawnFeatures (after save / "Zurücksetzen"),
+    // flush terra-draw's internal store. Guarded so we only clear when something is there.
+    useEffect(() => {
+        const draw = drawRef.current;
+        if (!isReady || !draw) return;
+        if (drawnFeatures.length === 0) {
+            const hasDrawn = draw
+                .getSnapshot()
+                .some((f) => f.properties?.mode === "linestring" || f.properties?.mode === "point");
+            if (hasDrawn) draw.clear();
+        }
+    }, [drawnFeatures, isReady]);
 
     // Update existing layer + fit bounds
     useEffect(() => {

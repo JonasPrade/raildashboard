@@ -14,9 +14,10 @@ export default function Step2Geometrie({ project, onProjectChange }: Props) {
         <Stack gap="md">
             <Text c="dimmed" size="sm">
                 Lege eine Geometrie für dieses Projekt an (optional): Route zwischen Betriebsstellen
-                berechnen, einzelne Betriebsstellen hinzufügen oder eine GeoJSON-Datei hochladen.
-                Du kannst nacheinander mehrere Geometrien ergänzen — nach dem Speichern bleibt der
-                Editor offen. Mit „Zurück", „Überspringen" oder „Fertig" unten geht es weiter.
+                berechnen, einzelne Betriebsstellen hinzufügen, eine GeoJSON-Datei hochladen oder
+                Linien und Punkte direkt auf der Karte zeichnen. Du kannst nacheinander mehrere
+                Geometrien ergänzen — nach dem Speichern bleibt der Editor offen. Mit „Zurück",
+                „Überspringen" oder „Fertig" unten geht es weiter.
             </Text>
             <GeometryEditor
                 project={project}

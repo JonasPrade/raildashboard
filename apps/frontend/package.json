@@ -30,7 +30,9 @@
     "react-pdf": "^10.4.1",
     "react-router-dom": "^7.8.0",
     "recharts": "^3.8.0",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "terra-draw": "^1.31.2",
+    "terra-draw-maplibre-gl-adapter": "^1.4.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",

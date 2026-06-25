@@ -48,6 +48,8 @@ The map view expects a raster tile URL provided via `REACT_APP_TILE_LAYER_URL`. 
 | `@mantine/charts` + `recharts` | Chart components (`DonutChart`, `LineChart`) used for FinVe budget visualisation. **Important:** `@mantine/charts/styles.css` must be imported in `main.tsx` — without it, `DonutChart` collapses to zero height and is invisible (its dimensions are set entirely via CSS classes, unlike `LineChart` which uses an explicit `h` prop). |
 | `@tanstack/react-query` | Server-state management; all API calls go through `shared/api/queries.ts` |
 | `react-router-dom` | Client-side routing |
+| `maplibre-gl` | Map rendering for the map view and the geometry editor preview |
+| `terra-draw` + `terra-draw-maplibre-gl-adapter` | Interactive hand-drawing of lines/points in the geometry editor (`GeometryPreviewMap`) |
 | `axios` | HTTP client (configured in `shared/api/client.gen.ts`) — note: manual API calls use the custom `fetch`-based wrapper in `shared/api/client.ts` |
 
 ## Notable features and components
@@ -132,8 +134,12 @@ The backend download endpoint (`GET /api/v1/projects/texts/{text_id}/attachments
 
 Available inside the project detail page via "Geometrie verwalten" (editor/admin only). A full-screen modal with two panels:
 
-- **Left panel** — controls: current geometry status, optional "delete existing" toggle, route calculator form, GeoJSON file upload
+- **Left panel** — controls: current geometry status, optional "delete existing" toggle, hand-drawing tools, route calculator form, operational-point picker, GeoJSON file upload
 - **Right panel** — MapLibre preview map showing existing geometry (blue) and the new preview geometry (orange dashed)
+
+The same editor (`GeometryEditor`) also runs in the project-creation wizard (step 2). See `docs/features/feature-manual-geometry.md` for the hand-drawing feature.
+
+**Hand-drawing flow (`terra-draw`):** `GeometryPreviewMap` owns the MapLibre instance and layers a `TerraDraw` instance (via `terra-draw-maplibre-gl-adapter`) on top. The editor exposes "Linie zeichnen" / "Punkt setzen" / "Bearbeiten" / "Fertig"; `drawMode` switches the terra-draw mode (`null` → neutral `static` so the selection-mode click handlers stay intact), and every snapshot change mirrors the drawn line/point features back into the editor's `drawnFeatures` state. On save they are appended to (or replace, with "delete existing") the FeatureCollection written via `useUpdateProjectGeometry()`. Mutually exclusive with the "select & delete features" mode.
 
 **Route calculator flow:**
 1. User picks start/via/end operational points in `RouteCalculatorForm`

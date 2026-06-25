@@ -17,7 +17,8 @@ import { notifications } from "@mantine/notifications";
 import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import type { OperationalPointRef, Project, RoutePreviewFeature } from "../../shared/api/queries";
 import { useConfirmRoute, useUpdateProjectGeometry } from "../../shared/api/queries";
-import GeometryPreviewMap from "./GeometryPreviewMap";
+import { computeGeojsonLengthKm } from "../../shared/geo/length";
+import GeometryPreviewMap, { type DrawMode } from "./GeometryPreviewMap";
 import RouteCalculatorForm from "./RouteCalculatorForm";
 import StationSelect from "./StationSelect";
 
@@ -73,9 +74,16 @@ export default function GeometryEditor({
     // Selective feature deletion: when active, clicks on the map select existing features.
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedFeatureIndices, setSelectedFeatureIndices] = useState<Set<number>>(new Set());
+    // Hand drawing: terra-draw owns the live geometry; we mirror its snapshot here.
+    const [drawMode, setDrawMode] = useState<DrawMode>(null);
+    const [drawnFeatures, setDrawnFeatures] = useState<GeoJSON.Feature[]>([]);
 
     const hasExisting = !!project.geojson_representation;
     const hasPoints = selectedPoints.length > 0;
+    const hasDrawn = drawnFeatures.length > 0;
+    const drawnLengthKm = computeGeojsonLengthKm(
+        hasDrawn ? JSON.stringify({ type: "FeatureCollection", features: drawnFeatures }) : null,
+    );
 
     const confirmRoute = useConfirmRoute(projectId);
     const updateGeometry = useUpdateProjectGeometry(projectId);
@@ -98,6 +106,8 @@ export default function GeometryEditor({
         setPointSelectKey((k) => k + 1);
         setSelectionMode(false);
         setSelectedFeatureIndices(new Set());
+        setDrawMode(null);
+        setDrawnFeatures([]);
     }
 
     function toggleFeatureSelection(idx: number) {
@@ -188,13 +198,18 @@ export default function GeometryEditor({
         if (previewFeature) routeStations.forEach(pushOnce);
         selectedPoints.forEach(pushOnce);
 
+        // Hand-drawn lines/points, stripped of terra-draw's internal properties.
+        drawnFeatures.forEach((f) => {
+            if (f.geometry) features.push({ type: "Feature", geometry: f.geometry, properties: {} });
+        });
+
         return features.length > 0
             ? JSON.stringify({ type: "FeatureCollection", features })
             : null;
     }
 
     async function handleAccept() {
-        const hasNewGeometry = !!previewFeature || !!uploadedGeojson || hasPoints;
+        const hasNewGeometry = !!previewFeature || !!uploadedGeojson || hasPoints || hasDrawn;
 
         if (!hasNewGeometry && !deleteExisting) {
             onCancel();
@@ -259,8 +274,8 @@ export default function GeometryEditor({
 
     // In selectionMode, the primary save button is suppressed — users delete features via
     // the dedicated "Auswahl löschen" button instead.
-    const canAccept = !selectionMode && (!!previewFeature || !!uploadedGeojson || hasPoints || deleteExisting);
-    const isDeleteOnly = deleteExisting && !previewFeature && !uploadedGeojson && !hasPoints;
+    const canAccept = !selectionMode && (!!previewFeature || !!uploadedGeojson || hasPoints || hasDrawn || deleteExisting);
+    const isDeleteOnly = deleteExisting && !previewFeature && !uploadedGeojson && !hasPoints && !hasDrawn;
 
     return (
         <Group align="stretch" gap={0} wrap="nowrap" style={{ width: "100%", height }}>
@@ -292,7 +307,7 @@ export default function GeometryEditor({
                                 checked={deleteExisting}
                                 onChange={(e) => setDeleteExisting(e.currentTarget.checked)}
                                 color="red"
-                                disabled={selectionMode}
+                                disabled={selectionMode || drawMode !== null}
                             />
                         )}
 
@@ -306,7 +321,7 @@ export default function GeometryEditor({
                                         if (!e.currentTarget.checked) setSelectedFeatureIndices(new Set());
                                     }}
                                     color="red"
-                                    disabled={deleteExisting}
+                                    disabled={deleteExisting || drawMode !== null || hasDrawn}
                                 />
                                 {selectionMode && (
                                     <Stack gap="xs">
@@ -341,6 +356,66 @@ export default function GeometryEditor({
                                 )}
                             </>
                         )}
+
+                        <Divider label="Zeichnen" labelPosition="left" />
+
+                        <Stack gap="xs">
+                            <Text size="xs" c="dimmed">
+                                Zeichne Linien und Punkte direkt auf der Karte. „Linie zeichnen": Klick für Klick
+                                Stützpunkte setzen, Doppelklick beendet die Linie. „Bearbeiten": Stützpunkte
+                                verschieben, einfügen (Mittelpunkt) oder löschen.
+                            </Text>
+                            <Button.Group>
+                                <Button
+                                    size="xs"
+                                    variant={drawMode === "line" ? "filled" : "default"}
+                                    onClick={() => setDrawMode(drawMode === "line" ? null : "line")}
+                                    disabled={selectionMode || deleteExisting}
+                                >
+                                    Linie zeichnen
+                                </Button>
+                                <Button
+                                    size="xs"
+                                    variant={drawMode === "point" ? "filled" : "default"}
+                                    onClick={() => setDrawMode(drawMode === "point" ? null : "point")}
+                                    disabled={selectionMode || deleteExisting}
+                                >
+                                    Punkt setzen
+                                </Button>
+                                <Button
+                                    size="xs"
+                                    variant={drawMode === "select" ? "filled" : "default"}
+                                    onClick={() => setDrawMode(drawMode === "select" ? null : "select")}
+                                    disabled={selectionMode || deleteExisting || !hasDrawn}
+                                >
+                                    Bearbeiten
+                                </Button>
+                                <Button
+                                    size="xs"
+                                    variant="default"
+                                    onClick={() => setDrawMode(null)}
+                                    disabled={drawMode === null}
+                                >
+                                    Fertig
+                                </Button>
+                            </Button.Group>
+                            <Group justify="space-between" align="center">
+                                <ChronicleDataChip>
+                                    {drawnFeatures.length} gezeichnet
+                                    {drawnLengthKm != null ? ` · ${drawnLengthKm.toLocaleString("de-DE")} km` : ""}
+                                </ChronicleDataChip>
+                                {hasDrawn && (
+                                    <Button
+                                        size="xs"
+                                        variant="subtle"
+                                        color="red"
+                                        onClick={() => { setDrawnFeatures([]); setDrawMode(null); }}
+                                    >
+                                        Zurücksetzen
+                                    </Button>
+                                )}
+                            </Group>
+                        </Stack>
 
                         <Divider label="Route berechnen" labelPosition="left" />
 
@@ -462,6 +537,9 @@ export default function GeometryEditor({
                     selectionMode={selectionMode}
                     selectedIndices={selectedFeatureIndices}
                     onFeatureClick={toggleFeatureSelection}
+                    drawMode={drawMode}
+                    drawnFeatures={drawnFeatures}
+                    onDrawnFeaturesChange={setDrawnFeatures}
                     height={undefined}
                 />
             </Box>
