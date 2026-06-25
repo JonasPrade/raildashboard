@@ -8,9 +8,10 @@ live in :class:`ProgressObservation`.
 
 from __future__ import annotations
 
+from datetime import date as date_type
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from dashboard_backend.models.base import Base
@@ -36,6 +37,21 @@ class ProjectProgress(Base):
     # None = derive default from project groups (BSWAG* → relevant). A concrete
     # bool is a manual override that keeps live even when groups change.
     parl_befassung_relevant: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+
+    # --- Parliamentary involvement details (editorial, single block) ---------
+    # Free-text note, link to the Bundestags-Drucksache and the relevant date.
+    # The "Beschluss" itself is the PARL track state (parl_state_override).
+    parl_befassung_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    parl_drucksache_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    parl_befassung_date: Mapped[date_type | None] = mapped_column(Date, nullable=True)
+
+    # --- Planfeststellung details (editorial) --------------------------------
+    # Free-text note, the relevant date, and a list of commented reference links
+    # ``[{"url": str, "comment": str | None}, ...]`` (replaces single-URL +
+    # document-id linking). The PF track state itself remains pf_state_override.
+    pf_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    pf_date: Mapped[date_type | None] = mapped_column(Date, nullable=True)
+    pf_links: Mapped[list | None] = mapped_column(JSON, nullable=True)
 
     lifecycle_status: Mapped[str] = mapped_column(
         String(20), nullable=False, default=LifecycleStatus.AKTIV.value,

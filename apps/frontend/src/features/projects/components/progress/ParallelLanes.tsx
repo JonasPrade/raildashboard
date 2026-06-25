@@ -1,16 +1,9 @@
-import { useState } from "react";
-import { ActionIcon, Anchor, Badge, Group, Stack, Text, TextInput } from "@mantine/core";
-import { IconExternalLink, IconPlus, IconTrash } from "@tabler/icons-react";
+import { Anchor, Badge, Group, Stack, Text } from "@mantine/core";
+import { IconExternalLink } from "@tabler/icons-react";
 
-import { API_BASE } from "../../../../shared/api/client";
-import {
-    type TrackDocument,
-    useLinkTrackDocument,
-    useUnlinkTrackDocument,
-} from "../../../../shared/api/queries";
 import { PARALLEL_STATE_LABEL, type ParallelState } from "./phaseMeta";
 
-type LaneTrack = "PF" | "PARL";
+type Link = { url: string; comment?: string | null };
 
 const STATE_COLOR: Record<ParallelState, string> = {
     OFFEN: "gray",
@@ -18,45 +11,26 @@ const STATE_COLOR: Record<ParallelState, string> = {
     ABGESCHLOSSEN: "green",
 };
 
-function DocumentLink({ doc }: { doc: TrackDocument }) {
-    const href = doc.document.file_path.startsWith("http")
-        ? doc.document.file_path
-        : `${API_BASE}${doc.document.file_path}`;
-    return (
-        <Anchor href={href} target="_blank" rel="noreferrer" size="sm">
-            <Group gap={4} wrap="nowrap" component="span">
-                <IconExternalLink size={14} />
-                {doc.document.title}
-            </Group>
-        </Anchor>
-    );
-}
-
 function Lane({
-    projectId,
-    track,
     label,
     state,
-    documents,
-    canEdit,
+    date,
+    text,
+    links,
+    hideState = false,
 }: {
-    projectId: number;
-    track: LaneTrack;
     label: string;
     state: ParallelState | null;
-    documents: TrackDocument[];
-    canEdit: boolean;
+    date?: string | null;
+    text?: string | null;
+    links: Link[];
+    /** Suppress the state badge + date (the stepper milestone already shows them). */
+    hideState?: boolean;
 }) {
-    const [docId, setDocId] = useState("");
-    const link = useLinkTrackDocument(projectId);
-    const unlink = useUnlinkTrackDocument(projectId);
-
-    const submit = () => {
-        const id = Number(docId);
-        if (Number.isFinite(id) && id > 0) {
-            link.mutate({ track, documentId: id }, { onSuccess: () => setDocId("") });
-        }
-    };
+    const formattedDate = date
+        ? new Date(date).toLocaleDateString("de-DE", { dateStyle: "medium" })
+        : null;
+    const validLinks = links.filter((l) => l.url?.trim());
 
     return (
         <Stack gap={6}>
@@ -64,100 +38,105 @@ function Lane({
                 <Text size="sm" fw={600} style={{ minWidth: 190 }}>
                     {label}
                 </Text>
-                <Badge color={state ? STATE_COLOR[state] : "gray"} variant="light">
-                    {state ? PARALLEL_STATE_LABEL[state] : "–"}
-                </Badge>
+                {!hideState && (
+                    <Badge color={state ? STATE_COLOR[state] : "gray"} variant="light">
+                        {state ? PARALLEL_STATE_LABEL[state] : "–"}
+                    </Badge>
+                )}
+                {!hideState && formattedDate && (
+                    <Text size="xs" c="dimmed">
+                        {formattedDate}
+                    </Text>
+                )}
             </Group>
 
-            {documents.length > 0 && (
+            {(validLinks.length > 0 || text) && (
                 <Stack gap={2} pl={8}>
-                    {documents.map((doc) => (
-                        <Group key={doc.id} gap={6} wrap="nowrap">
-                            <DocumentLink doc={doc} />
-                            {canEdit && (
-                                <ActionIcon
-                                    variant="subtle"
-                                    color="red"
-                                    size="sm"
-                                    aria-label="Dokument entfernen"
-                                    onClick={() =>
-                                        unlink.mutate({ track, documentId: doc.document.id })
-                                    }
-                                >
-                                    <IconTrash size={14} />
-                                </ActionIcon>
-                            )}
-                        </Group>
+                    {validLinks.map((l, i) => (
+                        <Anchor key={i} href={l.url} target="_blank" rel="noreferrer" size="sm">
+                            <Group gap={4} wrap="nowrap" component="span">
+                                <IconExternalLink size={14} />
+                                {l.comment?.trim() || l.url}
+                            </Group>
+                        </Anchor>
                     ))}
+                    {text && (
+                        <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>
+                            {text}
+                        </Text>
+                    )}
                 </Stack>
-            )}
-
-            {canEdit && (
-                <Group gap={6} pl={8}>
-                    <TextInput
-                        size="xs"
-                        placeholder="Dokument-ID"
-                        value={docId}
-                        onChange={(e) => setDocId(e.currentTarget.value)}
-                        w={120}
-                    />
-                    <ActionIcon
-                        variant="light"
-                        size="sm"
-                        aria-label="Dokument verknüpfen"
-                        onClick={submit}
-                        loading={link.isPending}
-                    >
-                        <IconPlus size={14} />
-                    </ActionIcon>
-                </Group>
             )}
         </Stack>
     );
 }
 
 type Props = {
-    projectId: number;
     hasPf: boolean;
     pfState: ParallelState | null;
     parlRelevant: boolean;
     parlState: ParallelState | null;
-    pfDocuments: TrackDocument[];
-    parlDocuments: TrackDocument[];
-    canEdit: boolean;
+    parlText?: string | null;
+    parlDrucksacheUrl?: string | null;
+    parlDate?: string | null;
+    pfText?: string | null;
+    /** Commented reference links for the Planfeststellung. */
+    pfLinks?: Link[];
+    pfDate?: string | null;
+    /** True when the stepper already renders the PF milestone (state + date), so the
+     * PF lane drops its redundant state badge and only stays for links / note. */
+    pfStateInGraphic?: boolean;
+    /** Same as pfStateInGraphic, for the parl. Befassung milestone. */
+    parlStateInGraphic?: boolean;
 };
 
 export default function ParallelLanes({
-    projectId,
     hasPf,
     pfState,
     parlRelevant,
     parlState,
-    pfDocuments,
-    parlDocuments,
-    canEdit,
+    parlText = null,
+    parlDrucksacheUrl = null,
+    parlDate = null,
+    pfText = null,
+    pfLinks = [],
+    pfDate = null,
+    pfStateInGraphic = false,
+    parlStateInGraphic = false,
 }: Props) {
-    if (!hasPf && !parlRelevant) return null;
+    // Beyond the state/date (which the milestone shows), does the lane carry
+    // anything worth a row? If not — and the milestone covers it — drop the lane.
+    const pfHasExtras = pfLinks.some((l) => l.url?.trim()) || !!pfText;
+    const showPfLane = hasPf && (!pfStateInGraphic || pfHasExtras);
+
+    // parl. Befassung keeps a single DIP (Drucksache) link.
+    const parlLinks: Link[] = parlDrucksacheUrl
+        ? [{ url: parlDrucksacheUrl, comment: "Bundestagsdrucksache (DIP)" }]
+        : [];
+    const parlHasExtras = parlLinks.length > 0 || !!parlText;
+    const showParlLane = parlRelevant && (!parlStateInGraphic || parlHasExtras);
+
+    if (!showPfLane && !showParlLane) return null;
     return (
         <Stack gap="md">
-            {hasPf && (
+            {showPfLane && (
                 <Lane
-                    projectId={projectId}
-                    track="PF"
                     label="Planfeststellung"
                     state={pfState}
-                    documents={pfDocuments}
-                    canEdit={canEdit}
+                    date={pfDate}
+                    text={pfText}
+                    links={pfLinks}
+                    hideState={pfStateInGraphic}
                 />
             )}
-            {parlRelevant && (
+            {showParlLane && (
                 <Lane
-                    projectId={projectId}
-                    track="PARL"
                     label="Parlamentarische Befassung"
                     state={parlState}
-                    documents={parlDocuments}
-                    canEdit={canEdit}
+                    date={parlDate}
+                    text={parlText}
+                    links={parlLinks}
+                    hideState={parlStateInGraphic}
                 />
             )}
         </Stack>

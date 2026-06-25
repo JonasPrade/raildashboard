@@ -49,6 +49,7 @@ from dashboard_backend.services.progress_materialization import (
     PfaInput,
     finve_to_spec,
     pfa_has_pf_evidence,
+    pfa_to_specs,
     vib_entry_to_specs,
 )
 from dashboard_backend.models.projects.bvwp_project_data import BvwpProjectData
@@ -198,6 +199,12 @@ def sync_derived_observations(db: Session, project_id: int) -> int:
         # the latter is freetext-parsed and observed to be unreliable
         # (e.g. 1993-12-31 stored on a 2023 report).
         observed = date(report.year, 12, 31) if report is not None else None
+        # PFAs assigned to a (sub)project carry their own status on that
+        # subproject (materialised by the assigned-PFA pass below). Here we only
+        # render the PF track for the *unassigned* sections, and we suppress the
+        # flattened entry-level MAIN once any section has been split out — the
+        # parent then aggregates via its children's span.
+        has_assigned_pfa = any(pfa.project_id is not None for pfa in entry.pfa_entries)
         pfas = [
             PfaInput(
                 id=pfa.id,
@@ -208,6 +215,7 @@ def sync_derived_observations(db: Session, project_id: int) -> int:
                 inbetriebnahme=pfa.inbetriebnahme,
             )
             for pfa in entry.pfa_entries
+            if pfa.project_id is None
         ]
         if pfa_has_pf_evidence(pfas):
             any_pf_evidence = True
@@ -220,6 +228,37 @@ def sync_derived_observations(db: Session, project_id: int) -> int:
                 observed_date=observed,
                 has_planfeststellung_flag=False,
                 pfas=pfas,
+                emit_main=not has_assigned_pfa,
+            )
+        )
+
+    # --- PFAs assigned directly to this project (project as leaf subproject) ---
+    # These belong to a VIB entry linked to the *parent*, so the m:n query above
+    # does not reach them; query by the PFA→project assignment instead.
+    assigned_pfa_rows = (
+        db.query(VibPfaEntry, VibEntry)
+        .join(VibEntry, VibEntry.id == VibPfaEntry.vib_entry_id)
+        .filter(VibPfaEntry.project_id == project_id)
+        .all()
+    )
+    for pfa, entry in assigned_pfa_rows:
+        report = entry.report
+        observed = date(report.year, 12, 31) if report is not None else None
+        pfa_input = PfaInput(
+            id=pfa.id,
+            nr_pfa=pfa.nr_pfa,
+            abschnitt_label=pfa.abschnitt_label,
+            datum_pfb=pfa.datum_pfb,
+            baubeginn=pfa.baubeginn,
+            inbetriebnahme=pfa.inbetriebnahme,
+        )
+        if pfa_has_pf_evidence([pfa_input]):
+            any_pf_evidence = True
+        specs.extend(
+            pfa_to_specs(
+                pfa=pfa_input,
+                vib_entry_id=entry.id,
+                observed_fallback=observed,
             )
         )
 
@@ -445,6 +484,14 @@ def get_progress_view(db: Session, project_id: int, today: date | None = None) -
         "lifecycle_status": result.lifecycle.value,
         "pf_state": result.pf_state.value if result.pf_state else None,
         "parl_state": result.parl_state.value if result.parl_state else None,
+        "pf_state_override": progress.pf_state_override,
+        "parl_state_override": progress.parl_state_override,
+        "parl_befassung_text": progress.parl_befassung_text,
+        "parl_drucksache_url": progress.parl_drucksache_url,
+        "parl_befassung_date": progress.parl_befassung_date,
+        "pf_text": progress.pf_text,
+        "pf_date": progress.pf_date,
+        "pf_links": progress.pf_links or [],
         "observations": observations,
         "contributions": [
             {
@@ -503,6 +550,12 @@ def update_progress(db: Session, project_id: int, payload: dict) -> ProjectProgr
         "manual_override_note",
         "pf_state_override",
         "parl_state_override",
+        "parl_befassung_text",
+        "parl_drucksache_url",
+        "parl_befassung_date",
+        "pf_text",
+        "pf_date",
+        "pf_links",
     }
     for key, value in payload.items():
         if key in simple_fields:
@@ -514,6 +567,21 @@ def update_progress(db: Session, project_id: int, payload: dict) -> ProjectProgr
         progress.manual_override_note = None
     if payload.get("clear_parl_relevant"):
         progress.parl_befassung_relevant = None
+    if payload.get("clear_parl_state_override"):
+        progress.parl_state_override = None
+    if payload.get("clear_pf_state_override"):
+        progress.pf_state_override = None
+
+    # Setting any Planfeststellung signal (state or editorial detail) implies the
+    # track is relevant — otherwise the data would be silently ignored by the
+    # derivation. The explicit toggle still wins if the caller sets it in the same
+    # request (handled above via simple_fields).
+    pf_signal = any(
+        payload.get(k) not in (None, "")
+        for k in ("pf_state_override", "pf_text", "pf_date")
+    ) or bool(payload.get("pf_links"))
+    if pf_signal and "has_planfeststellung" not in payload:
+        progress.has_planfeststellung = True
 
     db.commit()
     db.refresh(progress)
@@ -529,7 +597,7 @@ def create_observation(
     project = db.query(Project).filter(Project.id == project_id).first()
     if project is None:
         return None
-    get_or_create_progress(db, project_id)
+    progress = get_or_create_progress(db, project_id)
 
     observation = ProgressObservation(
         project_id=project_id,
@@ -544,6 +612,16 @@ def create_observation(
         username_snapshot=user.username if user else None,
     )
     db.add(observation)
+
+    # Adding a manual observation on a parallel track implies the track is
+    # relevant — otherwise the derivation would silently ignore it (it gates the
+    # PF/parl state behind these flags). Mirrors the VIB auto-enable in
+    # sync_derived_observations, so users don't have to toggle a second control.
+    if data["track"] == ObservationTrack.PF.value:
+        progress.has_planfeststellung = True
+    elif data["track"] == ObservationTrack.PARL.value and progress.parl_befassung_relevant is None:
+        progress.parl_befassung_relevant = True
+
     db.commit()
     db.refresh(observation)
     return observation

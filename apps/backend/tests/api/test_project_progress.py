@@ -101,6 +101,46 @@ def test_patch_override_wins(client, create_user, monkeypatch):
     assert resp.json()["effective_phase"] == "VORPLANUNG"
 
 
+def test_patch_planfeststellung_details(client, create_user, monkeypatch):
+    """The editorial PF detail fields (date, note, Beschluss link) flow through."""
+    create_user("editor-pf", "pass123", UserRole.editor)
+    captured = {}
+
+    def _update(db, pid, payload):
+        captured.update(payload)
+        return object()  # truthy → not 404
+
+    monkeypatch.setattr(progress_route.progress_crud, "update_progress", _update)
+    monkeypatch.setattr(
+        progress_route.progress_crud,
+        "get_progress_view",
+        lambda db, pid: _make_view(
+            pid,
+            pf_text="PFB liegt vor",
+            pf_links=[{"url": "https://example.org/pfb.pdf", "comment": "Beschluss"}],
+            pf_date="2026-03-15",
+        ),
+    )
+
+    resp = client.patch(
+        "/api/v1/projects/1/progress",
+        json={
+            "pf_text": "PFB liegt vor",
+            "pf_links": [{"url": "https://example.org/pfb.pdf", "comment": "Beschluss"}],
+            "pf_date": "2026-03-15",
+        },
+        headers=basic_auth_header("editor-pf", "pass123"),
+    )
+    assert resp.status_code == 200
+    assert captured["pf_text"] == "PFB liegt vor"
+    assert captured["pf_links"] == [{"url": "https://example.org/pfb.pdf", "comment": "Beschluss"}]
+    assert str(captured["pf_date"]) == "2026-03-15"
+    body = resp.json()
+    assert body["pf_text"] == "PFB liegt vor"
+    assert body["pf_links"] == [{"url": "https://example.org/pfb.pdf", "comment": "Beschluss"}]
+    assert body["pf_date"] == "2026-03-15"
+
+
 # --- Observations ------------------------------------------------------------
 
 

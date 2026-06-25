@@ -51,6 +51,13 @@ class LinkDocumentInput(BaseModel):
     document_id: int
 
 
+class PfLinkSchema(BaseModel):
+    """A single commented reference link for the Planfeststellung."""
+
+    url: str
+    comment: Optional[str] = None
+
+
 # --- Observations ------------------------------------------------------------
 
 
@@ -117,10 +124,20 @@ class ProjectProgressUpdate(BaseModel):
     manual_override_note: Optional[str] = None
     pf_state_override: Optional[ParallelStateLiteral] = None
     parl_state_override: Optional[ParallelStateLiteral] = None
+    # Parliamentary involvement details (single editorial block).
+    parl_befassung_text: Optional[str] = None
+    parl_drucksache_url: Optional[str] = None
+    parl_befassung_date: Optional[date] = None
+    # Planfeststellung details (single editorial block, mirrors the parl one).
+    pf_text: Optional[str] = None
+    pf_date: Optional[date] = None
+    pf_links: Optional[list[PfLinkSchema]] = None
     # Sentinel fields to explicitly clear a nullable override (since None in the
     # fields above is indistinguishable from "not provided" under exclude_unset).
     clear_phase_override: Optional[bool] = None
     clear_parl_relevant: Optional[bool] = None
+    clear_parl_state_override: Optional[bool] = None
+    clear_pf_state_override: Optional[bool] = None
 
 
 # --- Forecast (Phase 3) ------------------------------------------------------
@@ -191,6 +208,18 @@ class ProjectProgressSchema(BaseModel):
     # Resolved parallel tracks (null when the track is inactive).
     pf_state: Optional[ParallelStateLiteral] = None
     parl_state: Optional[ParallelStateLiteral] = None
+    pf_state_override: Optional[ParallelStateLiteral] = None  # raw stored override
+    parl_state_override: Optional[ParallelStateLiteral] = None  # raw stored override
+
+    # Parliamentary involvement details (single editorial block).
+    parl_befassung_text: Optional[str] = None
+    parl_drucksache_url: Optional[str] = None
+    parl_befassung_date: Optional[date] = None
+
+    # Planfeststellung details (single editorial block, mirrors the parl one).
+    pf_text: Optional[str] = None
+    pf_date: Optional[date] = None
+    pf_links: list[PfLinkSchema] = []
 
     # Breakdown.
     observations: list[ProgressObservationSchema] = []
