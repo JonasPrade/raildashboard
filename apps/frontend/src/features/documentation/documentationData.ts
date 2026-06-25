@@ -85,7 +85,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Lebenszyklus-Overlay (Pausiert/Abgebrochen) und einen Aufklappbereich mit der " +
             "Quellen-Aufschlüsselung. Die Anzeige ist öffentlich; Bearbeiten erfordert progress.edit.",
         details: [
-            "Headline-Phase = max() über die glaubwürdigen Untergrenzen der manuellen Beobachtungen (Recency-gewichtet)",
+            "Headline-Phase = Beobachtung mit der höchsten effektiven Konfidenz (Recency-gewichtet); bei Gleichstand gewinnt die höhere Phase",
             "Manueller Phasen-Override gewinnt immer über den berechneten Wert (Badge 'übersteuert')",
             "Parl. Befassung ist bei BSWAG-Projektgruppen vorbelegt; nullable Override pro Projekt",
             "Pausiert/Abgebrochen überblendet die gesamte Darstellung (Banner + abgeblendeter Stepper)",
