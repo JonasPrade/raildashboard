@@ -92,13 +92,15 @@ export const featureHighlights: FeatureHighlight[] = [
             "Übergeordnete Projekte zeigen eine Phasen-Spanne (min..max) + eine durchsuchbare Unterprojekt-Tabelle mit Status-Verteilung (z. B. „3× Bau · 1× Vorplanung · 2× Unbekannt“)",
             "Hover über einen Phasen-Kreis im Stepper listet die Unterprojekte dieser Phase auf",
             "Projekte ohne Datengrundlage werden klar als „Unbekannt“ markiert (nicht als „Nicht gestartet“)",
-            "Dokumente lassen sich hinter Planfeststellung und parl. Befassung verlinken",
+            "Planfeststellung: Zustand, Datum, Notiz und mehrere kommentierte URL-Links; parl. Befassung: Zustand, Datum, Notiz und der DIP-Link zur Bundestagsdrucksache",
+            "Planfeststellung (PFB, zwischen Genehmigungsplanung und Bau) und parl. Befassung (zwischen Vorplanung und Genehmigungsplanung) erscheinen als Meilenstein-Rauten auf der Hauptzeitleiste — grün + Datum wenn abgeschlossen, blau wenn laufend, Umriss wenn offen",
+            "„Hat Planfeststellung\" wird automatisch aktiviert, sobald eine PF-Beobachtung oder ein PF-Detail erfasst wird — kein separates Anhaken nötig",
             "API: GET (public) / PATCH / POST+DELETE observations / tracks/{track}/documents / recompute unter /api/v1/projects/{id}/progress",
-            "VIB/FinVe-Beobachtungen werden materialisiert (is_derived): VIB-Status → Hauptspur, PFA → Planfeststellung; reguläre FinVe → Bau; nicht manuell löschbar",
+            "VIB/FinVe-Beobachtungen werden materialisiert (is_derived): VIB-Status → Leistungsphasen, PFA → Planfeststellung; reguläre FinVe → Bau; nicht manuell löschbar",
             "Sammel-FinVe: Phase aus der Leistungsphase im Namen (Lph 1/2 → Vorplanung, Lph 3/4 → Genehmigungsplanung); ohne erkennbare Lph (z. B. EKrG) manuell zuordenbar unter Admin → „Sammel-FinVe Phasen“",
             "Lazy-Resync der abgeleiteten Beobachtungen bei stalem Cache (24h); „Neu berechnen\" erzwingt den Sync",
             "Prognose-Panel: Restdauer der aktuellen Phase + nächste Schritte aus BVWP-Dauern, VIB-PFA-Terminen und Fulda-Runde-Beobachtungen",
-            "Manuelle Erfassung mit Quellentyp (MANUELL/FULDA_RUNDE/BAUPORTAL/MEDIEN) und optionalem Vertrauens-Override pro Beobachtung"
+            "Manuelle Beobachtungen erfassen nur Leistungsphasen (Quellentyp MANUELL/FULDA_RUNDE/BAUPORTAL/MEDIEN + optionaler Vertrauens-Override); Planfeststellung & parl. Befassung werden separat im Schaltmenü „Verfahren\" gepflegt"
         ]
     },
     {
