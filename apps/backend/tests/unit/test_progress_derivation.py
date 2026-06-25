@@ -36,10 +36,12 @@ def _main(state: str, *, source=SourceType.MANUELL, dt=TODAY, conf=None, oid=Non
     )
 
 
-# --- Lower-bound max ---------------------------------------------------------
+# --- Headline: highest confidence wins ---------------------------------------
 
 
-def test_headline_is_max_lower_bound():
+def test_equal_confidence_resolves_to_higher_phase():
+    # All three observations share the same effective confidence (same source,
+    # date, no explicit value), so the tie resolves to the highest phase.
     result = derive_headline(
         [_main("VORPLANUNG", oid=1), _main("BAU", oid=2), _main("GENEHMIGUNGSPLANUNG", oid=3)],
         has_pf=False,
@@ -50,6 +52,19 @@ def test_headline_is_max_lower_bound():
     assert result.effective_phase is MainPhase.BAU
     decisive = [c.id for c in result.contributions if c.was_decisive]
     assert decisive == [2]
+
+
+def test_high_confidence_manual_beats_low_confidence_derived_higher_phase():
+    # Project-2019 scenario: an editor sets GENEHMIGUNGSPLANUNG at full
+    # confidence; a FinVe-derived BAU sits at a low (decayed) confidence. The
+    # manual statement must win even though BAU is the higher phase.
+    manual = _main("GENEHMIGUNGSPLANUNG", source=SourceType.MANUELL, conf=1.0, oid=97)
+    finve = _main("BAU", source=SourceType.FINVE, dt=date(2023, 1, 1), oid=98)
+    result = derive_headline([manual, finve], has_pf=False, parl_relevant=False, today=TODAY)
+    assert result.computed_phase is MainPhase.GENEHMIGUNGSPLANUNG
+    assert result.computed_confidence == 1.0
+    decisive = [c.id for c in result.contributions if c.was_decisive]
+    assert decisive == [97]
 
 
 def test_no_observations_means_not_started():
@@ -122,16 +137,18 @@ def test_structured_source_keeps_lower_bound_when_old():
     assert result.contributions[0].effective_confidence >= CREDIBILITY_THRESHOLD
 
 
-def test_old_vib_loses_against_fresh_manual():
+def test_fresh_manual_wins_over_decayed_vib():
     old_vib = _main("BAU", source=SourceType.VIB, dt=date(2025, 8, 1), oid=1)
     fresh_manual = _main("GENEHMIGUNGSPLANUNG", dt=TODAY, oid=2)
-    # The decayed VIB is still a credible lower bound for BAU, so the headline
-    # remains BAU — but its weight is far below the fresh manual observation.
+    # The fresh manual observation has far higher effective confidence than the
+    # decayed VIB, so it decides the headline — even though BAU is the higher
+    # phase. (Confidence wins over phase order.)
     result = derive_headline([old_vib, fresh_manual], has_pf=False, parl_relevant=False, today=TODAY)
     vib_c = next(c for c in result.contributions if c.id == 1)
     man_c = next(c for c in result.contributions if c.id == 2)
     assert vib_c.effective_confidence < man_c.effective_confidence
-    assert result.computed_phase is MainPhase.BAU
+    assert result.computed_phase is MainPhase.GENEHMIGUNGSPLANUNG
+    assert man_c.was_decisive is True
 
 
 def test_explicit_confidence_overrides_recency():

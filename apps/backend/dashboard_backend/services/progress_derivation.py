@@ -1,15 +1,23 @@
 """Pure planning-state derivation logic (no DB session, fully unit-testable).
 
-The derivation is a **hybrid**: most sources assert a monotone *lower bound*
-on the main phase, so the computed headline is the ``max`` over the credible
-lower bounds. The computed value is only a *suggestion* — a manual override
-(passed in) always wins. Conflicts are never silently resolved away; every
-input observation is echoed back as a :class:`SourceContribution` so the API /
-frontend can show the full breakdown.
+The headline main phase is decided by the **most credible observation**: among
+all credible MAIN observations (effective confidence ≥ ``CREDIBILITY_THRESHOLD``)
+the one with the **highest effective confidence** wins, and its asserted phase
+becomes the computed headline. Confidence — not phase order — is the arbiter, so
+a high-confidence editorial correction (e.g. a manual "Genehmigungsplanung" at
+confidence 1.0) beats a weak derived signal (e.g. a low-confidence FinVe-derived
+"Bau"). Ties in confidence resolve to the higher phase (progress doesn't
+un-happen among equally trusted signals). The computed value is only a
+*suggestion* — a manual override (passed in) always wins for the effective
+phase. Conflicts are never silently resolved away; every input observation is
+echoed back as a :class:`SourceContribution` so the API / frontend can show the
+full breakdown.
 
-Phase 1 feeds this only with **manual** observations. Phase 2 will materialise
-VIB/FinVe observations (``is_derived=True``) and hand them in here unchanged —
-no logic change required.
+Effective confidence = explicit per-observation confidence, else the source-type
+default trust × recency decay. Trade-off of the confidence-wins rule: a fresh,
+low-trust signal can override an older, higher-phase one — i.e. the headline
+*can* move backwards for automated sources. This is intended, so that recent and
+human input is authoritative.
 """
 
 from __future__ import annotations
@@ -43,16 +51,17 @@ SOURCE_TYPE_DEFAULT_TRUST: dict[SourceType, float] = {
 # fade against fresher sources.
 RECENCY_HALF_LIFE_DAYS = 365
 # Recency multiplier never drops below this floor. Chosen so that a structured
-# source (VIB 0.6, FinVe 0.7) keeps its monotone lower bound regardless of age
-# (0.6 × 0.3 = 0.18 ≥ CREDIBILITY_THRESHOLD) — progress doesn't un-happen, so an
-# old "in Betrieb" must not be dropped — while fully-decayed low-trust media
-# (0.4 × 0.3 = 0.12) can still fall below the threshold.
+# source (VIB 0.6, FinVe 0.7) stays *credible* (above CREDIBILITY_THRESHOLD)
+# regardless of age (0.6 × 0.3 = 0.18 ≥ 0.15), while fully-decayed low-trust media
+# (0.4 × 0.3 = 0.12) can still fall below it. The floor keeps an old structured
+# observation in the running; whether it decides the headline then depends on its
+# confidence relative to the others.
 RECENCY_FLOOR = 0.3
 # Recency multiplier for observations without a parseable date.
 NO_DATE_RECENCY = 0.6
 
-# An observation must reach this effective confidence to count towards the
-# lower-bound max (keeps low-trust noise from lifting the headline).
+# An observation must reach this effective confidence to be considered at all
+# (keeps low-trust noise from deciding the headline).
 CREDIBILITY_THRESHOLD = 0.15
 
 # Lazy-resync staleness window (Phase 2): cached ``computed_at`` older than this
@@ -221,25 +230,29 @@ def derive_headline(
     ]
 
     if credible_main:
-        max_order = max(
-            _safe_main_phase(obs.asserted_state).order for obs, _ in credible_main  # type: ignore[union-attr]
-        )
-        computed_phase = next(
-            phase for phase in MainPhase if phase.order == max_order
-        )
-        # Confidence = strongest observation that reaches the headline phase.
-        deciding = [
+        # Highest effective confidence decides the headline phase. Confidence —
+        # not phase order — is the arbiter, so an editor's high-confidence
+        # correction beats a weak derived signal. Ties in confidence resolve to
+        # the higher phase (progress doesn't un-happen among equally trusted
+        # signals).
+        top_confidence = max(contrib.effective_confidence for _, contrib in credible_main)
+        top = [
             (obs, contrib)
             for obs, contrib in credible_main
-            if _safe_main_phase(obs.asserted_state).order == max_order  # type: ignore[union-attr]
+            if contrib.effective_confidence == top_confidence
         ]
-        computed_confidence = round(
-            max(contrib.effective_confidence for _, contrib in deciding), 4
+        best_order = max(
+            _safe_main_phase(obs.asserted_state).order for obs, _ in top  # type: ignore[union-attr]
         )
-        for obs, contrib in deciding:
-            contrib.was_decisive = True
-            if obs.id is not None:
-                decisive_ids.add(obs.id)
+        computed_phase = next(
+            phase for phase in MainPhase if phase.order == best_order
+        )
+        computed_confidence = round(top_confidence, 4)
+        for obs, contrib in top:
+            if _safe_main_phase(obs.asserted_state).order == best_order:  # type: ignore[union-attr]
+                contrib.was_decisive = True
+                if obs.id is not None:
+                    decisive_ids.add(obs.id)
 
     # --- Parallel tracks (only when active) ----------------------------------
     pf_state: ParallelState | None = None
