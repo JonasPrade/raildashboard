@@ -72,6 +72,7 @@ class ProgressObservationSchema(BaseModel):
     confidence: Optional[float] = None
     note: Optional[str] = None
     is_derived: bool
+    is_expected: bool = False
     username_snapshot: Optional[str] = None
     created_at: datetime
 
@@ -83,6 +84,7 @@ class ProgressObservationCreate(BaseModel):
     observed_date: Optional[date] = None
     confidence: Optional[float] = None
     note: Optional[str] = None
+    is_expected: bool = False
 
 
 # --- Derivation breakdown ----------------------------------------------------

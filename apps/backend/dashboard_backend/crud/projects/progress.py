@@ -128,6 +128,17 @@ def _enum_or_none(enum_cls, value):
         return None
 
 
+def _phase_date_pairs(
+    observations: list[ProgressObservation],
+) -> list[tuple[MainPhase, date]]:
+    pairs: list[tuple[MainPhase, date]] = []
+    for obs in observations:
+        phase = _enum_or_none(MainPhase, obs.asserted_state)
+        if phase is not None:
+            pairs.append((phase, obs.observed_date))
+    return pairs
+
+
 def derive_for_project(
     db: Session,
     project: Project,
@@ -144,9 +155,14 @@ def derive_for_project(
     cache perpetually "fresh" and starve the resync (see ``_ensure_fresh``).
     """
 
+    # Expected (future) milestones never contribute to the current headline —
+    # they only inform the forecast (see ``_build_forecast_for_project``).
     observations = (
         db.query(ProgressObservation)
-        .filter(ProgressObservation.project_id == project.id)
+        .filter(
+            ProgressObservation.project_id == project.id,
+            ProgressObservation.is_expected.is_(False),
+        )
         .all()
     )
     result = derive_headline(
@@ -384,11 +400,21 @@ def _build_forecast_for_project(
         )
         .all()
     )
-    fulda: list[tuple[MainPhase, date]] = []
-    for obs in fulda_obs:
-        phase = _enum_or_none(MainPhase, obs.asserted_state)
-        if phase is not None:
-            fulda.append((phase, obs.observed_date))
+    fulda = _phase_date_pairs(fulda_obs)
+
+    # Manual expected milestones (is_expected=True): editorial future dates that
+    # override all derived sources in the forecast.
+    expected_obs = (
+        db.query(ProgressObservation)
+        .filter(
+            ProgressObservation.project_id == project_id,
+            ProgressObservation.is_expected.is_(True),
+            ProgressObservation.track == ObservationTrack.MAIN.value,
+            ProgressObservation.observed_date.isnot(None),
+        )
+        .all()
+    )
+    manual_expected = _phase_date_pairs(expected_obs)
 
     result = build_forecast(
         effective_phase=effective_phase,
@@ -396,6 +422,7 @@ def _build_forecast_for_project(
         pfas=pfas,
         bvwp=bvwp,
         fulda=fulda,
+        manual_expected=manual_expected,
     )
     return {
         "current_phase": result.current_phase.value,
@@ -656,6 +683,7 @@ def create_observation(
         confidence=data.get("confidence"),
         note=data.get("note"),
         is_derived=False,
+        is_expected=bool(data.get("is_expected", False)),
         created_by_user_id=user.id if user else None,
         username_snapshot=user.username if user else None,
     )

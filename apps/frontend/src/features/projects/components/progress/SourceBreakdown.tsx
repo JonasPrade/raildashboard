@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Badge, Button, Collapse, Divider, Stack, Table, Text } from "@mantine/core";
+import { Badge, Button, Collapse, Divider, Group, Stack, Table, Text } from "@mantine/core";
 import { IconChevronDown, IconChevronRight } from "@tabler/icons-react";
 
 import {
@@ -117,7 +117,14 @@ export default function SourceBreakdown({ contributions, observations }: Props) 
                                                 {TRACK_LABEL[obs.track as ObservationTrack] ?? obs.track}
                                             </Table.Td>
                                             <Table.Td>
-                                                {stateLabel(obs.track as ObservationTrack, obs.asserted_state)}
+                                                <Group gap={6} wrap="nowrap">
+                                                    {stateLabel(obs.track as ObservationTrack, obs.asserted_state)}
+                                                    {obs.is_expected && (
+                                                        <Badge size="xs" color="teal" variant="light">
+                                                            erwartet
+                                                        </Badge>
+                                                    )}
+                                                </Group>
                                             </Table.Td>
                                             <Table.Td>{obs.observed_date ?? "–"}</Table.Td>
                                             <Table.Td>{obs.note ?? ""}</Table.Td>

@@ -99,8 +99,10 @@ export const featureHighlights: FeatureHighlight[] = [
             "VIB/FinVe-Beobachtungen werden materialisiert (is_derived): VIB-Status → Leistungsphasen, PFA → Planfeststellung; reguläre FinVe → Bau; nicht manuell löschbar",
             "Sammel-FinVe: Phase aus der Leistungsphase im Namen (Lph 1/2 → Vorplanung, Lph 3/4 → Genehmigungsplanung); ohne erkennbare Lph (z. B. EKrG) manuell zuordenbar unter Admin → „Sammel-FinVe Phasen“",
             "Lazy-Resync der abgeleiteten Beobachtungen bei stalem Cache (24h); „Neu berechnen\" erzwingt den Sync",
-            "Prognose-Panel: Restdauer der aktuellen Phase + nächste Schritte aus BVWP-Dauern, VIB-PFA-Terminen und Fulda-Runde-Beobachtungen",
-            "Manuelle Beobachtungen erfassen nur Leistungsphasen (Quellentyp MANUELL/FULDA_RUNDE/BAUPORTAL/MEDIEN + optionaler Vertrauens-Override); Planfeststellung & parl. Befassung werden separat im Schaltmenü „Verfahren\" gepflegt"
+            "Prognose-Panel: Restdauer der aktuellen Phase + nächste Schritte aus BVWP-Dauern, VIB-PFA-Terminen, Fulda-Runde- und manuellen Erwartet-Beobachtungen",
+            "Manuelle Beobachtungen erfassen nur Leistungsphasen (Quellentyp MANUELL/FULDA_RUNDE/BAUPORTAL/MEDIEN + optionaler Vertrauens-Override); Planfeststellung & parl. Befassung werden separat im Schaltmenü „Verfahren\" gepflegt",
+            "Erwartete Termine: eine manuelle Beobachtung kann als „erwarteter Termin\" markiert werden (Schalter im Beobachtungsformular). Sie speist nur die Prognose (z. B. erwartete Inbetriebnahme), zieht die aktuelle Phase nicht hoch und übersteuert dort alle automatischen Quellen (VIB-PFA/BVWP/Fulda)",
+            "Kurzansicht (Karten-Popup, Unter-/Übergeordnet-Abschnitte): kompakte Leistungsphasen-Leiste mit aktuellem Stand; erreichte Phasen grün, „In Betrieb\" grün (= abgeschlossen), Spanne bei übergeordneten Projekten"
         ]
     },
     {

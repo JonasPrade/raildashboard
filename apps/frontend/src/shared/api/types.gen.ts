@@ -2420,6 +2420,11 @@ export interface components {
             confidence?: number | null;
             /** Note */
             note?: string | null;
+            /**
+             * Is Expected
+             * @default false
+             */
+            is_expected: boolean;
         };
         /** ProgressObservationSchema */
         ProgressObservationSchema: {
@@ -2445,6 +2450,11 @@ export interface components {
             note?: string | null;
             /** Is Derived */
             is_derived: boolean;
+            /**
+             * Is Expected
+             * @default false
+             */
+            is_expected: boolean;
             /** Username Snapshot */
             username_snapshot?: string | null;
             /**

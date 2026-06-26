@@ -845,6 +845,7 @@ const ProgressObservationSchema = z
     confidence: z.union([z.number(), z.null()]).optional(),
     note: z.union([z.string(), z.null()]).optional(),
     is_derived: z.boolean(),
+    is_expected: z.boolean().optional().default(false),
     username_snapshot: z.union([z.string(), z.null()]).optional(),
     created_at: z.string().datetime({ offset: true }),
   })
@@ -1081,6 +1082,7 @@ const ProgressObservationCreate = z
     observed_date: z.union([z.string(), z.null()]).optional(),
     confidence: z.union([z.number(), z.null()]).optional(),
     note: z.union([z.string(), z.null()]).optional(),
+    is_expected: z.boolean().optional().default(false),
   })
   .passthrough();
 const LinkDocumentInput = z

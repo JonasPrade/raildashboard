@@ -83,9 +83,11 @@ def build_forecast(
     pfas: list[PfaForecastInput] | None = None,
     bvwp: BvwpDurations | None = None,
     fulda: list[tuple[MainPhase, date]] | None = None,
+    manual_expected: list[tuple[MainPhase, date]] | None = None,
 ) -> ForecastResult:
     pfas = pfas or []
     fulda = fulda or []
+    manual_expected = manual_expected or []
 
     # --- Concrete milestone dates per phase ---------------------------------
     # Aggregate across PFA sections: earliest construction start (first section
@@ -106,6 +108,10 @@ def build_forecast(
         existing = concrete.get(phase)
         if existing is None or dt < existing[0]:
             concrete[phase] = (dt, "Fulda-Runde")
+
+    # Manual expected dates are editorial — they always win over derived sources.
+    for phase, dt in manual_expected:
+        concrete[phase] = (dt, "Manuell")
 
     has_concrete = bool(concrete)
     has_bvwp = bvwp is not None and (

@@ -282,6 +282,47 @@ verstreut und vermischte sich mit der Visualisierung. Stattdessen:
 4. **Neue externe Quellen**: reichere manuelle Erfassung für FULDA_RUNDE/BAUPORTAL/MEDIEN,
    später eigene Importer (`is_derived`).
 
+## Erwartete Termine (manuelle Prognose-Einträge)
+
+**Ziel:** Redakteure sollen erwartete Phasentermine (insbesondere die erwartete
+**Inbetriebnahme**) manuell erfassen können — wie die manuellen Leistungsphasen-
+Beobachtungen, aber als **„erwartet"** statt „beobachtet/erreicht". Heute kommen
+Inbetriebnahme-/Phasentermine nur aus VIB-PFA, BVWP-Dauern und Fulda-Runde; ein
+direkter, redaktioneller Zukunftstermin fehlt.
+
+**Kernunterscheidung:** Eine reguläre Beobachtung behauptet einen *aktuell erreichten*
+Zustand (Untergrenze für die Headline-Phase). Ein **erwarteter** Eintrag behauptet,
+dass eine Phase erst *künftig* erreicht wird — er darf die aktuelle Phase **nicht**
+hochziehen, sondern speist ausschließlich die **Prognose**.
+
+**Datenmodell:** neues Flag `is_expected: bool` (default `False`, `server_default
+"false"`) auf `progress_observation`. Ein erwarteter Eintrag nutzt dieselben Felder:
+`track=MAIN`, `asserted_state` = Zielphase, `observed_date` = erwartetes Datum,
+`source_type=MANUELL`, optional `note`. Migration via `make migrate-create`.
+
+**Ableitung (`derive_headline`):** Beobachtungen mit `is_expected=True` werden aus der
+Headline-/`computed_phase`-Ableitung **ausgeschlossen** (kein Untergrenzen-Beitrag,
+kein Vertrauensbeitrag). Sie tauchen weiterhin in der Provenienz-/Quellen-Tabelle auf,
+klar als „erwartet" markiert.
+
+**Prognose (`build_forecast` / `_build_forecast_for_project`):** erwartete Einträge
+fließen als neue, **höchstpriorisierte** Quelle ein — *manuell übersteuert immer*.
+Neuer Parameter `manual_expected: list[(MainPhase, date)]`; im `concrete`-Aufbau
+**nach** VIB-PFA/Fulda gesetzt, sodass er bestehende Einträge überschreibt (nicht nur
+Lücken füllt). Quelle-Label `"Manuell"` im `ForecastStep` und farblich im
+`ForecastPanel` (`SOURCE_COLOR`). CRUD lädt manuelle `is_expected=True`-MAIN-Beobachtungen
+mit Datum analog zu `fulda_obs`.
+
+**Sichtbarkeit:** wie der übrige Planungsstand **öffentlich** (GET offen). Eingabe nur
+mit Permission `progress.edit`.
+
+**Frontend (`ProgressEditDrawer`):** der Abschnitt „Manuelle Beobachtungen" erhält im
+`ObservationDraftForm` einen Schalter **„erwarteter Termin"**. Bei aktivem Schalter wird
+`is_expected=true` mitgeschickt; Label/Beschreibung verdeutlichen „erwartet" statt
+„erreicht". In der Beobachtungstabelle (Drawer) und im `SourceBreakdown` ein Badge
+„erwartet". `ProgressObservationCreate`/`ProgressObservationSchema` um `is_expected`
+erweitern → `make gen-api`.
+
 ## Offene Punkte / Risiken / Edge Cases
 
 - **`parl_befassung_relevant`-Default**: `project_group` hat kein stabiles Typ-Flag →
