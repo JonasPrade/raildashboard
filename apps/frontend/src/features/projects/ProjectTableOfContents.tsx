@@ -14,6 +14,8 @@ export interface TocSection {
 
 interface Props {
     sections: TocSection[];
+    /** When provided, renders a second left-edge icon that creates a task. */
+    onCreateTask?: () => void;
 }
 
 // Minimal inline SVG icons – no external icon library needed
@@ -36,7 +38,20 @@ function IconClose() {
     );
 }
 
-export function ProjectTableOfContents({ sections }: Props) {
+// Checklist with a plus – "create task"
+function IconTaskAdd() {
+    return (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 5h12" />
+            <path d="M3 12h8" />
+            <path d="M3 19h8" />
+            <path d="M17 14v6" />
+            <path d="M14 17h6" />
+        </svg>
+    );
+}
+
+export function ProjectTableOfContents({ sections, onCreateTask }: Props) {
     const [open, setOpen] = useState(false);
     const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -91,23 +106,41 @@ export function ProjectTableOfContents({ sections }: Props) {
                 transform: "translateY(-50%)",
                 zIndex: 200,
                 display: "flex",
-                alignItems: "center",
+                alignItems: "flex-start",
             }}
         >
-            {/* Toggle tab – always visible on the left edge */}
-            <Tooltip label={open ? "Schließen" : "Inhaltsverzeichnis"} position="right" withArrow>
-                <ActionIcon
-                    variant="filled"
-                    color="preussen"
-                    size={42}
-                    radius={0}
-                    style={{ borderRadius: "0 6px 6px 0" }}
-                    onClick={() => setOpen((o) => !o)}
-                    aria-label={open ? "Inhaltsverzeichnis schließen" : "Inhaltsverzeichnis öffnen"}
-                >
-                    {open ? <IconClose /> : <IconMenu />}
-                </ActionIcon>
-            </Tooltip>
+            {/* Left-edge icon column: TOC toggle + optional "create task" */}
+            <Stack gap={6}>
+                <Tooltip label={open ? "Schließen" : "Inhaltsverzeichnis"} position="right" withArrow>
+                    <ActionIcon
+                        variant="filled"
+                        color="preussen"
+                        size={42}
+                        radius={0}
+                        style={{ borderRadius: "0 6px 6px 0" }}
+                        onClick={() => setOpen((o) => !o)}
+                        aria-label={open ? "Inhaltsverzeichnis schließen" : "Inhaltsverzeichnis öffnen"}
+                    >
+                        {open ? <IconClose /> : <IconMenu />}
+                    </ActionIcon>
+                </Tooltip>
+
+                {onCreateTask && (
+                    <Tooltip label="Aufgabe erstellen" position="right" withArrow>
+                        <ActionIcon
+                            variant="filled"
+                            color="gold"
+                            size={42}
+                            radius={0}
+                            style={{ borderRadius: "0 6px 6px 0", color: "var(--ink)" }}
+                            onClick={onCreateTask}
+                            aria-label="Aufgabe erstellen"
+                        >
+                            <IconTaskAdd />
+                        </ActionIcon>
+                    </Tooltip>
+                )}
+            </Stack>
 
             {/* Section list panel */}
             {open && (

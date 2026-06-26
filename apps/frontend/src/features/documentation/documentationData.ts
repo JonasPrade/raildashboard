@@ -209,6 +209,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Mehrfachzuweisung an Nutzer (m:n); Zugewiesene als Avatar-Initialen auf der Karte",
             "Status Offen / In Arbeit / Erledigt (Erledigt setzt completed_at), Priorität Niedrig / Mittel / Hoch, optionales Fälligkeitsdatum (überfällig rot hervorgehoben)",
             "Projektdetailseite zeigt für angemeldete Nutzer den Abschnitt „Aufgaben“ mit den Aufgaben des Projekts und „+ Aufgabe“ (Projekt vorbelegt)",
+            "Schnell-Einstieg: zweites Icon am linken Bildschirmrand (unter dem Inhaltsverzeichnis) öffnet direkt das Formular für eine neue Aufgabe (Projekt vorbelegt)",
             "Beim Löschen eines Projekts bleibt die Aufgabe erhalten (project_id wird auf NULL gesetzt)"
         ]
     },
