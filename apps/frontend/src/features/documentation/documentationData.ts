@@ -89,7 +89,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Manueller Phasen-Override gewinnt immer über den berechneten Wert (Badge 'übersteuert')",
             "Parl. Befassung ist bei BSWAG-Projektgruppen vorbelegt; nullable Override pro Projekt",
             "Pausiert/Abgebrochen überblendet die gesamte Darstellung (Banner + abgeblendeter Stepper)",
-            "Übergeordnete Projekte zeigen eine Phasen-Spanne (min..max) + eine durchsuchbare Unterprojekt-Tabelle mit Status-Verteilung (z. B. „3× Bau · 1× Vorplanung · 2× Unbekannt“)",
+            "Übergeordnete Projekte zeigen eine Phasen-Spanne (min..max) + eine durchsuchbare Unterprojekt-Tabelle mit Status-Verteilung (z. B. „3× Bau · 1× Vorplanung · 2× Unbekannt“); die Spanne wird rekursiv über beliebig tiefe Unterprojekt-Ebenen gebildet — ein Unterprojekt mit eigenen Unterprojekten zeigt seine eigene Sub-Spanne (Marker „Gruppe“)",
             "Hover über einen Phasen-Kreis im Stepper listet die Unterprojekte dieser Phase auf",
             "Projekte ohne Datengrundlage werden klar als „Unbekannt“ markiert (nicht als „Nicht gestartet“)",
             "Planfeststellung: Zustand, Datum, Notiz und mehrere kommentierte URL-Links; parl. Befassung: Zustand, Datum, Notiz und der DIP-Link zur Bundestagsdrucksache",
@@ -99,8 +99,12 @@ export const featureHighlights: FeatureHighlight[] = [
             "VIB/FinVe-Beobachtungen werden materialisiert (is_derived): VIB-Status → Leistungsphasen, PFA → Planfeststellung; reguläre FinVe → Bau; nicht manuell löschbar",
             "Sammel-FinVe: Phase aus der Leistungsphase im Namen (Lph 1/2 → Vorplanung, Lph 3/4 → Genehmigungsplanung); ohne erkennbare Lph (z. B. EKrG) manuell zuordenbar unter Admin → „Sammel-FinVe Phasen“",
             "Lazy-Resync der abgeleiteten Beobachtungen bei stalem Cache (24h); „Neu berechnen\" erzwingt den Sync",
-            "Prognose-Panel: Restdauer der aktuellen Phase + nächste Schritte aus BVWP-Dauern, VIB-PFA-Terminen und Fulda-Runde-Beobachtungen",
-            "Manuelle Beobachtungen erfassen nur Leistungsphasen (Quellentyp MANUELL/FULDA_RUNDE/BAUPORTAL/MEDIEN + optionaler Vertrauens-Override); Planfeststellung & parl. Befassung werden separat im Schaltmenü „Verfahren\" gepflegt"
+            "Prognose-Panel: Restdauer der aktuellen Phase + nächste Schritte aus BVWP-Dauern, VIB-PFA-Terminen, Fulda-Runde- und manuellen Erwartet-Beobachtungen",
+            "Manuelle Beobachtungen erfassen nur Leistungsphasen (Quellentyp MANUELL/FULDA_RUNDE/BAUPORTAL/MEDIEN + optionaler Vertrauens-Override); Planfeststellung & parl. Befassung werden separat im Schaltmenü „Verfahren\" gepflegt",
+            "Erwartete Termine: eine manuelle Beobachtung kann als „erwarteter Termin\" markiert werden (Schalter im Beobachtungsformular). Sie speist nur die Prognose (z. B. erwartete Inbetriebnahme), zieht die aktuelle Phase nicht hoch und übersteuert dort alle automatischen Quellen (VIB-PFA/BVWP/Fulda)",
+            "Kurzansicht (Karten-Popup, Unter-/Übergeordnet-Abschnitte): kompakte Leistungsphasen-Leiste mit aktuellem Stand; erreichte Phasen grün, „In Betrieb\" grün (= abgeschlossen), Spanne bei übergeordneten Projekten",
+            "Tabelle „Quellen & Beobachtungen\": Spalte „Bereich\" (Planungsphasen/Planfeststellung/parl. Befassung); Vertrauen und „entscheidend\" sind nur für eingeloggte Nutzer sichtbar, ebenso die Vertrauensangabe in der Kopfzeile",
+            "Beim Anlegen eines neuen Projekts (Wizard, Schritt „Eigenschaften\") lässt sich die aktuelle Planungsphase direkt setzen (manueller Override, optional)"
         ]
     },
     {
@@ -196,6 +200,21 @@ export const featureHighlights: FeatureHighlight[] = [
             "Route /admin/haushalt-import — visible for editor and admin roles only",
             "Route /admin/haushalt-import/review/:parseResultId — review a specific run",
             "Route /admin/haushalt-unmatched — manage open unmatched rows"
+        ]
+    },
+    {
+        title: "Aufgaben (To-Dos)",
+        description:
+            "Angemeldete Nutzer können Aufgaben festhalten, um die wiederkehrende Überarbeitung von Projekten zu koordinieren. " +
+            "Aufgaben sind ausschließlich für angemeldete Nutzer sichtbar; Erstellen, Bearbeiten und Löschen sind über die Rechte todo.create / todo.edit / todo.delete gesteuert (editor + admin per Default).",
+        details: [
+            "Zentrale Seite /tasks: Spalten Offen / In Arbeit / Erledigt, Schnell-Erfassung, Filter nach Nutzer, Projekt und „nur meine Aufgaben“",
+            "Aufgabe optional mit einem Projekt verknüpft oder als freie Notiz; Verknüpfung als Link zur Projektdetailseite",
+            "Mehrfachzuweisung an Nutzer (m:n); Zugewiesene als Avatar-Initialen auf der Karte",
+            "Status Offen / In Arbeit / Erledigt (Erledigt setzt completed_at), Priorität Niedrig / Mittel / Hoch, optionales Fälligkeitsdatum (überfällig rot hervorgehoben)",
+            "Projektdetailseite zeigt für angemeldete Nutzer den Abschnitt „Aufgaben“ mit den Aufgaben des Projekts und „+ Aufgabe“ (Projekt vorbelegt)",
+            "Schnell-Einstieg: zweites Icon am linken Bildschirmrand (unter dem Inhaltsverzeichnis) öffnet direkt das Formular für eine neue Aufgabe (Projekt vorbelegt)",
+            "Beim Löschen eines Projekts bleibt die Aufgabe erhalten (project_id wird auf NULL gesetzt)"
         ]
     },
     {

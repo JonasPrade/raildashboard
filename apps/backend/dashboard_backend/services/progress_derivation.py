@@ -295,3 +295,85 @@ def aggregate_span(phases: list[MainPhase]) -> tuple[MainPhase, MainPhase] | Non
     lo = min(phases, key=lambda p: p.order)
     hi = max(phases, key=lambda p: p.order)
     return lo, hi
+
+
+# --- Recursive subtree aggregation (arbitrary nesting depth) -----------------
+
+
+@dataclass
+class AggregationNode:
+    """One project in a superior/subproject tree, ready for recursive aggregation.
+
+    The planning state lives at the **leaves**: a node *without* children carries
+    its own derived phase (``leaf_phase`` + ``leaf_is_known``). An *intermediate*
+    node (one *with* children) ignores its own observations and instead spans its
+    descendant leaves — **except** a manual phase override, which pins the whole
+    subtree to a single phase ("the editor says this entire section is in Bau").
+
+    The identity fields are ignored by the algorithm; callers populate them so a
+    payload for the direct children can be built from the aggregated tree.
+    """
+
+    leaf_phase: MainPhase
+    leaf_is_known: bool
+    manual_override: MainPhase | None = None
+    children: list["AggregationNode"] = field(default_factory=list)
+    project_id: int | None = None
+    name: str | None = None
+    lifecycle: LifecycleStatus | None = None
+
+
+@dataclass
+class AggregationResult:
+    # All known leaf phases under this node (or the single pinned override phase).
+    phases: list[MainPhase]
+    is_known: bool
+    is_superior: bool
+    # min..max over ``phases`` for an aggregating intermediate node; ``None`` for
+    # leaves and for an override-pinned node (which show ``display_phase`` instead).
+    span: tuple[MainPhase, MainPhase] | None
+    # A single representative phase: the leaf's own phase, the pinned override, or
+    # the span's upper bound for an aggregating node (a sensible scalar fallback).
+    display_phase: MainPhase
+
+
+def aggregate_tree(node: AggregationNode) -> AggregationResult:
+    """Recursively aggregate a subtree of arbitrary depth.
+
+    Leaves contribute their own phase; intermediate nodes span the union of all
+    leaves below them, so a level-1 superior reflects diverging level-3 leaves —
+    not a level-2 node's stale summary. A manual override on an intermediate node
+    short-circuits the recursion and pins the whole subtree to that phase.
+    """
+
+    if not node.children:
+        phases = [node.leaf_phase] if node.leaf_is_known else []
+        return AggregationResult(
+            phases=phases,
+            is_known=node.leaf_is_known,
+            is_superior=False,
+            span=None,
+            display_phase=node.leaf_phase,
+        )
+
+    if node.manual_override is not None:
+        return AggregationResult(
+            phases=[node.manual_override],
+            is_known=True,
+            is_superior=True,
+            span=None,
+            display_phase=node.manual_override,
+        )
+
+    phases: list[MainPhase] = []
+    for child in node.children:
+        phases.extend(aggregate_tree(child).phases)
+    span = aggregate_span(phases)
+    display = span[1] if span is not None else MainPhase.NICHT_GESTARTET
+    return AggregationResult(
+        phases=phases,
+        is_known=bool(phases),
+        is_superior=True,
+        span=span,
+        display_phase=display,
+    )

@@ -2,6 +2,7 @@ import { Group, Stack, Text } from "@mantine/core";
 import type { Project } from "../../shared/api/queries";
 import { trainCategoryLabels, featureGroups } from "./projectFeatureConfig";
 import { ChronicleDataChip } from "../../components/chronicle";
+import ProgressMini from "./components/progress/ProgressMini";
 
 type Props = {
     project: Project;
@@ -32,6 +33,9 @@ export default function ProjectSummaryCard({ project }: Props) {
                     {project.description}
                 </Text>
             )}
+
+            {/* Planungsstand / Leistungsphasen – kompakt */}
+            {typeof project.id === "number" && <ProgressMini projectId={project.id} />}
 
             {/* Verkehrsarten – nur aktive */}
             {trainCategoryLabels.some(({ key }) => Boolean(project[key])) && (

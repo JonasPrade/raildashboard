@@ -478,6 +478,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/users/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List User Options
+         * @description Minimal user list (id + username) for pickers such as task assignees.
+         *
+         *     Available to any logged-in user — unlike ``GET /`` which needs ``user.manage``.
+         */
+        get: operations["list_user_options_api_v1_users_options_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/{user_id}": {
         parameters: {
             query?: never;
@@ -807,6 +829,46 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/todos/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Todos
+         * @description List tasks (logged-in users only), with optional filters.
+         */
+        get: operations["list_todos_api_v1_todos__get"];
+        put?: never;
+        /** Create Todo */
+        post: operations["create_todo_api_v1_todos__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/todos/{todo_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Todo */
+        get: operations["get_todo_api_v1_todos__todo_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Todo */
+        delete: operations["delete_todo_api_v1_todos__todo_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Todo */
+        patch: operations["update_todo_api_v1_todos__todo_id__patch"];
         trace?: never;
     };
     "/api/v1/import/haushalt/parse": {
@@ -2268,8 +2330,22 @@ export interface components {
             group: string;
         };
         /**
+         * PfLinkSchema
+         * @description A single commented reference link for the Planfeststellung.
+         */
+        PfLinkSchema: {
+            /** Url */
+            url: string;
+            /** Comment */
+            comment?: string | null;
+        };
+        /**
          * ProgressChildSchema
-         * @description A leaf child shown under a superior project's aggregated progress.
+         * @description A direct child shown under a superior project's aggregated progress.
+         *
+         *     A child may itself be a superior (``is_superior``): then its planning state is
+         *     a span over *its own* leaf descendants (``span_min_phase``..``span_max_phase``)
+         *     rather than a single phase, so multi-level nesting stays visible at every level.
          */
         ProgressChildSchema: {
             /** Project Id */
@@ -2291,6 +2367,15 @@ export interface components {
              * @default true
              */
             is_known: boolean;
+            /**
+             * Is Superior
+             * @default false
+             */
+            is_superior: boolean;
+            /** Span Min Phase */
+            span_min_phase?: ("NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB") | null;
+            /** Span Max Phase */
+            span_max_phase?: ("NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB") | null;
         };
         /** ProgressForecastSchema */
         ProgressForecastSchema: {
@@ -2335,6 +2420,11 @@ export interface components {
             confidence?: number | null;
             /** Note */
             note?: string | null;
+            /**
+             * Is Expected
+             * @default false
+             */
+            is_expected: boolean;
         };
         /** ProgressObservationSchema */
         ProgressObservationSchema: {
@@ -2360,6 +2450,11 @@ export interface components {
             note?: string | null;
             /** Is Derived */
             is_derived: boolean;
+            /**
+             * Is Expected
+             * @default false
+             */
+            is_expected: boolean;
             /** Username Snapshot */
             username_snapshot?: string | null;
             /**
@@ -2649,13 +2744,13 @@ export interface components {
             parl_befassung_date?: string | null;
             /** Pf Text */
             pf_text?: string | null;
-            /** Pf Links */
-            pf_links?: {
-                url: string;
-                comment?: string | null;
-            }[];
             /** Pf Date */
             pf_date?: string | null;
+            /**
+             * Pf Links
+             * @default []
+             */
+            pf_links: components["schemas"]["PfLinkSchema"][];
             /**
              * Observations
              * @default []
@@ -2716,13 +2811,10 @@ export interface components {
             parl_befassung_date?: string | null;
             /** Pf Text */
             pf_text?: string | null;
-            /** Pf Links */
-            pf_links?: {
-                url: string;
-                comment?: string | null;
-            }[] | null;
             /** Pf Date */
             pf_date?: string | null;
+            /** Pf Links */
+            pf_links?: components["schemas"]["PfLinkSchema"][] | null;
             /** Clear Phase Override */
             clear_phase_override?: boolean | null;
             /** Clear Parl Relevant */
@@ -3572,6 +3664,110 @@ export interface components {
             /** Vorhalten Future */
             vorhalten_future?: number | null;
         };
+        /** TodoCreate */
+        TodoCreate: {
+            /** Title */
+            title: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Status
+             * @default OPEN
+             * @enum {string}
+             */
+            status: "OPEN" | "IN_PROGRESS" | "DONE";
+            /**
+             * Priority
+             * @default MEDIUM
+             * @enum {string}
+             */
+            priority: "LOW" | "MEDIUM" | "HIGH";
+            /** Due Date */
+            due_date?: string | null;
+            /** Project Id */
+            project_id?: number | null;
+            /** Assignee Ids */
+            assignee_ids?: number[];
+        };
+        /** TodoProjectRef */
+        TodoProjectRef: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Project Number */
+            project_number?: string | null;
+        };
+        /** TodoSchema */
+        TodoSchema: {
+            /** Id */
+            id: number;
+            /** Title */
+            title: string;
+            /** Description */
+            description: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "OPEN" | "IN_PROGRESS" | "DONE";
+            /**
+             * Priority
+             * @enum {string}
+             */
+            priority: "LOW" | "MEDIUM" | "HIGH";
+            /** Due Date */
+            due_date: string | null;
+            /** Project Id */
+            project_id: number | null;
+            project: components["schemas"]["TodoProjectRef"] | null;
+            /** Assignees */
+            assignees: components["schemas"]["TodoUserRef"][];
+            /** Created By Id */
+            created_by_id: number | null;
+            /** Created By Username */
+            created_by_username: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Completed At */
+            completed_at: string | null;
+        };
+        /** TodoUpdate */
+        TodoUpdate: {
+            /** Title */
+            title?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Status */
+            status?: ("OPEN" | "IN_PROGRESS" | "DONE") | null;
+            /** Priority */
+            priority?: ("LOW" | "MEDIUM" | "HIGH") | null;
+            /** Due Date */
+            due_date?: string | null;
+            /** Project Id */
+            project_id?: number | null;
+            /** Assignee Ids */
+            assignee_ids?: number[] | null;
+            /** Clear Due Date */
+            clear_due_date?: boolean | null;
+            /** Clear Project */
+            clear_project?: boolean | null;
+        };
+        /** TodoUserRef */
+        TodoUserRef: {
+            /** Id */
+            id: number;
+            /** Username */
+            username: string;
+        };
         /**
          * TrackDocumentSchema
          * @description A document link scoped to a track, with the resolved document.
@@ -3646,6 +3842,16 @@ export interface components {
             role: string;
             /** Password */
             password: string;
+        };
+        /**
+         * UserOption
+         * @description Minimal user reference for pickers (e.g. task assignee selection).
+         */
+        UserOption: {
+            /** Id */
+            id: number;
+            /** Username */
+            username: string;
         };
         /** UserPasswordUpdate */
         UserPasswordUpdate: {
@@ -5253,6 +5459,37 @@ export interface operations {
             };
         };
     };
+    list_user_options_api_v1_users_options_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOption"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     delete_user_api_v1_users__user_id__delete: {
         parameters: {
             query?: never;
@@ -5944,6 +6181,180 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaskLaunchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_todos_api_v1_todos__get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+                priority?: string | null;
+                assignee_id?: number | null;
+                project_id?: number | null;
+                created_by_id?: number | null;
+                include_done?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodoSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_todo_api_v1_todos__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TodoCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodoSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_todo_api_v1_todos__todo_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                todo_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodoSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_todo_api_v1_todos__todo_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                todo_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_todo_api_v1_todos__todo_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                todo_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TodoUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodoSchema"];
                 };
             };
             /** @description Validation Error */

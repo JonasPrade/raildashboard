@@ -198,6 +198,9 @@ function ObservationDraftForm({ onAdd }: { onAdd: (obs: ProgressObservationCreat
     const [date, setDate] = useState("");
     const [confidence, setConfidence] = useState<string>("");
     const [note, setNote] = useState("");
+    // Expected (future) milestone vs. a reached state. Expected entries only feed
+    // the forecast and never pull the current phase forward.
+    const [isExpected, setIsExpected] = useState(false);
 
     const stateOptions = MAIN_PHASES.map((p) => ({ value: p, label: MAIN_PHASE_LABEL[p] }));
 
@@ -210,6 +213,7 @@ function ObservationDraftForm({ onAdd }: { onAdd: (obs: ProgressObservationCreat
             observed_date: date || null,
             confidence: conf !== null && Number.isFinite(conf) ? conf : null,
             note: note || null,
+            is_expected: isExpected,
         });
         setNote("");
         setDate("");
@@ -217,54 +221,63 @@ function ObservationDraftForm({ onAdd }: { onAdd: (obs: ProgressObservationCreat
     };
 
     return (
-        <Group gap="sm" align="flex-end" wrap="wrap">
-            <Select
+        <Stack gap="xs">
+            <Group gap="sm" align="flex-end" wrap="wrap">
+                <Select
+                    size="xs"
+                    label="Quelle"
+                    value={sourceType}
+                    onChange={(v) => setSourceType((v as SourceType) ?? "MANUELL")}
+                    data={MANUAL_SOURCE_TYPES.map((s) => ({ value: s, label: SOURCE_LABEL[s] }))}
+                    w={140}
+                />
+                <Select
+                    size="xs"
+                    label="Leistungsphase"
+                    value={state}
+                    onChange={(v) => setState(v ?? stateOptions[0].value)}
+                    data={stateOptions}
+                    w={200}
+                />
+                <TextInput
+                    size="xs"
+                    type="date"
+                    label={isExpected ? "Erwartetes Datum" : "Datum"}
+                    value={date}
+                    onChange={(e) => setDate(e.currentTarget.value)}
+                    w={150}
+                />
+                <NumberInput
+                    size="xs"
+                    label="Vertrauen"
+                    description="0–1, optional"
+                    value={confidence}
+                    onChange={(v) => setConfidence(v === "" ? "" : String(v))}
+                    min={0}
+                    max={1}
+                    step={0.1}
+                    decimalScale={2}
+                    w={110}
+                    disabled={isExpected}
+                />
+                <TextInput
+                    size="xs"
+                    label="Notiz / Quelle"
+                    value={note}
+                    onChange={(e) => setNote(e.currentTarget.value)}
+                    w={200}
+                />
+                <Button size="xs" leftSection={<IconPlus size={14} />} onClick={submit}>
+                    Hinzufügen
+                </Button>
+            </Group>
+            <Switch
                 size="xs"
-                label="Quelle"
-                value={sourceType}
-                onChange={(v) => setSourceType((v as SourceType) ?? "MANUELL")}
-                data={MANUAL_SOURCE_TYPES.map((s) => ({ value: s, label: SOURCE_LABEL[s] }))}
-                w={140}
+                label="Erwarteter Termin (nur Prognose, ändert die aktuelle Phase nicht)"
+                checked={isExpected}
+                onChange={(e) => setIsExpected(e.currentTarget.checked)}
             />
-            <Select
-                size="xs"
-                label="Leistungsphase"
-                value={state}
-                onChange={(v) => setState(v ?? stateOptions[0].value)}
-                data={stateOptions}
-                w={200}
-            />
-            <TextInput
-                size="xs"
-                type="date"
-                label="Datum"
-                value={date}
-                onChange={(e) => setDate(e.currentTarget.value)}
-                w={150}
-            />
-            <NumberInput
-                size="xs"
-                label="Vertrauen"
-                description="0–1, optional"
-                value={confidence}
-                onChange={(v) => setConfidence(v === "" ? "" : String(v))}
-                min={0}
-                max={1}
-                step={0.1}
-                decimalScale={2}
-                w={110}
-            />
-            <TextInput
-                size="xs"
-                label="Notiz / Quelle"
-                value={note}
-                onChange={(e) => setNote(e.currentTarget.value)}
-                w={200}
-            />
-            <Button size="xs" leftSection={<IconPlus size={14} />} onClick={submit}>
-                Hinzufügen
-            </Button>
-        </Group>
+        </Stack>
     );
 }
 
@@ -613,7 +626,7 @@ export default function ProgressEditDrawer({ projectId, progress, opened, onClos
                             <Table.Thead>
                                 <Table.Tr>
                                     <Table.Th>Quelle</Table.Th>
-                                    <Table.Th>Spur</Table.Th>
+                                    <Table.Th>Bereich</Table.Th>
                                     <Table.Th>Aussage</Table.Th>
                                     <Table.Th>Datum</Table.Th>
                                     <Table.Th>Notiz</Table.Th>
@@ -635,7 +648,14 @@ export default function ProgressEditDrawer({ projectId, progress, opened, onClos
                                             {TRACK_LABEL[obs.track as ObservationTrack] ?? obs.track}
                                         </Table.Td>
                                         <Table.Td>
-                                            {stateLabel(obs.track as ObservationTrack, obs.asserted_state)}
+                                            <Group gap={6} wrap="nowrap">
+                                                {stateLabel(obs.track as ObservationTrack, obs.asserted_state)}
+                                                {obs.is_expected && (
+                                                    <Badge size="xs" color="teal" variant="light">
+                                                        erwartet
+                                                    </Badge>
+                                                )}
+                                            </Group>
                                         </Table.Td>
                                         <Table.Td>{obs.observed_date ?? "–"}</Table.Td>
                                         <Table.Td>{obs.note ?? ""}</Table.Td>
@@ -673,7 +693,14 @@ export default function ProgressEditDrawer({ projectId, progress, opened, onClos
                                             {TRACK_LABEL[obs.track as ObservationTrack] ?? obs.track}
                                         </Table.Td>
                                         <Table.Td>
-                                            {stateLabel(obs.track as ObservationTrack, obs.asserted_state)}
+                                            <Group gap={6} wrap="nowrap">
+                                                {stateLabel(obs.track as ObservationTrack, obs.asserted_state)}
+                                                {obs.is_expected && (
+                                                    <Badge size="xs" color="teal" variant="light">
+                                                        erwartet
+                                                    </Badge>
+                                                )}
+                                            </Group>
                                         </Table.Td>
                                         <Table.Td>{obs.observed_date ?? "–"}</Table.Td>
                                         <Table.Td>

@@ -72,6 +72,7 @@ class ProgressObservationSchema(BaseModel):
     confidence: Optional[float] = None
     note: Optional[str] = None
     is_derived: bool
+    is_expected: bool = False
     username_snapshot: Optional[str] = None
     created_at: datetime
 
@@ -83,6 +84,7 @@ class ProgressObservationCreate(BaseModel):
     observed_date: Optional[date] = None
     confidence: Optional[float] = None
     note: Optional[str] = None
+    is_expected: bool = False
 
 
 # --- Derivation breakdown ----------------------------------------------------
@@ -104,13 +106,21 @@ class SourceContributionSchema(BaseModel):
 
 
 class ProgressChildSchema(BaseModel):
-    """A leaf child shown under a superior project's aggregated progress."""
+    """A direct child shown under a superior project's aggregated progress.
+
+    A child may itself be a superior (``is_superior``): then its planning state is
+    a span over *its own* leaf descendants (``span_min_phase``..``span_max_phase``)
+    rather than a single phase, so multi-level nesting stays visible at every level.
+    """
 
     project_id: int
     name: str
-    effective_phase: MainPhaseLiteral
+    effective_phase: MainPhaseLiteral  # for a nested superior: the span's upper bound
     lifecycle_status: LifecycleStatusLiteral
     is_known: bool = True  # False → no phase info ("Unbekannt")
+    is_superior: bool = False  # True → child has its own subprojects (show the span)
+    span_min_phase: Optional[MainPhaseLiteral] = None
+    span_max_phase: Optional[MainPhaseLiteral] = None
 
 
 # --- PATCH input -------------------------------------------------------------

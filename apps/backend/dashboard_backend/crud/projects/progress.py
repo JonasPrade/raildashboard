@@ -33,9 +33,10 @@ from dashboard_backend.models.users import User
 from dashboard_backend.models.vib.vib_entry import VibEntry, vib_entry_project
 from dashboard_backend.services.progress_derivation import (
     STALENESS_WINDOW,
+    AggregationNode,
     DerivationResult,
     ObservationInput,
-    aggregate_span,
+    aggregate_tree,
     derive_headline,
 )
 from dashboard_backend.services.progress_dates import parse_flexible_date
@@ -127,6 +128,17 @@ def _enum_or_none(enum_cls, value):
         return None
 
 
+def _phase_date_pairs(
+    observations: list[ProgressObservation],
+) -> list[tuple[MainPhase, date]]:
+    pairs: list[tuple[MainPhase, date]] = []
+    for obs in observations:
+        phase = _enum_or_none(MainPhase, obs.asserted_state)
+        if phase is not None:
+            pairs.append((phase, obs.observed_date))
+    return pairs
+
+
 def derive_for_project(
     db: Session,
     project: Project,
@@ -143,9 +155,14 @@ def derive_for_project(
     cache perpetually "fresh" and starve the resync (see ``_ensure_fresh``).
     """
 
+    # Expected (future) milestones never contribute to the current headline —
+    # they only inform the forecast (see ``_build_forecast_for_project``).
     observations = (
         db.query(ProgressObservation)
-        .filter(ProgressObservation.project_id == project.id)
+        .filter(
+            ProgressObservation.project_id == project.id,
+            ProgressObservation.is_expected.is_(False),
+        )
         .all()
     )
     result = derive_headline(
@@ -383,11 +400,21 @@ def _build_forecast_for_project(
         )
         .all()
     )
-    fulda: list[tuple[MainPhase, date]] = []
-    for obs in fulda_obs:
-        phase = _enum_or_none(MainPhase, obs.asserted_state)
-        if phase is not None:
-            fulda.append((phase, obs.observed_date))
+    fulda = _phase_date_pairs(fulda_obs)
+
+    # Manual expected milestones (is_expected=True): editorial future dates that
+    # override all derived sources in the forecast.
+    expected_obs = (
+        db.query(ProgressObservation)
+        .filter(
+            ProgressObservation.project_id == project_id,
+            ProgressObservation.is_expected.is_(True),
+            ProgressObservation.track == ObservationTrack.MAIN.value,
+            ProgressObservation.observed_date.isnot(None),
+        )
+        .all()
+    )
+    manual_expected = _phase_date_pairs(expected_obs)
 
     result = build_forecast(
         effective_phase=effective_phase,
@@ -395,6 +422,7 @@ def _build_forecast_for_project(
         pfas=pfas,
         bvwp=bvwp,
         fulda=fulda,
+        manual_expected=manual_expected,
     )
     return {
         "current_phase": result.current_phase.value,
@@ -413,6 +441,44 @@ def _build_forecast_for_project(
 
 
 # --- Read --------------------------------------------------------------------
+
+
+def _build_aggregation_node(db: Session, project: Project, today: date) -> AggregationNode:
+    """Build a planning-state aggregation node for ``project`` and (recursively)
+    all of its subprojects, so a superior at any depth spans its leaf descendants.
+
+    Leaves carry their own derived phase; intermediate nodes carry a manual phase
+    override (which pins the whole subtree) but never their own observations — the
+    state lives at the leaves. See ``aggregate_tree`` for the aggregation rule.
+    """
+
+    children = (
+        db.query(Project).filter(Project.superior_project_id == project.id).all()
+    )
+    progress = get_or_create_progress(db, project.id)
+    lifecycle = (
+        _enum_or_none(LifecycleStatus, progress.lifecycle_status) or LifecycleStatus.AKTIV
+    )
+
+    if not children:
+        result = _ensure_fresh(db, project, progress, today)
+        return AggregationNode(
+            leaf_phase=result.effective_phase,
+            leaf_is_known=result.is_known,
+            project_id=project.id,
+            name=project.name,
+            lifecycle=lifecycle,
+        )
+
+    return AggregationNode(
+        leaf_phase=MainPhase.NICHT_GESTARTET,  # unused for intermediate nodes
+        leaf_is_known=False,
+        manual_override=_enum_or_none(MainPhase, progress.manual_phase_override),
+        children=[_build_aggregation_node(db, child, today) for child in children],
+        project_id=project.id,
+        name=project.name,
+        lifecycle=lifecycle,
+    )
 
 
 def get_progress_view(db: Session, project_id: int, today: date | None = None) -> dict | None:
@@ -440,41 +506,50 @@ def get_progress_view(db: Session, project_id: int, today: date | None = None) -
     pf_documents = _track_documents(db, project_id, ObservationTrack.PF)
     parl_documents = _track_documents(db, project_id, ObservationTrack.PARL)
 
-    # Superior aggregation over leaf children.
-    children = (
-        db.query(Project).filter(Project.superior_project_id == project_id).all()
+    # Superior aggregation — recursive over the whole subtree so a superior at any
+    # depth spans its leaf descendants (not a mid-level node's stale summary).
+    is_superior = (
+        db.query(Project.id)
+        .filter(Project.superior_project_id == project_id)
+        .first()
+        is not None
     )
-    is_superior = len(children) > 0
     child_payloads: list[dict] = []
     span_min = span_max = None
+    effective_phase = result.effective_phase
+    is_known = result.is_known
     if is_superior:
-        child_phases: list[MainPhase] = []
-        for child in children:
-            child_progress = get_or_create_progress(db, child.id)
-            child_result = _ensure_fresh(db, child, child_progress, today)
-            # Only children with actual phase info contribute to the span.
-            if child_result.is_known:
-                child_phases.append(child_result.effective_phase)
+        root_node = _build_aggregation_node(db, project, today)
+        db.commit()
+        root_agg = aggregate_tree(root_node)
+        # A manual override on the superior itself pins the whole project; otherwise
+        # the headline is the aggregated span and "known" follows the leaves.
+        if root_node.manual_override is None:
+            effective_phase = root_agg.display_phase
+            is_known = root_agg.is_known
+            if root_agg.span is not None:
+                span_min, span_max = root_agg.span[0].value, root_agg.span[1].value
+        for child_node in root_node.children:
+            child_agg = aggregate_tree(child_node)
             child_payloads.append(
                 {
-                    "project_id": child.id,
-                    "name": child.name,
-                    "effective_phase": child_result.effective_phase.value,
-                    "lifecycle_status": child_result.lifecycle.value,
-                    "is_known": child_result.is_known,
+                    "project_id": child_node.project_id,
+                    "name": child_node.name,
+                    "effective_phase": child_agg.display_phase.value,
+                    "lifecycle_status": child_node.lifecycle.value,
+                    "is_known": child_agg.is_known,
+                    "is_superior": child_agg.is_superior,
+                    "span_min_phase": child_agg.span[0].value if child_agg.span else None,
+                    "span_max_phase": child_agg.span[1].value if child_agg.span else None,
                 }
             )
-        db.commit()
-        span = aggregate_span(child_phases)
-        if span is not None:
-            span_min, span_max = span[0].value, span[1].value
 
     return {
         "project_id": project_id,
-        "effective_phase": result.effective_phase.value,
+        "effective_phase": effective_phase.value,
         "computed_phase": result.computed_phase.value,
         "computed_confidence": result.computed_confidence,
-        "is_known": result.is_known,
+        "is_known": is_known,
         "is_overridden": result.is_overridden,
         "manual_override_note": progress.manual_override_note,
         "computed_at": progress.computed_at,
@@ -608,6 +683,7 @@ def create_observation(
         confidence=data.get("confidence"),
         note=data.get("note"),
         is_derived=False,
+        is_expected=bool(data.get("is_expected", False)),
         created_by_user_id=user.id if user else None,
         username_snapshot=user.username if user else None,
     )

@@ -10,7 +10,7 @@ from dashboard_backend.crud import users as users_crud
 from dashboard_backend.database import get_db
 from dashboard_backend.models.users import User
 from dashboard_backend.routing.auth_router import AuthRouter
-from dashboard_backend.schemas.users import UserCreate, UserPasswordUpdate, UserRead, UserUpdate
+from dashboard_backend.schemas.users import UserCreate, UserOption, UserPasswordUpdate, UserRead, UserUpdate
 
 
 router = AuthRouter()
@@ -33,6 +33,18 @@ def list_users(
     _: None = Depends(require_permission("user.manage")),
     db: Session = Depends(get_db),
 ):
+    return users_crud.get_users(db)
+
+
+@router.get("/options", response_model=list[UserOption])
+def list_user_options(
+    _: User = Depends(require_auth()),
+    db: Session = Depends(get_db),
+):
+    """Minimal user list (id + username) for pickers such as task assignees.
+
+    Available to any logged-in user — unlike ``GET /`` which needs ``user.manage``.
+    """
     return users_crud.get_users(db)
 
 

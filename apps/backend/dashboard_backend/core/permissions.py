@@ -18,6 +18,7 @@ GROUP_PROJECT_GROUPS = "Projektgruppen"
 GROUP_FINANCING = "Finanzierung"
 GROUP_CONTENT = "Inhalte"
 GROUP_PROGRESS = "Planungsstand"
+GROUP_TODOS = "Aufgaben"
 GROUP_ADMINISTRATION = "Administration"
 
 
@@ -41,6 +42,9 @@ PERMISSIONS: tuple[Permission, ...] = (
     Permission("projecttext.edit", "Projekttexte bearbeiten", GROUP_CONTENT),
     Permission("assignment.manage", "Offene Zuordnungen verwalten", GROUP_CONTENT),
     Permission("progress.edit", "Planungsstand bearbeiten", GROUP_PROGRESS),
+    Permission("todo.create", "Aufgaben erstellen", GROUP_TODOS),
+    Permission("todo.edit", "Aufgaben bearbeiten", GROUP_TODOS),
+    Permission("todo.delete", "Aufgaben löschen", GROUP_TODOS),
     Permission("user.manage", "Nutzer verwalten", GROUP_ADMINISTRATION),
     Permission("role.manage", "Rollen & Rechte verwalten", GROUP_ADMINISTRATION),
     Permission("settings.manage", "App-Einstellungen", GROUP_ADMINISTRATION),
@@ -80,6 +84,9 @@ _EDITOR_PERMISSIONS: frozenset[str] = frozenset(
         "projecttext.edit",
         "assignment.manage",
         "progress.edit",
+        "todo.create",
+        "todo.edit",
+        "todo.delete",
     }
 )
 

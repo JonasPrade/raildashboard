@@ -79,6 +79,35 @@ def test_fulda_announcement_fills_gap():
     assert bau.source == "Fulda-Runde"
 
 
+def test_manual_expected_overrides_all_other_sources():
+    # Editorial expected dates win over VIB-PFA, Fulda and BVWP alike.
+    bvwp = BvwpDurations(outstanding_planning=2.0, build=3.0)
+    pfas = [PfaForecastInput(inbetriebnahme=date(2030, 1, 1))]
+    r = build_forecast(
+        effective_phase=MainPhase.BAU,
+        today=TODAY,
+        pfas=pfas,
+        bvwp=bvwp,
+        fulda=[(MainPhase.IN_BETRIEB, date(2031, 1, 1))],
+        manual_expected=[(MainPhase.IN_BETRIEB, date(2029, 12, 1))],
+    )
+    ib = next(s for s in r.next_steps if s.phase is MainPhase.IN_BETRIEB)
+    assert ib.expected_date == date(2029, 12, 1)
+    assert ib.source == "Manuell"
+    assert r.has_data is True
+
+
+def test_manual_expected_fills_gap_with_no_other_source():
+    r = build_forecast(
+        effective_phase=MainPhase.GENEHMIGUNGSPLANUNG,
+        today=TODAY,
+        manual_expected=[(MainPhase.IN_BETRIEB, date(2032, 5, 1))],
+    )
+    ib = next(s for s in r.next_steps if s.phase is MainPhase.IN_BETRIEB)
+    assert ib.expected_date == date(2032, 5, 1)
+    assert ib.source == "Manuell"
+
+
 def test_in_betrieb_has_no_next_steps():
     r = build_forecast(effective_phase=MainPhase.IN_BETRIEB, today=TODAY)
     assert r.next_steps == []

@@ -48,6 +48,13 @@ class ProgressObservation(Base):
     is_derived: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
     )
+    # Expected (future) milestone rather than a reached state. Expected
+    # observations feed the forecast only and are excluded from the
+    # headline / computed_phase derivation (they must not pull the current
+    # phase forward).
+    is_expected: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, nullable=False
     )

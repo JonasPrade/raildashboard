@@ -20,6 +20,9 @@ EDITOR_KEYS = {
     "projecttext.edit",
     "assignment.manage",
     "progress.edit",
+    "todo.create",
+    "todo.edit",
+    "todo.delete",
 }
 
 ADMIN_ONLY_KEYS = {"projectgroup.create", "projectgroup.edit", "user.manage", "role.manage", "settings.manage"}

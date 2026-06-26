@@ -225,6 +225,17 @@ Priorität:
 
 ## Finished
 
+### Aufgaben (To-Dos)
+
+Leichtgewichtiges Aufgaben-System für angemeldete Nutzer, um die wiederkehrende Überarbeitung von Projekten zu koordinieren.
+
+Siehe: `docs/features/feature-tasks.md`
+
+- [x] Backend: Tabellen `todo` / `todo_assignee` (m:n), Enums `TodoStatus`/`TodoPriority`, CRUD, Endpunkte `/api/v1/todos` (GET login-gated, Mutationen via `todo.create`/`todo.edit`/`todo.delete`), Helfer `GET /users/options`
+- [x] Capabilities `todo.create`/`todo.edit`/`todo.delete` (Gruppe „Aufgaben"), in editor-Systemrolle geseedet (Migration `e4a1b2c3d5f6`)
+- [x] Frontend: zentrale Seite `/tasks` (Spalten Offen/In Arbeit/Erledigt, Schnell-Erfassung, Filter), Edit-Drawer, Aufgaben-Sektion auf der Projektdetailseite; Nav-Link „Aufgaben" (login-gated)
+- [x] Optionaler Projektbezug (`project_id` nullable, `ON DELETE SET NULL`), Mehrfachzuweisung, Priorität + Fälligkeit (überfällig hervorgehoben)
+
 ### Claude Code Setup
 - [x] Hooks (pre-edit `.env` guard, post-edit reminders for `make gen-api`, Alembic, roadmap sync, macOS notifications)
 - [x] Skills: `/commit`, `/gen-api`, `/update-roadmap`, `/new-api-route`

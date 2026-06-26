@@ -472,6 +472,16 @@ export function updateProject(id: number, payload: ProjectUpdatePayload) {
     });
 }
 
+/** Standalone progress PATCH (non-hook), for flows that already orchestrate
+ * their own saving such as the new-project wizard. */
+export function updateProjectProgress(projectId: number, payload: ProjectProgressUpdate) {
+    return api<ProjectProgress>(`/api/v1/projects/${projectId}/progress`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+    });
+}
+
 // ---------------------------------------------------------------------------
 // Project wizard (POST /api/v1/projects + link helpers)
 // ---------------------------------------------------------------------------
@@ -1573,6 +1583,101 @@ export function useUpdateProjectGeometry(projectId: number) {
         onSuccess: (updatedProject) => {
             queryClient.setQueryData(["project", projectId], updatedProject);
             queryClient.invalidateQueries({ queryKey: ["projects"] });
+        },
+    });
+}
+
+// ---------------------------------------------------------------------------
+// To-dos (Aufgaben)
+// ---------------------------------------------------------------------------
+
+export type Todo = components["schemas"]["TodoSchema"];
+export type TodoCreate = components["schemas"]["TodoCreate"];
+export type TodoUpdate = components["schemas"]["TodoUpdate"];
+export type TodoStatus = Todo["status"];
+export type TodoPriority = Todo["priority"];
+export type UserOption = components["schemas"]["UserOption"];
+
+export type TodoFilters = {
+    status?: TodoStatus;
+    priority?: TodoPriority;
+    assignee_id?: number;
+    project_id?: number;
+    created_by_id?: number;
+    include_done?: boolean;
+};
+
+const todosKey = (filters?: TodoFilters) =>
+    filters ? (["todos", filters] as const) : (["todos"] as const);
+
+function buildTodoQuery(filters?: TodoFilters): string {
+    if (!filters) return "";
+    const params = new URLSearchParams();
+    if (filters.status) params.set("status", filters.status);
+    if (filters.priority) params.set("priority", filters.priority);
+    if (filters.assignee_id != null) params.set("assignee_id", String(filters.assignee_id));
+    if (filters.project_id != null) params.set("project_id", String(filters.project_id));
+    if (filters.created_by_id != null) params.set("created_by_id", String(filters.created_by_id));
+    if (filters.include_done != null) params.set("include_done", String(filters.include_done));
+    const qs = params.toString();
+    return qs ? `?${qs}` : "";
+}
+
+/** List tasks (logged-in users only). Pass `enabled: false` when logged out. */
+export function useTodos(filters?: TodoFilters, enabled = true) {
+    return useQuery({
+        queryKey: todosKey(filters),
+        enabled,
+        queryFn: () => api<Todo[]>(`/api/v1/todos/${buildTodoQuery(filters)}`),
+    });
+}
+
+/** Minimal user list (id + username) for the assignee picker. */
+export function useUserOptions(enabled = true) {
+    return useQuery({
+        queryKey: ["user-options"],
+        enabled,
+        queryFn: () => api<UserOption[]>(`/api/v1/users/options`),
+    });
+}
+
+export function useCreateTodo() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (payload: TodoCreate) =>
+            api<Todo>(`/api/v1/todos/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["todos"] });
+        },
+    });
+}
+
+export function useUpdateTodo() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, payload }: { id: number; payload: TodoUpdate }) =>
+            api<Todo>(`/api/v1/todos/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["todos"] });
+        },
+    });
+}
+
+export function useDeleteTodo() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id: number) =>
+            api<void>(`/api/v1/todos/${id}`, { method: "DELETE" }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["todos"] });
         },
     });
 }

@@ -35,6 +35,15 @@ class UserRead(BaseModel):
         return getattr(value, "name", value)
 
 
+class UserOption(BaseModel):
+    """Minimal user reference for pickers (e.g. task assignee selection)."""
+
+    id: int
+    username: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class UserUpdate(BaseModel):
     username: str | None = Field(default=None, min_length=3, max_length=50)
     role: str | None = Field(default=None, min_length=1, max_length=50)

@@ -145,6 +145,21 @@ Both endpoints require a logged-in user.
 
 Tests use `CELERY_BROKER_URL=memory://` and `CELERY_RESULT_BACKEND=cache+memory://` (set in `tests/conftest.py`) combined with `task_always_eager=True` — tasks run synchronously in-process; no Redis instance required.
 
+## Aufgaben / To-Dos
+
+User-facing task list (Aufgaben), **distinct from the Celery `/tasks/{task_id}` job-status endpoints above** — to avoid the namespace clash this feature uses `todo` throughout the code/URL layer (route prefix `/api/v1/todos`).
+
+| Endpoint | Auth | Description |
+|---|---|---|
+| `GET /api/v1/todos/` | Logged-in | List tasks; filters `status`, `priority`, `assignee_id`, `project_id`, `created_by_id`, `include_done` |
+| `GET /api/v1/todos/{id}` | Logged-in | Single task |
+| `POST /api/v1/todos/` | `todo.create` | Create |
+| `PATCH /api/v1/todos/{id}` | `todo.edit` | Partial update incl. `assignee_ids`, `clear_due_date`, `clear_project` |
+| `DELETE /api/v1/todos/{id}` | `todo.delete` | Delete |
+| `GET /api/v1/users/options` | Logged-in | Minimal `{id, username}` list for the assignee picker |
+
+A task optionally links to one project (`project_id`, `ON DELETE SET NULL`) or is a free note, and assigns to multiple users via the `todo_assignee` m:n table. Status `OPEN`/`IN_PROGRESS`/`DONE` (DONE stamps `completed_at`), priority `LOW`/`MEDIUM`/`HIGH`, optional `due_date`. The `todo.*` capabilities ship with the editor system role. See `docs/features/feature-tasks.md`.
+
 ## Haushaltsberichte Import
 
 Yearly import of Annex VWIB Part B (federal budget) as PDF. Requires `pdfplumber` (already in `requirements.txt`).

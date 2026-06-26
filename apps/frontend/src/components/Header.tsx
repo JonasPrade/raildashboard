@@ -68,6 +68,11 @@ export function Header() {
             <NavLink to="/finves" style={({ isActive }) => isActive ? navLinkActive : navLinkBase} onClick={closeDrawer}>
                 ▸ Haushalt
             </NavLink>
+            {user && (
+                <NavLink to="/tasks" style={({ isActive }) => isActive ? navLinkActive : navLinkBase} onClick={closeDrawer}>
+                    ▸ Aufgaben
+                </NavLink>
+            )}
             {canAdmin && (
                 <NavLink to="/admin" style={({ isActive }) => isActive ? navLinkActive : navLinkBase} onClick={closeDrawer}>
                     <Group gap={6} align="center" wrap="nowrap">
@@ -91,6 +96,11 @@ export function Header() {
             <NavLink to="/finves" style={({ isActive }) => isActive ? drawerNavActive : drawerNavBase} onClick={closeDrawer}>
                 ▸ Haushalt
             </NavLink>
+            {user && (
+                <NavLink to="/tasks" style={({ isActive }) => isActive ? drawerNavActive : drawerNavBase} onClick={closeDrawer}>
+                    ▸ Aufgaben
+                </NavLink>
+            )}
             {canAdmin && (
                 <NavLink to="/admin" style={({ isActive }) => isActive ? drawerNavActive : drawerNavBase} onClick={closeDrawer}>
                     <Group gap={6} align="center" wrap="nowrap">

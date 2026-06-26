@@ -32,6 +32,8 @@ import ProjectTextsSection from "./ProjectTextsSection";
 import { ProjectTableOfContents, type TocSection } from "./ProjectTableOfContents";
 import FinveSection from "./components/FinveSection";
 import ProgressSection from "./components/progress/ProgressSection";
+import TasksSection from "../todos/TasksSection";
+import TodoEditDrawer from "../todos/TodoEditDrawer";
 import BvwpDataSection from "./components/BvwpDataSection";
 import VibSection from "./components/VibSection";
 
@@ -117,6 +119,7 @@ export default function ProjectDetail() {
     const [geometryModalOpen, setGeometryModalOpen] = useState(false);
     const [subProjectsOpen, setSubProjectsOpen] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
+    const [taskDrawerOpen, setTaskDrawerOpen] = useState(false);
 
     // Section refs for the table of contents
     const detailsRef = useRef<HTMLDivElement>(null);
@@ -128,9 +131,11 @@ export default function ProjectDetail() {
     const vibRef = useRef<HTMLDivElement>(null);
     const superiorRef = useRef<HTMLDivElement>(null);
     const subProjectsRef = useRef<HTMLDivElement>(null);
+    const tasksRef = useRef<HTMLDivElement>(null);
     const historyRef = useRef<HTMLDivElement>(null);
     const { user, can } = useAuth();
     const canEdit = can("project.edit");
+    const canCreateTask = can("todo.create");
     const projectId = Number(params.projectId);
 
     const isInvalidId = Number.isNaN(projectId);
@@ -333,6 +338,12 @@ export default function ProjectDetail() {
             isCollapsible: true,
             isOpen: subProjectsOpen,
             onOpen: () => setSubProjectsOpen(true),
+        },
+        {
+            id: "tasks",
+            label: "Aufgaben",
+            ref: tasksRef,
+            visible: user !== null,
         },
         {
             id: "history",
@@ -619,6 +630,13 @@ export default function ProjectDetail() {
                     </div>
                 )}
 
+                {/* Aufgaben – nur für eingeloggte Nutzer sichtbar */}
+                {user !== null && (
+                    <div ref={tasksRef}>
+                        <TasksSection projectId={projectId} />
+                    </div>
+                )}
+
                 {/* Versionshistorie – nur für eingeloggte Nutzer sichtbar */}
                 {user !== null && (
                     <div ref={historyRef}>
@@ -645,7 +663,20 @@ export default function ProjectDetail() {
 
             </Stack>
 
-            <ProjectTableOfContents sections={tocSections} />
+            <ProjectTableOfContents
+                sections={tocSections}
+                onCreateTask={user !== null && canCreateTask ? () => setTaskDrawerOpen(true) : undefined}
+            />
+
+            {user !== null && (
+                <TodoEditDrawer
+                    opened={taskDrawerOpen}
+                    onClose={() => setTaskDrawerOpen(false)}
+                    todo={null}
+                    defaultProjectId={projectId}
+                    lockProject
+                />
+            )}
 
             <ProjectEdit
                 project={project}

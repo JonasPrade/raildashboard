@@ -23,6 +23,7 @@ const VibStructurePreviewPage = lazyWithRetry(() => import("./features/vib-impor
 const UnassignedPage = lazyWithRetry(() => import("./features/admin/UnassignedPage"));
 const FinveProgressAdminPage = lazyWithRetry(() => import("./features/admin/FinveProgressAdminPage"));
 const NewProjectPage = lazyWithRetry(() => import("./features/admin/new-project/NewProjectPage"));
+const TasksPage = lazyWithRetry(() => import("./features/todos/TasksPage"));
 const DraftsPage = lazyWithRetry(() => import("./features/admin/drafts/DraftsPage"));
 
 function Layout() {
@@ -48,6 +49,14 @@ export const router = createBrowserRouter([
             { path: "documentation", element: <DocumentationPage /> },
             { path: "projects", element: <Navigate to="/?view=list" replace /> },
             { path: "projects/:projectId", element: <ProjectDetail /> },
+            {
+                path: "tasks",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <TasksPage />
+                    </Suspense>
+                ),
+            },
             {
                 path: "admin",
                 element: (
