@@ -104,7 +104,7 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
                             ) : (
                                 <Text size="sm" c="dimmed">
                                     Aktuelle Phase: {MAIN_PHASE_LABEL[effectivePhase]}
-                                    {user !== null &&
+                                    {user?.role === "admin" &&
                                         ` · ${(progress.computed_confidence * 100).toFixed(0)} % Vertrauen`}
                                 </Text>
                             )}

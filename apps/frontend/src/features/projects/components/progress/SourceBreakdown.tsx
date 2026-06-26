@@ -17,7 +17,8 @@ import {
 } from "./phaseMeta";
 
 // ``showInternal`` reveals the editorial confidence / decisive columns, which
-// are only meaningful to logged-in editors (not shown to the public).
+// are only meaningful to administrators (not shown to the public or to
+// non-admin logged-in users).
 function ContributionRow({ c, showInternal }: { c: SourceContribution; showInternal: boolean }) {
     return (
         <Table.Tr>
@@ -52,7 +53,7 @@ type Props = {
 
 export default function SourceBreakdown({ contributions, observations }: Props) {
     const { user } = useAuth();
-    const showInternal = user !== null;
+    const showInternal = user?.role === "admin";
     const [open, setOpen] = useState(false);
 
     // Manual (non-derived) observations carry editorial provenance so a reader
