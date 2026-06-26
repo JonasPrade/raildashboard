@@ -1142,6 +1142,9 @@ const UserCreate = z
     password: z.string().min(8).max(128),
   })
   .passthrough();
+const UserOption = z
+  .object({ id: z.number().int(), username: z.string() })
+  .passthrough();
 const UserUpdate = z
   .object({
     username: z.union([z.string(), z.null()]),
@@ -1269,6 +1272,61 @@ const DebugTaskRequest = z
   .object({ x: z.number().int(), y: z.number().int() })
   .passthrough();
 const TaskLaunchResponse = z.object({ task_id: z.string() }).passthrough();
+const status = z.union([z.string(), z.null()]).optional();
+const assignee_id = z.union([z.number(), z.null()]).optional();
+const TodoProjectRef = z
+  .object({
+    id: z.number().int(),
+    name: z.string(),
+    project_number: z.union([z.string(), z.null()]).optional(),
+  })
+  .passthrough();
+const TodoUserRef = z
+  .object({ id: z.number().int(), username: z.string() })
+  .passthrough();
+const TodoSchema = z
+  .object({
+    id: z.number().int(),
+    title: z.string(),
+    description: z.union([z.string(), z.null()]),
+    status: z.enum(["OPEN", "IN_PROGRESS", "DONE"]),
+    priority: z.enum(["LOW", "MEDIUM", "HIGH"]),
+    due_date: z.union([z.string(), z.null()]),
+    project_id: z.union([z.number(), z.null()]),
+    project: z.union([TodoProjectRef, z.null()]),
+    assignees: z.array(TodoUserRef),
+    created_by_id: z.union([z.number(), z.null()]),
+    created_by_username: z.union([z.string(), z.null()]),
+    created_at: z.string().datetime({ offset: true }),
+    updated_at: z.string().datetime({ offset: true }),
+    completed_at: z.union([z.string(), z.null()]),
+  })
+  .passthrough();
+const TodoCreate = z
+  .object({
+    title: z.string().min(1).max(300),
+    description: z.union([z.string(), z.null()]).optional(),
+    status: z.enum(["OPEN", "IN_PROGRESS", "DONE"]).optional().default("OPEN"),
+    priority: z.enum(["LOW", "MEDIUM", "HIGH"]).optional().default("MEDIUM"),
+    due_date: z.union([z.string(), z.null()]).optional(),
+    project_id: z.union([z.number(), z.null()]).optional(),
+    assignee_ids: z.array(z.number().int()).optional(),
+  })
+  .passthrough();
+const TodoUpdate = z
+  .object({
+    title: z.union([z.string(), z.null()]),
+    description: z.union([z.string(), z.null()]),
+    status: z.union([z.enum(["OPEN", "IN_PROGRESS", "DONE"]), z.null()]),
+    priority: z.union([z.enum(["LOW", "MEDIUM", "HIGH"]), z.null()]),
+    due_date: z.union([z.string(), z.null()]),
+    project_id: z.union([z.number(), z.null()]),
+    assignee_ids: z.union([z.array(z.number().int()), z.null()]),
+    clear_due_date: z.union([z.boolean(), z.null()]),
+    clear_project: z.union([z.boolean(), z.null()]),
+  })
+  .partial()
+  .passthrough();
 const Body_start_parse_api_v1_import_haushalt_parse_post = z
   .object({ pdf: z.string(), year: z.number().int() })
   .passthrough();
@@ -1750,6 +1808,7 @@ export const schemas = {
   ProjectGroupUpdate,
   UserRead,
   UserCreate,
+  UserOption,
   UserUpdate,
   UserPasswordUpdate,
   Waypoint,
@@ -1769,6 +1828,13 @@ export const schemas = {
   TaskStatusResponse,
   DebugTaskRequest,
   TaskLaunchResponse,
+  status,
+  assignee_id,
+  TodoProjectRef,
+  TodoUserRef,
+  TodoSchema,
+  TodoCreate,
+  TodoUpdate,
   Body_start_parse_api_v1_import_haushalt_parse_post,
   ParseResultPublicSchema,
   ProposedFinve,
@@ -3740,6 +3806,142 @@ and then call the confirm endpoint to persist it.`,
   },
   {
     method: "get",
+    path: "/api/v1/todos/",
+    alias: "list_todos_api_v1_todos__get",
+    description: `List tasks (logged-in users only), with optional filters.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "status",
+        type: "Query",
+        schema: status,
+      },
+      {
+        name: "priority",
+        type: "Query",
+        schema: status,
+      },
+      {
+        name: "assignee_id",
+        type: "Query",
+        schema: assignee_id,
+      },
+      {
+        name: "project_id",
+        type: "Query",
+        schema: assignee_id,
+      },
+      {
+        name: "created_by_id",
+        type: "Query",
+        schema: assignee_id,
+      },
+      {
+        name: "include_done",
+        type: "Query",
+        schema: z.boolean().optional().default(true),
+      },
+    ],
+    response: z.array(TodoSchema),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/api/v1/todos/",
+    alias: "create_todo_api_v1_todos__post",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: TodoCreate,
+      },
+    ],
+    response: TodoSchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/todos/:todo_id",
+    alias: "get_todo_api_v1_todos__todo_id__get",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "todo_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: TodoSchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "patch",
+    path: "/api/v1/todos/:todo_id",
+    alias: "update_todo_api_v1_todos__todo_id__patch",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: TodoUpdate,
+      },
+      {
+        name: "todo_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: TodoSchema,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "delete",
+    path: "/api/v1/todos/:todo_id",
+    alias: "delete_todo_api_v1_todos__todo_id__delete",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "todo_id",
+        type: "Path",
+        schema: z.number().int(),
+      },
+    ],
+    response: z.void(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
     path: "/api/v1/users/",
     alias: "list_users_api_v1_users__get",
     requestFormat: "json",
@@ -3854,6 +4056,23 @@ and then call the confirm endpoint to persist it.`,
     alias: "get_current_user_info_api_v1_users_me_get",
     requestFormat: "json",
     response: UserRead,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/users/options",
+    alias: "list_user_options_api_v1_users_options_get",
+    description: `Minimal user list (id + username) for pickers such as task assignees.
+
+Available to any logged-in user — unlike &#x60;&#x60;GET /&#x60;&#x60; which needs &#x60;&#x60;user.manage&#x60;&#x60;.`,
+    requestFormat: "json",
+    response: z.array(UserOption),
     errors: [
       {
         status: 422,

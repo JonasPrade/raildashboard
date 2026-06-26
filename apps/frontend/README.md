@@ -162,6 +162,10 @@ Multi-step import workflow for federal budget PDFs. The `ReviewTable` shows auto
 
 `HaushaltsGuidePage.tsx` (`/admin/haushalt-import/guide`) provides a step-by-step user guide (accordion format) with troubleshooting FAQ. Linked from both the import page and the review page.
 
+### Aufgaben / To-Dos (`features/todos/`)
+
+Lightweight task system for **logged-in users only** (no public view). Central page `TasksPage.tsx` at `/tasks` groups tasks into Offen / In Arbeit / Erledigt with quick-add and filters (assignee, project, only-mine). `TasksSection.tsx` renders a project's tasks on the project detail page. Create/edit happens in `TodoEditDrawer.tsx`; shared status-change/delete handlers live in `useTodoActions.ts`. Data via `useTodos()/useCreateTodo()/useUpdateTodo()/useDeleteTodo()` (`shared/api/queries.ts` → `/api/v1/todos`); the assignee picker uses `useUserOptions()` → `GET /api/v1/users/options`. Editing is gated by the `todo.create` / `todo.edit` / `todo.delete` capabilities. See `docs/features/feature-tasks.md`.
+
 ## Development conventions
 
 * **Stay strict with TypeScript:** New modules should embrace type safety (avoid `any`).

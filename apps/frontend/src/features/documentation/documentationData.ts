@@ -199,6 +199,20 @@ export const featureHighlights: FeatureHighlight[] = [
         ]
     },
     {
+        title: "Aufgaben (To-Dos)",
+        description:
+            "Angemeldete Nutzer können Aufgaben festhalten, um die wiederkehrende Überarbeitung von Projekten zu koordinieren. " +
+            "Aufgaben sind ausschließlich für angemeldete Nutzer sichtbar; Erstellen, Bearbeiten und Löschen sind über die Rechte todo.create / todo.edit / todo.delete gesteuert (editor + admin per Default).",
+        details: [
+            "Zentrale Seite /tasks: Spalten Offen / In Arbeit / Erledigt, Schnell-Erfassung, Filter nach Nutzer, Projekt und „nur meine Aufgaben“",
+            "Aufgabe optional mit einem Projekt verknüpft oder als freie Notiz; Verknüpfung als Link zur Projektdetailseite",
+            "Mehrfachzuweisung an Nutzer (m:n); Zugewiesene als Avatar-Initialen auf der Karte",
+            "Status Offen / In Arbeit / Erledigt (Erledigt setzt completed_at), Priorität Niedrig / Mittel / Hoch, optionales Fälligkeitsdatum (überfällig rot hervorgehoben)",
+            "Projektdetailseite zeigt für angemeldete Nutzer den Abschnitt „Aufgaben“ mit den Aufgaben des Projekts und „+ Aufgabe“ (Projekt vorbelegt)",
+            "Beim Löschen eines Projekts bleibt die Aufgabe erhalten (project_id wird auf NULL gesetzt)"
+        ]
+    },
+    {
         title: "Konfigurierbare Rollen & Berechtigungen",
         description:
             "Administrators can define custom roles and assign granular capabilities to each one. " +

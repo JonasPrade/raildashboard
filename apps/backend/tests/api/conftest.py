@@ -15,6 +15,7 @@ from dashboard_backend.models.app_settings import AppSettings
 from dashboard_backend.models.projects.project_text import ProjectText
 from dashboard_backend.models.projects.project_text_type import ProjectTextType
 from dashboard_backend.models.roles import Role, RolePermission
+from dashboard_backend.models.todos.todo import Todo, TodoAssignee
 from dashboard_backend.models.users import User
 from dashboard_backend.models.routes import Route
 from dashboard_backend.models.projects.project_group import ProjectGroup
@@ -37,6 +38,8 @@ TABLES = [
     AppSettings.__table__,
     ProjectTextType.__table__,  # must precede ProjectText (FK dependency)
     ProjectText.__table__,
+    Todo.__table__,  # FK to project (absent here) is unenforced in SQLite
+    TodoAssignee.__table__,  # must follow Todo (FK dependency)
 ]
 
 

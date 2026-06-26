@@ -32,6 +32,7 @@ import ProjectTextsSection from "./ProjectTextsSection";
 import { ProjectTableOfContents, type TocSection } from "./ProjectTableOfContents";
 import FinveSection from "./components/FinveSection";
 import ProgressSection from "./components/progress/ProgressSection";
+import TasksSection from "../todos/TasksSection";
 import BvwpDataSection from "./components/BvwpDataSection";
 import VibSection from "./components/VibSection";
 
@@ -128,6 +129,7 @@ export default function ProjectDetail() {
     const vibRef = useRef<HTMLDivElement>(null);
     const superiorRef = useRef<HTMLDivElement>(null);
     const subProjectsRef = useRef<HTMLDivElement>(null);
+    const tasksRef = useRef<HTMLDivElement>(null);
     const historyRef = useRef<HTMLDivElement>(null);
     const { user, can } = useAuth();
     const canEdit = can("project.edit");
@@ -333,6 +335,12 @@ export default function ProjectDetail() {
             isCollapsible: true,
             isOpen: subProjectsOpen,
             onOpen: () => setSubProjectsOpen(true),
+        },
+        {
+            id: "tasks",
+            label: "Aufgaben",
+            ref: tasksRef,
+            visible: user !== null,
         },
         {
             id: "history",
@@ -616,6 +624,13 @@ export default function ProjectDetail() {
                             </Collapse>
                         </Stack>
                     </ChronicleCard>
+                    </div>
+                )}
+
+                {/* Aufgaben – nur für eingeloggte Nutzer sichtbar */}
+                {user !== null && (
+                    <div ref={tasksRef}>
+                        <TasksSection projectId={projectId} />
                     </div>
                 )}
 
