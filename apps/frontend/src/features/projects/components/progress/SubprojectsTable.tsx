@@ -30,6 +30,24 @@ function phaseBadge(child: ProgressChild) {
             </Badge>
         );
     }
+    // A nested superior carries a span over its own subprojects, not one phase.
+    const lo = child.span_min_phase as MainPhase | null;
+    const hi = child.span_max_phase as MainPhase | null;
+    if (child.is_superior && lo && hi && lo !== hi) {
+        return (
+            <Group gap={4} wrap="nowrap">
+                <Badge variant="light" color={PHASE_COLOR[lo] ?? "gray"}>
+                    {MAIN_PHASE_LABEL[lo] ?? lo}
+                </Badge>
+                <Text size="xs" c="dimmed">
+                    –
+                </Text>
+                <Badge variant="light" color={PHASE_COLOR[hi] ?? "gray"}>
+                    {MAIN_PHASE_LABEL[hi] ?? hi}
+                </Badge>
+            </Group>
+        );
+    }
     const phase = child.effective_phase as MainPhase;
     return (
         <Badge variant="light" color={PHASE_COLOR[phase] ?? "gray"}>
@@ -95,9 +113,16 @@ export default function SubprojectsTable({ children }: { children: ProgressChild
                     {filtered.map((child) => (
                         <Table.Tr key={child.project_id}>
                             <Table.Td>
-                                <Anchor component={Link} to={`/projects/${child.project_id}`} size="sm">
-                                    {child.name}
-                                </Anchor>
+                                <Group gap={6} wrap="nowrap">
+                                    <Anchor component={Link} to={`/projects/${child.project_id}`} size="sm">
+                                        {child.name}
+                                    </Anchor>
+                                    {child.is_superior && (
+                                        <Badge size="xs" variant="outline" color="gray" title="Hat eigene Unterprojekte">
+                                            Gruppe
+                                        </Badge>
+                                    )}
+                                </Group>
                             </Table.Td>
                             <Table.Td>{phaseBadge(child)}</Table.Td>
                             <Table.Td>

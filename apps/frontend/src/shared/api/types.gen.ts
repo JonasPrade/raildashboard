@@ -2268,8 +2268,22 @@ export interface components {
             group: string;
         };
         /**
+         * PfLinkSchema
+         * @description A single commented reference link for the Planfeststellung.
+         */
+        PfLinkSchema: {
+            /** Url */
+            url: string;
+            /** Comment */
+            comment?: string | null;
+        };
+        /**
          * ProgressChildSchema
-         * @description A leaf child shown under a superior project's aggregated progress.
+         * @description A direct child shown under a superior project's aggregated progress.
+         *
+         *     A child may itself be a superior (``is_superior``): then its planning state is
+         *     a span over *its own* leaf descendants (``span_min_phase``..``span_max_phase``)
+         *     rather than a single phase, so multi-level nesting stays visible at every level.
          */
         ProgressChildSchema: {
             /** Project Id */
@@ -2291,6 +2305,15 @@ export interface components {
              * @default true
              */
             is_known: boolean;
+            /**
+             * Is Superior
+             * @default false
+             */
+            is_superior: boolean;
+            /** Span Min Phase */
+            span_min_phase?: ("NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB") | null;
+            /** Span Max Phase */
+            span_max_phase?: ("NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB") | null;
         };
         /** ProgressForecastSchema */
         ProgressForecastSchema: {
@@ -2649,13 +2672,13 @@ export interface components {
             parl_befassung_date?: string | null;
             /** Pf Text */
             pf_text?: string | null;
-            /** Pf Links */
-            pf_links?: {
-                url: string;
-                comment?: string | null;
-            }[];
             /** Pf Date */
             pf_date?: string | null;
+            /**
+             * Pf Links
+             * @default []
+             */
+            pf_links: components["schemas"]["PfLinkSchema"][];
             /**
              * Observations
              * @default []
@@ -2716,13 +2739,10 @@ export interface components {
             parl_befassung_date?: string | null;
             /** Pf Text */
             pf_text?: string | null;
-            /** Pf Links */
-            pf_links?: {
-                url: string;
-                comment?: string | null;
-            }[] | null;
             /** Pf Date */
             pf_date?: string | null;
+            /** Pf Links */
+            pf_links?: components["schemas"]["PfLinkSchema"][] | null;
             /** Clear Phase Override */
             clear_phase_override?: boolean | null;
             /** Clear Parl Relevant */

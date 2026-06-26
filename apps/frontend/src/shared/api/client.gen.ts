@@ -822,6 +822,12 @@ const ChangeLogRead = z
 const RevertFieldRequest = z
   .object({ changelog_entry_id: z.number().int() })
   .passthrough();
+const PfLinkSchema = z
+  .object({
+    url: z.string(),
+    comment: z.union([z.string(), z.null()]).optional(),
+  })
+  .passthrough();
 const ProgressObservationSchema = z
   .object({
     id: z.number().int(),
@@ -890,6 +896,31 @@ const ProgressChildSchema = z
     ]),
     lifecycle_status: z.enum(["AKTIV", "PAUSIERT", "ABGEBROCHEN"]),
     is_known: z.boolean().optional().default(true),
+    is_superior: z.boolean().optional().default(false),
+    span_min_phase: z
+      .union([
+        z.enum([
+          "NICHT_GESTARTET",
+          "VORPLANUNG",
+          "GENEHMIGUNGSPLANUNG",
+          "BAU",
+          "IN_BETRIEB",
+        ]),
+        z.null(),
+      ])
+      .optional(),
+    span_max_phase: z
+      .union([
+        z.enum([
+          "NICHT_GESTARTET",
+          "VORPLANUNG",
+          "GENEHMIGUNGSPLANUNG",
+          "BAU",
+          "IN_BETRIEB",
+        ]),
+        z.null(),
+      ])
+      .optional(),
   })
   .passthrough();
 const ForecastStepSchema = z
@@ -954,12 +985,18 @@ const ProjectProgressSchema = z
     parl_state: z
       .union([z.enum(["OFFEN", "LAEUFT", "ABGESCHLOSSEN"]), z.null()])
       .optional(),
+    pf_state_override: z
+      .union([z.enum(["OFFEN", "LAEUFT", "ABGESCHLOSSEN"]), z.null()])
+      .optional(),
     parl_state_override: z
       .union([z.enum(["OFFEN", "LAEUFT", "ABGESCHLOSSEN"]), z.null()])
       .optional(),
     parl_befassung_text: z.union([z.string(), z.null()]).optional(),
     parl_drucksache_url: z.union([z.string(), z.null()]).optional(),
     parl_befassung_date: z.union([z.string(), z.null()]).optional(),
+    pf_text: z.union([z.string(), z.null()]).optional(),
+    pf_date: z.union([z.string(), z.null()]).optional(),
+    pf_links: z.array(PfLinkSchema).optional().default([]),
     observations: z.array(ProgressObservationSchema).optional().default([]),
     contributions: z.array(SourceContributionSchema).optional().default([]),
     pf_documents: z.array(TrackDocumentSchema).optional().default([]),
@@ -1023,9 +1060,13 @@ const ProjectProgressUpdate = z
     parl_befassung_text: z.union([z.string(), z.null()]),
     parl_drucksache_url: z.union([z.string(), z.null()]),
     parl_befassung_date: z.union([z.string(), z.null()]),
+    pf_text: z.union([z.string(), z.null()]),
+    pf_date: z.union([z.string(), z.null()]),
+    pf_links: z.union([z.array(PfLinkSchema), z.null()]),
     clear_phase_override: z.union([z.boolean(), z.null()]),
     clear_parl_relevant: z.union([z.boolean(), z.null()]),
     clear_parl_state_override: z.union([z.boolean(), z.null()]),
+    clear_pf_state_override: z.union([z.boolean(), z.null()]),
   })
   .partial()
   .passthrough();
@@ -1692,6 +1733,7 @@ export const schemas = {
   ChangeLogEntryRead,
   ChangeLogRead,
   RevertFieldRequest,
+  PfLinkSchema,
   ProgressObservationSchema,
   SourceContributionSchema,
   DocumentRefSchema,

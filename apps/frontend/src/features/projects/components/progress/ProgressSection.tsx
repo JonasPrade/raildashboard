@@ -87,6 +87,11 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
                                         {MAIN_PHASE_LABEL[progress.span_min_phase as MainPhase]} –{" "}
                                         {MAIN_PHASE_LABEL[progress.span_max_phase as MainPhase]}
                                     </Text>
+                                ) : progress.is_overridden ? (
+                                    // Editorial override pins the whole project to one phase.
+                                    <Text size="sm" c="dimmed">
+                                        Gesamter Abschnitt: {MAIN_PHASE_LABEL[effectivePhase]}
+                                    </Text>
                                 ) : (
                                     <Text size="sm" c="dimmed">
                                         Status der Unterprojekte unbekannt

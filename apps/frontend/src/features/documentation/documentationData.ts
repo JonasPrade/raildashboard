@@ -89,7 +89,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Manueller Phasen-Override gewinnt immer über den berechneten Wert (Badge 'übersteuert')",
             "Parl. Befassung ist bei BSWAG-Projektgruppen vorbelegt; nullable Override pro Projekt",
             "Pausiert/Abgebrochen überblendet die gesamte Darstellung (Banner + abgeblendeter Stepper)",
-            "Übergeordnete Projekte zeigen eine Phasen-Spanne (min..max) + eine durchsuchbare Unterprojekt-Tabelle mit Status-Verteilung (z. B. „3× Bau · 1× Vorplanung · 2× Unbekannt“)",
+            "Übergeordnete Projekte zeigen eine Phasen-Spanne (min..max) + eine durchsuchbare Unterprojekt-Tabelle mit Status-Verteilung (z. B. „3× Bau · 1× Vorplanung · 2× Unbekannt“); die Spanne wird rekursiv über beliebig tiefe Unterprojekt-Ebenen gebildet — ein Unterprojekt mit eigenen Unterprojekten zeigt seine eigene Sub-Spanne (Marker „Gruppe“)",
             "Hover über einen Phasen-Kreis im Stepper listet die Unterprojekte dieser Phase auf",
             "Projekte ohne Datengrundlage werden klar als „Unbekannt“ markiert (nicht als „Nicht gestartet“)",
             "Planfeststellung: Zustand, Datum, Notiz und mehrere kommentierte URL-Links; parl. Befassung: Zustand, Datum, Notiz und der DIP-Link zur Bundestagsdrucksache",

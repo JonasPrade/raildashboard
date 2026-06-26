@@ -83,6 +83,31 @@ abschnitten sind bereits als **Unterprojekte** modelliert (`Project.superior_pro
 **übergeordnetes Projekt aggregiert** seine Kinder: Headline als **Spanne** (min..max der
 Kinder), Kinder im Aufklappbereich gelistet.
 
+**Beliebig tiefe Hierarchie (rekursive Aggregation):** Die Unterprojekt-Kette kann
+mehr als zwei Ebenen tief sein (Projekt → Abschnitt → PFA …). Die Aggregation ist
+deshalb **rekursiv über den gesamten Teilbaum**, nicht nur eine Ebene tief — sonst
+zeigte ein Projekt 1. Stufe nur den (oft pauschalen) Eigenstand eines Zwischenknotens
+statt der real auseinanderlaufenden Blätter darunter. Regeln (`aggregate_tree` in
+`services/progress_derivation.py`, rein/unit-getestet):
+- **Nur echte Blätter tragen einen Zustand.** Ein Knoten *ohne* Kinder steuert seine
+  abgeleitete `effective_phase` bei (sofern `is_known`).
+- **Jeder Zwischenknoten spannt die Blätter unter sich** — auf jeder Ebene die
+  Spanne min..max über *alle* erreichbaren Blätter (nicht über seine eigenen
+  Beobachtungen; ein Zwischenknoten hat keinen Eigenstand).
+- **Ausnahme — manueller Override sticht:** Ein `manual_phase_override` an einem
+  Zwischenknoten (auch am Top-Projekt) **fixiert den ganzen Teilbaum** auf diese eine
+  Phase („der ganze Abschnitt ist im Bau") und kürzt die Rekursion ab. Abgeleitete
+  VIB/FinVe-Beobachtungen an einem Zwischenknoten bleiben unberücksichtigt.
+- **`is_known`** eines Zwischenknotens = mindestens ein Blatt darunter ist bekannt.
+- **Darstellung:** Ist ein *direktes* Kind selbst ein Superior, zeigt seine Zeile in
+  der Unterprojekt-Tabelle seine **eigene Sub-Spanne** (Badge „Vorplanung – Bau" +
+  Marker „Gruppe") statt einer einzelnen, irreführenden Phase — der Drill-down bleibt
+  über jede Ebene navigierbar. Schema-Felder dafür: `ProgressChildSchema.is_superior`
+  /`span_min_phase`/`span_max_phase`.
+
+Bäume sind klein → reine Python-Rekursion im Request (kein rekursives SQL); Blätter
+werden über das bestehende Lazy-Resync-Fenster (24 h) frisch gehalten.
+
 **VIB-PFA-Abschnitte → Unterprojekte (Status liegt am Blatt):** Ein VIB-Eintrag
 (Vorhaben) enthält oft eine **Tabelle von Planfeststellungsabschnitten (PFA)** mit
 *unterschiedlichem* Stand. Die drei Eintrags-Flags (`status_planung/bau/abgeschlossen`)
@@ -286,7 +311,10 @@ verstreut und vermischte sich mit der Visualisierung. Stattdessen:
   parl. Befassung wird per Projektgruppe (`short_name`-Prefix `BSWAG`) vorbelegt.
 - [x] `PAUSIERT`/`ABGEBROCHEN` überblendet die gesamte Darstellung.
 - [x] Aufklappbereich zeigt je Quelle Aussage, Datum und Vertrauen; Konflikte bleiben sichtbar.
-- [x] Übergeordnete Projekte zeigen eine Spanne + ihre Unterprojekte.
+- [x] Übergeordnete Projekte zeigen eine Spanne + ihre Unterprojekte; die Spanne wird
+  **rekursiv über beliebig tiefe** Unterprojekt-Ebenen gebildet (Blätter tragen den Stand,
+  manueller Override am Zwischenknoten fixiert den Teilbaum). Direkte Kinder, die selbst
+  Superior sind, zeigen ihre eigene Sub-Spanne.
 - [x] Dokumente lassen sich hinter PF und parl. Befassung verlinken.
 - [x] VIB/FinVe-Beobachtungen werden materialisiert (`sync_derived_observations`) und sind
   nicht manuell löschbar; Lazy-Resync bei stalem `computed_at` (24h) + `recompute`.
@@ -318,8 +346,10 @@ verstreut und vermischte sich mit der Visualisierung. Stattdessen:
 - **`is_known`** (Ableitungs-Ergebnis + Schema, leaf & Kind): `False`, wenn es weder eine
   glaubwürdige MAIN-Beobachtung noch einen manuellen Override gibt. Frontend zeigt dann
   **„Unbekannt"** statt des `NICHT_GESTARTET`-Fallbacks („wissen wir nicht" ≠ „nicht gestartet").
-- **Superior-Spanne** wird nur über **bekannte** Kinder gebildet; sind alle Kinder unbekannt,
-  entfällt die Spanne („Status der Unterprojekte unbekannt").
+- **Superior-Spanne** wird **rekursiv** nur über **bekannte Blätter** des gesamten Teilbaums
+  gebildet (siehe „Beliebig tiefe Hierarchie" oben); sind alle Blätter unbekannt, entfällt die
+  Spanne („Status der Unterprojekte unbekannt"). Ein manueller Override am Superior fixiert
+  stattdessen eine Einzelphase („Gesamter Abschnitt: …").
 - **Unterprojekt-Tabelle** (`SubprojectsTable.tsx`): durchsuchbar, mit Status-Verteilungs-Chips
   (inkl. „Unbekannt"-Bucket), ersetzt die frühere Kinderliste im Aufklappbereich.
 - **Phasen-Hover** im `PhaseStepper`: Tooltip + Zähler-Badge listen die Unterprojekte je Phase.

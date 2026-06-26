@@ -15,8 +15,10 @@ from dashboard_backend.models.projects.progress_enums import (
 )
 from dashboard_backend.services.progress_derivation import (
     CREDIBILITY_THRESHOLD,
+    AggregationNode,
     ObservationInput,
     aggregate_span,
+    aggregate_tree,
     derive_headline,
     effective_confidence,
     recency_decay,
@@ -250,3 +252,82 @@ def test_aggregate_span_empty_is_none():
 
 def test_credibility_threshold_constant_sane():
     assert 0.0 < CREDIBILITY_THRESHOLD < 0.5
+
+
+# --- Recursive subtree aggregation (arbitrary depth) -------------------------
+
+
+def _leaf(phase: MainPhase, *, known: bool = True) -> AggregationNode:
+    return AggregationNode(leaf_phase=phase, leaf_is_known=known)
+
+
+def _superior(*children: AggregationNode, override: MainPhase | None = None) -> AggregationNode:
+    return AggregationNode(
+        leaf_phase=MainPhase.NICHT_GESTARTET,
+        leaf_is_known=False,
+        manual_override=override,
+        children=list(children),
+    )
+
+
+def test_aggregate_tree_leaf_returns_own_phase():
+    res = aggregate_tree(_leaf(MainPhase.BAU))
+    assert res.is_superior is False
+    assert res.span is None
+    assert res.display_phase == MainPhase.BAU
+    assert res.phases == [MainPhase.BAU]
+
+
+def test_aggregate_tree_unknown_leaf_contributes_nothing():
+    res = aggregate_tree(_leaf(MainPhase.NICHT_GESTARTET, known=False))
+    assert res.is_known is False
+    assert res.phases == []
+
+
+def test_aggregate_tree_spans_direct_children():
+    res = aggregate_tree(_superior(_leaf(MainPhase.VORPLANUNG), _leaf(MainPhase.BAU)))
+    assert res.is_superior is True
+    assert res.span == (MainPhase.VORPLANUNG, MainPhase.BAU)
+    assert res.is_known is True
+
+
+def test_aggregate_tree_spans_leaves_across_levels():
+    """A level-1 superior must reflect diverging level-3 leaves, not a level-2 summary."""
+    deep = _superior(
+        _leaf(MainPhase.IN_BETRIEB),
+        _superior(_leaf(MainPhase.VORPLANUNG), _leaf(MainPhase.GENEHMIGUNGSPLANUNG)),
+    )
+    res = aggregate_tree(deep)
+    assert res.span == (MainPhase.VORPLANUNG, MainPhase.IN_BETRIEB)
+
+
+def test_aggregate_tree_override_pins_subtree():
+    """A manual override on an intermediate node ignores its diverging leaves."""
+    node = _superior(
+        _leaf(MainPhase.VORPLANUNG),
+        _leaf(MainPhase.IN_BETRIEB),
+        override=MainPhase.BAU,
+    )
+    res = aggregate_tree(node)
+    assert res.span is None
+    assert res.display_phase == MainPhase.BAU
+    assert res.phases == [MainPhase.BAU]
+
+
+def test_aggregate_tree_override_collapses_into_parent_span():
+    """An override on a nested node contributes exactly its pinned phase upward."""
+    res = aggregate_tree(
+        _superior(
+            _leaf(MainPhase.VORPLANUNG),
+            _superior(_leaf(MainPhase.NICHT_GESTARTET), override=MainPhase.IN_BETRIEB),
+        )
+    )
+    assert res.span == (MainPhase.VORPLANUNG, MainPhase.IN_BETRIEB)
+
+
+def test_aggregate_tree_all_unknown_children_is_unknown():
+    res = aggregate_tree(
+        _superior(_leaf(MainPhase.NICHT_GESTARTET, known=False), _leaf(MainPhase.BAU, known=False))
+    )
+    assert res.is_known is False
+    assert res.span is None
