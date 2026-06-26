@@ -102,7 +102,9 @@ export const featureHighlights: FeatureHighlight[] = [
             "Prognose-Panel: Restdauer der aktuellen Phase + nächste Schritte aus BVWP-Dauern, VIB-PFA-Terminen, Fulda-Runde- und manuellen Erwartet-Beobachtungen",
             "Manuelle Beobachtungen erfassen nur Leistungsphasen (Quellentyp MANUELL/FULDA_RUNDE/BAUPORTAL/MEDIEN + optionaler Vertrauens-Override); Planfeststellung & parl. Befassung werden separat im Schaltmenü „Verfahren\" gepflegt",
             "Erwartete Termine: eine manuelle Beobachtung kann als „erwarteter Termin\" markiert werden (Schalter im Beobachtungsformular). Sie speist nur die Prognose (z. B. erwartete Inbetriebnahme), zieht die aktuelle Phase nicht hoch und übersteuert dort alle automatischen Quellen (VIB-PFA/BVWP/Fulda)",
-            "Kurzansicht (Karten-Popup, Unter-/Übergeordnet-Abschnitte): kompakte Leistungsphasen-Leiste mit aktuellem Stand; erreichte Phasen grün, „In Betrieb\" grün (= abgeschlossen), Spanne bei übergeordneten Projekten"
+            "Kurzansicht (Karten-Popup, Unter-/Übergeordnet-Abschnitte): kompakte Leistungsphasen-Leiste mit aktuellem Stand; erreichte Phasen grün, „In Betrieb\" grün (= abgeschlossen), Spanne bei übergeordneten Projekten",
+            "Tabelle „Quellen & Beobachtungen\": Spalte „Bereich\" (Planungsphasen/Planfeststellung/parl. Befassung); Vertrauen und „entscheidend\" sind nur für eingeloggte Nutzer sichtbar, ebenso die Vertrauensangabe in der Kopfzeile",
+            "Beim Anlegen eines neuen Projekts (Wizard, Schritt „Eigenschaften\") lässt sich die aktuelle Planungsphase direkt setzen (manueller Override, optional)"
         ]
     },
     {

@@ -626,7 +626,7 @@ export default function ProgressEditDrawer({ projectId, progress, opened, onClos
                             <Table.Thead>
                                 <Table.Tr>
                                     <Table.Th>Quelle</Table.Th>
-                                    <Table.Th>Spur</Table.Th>
+                                    <Table.Th>Bereich</Table.Th>
                                     <Table.Th>Aussage</Table.Th>
                                     <Table.Th>Datum</Table.Th>
                                     <Table.Th>Notiz</Table.Th>

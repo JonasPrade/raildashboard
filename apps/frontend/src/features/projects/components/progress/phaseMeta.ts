@@ -61,7 +61,7 @@ export const LIFECYCLE_LABEL: Record<LifecycleStatus, string> = {
 };
 
 export const TRACK_LABEL: Record<ObservationTrack, string> = {
-    MAIN: "Leistungsphasen",
+    MAIN: "Planungsphasen",
     PF: "Planfeststellung",
     PARL: "Parlamentarische Befassung",
 };

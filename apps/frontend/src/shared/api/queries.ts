@@ -472,6 +472,16 @@ export function updateProject(id: number, payload: ProjectUpdatePayload) {
     });
 }
 
+/** Standalone progress PATCH (non-hook), for flows that already orchestrate
+ * their own saving such as the new-project wizard. */
+export function updateProjectProgress(projectId: number, payload: ProjectProgressUpdate) {
+    return api<ProjectProgress>(`/api/v1/projects/${projectId}/progress`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+    });
+}
+
 // ---------------------------------------------------------------------------
 // Project wizard (POST /api/v1/projects + link helpers)
 // ---------------------------------------------------------------------------

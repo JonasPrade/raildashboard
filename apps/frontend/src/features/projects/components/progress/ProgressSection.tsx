@@ -23,7 +23,7 @@ import {
 } from "./phaseMeta";
 
 export default function ProgressSection({ projectId }: { projectId: number }) {
-    const { can } = useAuth();
+    const { can, user } = useAuth();
     const canEdit = can("progress.edit");
     const { data: progress, isLoading, isError } = useProjectProgress(projectId);
     const [editing, setEditing] = useState(false);
@@ -103,8 +103,9 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
                                 </Text>
                             ) : (
                                 <Text size="sm" c="dimmed">
-                                    Aktuelle Phase: {MAIN_PHASE_LABEL[effectivePhase]} ·{" "}
-                                    {(progress.computed_confidence * 100).toFixed(0)} % Vertrauen
+                                    Aktuelle Phase: {MAIN_PHASE_LABEL[effectivePhase]}
+                                    {user !== null &&
+                                        ` · ${(progress.computed_confidence * 100).toFixed(0)} % Vertrauen`}
                                 </Text>
                             )}
                             {progress.is_overridden && (
