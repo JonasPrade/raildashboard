@@ -129,10 +129,10 @@ export function ProjectTableOfContents({ sections, onCreateTask }: Props) {
                     <Tooltip label="Aufgabe erstellen" position="right" withArrow>
                         <ActionIcon
                             variant="filled"
-                            color="gold"
+                            color="preussen"
                             size={42}
                             radius={0}
-                            style={{ borderRadius: "0 6px 6px 0", color: "var(--ink)" }}
+                            style={{ borderRadius: "0 6px 6px 0" }}
                             onClick={onCreateTask}
                             aria-label="Aufgabe erstellen"
                         >
