@@ -50,11 +50,13 @@ from dashboard_backend.services.progress_materialization import (
     PfaInput,
     bauportal_to_spec,
     finve_to_spec,
+    media_to_spec,
     pfa_has_pf_evidence,
     pfa_to_specs,
     vib_entry_to_specs,
 )
 from dashboard_backend.models.projects.bauportal_status import BauportalStatus
+from dashboard_backend.models.projects.media_report import MediaReport
 from dashboard_backend.models.projects.bvwp_project_data import BvwpProjectData
 from dashboard_backend.models.vib.vib_pfa_entry import VibPfaEntry
 
@@ -320,6 +322,27 @@ def sync_derived_observations(db: Session, project_id: int) -> int:
         if bauportal_spec is not None:  # mixed/umbrella entry → no contribution
             specs.append(bauportal_spec)
 
+    # --- Confirmed Medien/Presse reports matched to this project ---
+    media_rows = (
+        db.query(MediaReport)
+        .filter(
+            MediaReport.project_id == project_id,
+            MediaReport.confirmed.is_(True),
+        )
+        .all()
+    )
+    for row in media_rows:
+        media_spec = media_to_spec(
+            media_report_id=row.id,
+            asserted_phase=row.asserted_phase,
+            observed_date=row.observed_date or row.published_date,
+            publication=row.publication,
+            url=row.url,
+            quote=row.quote,
+        )
+        if media_spec is not None:  # no valid phase yet → no contribution
+            specs.append(media_spec)
+
     for spec in specs:
         db.add(
             ProgressObservation(
@@ -335,6 +358,7 @@ def sync_derived_observations(db: Session, project_id: int) -> int:
                 vib_pfa_entry_id=spec.vib_pfa_entry_id,
                 finve_id=spec.finve_id,
                 bauportal_status_id=spec.bauportal_status_id,
+                media_report_id=spec.media_report_id,
             )
         )
 

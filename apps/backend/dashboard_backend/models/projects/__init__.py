@@ -3,6 +3,7 @@ from .budget import Budget
 from .bvwp_project_data import BvwpProjectData
 from .document import Document
 from .finve import Finve
+from .media_report import MediaReport
 from .project import Project
 from .project_group import ProjectGroup
 from .project_progress import ProjectProgress

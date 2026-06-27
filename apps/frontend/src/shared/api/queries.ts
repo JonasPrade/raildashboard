@@ -1439,6 +1439,89 @@ export function useConfirmBauportalMatch() {
     });
 }
 
+// ---------------------------------------------------------------------------
+// Medien/Presse importer (#48)
+// ---------------------------------------------------------------------------
+
+export type MediaEntry = {
+    id: number;
+    url: string | null;
+    publication: string | null;
+    published_date: string | null;
+    raw_text: string | null;
+    quote: string | null;
+    asserted_phase: string | null;
+    observed_date: string | null;
+    suggested_project_id: number | null;
+    suggested_project_name: string | null;
+    project_id: number | null;
+    project_name: string | null;
+    confirmed: boolean;
+    created_at: string | null;
+    username_snapshot: string | null;
+};
+
+export type MediaUpdatePayload = {
+    publication?: string | null;
+    published_date?: string | null;
+    asserted_phase?: string | null;
+    observed_date?: string | null;
+    quote?: string | null;
+    project_id?: number | null;
+    confirmed?: boolean;
+};
+
+export function useMediaEntries(onlyUnconfirmed = false) {
+    return useQuery({
+        queryKey: ["media-entries", onlyUnconfirmed],
+        queryFn: () =>
+            api<MediaEntry[]>(`/api/v1/import/media/entries?only_unconfirmed=${onlyUnconfirmed}`),
+    });
+}
+
+export function useExtractMedia() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ url, text }: { url?: string; text?: string }) =>
+            api<MediaEntry>("/api/v1/import/media/extract", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ url: url || null, text: text || null }),
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["media-entries"] });
+        },
+    });
+}
+
+export function useUpdateMediaEntry() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ entryId, data }: { entryId: number; data: MediaUpdatePayload }) =>
+            api<MediaEntry>(`/api/v1/import/media/entries/${entryId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["media-entries"] });
+            queryClient.invalidateQueries({ queryKey: ["project-progress"] });
+        },
+    });
+}
+
+export function useDeleteMediaEntry() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (entryId: number) =>
+            api<void>(`/api/v1/import/media/entries/${entryId}`, { method: "DELETE" }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["media-entries"] });
+            queryClient.invalidateQueries({ queryKey: ["project-progress"] });
+        },
+    });
+}
+
 export function useVibAiAvailable() {
     return useQuery({
         queryKey: ["vib-ai-available"],
