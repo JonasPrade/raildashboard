@@ -362,14 +362,15 @@ def media_to_spec(
     )
 
 
-# Fulda-Runde category → MainPhase. The Kleine Anfrage groups projects by
-# Leistungsphase: currently *in* Lph 1–2 / 3–4, or having *completed* a phase
-# (which advances the project to the next one).
+# Fulda-Runde category → MainPhase. The answer groups projects by Leistungsphase:
+# currently *in* Lph 1–2 / 3–4, having *completed* a phase (which advances the
+# project to the next one), or holding a Baufinanzierungsvereinbarung (→ Bau).
 FULDA_CATEGORY_PHASE: dict[str, MainPhase] = {
     "IN_LPH_1_2": MainPhase.VORPLANUNG,
     "IN_LPH_3_4": MainPhase.GENEHMIGUNGSPLANUNG,
     "COMPLETED_LPH_1_2": MainPhase.GENEHMIGUNGSPLANUNG,
     "COMPLETED_LPH_3_4": MainPhase.BAU,
+    "HAS_BAUFINVE": MainPhase.BAU,
 }
 
 

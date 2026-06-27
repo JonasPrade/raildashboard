@@ -174,15 +174,17 @@ export default function FuldaImportPage() {
                 <Stack gap={4}>
                     <Title order={2}>Fulda-Runde</Title>
                     <Text c="dimmed" size="sm">
-                        Kleine Anfrage (PDF) hochladen. OCR + KI erkennen die nach Leistungsphase
-                        gruppierten Projekte; nach Prüfung & Zuordnung erzeugt das Bestätigen eine
-                        Beobachtung (Quelle „Fulda-Runde"), die auch in die Prognose einfließt.
+                        <b>Antwort der Bundesregierung</b> auf die Kleine Anfrage zur „Fulda-Runde"
+                        (PDF) hochladen — nicht die Anfrage selbst, denn nur die Antwort enthält die
+                        Projektlisten. OCR + KI erkennen die nach Frage/Leistungsphase gruppierten
+                        Projekte; nach Prüfung & Zuordnung erzeugt das Bestätigen eine Beobachtung
+                        (Quelle „Fulda-Runde"), die auch in die Prognose einfließt.
                     </Text>
                 </Stack>
 
                 <Group align="flex-end">
                     <FileInput
-                        label="Kleine Anfrage (PDF)"
+                        label="Antwort der Bundesregierung (PDF)"
                         placeholder="PDF auswählen"
                         accept="application/pdf"
                         value={file}

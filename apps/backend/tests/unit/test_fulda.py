@@ -22,6 +22,7 @@ def test_category_phase_mapping():
     assert fulda_category_to_phase("IN_LPH_3_4").value == "GENEHMIGUNGSPLANUNG"
     assert fulda_category_to_phase("COMPLETED_LPH_1_2").value == "GENEHMIGUNGSPLANUNG"
     assert fulda_category_to_phase("COMPLETED_LPH_3_4").value == "BAU"
+    assert fulda_category_to_phase("HAS_BAUFINVE").value == "BAU"
     assert fulda_category_to_phase("nope") is None
     assert fulda_category_to_phase(None) is None
 
@@ -67,18 +68,34 @@ def test_fulda_to_spec_none_without_phase():
 # --- item normalisation ------------------------------------------------------
 
 
-def test_normalize_items_filters_invalid():
+def test_normalize_items_maps_question_to_category():
     raw = [
-        {"project_name": "Hanau–Würzburg", "category": "in_lph_3_4"},  # lower-cased
-        {"project_name": "", "category": "IN_LPH_1_2"},  # no name
-        {"project_name": "X", "category": "INVALID"},  # bad category
-        {"project_name": "Y", "category": "COMPLETED_LPH_1_2"},
+        {"question": 1, "project_name": "ABS Augsburg – Donauwörth"},  # → IN_LPH_1_2
+        {"question": 6, "project_name": "ABS Hanau – Würzburg"},  # → IN_LPH_3_4
+        {"question": 8, "project_name": "ABS Stade – Cuxhaven"},  # → HAS_BAUFINVE (Bau)
+        {"question": 13, "project_name": "Budget egal"},  # budget question → dropped
+        {"question": 1, "project_name": ""},  # no name → dropped
+        {"project_name": "kein Question"},  # no question → dropped
         "garbage",
     ]
     items = normalize_items(raw)
     assert items == [
-        {"project_name": "Hanau–Würzburg", "category": "IN_LPH_3_4"},
-        {"project_name": "Y", "category": "COMPLETED_LPH_1_2"},
+        {"project_name": "ABS Augsburg – Donauwörth", "category": "IN_LPH_1_2"},
+        {"project_name": "ABS Hanau – Würzburg", "category": "IN_LPH_3_4"},
+        {"project_name": "ABS Stade – Cuxhaven", "category": "HAS_BAUFINVE"},
+    ]
+
+
+def test_normalize_items_dedupes_same_project_same_question():
+    raw = [
+        {"question": 1, "project_name": "ABS X", "abschnitt": "Abschnitt A"},
+        {"question": 1, "project_name": "ABS X", "abschnitt": "Abschnitt B"},
+        {"question": 6, "project_name": "ABS X"},  # different category → kept
+    ]
+    items = normalize_items(raw)
+    assert items == [
+        {"project_name": "ABS X", "category": "IN_LPH_1_2"},
+        {"project_name": "ABS X", "category": "IN_LPH_3_4"},
     ]
 
 
@@ -103,8 +120,8 @@ def test_extract_uses_llm(monkeypatch):
             "source_label": "Drs 20/999",
             "document_date": "2026-01-15",
             "items": [
-                {"project_name": "Ausbau A", "category": "IN_LPH_1_2"},
-                {"project_name": "Bad", "category": "ZZZ"},
+                {"question": 1, "project_name": "Ausbau A"},
+                {"question": 14, "project_name": "Budget"},  # dropped
             ],
         },
     )
