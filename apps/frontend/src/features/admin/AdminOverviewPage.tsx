@@ -113,6 +113,16 @@ export default function AdminOverviewPage() {
                             </Link>
                         </ChronicleCard>
                     )}
+                    {canProgress && (
+                        <ChronicleCard style={{ textDecoration: "none" }}>
+                            <Link to="/admin/media-import" style={{ textDecoration: "none", color: "inherit" }}>
+                                <Stack gap={4}>
+                                    <Text fw={500}>Medien / Presse</Text>
+                                    <Text size="sm" c="dimmed">Presseartikel (URL/Text) per KI auswerten & als Beobachtung übernehmen</Text>
+                                </Stack>
+                            </Link>
+                        </ChronicleCard>
+                    )}
                     {canCreateProject && (
                         <ChronicleCard style={{ textDecoration: "none" }}>
                             <Link to="/admin/projects/new" style={{ textDecoration: "none", color: "inherit" }}>

@@ -71,6 +71,7 @@ class DerivedSpec:
     vib_pfa_entry_id: int | None = None
     finve_id: int | None = None
     bauportal_status_id: int | None = None
+    media_report_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -315,6 +316,48 @@ def bauportal_to_spec(
         observed_date=observed_date,
         note=note,
         bauportal_status_id=bauportal_status_id,
+    )
+
+
+def _coerce_main_phase(value: str | None) -> MainPhase | None:
+    if not value:
+        return None
+    try:
+        return MainPhase(value)
+    except ValueError:
+        return None
+
+
+def media_to_spec(
+    *,
+    media_report_id: int,
+    asserted_phase: str | None,
+    observed_date: date | None,
+    publication: str | None = None,
+    url: str | None = None,
+    quote: str | None = None,
+) -> DerivedSpec | None:
+    """Map a confirmed media report to a MAIN observation spec (low trust 0.4).
+
+    Returns ``None`` when the asserted phase is missing/invalid (the editor must
+    pick a valid MainPhase before it contributes). The note carries the
+    publication, quote and URL so the provenance is visible in the breakdown.
+    """
+
+    phase = _coerce_main_phase(asserted_phase)
+    if phase is None:
+        return None
+    note_parts = [p for p in ("Medien", publication) if p]
+    head = ": ".join(note_parts) if len(note_parts) > 1 else note_parts[0]
+    detail = " — ".join(p for p in (quote, url) if p)
+    note = f"{head} — {detail}" if detail else head
+    return DerivedSpec(
+        source_type=SourceType.MEDIEN,
+        track=ObservationTrack.MAIN,
+        asserted_state=phase.value,
+        observed_date=observed_date,
+        note=note,
+        media_report_id=media_report_id,
     )
 
 
