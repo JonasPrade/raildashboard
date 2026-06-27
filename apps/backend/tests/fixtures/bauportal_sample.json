@@ -1,0 +1,62 @@
+[
+  {
+    "id": 12985,
+    "parent_id": 0,
+    "shorttitle": "740 Meter-Netz – Münster-Sudmühle Bahnübergänge",
+    "icon_title": "Projekt in der Planungsphase",
+    "projecttime": "in Planung",
+    "url": "https://bahnknoten-koeln.deutschebahn.com/db/muenster-sudmuehle-bahnuebergaenge-740-meter-netz.html",
+    "lat": 51.994498606833,
+    "lng": 7.6848633947012
+  },
+  {
+    "id": 12082,
+    "parent_id": 0,
+    "shorttitle": "740 Meter-Netz – Röblingen am See Bahnhof",
+    "icon_title": "Projekt in der Bauphase",
+    "projecttime": "2024 – 2026",
+    "url": "https://halle-eichenberg.deutschebahn.com/das-projekt/errichtung-von-elektronischen-stellwerken/tangierende-projekte/740-meter-gleis-roeblingen-am-see.html",
+    "lat": 51.462508952259,
+    "lng": 11.66892987246
+  },
+  {
+    "id": 11904,
+    "parent_id": 0,
+    "shorttitle": "740 Meter-Netz – Sangerhausen Bahnhof",
+    "icon_title": "Projekt in der Bauphase",
+    "projecttime": "2024 – 2027",
+    "url": "https://halle-eichenberg.deutschebahn.com/das-projekt/errichtung-von-elektronischen-stellwerken/tangierende-projekte/740-meter-gleis-sangerhausen.html",
+    "lat": 51.480369364562,
+    "lng": 11.294271119338
+  },
+  {
+    "id": 15058,
+    "parent_id": 0,
+    "shorttitle": "Aalen „Düsseldorfer Straße“ Eisenbahnüberführung",
+    "icon_title": "Projekt in der Planungsphase",
+    "projecttime": "in Planung",
+    "url": "/p/aalen-duesseldorfer-strasse-eue",
+    "lat": 48.844478,
+    "lng": 10.09621
+  },
+  {
+    "id": 16034,
+    "parent_id": 0,
+    "shorttitle": "Aalen „Walkstraße“ Eisenbahnüberführung",
+    "icon_title": "Projekt in der Bauphase",
+    "projecttime": "2025 – 2029",
+    "url": "https://www.aalen.de/bahnunterfuehrung-walkstrasse.221869.25.htm",
+    "lat": 48.833896154817,
+    "lng": 10.101924870612
+  },
+  {
+    "id": 13954,
+    "parent_id": 0,
+    "shorttitle": "Ahrstrecke",
+    "icon_title": "Projekt in gemischter Projektphase",
+    "projecttime": "in Baustufen",
+    "url": "https://www.ahrstrecke.de/",
+    "lat": 50.54785392158,
+    "lng": 7.1846604248963
+  }
+]

@@ -103,6 +103,16 @@ export default function AdminOverviewPage() {
                             </Link>
                         </ChronicleCard>
                     )}
+                    {canProgress && (
+                        <ChronicleCard style={{ textDecoration: "none" }}>
+                            <Link to="/admin/bauportal-import" style={{ textDecoration: "none", color: "inherit" }}>
+                                <Stack gap={4}>
+                                    <Text fw={500}>DB-Bauportal</Text>
+                                    <Text size="sm" c="dimmed">Bau-/Planungsstand aus der Bauportal-API abrufen & zuordnen</Text>
+                                </Stack>
+                            </Link>
+                        </ChronicleCard>
+                    )}
                     {canCreateProject && (
                         <ChronicleCard style={{ textDecoration: "none" }}>
                             <Link to="/admin/projects/new" style={{ textDecoration: "none", color: "inherit" }}>

@@ -280,6 +280,45 @@ Schritt **„Planungsstand"** (`StepPlanungsstand.tsx`) zwischen „Eigenschafte
 erfasst wird (kein eigener Code-Pfad). Die frühere einfache „Planungsphase"-Auswahl in
 Step 3 (Eigenschaften) entfällt dadurch.
 
+## Automatische Quellen-Importer (#46/#47/#48)
+
+Nachgezogen in v0.0.5. Alle drei folgen demselben Muster wie VIB/FinVe:
+**Roh-Tabelle → Provenienz-FK auf `progress_observation` → reiner `*_to_spec`-Mapper
+in `progress_materialization.py` → eigener Zweig in `sync_derived_observations`**
+(regenerieren-statt-derive-on-read, sonst löscht der 24-h-Lazy-Resync die Zeilen).
+Quellentyp + Default-Trust existieren bereits (`SourceType`, `SOURCE_TYPE_DEFAULT_TRUST`:
+BAUPORTAL 0.8, FULDA_RUNDE 0.7, MEDIEN 0.4). Abgeleitete Zeilen sind nicht hand-löschbar
+und werden nicht ins Changelog geschrieben.
+
+### DB-Bauportal (#47) — offene JSON-API
+
+- **Akquise:** `GET https://bauprojekte.deutschebahn.com/api/getProjectsList` (kein Auth,
+  ~295 Projekte). Kein Scraping, kein Detail-Endpoint nötig.
+- **Roh-Tabelle `bauportal_status`:** `bauportal_id` (extern), `shorttitle`, `status_raw`
+  (= `icon_title`), `projecttime_raw`, `url`, `lat`/`lng`, `parent_bauportal_id`, `raw_json`,
+  `fetched_at`, `project_id` (nullable FK, bestätigtes Match), `suggested_project_id`.
+- **Mapping `bauportal_to_spec`:** `icon_title` „…Bauphase" → BAU, „…Planungsphase" →
+  VORPLANUNG (konservative Untergrenze), „…gemischter Projektphase"/„Gesamtprojekt…" → kein
+  Beitrag (Parent aggregiert über Kinder). `projecttime`-Endjahr → optionaler
+  Inbetriebnahme-Forecast. `observed_date = fetched_at`.
+- **Pipeline (`tasks/bauportal.py`):** Fetch → Upsert je `bauportal_id` → Fuzzy-Match auf
+  `Project.name` (`suggest_project_for_bauportal`, analog `vib_matching`) → `suggested_project_id`.
+  Review-UI: Liste mit Vorschlag-Select, bestätigen setzt `project_id` → Materialisierung.
+
+### Medien/Presse (#48) — halb-automatisch
+
+- **Roh-Tabelle `media_report`:** `url`, `publication`, `published_date`, `raw_text`,
+  extrahierte Felder, `project_id` (bestätigt). Eingabe URL/Text → LLM-Extraktion
+  (`tasks/vib_ai_extraction.py`-Muster) → Mensch-im-Loop-Bestätigung. Niedriger Trust 0.4,
+  Zitat/URL in `note`.
+
+### Fulda-Runde (#46) — Kleine Anfragen (PDF)
+
+- **Roh-Tabelle `fulda_announcement`:** Roh-Name, gematchte `project_id`(s), angekündigte
+  Phase, erwartetes Datum, Sitzungs-/Importdatum. OCR (`vib_ocr.py`) + LLM-Extraktion. Lph→Phase
+  wie `parse_sammel_finve_phase` (Lph 1/2→Vorplanung, 3/4→Genehmigungsplanung). Termine fließen
+  über den bestehenden Seam `_build_forecast_for_project` (FULDA_RUNDE + `observed_date`) in die Prognose.
+
 ## Implementierungsreihenfolge (Phasen-Rollout)
 
 1. **Modell + manuelle Erfassung + Visualisierung**: Tabellen/Enums, CRUD, GET/PATCH/
@@ -289,7 +328,7 @@ Step 3 (Eigenschaften) entfällt dadurch.
    Provenienz im Breakdown.
 3. **Prognose**: `ProgressForecastSchema` aus BVWP-Dauern + VIB-PFA-Terminen + Fulda.
 4. **Neue externe Quellen**: reichere manuelle Erfassung für FULDA_RUNDE/BAUPORTAL/MEDIEN,
-   später eigene Importer (`is_derived`).
+   dann eigene Importer (`is_derived`): Bauportal (#47), Medien (#48), Fulda-Runde (#46).
 
 ## Erwartete Termine (manuelle Prognose-Einträge)
 
