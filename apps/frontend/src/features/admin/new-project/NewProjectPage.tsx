@@ -10,6 +10,7 @@ import Step2Geometrie from "./Step2Geometrie";
 import Step3Properties from "./Step3Properties";
 import Step4Finves from "./Step4Finves";
 import Step5Vib from "./Step5Vib";
+import StepPlanungsstand from "./StepPlanungsstand";
 
 export default function NewProjectPage() {
     const { can } = useAuth();
@@ -121,9 +122,12 @@ export default function NewProjectPage() {
                             />
                         )}
                     </Stepper.Step>
+                    <Stepper.Step label="Planungsstand" description="Optional">
+                        {project?.id != null && <StepPlanungsstand projectId={project.id} />}
+                    </Stepper.Step>
                     <Stepper.Step label="FinVes" description="Optional">
                         {project?.id != null && (
-                            <Step4Finves projectId={project.id} onDone={() => setActive(4)} />
+                            <Step4Finves projectId={project.id} onDone={() => setActive(5)} />
                         )}
                     </Stepper.Step>
                     <Stepper.Step label="VIB" description="Optional">
@@ -145,7 +149,7 @@ export default function NewProjectPage() {
                             <Button
                                 variant="default"
                                 onClick={() => setActive((s) => s + 1)}
-                                disabled={active >= 4}
+                                disabled={active >= 5}
                             >
                                 Weiter
                             </Button>

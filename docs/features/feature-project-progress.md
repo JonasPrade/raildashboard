@@ -271,6 +271,15 @@ verstreut und vermischte sich mit der Visualisierung. Stattdessen:
   abgespielt (ein Skalar-`PATCH` + die gepufferten Add/Delete/Link/Unlink-Calls),
   danach Query-Invalidate. Dirty-Guard beim Schließen, „Speichern" nur bei Änderungen aktiv.
 
+### Erfassung beim Anlegen neuer Projekte
+
+Der „Neues Projekt anlegen"-Wizard (`features/admin/new-project/`) hat einen eigenen
+Schritt **„Planungsstand"** (`StepPlanungsstand.tsx`) zwischen „Eigenschaften" und
+„FinVes". Er rendert dieselbe read-only `ProgressSection` inkl. „Bearbeiten"-Button →
+`ProgressEditDrawer`, sodass der Stand mit denselben Mitteln wie in der Projektansicht
+erfasst wird (kein eigener Code-Pfad). Die frühere einfache „Planungsphase"-Auswahl in
+Step 3 (Eigenschaften) entfällt dadurch.
+
 ## Implementierungsreihenfolge (Phasen-Rollout)
 
 1. **Modell + manuelle Erfassung + Visualisierung**: Tabellen/Enums, CRUD, GET/PATCH/
