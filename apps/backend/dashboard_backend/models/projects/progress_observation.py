@@ -50,6 +50,9 @@ class ProgressObservation(Base):
     media_report_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("media_report.id", ondelete="SET NULL"), nullable=True
     )
+    fulda_announcement_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("fulda_announcement.id", ondelete="SET NULL"), nullable=True
+    )
 
     is_derived: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"

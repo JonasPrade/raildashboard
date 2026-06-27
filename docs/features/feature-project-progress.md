@@ -312,12 +312,20 @@ und werden nicht ins Changelog geschrieben.
   (`tasks/vib_ai_extraction.py`-Muster) → Mensch-im-Loop-Bestätigung. Niedriger Trust 0.4,
   Zitat/URL in `note`.
 
-### Fulda-Runde (#46) — Kleine Anfragen (PDF)
+### Fulda-Runde (#46) — Antwort auf Kleine Anfrage (PDF)
 
-- **Roh-Tabelle `fulda_announcement`:** Roh-Name, gematchte `project_id`(s), angekündigte
-  Phase, erwartetes Datum, Sitzungs-/Importdatum. OCR (`vib_ocr.py`) + LLM-Extraktion. Lph→Phase
-  wie `parse_sammel_finve_phase` (Lph 1/2→Vorplanung, 3/4→Genehmigungsplanung). Termine fließen
-  über den bestehenden Seam `_build_forecast_for_project` (FULDA_RUNDE + `observed_date`) in die Prognose.
+- **Wichtig:** Hochgeladen wird die **Antwort der Bundesregierung** (enthält die Projekt-Tabellen),
+  nicht die Kleine Anfrage selbst (nur Fragen). Die Antwort gliedert Projekte nach **Fragenummer**;
+  jede Frage hat eine eigene Tabelle (Spalten „Projekt"/„Abschnitt").
+- **Roh-Tabelle `fulda_announcement`:** Roh-Name, Kategorie, angekündigte Phase, gematchte
+  `project_id`, Quelle/Datum. OCR (`vib_ocr.extract_full_pdf_text`) + LLM-Extraktion.
+- **Frage→Kategorie→Phase (deterministisch in Code, nicht per LLM geraten):** Q1/Q2→IN_LPH_1_2
+  (Vorplanung), Q3/Q5→COMPLETED_LPH_1_2 (Genehmigungsplanung), Q4/Q6→IN_LPH_3_4
+  (Genehmigungsplanung), Q7/Q10→COMPLETED_LPH_3_4 (Bau), Q8/Q9/Q11→HAS_BAUFINVE (Bau).
+  Q12–14 (Finanzzahlen) werden verworfen. Das LLM liefert nur `{question, project_name, abschnitt}`;
+  die Kategorie wird über `FULDA_QUESTION_CATEGORY` zugeordnet, Dubletten je (Name, Kategorie) entfernt.
+- Termine fließen über den bestehenden Seam `_build_forecast_for_project` (FULDA_RUNDE +
+  `observed_date`) in die Prognose. Debug: `scripts/dump_fulda_parse.py <pdf>`.
 
 ## Implementierungsreihenfolge (Phasen-Rollout)
 
