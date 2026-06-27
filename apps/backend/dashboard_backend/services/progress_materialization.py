@@ -70,6 +70,7 @@ class DerivedSpec:
     vib_entry_id: int | None = None
     vib_pfa_entry_id: int | None = None
     finve_id: int | None = None
+    bauportal_status_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -264,6 +265,56 @@ def finve_to_spec(
         confidence=SAMMEL_FINVE_CONFIDENCE,
         note=f"Sammel-FinVe ({label})",
         finve_id=finve_id,
+    )
+
+
+def bauportal_status_to_main_phase(status_raw: str | None) -> MainPhase | None:
+    """Map a DB-Bauportal ``icon_title`` to a MainPhase.
+
+    ``"…Bauphase"`` → BAU, ``"…Planungsphase"`` → VORPLANUNG (conservative lower
+    bound — the portal does not distinguish Vor-/Genehmigungsplanung). Mixed
+    (``"…gemischter Projektphase"``) or umbrella (``"Gesamtprojekt …"``) entries
+    carry no single phase → no contribution (the parent aggregates over its
+    children's span instead).
+    """
+
+    if not status_raw:
+        return None
+    lowered = status_raw.lower()
+    if "gemischt" in lowered or "gesamtprojekt" in lowered:
+        return None
+    if "bauphase" in lowered:
+        return MainPhase.BAU
+    if "planungsphase" in lowered:
+        return MainPhase.VORPLANUNG
+    return None
+
+
+def bauportal_to_spec(
+    *,
+    bauportal_status_id: int,
+    status_raw: str | None,
+    projecttime_raw: str | None,
+    observed_date: date | None,
+) -> DerivedSpec | None:
+    """Map a confirmed-matched Bauportal record to a MAIN observation spec.
+
+    Returns ``None`` for mixed/umbrella entries (no single phase). Confidence is
+    left at the BAUPORTAL source default (0.8); ``observed_date`` should be the
+    fetch date so the portal stays fresh against older sources.
+    """
+
+    phase = bauportal_status_to_main_phase(status_raw)
+    if phase is None:
+        return None
+    note = f"DB-Bauportal: {projecttime_raw}" if projecttime_raw else "DB-Bauportal"
+    return DerivedSpec(
+        source_type=SourceType.BAUPORTAL,
+        track=ObservationTrack.MAIN,
+        asserted_state=phase.value,
+        observed_date=observed_date,
+        note=note,
+        bauportal_status_id=bauportal_status_id,
     )
 
 

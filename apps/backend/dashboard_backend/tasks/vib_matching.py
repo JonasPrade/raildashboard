@@ -131,6 +131,30 @@ def suggest_projects_for_vib_entry(
     return result[:_MAX_SUGGESTIONS]
 
 
+def suggest_project_for_bauportal(
+    title: str,
+    projects: list,  # list of Project ORM instances (.id, .name)
+) -> int | None:
+    """Best-matching project id for one DB-Bauportal entry, or None.
+
+    Single best fuzzy match of the Bauportal ``shorttitle`` against our project
+    names above ``_THRESHOLD``. Only a review-UI suggestion — the editor confirms
+    or corrects it before it drives materialisation.
+    """
+    if not title or not title.strip():
+        return None
+    best_id: int | None = None
+    best_score = 0.0
+    for project in projects:
+        if not project.name:
+            continue
+        s = _score(title, project.name)
+        if s > best_score:
+            best_score = s
+            best_id = project.id
+    return best_id if best_score >= _THRESHOLD else None
+
+
 def suggest_subproject_for_pfa(
     pfa_text: str,
     subprojects: list,  # list of Project ORM instances (.id, .name)

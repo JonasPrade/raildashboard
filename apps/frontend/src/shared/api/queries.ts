@@ -1373,6 +1373,72 @@ export function useVibEntry(entryId: number | null) {
     });
 }
 
+// ---------------------------------------------------------------------------
+// DB-Bauportal importer (#47)
+// ---------------------------------------------------------------------------
+
+export type BauportalEntry = {
+    id: number;
+    bauportal_id: number;
+    parent_bauportal_id: number | null;
+    shorttitle: string;
+    status_raw: string | null;
+    mapped_phase: string | null;
+    projecttime_raw: string | null;
+    url: string | null;
+    lat: number | null;
+    lng: number | null;
+    fetched_at: string | null;
+    suggested_project_id: number | null;
+    suggested_project_name: string | null;
+    project_id: number | null;
+    project_name: string | null;
+};
+
+export type BauportalImportSummary = {
+    fetched: number;
+    created: number;
+    updated: number;
+    skipped: number;
+};
+
+export function useBauportalEntries(onlyUnconfirmed = false) {
+    return useQuery({
+        queryKey: ["bauportal-entries", onlyUnconfirmed],
+        queryFn: () =>
+            api<BauportalEntry[]>(
+                `/api/v1/import/bauportal/entries?only_unconfirmed=${onlyUnconfirmed}`,
+            ),
+    });
+}
+
+export function useFetchBauportal() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: () =>
+            api<BauportalImportSummary>("/api/v1/import/bauportal/fetch", { method: "POST" }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["bauportal-entries"] });
+        },
+    });
+}
+
+export function useConfirmBauportalMatch() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ entryId, projectId }: { entryId: number; projectId: number | null }) =>
+            api<BauportalEntry>(`/api/v1/import/bauportal/entries/${entryId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ project_id: projectId }),
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["bauportal-entries"] });
+            queryClient.invalidateQueries({ queryKey: ["project-progress"] });
+        },
+    });
+}
+
 export function useVibAiAvailable() {
     return useQuery({
         queryKey: ["vib-ai-available"],

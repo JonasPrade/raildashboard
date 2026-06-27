@@ -48,11 +48,13 @@ from dashboard_backend.services.progress_forecast import (
 from dashboard_backend.services.progress_materialization import (
     DerivedSpec,
     PfaInput,
+    bauportal_to_spec,
     finve_to_spec,
     pfa_has_pf_evidence,
     pfa_to_specs,
     vib_entry_to_specs,
 )
+from dashboard_backend.models.projects.bauportal_status import BauportalStatus
 from dashboard_backend.models.projects.bvwp_project_data import BvwpProjectData
 from dashboard_backend.models.vib.vib_pfa_entry import VibPfaEntry
 
@@ -301,6 +303,23 @@ def sync_derived_observations(db: Session, project_id: int) -> int:
         if finve_spec is not None:  # ambiguous Sammel-FinVe → skipped
             specs.append(finve_spec)
 
+    # --- DB-Bauportal records confirm-matched to this project ---
+    bauportal_rows = (
+        db.query(BauportalStatus)
+        .filter(BauportalStatus.project_id == project_id)
+        .all()
+    )
+    for row in bauportal_rows:
+        observed = row.fetched_at.date() if row.fetched_at is not None else None
+        bauportal_spec = bauportal_to_spec(
+            bauportal_status_id=row.id,
+            status_raw=row.status_raw,
+            projecttime_raw=row.projecttime_raw,
+            observed_date=observed,
+        )
+        if bauportal_spec is not None:  # mixed/umbrella entry → no contribution
+            specs.append(bauportal_spec)
+
     for spec in specs:
         db.add(
             ProgressObservation(
@@ -315,6 +334,7 @@ def sync_derived_observations(db: Session, project_id: int) -> int:
                 vib_entry_id=spec.vib_entry_id,
                 vib_pfa_entry_id=spec.vib_pfa_entry_id,
                 finve_id=spec.finve_id,
+                bauportal_status_id=spec.bauportal_status_id,
             )
         )
 

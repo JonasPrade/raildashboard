@@ -49,8 +49,15 @@ Themenschwerpunkt: die im v0.0.4-Rollout aufgedeckten Stabilitäts- und Tooling-
   > Permission `progress.edit`, Ableitungs-Service und „Planungsstand"-Block in ProjectDetail
   > (Phase 1); VIB/FinVe-Materialisierung mit Lazy-Resync (Phase 2); Prognose-Panel aus
   > BVWP-Dauern + VIB-PFA-Terminen + Fulda-Beobachtungen (Phase 3); reichere manuelle Erfassung
-  > mit Quellentyp + Vertrauen (Phase 4). Offen bleiben nur **automatische** externe Importer
-  > (keine APIs vorhanden). Die Phasenliste unten beschreibt die ältere Timeline-Skizze.
+  > mit Quellentyp + Vertrauen (Phase 4). Die Phasenliste unten beschreibt die ältere Timeline-Skizze.
+  >
+  > **Nachgezogen in v0.0.5 (2026-06-27):** die drei **automatischen Quellen-Importer**
+  > (Issues #46/#47/#48) — Akquise/Format inzwischen geklärt:
+  > - **DB-Bauportal (#47):** offene JSON-API `GET bauprojekte.deutschebahn.com/api/getProjectsList`
+  >   (Status via `icon_title`, Bauzeitraum via `projecttime`), Fuzzy-Match auf `shorttitle`. Trust 0.8.
+  > - **Fulda-Runde (#46):** Kleine Anfragen (PDF) → OCR+LLM (VIB-Pipeline wiederverwenden),
+  >   Lph→Phase-Mapping wie Sammel-FinVe. Trust 0.7.
+  > - **Medien/Presse (#48):** halb-automatisch — URL/Text → LLM-Extraktion → Mensch-im-Loop. Trust 0.4.
 
   **Phase 1 — Foundation (Daten + API)**
   - [ ] Enum `ProjectProgressStatus` (`vorplanung`, `entwurfsplanung`, `genehmigungsplanung`, `ausfuehrungsplanung`, `bau`, `inbetriebnahme`, `abgeschlossen`) — als Python-Enum **und** Postgres-Check-Constraint, damit die Anzeige konsistent bleibt.
@@ -100,7 +107,9 @@ Themenschwerpunkt: die im v0.0.4-Rollout aufgedeckten Stabilitäts- und Tooling-
 - BVWP-Datenimport (zu groß)
 - VIB-OCR-Bilder im Review (eigener Long-Term-Block)
 - Passwort-Reset per E-Mail (eigener Block)
-- ProjectProgress: Pressemitteilungs-Auto-Extraktion + Gantt-Übersicht (Long-Term)
+- ProjectProgress: Gantt-Übersicht über mehrere Projekte (Long-Term)
+  - *Hinweis: die automatischen Quellen-Importer (Fulda-Runde/Bauportal/Medien) wurden am
+    2026-06-27 in den v0.0.5-Scope nachgezogen — siehe oben.*
 
 ---
 
