@@ -1,0 +1,160 @@
+"""Tests for the /api/v1/import/fulda endpoints (CRUD monkeypatched)."""
+
+from __future__ import annotations
+
+import io
+
+import dashboard_backend.api.v1.endpoints.fulda_import as fulda_route
+from dashboard_backend.schemas.users import UserRole
+from tests.api.conftest import basic_auth_header
+
+
+def _entry(entry_id: int = 1, **overrides) -> dict:
+    entry = {
+        "id": entry_id,
+        "source_label": "Drs 20/123",
+        "document_date": None,
+        "raw_name": "Ausbau Hanau–Würzburg",
+        "category": "IN_LPH_3_4",
+        "announced_phase": "GENEHMIGUNGSPLANUNG",
+        "expected_date": None,
+        "suggested_project_id": 5,
+        "suggested_project_name": "Hanau–Würzburg",
+        "project_id": None,
+        "project_name": None,
+        "confirmed": False,
+        "created_at": None,
+        "username_snapshot": "editor1",
+    }
+    entry.update(overrides)
+    return entry
+
+
+def _pdf_upload():
+    return {"pdf": ("fulda.pdf", io.BytesIO(b"%PDF-1.4 fake"), "application/pdf")}
+
+
+# --- auth --------------------------------------------------------------------
+
+
+def test_entries_requires_auth(client):
+    assert client.get("/api/v1/import/fulda/entries").status_code == 401
+
+
+def test_parse_forbidden_for_viewer(client, create_user):
+    create_user("viewer-f", "pass123", UserRole.viewer)
+    resp = client.post(
+        "/api/v1/import/fulda/parse",
+        files=_pdf_upload(),
+        headers=basic_auth_header("viewer-f", "pass123"),
+    )
+    assert resp.status_code == 403
+
+
+# --- parse -------------------------------------------------------------------
+
+
+def test_parse_returns_summary(client, create_user, monkeypatch):
+    create_user("editor-f", "pass123", UserRole.editor)
+    captured = {}
+
+    def _parse(db, *, pdf_bytes, user):
+        captured["len"] = len(pdf_bytes)
+        return {"ocr_status": "done", "created": 7, "source_label": "Drs 20/123"}
+
+    monkeypatch.setattr(fulda_route.fulda_crud, "parse_and_store", _parse)
+    resp = client.post(
+        "/api/v1/import/fulda/parse",
+        files=_pdf_upload(),
+        headers=basic_auth_header("editor-f", "pass123"),
+    )
+    assert resp.status_code == 200
+    assert resp.json()["created"] == 7
+    assert captured["len"] > 0
+
+
+def test_parse_failure_502(client, create_user, monkeypatch):
+    create_user("editor-f2", "pass123", UserRole.editor)
+
+    def _parse(db, *, pdf_bytes, user):
+        raise RuntimeError("ocr exploded")
+
+    monkeypatch.setattr(fulda_route.fulda_crud, "parse_and_store", _parse)
+    resp = client.post(
+        "/api/v1/import/fulda/parse",
+        files=_pdf_upload(),
+        headers=basic_auth_header("editor-f2", "pass123"),
+    )
+    assert resp.status_code == 502
+
+
+# --- list / update / delete --------------------------------------------------
+
+
+def test_list_entries(client, create_user, monkeypatch):
+    create_user("editor-f3", "pass123", UserRole.editor)
+    monkeypatch.setattr(
+        fulda_route.fulda_crud,
+        "list_entries",
+        lambda db, only_unconfirmed=False: [_entry(1), _entry(2, project_id=9)],
+    )
+    resp = client.get(
+        "/api/v1/import/fulda/entries",
+        headers=basic_auth_header("editor-f3", "pass123"),
+    )
+    assert resp.status_code == 200
+    assert len(resp.json()) == 2
+
+
+def test_update_confirm(client, create_user, monkeypatch):
+    create_user("editor-f4", "pass123", UserRole.editor)
+    captured = {}
+
+    def _update(db, entry_id, payload):
+        captured["payload"] = payload
+        return _entry(entry_id, project_id=5, confirmed=True, project_name="Hanau–Würzburg")
+
+    monkeypatch.setattr(fulda_route.fulda_crud, "update_entry", _update)
+    resp = client.patch(
+        "/api/v1/import/fulda/entries/1",
+        json={"project_id": 5, "confirmed": True},
+        headers=basic_auth_header("editor-f4", "pass123"),
+    )
+    assert resp.status_code == 200
+    assert captured["payload"] == {"project_id": 5, "confirmed": True}
+    assert resp.json()["confirmed"] is True
+
+
+def test_update_unknown_project_404(client, create_user, monkeypatch):
+    create_user("editor-f5", "pass123", UserRole.editor)
+
+    def _update(db, entry_id, payload):
+        raise ValueError("Project 999 not found")
+
+    monkeypatch.setattr(fulda_route.fulda_crud, "update_entry", _update)
+    resp = client.patch(
+        "/api/v1/import/fulda/entries/1",
+        json={"project_id": 999},
+        headers=basic_auth_header("editor-f5", "pass123"),
+    )
+    assert resp.status_code == 404
+
+
+def test_delete_entry(client, create_user, monkeypatch):
+    create_user("editor-f6", "pass123", UserRole.editor)
+    monkeypatch.setattr(fulda_route.fulda_crud, "delete_entry", lambda db, e: True)
+    resp = client.delete(
+        "/api/v1/import/fulda/entries/1",
+        headers=basic_auth_header("editor-f6", "pass123"),
+    )
+    assert resp.status_code == 204
+
+
+def test_delete_missing_404(client, create_user, monkeypatch):
+    create_user("editor-f7", "pass123", UserRole.editor)
+    monkeypatch.setattr(fulda_route.fulda_crud, "delete_entry", lambda db, e: False)
+    resp = client.delete(
+        "/api/v1/import/fulda/entries/999",
+        headers=basic_auth_header("editor-f7", "pass123"),
+    )
+    assert resp.status_code == 404

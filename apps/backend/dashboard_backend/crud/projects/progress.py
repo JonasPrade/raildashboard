@@ -50,12 +50,14 @@ from dashboard_backend.services.progress_materialization import (
     PfaInput,
     bauportal_to_spec,
     finve_to_spec,
+    fulda_to_spec,
     media_to_spec,
     pfa_has_pf_evidence,
     pfa_to_specs,
     vib_entry_to_specs,
 )
 from dashboard_backend.models.projects.bauportal_status import BauportalStatus
+from dashboard_backend.models.projects.fulda_announcement import FuldaAnnouncement
 from dashboard_backend.models.projects.media_report import MediaReport
 from dashboard_backend.models.projects.bvwp_project_data import BvwpProjectData
 from dashboard_backend.models.vib.vib_pfa_entry import VibPfaEntry
@@ -343,6 +345,26 @@ def sync_derived_observations(db: Session, project_id: int) -> int:
         if media_spec is not None:  # no valid phase yet → no contribution
             specs.append(media_spec)
 
+    # --- Confirmed Fulda-Runde announcements matched to this project ---
+    fulda_rows = (
+        db.query(FuldaAnnouncement)
+        .filter(
+            FuldaAnnouncement.project_id == project_id,
+            FuldaAnnouncement.confirmed.is_(True),
+        )
+        .all()
+    )
+    for row in fulda_rows:
+        fulda_spec = fulda_to_spec(
+            fulda_announcement_id=row.id,
+            announced_phase=row.announced_phase,
+            category=row.category,
+            observed_date=row.expected_date or row.document_date,
+            source_label=row.source_label,
+        )
+        if fulda_spec is not None:  # no derivable phase → no contribution
+            specs.append(fulda_spec)
+
     for spec in specs:
         db.add(
             ProgressObservation(
@@ -359,6 +381,7 @@ def sync_derived_observations(db: Session, project_id: int) -> int:
                 finve_id=spec.finve_id,
                 bauportal_status_id=spec.bauportal_status_id,
                 media_report_id=spec.media_report_id,
+                fulda_announcement_id=spec.fulda_announcement_id,
             )
         )
 

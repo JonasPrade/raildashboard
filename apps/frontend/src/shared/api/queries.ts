@@ -1522,6 +1522,94 @@ export function useDeleteMediaEntry() {
     });
 }
 
+// ---------------------------------------------------------------------------
+// Fulda-Runde importer (#46)
+// ---------------------------------------------------------------------------
+
+export type FuldaEntry = {
+    id: number;
+    source_label: string | null;
+    document_date: string | null;
+    raw_name: string;
+    category: string | null;
+    announced_phase: string | null;
+    expected_date: string | null;
+    suggested_project_id: number | null;
+    suggested_project_name: string | null;
+    project_id: number | null;
+    project_name: string | null;
+    confirmed: boolean;
+    created_at: string | null;
+    username_snapshot: string | null;
+};
+
+export type FuldaParseSummary = {
+    ocr_status: string;
+    created: number;
+    source_label: string | null;
+};
+
+export type FuldaUpdatePayload = {
+    announced_phase?: string | null;
+    category?: string | null;
+    expected_date?: string | null;
+    project_id?: number | null;
+    confirmed?: boolean;
+};
+
+export function useFuldaEntries(onlyUnconfirmed = false) {
+    return useQuery({
+        queryKey: ["fulda-entries", onlyUnconfirmed],
+        queryFn: () =>
+            api<FuldaEntry[]>(`/api/v1/import/fulda/entries?only_unconfirmed=${onlyUnconfirmed}`),
+    });
+}
+
+export function useParseFulda() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (file: File) => {
+            const form = new FormData();
+            form.append("pdf", file);
+            return api<FuldaParseSummary>("/api/v1/import/fulda/parse", {
+                method: "POST",
+                body: form,
+            });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["fulda-entries"] });
+        },
+    });
+}
+
+export function useUpdateFuldaEntry() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ entryId, data }: { entryId: number; data: FuldaUpdatePayload }) =>
+            api<FuldaEntry>(`/api/v1/import/fulda/entries/${entryId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["fulda-entries"] });
+            queryClient.invalidateQueries({ queryKey: ["project-progress"] });
+        },
+    });
+}
+
+export function useDeleteFuldaEntry() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (entryId: number) =>
+            api<void>(`/api/v1/import/fulda/entries/${entryId}`, { method: "DELETE" }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["fulda-entries"] });
+            queryClient.invalidateQueries({ queryKey: ["project-progress"] });
+        },
+    });
+}
+
 export function useVibAiAvailable() {
     return useQuery({
         queryKey: ["vib-ai-available"],
