@@ -1,3 +1,4 @@
+from .bauportal_status import BauportalStatus
 from .budget import Budget
 from .bvwp_project_data import BvwpProjectData
 from .document import Document
