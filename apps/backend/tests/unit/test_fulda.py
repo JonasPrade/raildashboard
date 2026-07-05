@@ -68,34 +68,36 @@ def test_fulda_to_spec_none_without_phase():
 # --- item normalisation ------------------------------------------------------
 
 
-def test_normalize_items_maps_question_to_category():
+def test_normalize_items_validates_category_and_keeps_abschnitt():
     raw = [
-        {"question": 1, "project_name": "ABS Augsburg – Donauwörth"},  # → IN_LPH_1_2
-        {"question": 6, "project_name": "ABS Hanau – Würzburg"},  # → IN_LPH_3_4
-        {"question": 8, "project_name": "ABS Stade – Cuxhaven"},  # → HAS_BAUFINVE (Bau)
-        {"question": 13, "project_name": "Budget egal"},  # budget question → dropped
-        {"question": 1, "project_name": ""},  # no name → dropped
-        {"project_name": "kein Question"},  # no question → dropped
+        {"category": "IN_LPH_1_2", "project_name": "ABS Augsburg – Donauwörth", "abschnitt": "Gesamtstrecke"},
+        {"category": "in_lph_3_4", "project_name": "ABS Hanau – Würzburg"},  # lower → upper, no abschnitt
+        {"category": "HAS_BAUFINVE", "project_name": "ABS Stade – Cuxhaven", "abschnitt": "Elektrifizierung"},
+        {"category": "BUDGET", "project_name": "Budget egal"},  # unknown → dropped
+        {"category": "IN_LPH_1_2", "project_name": ""},  # no name → dropped
+        {"project_name": "keine Kategorie"},  # no category → dropped
         "garbage",
     ]
     items = normalize_items(raw)
     assert items == [
-        {"project_name": "ABS Augsburg – Donauwörth", "category": "IN_LPH_1_2"},
-        {"project_name": "ABS Hanau – Würzburg", "category": "IN_LPH_3_4"},
-        {"project_name": "ABS Stade – Cuxhaven", "category": "HAS_BAUFINVE"},
+        {"project_name": "ABS Augsburg – Donauwörth", "abschnitt": "Gesamtstrecke", "category": "IN_LPH_1_2"},
+        {"project_name": "ABS Hanau – Würzburg", "abschnitt": None, "category": "IN_LPH_3_4"},
+        {"project_name": "ABS Stade – Cuxhaven", "abschnitt": "Elektrifizierung", "category": "HAS_BAUFINVE"},
     ]
 
 
-def test_normalize_items_dedupes_same_project_same_question():
+def test_normalize_items_dedupes_same_triple_but_keeps_distinct_abschnitt():
     raw = [
-        {"question": 1, "project_name": "ABS X", "abschnitt": "Abschnitt A"},
-        {"question": 1, "project_name": "ABS X", "abschnitt": "Abschnitt B"},
-        {"question": 6, "project_name": "ABS X"},  # different category → kept
+        {"category": "IN_LPH_1_2", "project_name": "ABS X", "abschnitt": "Abschnitt A"},
+        {"category": "IN_LPH_1_2", "project_name": "ABS X", "abschnitt": "Abschnitt A"},  # exact dup → dropped
+        {"category": "IN_LPH_1_2", "project_name": "ABS X", "abschnitt": "Abschnitt B"},  # diff abschnitt → kept
+        {"category": "IN_LPH_3_4", "project_name": "ABS X", "abschnitt": "Abschnitt A"},  # diff category → kept
     ]
     items = normalize_items(raw)
     assert items == [
-        {"project_name": "ABS X", "category": "IN_LPH_1_2"},
-        {"project_name": "ABS X", "category": "IN_LPH_3_4"},
+        {"project_name": "ABS X", "abschnitt": "Abschnitt A", "category": "IN_LPH_1_2"},
+        {"project_name": "ABS X", "abschnitt": "Abschnitt B", "category": "IN_LPH_1_2"},
+        {"project_name": "ABS X", "abschnitt": "Abschnitt A", "category": "IN_LPH_3_4"},
     ]
 
 
@@ -120,14 +122,16 @@ def test_extract_uses_llm(monkeypatch):
             "source_label": "Drs 20/999",
             "document_date": "2026-01-15",
             "items": [
-                {"question": 1, "project_name": "Ausbau A"},
-                {"question": 14, "project_name": "Budget"},  # dropped
+                {"category": "IN_LPH_1_2", "project_name": "Ausbau A", "abschnitt": "Gesamtstrecke"},
+                {"category": "BUDGET", "project_name": "Budget"},  # unknown → dropped
             ],
         },
     )
     result = extract_fulda_announcements("text")
     assert result["source_label"] == "Drs 20/999"
-    assert result["items"] == [{"project_name": "Ausbau A", "category": "IN_LPH_1_2"}]
+    assert result["items"] == [
+        {"project_name": "Ausbau A", "abschnitt": "Gesamtstrecke", "category": "IN_LPH_1_2"}
+    ]
 
 
 def test_extract_survives_llm_error(monkeypatch):

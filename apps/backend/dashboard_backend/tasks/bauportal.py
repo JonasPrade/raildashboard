@@ -94,9 +94,13 @@ def import_bauportal(db: Session, records: list[dict] | None = None) -> dict:
         row.lat = _coerce_float(rec.get("lat"))
         row.lng = _coerce_float(rec.get("lng"))
         row.raw_json = json.dumps(rec, ensure_ascii=False)
-        # Refresh the suggestion only while unconfirmed; never touch a confirmed match.
-        if row.project_id is None:
+        # Refresh the suggestion while unconfirmed and pre-fill it into the
+        # assignment (like Fulda) so the editor only reviews/confirms it. A
+        # confirmed match is never touched.
+        if not row.confirmed:
             row.suggested_project_id = suggestion
+            if row.project_id is None:
+                row.project_id = suggestion
 
         if is_new:
             created += 1

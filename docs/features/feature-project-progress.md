@@ -296,14 +296,23 @@ und werden nicht ins Changelog geschrieben.
   ~295 Projekte). Kein Scraping, kein Detail-Endpoint nötig.
 - **Roh-Tabelle `bauportal_status`:** `bauportal_id` (extern), `shorttitle`, `status_raw`
   (= `icon_title`), `projecttime_raw`, `url`, `lat`/`lng`, `parent_bauportal_id`, `raw_json`,
-  `fetched_at`, `project_id` (nullable FK, bestätigtes Match), `suggested_project_id`.
+  `fetched_at`, `project_id` (nullable FK, zugeordnetes Match), `suggested_project_id`,
+  **`confirmed`** (Bool, Default false).
 - **Mapping `bauportal_to_spec`:** `icon_title` „…Bauphase" → BAU, „…Planungsphase" →
   VORPLANUNG (konservative Untergrenze), „…gemischter Projektphase"/„Gesamtprojekt…" → kein
   Beitrag (Parent aggregiert über Kinder). `projecttime`-Endjahr → optionaler
   Inbetriebnahme-Forecast. `observed_date = fetched_at`.
 - **Pipeline (`tasks/bauportal.py`):** Fetch → Upsert je `bauportal_id` → Fuzzy-Match auf
   `Project.name` (`suggest_project_for_bauportal`, analog `vib_matching`) → `suggested_project_id`.
-  Review-UI: Liste mit Vorschlag-Select, bestätigen setzt `project_id` → Materialisierung.
+- **Review-UI = Fulda-Parität (`BauportalImportPage`):** Der Vorschlag wird beim Import direkt in
+  `project_id` **vorbefüllt** (unbestätigt), statt nur als graue Nebenspalte zu erscheinen.
+  Reihenfolge-unabhängige Suche (`filterProjectOption`), per-Zeile „Übernehmen"-Toggle
+  (optimistische Zwischenspeicherung), Kopf-Button **„Alle übernehmen (N)"**
+  (`POST /confirm-all` → `confirm_all`). Erst **`confirmed`** materialisiert die abgeleitete
+  Beobachtung — `sync_derived_observations` filtert Bauportal jetzt auf `project_id AND confirmed`
+  (wie Medien/Fulda). Migration `20260705001` backfillt `confirmed=true` für bestehende Matches, damit
+  deren Beobachtungen erhalten bleiben. `PATCH /entries/{id}` (`update_entry`) setzt `project_id`
+  und/oder `confirmed`; Löschen der Zuordnung nimmt automatisch die Bestätigung zurück.
 
 ### Medien/Presse (#48) — halb-automatisch
 
@@ -315,17 +324,73 @@ und werden nicht ins Changelog geschrieben.
 ### Fulda-Runde (#46) — Antwort auf Kleine Anfrage (PDF)
 
 - **Wichtig:** Hochgeladen wird die **Antwort der Bundesregierung** (enthält die Projekt-Tabellen),
-  nicht die Kleine Anfrage selbst (nur Fragen). Die Antwort gliedert Projekte nach **Fragenummer**;
-  jede Frage hat eine eigene Tabelle (Spalten „Projekt"/„Abschnitt").
-- **Roh-Tabelle `fulda_announcement`:** Roh-Name, Kategorie, angekündigte Phase, gematchte
-  `project_id`, Quelle/Datum. OCR (`vib_ocr.extract_full_pdf_text`) + LLM-Extraktion.
-- **Frage→Kategorie→Phase (deterministisch in Code, nicht per LLM geraten):** Q1/Q2→IN_LPH_1_2
-  (Vorplanung), Q3/Q5→COMPLETED_LPH_1_2 (Genehmigungsplanung), Q4/Q6→IN_LPH_3_4
-  (Genehmigungsplanung), Q7/Q10→COMPLETED_LPH_3_4 (Bau), Q8/Q9/Q11→HAS_BAUFINVE (Bau).
-  Q12–14 (Finanzzahlen) werden verworfen. Das LLM liefert nur `{question, project_name, abschnitt}`;
-  die Kategorie wird über `FULDA_QUESTION_CATEGORY` zugeordnet, Dubletten je (Name, Kategorie) entfernt.
+  nicht die Kleine Anfrage selbst (nur Fragen). Die Antwort gliedert Projekte nach **Leistungsphase**;
+  die Frage-Überschrift über jeder Tabelle sagt, in welcher Phase die Projekte stehen
+  (Spalten „Projekt"/„Abschnitt").
+- **UI = zwei Flächen (Tabelle wie VIB, aber synchron):**
+  1. **Übersicht** (`FuldaImportPage`, `/admin/fulda-import`): Upload (Jahr + PDF) **plus** eine
+     **Tabelle der Jahrgänge** (`GET /year-summaries` → `list_year_summaries`: Jahr, Drs, total,
+     confirmed). Einstiegs- und Browse-Fläche; Upload navigiert direkt in die Jahres-Detailansicht.
+  2. **Jahres-Detail** (`FuldaYearDetailPage`, `/admin/fulda-import/year/:year`): die **5 festen
+     Phasen-Tabellen** in fester Reihenfolge (`CATEGORY_ORDER`: *in Lph 1–2*, *Abschluss Lph 1–2*,
+     *in Lph 3–4*, *Abschluss Lph 3–4*, *BauFinVe*; leere Phasen als „Keine Projekte"). Je Zeile
+     Projekt/Unterprojekt zuordnen (Reihenfolge-unabhängige Suche `filterProjectOption`) + „Übernehmen"-
+     Toggle; optimistische Zwischenspeicherung. Kopf-Button **„Alle übernehmen (N)"**
+     (`POST /years/{year}/confirm` → `confirm_year`) bestätigt alle zugeordneten offenen Einträge auf
+     einmal; danach weiter anpassbar. Geteilte Komponenten in `fuldaShared.tsx`. (Der frühere
+     Schritt-für-Schritt-Review `FuldaReviewPage` wurde verworfen.)
+- **Jahresbezogen (wie VIB):** Der Redakteur gibt beim Upload das **Jahr** an (`announcement_year`,
+  NOT NULL, indiziert). Alles ist nach Jahr gefiltert (`GET /entries?year=`, `/years`,
+  `/year-summaries`). Ein erneuter Upload desselben Jahres ersetzt nur die **offenen** Drafts
+  (bestätigte bleiben). Ganze Jahrgänge löschbar (`DELETE /years/{year}` → `delete_year`,
+  re-materialisiert betroffene Projekte). Fehlt ein Beobachtungsdatum, dient der 1. Januar des Jahres
+  als `observed_date` (Recency-Decay).
+- **Abschnitt → Unterprojekt:** Jede Zeile trägt neben `raw_name` (Spalte „Projekt" = Oberprojekt)
+  den `abschnitt` (Spalte „Abschnitt"; bei Bullet-Listen der Teil nach dem Doppelpunkt). Beim Parsen
+  matcht `suggest_projects_for_vib_entry` zunächst das Oberprojekt; ist der Abschnitt distinkt (nicht
+  „Gesamtstrecke" o. Ä.), sucht `suggest_subproject_for_pfa` ein passendes **Unterprojekt** unter den
+  Kindern (`superior_project_id`) und füllt dieses **Blatt** vor (Zustand am Blatt). Es werden **keine
+  Unterprojekte angelegt** — gibt es keins, bleibt der beste Oberprojekt-Treffer vorausgewählt; der
+  Redakteur korrigiert.
+- **m:n-Projektzuordnung (wie VIB):** Link-Tabelle `fulda_announcement_to_project` (analog
+  `vib_entry_project`). Vorausgewählte Treffer als `MultiSelect`, kein separates Vorschlag-Feld. Erst
+  Bestätigen erzeugt je verknüpftem Projekt eine Beobachtung (`sync_derived_observations` JOINt die
+  Link-Tabelle, nur `confirmed`-Zeilen).
+- **Roh-Tabelle `fulda_announcement`:** Jahr, Roh-Name, **Abschnitt**, Kategorie, angekündigte Phase,
+  Quelle/Datum + m:n-Link zu Projekten. OCR (`vib_ocr.extract_full_pdf_text`) + LLM-Extraktion.
+- **Mehrstufige Extraktion — LLM ordnet nur Phasen zu:** Enger Auftrag: jede Projektliste **anhand
+  ihrer Frage-Überschrift** genau einer von fünf Kategorien zuordnen (Katalog in
+  `FULDA_CATEGORY_LABELS`) und je Zeile `{category, project_name, abschnitt}` liefern (Projektname
+  **wortwörtlich**; Abschnitt Pflicht — in Bullet-Listen „X: Y" wird X=Projekt, Y=Abschnitt). Kein
+  Fragenummer-Raten mehr (der frühere, unzuverlässige Ansatz). Der Prompt erzwingt **Exklusivität**
+  (eine Liste → genau eine Kategorie, keine Mehrfachausgabe) und „keine Liste → keine Einträge" für
+  Fragen, die nur auf Anlagen verweisen — gegen die beobachtete Duplikation einer Tabelle nach
+  BauFinVe. `normalize_items` validiert gegen `FULDA_CATEGORIES` und dedupt je (Name, Abschnitt,
+  Kategorie). Kategorie→Phase (`FULDA_CATEGORY_PHASE`): IN_LPH_1_2→Vorplanung, COMPLETED_LPH_1_2 &
+  IN_LPH_3_4→Genehmigungsplanung, COMPLETED_LPH_3_4 & HAS_BAUFINVE→Bau.
 - Termine fließen über den bestehenden Seam `_build_forecast_for_project` (FULDA_RUNDE +
   `observed_date`) in die Prognose. Debug: `scripts/dump_fulda_parse.py <pdf>`.
+
+### Fehlendes Projekt → Projektentwurf anlegen & verknüpfen
+
+Fällt beim Review auf, dass ein zuzuordnendes Projekt **noch gar nicht existiert**, kann es direkt
+aus dem Importer heraus als **Projektentwurf** angelegt und sofort mit dem Eintrag verknüpft werden —
+statt den Import zu verlassen und das Projekt separat anzulegen.
+
+- **Wiederverwendbare Komponente** `features/projects/CreateDraftProjectModal.tsx`: Name (aus dem
+  Roh-Titel/Abschnitt vorbelegt) + optionales **Überprojekt** (`ProjectSearchSelect`). Legt das
+  Projekt über die **bestehende** Projekt-Infrastruktur als Entwurf an (`POST /projects/` mit
+  `is_draft = true`, `superior_project_id`) und gibt den erzeugten Entwurf per `onCreated` zurück, damit
+  der Aufrufer ihn an seinen Eintrag hängt. Kein neues Backend nötig — Entwürfe leben schon unter
+  `/admin/drafts` (`GET /projects/drafts`, `POST /projects/{id}/finalize`) und sind aus der
+  öffentlichen Liste/Karte ausgeblendet.
+- **Verknüpfung je Importer** (Link „Projekt fehlt?" an jeder Zuordnung):
+  - **Bauportal:** setzt `project_id` des Eintrags (unbestätigt — Redakteur prüft/übernimmt danach).
+  - **Fulda-Runde:** hängt den Entwurf an die m:n-Zuordnung (`project_ids`) der Zeile.
+  - **Haushalt (VE-Linie):** hängt den Entwurf an die FinVe-Zuordnung (Haupt-`project_ids` bzw. an eine
+    SV-Erläuterungs-Unterzeile).
+- **Fertigstellen später:** Der Entwurf wird auf dem Drafts-Board vervollständigt und finalisiert
+  (`is_draft = false`); die Importer-Verknüpfung bleibt bestehen.
 
 ## Implementierungsreihenfolge (Phasen-Rollout)
 

@@ -147,7 +147,10 @@ def test_import_creates_rows_and_suggestions():
     matched = next(r for r in db.added if r.bauportal_id == target["id"])
     assert matched.suggested_project_id == 99
     assert matched.status_raw == "Projekt in der Bauphase"
-    assert matched.project_id is None  # suggestion only, not confirmed
+    # Suggestion is pre-filled into the assignment (like Fulda) but stays
+    # unconfirmed, so it does not materialise until an editor confirms it.
+    assert matched.project_id == 99
+    assert not matched.confirmed
 
 
 def test_import_updates_existing_and_preserves_confirmed_match():
@@ -158,6 +161,7 @@ def test_import_updates_existing_and_preserves_confirmed_match():
         shorttitle="old title",
         project_id=42,            # already confirmed by an editor
         suggested_project_id=7,
+        confirmed=True,
     )
     db = _FakeSession(projects=[], existing=[existing_row])
 
@@ -168,6 +172,7 @@ def test_import_updates_existing_and_preserves_confirmed_match():
     # confirmed match must survive re-import; suggestion not overwritten while confirmed
     assert existing_row.project_id == 42
     assert existing_row.suggested_project_id == 7
+    assert existing_row.confirmed is True
     assert existing_row.shorttitle == first["shorttitle"]  # raw fields refreshed
 
 

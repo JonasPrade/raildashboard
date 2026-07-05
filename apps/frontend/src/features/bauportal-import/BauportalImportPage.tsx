@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
     Alert,
     Anchor,
@@ -13,18 +13,22 @@ import {
     Table,
     Text,
     Title,
+    Tooltip,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { useState } from "react";
-import { IconExternalLink, IconRefresh } from "@tabler/icons-react";
+import { IconChecks, IconExternalLink, IconPlus, IconRefresh } from "@tabler/icons-react";
 
 import {
     useBauportalEntries,
-    useConfirmBauportalMatch,
+    useConfirmAllBauportal,
     useFetchBauportal,
     useProjects,
+    useUpdateBauportalEntry,
     type BauportalEntry,
+    type Project,
 } from "../../shared/api/queries";
+import { filterProjectOption } from "../../lib/filterProjectOption";
+import CreateDraftProjectModal from "../projects/CreateDraftProjectModal";
 
 const PHASE_LABEL: Record<string, string> = {
     NICHT_GESTARTET: "Nicht gestartet",
@@ -41,34 +45,37 @@ const PHASE_COLOR: Record<string, string> = {
     IN_BETRIEB: "green",
 };
 
+type ProjectOption = { value: string; label: string };
+
 function MatchRow({
     entry,
     projectOptions,
+    onCreateDraft,
 }: {
     entry: BauportalEntry;
-    projectOptions: { value: string; label: string }[];
+    projectOptions: ProjectOption[];
+    onCreateDraft: (entry: BauportalEntry) => void;
 }) {
-    const confirm = useConfirmBauportalMatch();
+    const update = useUpdateBauportalEntry();
 
-    const handleChange = (value: string | null) => {
-        confirm.mutate(
-            { entryId: entry.id, projectId: value ? Number(value) : null },
+    const patch = (data: Parameters<typeof update.mutate>[0]["data"]) =>
+        update.mutate(
+            { entryId: entry.id, data },
             {
-                onSuccess: () =>
-                    notifications.show({
-                        color: "green",
-                        title: value ? "Zuordnung gespeichert" : "Zuordnung entfernt",
-                        message: entry.shorttitle,
-                    }),
                 onError: () =>
                     notifications.show({
                         color: "red",
                         title: "Fehler",
-                        message: "Die Zuordnung konnte nicht gespeichert werden.",
+                        message: "Die Änderung konnte nicht gespeichert werden.",
                     }),
             },
         );
-    };
+
+    const isSuggestion =
+        entry.project_id != null &&
+        entry.project_id === entry.suggested_project_id &&
+        !entry.confirmed;
+    const canConfirm = entry.project_id != null;
 
     return (
         <Table.Tr>
@@ -103,28 +110,61 @@ function MatchRow({
                     {entry.projecttime_raw ?? "–"}
                 </Text>
             </Table.Td>
-            <Table.Td>
-                {entry.suggested_project_name ? (
-                    <Text size="xs" c="dimmed">
-                        ✦ {entry.suggested_project_name}
-                    </Text>
-                ) : (
-                    <Text size="xs" c="dimmed">
-                        –
-                    </Text>
-                )}
+            <Table.Td style={{ width: "34%" }}>
+                <Stack gap={4}>
+                    <Select
+                        placeholder="Projekt zuordnen …"
+                        data={projectOptions}
+                        value={entry.project_id ? String(entry.project_id) : null}
+                        onChange={(v) => patch({ project_id: v ? Number(v) : null })}
+                        searchable
+                        clearable
+                        filter={filterProjectOption}
+                        nothingFoundMessage="Kein Projekt gefunden"
+                    />
+                    <Group gap="xs" justify="space-between" wrap="nowrap">
+                        {isSuggestion ? (
+                            <Text size="xs" c="dimmed">
+                                ✦ Vorschlag – bitte prüfen
+                            </Text>
+                        ) : (
+                            <span />
+                        )}
+                        <Anchor
+                            component="button"
+                            type="button"
+                            size="xs"
+                            onClick={() => onCreateDraft(entry)}
+                        >
+                            <Group gap={2} wrap="nowrap" component="span">
+                                <IconPlus size={11} />
+                                Projekt fehlt?
+                            </Group>
+                        </Anchor>
+                    </Group>
+                </Stack>
             </Table.Td>
-            <Table.Td style={{ minWidth: 280 }}>
-                <Select
-                    placeholder="Projekt zuordnen …"
-                    data={projectOptions}
-                    value={entry.project_id ? String(entry.project_id) : null}
-                    onChange={handleChange}
-                    searchable
-                    clearable
-                    nothingFoundMessage="Kein Projekt gefunden"
-                    disabled={confirm.isPending}
-                />
+            <Table.Td>
+                <Group gap="xs" wrap="nowrap">
+                    <Badge
+                        variant="light"
+                        color={entry.confirmed ? "green" : "gray"}
+                        style={{ cursor: canConfirm || entry.confirmed ? "pointer" : "not-allowed" }}
+                        onClick={() =>
+                            (canConfirm || entry.confirmed) && patch({ confirmed: !entry.confirmed })
+                        }
+                        title={
+                            canConfirm ? "Übernehmen / zurücknehmen" : "Erst ein Projekt zuordnen"
+                        }
+                    >
+                        {entry.confirmed ? "aktiv" : "offen"}
+                    </Badge>
+                    {update.isPending && (
+                        <Tooltip label="Wird gespeichert …" withArrow>
+                            <Loader size={14} />
+                        </Tooltip>
+                    )}
+                </Group>
             </Table.Td>
         </Table.Tr>
     );
@@ -135,14 +175,27 @@ export default function BauportalImportPage() {
     const { data: entries, isLoading } = useBauportalEntries(onlyUnconfirmed);
     const { data: projects } = useProjects();
     const fetchBauportal = useFetchBauportal();
+    const confirmAll = useConfirmAllBauportal();
+    const update = useUpdateBauportalEntry();
 
-    const projectOptions = useMemo(
+    const [draftFor, setDraftFor] = useState<BauportalEntry | null>(null);
+
+    const projectOptions = useMemo<ProjectOption[]>(
         () =>
             (projects ?? [])
                 .filter((p) => p.id != null && p.name)
-                .map((p) => ({ value: String(p.id), label: p.name as string })),
+                .map((p) => ({
+                    value: String(p.id),
+                    label: p.superior_project_id ? `   ↳ ${p.name}` : (p.name as string),
+                })),
         [projects],
     );
+
+    const readyCount = useMemo(
+        () => (entries ?? []).filter((e) => !e.confirmed && e.project_id != null).length,
+        [entries],
+    );
+    const confirmedCount = (entries ?? []).filter((e) => e.confirmed).length;
 
     const handleFetch = () => {
         fetchBauportal.mutate(undefined, {
@@ -161,7 +214,28 @@ export default function BauportalImportPage() {
         });
     };
 
-    const confirmedCount = (entries ?? []).filter((e) => e.project_id != null).length;
+    const handleConfirmAll = () => {
+        confirmAll.mutate(undefined, {
+            onSuccess: (res) =>
+                notifications.show({
+                    color: "green",
+                    title: "Übernommen",
+                    message: `${res.confirmed} Einträge bestätigt — du kannst Zuordnungen weiterhin anpassen.`,
+                }),
+            onError: () =>
+                notifications.show({
+                    color: "red",
+                    title: "Fehler",
+                    message: "Die Einträge konnten nicht übernommen werden.",
+                }),
+        });
+    };
+
+    // A newly created draft is assigned (unconfirmed) so the editor still reviews it.
+    const handleDraftCreated = (entry: BauportalEntry) => (project: Project) => {
+        if (project.id == null) return;
+        update.mutate({ entryId: entry.id, data: { project_id: project.id } });
+    };
 
     return (
         <Container size="xl" py="xl">
@@ -171,28 +245,46 @@ export default function BauportalImportPage() {
                         <Title order={2}>DB-Bauportal</Title>
                         <Text c="dimmed" size="sm">
                             Aktuellen Bau-/Planungsstand aus der offenen Bauportal-API abrufen und
-                            den Projekten zuordnen. Bestätigte Zuordnungen erzeugen automatisch eine
+                            den Projekten zuordnen. Der Vorschlag ist bereits vorbelegt — prüfen,
+                            ggf. anpassen und übernehmen. Bestätigte Zuordnungen erzeugen eine
                             abgeleitete Beobachtung (Quelle „Bauportal").
                         </Text>
                     </Stack>
-                    <Button
-                        leftSection={<IconRefresh size={16} />}
-                        onClick={handleFetch}
-                        loading={fetchBauportal.isPending}
-                    >
-                        Bauportal abrufen
-                    </Button>
+                    <Group gap="sm">
+                        <Button
+                            color="green"
+                            leftSection={<IconChecks size={16} />}
+                            onClick={handleConfirmAll}
+                            loading={confirmAll.isPending}
+                            disabled={readyCount === 0}
+                            title={
+                                readyCount === 0
+                                    ? "Keine zugeordneten, offenen Einträge"
+                                    : "Alle zugeordneten Einträge übernehmen"
+                            }
+                        >
+                            Alle übernehmen{readyCount > 0 ? ` (${readyCount})` : ""}
+                        </Button>
+                        <Button
+                            leftSection={<IconRefresh size={16} />}
+                            onClick={handleFetch}
+                            loading={fetchBauportal.isPending}
+                            variant="light"
+                        >
+                            Bauportal abrufen
+                        </Button>
+                    </Group>
                 </Group>
 
                 <Group justify="space-between">
                     <Switch
-                        label="Nur offene (ohne Zuordnung)"
+                        label="Nur offene (unbestätigt)"
                         checked={onlyUnconfirmed}
                         onChange={(e) => setOnlyUnconfirmed(e.currentTarget.checked)}
                     />
                     {entries && (
                         <Text size="sm" c="dimmed">
-                            {entries.length} Einträge · {confirmedCount} zugeordnet
+                            {entries.length} Einträge · {confirmedCount} aktiv
                         </Text>
                     )}
                 </Group>
@@ -208,14 +300,14 @@ export default function BauportalImportPage() {
                     </Alert>
                 ) : (
                     <Table.ScrollContainer minWidth={900}>
-                        <Table striped highlightOnHover>
+                        <Table striped highlightOnHover verticalSpacing="sm">
                             <Table.Thead>
                                 <Table.Tr>
                                     <Table.Th>Bauportal-Projekt</Table.Th>
                                     <Table.Th>Phase</Table.Th>
                                     <Table.Th>Bauzeitraum</Table.Th>
-                                    <Table.Th>Vorschlag</Table.Th>
                                     <Table.Th>Zuordnung</Table.Th>
+                                    <Table.Th>Übernehmen</Table.Th>
                                 </Table.Tr>
                             </Table.Thead>
                             <Table.Tbody>
@@ -224,6 +316,7 @@ export default function BauportalImportPage() {
                                         key={entry.id}
                                         entry={entry}
                                         projectOptions={projectOptions}
+                                        onCreateDraft={setDraftFor}
                                     />
                                 ))}
                             </Table.Tbody>
@@ -231,6 +324,14 @@ export default function BauportalImportPage() {
                     </Table.ScrollContainer>
                 )}
             </Stack>
+
+            <CreateDraftProjectModal
+                opened={draftFor !== null}
+                onClose={() => setDraftFor(null)}
+                initialName={draftFor?.shorttitle}
+                sourceLabel="DB-Bauportal"
+                onCreated={draftFor ? handleDraftCreated(draftFor) : () => {}}
+            />
         </Container>
     );
 }

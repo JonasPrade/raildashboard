@@ -17,9 +17,10 @@ from dashboard_backend.crud import bauportal as bauportal_crud
 from dashboard_backend.database import get_db
 from dashboard_backend.routing.auth_router import AuthRouter
 from dashboard_backend.schemas.bauportal import (
-    BauportalConfirmInput,
+    BauportalConfirmSummary,
     BauportalEntrySchema,
     BauportalImportSummary,
+    BauportalUpdateInput,
 )
 
 router = AuthRouter()
@@ -47,15 +48,25 @@ def list_bauportal_entries(
     return bauportal_crud.list_entries(db, only_unconfirmed=only_unconfirmed)
 
 
+@router.post(
+    "/confirm-all",
+    response_model=BauportalConfirmSummary,
+    dependencies=[_require_edit],
+)
+def confirm_all_bauportal(db: Session = Depends(get_db)):
+    """Confirm all assigned, still-open entries in one step."""
+    return {"confirmed": bauportal_crud.confirm_all(db)}
+
+
 @router.patch("/entries/{entry_id}", response_model=BauportalEntrySchema, dependencies=[_require_edit])
-def confirm_bauportal_match(
+def update_bauportal_entry(
     entry_id: int,
-    body: BauportalConfirmInput,
+    body: BauportalUpdateInput,
     db: Session = Depends(get_db),
 ):
-    """Set or clear the confirmed project match for one entry."""
+    """Set the assigned project and/or confirm the match for one entry."""
     try:
-        entry = bauportal_crud.confirm_match(db, entry_id, body.project_id)
+        entry = bauportal_crud.update_entry(db, entry_id, body.model_dump(exclude_unset=True))
     except bauportal_crud.ProjectNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     if entry is None:

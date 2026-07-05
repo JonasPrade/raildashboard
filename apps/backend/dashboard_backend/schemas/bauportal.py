@@ -28,6 +28,7 @@ class BauportalEntrySchema(BaseModel):
     suggested_project_name: str | None = None
     project_id: int | None = None
     project_name: str | None = None
+    confirmed: bool = False
 
 
 class BauportalImportSummary(BaseModel):
@@ -37,7 +38,17 @@ class BauportalImportSummary(BaseModel):
     skipped: int
 
 
-class BauportalConfirmInput(BaseModel):
-    """Set (or clear, with null) the confirmed project match for an entry."""
+class BauportalUpdateInput(BaseModel):
+    """Set the assigned project and/or confirm the match for one entry.
+
+    Both fields are optional; ``project_id`` may be ``null`` to clear the match.
+    """
 
     project_id: int | None = None
+    confirmed: bool | None = None
+
+
+class BauportalConfirmSummary(BaseModel):
+    """Result of confirming all assigned entries at once."""
+
+    confirmed: int
