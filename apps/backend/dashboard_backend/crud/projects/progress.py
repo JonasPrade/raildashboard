@@ -50,11 +50,18 @@ from dashboard_backend.services.progress_materialization import (
     PfaInput,
     bauportal_to_spec,
     finve_to_spec,
+    fulda_to_spec,
+    media_to_spec,
     pfa_has_pf_evidence,
     pfa_to_specs,
     vib_entry_to_specs,
 )
 from dashboard_backend.models.projects.bauportal_status import BauportalStatus
+from dashboard_backend.models.associations.fulda_announcement_to_project import (
+    fulda_announcement_to_project,
+)
+from dashboard_backend.models.projects.fulda_announcement import FuldaAnnouncement
+from dashboard_backend.models.projects.media_report import MediaReport
 from dashboard_backend.models.projects.bvwp_project_data import BvwpProjectData
 from dashboard_backend.models.vib.vib_pfa_entry import VibPfaEntry
 
@@ -306,7 +313,10 @@ def sync_derived_observations(db: Session, project_id: int) -> int:
     # --- DB-Bauportal records confirm-matched to this project ---
     bauportal_rows = (
         db.query(BauportalStatus)
-        .filter(BauportalStatus.project_id == project_id)
+        .filter(
+            BauportalStatus.project_id == project_id,
+            BauportalStatus.confirmed.is_(True),
+        )
         .all()
     )
     for row in bauportal_rows:
@@ -319,6 +329,54 @@ def sync_derived_observations(db: Session, project_id: int) -> int:
         )
         if bauportal_spec is not None:  # mixed/umbrella entry → no contribution
             specs.append(bauportal_spec)
+
+    # --- Confirmed Medien/Presse reports matched to this project ---
+    media_rows = (
+        db.query(MediaReport)
+        .filter(
+            MediaReport.project_id == project_id,
+            MediaReport.confirmed.is_(True),
+        )
+        .all()
+    )
+    for row in media_rows:
+        media_spec = media_to_spec(
+            media_report_id=row.id,
+            asserted_phase=row.asserted_phase,
+            observed_date=row.observed_date or row.published_date,
+            publication=row.publication,
+            url=row.url,
+            quote=row.quote,
+        )
+        if media_spec is not None:  # no valid phase yet → no contribution
+            specs.append(media_spec)
+
+    # --- Confirmed Fulda-Runde announcements matched to this project ---
+    fulda_rows = (
+        db.query(FuldaAnnouncement)
+        .join(
+            fulda_announcement_to_project,
+            fulda_announcement_to_project.c.fulda_announcement_id == FuldaAnnouncement.id,
+        )
+        .filter(
+            fulda_announcement_to_project.c.project_id == project_id,
+            FuldaAnnouncement.confirmed.is_(True),
+        )
+        .all()
+    )
+    for row in fulda_rows:
+        observed_date = row.expected_date or row.document_date
+        if observed_date is None and row.announcement_year:
+            observed_date = date(row.announcement_year, 1, 1)
+        fulda_spec = fulda_to_spec(
+            fulda_announcement_id=row.id,
+            announced_phase=row.announced_phase,
+            category=row.category,
+            observed_date=observed_date,
+            source_label=row.source_label,
+        )
+        if fulda_spec is not None:  # no derivable phase → no contribution
+            specs.append(fulda_spec)
 
     for spec in specs:
         db.add(
@@ -335,6 +393,8 @@ def sync_derived_observations(db: Session, project_id: int) -> int:
                 vib_pfa_entry_id=spec.vib_pfa_entry_id,
                 finve_id=spec.finve_id,
                 bauportal_status_id=spec.bauportal_status_id,
+                media_report_id=spec.media_report_id,
+                fulda_announcement_id=spec.fulda_announcement_id,
             )
         )
 

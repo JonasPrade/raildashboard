@@ -36,17 +36,39 @@ def _project_name_map(db: Session, ids: list[int | None]) -> dict[int, str]:
     return {row.id: row.name for row in rows}
 
 
+def _entry_dict(r: BauportalStatus, names: dict[int, str]) -> dict:
+    phase = bauportal_status_to_main_phase(r.status_raw)
+    return {
+        "id": r.id,
+        "bauportal_id": r.bauportal_id,
+        "parent_bauportal_id": r.parent_bauportal_id,
+        "shorttitle": r.shorttitle,
+        "status_raw": r.status_raw,
+        "mapped_phase": phase.value if phase is not None else None,
+        "projecttime_raw": r.projecttime_raw,
+        "url": r.url,
+        "lat": r.lat,
+        "lng": r.lng,
+        "fetched_at": r.fetched_at,
+        "suggested_project_id": r.suggested_project_id,
+        "suggested_project_name": names.get(r.suggested_project_id),
+        "project_id": r.project_id,
+        "project_name": names.get(r.project_id),
+        "confirmed": r.confirmed,
+    }
+
+
 def list_entries(db: Session, *, only_unconfirmed: bool = False) -> list[dict]:
     """List Bauportal entries with resolved suggestion / match names.
 
-    Unmatched/unconfirmed entries sort first (they need attention), then by title.
+    Unconfirmed entries sort first (they need attention), then by title.
     """
 
     query = db.query(BauportalStatus)
     if only_unconfirmed:
-        query = query.filter(BauportalStatus.project_id.is_(None))
+        query = query.filter(BauportalStatus.confirmed.is_(False))
     rows = query.order_by(
-        BauportalStatus.project_id.isnot(None),  # unconfirmed (NULL) first
+        BauportalStatus.confirmed,  # unconfirmed (False) first
         BauportalStatus.shorttitle,
     ).all()
 
@@ -54,56 +76,71 @@ def list_entries(db: Session, *, only_unconfirmed: bool = False) -> list[dict]:
         db,
         [r.project_id for r in rows] + [r.suggested_project_id for r in rows],
     )
-
-    entries: list[dict] = []
-    for r in rows:
-        phase = bauportal_status_to_main_phase(r.status_raw)
-        entries.append(
-            {
-                "id": r.id,
-                "bauportal_id": r.bauportal_id,
-                "parent_bauportal_id": r.parent_bauportal_id,
-                "shorttitle": r.shorttitle,
-                "status_raw": r.status_raw,
-                "mapped_phase": phase.value if phase is not None else None,
-                "projecttime_raw": r.projecttime_raw,
-                "url": r.url,
-                "lat": r.lat,
-                "lng": r.lng,
-                "fetched_at": r.fetched_at,
-                "suggested_project_id": r.suggested_project_id,
-                "suggested_project_name": names.get(r.suggested_project_id),
-                "project_id": r.project_id,
-                "project_name": names.get(r.project_id),
-            }
-        )
-    return entries
+    return [_entry_dict(r, names) for r in rows]
 
 
-def confirm_match(db: Session, entry_id: int, project_id: int | None) -> dict | None:
-    """Set or clear (``project_id=None``) the confirmed match for one entry.
+def update_entry(db: Session, entry_id: int, payload: dict) -> dict | None:
+    """Set the assigned project and/or confirm flag for one entry.
 
-    Re-materialises the previously- and newly-linked projects so derived
-    BAUPORTAL observations stay in sync. Returns the updated entry dict, ``None``
-    if the entry is missing, and raises :class:`ProjectNotFoundError` for an
-    unknown ``project_id``.
+    ``project_id`` (may be ``None`` to clear) and ``confirmed`` are both
+    optional. Clearing the project also drops the confirm flag (nothing to
+    confirm). Re-materialises the previously- and newly-linked projects so
+    derived BAUPORTAL observations stay in sync. Returns the updated entry dict,
+    ``None`` if the entry is missing, and raises :class:`ProjectNotFoundError`
+    for an unknown ``project_id``.
     """
 
     row = db.query(BauportalStatus).filter(BauportalStatus.id == entry_id).first()
     if row is None:
         return None
 
-    if project_id is not None:
-        exists = db.query(Project.id).filter(Project.id == project_id).first()
-        if exists is None:
-            raise ProjectNotFoundError(f"Project {project_id} not found")
-
     old_project_id = row.project_id
-    row.project_id = project_id
+
+    if "project_id" in payload:
+        project_id = payload["project_id"]
+        if project_id is not None:
+            exists = db.query(Project.id).filter(Project.id == project_id).first()
+            if exists is None:
+                raise ProjectNotFoundError(f"Project {project_id} not found")
+        row.project_id = project_id
+        if project_id is None:
+            row.confirmed = False
+
+    if "confirmed" in payload:
+        # Can only confirm a row that actually has an assigned project.
+        row.confirmed = bool(payload["confirmed"]) and row.project_id is not None
+
     db.commit()
 
-    for affected in {old_project_id, project_id} - {None}:
+    for affected in {old_project_id, row.project_id} - {None}:
         recompute_progress(db, affected)
 
-    entries = list_entries(db)
-    return next((e for e in entries if e["id"] == entry_id), None)
+    names = _project_name_map(db, [row.project_id, row.suggested_project_id])
+    return _entry_dict(row, names)
+
+
+def confirm_all(db: Session) -> int:
+    """Confirm every assigned-but-unconfirmed entry in one step.
+
+    Skips entries without an assigned project. Re-materialises each affected
+    project once and returns the number of newly confirmed entries.
+    """
+
+    rows = (
+        db.query(BauportalStatus)
+        .filter(
+            BauportalStatus.confirmed.is_(False),
+            BauportalStatus.project_id.isnot(None),
+        )
+        .all()
+    )
+    affected: set[int] = set()
+    for row in rows:
+        row.confirmed = True
+        if row.project_id is not None:
+            affected.add(row.project_id)
+    db.commit()
+
+    for project_id in affected:
+        recompute_progress(db, project_id)
+    return len(rows)

@@ -31,6 +31,7 @@ def _entry(entry_id: int = 1, **overrides) -> dict:
         "suggested_project_name": "Röblingen",
         "project_id": None,
         "project_name": None,
+        "confirmed": False,
     }
     entry.update(overrides)
     return entry
@@ -104,36 +105,38 @@ def test_list_entries(client, create_user, monkeypatch):
     assert body[0]["mapped_phase"] == "BAU"
 
 
-# --- confirm match -----------------------------------------------------------
+# --- update / confirm --------------------------------------------------------
 
 
-def test_confirm_match(client, create_user, monkeypatch):
+def test_update_assign_and_confirm(client, create_user, monkeypatch):
     create_user("editor-bp4", "pass123", UserRole.editor)
     captured = {}
 
-    def _confirm(db, entry_id, project_id):
+    def _update(db, entry_id, payload):
         captured["entry_id"] = entry_id
-        captured["project_id"] = project_id
-        return _entry(entry_id, project_id=project_id, project_name="Röblingen")
+        captured["payload"] = payload
+        return _entry(entry_id, project_id=5, project_name="Röblingen", confirmed=True)
 
-    monkeypatch.setattr(bauportal_route.bauportal_crud, "confirm_match", _confirm)
+    monkeypatch.setattr(bauportal_route.bauportal_crud, "update_entry", _update)
     resp = client.patch(
         "/api/v1/import/bauportal/entries/1",
-        json={"project_id": 5},
+        json={"project_id": 5, "confirmed": True},
         headers=basic_auth_header("editor-bp4", "pass123"),
     )
     assert resp.status_code == 200
-    assert captured == {"entry_id": 1, "project_id": 5}
+    assert captured["entry_id"] == 1
+    assert captured["payload"] == {"project_id": 5, "confirmed": True}
     assert resp.json()["project_id"] == 5
+    assert resp.json()["confirmed"] is True
 
 
-def test_confirm_unknown_project_404(client, create_user, monkeypatch):
+def test_update_unknown_project_404(client, create_user, monkeypatch):
     create_user("editor-bp5", "pass123", UserRole.editor)
 
-    def _confirm(db, entry_id, project_id):
+    def _update(db, entry_id, payload):
         raise ProjectNotFoundError("Project 999 not found")
 
-    monkeypatch.setattr(bauportal_route.bauportal_crud, "confirm_match", _confirm)
+    monkeypatch.setattr(bauportal_route.bauportal_crud, "update_entry", _update)
     resp = client.patch(
         "/api/v1/import/bauportal/entries/1",
         json={"project_id": 999},
@@ -142,10 +145,10 @@ def test_confirm_unknown_project_404(client, create_user, monkeypatch):
     assert resp.status_code == 404
 
 
-def test_confirm_missing_entry_404(client, create_user, monkeypatch):
+def test_update_missing_entry_404(client, create_user, monkeypatch):
     create_user("editor-bp6", "pass123", UserRole.editor)
     monkeypatch.setattr(
-        bauportal_route.bauportal_crud, "confirm_match", lambda db, e, p: None
+        bauportal_route.bauportal_crud, "update_entry", lambda db, e, p: None
     )
     resp = client.patch(
         "/api/v1/import/bauportal/entries/999",
@@ -153,3 +156,14 @@ def test_confirm_missing_entry_404(client, create_user, monkeypatch):
         headers=basic_auth_header("editor-bp6", "pass123"),
     )
     assert resp.status_code == 404
+
+
+def test_confirm_all(client, create_user, monkeypatch):
+    create_user("editor-bp7", "pass123", UserRole.editor)
+    monkeypatch.setattr(bauportal_route.bauportal_crud, "confirm_all", lambda db: 14)
+    resp = client.post(
+        "/api/v1/import/bauportal/confirm-all",
+        headers=basic_auth_header("editor-bp7", "pass123"),
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"confirmed": 14}

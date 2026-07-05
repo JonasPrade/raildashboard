@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from dashboard_backend.models.base import Base
@@ -43,12 +43,19 @@ class BauportalStatus(Base):
     )
 
     # Fuzzy-match suggestion (transient guidance for the review UI) and the
-    # editor-confirmed match. Only ``project_id`` drives materialisation.
+    # assigned match. Mirroring the Fulda-Runde importer, the suggestion is
+    # pre-filled into ``project_id`` on import so the editor only reviews it;
+    # materialisation happens once ``confirmed`` is set (not on mere assignment).
     suggested_project_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("project.id", ondelete="SET NULL"), nullable=True
     )
     project_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("project.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    # Editor-confirmed the assigned match; only confirmed rows materialise a
+    # derived BAUPORTAL observation.
+    confirmed: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
     )
 
     def __repr__(self) -> str:  # pragma: no cover - debugging aid

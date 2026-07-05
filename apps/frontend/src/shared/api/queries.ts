@@ -1393,6 +1393,12 @@ export type BauportalEntry = {
     suggested_project_name: string | null;
     project_id: number | null;
     project_name: string | null;
+    confirmed: boolean;
+};
+
+export type BauportalUpdatePayload = {
+    project_id?: number | null;
+    confirmed?: boolean;
 };
 
 export type BauportalImportSummary = {
@@ -1423,17 +1429,298 @@ export function useFetchBauportal() {
     });
 }
 
-export function useConfirmBauportalMatch() {
+export function useUpdateBauportalEntry() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ entryId, projectId }: { entryId: number; projectId: number | null }) =>
+        mutationFn: ({ entryId, data }: { entryId: number; data: BauportalUpdatePayload }) =>
             api<BauportalEntry>(`/api/v1/import/bauportal/entries/${entryId}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ project_id: projectId }),
+                body: JSON.stringify(data),
+            }),
+        // Optimistic write-through so an assignment/confirm never appears to
+        // "jump back" before the refetch; roll back if the PATCH fails.
+        onMutate: async ({ entryId, data }) => {
+            await queryClient.cancelQueries({ queryKey: ["bauportal-entries"] });
+            const snapshots = queryClient.getQueriesData<BauportalEntry[]>({
+                queryKey: ["bauportal-entries"],
+            });
+            queryClient.setQueriesData<BauportalEntry[]>(
+                { queryKey: ["bauportal-entries"] },
+                (old) => (old ? old.map((e) => (e.id === entryId ? { ...e, ...data } : e)) : old),
+            );
+            return { snapshots };
+        },
+        onError: (_err, _vars, context) => {
+            context?.snapshots?.forEach(([key, value]) => queryClient.setQueryData(key, value));
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ["bauportal-entries"] });
+            queryClient.invalidateQueries({ queryKey: ["project-progress"] });
+        },
+    });
+}
+
+export function useConfirmAllBauportal() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: () =>
+            api<{ confirmed: number }>("/api/v1/import/bauportal/confirm-all", {
+                method: "POST",
             }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["bauportal-entries"] });
+            queryClient.invalidateQueries({ queryKey: ["project-progress"] });
+        },
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Medien/Presse importer (#48)
+// ---------------------------------------------------------------------------
+
+export type MediaEntry = {
+    id: number;
+    url: string | null;
+    publication: string | null;
+    published_date: string | null;
+    raw_text: string | null;
+    quote: string | null;
+    asserted_phase: string | null;
+    observed_date: string | null;
+    suggested_project_id: number | null;
+    suggested_project_name: string | null;
+    project_id: number | null;
+    project_name: string | null;
+    confirmed: boolean;
+    created_at: string | null;
+    username_snapshot: string | null;
+};
+
+export type MediaUpdatePayload = {
+    publication?: string | null;
+    published_date?: string | null;
+    asserted_phase?: string | null;
+    observed_date?: string | null;
+    quote?: string | null;
+    project_id?: number | null;
+    confirmed?: boolean;
+};
+
+export function useMediaEntries(onlyUnconfirmed = false) {
+    return useQuery({
+        queryKey: ["media-entries", onlyUnconfirmed],
+        queryFn: () =>
+            api<MediaEntry[]>(`/api/v1/import/media/entries?only_unconfirmed=${onlyUnconfirmed}`),
+    });
+}
+
+export function useExtractMedia() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ url, text }: { url?: string; text?: string }) =>
+            api<MediaEntry>("/api/v1/import/media/extract", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ url: url || null, text: text || null }),
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["media-entries"] });
+        },
+    });
+}
+
+export function useUpdateMediaEntry() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ entryId, data }: { entryId: number; data: MediaUpdatePayload }) =>
+            api<MediaEntry>(`/api/v1/import/media/entries/${entryId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["media-entries"] });
+            queryClient.invalidateQueries({ queryKey: ["project-progress"] });
+        },
+    });
+}
+
+export function useDeleteMediaEntry() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (entryId: number) =>
+            api<void>(`/api/v1/import/media/entries/${entryId}`, { method: "DELETE" }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["media-entries"] });
+            queryClient.invalidateQueries({ queryKey: ["project-progress"] });
+        },
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Fulda-Runde importer (#46)
+// ---------------------------------------------------------------------------
+
+export type FuldaEntry = {
+    id: number;
+    announcement_year: number;
+    source_label: string | null;
+    document_date: string | null;
+    raw_name: string;
+    abschnitt: string | null;
+    category: string | null;
+    announced_phase: string | null;
+    expected_date: string | null;
+    project_ids: number[];
+    project_names: string[];
+    confirmed: boolean;
+    created_at: string | null;
+    username_snapshot: string | null;
+};
+
+export type FuldaParseSummary = {
+    ocr_status: string;
+    created: number;
+    source_label: string | null;
+};
+
+export type FuldaYearSummary = {
+    announcement_year: number;
+    total: number;
+    confirmed: number;
+    source_label: string | null;
+    document_date: string | null;
+};
+
+export type FuldaUpdatePayload = {
+    announcement_year?: number;
+    source_label?: string | null;
+    abschnitt?: string | null;
+    announced_phase?: string | null;
+    category?: string | null;
+    expected_date?: string | null;
+    project_ids?: number[];
+    confirmed?: boolean;
+};
+
+export function useFuldaEntries(onlyUnconfirmed = false, year: number | null = null) {
+    return useQuery({
+        queryKey: ["fulda-entries", onlyUnconfirmed, year],
+        queryFn: () => {
+            const params = new URLSearchParams({ only_unconfirmed: String(onlyUnconfirmed) });
+            if (year != null) params.set("year", String(year));
+            return api<FuldaEntry[]>(`/api/v1/import/fulda/entries?${params.toString()}`);
+        },
+    });
+}
+
+export function useFuldaYears() {
+    return useQuery({
+        queryKey: ["fulda-years"],
+        queryFn: () => api<number[]>("/api/v1/import/fulda/years"),
+    });
+}
+
+export function useFuldaYearSummaries() {
+    return useQuery({
+        queryKey: ["fulda-year-summaries"],
+        queryFn: () => api<FuldaYearSummary[]>("/api/v1/import/fulda/year-summaries"),
+    });
+}
+
+export function useParseFulda() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ file, year }: { file: File; year: number }) => {
+            const form = new FormData();
+            form.append("pdf", file);
+            form.append("year", String(year));
+            return api<FuldaParseSummary>("/api/v1/import/fulda/parse", {
+                method: "POST",
+                body: form,
+            });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["fulda-entries"] });
+            queryClient.invalidateQueries({ queryKey: ["fulda-years"] });
+            queryClient.invalidateQueries({ queryKey: ["fulda-year-summaries"] });
+        },
+    });
+}
+
+export function useUpdateFuldaEntry() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ entryId, data }: { entryId: number; data: FuldaUpdatePayload }) =>
+            api<FuldaEntry>(`/api/v1/import/fulda/entries/${entryId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+            }),
+        // Optimistic write-through: reflect the edit in every cached entries list
+        // immediately so a change never appears to "jump back" before the refetch,
+        // and roll back if the PATCH fails.
+        onMutate: async ({ entryId, data }) => {
+            await queryClient.cancelQueries({ queryKey: ["fulda-entries"] });
+            const snapshots = queryClient.getQueriesData<FuldaEntry[]>({
+                queryKey: ["fulda-entries"],
+            });
+            queryClient.setQueriesData<FuldaEntry[]>({ queryKey: ["fulda-entries"] }, (old) =>
+                old ? old.map((e) => (e.id === entryId ? { ...e, ...data } : e)) : old,
+            );
+            return { snapshots };
+        },
+        onError: (_err, _vars, context) => {
+            context?.snapshots?.forEach(([key, value]) =>
+                queryClient.setQueryData(key, value),
+            );
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ["fulda-entries"] });
+            queryClient.invalidateQueries({ queryKey: ["fulda-year-summaries"] });
+            queryClient.invalidateQueries({ queryKey: ["project-progress"] });
+        },
+    });
+}
+
+export function useDeleteFuldaEntry() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (entryId: number) =>
+            api<void>(`/api/v1/import/fulda/entries/${entryId}`, { method: "DELETE" }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["fulda-entries"] });
+            queryClient.invalidateQueries({ queryKey: ["fulda-year-summaries"] });
+            queryClient.invalidateQueries({ queryKey: ["project-progress"] });
+        },
+    });
+}
+
+export function useConfirmFuldaYear() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (year: number) =>
+            api<{ confirmed: number }>(`/api/v1/import/fulda/years/${year}/confirm`, {
+                method: "POST",
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["fulda-entries"] });
+            queryClient.invalidateQueries({ queryKey: ["fulda-year-summaries"] });
+            queryClient.invalidateQueries({ queryKey: ["project-progress"] });
+        },
+    });
+}
+
+export function useDeleteFuldaYear() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (year: number) =>
+            api<void>(`/api/v1/import/fulda/years/${year}`, { method: "DELETE" }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["fulda-entries"] });
+            queryClient.invalidateQueries({ queryKey: ["fulda-years"] });
+            queryClient.invalidateQueries({ queryKey: ["fulda-year-summaries"] });
             queryClient.invalidateQueries({ queryKey: ["project-progress"] });
         },
     });

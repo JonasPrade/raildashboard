@@ -21,6 +21,9 @@ const VibImportPage = lazyWithRetry(() => import("./features/vib-import/VibImpor
 const VibReviewPage = lazyWithRetry(() => import("./features/vib-import/VibReviewPage"));
 const VibStructurePreviewPage = lazyWithRetry(() => import("./features/vib-import/VibStructurePreviewPage"));
 const BauportalImportPage = lazyWithRetry(() => import("./features/bauportal-import/BauportalImportPage"));
+const MediaImportPage = lazyWithRetry(() => import("./features/media-import/MediaImportPage"));
+const FuldaImportPage = lazyWithRetry(() => import("./features/fulda-import/FuldaImportPage"));
+const FuldaYearDetailPage = lazyWithRetry(() => import("./features/fulda-import/FuldaYearDetailPage"));
 const UnassignedPage = lazyWithRetry(() => import("./features/admin/UnassignedPage"));
 const FinveProgressAdminPage = lazyWithRetry(() => import("./features/admin/FinveProgressAdminPage"));
 const NewProjectPage = lazyWithRetry(() => import("./features/admin/new-project/NewProjectPage"));
@@ -167,6 +170,30 @@ export const router = createBrowserRouter([
                 element: (
                     <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
                         <BauportalImportPage />
+                    </Suspense>
+                ),
+            },
+            {
+                path: "admin/media-import",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <MediaImportPage />
+                    </Suspense>
+                ),
+            },
+            {
+                path: "admin/fulda-import",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <FuldaImportPage />
+                    </Suspense>
+                ),
+            },
+            {
+                path: "admin/fulda-import/year/:year",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <FuldaYearDetailPage />
                     </Suspense>
                 ),
             },

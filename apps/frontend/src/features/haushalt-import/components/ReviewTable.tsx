@@ -1,8 +1,10 @@
 import {
     ActionIcon,
+    Anchor,
     Badge,
     Box,
     Collapse,
+    Group,
     MultiSelect,
     Select,
     Stack,
@@ -12,8 +14,10 @@ import {
     Tooltip,
 } from "@mantine/core";
 import { useState } from "react";
+import { IconPlus } from "@tabler/icons-react";
 import type { HaushaltsParseRow, Project } from "../../../shared/api/queries";
 import { filterProjectOption } from "../../../lib/filterProjectOption";
+import CreateDraftProjectModal from "../../projects/CreateDraftProjectModal";
 
 function fmt(val: number | null) {
     if (val === null) return "–";
@@ -80,6 +84,13 @@ function DataRow({
 
     // Extra project IDs added manually (not linked to a specific erlaeuterung subrow)
     const [extraIds, setExtraIds] = useState<number[]>([]);
+
+    // "A project is missing → create it as a draft and link it here." A single
+    // modal serves every picker in this row; the anchor sets the target.
+    const [draft, setDraft] = useState<{
+        name: string;
+        onCreated: (project: Project) => void;
+    } | null>(null);
 
     function _notifyChange(nextSub: (number | null)[], nextExtra: number[]) {
         const ids = [...new Set([
@@ -173,18 +184,44 @@ function DataRow({
                                         size="xs"
                                         style={{ width: "100%" }}
                                     />
-                                    {hasSuggestions && row.status === "new" && (
-                                        <Tooltip label="Automatischer Vorschlag basierend auf Namensähnlichkeit. ✦ markiert Vorschläge in der Liste." withArrow>
-                                            <Badge
-                                                color="blue"
-                                                variant="light"
-                                                size="xs"
-                                                style={{ cursor: "default", width: "fit-content" }}
-                                            >
-                                                Auto-Vorschlag
-                                            </Badge>
-                                        </Tooltip>
-                                    )}
+                                    <Group gap="xs" justify="space-between" wrap="nowrap">
+                                        {hasSuggestions && row.status === "new" ? (
+                                            <Tooltip label="Automatischer Vorschlag basierend auf Namensähnlichkeit. ✦ markiert Vorschläge in der Liste." withArrow>
+                                                <Badge
+                                                    color="blue"
+                                                    variant="light"
+                                                    size="xs"
+                                                    style={{ cursor: "default", width: "fit-content" }}
+                                                >
+                                                    Auto-Vorschlag
+                                                </Badge>
+                                            </Tooltip>
+                                        ) : (
+                                            <span />
+                                        )}
+                                        <Anchor
+                                            component="button"
+                                            type="button"
+                                            size="xs"
+                                            onClick={() =>
+                                                setDraft({
+                                                    name: row.name,
+                                                    onCreated: (project) => {
+                                                        if (project.id == null) return;
+                                                        onProjectIdsChange(row.finve_number, [
+                                                            ...row.project_ids,
+                                                            project.id,
+                                                        ]);
+                                                    },
+                                                })
+                                            }
+                                        >
+                                            <Group gap={2} wrap="nowrap" component="span">
+                                                <IconPlus size={11} />
+                                                Projekt fehlt?
+                                            </Group>
+                                        </Anchor>
+                                    </Group>
                                 </Stack>
                             )
                         ) : (
@@ -235,20 +272,42 @@ function DataRow({
                         </Text>
                     </Table.Td>
                     <Table.Td style={{ minWidth: 280 }}>
-                        <Select
-                            data={projectOptions}
-                            value={subAssignments[idx] !== null ? String(subAssignments[idx]) : null}
-                            onChange={(val) => handleSubAssign(idx, val ? Number(val) : null)}
-                            placeholder="Projekt suchen & zuordnen..."
-                            searchable
-                            clearable
-                            filter={filterProjectOption}
-                            size="xs"
-                            style={{ width: "100%" }}
-                            leftSection={suggestions[idx] != null && subAssignments[idx] === suggestions[idx]
-                                ? <Text size="xs" c="blue">✦</Text>
-                                : undefined}
-                        />
+                        <Stack gap={4}>
+                            <Select
+                                data={projectOptions}
+                                value={subAssignments[idx] !== null ? String(subAssignments[idx]) : null}
+                                onChange={(val) => handleSubAssign(idx, val ? Number(val) : null)}
+                                placeholder="Projekt suchen & zuordnen..."
+                                searchable
+                                clearable
+                                filter={filterProjectOption}
+                                size="xs"
+                                style={{ width: "100%" }}
+                                leftSection={suggestions[idx] != null && subAssignments[idx] === suggestions[idx]
+                                    ? <Text size="xs" c="blue">✦</Text>
+                                    : undefined}
+                            />
+                            <Anchor
+                                component="button"
+                                type="button"
+                                size="xs"
+                                style={{ alignSelf: "flex-start" }}
+                                onClick={() =>
+                                    setDraft({
+                                        name: projectName,
+                                        onCreated: (project) => {
+                                            if (project.id == null) return;
+                                            handleSubAssign(idx, project.id);
+                                        },
+                                    })
+                                }
+                            >
+                                <Group gap={2} wrap="nowrap" component="span">
+                                    <IconPlus size={11} />
+                                    Projekt fehlt?
+                                </Group>
+                            </Anchor>
+                        </Stack>
                     </Table.Td>
                     <Table.Td colSpan={11} />
                 </Table.Tr>
@@ -369,6 +428,14 @@ function DataRow({
                     </Table.Td>
                 </Table.Tr>
             )}
+
+            <CreateDraftProjectModal
+                opened={draft !== null}
+                onClose={() => setDraft(null)}
+                initialName={draft?.name}
+                sourceLabel="Haushalt"
+                onCreated={draft ? draft.onCreated : () => {}}
+            />
         </>
     );
 }

@@ -71,6 +71,8 @@ class DerivedSpec:
     vib_pfa_entry_id: int | None = None
     finve_id: int | None = None
     bauportal_status_id: int | None = None
+    media_report_id: int | None = None
+    fulda_announcement_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -315,6 +317,96 @@ def bauportal_to_spec(
         observed_date=observed_date,
         note=note,
         bauportal_status_id=bauportal_status_id,
+    )
+
+
+def _coerce_main_phase(value: str | None) -> MainPhase | None:
+    if not value:
+        return None
+    try:
+        return MainPhase(value)
+    except ValueError:
+        return None
+
+
+def media_to_spec(
+    *,
+    media_report_id: int,
+    asserted_phase: str | None,
+    observed_date: date | None,
+    publication: str | None = None,
+    url: str | None = None,
+    quote: str | None = None,
+) -> DerivedSpec | None:
+    """Map a confirmed media report to a MAIN observation spec (low trust 0.4).
+
+    Returns ``None`` when the asserted phase is missing/invalid (the editor must
+    pick a valid MainPhase before it contributes). The note carries the
+    publication, quote and URL so the provenance is visible in the breakdown.
+    """
+
+    phase = _coerce_main_phase(asserted_phase)
+    if phase is None:
+        return None
+    note_parts = [p for p in ("Medien", publication) if p]
+    head = ": ".join(note_parts) if len(note_parts) > 1 else note_parts[0]
+    detail = " — ".join(p for p in (quote, url) if p)
+    note = f"{head} — {detail}" if detail else head
+    return DerivedSpec(
+        source_type=SourceType.MEDIEN,
+        track=ObservationTrack.MAIN,
+        asserted_state=phase.value,
+        observed_date=observed_date,
+        note=note,
+        media_report_id=media_report_id,
+    )
+
+
+# Fulda-Runde category → MainPhase. The answer groups projects by Leistungsphase:
+# currently *in* Lph 1–2 / 3–4, having *completed* a phase (which advances the
+# project to the next one), or holding a Baufinanzierungsvereinbarung (→ Bau).
+FULDA_CATEGORY_PHASE: dict[str, MainPhase] = {
+    "IN_LPH_1_2": MainPhase.VORPLANUNG,
+    "IN_LPH_3_4": MainPhase.GENEHMIGUNGSPLANUNG,
+    "COMPLETED_LPH_1_2": MainPhase.GENEHMIGUNGSPLANUNG,
+    "COMPLETED_LPH_3_4": MainPhase.BAU,
+    "HAS_BAUFINVE": MainPhase.BAU,
+}
+
+
+def fulda_category_to_phase(category: str | None) -> MainPhase | None:
+    if not category:
+        return None
+    return FULDA_CATEGORY_PHASE.get(category.strip().upper())
+
+
+def fulda_to_spec(
+    *,
+    fulda_announcement_id: int,
+    announced_phase: str | None,
+    category: str | None,
+    observed_date: date | None,
+    source_label: str | None = None,
+) -> DerivedSpec | None:
+    """Map a confirmed Fulda announcement to a MAIN observation spec (trust 0.7).
+
+    ``announced_phase`` (editor-confirmed MainPhase value) wins; otherwise the
+    phase is derived from ``category``. ``observed_date`` (expected/announcement
+    date) also feeds the forecast via the existing FULDA_RUNDE seam. Returns
+    ``None`` when no phase can be determined.
+    """
+
+    phase = _coerce_main_phase(announced_phase) or fulda_category_to_phase(category)
+    if phase is None:
+        return None
+    note = f"Fulda-Runde ({source_label})" if source_label else "Fulda-Runde"
+    return DerivedSpec(
+        source_type=SourceType.FULDA_RUNDE,
+        track=ObservationTrack.MAIN,
+        asserted_state=phase.value,
+        observed_date=observed_date,
+        note=note,
+        fulda_announcement_id=fulda_announcement_id,
     )
 
 
