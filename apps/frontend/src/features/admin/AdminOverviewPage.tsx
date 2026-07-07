@@ -56,6 +56,14 @@ export default function AdminOverviewPage() {
                 <ChronicleHeadline as="h1">Administration</ChronicleHeadline>
 
                 <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="sm">
+                    <ChronicleCard style={{ textDecoration: "none" }}>
+                        <Link to="/admin/anleitungen" style={{ textDecoration: "none", color: "inherit" }}>
+                            <Stack gap={4}>
+                                <Text fw={500}>Anleitungen</Text>
+                                <Text size="sm" c="dimmed">Workflows für die Datenpflege: Projektfortschritt, Haushalt, Fulda-Runde, Bauportal</Text>
+                            </Stack>
+                        </Link>
+                    </ChronicleCard>
                     {canAssignments && (
                         <ChronicleCard style={{ textDecoration: "none" }}>
                             <Link to="/admin/unassigned" style={{ textDecoration: "none", color: "inherit" }}>

@@ -29,6 +29,10 @@ const FinveProgressAdminPage = lazyWithRetry(() => import("./features/admin/Finv
 const NewProjectPage = lazyWithRetry(() => import("./features/admin/new-project/NewProjectPage"));
 const TasksPage = lazyWithRetry(() => import("./features/todos/TasksPage"));
 const DraftsPage = lazyWithRetry(() => import("./features/admin/drafts/DraftsPage"));
+const AnleitungenPage = lazyWithRetry(() => import("./features/guides/AnleitungenPage"));
+const ProjektfortschrittGuidePage = lazyWithRetry(() => import("./features/guides/ProjektfortschrittGuidePage"));
+const FuldaGuidePage = lazyWithRetry(() => import("./features/guides/FuldaGuidePage"));
+const BauportalGuidePage = lazyWithRetry(() => import("./features/guides/BauportalGuidePage"));
 
 function Layout() {
     return (
@@ -226,6 +230,38 @@ export const router = createBrowserRouter([
                 element: (
                     <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
                         <DraftsPage />
+                    </Suspense>
+                ),
+            },
+            {
+                path: "admin/anleitungen",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <AnleitungenPage />
+                    </Suspense>
+                ),
+            },
+            {
+                path: "admin/anleitungen/projektfortschritt",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <ProjektfortschrittGuidePage />
+                    </Suspense>
+                ),
+            },
+            {
+                path: "admin/anleitungen/fulda",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <FuldaGuidePage />
+                    </Suspense>
+                ),
+            },
+            {
+                path: "admin/anleitungen/bauportal",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <BauportalGuidePage />
                     </Suspense>
                 ),
             },
