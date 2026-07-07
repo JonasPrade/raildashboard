@@ -33,6 +33,10 @@ const AnleitungenPage = lazyWithRetry(() => import("./features/guides/Anleitunge
 const ProjektfortschrittGuidePage = lazyWithRetry(() => import("./features/guides/ProjektfortschrittGuidePage"));
 const FuldaGuidePage = lazyWithRetry(() => import("./features/guides/FuldaGuidePage"));
 const BauportalGuidePage = lazyWithRetry(() => import("./features/guides/BauportalGuidePage"));
+const VibGuidePage = lazyWithRetry(() => import("./features/guides/VibGuidePage"));
+const MedienGuidePage = lazyWithRetry(() => import("./features/guides/MedienGuidePage"));
+const ProjektAnlegenGuidePage = lazyWithRetry(() => import("./features/guides/ProjektAnlegenGuidePage"));
+const GeometrieGuidePage = lazyWithRetry(() => import("./features/guides/GeometrieGuidePage"));
 
 function Layout() {
     return (
@@ -262,6 +266,38 @@ export const router = createBrowserRouter([
                 element: (
                     <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
                         <BauportalGuidePage />
+                    </Suspense>
+                ),
+            },
+            {
+                path: "admin/anleitungen/vib",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <VibGuidePage />
+                    </Suspense>
+                ),
+            },
+            {
+                path: "admin/anleitungen/medien",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <MedienGuidePage />
+                    </Suspense>
+                ),
+            },
+            {
+                path: "admin/anleitungen/projekt-anlegen",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <ProjektAnlegenGuidePage />
+                    </Suspense>
+                ),
+            },
+            {
+                path: "admin/anleitungen/geometrie",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <GeometrieGuidePage />
                     </Suspense>
                 ),
             },

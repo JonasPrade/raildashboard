@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Container, SimpleGrid, Stack, Text, Group } from "@mantine/core";
 import { ChronicleHeadline, ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
+import { useAuth } from "../../lib/auth";
 
 type Guide = {
     to: string;
@@ -15,6 +16,18 @@ const FOUNDATIONS: Guide[] = [
         title: "So funktioniert der Projektfortschritt",
         description:
             "Leistungsphasen, Quellen & Beobachtungen, glaubwürdigkeitsbasierte Ableitung, Verfahren (PF/Parl.), Unterprojekt-Aggregation und Prognose — das mentale Modell hinter dem Planungsstand.",
+    },
+    {
+        to: "/admin/anleitungen/projekt-anlegen",
+        title: "Projekt anlegen",
+        description:
+            "Den Assistenten von Stammdaten über Geometrie, Eigenschaften und Planungsstand bis zur FinVe/VIB-Verknüpfung durchlaufen — inkl. Entwürfe und Unterprojekte.",
+    },
+    {
+        to: "/admin/anleitungen/geometrie",
+        title: "Geometrien erstellen",
+        description:
+            "Projektverlauf auf der Karte erfassen: Route über das Schienennetz berechnen, Betriebsstellen setzen, GeoJSON hochladen oder von Hand zeichnen.",
     },
 ];
 
@@ -37,6 +50,18 @@ const WORKFLOWS: Guide[] = [
         description:
             "Aktuellen Bau-/Planungsstand aus der offenen Bauportal-API ziehen, Vorschläge prüfen und als Beobachtung übernehmen.",
     },
+    {
+        to: "/admin/anleitungen/vib",
+        title: "VIB-Bericht importieren",
+        description:
+            "Verkehrsinvestitionsbericht (Schienenwege) per OCR einlesen, Struktur prüfen und Vorhaben im Review den Projekten (m:n) zuordnen.",
+    },
+    {
+        to: "/admin/anleitungen/medien",
+        title: "Medien / Presse auswerten",
+        description:
+            "Presseartikel (URL oder Text) per KI auswerten, Phase und Projekt prüfen und als aktuelle, niedrig gewichtete Beobachtung übernehmen.",
+    },
 ];
 
 function GuideGrid({ guides }: { guides: Guide[] }) {
@@ -58,6 +83,18 @@ function GuideGrid({ guides }: { guides: Guide[] }) {
     );
 }
 
+/** Shown only to users who may edit guide texts in-app. */
+function EditHint() {
+    const { can } = useAuth();
+    if (!can("guides.edit")) return null;
+    return (
+        <Text c="dimmed" size="xs">
+            Du kannst die Anleitungstexte direkt bearbeiten: In jedem Abschnitt erscheint dafür
+            ein „Bearbeiten"-Knopf (Markdown; „Zurücksetzen" stellt den Standardtext wieder her).
+        </Text>
+    );
+}
+
 export default function AnleitungenPage() {
     return (
         <Container size="lg" py="xl">
@@ -70,8 +107,10 @@ export default function AnleitungenPage() {
                     <Text c="dimmed" size="sm">
                         Schritt-für-Schritt-Anleitungen für das Pflegen der Datenbank: wie der
                         Planungsstand eines Projekts zustande kommt und wie neue Quellen
-                        (Bundeshaushalt, Fulda-Runden, DB-Bauportal, …) angelegt und zugeordnet werden.
+                        (Bundeshaushalt, Fulda-Runden, DB-Bauportal, VIB, Presse, …) angelegt und
+                        zugeordnet werden.
                     </Text>
+                    <EditHint />
                 </Stack>
 
                 <Stack gap="sm">
