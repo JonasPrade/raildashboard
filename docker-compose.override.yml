@@ -1,0 +1,39 @@
+# docker-compose.override.yml – LOCAL development builds
+#
+# Docker Compose auto-loads this file on top of docker-compose.yml whenever you run
+# `docker compose …` from the repository root. It re-adds the `build:` blocks that were
+# removed from the production compose file, so a developer can still build the full stack
+# locally without pulling from GHCR:
+#
+#   docker compose build          # builds db / backend / worker / frontend from local source
+#   docker compose up -d          # runs the locally built images
+#
+# IMPORTANT: This file lives only in the repository. The production server receives ONLY
+# docker-compose.yml + .env (see scripts/deploy.sh), so the override never applies there and
+# the server always pulls immutable GHCR images — it never builds. That is the whole point of
+# the build/run split (docs/production_setup.md → Deploy-Vertrag).
+#
+# Each service keeps the `image:` name from docker-compose.yml, so `docker compose build`
+# tags the locally built image under the same GHCR name and `up` picks it up transparently.
+# IMAGE_TAG still needs a value for the tag suffix — set it in .env (any string, e.g. `dev`).
+
+services:
+  db:
+    build:
+      context: docker/db
+
+  backend:
+    build:
+      context: apps/backend
+
+  worker:
+    build:
+      context: apps/backend
+
+  frontend:
+    build:
+      context: apps/frontend
+      args:
+        # Empty string → API calls go to the same origin; nginx proxies /api/ → backend.
+        VITE_API_BASE_URL: ""
+        REACT_APP_TILE_LAYER_URL: ${REACT_APP_TILE_LAYER_URL:-}

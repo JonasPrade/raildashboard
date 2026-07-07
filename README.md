@@ -157,21 +157,37 @@ make dev                  # run backend + frontend as usual
 make docker-dev-down      # stop DB (data volume is preserved)
 ```
 
-**Production — full stack in Docker (server needs only `docker-compose.yml` + `.env`):**
+**Production — tag-based CI/CD (GitHub Actions → GHCR → SSH deploy):**
+
+Production images are built in CI and pulled on the server — the server never builds.
+A release is cut by tagging a commit; the pipeline (`.github/workflows/deploy.yml`) handles
+build, GHCR push, DB backup, deploy, health-wait, and rollback:
 
 ```bash
-cp .env.example .env   # fill in passwords, domain, and APP_VERSION tag
-make docker-prod-build             # Docker clones code from GitHub at APP_VERSION tag
-make docker-prod-up                # start stack (port 80)
-make docker-create-user USERNAME=admin ROLE=admin
-make docker-prod-down              # stop stack
+make release-check MILESTONE=v1.3.0     # release gate must be green
+# move CHANGELOG.md [Unreleased] → ## [v1.3.0] - YYYY-MM-DD, commit
+git tag v1.3.0 && git push origin v1.3.0
 ```
 
-See [`docs/production_setup.md`](docs/production_setup.md) for the full deployment guide including data migration and backup procedures.
+Manual deploy/rollback on the server (any already-pushed tag):
+
+```bash
+ssh contabo "cd /srv/raildashboard && ./deploy.sh v1.3.0"
+```
+
+Locally you can still build and run the whole stack via `docker-compose.override.yml`
+(`docker compose build && docker compose up -d`).
+
+See [`docs/production_setup.md`](docs/production_setup.md) for the full deployment guide
+including the deploy contract, required secrets, data migration, and backup procedures.
 
 ## Deployment
 
-For production setup (server configuration, Docker deployment, automated backups, update procedures), see [`docs/production_setup.md`](docs/production_setup.md).
+Production is deployed by a **tag-based CI/CD pipeline** (`.github/workflows/deploy.yml`):
+pushing a `v*` tag runs the quality gates, builds and pushes the images to GHCR, and deploys
+over SSH with a pre-migration backup, health-wait, and automatic rollback. For the full deploy
+contract, required secrets, server configuration, automated backups, and update procedures,
+see [`docs/production_setup.md`](docs/production_setup.md).
 
 ## Contributing
 

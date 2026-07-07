@@ -70,6 +70,56 @@ Leer lassen deaktiviert die Funktion vollständig.
 
 ---
 
+## Deploy-Vertrag (tag-basierte CI/CD)
+
+Build und Betrieb sind getrennte Welten: **GitHub Actions baut** unveränderliche Images und pusht sie nach GHCR, der **Produktivserver zieht** sie nur noch und startet sie. Der Server baut nie selbst.
+
+| Punkt | Wert |
+|-------|------|
+| Pipeline | `.github/workflows/deploy.yml`, Trigger `on: push: tags: ['v*']` |
+| Reihenfolge | Quality-Gates (`pytest`, `tsc`) → Image-Build → GHCR-Push (`:vX.Y.Z` + `:latest`) → SSH-Deploy |
+| Registry / Images | `ghcr.io/jonasprade/raildashboard-backend`, `-frontend`, `-db` (jeweils `:${IMAGE_TAG}`) |
+| Compose-Datei auf dem Server | `/srv/raildashboard/docker-compose.yml` (nur `image:`-Referenzen, kein `build:`) |
+| Deploy-Skript | `/srv/raildashboard/deploy.sh` — von der Pipeline per SSH aufgerufen, `./deploy.sh <tag>` |
+| Release-Pin | `IMAGE_TAG` in `.env` (früher `APP_VERSION`); `deploy.sh` setzt ihn automatisch |
+| Health-URL (Erfolgskriterium) | Backend-Healthcheck auf `http://backend:8000/api/v1/health` (200 erst nach Alembic + uvicorn); extern `curl http://localhost/api/v1/health` |
+| Deploy-User | Eingeschränkter `deploy`-User, dem `/srv/raildashboard/` gehört; Docker-Rechte nötig |
+
+### Ablauf des Deploy-Schritts (in `deploy.sh`, identisch bei Pipeline und manuell)
+
+1. Aktuell laufendes `IMAGE_TAG` als Rollback-Anker merken.
+2. **DB-Backup vor der Migration** (`pg_dump -Fc` → `backups/pre-deploy_<tag>_<ts>.dump`). Schlägt das Backup fehl oder ist der Dump leer, **bricht der Deploy ab** — kein Backup, kein Update. Migrationen laufen danach automatisch im Backend-Entrypoint; ein Image-Rollback macht eine Migration **nicht** rückgängig, daher ist der Pre-Deploy-Dump der einzige Rückweg (Restore: siehe *Backup-System* → `make restore-db`).
+3. `IMAGE_TAG` in `.env` auf das neue Tag setzen, `docker compose pull`, `docker compose up -d`.
+4. Auf `healthy` des Backend-Containers warten (Timeout 180 s).
+5. Bei fehlender Health: `IMAGE_TAG` auf den vorherigen Wert zurücksetzen und erneut `up -d` (Rollback auf das unveränderliche `:vX`-Image).
+
+### Benötigte Secrets (GitHub → Repo oder Environment `production`)
+
+Nur als GitHub-Secrets hinterlegen, **niemals** ins Repo committen:
+
+| Secret / Variable | Zweck |
+|-------------------|-------|
+| `SSH_PRIVATE_KEY` | Privater Schlüssel des `deploy`-Users |
+| `SSH_HOST` | Server-Hostname/IP |
+| `SSH_USER` | Name des `deploy`-Users |
+| `GHCR_TOKEN` *(optional)* | PAT mit `read:packages`, damit der Server private Images ziehen kann. Entfällt, wenn die GHCR-Packages öffentlich sind. |
+| `GITHUB_TOKEN` *(automatisch)* | Wird im Build-Job mit `packages: write` zum Pushen nach GHCR genutzt — kein manuelles Secret. |
+| `TILE_LAYER_URL` *(Repo-Variable, optional)* | Raster-Kachel-URL, die zur Build-Zeit ins Frontend-Bundle gebacken wird. |
+
+Deploy-Ziel ist das GitHub-Environment `production`. Über einen **Required Reviewer** an diesem Environment lässt sich jeder Deploy zu einem manuellen Freigabe-Gate machen.
+
+### Eingeschränkter Deploy-User (Härtung)
+
+Empfohlen ist ein dedizierter `deploy`-User auf dem Server, dem nur `/srv/raildashboard/` gehört und der Mitglied der `docker`-Gruppe ist. Der von der Pipeline ausgeführte Befehl ist ausschließlich:
+
+```bash
+cd /srv/raildashboard && ./deploy.sh <tag>
+```
+
+Optional lässt sich der Schlüssel in `~/.ssh/authorized_keys` per `command="…"`-Forced-Command noch enger auf genau diesen Aufruf einschränken; dann müssen `docker-compose.yml`/`deploy.sh` allerdings auf anderem Weg aktualisiert werden (die Pipeline lädt sie sonst per `scp` hoch).
+
+---
+
 ## Legacy: Erstmalige Einrichtung (ohne Docker)
 
 ```bash
@@ -104,25 +154,30 @@ Alle Services laufen in Docker. Das Frontend wird von nginx als statische Dateie
 
 ### Erstmalige Einrichtung
 
-Der Server benötigt **nur** `docker-compose.yml` und eine `.env` — kein Source-Checkout erforderlich. Docker clont den Code automatisch von GitHub.
+Der Server benötigt **nur** `docker-compose.yml`, `scripts/deploy.sh` und eine `.env` — kein Source-Checkout und **kein lokaler Build**. Der Server **zieht fertige Images aus der GitHub Container Registry (GHCR)**; gebaut wird ausschließlich in GitHub Actions (siehe *Deploy-Vertrag* unten).
 
 ```bash
-# 1. Nur docker-compose.yml auf den Server übertragen
-scp docker-compose.yml user@server:/opt/raildashboard/
+# 1. Compose-Datei + Deploy-Skript auf den Server übertragen
+ssh contabo "mkdir -p /srv/raildashboard"
+scp docker-compose.yml contabo:/srv/raildashboard/
+scp scripts/deploy.sh   contabo:/srv/raildashboard/   # landet als /srv/raildashboard/deploy.sh
 
-# 2. Produktions-Umgebungsvariablen anlegen
-cp .env.example .env
+# 2. Produktions-Umgebungsvariablen anlegen (Vorlage: .env.prod.example)
+cp .env.prod.example .env
 # .env öffnen und alle Werte ausfüllen:
-#   - APP_VERSION=v1.2.0  ← gewünschtes Release-Tag
+#   - IMAGE_TAG=v1.2.0  ← gewünschtes Release-Tag (GHCR-Image-Tag)
 #   - DB_PASSWORD, BACKEND_CORS_ORIGINS, etc.
-scp .env user@server:/opt/raildashboard/
+scp .env contabo:/srv/raildashboard/
 
-# 3. Images bauen und Stack starten (auf dem Server)
-make docker-prod-build
-make docker-prod-up
+# 3. Bei privaten GHCR-Packages einmalig am Registry anmelden (sonst schlägt `pull` fehl)
+ssh contabo "docker login ghcr.io -u <github-user>"
+#   → alternativ die Packages in GitHub auf "public" stellen, dann entfällt der Login.
 
-# 4. Ersten Admin-User anlegen
-make docker-create-user USERNAME=admin ROLE=admin
+# 4. Erst-Deploy des gewünschten Tags (zieht Images, startet Stack, wartet auf Health)
+ssh contabo "cd /srv/raildashboard && ./deploy.sh v1.2.0"
+
+# 5. Ersten Admin-User anlegen
+ssh contabo "cd /srv/raildashboard && docker compose exec backend python scripts/create_initial_user.py --username admin --role admin"
 ```
 
 Alembic-Migrationen laufen automatisch beim Start des Backend-Containers (via `docker-entrypoint.sh`).
@@ -324,22 +379,28 @@ Danach `BACKEND_CORS_ORIGINS` in `.env` auf die HTTPS-URL aktualisieren und den 
 make docker-prod-down && make docker-prod-up
 ```
 
-### Updates einspielen
+### Updates einspielen (Regelfall: automatisch per Tag)
 
-Kein `git pull` nötig — nur `APP_VERSION` in `.env` auf das neue Tag setzen, dann neu bauen:
+Ein Produktions-Update wird **nicht** mehr von Hand auf dem Server gebaut. Es genügt, im Repo einen Release-Tag zu setzen — die Pipeline `.github/workflows/deploy.yml` baut, pusht nach GHCR und deployt per SSH:
 
 ```bash
-# 1. APP_VERSION in .env aktualisieren, z.B.:
-#    APP_VERSION=v1.3.0
-nano .env
-
-# 2. Images neu bauen (Docker clont den Code von GitHub) und Stack neu starten
-make docker-prod-build   # baut alle Images vom neuen GitHub-Tag
-make docker-prod-down
-make docker-prod-up      # Migrationen laufen automatisch beim Start
+# Im Repo, auf dem Release-Commit:
+make release-check MILESTONE=v1.3.0     # muss exit 0 liefern (Release-Gate)
+# CHANGELOG.md: [Unreleased] → ## [v1.3.0] - YYYY-MM-DD verschieben, committen
+git tag v1.3.0 && git push origin v1.3.0
 ```
 
-> **Voraussetzung beim Tag-Cut (im Repo, vor `git tag`):** `make release-check` muss exit 0 liefern — sonst hängen noch offene manuelle Verifikationen in `docs/review-checklist.md`. Details: `AGENT.md` → Release Gate.
+Der Rest läuft automatisiert: Quality-Gates → Image-Build → GHCR-Push (`:v1.3.0` + `:latest`) → SSH-Deploy mit **DB-Backup vor der Migration** (bricht bei Fehler ab), `docker compose pull`, `up -d`, Health-Wait und **automatischem Rollback** auf das vorherige `:vX`-Image bei fehlender Health.
+
+> **Voraussetzung beim Tag-Cut (im Repo, vor `git tag`):** `make release-check` muss exit 0 liefern — sonst hängen noch offene manuelle Verifikationen. Details: `AGENT.md` → Release Gate & Release & Deploy.
+
+**Manuelles Deploy / Rollback** (falls die Pipeline nicht genutzt wird oder ein schneller Rollback nötig ist) — direkt auf dem Server das schon vorhandene Deploy-Skript aufrufen:
+
+```bash
+ssh contabo "cd /srv/raildashboard && ./deploy.sh v1.2.0"   # beliebiges bereits gepushtes Tag
+```
+
+`deploy.sh` macht dabei exakt dieselben Schritte wie die Pipeline (Backup → Tag setzen → pull → up -d → Health-Wait → Rollback). Ein Rollback ist damit einfach das erneute Deployen des vorherigen unveränderlichen Tags.
 
 ### Entwicklung: nur DB in Docker
 
