@@ -12,16 +12,24 @@ section as part of the release commit, immediately before tagging.
 
 ## [Unreleased]
 
+## [v0.0.6] - 2026-07-07
+
 ### Added
-- "Anleitungen" guides: four new guide pages (VIB report import, media/press
-  extraction, project creation wizard, geometry editor) with illustrative
-  non-interactive example views ("Beispielansicht") in every guide.
-- In-app guide editing: guide texts are now markdown sections that users with the
+- "Anleitungen" guides hub (`/admin/anleitungen`) with step-by-step guides for
+  the database-maintenance workflows (Projektfortschritt foundations, Haushalt,
+  Fulda-Runde, Bauportal) plus four new guide pages: VIB report import,
+  media/press extraction, project creation wizard, and geometry editor — each
+  with illustrative non-interactive example views ("Beispielansicht").
+- In-app guide editing: guide texts are markdown sections that users with the
   new `guides.edit` capability (group "Inhalte"; admins implicitly) can override
   per section. Overrides live in the new `guide_section_override` table
   (migration `20260707001`) behind `GET/PUT/DELETE
   /api/v1/guides/{slug}/overrides[/{section_key}]` and can be reset to the
   bundled default at any time.
+
+## [v0.0.5] - 2026-07-07
+
+### Added
 - Tag-based CI/CD pipeline (`.github/workflows/deploy.yml`): pushing a `v*` tag runs the
   quality gates (backend `pytest`, frontend `tsc` + `eslint`), builds the `backend`, `frontend`, and
   `db` images, pushes them to GHCR double-tagged `:vX.Y.Z` + `:latest`, and deploys via SSH.
