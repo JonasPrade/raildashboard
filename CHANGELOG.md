@@ -37,3 +37,6 @@ section as part of the release commit, immediately before tagging.
   returns below all hooks in `HaushaltsImportPage` and `VibImportPage` (react-hooks/rules-of-hooks),
   dropped an unused `_files` parameter in `ProjectTextsSection`, and replaced a ternary-as-statement
   with `if/else` in `VibStructurePreviewPage`.
+- Backend test suite is now hermetic: `tests/conftest.py` provides a dummy `SESSION_SECRET_KEY`
+  so `pytest` no longer depends on a developer's local `.env` (the required Settings field made
+  the CI quality gate fail on a clean checkout).

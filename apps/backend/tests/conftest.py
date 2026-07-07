@@ -15,6 +15,10 @@ os.environ.setdefault("CELERY_RESULT_BACKEND", "cache+memory://")
 os.environ.setdefault("LLM_BASE_URL", "")
 os.environ.setdefault("LLM_API_KEY", "")
 os.environ.setdefault("LLM_MODEL", "test-model")
+# Required Settings field with no default — provide a dummy so the suite is hermetic
+# and does not depend on a developer's local .env (CI has none). setdefault keeps any
+# real value from the environment/.env when present.
+os.environ.setdefault("SESSION_SECRET_KEY", "test-session-secret-not-real")
 
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
