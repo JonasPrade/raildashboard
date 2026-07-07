@@ -4,7 +4,7 @@
 # Setting the tag is the deliberate "ready for production" release act — see AGENT.md → Release.
 #
 # Order (a failing earlier job aborts the pipeline before anything ships):
-#   1. quality     – backend pytest + frontend type-check (blocking) and lint (advisory).
+#   1. quality     – backend pytest + frontend type-check (tsc) + frontend lint (eslint).
 #   2. build-push  – build backend/frontend/db images, push to GHCR double-tagged :vX.Y.Z + :latest.
 #   3. deploy      – SSH to the server, back up the DB, pull, up -d, wait for health, roll back on failure.
 #
@@ -67,13 +67,13 @@ jobs:
         working-directory: apps/frontend
         run: npm ci
 
-      - name: Frontend type-check (tsc) — blocking gate
+      - name: Frontend type-check (tsc)
         working-directory: apps/frontend
         run: npx tsc --noEmit
 
-      - name: Frontend lint — advisory (does not block the release)
+      - name: Frontend lint (eslint)
         working-directory: apps/frontend
-        continue-on-error: true
+        # Blocking gate: eslint exits non-zero on any error. Warnings are allowed through.
         run: npm run lint
 
   # ---------------------------------------------------------------------------

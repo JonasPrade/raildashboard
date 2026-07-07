@@ -77,7 +77,7 @@ Build und Betrieb sind getrennte Welten: **GitHub Actions baut** unveränderlich
 | Punkt | Wert |
 |-------|------|
 | Pipeline | `.github/workflows/deploy.yml`, Trigger `on: push: tags: ['v*']` |
-| Reihenfolge | Quality-Gates (`pytest`, `tsc`) → Image-Build → GHCR-Push (`:vX.Y.Z` + `:latest`) → SSH-Deploy |
+| Reihenfolge | Quality-Gates (`pytest`, `tsc`, `eslint`) → Image-Build → GHCR-Push (`:vX.Y.Z` + `:latest`) → SSH-Deploy |
 | Registry / Images | `ghcr.io/jonasprade/raildashboard-backend`, `-frontend`, `-db` (jeweils `:${IMAGE_TAG}`) |
 | Compose-Datei auf dem Server | `/srv/raildashboard/docker-compose.yml` (nur `image:`-Referenzen, kein `build:`) |
 | Deploy-Skript | `/srv/raildashboard/deploy.sh` — von der Pipeline per SSH aufgerufen, `./deploy.sh <tag>` |
