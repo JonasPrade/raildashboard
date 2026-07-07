@@ -2034,3 +2034,56 @@ export function useDeleteTodo() {
         },
     });
 }
+
+// --- Guides ("Anleitungen") section overrides --------------------------------
+
+export type GuideOverride = {
+    guide_slug: string;
+    section_key: string;
+    body_markdown: string;
+    updated_at: string | null;
+    username_snapshot: string | null;
+};
+
+export function useGuideOverrides(guideSlug: string) {
+    return useQuery({
+        queryKey: ["guide-overrides", guideSlug],
+        queryFn: () => api<GuideOverride[]>(`/api/v1/guides/${guideSlug}/overrides`),
+    });
+}
+
+export function useSaveGuideOverride() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({
+            guideSlug,
+            sectionKey,
+            bodyMarkdown,
+        }: {
+            guideSlug: string;
+            sectionKey: string;
+            bodyMarkdown: string;
+        }) =>
+            api<GuideOverride>(`/api/v1/guides/${guideSlug}/overrides/${sectionKey}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ body_markdown: bodyMarkdown }),
+            }),
+        onSuccess: (_data, { guideSlug }) => {
+            queryClient.invalidateQueries({ queryKey: ["guide-overrides", guideSlug] });
+        },
+    });
+}
+
+export function useDeleteGuideOverride() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ guideSlug, sectionKey }: { guideSlug: string; sectionKey: string }) =>
+            api<void>(`/api/v1/guides/${guideSlug}/overrides/${sectionKey}`, {
+                method: "DELETE",
+            }),
+        onSuccess: (_data, { guideSlug }) => {
+            queryClient.invalidateQueries({ queryKey: ["guide-overrides", guideSlug] });
+        },
+    });
+}
