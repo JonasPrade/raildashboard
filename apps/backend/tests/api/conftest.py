@@ -12,6 +12,7 @@ from dashboard_backend.crud import roles as roles_crud
 from dashboard_backend.database import get_db
 from dashboard_backend.dependencies.routes import get_route_service
 from dashboard_backend.models.app_settings import AppSettings
+from dashboard_backend.models.guides import GuideSectionOverride
 from dashboard_backend.models.projects.project_text import ProjectText
 from dashboard_backend.models.projects.project_text_type import ProjectTextType
 from dashboard_backend.models.roles import Role, RolePermission
@@ -40,6 +41,7 @@ TABLES = [
     ProjectText.__table__,
     Todo.__table__,  # FK to project (absent here) is unenforced in SQLite
     TodoAssignee.__table__,  # must follow Todo (FK dependency)
+    GuideSectionOverride.__table__,
 ]
 
 
