@@ -36,16 +36,6 @@ export default function HaushaltsImportPage() {
     const startImport = useStartHaushaltsImport();
     const taskStatus = useTaskStatus(taskId);
 
-    if (!can("haushalt.import")) {
-        return (
-            <Container size="sm" py="xl">
-                <Alert color="red" variant="light" title="Kein Zugriff">
-                    Diese Seite ist nur für Editoren und Administratoren zugänglich.
-                </Alert>
-            </Container>
-        );
-    }
-
     const handleUpload = async () => {
         if (!file) return;
         try {
@@ -76,6 +66,16 @@ export default function HaushaltsImportPage() {
     const progress = taskStatus.data?.status === "PROGRESS"
         ? (taskStatus.data.result as TaskProgressMeta | null)
         : null;
+
+    if (!can("haushalt.import")) {
+        return (
+            <Container size="sm" py="xl">
+                <Alert color="red" variant="light" title="Kein Zugriff">
+                    Diese Seite ist nur für Editoren und Administratoren zugänglich.
+                </Alert>
+            </Container>
+        );
+    }
 
     return (
         <Container size="lg" py="xl">

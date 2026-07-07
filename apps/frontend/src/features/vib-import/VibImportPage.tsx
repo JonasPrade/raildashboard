@@ -54,16 +54,6 @@ export default function VibImportPage() {
     const { data: drafts, isLoading: draftsLoading } = useVibDrafts();
     const deleteDraft = useDeleteVibDraft();
 
-    if (!can("vib.import")) {
-        return (
-            <Container size="sm" py="xl">
-                <Alert color="red" variant="light" title="Kein Zugriff">
-                    Diese Seite ist nur für Editoren und Administratoren zugänglich.
-                </Alert>
-            </Container>
-        );
-    }
-
     const handleUpload = async () => {
         if (!file) return;
         try {
@@ -122,6 +112,16 @@ export default function VibImportPage() {
                 }),
         });
     };
+
+    if (!can("vib.import")) {
+        return (
+            <Container size="sm" py="xl">
+                <Alert color="red" variant="light" title="Kein Zugriff">
+                    Diese Seite ist nur für Editoren und Administratoren zugänglich.
+                </Alert>
+            </Container>
+        );
+    }
 
     return (
         <Container size="lg" py="xl">

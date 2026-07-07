@@ -40,6 +40,34 @@ Manuelle Verifikation läuft über das **GitHub-Projects-Board**, nicht mehr üb
 
 Eine Version `v0.0.x` wird erst getaggt, wenn ihr Milestone **kein** offenes Issue und **kein** Issue im Status `Needs User Test` mehr hat. `make release-check` fragt diesen Zustand per `gh` ab und muss 0 zurückgeben, bevor der Release-Tag gesetzt wird.
 
+## Release & Deploy (tag-based CI/CD)
+
+Deployment ist **tag-getrieben**: Ein Tag `vX.Y.Z` auf den aktuellen Commit ist alles, was
+für ein Produktions-Update nötig ist — den Rest erledigt `.github/workflows/deploy.yml`
+(Quality-Gates → Build → GHCR-Push → SSH-Deploy). Details des Deploy-Vertrags stehen in
+`docs/production_setup.md` → *Deploy-Vertrag (tag-basierte CI/CD)*.
+
+Ablauf beim Release-Cut:
+1. `make release-check MILESTONE=vX.Y.Z` muss grün sein (Release-Gate oben).
+2. **`CHANGELOG.md` pflegen**: Einträge aus `[Unreleased]` in einen datierten
+   `## [vX.Y.Z] - YYYY-MM-DD`-Abschnitt verschieben. Das gehört in den Release-Commit,
+   **bevor** getaggt wird. Keep-a-Changelog-Format.
+3. Tag setzen und pushen: `git tag vX.Y.Z && git push origin vX.Y.Z`. Das Setzen des Tags ist
+   die bewusste Freigabe „reif für Produktion".
+4. Die Pipeline baut die Images (`backend`, `frontend`, `db`), pusht sie doppelt getaggt nach
+   GHCR (`:vX.Y.Z` unveränderlich + `:latest`) und deployt per SSH. Vor der Migration wird
+   automatisch ein DB-Backup erstellt; schlägt es fehl, bricht der Deploy ab. Bei fehlender
+   Health wird auf das vorherige `:vX`-Image zurückgerollt.
+
+Konventionen für den Agenten:
+- **Build und Run trennen**: In `docker-compose.yml` stehen ausschließlich
+  `image: ghcr.io/jonasprade/raildashboard-<svc>:${IMAGE_TAG}`-Referenzen — nie `build:`.
+  Lokale Build-Blöcke gehören in `docker-compose.override.yml`.
+- Neue Config immer in `.env.prod.example` dokumentieren, nie Secrets ins Repo/Image.
+- `requirements.txt` bleibt exakt (`==`) gepinnt; Bumps bewusst + Tests grün.
+- Bei Änderungen am Deploy-Ablauf **beide** Doku-Ebenen nachziehen: `CHANGELOG.md` und
+  `docs/production_setup.md` (Deploy-Vertrag).
+
 ## Python Environment
 
 - Always use the project virtualenv: `apps/backend/.venv/bin/python` (Python 3.13)

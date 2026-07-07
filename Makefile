@@ -91,8 +91,9 @@ help:
 	@echo "  Celery"
 	@echo "    celery-worker      Start Celery worker (requires Redis running)"
 	@echo ""
-	@echo "  Docker – production (full stack)"
-	@echo "    docker-prod-build  Build all Docker images (requires .env)"
+	@echo "  Docker – production stack (local build via docker-compose.override.yml)"
+	@echo "    docker-prod-build  Build all images locally (dev only; prod uses GHCR + CI)"
+	@echo "    docker-prod-pull   Pull the GHCR images for the IMAGE_TAG in .env"
 	@echo "    docker-prod-up     Start the production stack in the background"
 	@echo "    docker-prod-down   Stop the production stack"
 	@echo "    docker-migrate     Run Alembic migrations inside the backend container"
@@ -303,8 +304,15 @@ docker-dev-down:
 # Docker – production (full stack)
 # ---------------------------------------------------------------------------
 
+# Local build of the full stack for testing the production images on a dev machine.
+# docker-compose.override.yml supplies the build contexts; production servers never build
+# (they only have docker-compose.yml + .env and pull GHCR images via scripts/deploy.sh).
 docker-prod-build:
 	docker compose --env-file .env build
+
+# Pull the GHCR images pinned by IMAGE_TAG in .env (mirrors what the server does).
+docker-prod-pull:
+	docker compose -f docker-compose.yml --env-file .env pull
 
 docker-prod-up:
 	docker compose --env-file .env up -d

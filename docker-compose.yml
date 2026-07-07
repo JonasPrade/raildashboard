@@ -1,25 +1,28 @@
 # docker-compose.yml – Production stack
 #
-# Usage:
-#   docker compose up --build -d
+# Usage on the server:
+#   docker compose pull
+#   docker compose up -d
 #
 # Docker Compose automatically reads .env from the working directory.
-# All variable substitution (APP_VERSION, DB_USER, …) and container env vars
+# All variable substitution (IMAGE_TAG, DB_USER, …) and container env vars
 # come from that single file — no --env-file flag required.
 #
-# All services are built directly from the GitHub repository at the given release
-# tag — no local source checkout required on the server. Docker clones the repo
-# at build time using the GitHub URL context.
+# BUILD and RUN are separate worlds (see docs/deploy-konventionen / production_setup.md):
+#   - GitHub Actions builds immutable images and pushes them to GHCR.
+#   - This file only *pulls* those images via `image: ghcr.io/.../…:${IMAGE_TAG}`.
+#   - The production server never builds. Local builds live in docker-compose.override.yml.
 #
 # Prerequisites:
 #   - Copy .env.prod.example to .env and fill in the values.
-#   - Set APP_VERSION in .env to the desired release tag (e.g. v1.2.0).
+#   - Set IMAGE_TAG in .env to the release tag to run (e.g. v1.2.0).
+#   - Log in to GHCR once if the packages are private:
+#       docker login ghcr.io -u <github-user>
 #   - Run the initial data migration (see docs/production_setup.md → Docker Deployment).
 
 services:
   db:
-    build:
-      context: "https://github.com/JonasPrade/raildashboard.git#${APP_VERSION}:docker/db"
+    image: ghcr.io/jonasprade/raildashboard-db:${IMAGE_TAG}
     restart: unless-stopped
     environment:
       POSTGRES_DB:       raildashboard
@@ -42,8 +45,7 @@ services:
       - raildashboard-net
 
   backend:
-    build:
-      context: "https://github.com/JonasPrade/raildashboard.git#${APP_VERSION}:apps/backend"
+    image: ghcr.io/jonasprade/raildashboard-backend:${IMAGE_TAG}
     restart: unless-stopped
     env_file: .env
     environment:
@@ -70,8 +72,7 @@ services:
       - raildashboard-net
 
   worker:
-    build:
-      context: "https://github.com/JonasPrade/raildashboard.git#${APP_VERSION}:apps/backend"
+    image: ghcr.io/jonasprade/raildashboard-backend:${IMAGE_TAG}
     command: celery -A dashboard_backend.celery_app worker --loglevel=info
     restart: unless-stopped
     env_file: .env
@@ -94,15 +95,12 @@ services:
       - raildashboard-net
 
   # graphhopper: disabled — not yet required by any service.
-  # Re-enable and configure GH_OSM_URL in .env when routing is needed.
+  # Re-enable and configure GH_OSM_URL in .env when routing is needed. When you do,
+  # add a raildashboard-graphhopper image to the CI build matrix and reference it here
+  # as `image: ghcr.io/jonasprade/raildashboard-graphhopper:${IMAGE_TAG}`.
 
   frontend:
-    build:
-      context: "https://github.com/JonasPrade/raildashboard.git#${APP_VERSION}:apps/frontend"
-      args:
-        # Empty string → API calls go to the same origin; nginx proxies /api/ → backend.
-        VITE_API_BASE_URL: ""
-        REACT_APP_TILE_LAYER_URL: ${REACT_APP_TILE_LAYER_URL:-}
+    image: ghcr.io/jonasprade/raildashboard-frontend:${IMAGE_TAG}
     restart: unless-stopped
     ports:
       - "5000:80"

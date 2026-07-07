@@ -4,7 +4,7 @@
 # ---------------------------------------------------------------------------
 # Stage 1: builder – install Python dependencies into /venv
 # ---------------------------------------------------------------------------
-FROM python:3.12-slim AS builder
+FROM python:3.13-slim AS builder
 
 WORKDIR /build
 
@@ -24,7 +24,7 @@ RUN /venv/bin/pip install --upgrade pip && \
 # ---------------------------------------------------------------------------
 # Stage 2: runtime – lean image that only contains the app and the venv
 # ---------------------------------------------------------------------------
-FROM python:3.12-slim AS runtime
+FROM python:3.13-slim AS runtime
 
 # libmagic1 is required at runtime by python-magic (MIME byte-sniffing for file uploads)
 RUN apt-get update && apt-get install -y --no-install-recommends \

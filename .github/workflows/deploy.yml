@@ -1,0 +1,165 @@
+# Tag-based CI/CD pipeline: quality gates → build & push to GHCR → SSH deploy.
+#
+# Trigger: pushing a semantic version tag (e.g. `git tag v1.2.0 && git push origin v1.2.0`).
+# Setting the tag is the deliberate "ready for production" release act — see AGENT.md → Release.
+#
+# Order (a failing earlier job aborts the pipeline before anything ships):
+#   1. quality     – backend pytest + frontend type-check (tsc) + frontend lint (eslint).
+#   2. build-push  – build backend/frontend/db images, push to GHCR double-tagged :vX.Y.Z + :latest.
+#   3. deploy      – SSH to the server, back up the DB, pull, up -d, wait for health, roll back on failure.
+#
+# Required secrets (repo or `production` environment — never commit real values):
+#   SSH_PRIVATE_KEY  private key of the restricted deploy user
+#   SSH_HOST         server hostname/IP
+#   SSH_USER         deploy user name (owns /srv/raildashboard)
+#   GHCR_TOKEN       (optional) PAT with read:packages so the server can pull private images.
+#                    Omit if the GHCR packages are made public — then no server login is needed.
+# Optional repo variable:
+#   TILE_LAYER_URL   raster tile URL baked into the frontend bundle at build time.
+
+name: deploy
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1. Quality gates — run BEFORE any image is built. A red gate aborts the pipeline.
+  # ---------------------------------------------------------------------------
+  quality:
+    name: Quality gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install backend dependencies
+        working-directory: apps/backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Backend tests (pytest)
+        working-directory: apps/backend
+        env:
+          ENVIRONMENT: test
+        # conftest.py points DATABASE_URL at SQLite, so no Postgres service is needed.
+        # tests/db_related_tests require a provisioned Postgres/PostGIS(+pgRouting) test DB
+        # (and, for routing, the microservice) — they are excluded from the CI gate and run
+        # manually against a live DB. The health-path smoke test (tests/api/test_health.py)
+        # is part of the suite below.
+        run: python -m pytest --ignore=tests/db_related_tests
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: apps/frontend
+        run: npm ci
+
+      - name: Frontend type-check (tsc)
+        working-directory: apps/frontend
+        run: npx tsc --noEmit
+
+      - name: Frontend lint (eslint)
+        working-directory: apps/frontend
+        # Blocking gate: eslint exits non-zero on any error. Warnings are allowed through.
+        run: npm run lint
+
+  # ---------------------------------------------------------------------------
+  # 2. Build the immutable images and push them to GHCR (double-tagged).
+  # ---------------------------------------------------------------------------
+  build-push:
+    name: Build & push images
+    needs: quality
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - service: backend
+            context: apps/backend
+            build_args: ""
+          - service: frontend
+            context: apps/frontend
+            build_args: |
+              VITE_API_BASE_URL=
+              REACT_APP_TILE_LAYER_URL=${{ vars.TILE_LAYER_URL }}
+          - service: db
+            context: docker/db
+            build_args: ""
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lowercase the image namespace
+        id: ns
+        run: echo "prefix=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/raildashboard" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push ${{ matrix.service }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          push: true
+          build-args: ${{ matrix.build_args }}
+          # Double tag: immutable version (rollback anchor) + moving latest.
+          tags: |
+            ${{ steps.ns.outputs.prefix }}-${{ matrix.service }}:${{ github.ref_name }}
+            ${{ steps.ns.outputs.prefix }}-${{ matrix.service }}:latest
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+  # ---------------------------------------------------------------------------
+  # 3. Deploy: back up → pull → up -d → wait for health → roll back on failure.
+  #    Guarded by the `production` GitHub environment (add a Required Reviewer there
+  #    to turn every deploy into a manual approval gate).
+  # ---------------------------------------------------------------------------
+  deploy:
+    name: Deploy to production
+    needs: build-push
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Upload compose file and deploy script
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            "mkdir -p /srv/raildashboard"
+          scp -i ~/.ssh/deploy_key docker-compose.yml scripts/deploy.sh \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/srv/raildashboard/"
+
+      - name: Deploy release ${{ github.ref_name }}
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            "cd /srv/raildashboard && chmod +x deploy.sh && \
+             GHCR_USER='${{ github.actor }}' GHCR_TOKEN='${{ secrets.GHCR_TOKEN }}' \
+             ./deploy.sh '${{ github.ref_name }}'"

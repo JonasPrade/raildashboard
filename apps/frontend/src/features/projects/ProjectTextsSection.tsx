@@ -516,7 +516,7 @@ function TextCard({ projectText, canEdit, projectId }: TextCardProps) {
     const updateMutation = useUpdateProjectText(projectId);
     const deleteMutation = useDeleteProjectText(projectId);
 
-    function handleEdit(values: TextFormValues, _files: File[]) {
+    function handleEdit(values: TextFormValues) {
         if (!values.type) return;
         const payload: ProjectTextUpdate = {
             header: values.header.trim(),
