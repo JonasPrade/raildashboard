@@ -118,6 +118,15 @@ cd /srv/raildashboard && ./deploy.sh <tag>
 
 Optional lässt sich der Schlüssel in `~/.ssh/authorized_keys` per `command="…"`-Forced-Command noch enger auf genau diesen Aufruf einschränken; dann müssen `docker-compose.yml`/`deploy.sh` allerdings auf anderem Weg aktualisiert werden (die Pipeline lädt sie sonst per `scp` hoch).
 
+### Aktueller Live-Stand (eingerichtet 2026-07-07, erste Release v0.0.5)
+
+Die Pipeline ist scharf. Der Contabo-Host (`vmd92747`) betreibt neben Raildashboard weitere Dienste — bei Server-Arbeiten **nur** `/srv/raildashboard` anfassen.
+
+- **Deploy-User:** `deploy` (in Gruppe `docker`, kein sudo), Eigentümer von `/srv/raildashboard`. CI-SSH-Key unter `/home/deploy/.ssh/ci_deploy`.
+- **SSH-Whitelist:** `sshd_config` nutzt `AllowUsers` — `deploy` wurde ergänzt (aktuell `AllowUsers gasteladmin deploy`). Backup der Config unter `/etc/ssh/sshd_config.bak.*`. Nach Änderungen `sudo sshd -t` + `systemctl reload ssh`.
+- **GitHub-Secrets** (Repo): `SSH_HOST`, `SSH_USER`, `SSH_PRIVATE_KEY`, `GHCR_TOKEN` (classic PAT, `read:packages` — GHCR-Packages sind privat). Variable `TILE_LAYER_URL` = TopPlus-Kachel-URL (wird zur Build-Zeit ins Frontend gebacken; die Server-`.env` beeinflusst die Kacheln **nicht** mehr). Environment `production` ohne Required Reviewer (jeder Tag deployt automatisch).
+- **Umstieg war datenneutral:** Volumes `raildashboard_pgdata`/`raildashboard_uploads` unverändert, Frontend-Port `5000:80` beibehalten (Reverse-Proxy bleibt).
+
 ---
 
 ## Legacy: Erstmalige Einrichtung (ohne Docker)
