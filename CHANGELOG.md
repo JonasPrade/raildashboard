@@ -13,6 +13,15 @@ section as part of the release commit, immediately before tagging.
 ## [Unreleased]
 
 ### Added
+- "Anleitungen" guides: four new guide pages (VIB report import, media/press
+  extraction, project creation wizard, geometry editor) with illustrative
+  non-interactive example views ("Beispielansicht") in every guide.
+- In-app guide editing: guide texts are now markdown sections that users with the
+  new `guides.edit` capability (group "Inhalte"; admins implicitly) can override
+  per section. Overrides live in the new `guide_section_override` table
+  (migration `20260707001`) behind `GET/PUT/DELETE
+  /api/v1/guides/{slug}/overrides[/{section_key}]` and can be reset to the
+  bundled default at any time.
 - Tag-based CI/CD pipeline (`.github/workflows/deploy.yml`): pushing a `v*` tag runs the
   quality gates (backend `pytest`, frontend `tsc` + `eslint`), builds the `backend`, `frontend`, and
   `db` images, pushes them to GHCR double-tagged `:vX.Y.Z` + `:latest`, and deploys via SSH.

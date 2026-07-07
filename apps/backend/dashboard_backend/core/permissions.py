@@ -41,6 +41,7 @@ PERMISSIONS: tuple[Permission, ...] = (
     Permission("finve.edit", "Finanzierungsvereinbarungen einarbeiten", GROUP_FINANCING),
     Permission("projecttext.edit", "Projekttexte bearbeiten", GROUP_CONTENT),
     Permission("assignment.manage", "Offene Zuordnungen verwalten", GROUP_CONTENT),
+    Permission("guides.edit", "Anleitungen bearbeiten", GROUP_CONTENT),
     Permission("progress.edit", "Planungsstand bearbeiten", GROUP_PROGRESS),
     Permission("todo.create", "Aufgaben erstellen", GROUP_TODOS),
     Permission("todo.edit", "Aufgaben bearbeiten", GROUP_TODOS),
