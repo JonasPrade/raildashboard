@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../lib/auth";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
@@ -24,7 +24,9 @@ import {
     useProjects,
 } from "../../shared/api/queries";
 import ProjectEdit, { createUpdatePayload, type ProjectEditFormValues } from "./ProjectEdit";
-import GeometryManagementModal from "../routing/GeometryManagementModal";
+
+// Lazy: pulls in terra-draw + the geometry editor only when the modal is opened.
+const GeometryManagementModal = lazy(() => import("../routing/GeometryManagementModal"));
 import ProjectSummaryCard from "./ProjectSummaryCard";
 import MapView, { type MapViewProject } from "../map/MapView";
 import ProjectHistorySection from "../changelog/ProjectHistorySection";
@@ -688,11 +690,13 @@ export default function ProjectDetail() {
             />
 
             {geometryModalOpen && (
-                <GeometryManagementModal
-                    project={project}
-                    opened={geometryModalOpen}
-                    onClose={() => setGeometryModalOpen(false)}
-                />
+                <Suspense fallback={null}>
+                    <GeometryManagementModal
+                        project={project}
+                        opened={geometryModalOpen}
+                        onClose={() => setGeometryModalOpen(false)}
+                    />
+                </Suspense>
             )}
         </Container>
     );

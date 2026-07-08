@@ -6,8 +6,10 @@ import RouteErrorBoundary from "./components/RouteErrorBoundary";
 import { lazyWithRetry } from "./lib/lazyWithRetry";
 import MapPage from "./features/map/MapPage";
 import DocumentationPage from "./features/documentation/DocumentationPage";
-import ProjectDetail from "./features/projects/ProjectDetail";
 
+// Lazy like all other routes: ProjectDetail transitively pulls in recharts,
+// react-markdown and terra-draw, which would otherwise land in the entry chunk.
+const ProjectDetail = lazyWithRetry(() => import("./features/projects/ProjectDetail"));
 const AdminOverviewPage = lazyWithRetry(() => import("./features/admin/AdminOverviewPage"));
 const UsersPage = lazyWithRetry(() => import("./features/admin/UsersPage"));
 const RolesAdminPage = lazyWithRetry(() => import("./features/admin/RolesAdminPage"));
@@ -60,7 +62,14 @@ export const router = createBrowserRouter([
             { index: true, element: <MapPage /> },
             { path: "documentation", element: <DocumentationPage /> },
             { path: "projects", element: <Navigate to="/?view=list" replace /> },
-            { path: "projects/:projectId", element: <ProjectDetail /> },
+            {
+                path: "projects/:projectId",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <ProjectDetail />
+                    </Suspense>
+                ),
+            },
             {
                 path: "tasks",
                 element: (
