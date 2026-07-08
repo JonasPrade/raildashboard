@@ -55,4 +55,6 @@ EXPOSE 8000
 # Entrypoint exec()s "$@" — CMD is the default command (overridable per service
 # in docker-compose.yml; the worker overrides it with the Celery command).
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# 2 workers: sync endpoints (imports, LLM extraction) otherwise serialize
+# behind a single worker process.
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]

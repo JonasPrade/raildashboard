@@ -157,6 +157,14 @@ make build
 
 Alle Services laufen in Docker. Das Frontend wird von nginx als statische Dateien ausgeliefert; nginx proxied `/api/` an den Backend-Container.
 
+Der Container-nginx (`apps/frontend/nginx.conf`) komprimiert Text-Antworten per
+gzip — auch die durchgereichten `/api/`-JSON-Antworten — und liefert die
+gehashten Vite-Assets unter `/assets/` mit `Cache-Control: … immutable` aus
+(`index.html` mit `no-cache`, damit neue Releases sofort greifen). Das Backend
+startet uvicorn mit `--workers 2` (`apps/backend/Dockerfile`), damit synchrone
+Import-/Extraktions-Requests andere Anfragen nicht serialisieren. Ein
+vorgelagerter TLS-Proxy braucht daher selbst kein gzip/Caching zu übernehmen.
+
 ### Voraussetzungen
 
 - Docker Engine ≥ 24 und Docker Compose V2 (`docker compose`, nicht `docker-compose`)
