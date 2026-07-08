@@ -288,38 +288,6 @@ export function useDeleteProgressObservation(projectId: number) {
     });
 }
 
-export function useLinkTrackDocument(projectId: number) {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: ({ track, documentId }: { track: "PF" | "PARL"; documentId: number }) =>
-            api<ProjectProgress>(
-                `/api/v1/projects/${projectId}/progress/tracks/${track}/documents`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ document_id: documentId }),
-                },
-            ),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: progressKey(projectId) });
-        },
-    });
-}
-
-export function useUnlinkTrackDocument(projectId: number) {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: ({ track, documentId }: { track: "PF" | "PARL"; documentId: number }) =>
-            api<ProjectProgress>(
-                `/api/v1/projects/${projectId}/progress/tracks/${track}/documents/${documentId}`,
-                { method: "DELETE" },
-            ),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: progressKey(projectId) });
-        },
-    });
-}
-
 export type SammelFinveProgress = components["schemas"]["SammelFinveProgressSchema"];
 
 export function useSammelFinveProgress() {
@@ -448,20 +416,7 @@ export function useUpdateAppSettings() {
     });
 }
 
-export const projectRoutesQueryKey = (projectId: number) => ["projectRoutes", projectId];
-
-export const getProjectRoutesQueryOptions = (projectId: number) => ({
-    queryKey: projectRoutesQueryKey(projectId),
-    enabled: Number.isFinite(projectId),
-    queryFn: () =>
-        api<ProjectRoute[]>("/api/v1/projects/:project_id/routes", {
-            params: { path: { project_id: projectId } },
-        }),
-});
-
-export function useProjectRoutes(projectId: number) {
-    return useQuery(getProjectRoutesQueryOptions(projectId));
-}
+const projectRoutesQueryKey = (projectId: number) => ["projectRoutes", projectId];
 
 export function updateProject(id: number, payload: ProjectUpdatePayload) {
     return api<Project>("/api/v1/projects/:project_id", {
@@ -469,16 +424,6 @@ export function updateProject(id: number, payload: ProjectUpdatePayload) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
         params: { path: { project_id: id } },
-    });
-}
-
-/** Standalone progress PATCH (non-hook), for flows that already orchestrate
- * their own saving such as the new-project wizard. */
-export function updateProjectProgress(projectId: number, payload: ProjectProgressUpdate) {
-    return api<ProjectProgress>(`/api/v1/projects/${projectId}/progress`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
     });
 }
 
@@ -1615,13 +1560,6 @@ export function useFuldaEntries(onlyUnconfirmed = false, year: number | null = n
     });
 }
 
-export function useFuldaYears() {
-    return useQuery({
-        queryKey: ["fulda-years"],
-        queryFn: () => api<number[]>("/api/v1/import/fulda/years"),
-    });
-}
-
 export function useFuldaYearSummaries() {
     return useQuery({
         queryKey: ["fulda-year-summaries"],
@@ -1737,15 +1675,6 @@ export function useVibOcrAvailable() {
     return useQuery({
         queryKey: ["vib-ocr-available"],
         queryFn: () => api<{ available: boolean; model: string | null }>("/api/v1/import/vib/ocr-available"),
-    });
-}
-
-export function useStartVibAiExtraction() {
-    return useMutation({
-        mutationFn: (parseTaskId: string) =>
-            api<TaskLaunchResponse>(`/api/v1/import/vib/extract-ai/${parseTaskId}`, {
-                method: "POST",
-            }),
     });
 }
 

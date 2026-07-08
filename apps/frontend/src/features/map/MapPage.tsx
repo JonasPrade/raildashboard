@@ -24,7 +24,7 @@ import { IconHelp, IconSearch, IconX } from "@tabler/icons-react";
 import { useSearchParams } from "react-router-dom";
 
 import GroupFilterDrawer, { type ProjectGroupOption } from "../projects/GroupFilterDrawer";
-import { ProjectCard } from "../projects/ProjectGroupsPage";
+import { ProjectCard } from "../projects/ProjectCard";
 import MapControls from "./MapControls";
 import MapView, { type MapViewProject } from "./MapView";
 import { useProjectGroups, useAppSettings, type ProjectGroup, type Project } from "../../shared/api/queries";
