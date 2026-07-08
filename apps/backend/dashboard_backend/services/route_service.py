@@ -8,7 +8,6 @@ from shapely.geometry import LineString, Polygon
 from sqlalchemy.orm import Session
 
 from dashboard_backend.crud.routes import (
-    get_route_by_cache_key,
     list_routes_for_project,
     persist_route,
     update_route,
@@ -24,37 +23,6 @@ class RouteService:
     def __init__(self, routing_client: RoutingClient, graph_version: str) -> None:
         self._routing_client = routing_client
         self._graph_version = graph_version
-
-    async def create_and_store(
-        self,
-        db: Session,
-        project_id: int,
-        waypoints: Iterable[Dict[str, float]],
-        profile: str,
-        options: Dict[str, Any],
-    ) -> Route:
-        cache_key = route_hash(waypoints, profile, options, self._graph_version)
-        cached = get_route_by_cache_key(db, cache_key)
-        if cached is not None:
-            return cached
-
-        response = await self._routing_client.route(waypoints, profile, options)
-        path = self._extract_path(response)
-        line = self._build_line(path)
-        bbox = self._build_bbox(line)
-
-        route = Route(
-            project_id=project_id,
-            profile=profile,
-            graph_version=self._graph_version,
-            distance_m=float(path["distance"]),
-            duration_ms=int(path["time"]),
-            geom=from_shape(line, srid=4326),
-            bbox=from_shape(bbox, srid=4326),
-            details=self._build_details(path),
-            cache_key=cache_key,
-        )
-        return persist_route(db, route)
 
     async def list_for_project(
         self, db: Session, project_id: int, *, limit: int, offset: int
