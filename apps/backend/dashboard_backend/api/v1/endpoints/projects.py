@@ -5,6 +5,7 @@ import json
 from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 
+from dashboard_backend.api.deps import get_project_or_404
 from dashboard_backend.core.security import require_auth, require_permission
 from dashboard_backend.crud.admin_assignments import link_project_to_finves
 from dashboard_backend.crud.changelog import (
@@ -18,10 +19,10 @@ from dashboard_backend.crud.projects.projects import (
     delete_project,
     finalize_project,
     get_draft_projects,
-    get_project_by_id,
     get_projects,
     update_project,
 )
+from dashboard_backend.models.projects.project import Project
 from dashboard_backend.crud.vib import get_vib_entries_for_project
 from dashboard_backend.database import get_db
 from dashboard_backend.models.users import User
@@ -94,65 +95,57 @@ def delete_project_endpoint(
 
 
 @router.get("/{project_id}", response_model=ProjectSchema)
-def read_project(project_id: int, db: Session = Depends(get_db)):
+def read_project(project: Project = Depends(get_project_or_404)):
     """Retrieve a single project by ID."""
-    project = get_project_by_id(db, project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
     return project
 
 
 @router.get("/{project_id}/bvwp", response_model=BvwpProjectDataSchema)
-def get_project_bvwp(project_id: int, db: Session = Depends(get_db)):
+def get_project_bvwp(
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+):
     """Return BVWP assessment data for a project. Returns 404 if no BVWP data exists."""
-    project = get_project_by_id(db, project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-    bvwp = get_bvwp_data(db, project_id)
+    bvwp = get_bvwp_data(db, project.id)
     if not bvwp:
         raise HTTPException(status_code=404, detail="No BVWP data for this project")
     return bvwp
 
 
 @router.get("/{project_id}/vib", response_model=list[VibEntryForProjectSchema])
-def get_project_vib(project_id: int, db: Session = Depends(get_db)):
+def get_project_vib(
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+):
     """Return all VIB entries linked to a project, newest year first."""
-    project = get_project_by_id(db, project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-    entries = get_vib_entries_for_project(db, project_id)
+    entries = get_vib_entries_for_project(db, project.id)
     return [VibEntryForProjectSchema.from_entry(e) for e in entries]
 
 
 @router.patch("/{project_id}", response_model=ProjectSchema)
 def patch_project(
-    project_id: int,
     body: ProjectUpdate,
     current_user: User = Depends(require_permission("project.edit")),
+    project: Project = Depends(get_project_or_404),
     db: Session = Depends(get_db),
 ):
     """Update project fields. All changed fields are recorded in the changelog."""
-    project = get_project_by_id(db, project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-
     update_data = body.model_dump(exclude_unset=True)
     if not update_data:
         return project
 
     # Record before/after values in changelog (committed together with the update below)
     create_changelog_for_patch(db, project, update_data, current_user.id, current_user.username)
-    return update_project(db, project_id, update_data, project=project)
+    return update_project(db, project.id, update_data, project=project)
 
 
 @router.get("/{project_id}/finves", response_model=list[FinveWithBudgetsSchema])
-def get_project_finves(project_id: int, db: Session = Depends(get_db)):
+def get_project_finves(
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+):
     """Return all FinVes linked to a project, each with their full budget history
     including per-Haushaltstiteln breakdown."""
-    project = get_project_by_id(db, project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-
     finve_ids = [f.id for f in project.finve]
     if not finve_ids:
         return []
@@ -206,46 +199,36 @@ def get_project_finves(project_id: int, db: Session = Depends(get_db)):
 
 @router.post("/{project_id}/finves", status_code=204)
 def link_finves_to_project(
-    project_id: int,
     body: LinkFinvesInput,
     current_user: User = Depends(require_permission("finve.edit")),
+    project: Project = Depends(get_project_or_404),
     db: Session = Depends(get_db),
 ):
     """Link a list of existing FinVes to this project. Existing links are preserved."""
-    project = get_project_by_id(db, project_id)
-    if project is None:
-        raise HTTPException(status_code=404, detail="Project not found")
-    link_project_to_finves(db, project_id, body.finve_ids)
+    link_project_to_finves(db, project.id, body.finve_ids)
     db.commit()
     return None
 
 
 @router.get("/{project_id}/changelog", response_model=list[ChangeLogRead])
 def read_project_changelog(
-    project_id: int,
     current_user: User = Depends(require_auth()),
+    project: Project = Depends(get_project_or_404),
     db: Session = Depends(get_db),
 ):
     """Return the full changelog for a project, newest entries first."""
-    project = get_project_by_id(db, project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-    return get_project_changelog(db, project_id)
+    return get_project_changelog(db, project.id)
 
 
 @router.post("/{project_id}/changelog/revert", response_model=ProjectSchema)
 def revert_project_field(
-    project_id: int,
     body: RevertFieldRequest,
     current_user: User = Depends(require_permission("project.edit")),
+    project: Project = Depends(get_project_or_404),
     db: Session = Depends(get_db),
 ):
     """Revert a single field to its previous value as recorded in the given ChangeLogEntry."""
-    project = get_project_by_id(db, project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-
-    entry = get_changelog_entry(db, body.changelog_entry_id, project_id)
+    entry = get_changelog_entry(db, body.changelog_entry_id, project.id)
     if entry is None:
         raise HTTPException(status_code=404, detail="Changelog entry not found")
 

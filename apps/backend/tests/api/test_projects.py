@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import dashboard_backend.api.v1.endpoints.projects as projects_route
+import dashboard_backend.api.deps as api_deps
 from dashboard_backend.schemas.projects import ProjectSchema
 from dashboard_backend.schemas.users import UserRole
 from tests.api.conftest import basic_auth_header
@@ -55,7 +56,7 @@ def test_list_projects_empty(client, monkeypatch):
 
 
 def test_get_project_found(client, monkeypatch):
-    monkeypatch.setattr(projects_route, "get_project_by_id", lambda db, pid: _make_project(pid))
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
 
     resp = client.get("/api/v1/projects/1")
     assert resp.status_code == 200
@@ -63,7 +64,7 @@ def test_get_project_found(client, monkeypatch):
 
 
 def test_get_project_not_found(client, monkeypatch):
-    monkeypatch.setattr(projects_route, "get_project_by_id", lambda db, pid: None)
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: None)
 
     resp = client.get("/api/v1/projects/999")
     assert resp.status_code == 404
@@ -226,7 +227,7 @@ def test_link_finves_to_project_success(client, create_user, monkeypatch):
     create_user("editor", "pass123", UserRole.editor)
     calls: list = []
 
-    monkeypatch.setattr(projects_route, "get_project_by_id", lambda db, pid: _make_project(pid))
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
     monkeypatch.setattr(
         projects_route,
         "link_project_to_finves",
@@ -244,7 +245,7 @@ def test_link_finves_to_project_success(client, create_user, monkeypatch):
 
 def test_link_finves_to_project_404(client, create_user, monkeypatch):
     create_user("editor", "pass123", UserRole.editor)
-    monkeypatch.setattr(projects_route, "get_project_by_id", lambda db, pid: None)
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: None)
 
     resp = client.post(
         "/api/v1/projects/999/finves",
@@ -270,7 +271,7 @@ def test_link_finves_requires_editor(client, create_user):
 
 
 def test_patch_project_requires_auth(client, monkeypatch):
-    monkeypatch.setattr(projects_route, "get_project_by_id", lambda db, pid: _make_project(pid))
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
 
     resp = client.patch("/api/v1/projects/1", json={"name": "Updated"})
     assert resp.status_code == 401
@@ -278,7 +279,7 @@ def test_patch_project_requires_auth(client, monkeypatch):
 
 def test_patch_project_requires_editor_role(client, create_user, monkeypatch):
     create_user("viewer", "pass123", UserRole.viewer)
-    monkeypatch.setattr(projects_route, "get_project_by_id", lambda db, pid: _make_project(pid))
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
 
     resp = client.patch(
         "/api/v1/projects/1",
@@ -292,7 +293,7 @@ def test_patch_project_success(client, create_user, monkeypatch):
     create_user("editor", "pass123", UserRole.editor)
     updated = _make_project(1, "Updated Name")
 
-    monkeypatch.setattr(projects_route, "get_project_by_id", lambda db, pid: _make_project(pid))
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
     monkeypatch.setattr(projects_route, "create_changelog_for_patch", lambda *a, **kw: None)
     monkeypatch.setattr(projects_route, "update_project", lambda db, pid, data, project=None: updated)
 
@@ -307,7 +308,7 @@ def test_patch_project_success(client, create_user, monkeypatch):
 
 def test_patch_project_not_found(client, create_user, monkeypatch):
     create_user("editor", "pass123", UserRole.editor)
-    monkeypatch.setattr(projects_route, "get_project_by_id", lambda db, pid: None)
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: None)
 
     resp = client.patch(
         "/api/v1/projects/999",
@@ -323,7 +324,7 @@ def test_patch_project_not_found(client, create_user, monkeypatch):
 
 
 def test_get_changelog_requires_auth(client, monkeypatch):
-    monkeypatch.setattr(projects_route, "get_project_by_id", lambda db, pid: _make_project(pid))
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
 
     resp = client.get("/api/v1/projects/1/changelog")
     assert resp.status_code == 401
@@ -331,7 +332,7 @@ def test_get_changelog_requires_auth(client, monkeypatch):
 
 def test_get_changelog_returns_list(client, create_user, monkeypatch):
     create_user("viewer", "pass123", UserRole.viewer)
-    monkeypatch.setattr(projects_route, "get_project_by_id", lambda db, pid: _make_project(pid))
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
     monkeypatch.setattr(projects_route, "get_project_changelog", lambda db, pid: [])
 
     resp = client.get(
@@ -344,7 +345,7 @@ def test_get_changelog_returns_list(client, create_user, monkeypatch):
 
 def test_get_changelog_project_not_found(client, create_user, monkeypatch):
     create_user("viewer", "pass123", UserRole.viewer)
-    monkeypatch.setattr(projects_route, "get_project_by_id", lambda db, pid: None)
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: None)
 
     resp = client.get(
         "/api/v1/projects/999/changelog",
@@ -360,7 +361,7 @@ def test_get_changelog_project_not_found(client, create_user, monkeypatch):
 
 def test_revert_requires_editor(client, create_user, monkeypatch):
     create_user("viewer", "pass123", UserRole.viewer)
-    monkeypatch.setattr(projects_route, "get_project_by_id", lambda db, pid: _make_project(pid))
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
 
     resp = client.post(
         "/api/v1/projects/1/changelog/revert",
@@ -372,7 +373,7 @@ def test_revert_requires_editor(client, create_user, monkeypatch):
 
 def test_revert_entry_not_found(client, create_user, monkeypatch):
     create_user("editor", "pass123", UserRole.editor)
-    monkeypatch.setattr(projects_route, "get_project_by_id", lambda db, pid: _make_project(pid))
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
     monkeypatch.setattr(projects_route, "get_changelog_entry", lambda db, eid, pid: None)
 
     resp = client.post(

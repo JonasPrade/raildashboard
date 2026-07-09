@@ -6,10 +6,19 @@ tests do not need the progress tables in the SQLite schema.
 
 from __future__ import annotations
 
+import types
+
+import dashboard_backend.api.deps as api_deps
 import dashboard_backend.api.v1.endpoints.project_progress as progress_route
 from dashboard_backend.crud.projects.progress import DerivedObservationDeleteError
 from dashboard_backend.schemas.users import UserRole
 from tests.api.conftest import basic_auth_header
+
+
+def _project_exists(db, pid):
+    """Stand-in for api.deps.get_project_by_id — the SQLite test schema has no
+    project table, so the fetch-or-404 dependency is patched to succeed."""
+    return types.SimpleNamespace(id=pid)
 
 
 def _make_view(project_id: int = 1, **overrides) -> dict:
@@ -44,6 +53,7 @@ def _make_view(project_id: int = 1, **overrides) -> dict:
 
 
 def test_get_progress_is_public(client, monkeypatch):
+    monkeypatch.setattr(api_deps, "get_project_by_id", _project_exists)
     monkeypatch.setattr(progress_route.progress_crud, "get_progress_view", lambda db, pid: _make_view(pid))
     resp = client.get("/api/v1/projects/1/progress")
     assert resp.status_code == 200
@@ -53,7 +63,7 @@ def test_get_progress_is_public(client, monkeypatch):
 
 
 def test_get_progress_404(client, monkeypatch):
-    monkeypatch.setattr(progress_route.progress_crud, "get_progress_view", lambda db, pid: None)
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: None)
     resp = client.get("/api/v1/projects/999/progress")
     assert resp.status_code == 404
 
@@ -78,6 +88,7 @@ def test_patch_forbidden_for_viewer(client, create_user, monkeypatch):
 
 def test_patch_override_wins(client, create_user, monkeypatch):
     create_user("editor1", "pass123", UserRole.editor)
+    monkeypatch.setattr(api_deps, "get_project_by_id", _project_exists)
     captured = {}
 
     def _update(db, pid, payload):
@@ -104,6 +115,7 @@ def test_patch_override_wins(client, create_user, monkeypatch):
 def test_patch_planfeststellung_details(client, create_user, monkeypatch):
     """The editorial PF detail fields (date, note, Beschluss link) flow through."""
     create_user("editor-pf", "pass123", UserRole.editor)
+    monkeypatch.setattr(api_deps, "get_project_by_id", _project_exists)
     captured = {}
 
     def _update(db, pid, payload):
@@ -146,6 +158,7 @@ def test_patch_planfeststellung_details(client, create_user, monkeypatch):
 
 def test_add_observation(client, create_user, monkeypatch):
     create_user("editor2", "pass123", UserRole.editor)
+    monkeypatch.setattr(api_deps, "get_project_by_id", _project_exists)
     monkeypatch.setattr(
         progress_route.progress_crud, "create_observation", lambda db, pid, data, user: object()
     )
@@ -160,6 +173,7 @@ def test_add_observation(client, create_user, monkeypatch):
 
 def test_delete_derived_observation_rejected(client, create_user, monkeypatch):
     create_user("editor3", "pass123", UserRole.editor)
+    monkeypatch.setattr(api_deps, "get_project_by_id", _project_exists)
 
     def _delete(db, pid, oid):
         raise DerivedObservationDeleteError("derived")
@@ -174,6 +188,7 @@ def test_delete_derived_observation_rejected(client, create_user, monkeypatch):
 
 def test_delete_manual_observation_ok(client, create_user, monkeypatch):
     create_user("editor4", "pass123", UserRole.editor)
+    monkeypatch.setattr(api_deps, "get_project_by_id", _project_exists)
     monkeypatch.setattr(progress_route.progress_crud, "delete_observation", lambda db, pid, oid: True)
     monkeypatch.setattr(progress_route.progress_crud, "get_progress_view", lambda db, pid: _make_view(pid))
     resp = client.delete(
@@ -188,6 +203,7 @@ def test_delete_manual_observation_ok(client, create_user, monkeypatch):
 
 def test_link_document_rejects_main_track(client, create_user, monkeypatch):
     create_user("editor5", "pass123", UserRole.editor)
+    monkeypatch.setattr(api_deps, "get_project_by_id", _project_exists)
     resp = client.post(
         "/api/v1/projects/1/progress/tracks/MAIN/documents",
         json={"document_id": 7},
@@ -198,6 +214,7 @@ def test_link_document_rejects_main_track(client, create_user, monkeypatch):
 
 def test_link_document_pf(client, create_user, monkeypatch):
     create_user("editor6", "pass123", UserRole.editor)
+    monkeypatch.setattr(api_deps, "get_project_by_id", _project_exists)
     monkeypatch.setattr(
         progress_route.progress_crud, "link_track_document", lambda db, pid, track, did: object()
     )
