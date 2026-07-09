@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import dashboard_backend.api.v1.endpoints.project_texts as texts_route
+import dashboard_backend.api.deps as api_deps
 from dashboard_backend.schemas.projects.project_text_schema import (
     ProjectTextSchema,
     ProjectTextTypeSchema,
@@ -47,7 +48,7 @@ def _make_project(pid: int = 1) -> ProjectSchema:
 
 
 def test_list_project_texts_returns_list(client, monkeypatch):
-    monkeypatch.setattr(texts_route, "get_project_by_id", lambda db, pid: _make_project(pid))
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
     monkeypatch.setattr(texts_route, "get_texts_for_project", lambda db, pid: [MOCK_TEXT])
 
     resp = client.get("/api/v1/projects/1/texts")
@@ -59,14 +60,14 @@ def test_list_project_texts_returns_list(client, monkeypatch):
 
 
 def test_list_project_texts_project_not_found(client, monkeypatch):
-    monkeypatch.setattr(texts_route, "get_project_by_id", lambda db, pid: None)
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: None)
 
     resp = client.get("/api/v1/projects/999/texts")
     assert resp.status_code == 404
 
 
 def test_list_project_texts_empty(client, monkeypatch):
-    monkeypatch.setattr(texts_route, "get_project_by_id", lambda db, pid: _make_project(pid))
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
     monkeypatch.setattr(texts_route, "get_texts_for_project", lambda db, pid: [])
 
     resp = client.get("/api/v1/projects/1/texts")
@@ -96,7 +97,7 @@ def test_list_text_types(client, monkeypatch):
 
 def test_create_text_requires_editor(client, create_user, monkeypatch):
     create_user("viewer", "pass123", UserRole.viewer)
-    monkeypatch.setattr(texts_route, "get_project_by_id", lambda db, pid: _make_project(pid))
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
 
     resp = client.post(
         "/api/v1/projects/1/texts",
@@ -107,7 +108,7 @@ def test_create_text_requires_editor(client, create_user, monkeypatch):
 
 
 def test_create_text_requires_auth(client, monkeypatch):
-    monkeypatch.setattr(texts_route, "get_project_by_id", lambda db, pid: _make_project(pid))
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
 
     resp = client.post("/api/v1/projects/1/texts", json={"header": "H", "type": 1})
     assert resp.status_code == 401
@@ -115,7 +116,7 @@ def test_create_text_requires_auth(client, monkeypatch):
 
 def test_create_text_success(client, create_user, monkeypatch):
     create_user("editor", "pass123", UserRole.editor)
-    monkeypatch.setattr(texts_route, "get_project_by_id", lambda db, pid: _make_project(pid))
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
     monkeypatch.setattr(texts_route, "create_text_for_project", lambda db, pid, data: MOCK_TEXT)
     monkeypatch.setattr(texts_route, "create_text_changelog_for_create", lambda *a, **kw: None)
 
@@ -130,7 +131,7 @@ def test_create_text_success(client, create_user, monkeypatch):
 
 def test_create_text_project_not_found(client, create_user, monkeypatch):
     create_user("editor", "pass123", UserRole.editor)
-    monkeypatch.setattr(texts_route, "get_project_by_id", lambda db, pid: None)
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: None)
 
     resp = client.post(
         "/api/v1/projects/999/texts",

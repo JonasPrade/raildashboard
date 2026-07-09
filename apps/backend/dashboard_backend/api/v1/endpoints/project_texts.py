@@ -6,6 +6,7 @@ from fastapi import Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
+from dashboard_backend.api.deps import get_project_or_404, get_text_or_404
 from dashboard_backend.core.security import require_auth, require_permission
 from dashboard_backend.crud.changelog import (
     create_text_changelog_for_create,
@@ -13,7 +14,6 @@ from dashboard_backend.crud.changelog import (
     create_text_changelog_for_patch,
     get_project_text_changelog,
 )
-from dashboard_backend.crud.projects.projects import get_project_by_id
 from dashboard_backend.crud.projects.text_attachments import (
     create_text_attachment,
     delete_text_attachment,
@@ -30,6 +30,7 @@ from dashboard_backend.crud.projects.texts import (
 )
 from dashboard_backend.database import get_db
 from dashboard_backend.models.associations.text_to_project import TextToProject
+from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.projects.project_text import ProjectText
 from dashboard_backend.models.users import User
 from dashboard_backend.routing.auth_router import AuthRouter
@@ -84,12 +85,12 @@ def create_project_text_type(
 # ---------------------------------------------------------------------------
 
 @router.get("/projects/{project_id}/texts", response_model=list[ProjectTextSchema], tags=["texts"])
-def list_project_texts(project_id: int, db: Session = Depends(get_db)):
+def list_project_texts(
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+):
     """Return all texts linked to a project."""
-    project = get_project_by_id(db, project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-    return get_texts_for_project(db, project_id)
+    return get_texts_for_project(db, project.id)
 
 
 @router.get(
@@ -98,15 +99,12 @@ def list_project_texts(project_id: int, db: Session = Depends(get_db)):
     tags=["texts"],
 )
 def get_texts_changelog(
-    project_id: int,
     current_user: User = Depends(require_auth()),
+    project: Project = Depends(get_project_or_404),
     db: Session = Depends(get_db),
 ):
     """Return the text change history for a project. Requires authentication."""
-    project = get_project_by_id(db, project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-    return get_project_text_changelog(db, project_id)
+    return get_project_text_changelog(db, project.id)
 
 
 @router.post(
@@ -116,59 +114,48 @@ def get_texts_changelog(
     tags=["texts"],
 )
 def create_project_text(
-    project_id: int,
     body: ProjectTextCreate,
     current_user: User = Depends(require_permission("projecttext.edit")),
+    project: Project = Depends(get_project_or_404),
     db: Session = Depends(get_db),
 ):
     """Create a new text and link it to a project. Requires editor or admin role."""
-    project = get_project_by_id(db, project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-    text = create_text_for_project(db, project_id, body.model_dump())
+    text = create_text_for_project(db, project.id, body.model_dump())
     # Log CREATE in a second commit (text is already committed by create_text_for_project)
-    create_text_changelog_for_create(db, text, project_id, current_user.id, current_user.username)
+    create_text_changelog_for_create(db, text, project.id, current_user.id, current_user.username)
     db.commit()
     return text
 
 
 @router.patch("/projects/texts/{text_id}", response_model=ProjectTextSchema, tags=["texts"])
 def update_text(
-    text_id: int,
     body: ProjectTextUpdate,
     current_user: User = Depends(require_permission("projecttext.edit")),
+    text: ProjectText = Depends(get_text_or_404),
     db: Session = Depends(get_db),
 ):
     """Update an existing project text. Requires editor or admin role."""
-    text = db.query(ProjectText).filter(ProjectText.id == text_id).first()
-    if not text:
-        raise HTTPException(status_code=404, detail="Text not found")
-
     update_data = body.model_dump(exclude_unset=True)
-    project_id = _get_project_id_for_text(db, text_id)
+    project_id = _get_project_id_for_text(db, text.id)
 
     # Add changelog to session before committing — update_project_text commits both together
     create_text_changelog_for_patch(db, text, update_data, project_id, current_user.id, current_user.username)
-    return update_project_text(db, text_id, update_data)
+    return update_project_text(db, text.id, update_data)
 
 
 @router.delete("/projects/texts/{text_id}", status_code=204, tags=["texts"])
 def delete_text(
-    text_id: int,
     current_user: User = Depends(require_permission("projecttext.edit")),
+    text: ProjectText = Depends(get_text_or_404),
     db: Session = Depends(get_db),
 ):
     """Delete a project text. Requires editor or admin role."""
-    text = db.query(ProjectText).filter(ProjectText.id == text_id).first()
-    if not text:
-        raise HTTPException(status_code=404, detail="Text not found")
-
-    project_id = _get_project_id_for_text(db, text_id)
+    project_id = _get_project_id_for_text(db, text.id)
 
     # Add changelog to session before deletion — delete_project_text commits both together.
     # The DB SET NULL rule will null out text_change_log.text_id after the text row is removed.
     create_text_changelog_for_delete(db, text, project_id, current_user.id, current_user.username)
-    delete_project_text(db, text_id)
+    delete_project_text(db, text.id)
 
 
 # ---------------------------------------------------------------------------
@@ -182,9 +169,9 @@ def delete_text(
     tags=["texts"],
 )
 async def upload_attachment(
-    text_id: int,
     file: UploadFile = File(...),
     current_user: User = Depends(require_permission("projecttext.edit")),
+    text: ProjectText = Depends(get_text_or_404),
     db: Session = Depends(get_db),
 ):
     """Upload a file attachment to a project text. Requires editor or admin role.
@@ -192,9 +179,7 @@ async def upload_attachment(
     Accepted types: PDF, Word (.doc/.docx), Excel (.xls/.xlsx), JPEG, PNG.
     Maximum file size: 50 MB.
     """
-    text = db.query(ProjectText).filter(ProjectText.id == text_id).first()
-    if not text:
-        raise HTTPException(status_code=404, detail="Text not found")
+    text_id = text.id
 
     # Read and enforce size limit
     file_bytes = await file.read()
@@ -245,7 +230,7 @@ async def upload_attachment(
     tags=["texts"],
 )
 def list_attachments(
-    text_id: int,
+    text: ProjectText = Depends(get_text_or_404),
     db: Session = Depends(get_db),
 ):
     """List all attachments for a project text.
@@ -253,10 +238,7 @@ def list_attachments(
     Requires authentication if the parent text belongs to an authenticated-only project.
     For now all texts are publicly readable (mirrors list_project_texts behaviour).
     """
-    text = db.query(ProjectText).filter(ProjectText.id == text_id).first()
-    if not text:
-        raise HTTPException(status_code=404, detail="Text not found")
-    return get_text_attachments(db, text_id)
+    return get_text_attachments(db, text.id)
 
 
 @router.delete(

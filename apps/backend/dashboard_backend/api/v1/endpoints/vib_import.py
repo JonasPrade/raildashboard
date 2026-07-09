@@ -7,6 +7,7 @@ from fastapi import Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
 from sqlalchemy.orm import Session, joinedload, selectinload
 
+from dashboard_backend.api.deps import get_draft_or_404, get_parse_draft_or_404
 from dashboard_backend.celery_app import celery_app
 from dashboard_backend.core.config import settings
 from dashboard_backend.core.security import require_permission
@@ -24,6 +25,7 @@ from dashboard_backend.crud.vib import (
 )
 from dashboard_backend.database import get_db
 from dashboard_backend.models.users import User
+from dashboard_backend.models.vib.vib_draft_report import VibDraftReport
 from dashboard_backend.routing.auth_router import AuthRouter
 from dashboard_backend.schemas.tasks import TaskLaunchResponse
 from dashboard_backend.schemas.vib import (
@@ -241,9 +243,8 @@ def confirm_vib_import(
     response_model=TaskLaunchResponse,
 )
 def start_vib_ai_extraction(
-    parse_task_id: str,
     current_user: User = Depends(require_permission("vib.import")),
-    db: Session = Depends(get_db),
+    draft: VibDraftReport = Depends(get_parse_draft_or_404),
 ):
     """Start the LLM extraction Celery task for a parsed VIB draft.
 
@@ -255,12 +256,8 @@ def start_vib_ai_extraction(
     if not settings.llm_base_url:
         raise HTTPException(status_code=422, detail="LLM not configured: LLM_BASE_URL is empty")
 
-    draft = get_draft_by_task_id(db, parse_task_id)
-    if draft is None:
-        raise HTTPException(status_code=404, detail="Draft not found for this parse_task_id")
-
     user_info = {"id": current_user.id, "username": current_user.username}
-    result = extract_vib_blocks.delay(parse_task_id, user_info)
+    result = extract_vib_blocks.delay(draft.task_id, user_info)
     return TaskLaunchResponse(task_id=result.id)
 
 
@@ -280,15 +277,12 @@ def list_vib_drafts(db: Session = Depends(get_db)):
 
 @router.delete("/drafts/{task_id}", status_code=204)
 def delete_vib_draft(
-    task_id: str,
     current_user: User = Depends(require_permission("vib.import")),
+    draft: VibDraftReport = Depends(get_draft_or_404),
     db: Session = Depends(get_db),
 ):
     """Discard an unconfirmed VIB draft."""
-    draft = get_draft_by_task_id(db, task_id)
-    if draft is None:
-        raise HTTPException(status_code=404, detail="Entwurf nicht gefunden")
-    delete_draft(db, task_id)
+    delete_draft(db, draft.task_id)
     db.commit()
 
 
@@ -298,17 +292,15 @@ def delete_vib_draft(
 
 @router.patch("/draft/{parse_task_id}", status_code=204, dependencies=[_require_editor])
 def save_vib_draft(
-    parse_task_id: str,
     body: VibParseTaskResult,
+    draft: VibDraftReport = Depends(get_parse_draft_or_404),
     db: Session = Depends(get_db),
 ):
     """Overwrite the draft's raw_result_json with the current review state.
 
     Called by the review UI to persist edits so work survives page reloads.
     """
-    updated = update_draft_ai_result(db, parse_task_id, body.model_dump_json())
-    if not updated:
-        raise HTTPException(status_code=404, detail="Draft nicht gefunden")
+    update_draft_ai_result(db, draft.task_id, body.model_dump_json())
     db.commit()
 
 
@@ -322,8 +314,8 @@ def save_vib_draft(
     dependencies=[_require_editor],
 )
 def retry_vib_ai_for_entry(
-    parse_task_id: str,
     entry_idx: int,
+    draft: VibDraftReport = Depends(get_parse_draft_or_404),
     db: Session = Depends(get_db),
 ):
     """Re-run LLM extraction synchronously for a single entry and persist the result."""
@@ -335,10 +327,6 @@ def retry_vib_ai_for_entry(
 
     if not settings.llm_base_url:
         raise HTTPException(status_code=422, detail="LLM nicht konfiguriert: LLM_BASE_URL fehlt")
-
-    draft = get_draft_by_task_id(db, parse_task_id)
-    if draft is None:
-        raise HTTPException(status_code=404, detail="Draft nicht gefunden")
 
     result = VibParseTaskResult.model_validate_json(draft.raw_result_json)
     if entry_idx < 0 or entry_idx >= len(result.entries):
@@ -376,7 +364,7 @@ def retry_vib_ai_for_entry(
         report_date=result.report_date,
         entries=updated_entries,
     )
-    update_draft_ai_result(db, parse_task_id, updated_result.model_dump_json())
+    update_draft_ai_result(db, draft.task_id, updated_result.model_dump_json())
     db.commit()
 
     return updated_entries[entry_idx]
@@ -387,15 +375,14 @@ def retry_vib_ai_for_entry(
 # ---------------------------------------------------------------------------
 
 @router.get("/draft/{task_id}/image/{image_id:path}", dependencies=[_require_editor])
-def get_vib_draft_image(task_id: str, image_id: str, db: Session = Depends(get_db)):
+def get_vib_draft_image(image_id: str, draft: VibDraftReport = Depends(get_draft_or_404)):
     """Return a single OCR image extracted from the Mistral OCR response.
 
     image_id matches the id returned by the OCR API, e.g. "img-0.jpeg".
     The image bytes are decoded from base64 and returned with the appropriate
     content type (image/jpeg or image/png).
     """
-    draft = get_draft_by_task_id(db, task_id)
-    if draft is None or not draft.ocr_images_json:
+    if not draft.ocr_images_json:
         raise HTTPException(status_code=404, detail="No images available for this draft")
 
     images: list[dict] = json.loads(draft.ocr_images_json)
@@ -419,15 +406,12 @@ def get_vib_draft_image(task_id: str, image_id: str, db: Session = Depends(get_d
 # ---------------------------------------------------------------------------
 
 @router.get("/draft/{task_id}/images", dependencies=[_require_editor])
-def list_vib_draft_images(task_id: str, db: Session = Depends(get_db)):
+def list_vib_draft_images(draft: VibDraftReport = Depends(get_draft_or_404)):
     """Return metadata for all OCR images extracted from a draft (id, page_index).
 
     Does NOT return base64 data — fetch individual images via
     GET /draft/{task_id}/image/{image_id}.
     """
-    draft = get_draft_by_task_id(db, task_id)
-    if draft is None:
-        raise HTTPException(status_code=404, detail="Draft not found")
     if not draft.ocr_images_json:
         return []
     images: list[dict] = json.loads(draft.ocr_images_json)
