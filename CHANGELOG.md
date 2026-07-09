@@ -12,15 +12,10 @@ section as part of the release commit, immediately before tagging.
 
 ## [Unreleased]
 
-### Removed
-- Legacy routing API surface (#91, option b): `POST /api/v1/route/` (old
-  section-of-line routing, superseded by `/routes/calculate`),
-  `PUT /projects/{id}/routes/{route_id}` and `GET /routes/{route_id}` — none
-  had a frontend caller — together with their dead chain
-  (`RouteService.confirm_and_replace`, `crud/routes.update_route`,
-  `crud/routes.get_route_by_id`). The read-only `old_id` /
-  `superior_project_old_id` fields are no longer exposed in `ProjectSchema`;
-  the DB columns stay for traceability to the migrated legacy database.
+## [v0.0.7] - 2026-07-09
+
+Efficiency and cleanup release: the repo-wide optimization audit
+(issues #68–#92, see `docs/features/feature-code-optimization.md`).
 
 ### Changed
 - Delivery performance: the frontend nginx now gzips text responses (including
@@ -32,6 +27,47 @@ section as part of the release commit, immediately before tagging.
   task (like the Haushalt/VIB importers) instead of inline in the request —
   the upload returns immediately and the page polls for completion. Previously
   a large PDF blocked the entire backend event loop for minutes.
+- Backend performance: `GET /projects/` eager-loads project groups
+  (815 → 3 queries measured), the superior-project progress aggregation loads
+  its subtree/progress rows/derived-observation sources batched (cold view on
+  a project with many PFA subprojects previously cost 100+ queries), importer
+  lookups are batched, and HTTP-Basic requests verify against a short-lived
+  per-process credential cache instead of re-running PBKDF2 every time
+  (stored hashes stay at 390k iterations); user lookups load role +
+  permissions in a single query. New indexes on
+  `finve_to_project.finve_id` / `text_to_project.text_id`
+  (migration `060f7da497a8`).
+- Frontend performance: heavy libraries (maplibre, pdfjs, charts) are
+  code-split out of the entry chunk and heavy pages lazy-load; the map builds
+  GeoJSON features once per project and caches them, so typing in the map
+  search no longer re-parses every project geometry.
+- Internal consolidation (no behavior change): shared fetch-or-404 API
+  dependencies, one shared LLM client, shared importer-review CRUD helpers,
+  unified Haushalt upserts + changelog diffing (audit output pinned
+  byte-identical by snapshot tests), extracted Haushalt parser blocks,
+  generated OpenAPI types replace ~600 lines of hand-written frontend types,
+  queries.ts mutation factories + central query keys, data-driven project
+  property lists (a new property is one entry + the backend schema field),
+  shared FinVe chart/table components and shared import-review UI building
+  blocks incl. a common upload→poll state machine.
+
+### Removed
+- Legacy routing API surface (#91, option b): `POST /api/v1/route/` (old
+  section-of-line routing, superseded by `/routes/calculate`),
+  `PUT /projects/{id}/routes/{route_id}` and `GET /routes/{route_id}` — none
+  had a frontend caller — together with their dead chain
+  (`RouteService.confirm_and_replace`, `crud/routes.update_route`,
+  `crud/routes.get_route_by_id`). The read-only `old_id` /
+  `superior_project_old_id` fields are no longer exposed in `ProjectSchema`;
+  the DB columns stay for traceability to the migrated legacy database.
+- Dead code: the unused generated API clients (`client.gen.ts`, `zod.gen.ts`,
+  ~6k lines), orphaned tafel/board components, the RINF model-codegen scripts
+  and other unreferenced backend helpers.
+
+### Fixed
+- Favicon 404: the app now ships and references `favicon.svg`.
+- Alembic autogenerate no longer proposes DROPs for PostGIS/TIGER/topology
+  tables when run against the dev database.
 
 ## [v0.0.6] - 2026-07-07
 
