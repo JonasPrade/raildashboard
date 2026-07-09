@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from dashboard_backend.core.security import require_permission
 from dashboard_backend.crud import media as media_crud
+from dashboard_backend.crud._importer_common import ProjectNotFoundError
 from dashboard_backend.database import get_db
 from dashboard_backend.models.users import User
 from dashboard_backend.routing.auth_router import AuthRouter
@@ -64,7 +65,7 @@ def update_media_entry(
     """Edit fields / confirm the match for one media report."""
     try:
         entry = media_crud.update_entry(db, entry_id, body.model_dump(exclude_unset=True))
-    except ValueError as exc:
+    except ProjectNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     if entry is None:
         raise HTTPException(status_code=404, detail="Medienbericht nicht gefunden")

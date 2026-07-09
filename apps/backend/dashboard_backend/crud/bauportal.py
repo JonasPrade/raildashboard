@@ -10,30 +10,23 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from dashboard_backend.crud.projects.progress import recompute_progress
+from dashboard_backend.crud._importer_common import (
+    ProjectNotFoundError,
+    ensure_projects_exist,
+    project_name_map,
+    recompute_for,
+)
 from dashboard_backend.models.projects.bauportal_status import BauportalStatus
-from dashboard_backend.models.projects.project import Project
 from dashboard_backend.services.progress_materialization import (
     bauportal_status_to_main_phase,
 )
 from dashboard_backend.tasks.bauportal import import_bauportal
 
-
-class ProjectNotFoundError(Exception):
-    """Raised when confirming a match against a non-existent project."""
-
+__all__ = ["ProjectNotFoundError"]  # re-export: endpoints catch it from here
 
 def run_import(db: Session) -> dict:
     """Fetch from the Bauportal API and upsert raw rows. Returns a summary."""
     return import_bauportal(db)
-
-
-def _project_name_map(db: Session, ids: list[int | None]) -> dict[int, str]:
-    wanted = {i for i in ids if i is not None}
-    if not wanted:
-        return {}
-    rows = db.query(Project.id, Project.name).filter(Project.id.in_(wanted)).all()
-    return {row.id: row.name for row in rows}
 
 
 def _entry_dict(r: BauportalStatus, names: dict[int, str]) -> dict:
@@ -72,7 +65,7 @@ def list_entries(db: Session, *, only_unconfirmed: bool = False) -> list[dict]:
         BauportalStatus.shorttitle,
     ).all()
 
-    names = _project_name_map(
+    names = project_name_map(
         db,
         [r.project_id for r in rows] + [r.suggested_project_id for r in rows],
     )
@@ -99,9 +92,7 @@ def update_entry(db: Session, entry_id: int, payload: dict) -> dict | None:
     if "project_id" in payload:
         project_id = payload["project_id"]
         if project_id is not None:
-            exists = db.query(Project.id).filter(Project.id == project_id).first()
-            if exists is None:
-                raise ProjectNotFoundError(f"Project {project_id} not found")
+            ensure_projects_exist(db, [project_id])
         row.project_id = project_id
         if project_id is None:
             row.confirmed = False
@@ -112,10 +103,9 @@ def update_entry(db: Session, entry_id: int, payload: dict) -> dict | None:
 
     db.commit()
 
-    for affected in {old_project_id, row.project_id} - {None}:
-        recompute_progress(db, affected)
+    recompute_for(db, [old_project_id, row.project_id])
 
-    names = _project_name_map(db, [row.project_id, row.suggested_project_id])
+    names = project_name_map(db, [row.project_id, row.suggested_project_id])
     return _entry_dict(row, names)
 
 
@@ -141,6 +131,5 @@ def confirm_all(db: Session) -> int:
             affected.add(row.project_id)
     db.commit()
 
-    for project_id in affected:
-        recompute_progress(db, project_id)
+    recompute_for(db, affected)
     return len(rows)

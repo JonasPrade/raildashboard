@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 
 import dashboard_backend.api.v1.endpoints.fulda_import as fulda_route
+from dashboard_backend.crud._importer_common import ProjectNotFoundError
 from dashboard_backend.schemas.users import UserRole
 from tests.api.conftest import basic_auth_header
 
@@ -179,7 +180,7 @@ def test_update_unknown_project_404(client, create_user, monkeypatch):
     create_user("editor-f5", "pass123", UserRole.editor)
 
     def _update(db, entry_id, payload):
-        raise ValueError("Project(s) not found: [999]")
+        raise ProjectNotFoundError("Project(s) not found: [999]")
 
     monkeypatch.setattr(fulda_route.fulda_crud, "update_entry", _update)
     resp = client.patch(

@@ -12,7 +12,11 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session, load_only
 
-from dashboard_backend.crud.projects.progress import recompute_progress
+from dashboard_backend.crud._importer_common import (
+    apply_editable_fields,
+    ensure_projects_exist,
+    recompute_for,
+)
 from dashboard_backend.models.projects.fulda_announcement import FuldaAnnouncement
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.users import User
@@ -214,16 +218,7 @@ def list_entries(
 
 
 def _set_projects(db: Session, row: FuldaAnnouncement, project_ids: list[int]) -> None:
-    wanted = list(dict.fromkeys(project_ids))  # dedupe, keep order
-    if wanted:
-        found = db.query(Project).filter(Project.id.in_(wanted)).all()
-        found_ids = {p.id for p in found}
-        missing = [pid for pid in wanted if pid not in found_ids]
-        if missing:
-            raise ValueError(f"Project(s) not found: {missing}")
-        row.projects = found
-    else:
-        row.projects = []
+    row.projects = ensure_projects_exist(db, project_ids)
 
 
 def update_entry(db: Session, entry_id: int, payload: dict) -> dict | None:
@@ -235,15 +230,11 @@ def update_entry(db: Session, entry_id: int, payload: dict) -> dict | None:
     if "project_ids" in payload and payload["project_ids"] is not None:
         _set_projects(db, row, payload["project_ids"])
 
-    for key, value in payload.items():
-        if key in _EDITABLE_FIELDS:
-            setattr(row, key, value)
+    apply_editable_fields(row, payload, _EDITABLE_FIELDS)
 
     db.commit()
     db.refresh(row)
-    new_project_ids = {p.id for p in row.projects}
-    for affected in old_project_ids | new_project_ids:
-        recompute_progress(db, affected)
+    recompute_for(db, old_project_ids | {p.id for p in row.projects})
 
     return _entry_dict(row)
 
@@ -255,8 +246,7 @@ def delete_entry(db: Session, entry_id: int) -> bool:
     linked_ids = {p.id for p in row.projects}
     db.delete(row)
     db.commit()
-    for pid in linked_ids:
-        recompute_progress(db, pid)
+    recompute_for(db, linked_ids)
     return True
 
 
@@ -285,8 +275,7 @@ def confirm_year(db: Session, year: int) -> int:
         affected.update(p.id for p in row.projects)
         count += 1
     db.commit()
-    for pid in affected:
-        recompute_progress(db, pid)
+    recompute_for(db, affected)
     return count
 
 
@@ -307,6 +296,5 @@ def delete_year(db: Session, year: int) -> int:
         affected.update(p.id for p in row.projects)
         db.delete(row)
     db.commit()
-    for pid in affected:
-        recompute_progress(db, pid)
+    recompute_for(db, affected)
     return len(rows)
