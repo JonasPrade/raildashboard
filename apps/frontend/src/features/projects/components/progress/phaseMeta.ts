@@ -38,6 +38,20 @@ export const MAIN_PHASE_LABEL: Record<MainPhase, string> = {
     IN_BETRIEB: "In Betrieb",
 };
 
+// Canonical badge palette for the main phases (kept in sync with the
+// SubprojectsTable, which originally defined it).
+export const MAIN_PHASE_COLOR: Record<MainPhase, string> = {
+    NICHT_GESTARTET: "gray",
+    VORPLANUNG: "blue",
+    GENEHMIGUNGSPLANUNG: "indigo",
+    BAU: "orange",
+    IN_BETRIEB: "green",
+};
+
+/** Select options for the main phases: { value, label } pairs. */
+export const mainPhaseOptions = () =>
+    MAIN_PHASES.map((p) => ({ value: p, label: MAIN_PHASE_LABEL[p] }));
+
 export const MAIN_PHASE_SHORT: Record<MainPhase, string> = {
     NICHT_GESTARTET: "Start",
     VORPLANUNG: "LP 1–2",
@@ -99,7 +113,7 @@ export function formatTimestamp(iso: string | null | undefined): string {
     if (!iso) return "–";
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return "–";
-    return d.toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
+    return d.toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Berlin" });
 }
 
 /** Bucket subprojects by their effective phase; ``is_known === false`` →

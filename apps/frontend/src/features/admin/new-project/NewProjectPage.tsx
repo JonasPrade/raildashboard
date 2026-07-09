@@ -3,7 +3,7 @@ import { notifications } from "@mantine/notifications";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { useAuth } from "../../../lib/auth";
+import RequirePermission from "../../../components/RequirePermission";
 import { useFinalizeProject, useProject, type Project } from "../../../shared/api/queries";
 import Step1Stammdaten from "./Step1Stammdaten";
 import Step2Geometrie from "./Step2Geometrie";
@@ -12,8 +12,7 @@ import Step4Finves from "./Step4Finves";
 import Step5Vib from "./Step5Vib";
 import StepPlanungsstand from "./StepPlanungsstand";
 
-export default function NewProjectPage() {
-    const { can } = useAuth();
+function NewProjectPageContent() {
     const navigate = useNavigate();
     const params = useParams();
     const resumeId = params.projectId != null ? Number(params.projectId) : null;
@@ -58,16 +57,6 @@ export default function NewProjectPage() {
             });
         }
     };
-
-    if (!can("project.create")) {
-        return (
-            <Container size="sm" py="xl">
-                <Alert color="red" variant="light" title="Kein Zugriff">
-                    Diese Seite ist nur für Editoren und Administratoren zugänglich.
-                </Alert>
-            </Container>
-        );
-    }
 
     if (resumeId != null && project == null) {
         if (resumeQuery.isError) {
@@ -164,5 +153,13 @@ export default function NewProjectPage() {
                 )}
             </Stack>
         </Container>
+    );
+}
+
+export default function NewProjectPage() {
+    return (
+        <RequirePermission perm="project.create">
+            <NewProjectPageContent />
+        </RequirePermission>
     );
 }

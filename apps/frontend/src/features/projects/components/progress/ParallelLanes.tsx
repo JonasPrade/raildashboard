@@ -2,6 +2,7 @@ import { Anchor, Badge, Group, Stack, Text } from "@mantine/core";
 import { IconExternalLink } from "@tabler/icons-react";
 
 import { PARALLEL_STATE_LABEL, type ParallelState } from "./phaseMeta";
+import { formatDate } from "../../../../shared/format";
 
 type Link = { url: string; comment?: string | null };
 
@@ -27,9 +28,7 @@ function Lane({
     /** Suppress the state badge + date (the stepper milestone already shows them). */
     hideState?: boolean;
 }) {
-    const formattedDate = date
-        ? new Date(date).toLocaleDateString("de-DE", { dateStyle: "medium" })
-        : null;
+    const formattedDate = date ? formatDate(date) : null;
     const validLinks = links.filter((l) => l.url?.trim());
 
     return (

@@ -11,6 +11,7 @@ import {
     type ParallelState,
     mainPhaseIndex,
 } from "./phaseMeta";
+import { formatDateShort } from "../../../../shared/format";
 
 export type StepperChild = { project_id: number; name: string };
 
@@ -73,9 +74,7 @@ function Milestone({
     const running = state === "LAEUFT";
     const color = done ? DONE : running ? ACTIVE : IDLE;
     const filled = done || running;
-    const formattedDate = date
-        ? new Date(date).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" })
-        : null;
+    const formattedDate = date ? formatDateShort(date) : null;
     const stateLabel = PARALLEL_STATE_LABEL[state ?? "OFFEN"];
     return (
         <Tooltip

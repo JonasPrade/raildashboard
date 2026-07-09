@@ -18,11 +18,7 @@ import { IconPlus } from "@tabler/icons-react";
 import type { HaushaltsParseRow, Project } from "../../../shared/api/queries";
 import { filterProjectOption } from "../../../lib/filterProjectOption";
 import CreateDraftProjectModal from "../../projects/CreateDraftProjectModal";
-
-function fmt(val: number | null) {
-    if (val === null) return "–";
-    return val.toLocaleString("de-DE");
-}
+import { formatNumberDe } from "../../../shared/format";
 
 function fmtPct(val: number | null) {
     if (val === null) return "–";
@@ -240,20 +236,20 @@ function DataRow({
                 </Table.Td>
 
                 {/* Voraussichtliche Gesamtausgaben */}
-                <Table.Td ta="right"><Text size="xs">{fmt(b?.cost_estimate_original ?? null)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{fmt(b?.cost_estimate_last_year ?? null)}</Text></Table.Td>
-                <Table.Td ta="right" fw={600}><Text size="xs" fw={600}>{fmt(b?.cost_estimate_actual ?? null)}</Text></Table.Td>
+                <Table.Td ta="right"><Text size="xs">{formatNumberDe(b?.cost_estimate_original ?? null)}</Text></Table.Td>
+                <Table.Td ta="right"><Text size="xs">{formatNumberDe(b?.cost_estimate_last_year ?? null)}</Text></Table.Td>
+                <Table.Td ta="right" fw={600}><Text size="xs" fw={600}>{formatNumberDe(b?.cost_estimate_actual ?? null)}</Text></Table.Td>
 
                 {/* Gesamtausgabenentwicklung */}
-                <Table.Td ta="right"><Text size="xs">{fmt(b?.delta_previous_year ?? null)}</Text></Table.Td>
+                <Table.Td ta="right"><Text size="xs">{formatNumberDe(b?.delta_previous_year ?? null)}</Text></Table.Td>
                 <Table.Td ta="right"><Text size="xs">{fmtPct(b?.delta_previous_year_relativ ?? null)}</Text></Table.Td>
 
                 {/* Ausgaben */}
-                <Table.Td ta="right"><Text size="xs">{fmt(b?.spent_two_years_previous ?? null)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{fmt(b?.allowed_previous_year ?? null)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{fmt(b?.spending_residues ?? null)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{fmt(b?.year_planned ?? null)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{fmt(b?.next_years ?? null)}</Text></Table.Td>
+                <Table.Td ta="right"><Text size="xs">{formatNumberDe(b?.spent_two_years_previous ?? null)}</Text></Table.Td>
+                <Table.Td ta="right"><Text size="xs">{formatNumberDe(b?.allowed_previous_year ?? null)}</Text></Table.Td>
+                <Table.Td ta="right"><Text size="xs">{formatNumberDe(b?.spending_residues ?? null)}</Text></Table.Td>
+                <Table.Td ta="right"><Text size="xs">{formatNumberDe(b?.year_planned ?? null)}</Text></Table.Td>
+                <Table.Td ta="right"><Text size="xs">{formatNumberDe(b?.next_years ?? null)}</Text></Table.Td>
             </Table.Tr>
 
             {/* Collapsible detail row: Haushaltstiteln + nachrichtlich (EVU/Dritte) */}
@@ -372,13 +368,13 @@ function DataRow({
                                                                     : e.label}
                                                             </Text>
                                                         </Table.Td>
-                                                        <Table.Td ta="right">{fmt(e.cost_estimate_last_year)}</Table.Td>
-                                                        <Table.Td ta="right">{fmt(e.cost_estimate_aktuell)}</Table.Td>
-                                                        <Table.Td ta="right">{fmt(e.verausgabt_bis)}</Table.Td>
-                                                        <Table.Td ta="right">{fmt(e.bewilligt)}</Table.Td>
-                                                        <Table.Td ta="right">{fmt(e.ausgabereste_transferred)}</Table.Td>
-                                                        <Table.Td ta="right">{fmt(e.veranschlagt)}</Table.Td>
-                                                        <Table.Td ta="right">{fmt(e.vorhalten_future)}</Table.Td>
+                                                        <Table.Td ta="right">{formatNumberDe(e.cost_estimate_last_year)}</Table.Td>
+                                                        <Table.Td ta="right">{formatNumberDe(e.cost_estimate_aktuell)}</Table.Td>
+                                                        <Table.Td ta="right">{formatNumberDe(e.verausgabt_bis)}</Table.Td>
+                                                        <Table.Td ta="right">{formatNumberDe(e.bewilligt)}</Table.Td>
+                                                        <Table.Td ta="right">{formatNumberDe(e.ausgabereste_transferred)}</Table.Td>
+                                                        <Table.Td ta="right">{formatNumberDe(e.veranschlagt)}</Table.Td>
+                                                        <Table.Td ta="right">{formatNumberDe(e.vorhalten_future)}</Table.Td>
                                                     </Table.Tr>
                                                 ))}
                                             </Table.Tbody>
@@ -410,13 +406,13 @@ function DataRow({
                                                         <Table.Td>
                                                             <Text size="xs">{e.label}</Text>
                                                         </Table.Td>
-                                                        <Table.Td ta="right">{fmt(e.cost_estimate_last_year)}</Table.Td>
-                                                        <Table.Td ta="right">{fmt(e.cost_estimate_aktuell)}</Table.Td>
-                                                        <Table.Td ta="right">{fmt(e.verausgabt_bis)}</Table.Td>
-                                                        <Table.Td ta="right">{fmt(e.bewilligt)}</Table.Td>
-                                                        <Table.Td ta="right">{fmt(e.ausgabereste_transferred)}</Table.Td>
-                                                        <Table.Td ta="right">{fmt(e.veranschlagt)}</Table.Td>
-                                                        <Table.Td ta="right">{fmt(e.vorhalten_future)}</Table.Td>
+                                                        <Table.Td ta="right">{formatNumberDe(e.cost_estimate_last_year)}</Table.Td>
+                                                        <Table.Td ta="right">{formatNumberDe(e.cost_estimate_aktuell)}</Table.Td>
+                                                        <Table.Td ta="right">{formatNumberDe(e.verausgabt_bis)}</Table.Td>
+                                                        <Table.Td ta="right">{formatNumberDe(e.bewilligt)}</Table.Td>
+                                                        <Table.Td ta="right">{formatNumberDe(e.ausgabereste_transferred)}</Table.Td>
+                                                        <Table.Td ta="right">{formatNumberDe(e.veranschlagt)}</Table.Td>
+                                                        <Table.Td ta="right">{formatNumberDe(e.vorhalten_future)}</Table.Td>
                                                     </Table.Tr>
                                                 ))}
                                             </Table.Tbody>

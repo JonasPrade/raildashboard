@@ -31,13 +31,13 @@ import {
 } from "../../../../shared/api/queries";
 import {
     LIFECYCLE_LABEL,
-    MAIN_PHASES,
     MAIN_PHASE_LABEL,
     PARALLEL_STATES,
     PARALLEL_STATE_LABEL,
     SOURCE_LABEL,
     TRACK_LABEL,
     formatTimestamp,
+    mainPhaseOptions,
     stateLabel,
     type LifecycleStatus,
     type MainPhase,
@@ -202,7 +202,7 @@ function ObservationDraftForm({ onAdd }: { onAdd: (obs: ProgressObservationCreat
     // the forecast and never pull the current phase forward.
     const [isExpected, setIsExpected] = useState(false);
 
-    const stateOptions = MAIN_PHASES.map((p) => ({ value: p, label: MAIN_PHASE_LABEL[p] }));
+    const stateOptions = mainPhaseOptions();
 
     const submit = () => {
         const conf = confidence.trim() === "" ? null : Number(confidence);
@@ -383,7 +383,7 @@ export default function ProgressEditDrawer({ projectId, progress, opened, onClos
                             value={active.phaseOverride ?? PHASE_NONE}
                             data={[
                                 { value: PHASE_NONE, label: "— berechnet —" },
-                                ...MAIN_PHASES.map((p) => ({ value: p, label: MAIN_PHASE_LABEL[p] })),
+                                ...mainPhaseOptions(),
                             ]}
                             onChange={(v) =>
                                 set({

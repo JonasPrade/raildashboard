@@ -28,14 +28,10 @@ import {
     useUpdateMediaEntry,
     type MediaEntry,
 } from "../../shared/api/queries";
-import { MAIN_PHASES, MAIN_PHASE_LABEL } from "../projects/components/progress/phaseMeta";
+import { mainPhaseOptions } from "../projects/components/progress/phaseMeta";
+import { formatDate } from "../../shared/format";
 
-const PHASE_OPTIONS = MAIN_PHASES.map((p) => ({ value: p, label: MAIN_PHASE_LABEL[p] }));
-
-function formatDate(iso: string | null): string | null {
-    if (!iso) return null;
-    return new Date(iso).toLocaleDateString("de-DE", { dateStyle: "medium" });
-}
+const PHASE_OPTIONS = mainPhaseOptions();
 
 function MediaCard({
     entry,
@@ -69,7 +65,7 @@ function MediaCard({
                     <Stack gap={2}>
                         <Group gap="xs">
                             <Text fw={600}>{entry.publication || "Unbekannte Quelle"}</Text>
-                            {formatDate(entry.published_date) && (
+                            {entry.published_date && (
                                 <Text size="xs" c="dimmed">
                                     {formatDate(entry.published_date)}
                                 </Text>

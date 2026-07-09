@@ -17,24 +17,24 @@ import { ChronicleHeadline, ChronicleButton } from "../../components/chronicle";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { useAuth } from "../../lib/auth";
+import RequirePermission from "../../components/RequirePermission";
 import {
     useDeleteUser,
     useRoles,
     useUpdateUserRole,
     useUsers,
 } from "../../shared/api/queries";
+import { formatDateNumeric } from "../../shared/format";
 import { CreateUserModal } from "./CreateUserModal";
 import { EditUserModal } from "./EditUserModal";
 import { SetPasswordModal } from "./SetPasswordModal";
 
-export default function UsersPage() {
-    const { user: currentUser, can } = useAuth();
+function UsersPageContent() {
+    const { user: currentUser } = useAuth();
     const [createOpened, { open: openCreate, close: closeCreate }] = useDisclosure(false);
     const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
     const [passwordUserId, setPasswordUserId] = useState<number | null>(null);
     const [editUserId, setEditUserId] = useState<number | null>(null);
-
-    const canManage = can("user.manage");
 
     const { data: users, isLoading: usersLoading, isError: usersError } = useUsers();
     const { data: roles } = useRoles();
@@ -42,16 +42,6 @@ export default function UsersPage() {
 
     const updateRole = useUpdateUserRole();
     const deleteUser = useDeleteUser();
-
-    if (!canManage) {
-        return (
-            <Container size="sm" py="xl">
-                <Alert color="red" variant="light" title="Kein Zugriff">
-                    Die Benutzerverwaltung ist nur für Administratoren zugänglich.
-                </Alert>
-            </Container>
-        );
-    }
 
     const handleRoleChange = async (userId: number, newRole: string) => {
         try {
@@ -134,7 +124,7 @@ export default function UsersPage() {
                                 </Table.Td>
                                 <Table.Td>
                                     <Text size="sm" c="dimmed">
-                                        {new Date(u.created_at).toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" })}
+                                        {formatDateNumeric(u.created_at)}
                                     </Text>
                                 </Table.Td>
                                 <Table.Td>
@@ -233,5 +223,16 @@ export default function UsersPage() {
                 ) : null;
             })()}
         </Container>
+    );
+}
+
+export default function UsersPage() {
+    return (
+        <RequirePermission
+            perm="user.manage"
+            message={'Die Benutzerverwaltung ist nur für Administratoren zugänglich.'}
+        >
+            <UsersPageContent />
+        </RequirePermission>
     );
 }

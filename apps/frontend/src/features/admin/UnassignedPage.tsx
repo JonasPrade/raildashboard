@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-    Alert,
     Button,
     Container,
     Group,
@@ -15,7 +14,7 @@ import { Link } from "react-router-dom";
 import { ChronicleButton, ChronicleDataChip } from "../../components/chronicle";
 import { SectionHead, FlapNumber, Eyebrow } from "../../components/tafel";
 import { notifications } from "@mantine/notifications";
-import { useAuth } from "../../lib/auth";
+import RequirePermission from "../../components/RequirePermission";
 import { filterProjectOption } from "../../lib/filterProjectOption";
 import {
     useProjects,
@@ -27,8 +26,7 @@ import {
 } from "../../shared/api/queries";
 import VibEntryEditDrawer from "../vib-import/VibEntryEditDrawer";
 
-export default function UnassignedPage() {
-    const { can } = useAuth();
+function UnassignedPageContent() {
     const [finveSelections, setFinveSelections] = useState<Record<number, string[]>>({});
     const [vibSelections, setVibSelections] = useState<Record<number, string[]>>({});
     const [editingVibId, setEditingVibId] = useState<number | null>(null);
@@ -39,16 +37,6 @@ export default function UnassignedPage() {
     const { data: projects } = useProjects();
     const assignFinve = useAssignFinve();
     const assignVib = useAssignVibEntry();
-
-    if (!can("assignment.manage")) {
-        return (
-            <Container size="sm" py="xl">
-                <Alert color="red" variant="light" title="Kein Zugriff">
-                    Diese Seite ist nur für Editoren und Administratoren zugänglich.
-                </Alert>
-            </Container>
-        );
-    }
 
     const projectOptions = (projects ?? []).map((p) => ({
         value: String(p.id),
@@ -256,5 +244,13 @@ export default function UnassignedPage() {
                 onClose={() => setEditingVibId(null)}
             />
         </Container>
+    );
+}
+
+export default function UnassignedPage() {
+    return (
+        <RequirePermission perm="assignment.manage">
+            <UnassignedPageContent />
+        </RequirePermission>
     );
 }
