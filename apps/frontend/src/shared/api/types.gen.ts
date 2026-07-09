@@ -68,23 +68,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/route/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Get Route */
-        post: operations["get_route_api_v1_route__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/projects/": {
         parameters: {
             query?: never;
@@ -576,46 +559,6 @@ export interface paths {
          *     The route is persisted to the database and linked to the given project.
          */
         post: operations["confirm_route_api_v1_projects__project_id__routes_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/projects/{project_id}/routes/{route_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Replace Route
-         * @description Confirm a calculated route and replace an existing one in the project.
-         *
-         *     The frontend sends back the GeoJSON Feature it received from /routes/calculate.
-         *     The existing route (identified by route_id) is updated in-place.
-         */
-        put: operations["replace_route_api_v1_projects__project_id__routes__route_id__put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/routes/{route_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Route */
-        get: operations["get_route_api_v1_routes__route_id__get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1430,6 +1373,297 @@ export interface paths {
         patch: operations["patch_vib_entry_api_v1_import_vib_entries__entry_id__patch"];
         trace?: never;
     };
+    "/api/v1/import/bauportal/fetch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Fetch Bauportal
+         * @description Fetch the public Bauportal project list and upsert the raw table.
+         */
+        post: operations["fetch_bauportal_api_v1_import_bauportal_fetch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/bauportal/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Bauportal Entries
+         * @description List fetched Bauportal entries with suggested / confirmed matches.
+         */
+        get: operations["list_bauportal_entries_api_v1_import_bauportal_entries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/bauportal/confirm-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm All Bauportal
+         * @description Confirm all assigned, still-open entries in one step.
+         */
+        post: operations["confirm_all_bauportal_api_v1_import_bauportal_confirm_all_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/bauportal/entries/{entry_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Bauportal Entry
+         * @description Set the assigned project and/or confirm the match for one entry.
+         */
+        patch: operations["update_bauportal_entry_api_v1_import_bauportal_entries__entry_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/import/media/extract": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Extract Media
+         * @description Create a draft media report from a URL and/or text (LLM-assisted).
+         */
+        post: operations["extract_media_api_v1_import_media_extract_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/media/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Media Entries
+         * @description List media reports with resolved suggestion / match names.
+         */
+        get: operations["list_media_entries_api_v1_import_media_entries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/media/entries/{entry_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Media Entry
+         * @description Delete a media report (and drop its derived observation).
+         */
+        delete: operations["delete_media_entry_api_v1_import_media_entries__entry_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Media Entry
+         * @description Edit fields / confirm the match for one media report.
+         */
+        patch: operations["update_media_entry_api_v1_import_media_entries__entry_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/import/fulda/parse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Parse Fulda
+         * @description Upload a Fulda Kleine-Anfrage PDF for ``year``; OCR + LLM run in Celery.
+         *
+         *     Returns the Celery task_id for polling via GET /api/v1/tasks/{task_id};
+         *     the task result is the summary ``{ocr_status, created, source_label}``.
+         */
+        post: operations["parse_fulda_api_v1_import_fulda_parse_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/fulda/years": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Fulda Years
+         * @description Distinct Fulda-Runde years present (newest first).
+         */
+        get: operations["list_fulda_years_api_v1_import_fulda_years_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/fulda/year-summaries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Fulda Year Summaries
+         * @description Per-year overview rows (counts + provenance) for the landing table.
+         */
+        get: operations["list_fulda_year_summaries_api_v1_import_fulda_year_summaries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/fulda/years/{year}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm Fulda Year
+         * @description Confirm all assigned, still-open entries of a year in one step.
+         */
+        post: operations["confirm_fulda_year_api_v1_import_fulda_years__year__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/fulda/years/{year}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Fulda Year
+         * @description Delete all Fulda announcements of a year (and their derived observations).
+         */
+        delete: operations["delete_fulda_year_api_v1_import_fulda_years__year__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/fulda/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Fulda Entries
+         * @description List Fulda announcements with suggested / confirmed matches.
+         */
+        get: operations["list_fulda_entries_api_v1_import_fulda_entries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/fulda/entries/{entry_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Fulda Entry
+         * @description Delete a Fulda announcement (and drop its derived observation).
+         */
+        delete: operations["delete_fulda_entry_api_v1_import_fulda_entries__entry_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Fulda Entry
+         * @description Edit fields / confirm the match for one announcement.
+         */
+        patch: operations["update_fulda_entry_api_v1_import_fulda_entries__entry_id__patch"];
+        trace?: never;
+    };
     "/api/v1/admin/unassigned-finves": {
         parameters: {
             query?: never;
@@ -1554,6 +1788,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/guides/{guide_slug}/overrides": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Guide Overrides
+         * @description All edited sections of one guide (empty list = pure defaults).
+         */
+        get: operations["list_guide_overrides_api_v1_guides__guide_slug__overrides_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/guides/{guide_slug}/overrides/{section_key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Put Guide Override
+         * @description Create or replace the override for one guide section.
+         */
+        put: operations["put_guide_override_api_v1_guides__guide_slug__overrides__section_key__put"];
+        post?: never;
+        /**
+         * Delete Guide Override
+         * @description Reset one section back to the bundled default (idempotent).
+         */
+        delete: operations["delete_guide_override_api_v1_guides__guide_slug__overrides__section_key__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1579,6 +1857,85 @@ export interface components {
         AssignProjectsInput: {
             /** Project Ids */
             project_ids: number[];
+        };
+        /**
+         * BauportalConfirmSummary
+         * @description Result of confirming all assigned entries at once.
+         */
+        BauportalConfirmSummary: {
+            /** Confirmed */
+            confirmed: number;
+        };
+        /**
+         * BauportalEntrySchema
+         * @description One fetched Bauportal record with its suggested / confirmed match.
+         */
+        BauportalEntrySchema: {
+            /** Id */
+            id: number;
+            /** Bauportal Id */
+            bauportal_id: number;
+            /** Parent Bauportal Id */
+            parent_bauportal_id?: number | null;
+            /** Shorttitle */
+            shorttitle: string;
+            /** Status Raw */
+            status_raw?: string | null;
+            /** Mapped Phase */
+            mapped_phase?: string | null;
+            /** Projecttime Raw */
+            projecttime_raw?: string | null;
+            /** Url */
+            url?: string | null;
+            /** Lat */
+            lat?: number | null;
+            /** Lng */
+            lng?: number | null;
+            /** Fetched At */
+            fetched_at?: string | null;
+            /** Suggested Project Id */
+            suggested_project_id?: number | null;
+            /** Suggested Project Name */
+            suggested_project_name?: string | null;
+            /** Project Id */
+            project_id?: number | null;
+            /** Project Name */
+            project_name?: string | null;
+            /**
+             * Confirmed
+             * @default false
+             */
+            confirmed: boolean;
+        };
+        /** BauportalImportSummary */
+        BauportalImportSummary: {
+            /** Fetched */
+            fetched: number;
+            /** Created */
+            created: number;
+            /** Updated */
+            updated: number;
+            /** Skipped */
+            skipped: number;
+        };
+        /**
+         * BauportalUpdateInput
+         * @description Set the assigned project and/or confirm the match for one entry.
+         *
+         *     Both fields are optional; ``project_id`` may be ``null`` to clear the match.
+         */
+        BauportalUpdateInput: {
+            /** Project Id */
+            project_id?: number | null;
+            /** Confirmed */
+            confirmed?: boolean | null;
+        };
+        /** Body_parse_fulda_api_v1_import_fulda_parse_post */
+        Body_parse_fulda_api_v1_import_fulda_parse_post: {
+            /** Pdf */
+            pdf: string;
+            /** Year */
+            year: number;
         };
         /** Body_start_parse_api_v1_import_haushalt_parse_post */
         Body_start_parse_api_v1_import_haushalt_parse_post: {
@@ -2190,6 +2547,118 @@ export interface components {
             /** Source */
             source: string;
         };
+        /**
+         * FuldaConfirmSummary
+         * @description Result of confirming a whole year at once.
+         */
+        FuldaConfirmSummary: {
+            /** Confirmed */
+            confirmed: number;
+        };
+        /** FuldaEntrySchema */
+        FuldaEntrySchema: {
+            /** Id */
+            id: number;
+            /** Announcement Year */
+            announcement_year: number;
+            /** Source Label */
+            source_label?: string | null;
+            /** Document Date */
+            document_date?: string | null;
+            /** Raw Name */
+            raw_name: string;
+            /** Abschnitt */
+            abschnitt?: string | null;
+            /** Category */
+            category?: string | null;
+            /** Announced Phase */
+            announced_phase?: string | null;
+            /** Expected Date */
+            expected_date?: string | null;
+            /**
+             * Project Ids
+             * @default []
+             */
+            project_ids: number[];
+            /**
+             * Project Names
+             * @default []
+             */
+            project_names: string[];
+            /**
+             * Confirmed
+             * @default false
+             */
+            confirmed: boolean;
+            /** Created At */
+            created_at?: string | null;
+            /** Username Snapshot */
+            username_snapshot?: string | null;
+        };
+        /**
+         * FuldaUpdateInput
+         * @description Patch a Fulda announcement; ``project_ids`` replaces the whole assignment.
+         */
+        FuldaUpdateInput: {
+            /** Announcement Year */
+            announcement_year?: number | null;
+            /** Source Label */
+            source_label?: string | null;
+            /** Document Date */
+            document_date?: string | null;
+            /** Raw Name */
+            raw_name?: string | null;
+            /** Abschnitt */
+            abschnitt?: string | null;
+            /** Category */
+            category?: string | null;
+            /** Announced Phase */
+            announced_phase?: string | null;
+            /** Expected Date */
+            expected_date?: string | null;
+            /** Project Ids */
+            project_ids?: number[] | null;
+            /** Confirmed */
+            confirmed?: boolean | null;
+        };
+        /**
+         * FuldaYearSummary
+         * @description One row of the year-overview table (entry counts + provenance per year).
+         */
+        FuldaYearSummary: {
+            /** Announcement Year */
+            announcement_year: number;
+            /** Total */
+            total: number;
+            /** Confirmed */
+            confirmed: number;
+            /** Source Label */
+            source_label?: string | null;
+            /** Document Date */
+            document_date?: string | null;
+        };
+        /**
+         * GuideOverrideInput
+         * @description Replace one section's markdown body. An empty body is rejected —
+         *     resetting to the bundled default is a DELETE, not an empty save.
+         */
+        GuideOverrideInput: {
+            /** Body Markdown */
+            body_markdown: string;
+        };
+        /** GuideOverrideSchema */
+        GuideOverrideSchema: {
+            /** Guide Slug */
+            guide_slug: string;
+            /** Section Key */
+            section_key: string;
+            /** Body Markdown */
+            body_markdown: string;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Username Snapshot */
+            username_snapshot?: string | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -2270,6 +2739,75 @@ export interface components {
         LinkFinvesInput: {
             /** Finve Ids */
             finve_ids?: number[];
+        };
+        /** MediaEntrySchema */
+        MediaEntrySchema: {
+            /** Id */
+            id: number;
+            /** Url */
+            url?: string | null;
+            /** Publication */
+            publication?: string | null;
+            /** Published Date */
+            published_date?: string | null;
+            /** Raw Text */
+            raw_text?: string | null;
+            /** Quote */
+            quote?: string | null;
+            /** Asserted Phase */
+            asserted_phase?: string | null;
+            /** Observed Date */
+            observed_date?: string | null;
+            /** Suggested Project Id */
+            suggested_project_id?: number | null;
+            /** Suggested Project Name */
+            suggested_project_name?: string | null;
+            /** Project Id */
+            project_id?: number | null;
+            /** Project Name */
+            project_name?: string | null;
+            /**
+             * Confirmed
+             * @default false
+             */
+            confirmed: boolean;
+            /** Created At */
+            created_at?: string | null;
+            /** Username Snapshot */
+            username_snapshot?: string | null;
+        };
+        /**
+         * MediaExtractInput
+         * @description Submit a press article by URL and/or pasted text for extraction.
+         */
+        MediaExtractInput: {
+            /** Url */
+            url?: string | null;
+            /** Text */
+            text?: string | null;
+        };
+        /**
+         * MediaUpdateInput
+         * @description Patch a media report. Only provided fields are applied; ``project_id``
+         *     may be set to null to clear the match.
+         */
+        MediaUpdateInput: {
+            /** Url */
+            url?: string | null;
+            /** Publication */
+            publication?: string | null;
+            /** Published Date */
+            published_date?: string | null;
+            /** Asserted Phase */
+            asserted_phase?: string | null;
+            /** Observed Date */
+            observed_date?: string | null;
+            /** Quote */
+            quote?: string | null;
+            /** Project Id */
+            project_id?: number | null;
+            /** Confirmed */
+            confirmed?: boolean | null;
         };
         /**
          * OperationalPointRef
@@ -2841,10 +3379,6 @@ export interface components {
             project_number?: string | null;
             /** Superior Project Id */
             superior_project_id?: number | null;
-            /** Old Id */
-            old_id?: number | null;
-            /** Superior Project Old Id */
-            superior_project_old_id?: number | null;
             /** Description */
             description?: string | null;
             /** Justification */
@@ -3456,18 +3990,6 @@ export interface components {
                 [key: string]: unknown;
             };
         };
-        /** RouteRequest */
-        RouteRequest: {
-            /** Start Op */
-            start_op: string;
-            /** End Op */
-            end_op: string;
-        };
-        /** RouteResponse */
-        RouteResponse: {
-            /** Sectionofline Ids */
-            sectionofline_ids: number[];
-        };
         /** SammelFinveProgressSchema */
         SammelFinveProgressSchema: {
             /** Finve Id */
@@ -3906,10 +4428,6 @@ export interface components {
          * @description One entry as submitted in the confirm request (project_ids adjusted by user).
          */
         VibConfirmEntryInput: {
-            /** Vib Section */
-            vib_section?: string | null;
-            /** Vib Lfd Nr */
-            vib_lfd_nr?: string | null;
             /** Vib Name Raw */
             vib_name_raw: string;
             /**
@@ -3929,6 +4447,8 @@ export interface components {
             teilinbetriebnahmen?: string | null;
             /** Raw Text */
             raw_text?: string | null;
+            /** Sonstiges */
+            sonstiges?: string | null;
             /** Strecklaenge Km */
             strecklaenge_km?: number | null;
             /** Gesamtkosten Mio Eur */
@@ -3952,6 +4472,10 @@ export interface components {
              * @default false
              */
             status_abgeschlossen: boolean;
+            /** Vib Section */
+            vib_section?: string | null;
+            /** Vib Lfd Nr */
+            vib_lfd_nr?: string | null;
             /**
              * Pfa Entries
              * @default []
@@ -3959,8 +4483,6 @@ export interface components {
             pfa_entries: components["schemas"]["VibPfaEntryProposed"][];
             /** Pfa Raw Markdown */
             pfa_raw_markdown?: string | null;
-            /** Sonstiges */
-            sonstiges?: string | null;
             /**
              * Project Ids
              * @default []
@@ -4015,26 +4537,24 @@ export interface components {
             year: number;
             /** Drucksache Nr */
             drucksache_nr?: string | null;
-            /** Vib Section */
-            vib_section?: string | null;
             /** Vib Name Raw */
             vib_name_raw: string;
             /** Category */
             category: string;
-            /** Bauaktivitaeten */
-            bauaktivitaeten?: string | null;
-            /** Teilinbetriebnahmen */
-            teilinbetriebnahmen?: string | null;
             /** Verkehrliche Zielsetzung */
             verkehrliche_zielsetzung?: string | null;
             /** Durchgefuehrte Massnahmen */
             durchgefuehrte_massnahmen?: string | null;
             /** Noch Umzusetzende Massnahmen */
             noch_umzusetzende_massnahmen?: string | null;
-            /** Sonstiges */
-            sonstiges?: string | null;
+            /** Bauaktivitaeten */
+            bauaktivitaeten?: string | null;
+            /** Teilinbetriebnahmen */
+            teilinbetriebnahmen?: string | null;
             /** Raw Text */
             raw_text?: string | null;
+            /** Sonstiges */
+            sonstiges?: string | null;
             /** Strecklaenge Km */
             strecklaenge_km?: number | null;
             /** Gesamtkosten Mio Eur */
@@ -4058,6 +4578,8 @@ export interface components {
              * @default false
              */
             status_abgeschlossen: boolean;
+            /** Vib Section */
+            vib_section?: string | null;
             /**
              * Ai Extracted
              * @default false
@@ -4096,10 +4618,6 @@ export interface components {
          * @description One Vorhaben as extracted from the VIB PDF.
          */
         VibEntryProposed: {
-            /** Vib Section */
-            vib_section?: string | null;
-            /** Vib Lfd Nr */
-            vib_lfd_nr?: string | null;
             /** Vib Name Raw */
             vib_name_raw: string;
             /**
@@ -4119,6 +4637,8 @@ export interface components {
             teilinbetriebnahmen?: string | null;
             /** Raw Text */
             raw_text?: string | null;
+            /** Sonstiges */
+            sonstiges?: string | null;
             /** Strecklaenge Km */
             strecklaenge_km?: number | null;
             /** Gesamtkosten Mio Eur */
@@ -4142,6 +4662,10 @@ export interface components {
              * @default false
              */
             status_abgeschlossen: boolean;
+            /** Vib Section */
+            vib_section?: string | null;
+            /** Vib Lfd Nr */
+            vib_lfd_nr?: string | null;
             /**
              * Pfa Entries
              * @default []
@@ -4149,8 +4673,6 @@ export interface components {
             pfa_entries: components["schemas"]["VibPfaEntryProposed"][];
             /** Pfa Raw Markdown */
             pfa_raw_markdown?: string | null;
-            /** Sonstiges */
-            sonstiges?: string | null;
             /**
              * Project Ids
              * @default []
@@ -4183,26 +4705,22 @@ export interface components {
             id: number;
             /** Vib Report Id */
             vib_report_id: number;
-            /** Vib Section */
-            vib_section?: string | null;
-            /** Vib Lfd Nr */
-            vib_lfd_nr?: string | null;
             /** Vib Name Raw */
             vib_name_raw: string;
             /** Category */
             category: string;
-            /** Raw Text */
-            raw_text?: string | null;
-            /** Bauaktivitaeten */
-            bauaktivitaeten?: string | null;
-            /** Teilinbetriebnahmen */
-            teilinbetriebnahmen?: string | null;
             /** Verkehrliche Zielsetzung */
             verkehrliche_zielsetzung?: string | null;
             /** Durchgefuehrte Massnahmen */
             durchgefuehrte_massnahmen?: string | null;
             /** Noch Umzusetzende Massnahmen */
             noch_umzusetzende_massnahmen?: string | null;
+            /** Bauaktivitaeten */
+            bauaktivitaeten?: string | null;
+            /** Teilinbetriebnahmen */
+            teilinbetriebnahmen?: string | null;
+            /** Raw Text */
+            raw_text?: string | null;
             /** Sonstiges */
             sonstiges?: string | null;
             /** Strecklaenge Km */
@@ -4228,6 +4746,10 @@ export interface components {
              * @default false
              */
             status_abgeschlossen: boolean;
+            /** Vib Section */
+            vib_section?: string | null;
+            /** Vib Lfd Nr */
+            vib_lfd_nr?: string | null;
             /**
              * Ai Extracted
              * @default false
@@ -4265,10 +4787,10 @@ export interface components {
             bauaktivitaeten?: string | null;
             /** Teilinbetriebnahmen */
             teilinbetriebnahmen?: string | null;
-            /** Sonstiges */
-            sonstiges?: string | null;
             /** Raw Text */
             raw_text?: string | null;
+            /** Sonstiges */
+            sonstiges?: string | null;
             /** Strecklaenge Km */
             strecklaenge_km?: number | null;
             /** Gesamtkosten Mio Eur */
@@ -4499,41 +5021,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OperationalPointRef"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_route_api_v1_route__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: {
-                session?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RouteRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RouteResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5073,8 +5560,8 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
                 observation_id: number;
+                project_id: number;
             };
             cookie?: {
                 session?: string | null;
@@ -5107,8 +5594,8 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
                 track: string;
+                project_id: number;
             };
             cookie?: {
                 session?: string | null;
@@ -5145,9 +5632,9 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
                 track: string;
                 document_id: number;
+                project_id: number;
             };
             cookie?: {
                 session?: string | null;
@@ -5681,75 +6168,6 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RouteOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    replace_route_api_v1_projects__project_id__routes__route_id__put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_id: number;
-                route_id: string;
-            };
-            cookie?: {
-                session?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RouteConfirmIn"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RouteOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_route_api_v1_routes__route_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                route_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7035,8 +7453,8 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                parse_task_id: string;
                 entry_idx: number;
+                parse_task_id: string;
             };
             cookie?: {
                 session?: string | null;
@@ -7069,8 +7487,8 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                task_id: string;
                 image_id: string;
+                task_id: string;
             };
             cookie?: {
                 session?: string | null;
@@ -7268,6 +7686,537 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VibEntrySchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fetch_bauportal_api_v1_import_bauportal_fetch_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BauportalImportSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_bauportal_entries_api_v1_import_bauportal_entries_get: {
+        parameters: {
+            query?: {
+                only_unconfirmed?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BauportalEntrySchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_all_bauportal_api_v1_import_bauportal_confirm_all_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BauportalConfirmSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_bauportal_entry_api_v1_import_bauportal_entries__entry_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BauportalUpdateInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BauportalEntrySchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    extract_media_api_v1_import_media_extract_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MediaExtractInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaEntrySchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_media_entries_api_v1_import_media_entries_get: {
+        parameters: {
+            query?: {
+                only_unconfirmed?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaEntrySchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_media_entry_api_v1_import_media_entries__entry_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_media_entry_api_v1_import_media_entries__entry_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MediaUpdateInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaEntrySchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    parse_fulda_api_v1_import_fulda_parse_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_parse_fulda_api_v1_import_fulda_parse_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskLaunchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_fulda_years_api_v1_import_fulda_years_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": number[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_fulda_year_summaries_api_v1_import_fulda_year_summaries_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FuldaYearSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_fulda_year_api_v1_import_fulda_years__year__confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                year: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FuldaConfirmSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_fulda_year_api_v1_import_fulda_years__year__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                year: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_fulda_entries_api_v1_import_fulda_entries_get: {
+        parameters: {
+            query?: {
+                only_unconfirmed?: boolean;
+                year?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FuldaEntrySchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_fulda_entry_api_v1_import_fulda_entries__entry_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_fulda_entry_api_v1_import_fulda_entries__entry_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FuldaUpdateInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FuldaEntrySchema"];
                 };
             };
             /** @description Validation Error */
@@ -7566,6 +8515,107 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PermissionSchema"][];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_guide_overrides_api_v1_guides__guide_slug__overrides_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                guide_slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuideOverrideSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_guide_override_api_v1_guides__guide_slug__overrides__section_key__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                guide_slug: string;
+                section_key: string;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GuideOverrideInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuideOverrideSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_guide_override_api_v1_guides__guide_slug__overrides__section_key__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                guide_slug: string;
+                section_key: string;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

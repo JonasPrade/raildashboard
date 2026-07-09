@@ -15,42 +15,18 @@ type Props = {
     onClose: () => void;
 };
 
+// VibEntrySchema and VibEntryProposed share the same generated field set
+// (VibEntryFieldsBase); only the id/report keys are stripped and the
+// proposed-only bookkeeping fields defaulted.
 function toProposed(entry: VibEntrySchema): VibEntryProposed {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id: _id, vib_report_id: _reportId, report_year: _year, pfa_entries, ...fields } = entry;
     return {
-        vib_section: entry.vib_section,
-        vib_lfd_nr: entry.vib_lfd_nr,
-        vib_name_raw: entry.vib_name_raw,
-        category: entry.category as VibEntryProposed["category"],
-        verkehrliche_zielsetzung: entry.verkehrliche_zielsetzung,
-        durchgefuehrte_massnahmen: entry.durchgefuehrte_massnahmen,
-        noch_umzusetzende_massnahmen: entry.noch_umzusetzende_massnahmen,
-        bauaktivitaeten: entry.bauaktivitaeten,
-        teilinbetriebnahmen: entry.teilinbetriebnahmen,
-        raw_text: entry.raw_text,
-        strecklaenge_km: entry.strecklaenge_km,
-        gesamtkosten_mio_eur: entry.gesamtkosten_mio_eur,
-        entwurfsgeschwindigkeit: entry.entwurfsgeschwindigkeit,
-        planungsstand: entry.planungsstand,
-        pfa_entries: entry.pfa_entries.map(({ abschnitt_label, nr_pfa, oertlichkeit, entwurfsplanung, abschluss_finve, datum_pfb, baubeginn, inbetriebnahme, project_id, suggested_project_id }) => ({
-            abschnitt_label,
-            nr_pfa,
-            oertlichkeit,
-            entwurfsplanung,
-            abschluss_finve,
-            datum_pfb,
-            baubeginn,
-            inbetriebnahme,
-            project_id,
-            suggested_project_id,
-        })),
+        ...fields,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        pfa_entries: pfa_entries.map(({ id: _pfaId, ...pfa }) => pfa),
         pfa_raw_markdown: null,
-        sonstiges: entry.sonstiges,
-        project_ids: entry.project_ids,
         suggested_project_ids: [],
-        status_planung: entry.status_planung,
-        status_bau: entry.status_bau,
-        status_abgeschlossen: entry.status_abgeschlossen,
-        ai_extracted: entry.ai_extracted,
         ai_extraction_failed: false,
         ai_extraction_error: null,
     };
