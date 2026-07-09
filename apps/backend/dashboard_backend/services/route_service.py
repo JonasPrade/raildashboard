@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Any, Dict, Iterable, Sequence
-from uuid import UUID
 
 from geoalchemy2.shape import from_shape
 from shapely.geometry import LineString, Polygon
@@ -10,7 +9,6 @@ from sqlalchemy.orm import Session
 from dashboard_backend.crud.routes import (
     list_routes_for_project,
     persist_route,
-    update_route,
 )
 from dashboard_backend.models.routes import Route, route_hash
 from dashboard_backend.services.exceptions import RoutingNoPathError
@@ -87,33 +85,6 @@ class RouteService:
             cache_key=props["cache_key"],
         )
         return persist_route(db, route)
-
-    def confirm_and_replace(
-        self,
-        db: Session,
-        project_id: int,
-        route_id: UUID,
-        feature: Dict[str, Any],
-    ) -> Route | None:
-        """Replace an existing route's geometry and metadata in-place.
-
-        Returns None if the route does not exist or belongs to a different project.
-        """
-        line, bbox, props = self._feature_to_parts(feature)
-
-        return update_route(
-            db,
-            route_id,
-            project_id,
-            profile=props["profile"],
-            graph_version=props["graph_version"],
-            distance_m=props["distance_m"],
-            duration_ms=props["duration_ms"],
-            geom=from_shape(line, srid=4326),
-            bbox=from_shape(bbox, srid=4326),
-            details=props["details"],
-            cache_key=props["cache_key"],
-        )
 
     def _feature_to_parts(
         self, feature: Dict[str, Any]

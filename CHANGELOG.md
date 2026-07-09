@@ -12,6 +12,16 @@ section as part of the release commit, immediately before tagging.
 
 ## [Unreleased]
 
+### Removed
+- Legacy routing API surface (#91, option b): `POST /api/v1/route/` (old
+  section-of-line routing, superseded by `/routes/calculate`),
+  `PUT /projects/{id}/routes/{route_id}` and `GET /routes/{route_id}` — none
+  had a frontend caller — together with their dead chain
+  (`RouteService.confirm_and_replace`, `crud/routes.update_route`,
+  `crud/routes.get_route_by_id`). The read-only `old_id` /
+  `superior_project_old_id` fields are no longer exposed in `ProjectSchema`;
+  the DB columns stay for traceability to the migrated legacy database.
+
 ### Changed
 - Delivery performance: the frontend nginx now gzips text responses (including
   proxied `/api/` JSON/GeoJSON) and serves hashed `/assets/` with

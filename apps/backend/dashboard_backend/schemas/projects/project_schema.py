@@ -99,8 +99,6 @@ class ProjectSchema(BaseModel):
     name: str
     project_number: Optional[str] = None
     superior_project_id: Optional[int] = None
-    old_id: Optional[int] = None
-    superior_project_old_id: Optional[int] = None
     description: Optional[str] = None
     justification: Optional[str] = None
     is_draft: bool = False
