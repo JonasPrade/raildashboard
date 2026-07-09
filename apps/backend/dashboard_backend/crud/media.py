@@ -10,7 +10,13 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session, load_only
 
-from dashboard_backend.crud.projects.progress import recompute_progress
+from dashboard_backend.crud._importer_common import (
+    ProjectNotFoundError,
+    apply_editable_fields,
+    ensure_projects_exist,
+    project_name_map,
+    recompute_for,
+)
 from dashboard_backend.models.projects.media_report import MediaReport
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.users import User
@@ -80,15 +86,7 @@ def create_from_input(
     db.add(row)
     db.commit()
     db.refresh(row)
-    return _entry_dict(row, _project_name_map(db, [row.project_id, row.suggested_project_id]))
-
-
-def _project_name_map(db: Session, ids: list[int | None]) -> dict[int, str]:
-    wanted = {i for i in ids if i is not None}
-    if not wanted:
-        return {}
-    rows = db.query(Project.id, Project.name).filter(Project.id.in_(wanted)).all()
-    return {row.id: row.name for row in rows}
+    return _entry_dict(row, project_name_map(db, [row.project_id, row.suggested_project_id]))
 
 
 def _entry_dict(row: MediaReport, names: dict[int, str]) -> dict:
@@ -117,7 +115,7 @@ def list_entries(db: Session, *, only_unconfirmed: bool = False) -> list[dict]:
         query = query.filter(MediaReport.confirmed.is_(False))
     rows = query.order_by(MediaReport.created_at.desc(), MediaReport.id.desc()).all()
     # One batched name lookup for all rows (was one query per row).
-    names = _project_name_map(
+    names = project_name_map(
         db, [i for row in rows for i in (row.project_id, row.suggested_project_id)]
     )
     return [_entry_dict(row, names) for row in rows]
@@ -136,22 +134,17 @@ def update_entry(db: Session, entry_id: int, payload: dict) -> dict | None:
     if "project_id" in payload:
         new_pid = payload["project_id"]
         if new_pid is not None:
-            exists = db.query(Project.id).filter(Project.id == new_pid).first()
-            if exists is None:
-                raise ValueError(f"Project {new_pid} not found")
+            ensure_projects_exist(db, [new_pid])
         row.project_id = new_pid
 
-    for key, value in payload.items():
-        if key in _EDITABLE_FIELDS:
-            setattr(row, key, value)
+    apply_editable_fields(row, payload, _EDITABLE_FIELDS)
 
     db.commit()
 
-    for affected in {old_project_id, row.project_id} - {None}:
-        recompute_progress(db, affected)
+    recompute_for(db, [old_project_id, row.project_id])
 
     db.refresh(row)
-    return _entry_dict(row, _project_name_map(db, [row.project_id, row.suggested_project_id]))
+    return _entry_dict(row, project_name_map(db, [row.project_id, row.suggested_project_id]))
 
 
 def delete_entry(db: Session, entry_id: int) -> bool:
@@ -161,6 +154,5 @@ def delete_entry(db: Session, entry_id: int) -> bool:
     linked_project_id = row.project_id
     db.delete(row)
     db.commit()
-    if linked_project_id is not None:
-        recompute_progress(db, linked_project_id)
+    recompute_for(db, [linked_project_id])
     return True

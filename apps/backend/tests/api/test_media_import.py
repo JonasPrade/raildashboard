@@ -5,6 +5,7 @@ from __future__ import annotations
 import httpx
 
 import dashboard_backend.api.v1.endpoints.media_import as media_route
+from dashboard_backend.crud._importer_common import ProjectNotFoundError
 from dashboard_backend.schemas.users import UserRole
 from tests.api.conftest import basic_auth_header
 
@@ -143,7 +144,7 @@ def test_update_unknown_project_404(client, create_user, monkeypatch):
     create_user("editor-m6", "pass123", UserRole.editor)
 
     def _update(db, entry_id, payload):
-        raise ValueError("Project 999 not found")
+        raise ProjectNotFoundError("Project 999 not found")
 
     monkeypatch.setattr(media_route.media_crud, "update_entry", _update)
     resp = client.patch(
