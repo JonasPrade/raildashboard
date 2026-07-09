@@ -13,6 +13,10 @@ class FinveToProject(Base):
     haushalt_year = Column(Integer, nullable=True)
 
     __table_args__ = (
+        # Lookups by finve_id alone (finves overview, admin assignments,
+        # haushalt confirm sync) — the partial unique indexes lead with
+        # project_id and don't cover them.
+        Index('ix_finve_to_project_finve_id', 'finve_id'),
         # One permanent entry per (project, finve) — only when haushalt_year IS NULL
         Index(
             'uq_finve_to_project_permanent',

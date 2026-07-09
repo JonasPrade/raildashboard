@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, ForeignKey, Index, UniqueConstraint
 from dashboard_backend.models.base import Base
 
 
@@ -9,4 +9,7 @@ class TextToProject(Base):
     text_id = Column(Integer, ForeignKey('project_text.id', onupdate='CASCADE', ondelete='CASCADE'), nullable=False)
     __table_args__ = (
         UniqueConstraint('project_id', 'text_id', name='uq_text_to_project'),
+        # Lookups by text_id alone (_get_project_id_for_text) — the unique
+        # constraint leads with project_id and doesn't cover them.
+        Index('ix_text_to_project_text_id', 'text_id'),
     )
