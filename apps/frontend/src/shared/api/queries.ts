@@ -3,6 +3,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./client";
 import type { components } from "./types.gen";
 
+function mergeDefined<T extends object>(entry: T, patch: object): T {
+    const next = { ...entry } as Record<string, unknown>;
+    for (const [key, value] of Object.entries(patch)) {
+        if (value !== undefined) next[key] = value;
+    }
+    return next as T;
+}
+
 export type Project = components["schemas"]["ProjectSchema"];
 export type ProjectGroup = components["schemas"]["ProjectGroupSchema"];
 export type ProjectRoute = components["schemas"]["RouteOut"];
@@ -10,105 +18,21 @@ export type User = components["schemas"]["UserRead"];
 export type Role = components["schemas"]["RoleRead"];
 export type Permission = components["schemas"]["PermissionSchema"];
 
-export type ProjectUpdatePayload = {
-    name?: string;
-    is_draft?: boolean;
-    project_number?: string | null;
-    description?: string | null;
-    justification?: string | null;
-    superior_project_id?: number | null;
-    length?: number | null;
-    new_vmax?: number | null;
-    etcs_level?: number | null;
-    number_junction_station?: number | null;
-    number_overtaking_station?: number | null;
-    filling_stations_count?: number | null;
-    effects_passenger_long_rail?: boolean;
-    effects_passenger_local_rail?: boolean;
-    effects_cargo_rail?: boolean;
-    nbs?: boolean;
-    abs?: boolean;
-    second_track?: boolean;
-    third_track?: boolean;
-    fourth_track?: boolean;
-    curve?: boolean;
-    increase_speed?: boolean;
-    tunnel_structural_gauge?: boolean;
-    tilting?: boolean;
-    new_station?: boolean | null;
-    platform?: boolean;
-    junction_station?: boolean;
-    overtaking_station?: boolean;
-    depot?: boolean;
-    level_free_platform_entrance?: boolean;
-    double_occupancy?: boolean;
-    simultaneous_train_entries?: boolean;
-    buffer_track?: boolean;
-    overpass?: boolean;
-    noise_barrier?: boolean;
-    railroad_crossing?: boolean;
-    gwb?: boolean;
-    etcs?: boolean;
-    new_estw?: boolean;
-    new_dstw?: boolean;
-    block_increase?: boolean;
-    station_railroad_switches?: boolean;
-    flying_junction?: boolean;
-    elektrification?: boolean;
-    optimised_electrification?: boolean;
-    charging_station?: boolean;
-    small_charging_station?: boolean;
-    battery?: boolean;
-    h2?: boolean;
-    efuel?: boolean;
-    filling_stations_efuel?: boolean;
-    filling_stations_h2?: boolean;
-    filling_stations_diesel?: boolean;
-    sgv740m?: boolean;
-    sanierung?: boolean;
-    closure?: boolean;
-    project_group_ids?: number[];
-    geojson_representation?: string | null;
-};
+export type ProjectUpdatePayload = components["schemas"]["ProjectUpdate"];
 
 // ---------------------------------------------------------------------------
 // Project texts
 // ---------------------------------------------------------------------------
 
-export type ProjectTextType = { id: number; name: string };
+export type ProjectTextType = components["schemas"]["ProjectTextTypeSchema"];
 
-export type TextAttachment = {
-    id: number;
-    text_id: number;
-    filename: string;
-    mime_type: string;
-    file_size: number;
-    uploaded_at: string;
-    uploaded_by_user_id: number | null;
-};
+export type TextAttachment = components["schemas"]["TextAttachmentSchema"];
 
-export type ProjectText = {
-    id: number;
-    header: string;
-    weblink: string | null;
-    text: string | null;
-    type: number;
-    logo_url: string | null;
-    created_at: number;
-    updated_at: number;
-    text_type: ProjectTextType;
-    attachments: TextAttachment[];
-};
+export type ProjectText = components["schemas"]["ProjectTextSchema"];
 
-export type ProjectTextCreate = {
-    header: string;
-    weblink?: string | null;
-    text?: string | null;
-    type: number;
-    logo_url?: string | null;
-};
+export type ProjectTextCreate = components["schemas"]["ProjectTextCreate"];
 
-export type ProjectTextUpdate = Partial<ProjectTextCreate>;
+export type ProjectTextUpdate = components["schemas"]["ProjectTextUpdate"];
 
 export function useTextTypes() {
     return useQuery({
@@ -345,18 +269,9 @@ export function useProjectGroups() {
     });
 }
 
-export type ProjectGroupCreatePayload = {
-    name: string;
-    short_name: string;
-    description?: string | null;
-    public?: boolean;
-    color?: string;
-    plot_only_superior_projects?: boolean;
-    is_visible?: boolean;
-    is_default_selected?: boolean;
-};
+export type ProjectGroupCreatePayload = components["schemas"]["ProjectGroupCreate"];
 
-export type ProjectGroupUpdatePayload = Partial<ProjectGroupCreatePayload>;
+export type ProjectGroupUpdatePayload = components["schemas"]["ProjectGroupUpdate"];
 
 export function useCreateProjectGroup() {
     const qc = useQueryClient();
@@ -393,8 +308,8 @@ export function useDeleteProjectGroup() {
     });
 }
 
-export type MapGroupMode = "preconfigured" | "all";
-export type AppSettings = { map_group_mode: MapGroupMode };
+export type MapGroupMode = AppSettings["map_group_mode"];
+export type AppSettings = components["schemas"]["AppSettingsSchema"];
 
 export function useAppSettings() {
     return useQuery({
@@ -431,15 +346,7 @@ export function updateProject(id: number, payload: ProjectUpdatePayload) {
 // Project wizard (POST /api/v1/projects + link helpers)
 // ---------------------------------------------------------------------------
 
-export type ProjectCreatePayload = {
-    name: string;
-    is_draft?: boolean;
-    project_number?: string | null;
-    description?: string | null;
-    justification?: string | null;
-    superior_project_id?: number | null;
-    project_group_ids?: number[];
-};
+export type ProjectCreatePayload = components["schemas"]["ProjectCreate"];
 
 export function useCreateProject() {
     const queryClient = useQueryClient();
@@ -519,12 +426,7 @@ export function useLinkFinvesToProject(projectId: number) {
     });
 }
 
-export type ConfirmedVibEntry = {
-    id: number;
-    vib_name_raw: string | null;
-    report_year: number;
-    project_ids: number[];
-};
+export type ConfirmedVibEntry = components["schemas"]["VibEntryListItemSchema"];
 
 export function useConfirmedVibEntries(enabled: boolean = true) {
     return useQuery({
@@ -538,41 +440,13 @@ export function useConfirmedVibEntries(enabled: boolean = true) {
 // Change tracking
 // ---------------------------------------------------------------------------
 
-export type ChangeLogEntry = {
-    id: number;
-    field_name: string;
-    old_value: string | null;
-    new_value: string | null;
-};
+export type ChangeLogEntry = components["schemas"]["ChangeLogEntryRead"];
 
-export type ChangeLog = {
-    id: number;
-    project_id: number;
-    user_id: number | null;
-    username_snapshot: string | null;
-    timestamp: string;
-    action: string;
-    entries: ChangeLogEntry[];
-};
+export type ChangeLog = components["schemas"]["ChangeLogRead"];
 
-export type TextChangeLogEntry = {
-    id: number;
-    field_name: string;
-    old_value: string | null;
-    new_value: string | null;
-};
+export type TextChangeLogEntry = components["schemas"]["TextChangeLogEntryRead"];
 
-export type TextChangeLog = {
-    id: number;
-    text_id: number | null;
-    project_id: number | null;
-    user_id: number | null;
-    username_snapshot: string | null;
-    text_header_snapshot: string | null;
-    timestamp: string;
-    action: string;
-    entries: TextChangeLogEntry[];
-};
+export type TextChangeLog = components["schemas"]["TextChangeLogRead"];
 
 export function useProjectChangelog(projectId: number) {
     return useQuery({
@@ -759,46 +633,11 @@ export function useDeleteRole() {
 // FinVe + Budget (Projektdetail)
 // ---------------------------------------------------------------------------
 
-export type TitelEntry = {
-    titel_key: string;
-    kapitel: string;
-    titel_nr: string;
-    label: string;
-    is_nachrichtlich: boolean;
-    cost_estimate_last_year: number | null;
-    cost_estimate_aktuell: number | null;
-    verausgabt_bis: number | null;
-    bewilligt: number | null;
-    ausgabereste_transferred: number | null;
-    veranschlagt: number | null;
-    vorhalten_future: number | null;
-};
+export type TitelEntry = components["schemas"]["TitelEntrySchema"];
 
-export type BudgetSummary = {
-    budget_year: number;
-    lfd_nr: string | null;
-    bedarfsplan_number: string | null;
-    cost_estimate_original: number | null;
-    cost_estimate_last_year: number | null;
-    cost_estimate_actual: number | null;
-    delta_previous_year: number | null;
-    delta_previous_year_relativ: number | null;
-    spent_two_years_previous: number | null;
-    allowed_previous_year: number | null;
-    spending_residues: number | null;
-    year_planned: number | null;
-    next_years: number | null;
-    titel_entries: TitelEntry[];
-};
+export type BudgetSummary = components["schemas"]["BudgetSummarySchema"];
 
-export type FinveWithBudgets = {
-    id: number;
-    name: string | null;
-    starting_year: number | null;
-    cost_estimate_original: number | null;
-    is_sammel_finve: boolean;
-    budgets: BudgetSummary[];
-};
+export type FinveWithBudgets = components["schemas"]["FinveWithBudgetsSchema"];
 
 export function useProjectFinves(projectId: number) {
     return useQuery({
@@ -828,20 +667,9 @@ export function useProjectBvwp(projectId: number) {
     });
 }
 
-export type ProjectRef = { id: number; name: string };
+export type ProjectRef = components["schemas"]["ProjectRefSchema"];
 
-export type FinveListItem = {
-    id: number;
-    name: string | null;
-    starting_year: number | null;
-    cost_estimate_original: number | null;
-    is_sammel_finve: boolean;
-    temporary_finve_number: boolean;
-    project_count: number;
-    project_names: string[];
-    projects: ProjectRef[];
-    budgets: BudgetSummary[];
-};
+export type FinveListItem = components["schemas"]["FinveListItemSchema"];
 
 export function useFinves() {
     return useQuery({
@@ -854,47 +682,11 @@ export function useFinves() {
 // Haushalt-Import
 // ---------------------------------------------------------------------------
 
-export type TitelEntryProposed = {
-    titel_key: string;
-    kapitel: string;
-    titel_nr: string;
-    label: string;
-    is_nachrichtlich: boolean;
-    cost_estimate_last_year: number | null;
-    cost_estimate_aktuell: number | null;
-    verausgabt_bis: number | null;
-    bewilligt: number | null;
-    ausgabereste_transferred: number | null;
-    veranschlagt: number | null;
-    vorhalten_future: number | null;
-};
+export type TitelEntryProposed = components["schemas"]["TitelEntryProposed"];
 
-export type ProposedFinve = {
-    id: number;
-    name: string;
-    starting_year: number | null;
-    cost_estimate_original: number | null;
-    is_sammel_finve: boolean;
-};
+export type ProposedFinve = components["schemas"]["ProposedFinve"];
 
-export type ProposedBudget = {
-    budget_year: number;
-    lfd_nr: string | null;
-    fin_ve: number;
-    bedarfsplan_number: string | null;
-    cost_estimate_original: number | null;
-    cost_estimate_last_year: number | null;
-    cost_estimate_actual: number | null;
-    delta_previous_year: number | null;
-    delta_previous_year_relativ: number | null;
-    delta_previous_year_reasons: string | null;
-    spent_two_years_previous: number | null;
-    allowed_previous_year: number | null;
-    spending_residues: number | null;
-    year_planned: number | null;
-    next_years: number | null;
-    sammel_finve: boolean;
-};
+export type ProposedBudget = components["schemas"]["ProposedBudget"];
 
 export type HaushaltsParseRow = {
     finve_number: number;
@@ -916,50 +708,17 @@ export type HaushaltsParseTaskResult = {
     unmatched_rows: Record<string, unknown>[];
 };
 
-export type ParseResultPublic = {
-    id: number;
-    haushalt_year: number;
-    pdf_filename: string;
-    parsed_at: string;
-    username_snapshot: string | null;
-    status: "PENDING" | "SUCCESS" | "FAILURE";
-    error_message: string | null;
-    confirmed_at: string | null;
-    confirmed_by_snapshot: string | null;
-    result_json: HaushaltsParseTaskResult | null;
-};
+export type ParseResultPublic = components["schemas"]["ParseResultPublicSchema"];
 
-export type UnmatchedBudgetRow = {
-    id: number;
-    haushalt_year: number;
-    raw_finve_number: string;
-    raw_name: string;
-    raw_data: Record<string, unknown> | null;
-    resolved: boolean;
-    resolved_finve_id: number | null;
-    resolved_at: string | null;
-    resolved_by_snapshot: string | null;
-};
+export type UnmatchedBudgetRow = components["schemas"]["UnmatchedBudgetRowSchema"];
 
-export type HaushaltsConfirmRowInput = Omit<HaushaltsParseRow, "status"> & {
-    status: string;
-};
+export type HaushaltsConfirmRowInput = components["schemas"]["HaushaltsConfirmRowInput"];
 
-export type HaushaltsConfirmRequest = {
-    parse_result_id: number;
-    rows: HaushaltsConfirmRowInput[];
-    unmatched_action: "save" | "discard";
-};
+export type HaushaltsConfirmRequest = components["schemas"]["HaushaltsConfirmRequest"];
 
-export type HaushaltsConfirmResponse = {
-    finves_created: number;
-    finves_updated: number;
-    budgets_created: number;
-    budgets_updated: number;
-    unmatched_saved: number;
-};
+export type HaushaltsConfirmResponse = components["schemas"]["HaushaltsConfirmResponse"];
 
-export type TaskLaunchResponse = { task_id: string };
+export type TaskLaunchResponse = components["schemas"]["TaskLaunchResponse"];
 export type TaskProgressMeta = {
     // VIB parse steps
     step?: string;
@@ -970,12 +729,7 @@ export type TaskProgressMeta = {
     rows_found?: number;
 };
 
-export type TaskStatusResponse = {
-    task_id: string;
-    status: "PENDING" | "STARTED" | "PROGRESS" | "SUCCESS" | "FAILURE";
-    result: unknown;
-    error: string | null;
-};
+export type TaskStatusResponse = components["schemas"]["TaskStatusResponse"];
 
 export function useParseResults() {
     return useQuery({
@@ -1074,145 +828,25 @@ export function useResolveUnmatchedRow() {
 // VIB (Verkehrsinvestitionsbericht) import
 // ---------------------------------------------------------------------------
 
-export type VibPfaEntryProposed = {
-    abschnitt_label: string | null;
-    nr_pfa: string | null;
-    oertlichkeit: string | null;
-    entwurfsplanung: string | null;
-    abschluss_finve: string | null;
-    datum_pfb: string | null;
-    baubeginn: string | null;
-    inbetriebnahme: string | null;
-    project_id: number | null;
-    suggested_project_id: number | null;
-};
+export type VibPfaEntryProposed = components["schemas"]["VibPfaEntryProposed"];
 
-export type VibEntryProposed = {
-    vib_section: string | null;
-    vib_lfd_nr: string | null;
-    vib_name_raw: string;
-    category: "laufend" | "neu" | "potentiell" | "abgeschlossen";
-    verkehrliche_zielsetzung: string | null;
-    durchgefuehrte_massnahmen: string | null;
-    noch_umzusetzende_massnahmen: string | null;
-    bauaktivitaeten: string | null;
-    teilinbetriebnahmen: string | null;
-    raw_text: string | null;
-    strecklaenge_km: number | null;
-    gesamtkosten_mio_eur: number | null;
-    entwurfsgeschwindigkeit: string | null;
-    planungsstand: string | null;
-    pfa_entries: VibPfaEntryProposed[];
-    pfa_raw_markdown: string | null;
-    sonstiges: string | null;
-    project_ids: number[];
-    suggested_project_ids: number[];
-    status_planung: boolean;
-    status_bau: boolean;
-    status_abgeschlossen: boolean;
-    ai_extracted: boolean;
-    ai_extraction_failed: boolean;
-    ai_extraction_error: string | null;
-};
+export type VibEntryProposed = components["schemas"]["VibEntryProposed"];
 
-export type VibParseTaskResult = {
-    year: number;
-    drucksache_nr: string | null;
-    report_date: string | null;
-    entries: VibEntryProposed[];
-};
+export type VibParseTaskResult = components["schemas"]["VibParseTaskResult"];
 
-export type VibConfirmEntryInput = Omit<VibEntryProposed, "suggested_project_ids">;
+export type VibConfirmEntryInput = components["schemas"]["VibConfirmEntryInput"];
 
-export type VibConfirmRequest = {
-    task_id: string;
-    year: number;
-    drucksache_nr: string | null;
-    report_date: string | null;
-    entries: VibConfirmEntryInput[];
-};
+export type VibConfirmRequest = components["schemas"]["VibConfirmRequest"];
 
-export type VibConfirmResponse = {
-    report_id: number;
-    entries_created: number;
-    pfa_entries_created: number;
-};
+export type VibConfirmResponse = components["schemas"]["VibConfirmResponse"];
 
-export type VibReportSchema = {
-    id: number;
-    year: number;
-    drucksache_nr: string | null;
-    report_date: string | null;
-    imported_at: string;
-    entry_count: number;
-};
+export type VibReportSchema = components["schemas"]["VibReportSchema"];
 
-export type VibPfaEntrySchema = {
-    id: number;
-    abschnitt_label: string | null;
-    nr_pfa: string | null;
-    oertlichkeit: string | null;
-    entwurfsplanung: string | null;
-    abschluss_finve: string | null;
-    datum_pfb: string | null;
-    baubeginn: string | null;
-    inbetriebnahme: string | null;
-    project_id: number | null;
-    suggested_project_id: number | null;
-};
+export type VibPfaEntrySchema = components["schemas"]["VibPfaEntrySchema"];
 
-export type VibEntrySchema = {
-    id: number;
-    vib_report_id: number;
-    vib_section: string | null;
-    vib_lfd_nr: string | null;
-    vib_name_raw: string;
-    category: string;
-    raw_text: string | null;
-    bauaktivitaeten: string | null;
-    teilinbetriebnahmen: string | null;
-    verkehrliche_zielsetzung: string | null;
-    durchgefuehrte_massnahmen: string | null;
-    noch_umzusetzende_massnahmen: string | null;
-    sonstiges: string | null;
-    strecklaenge_km: number | null;
-    gesamtkosten_mio_eur: number | null;
-    entwurfsgeschwindigkeit: string | null;
-    planungsstand: string | null;
-    status_planung: boolean;
-    status_bau: boolean;
-    status_abgeschlossen: boolean;
-    ai_extracted: boolean;
-    pfa_entries: VibPfaEntrySchema[];
-    project_ids: number[];
-    report_year: number;
-};
+export type VibEntrySchema = components["schemas"]["VibEntrySchema"];
 
-export type VibEntryForProject = {
-    id: number;
-    year: number;
-    drucksache_nr: string | null;
-    vib_section: string | null;
-    vib_name_raw: string;
-    category: "laufend" | "neu" | "potentiell" | "abgeschlossen";
-    bauaktivitaeten: string | null;
-    teilinbetriebnahmen: string | null;
-    verkehrliche_zielsetzung: string | null;
-    durchgefuehrte_massnahmen: string | null;
-    noch_umzusetzende_massnahmen: string | null;
-    sonstiges: string | null;
-    raw_text: string | null;
-    strecklaenge_km: number | null;
-    gesamtkosten_mio_eur: number | null;
-    entwurfsgeschwindigkeit: string | null;
-    planungsstand: string | null;
-    status_planung: boolean;
-    status_bau: boolean;
-    status_abgeschlossen: boolean;
-    ai_extracted: boolean;
-    pfa_entries: VibPfaEntrySchema[];
-    project_ids: number[];
-};
+export type VibEntryForProject = components["schemas"]["VibEntryForProjectSchema"];
 
 export function useVibParseResult(taskId: string | null) {
     return useQuery({
@@ -1322,36 +956,11 @@ export function useVibEntry(entryId: number | null) {
 // DB-Bauportal importer (#47)
 // ---------------------------------------------------------------------------
 
-export type BauportalEntry = {
-    id: number;
-    bauportal_id: number;
-    parent_bauportal_id: number | null;
-    shorttitle: string;
-    status_raw: string | null;
-    mapped_phase: string | null;
-    projecttime_raw: string | null;
-    url: string | null;
-    lat: number | null;
-    lng: number | null;
-    fetched_at: string | null;
-    suggested_project_id: number | null;
-    suggested_project_name: string | null;
-    project_id: number | null;
-    project_name: string | null;
-    confirmed: boolean;
-};
+export type BauportalEntry = components["schemas"]["BauportalEntrySchema"];
 
-export type BauportalUpdatePayload = {
-    project_id?: number | null;
-    confirmed?: boolean;
-};
+export type BauportalUpdatePayload = components["schemas"]["BauportalUpdateInput"];
 
-export type BauportalImportSummary = {
-    fetched: number;
-    created: number;
-    updated: number;
-    skipped: number;
-};
+export type BauportalImportSummary = components["schemas"]["BauportalImportSummary"];
 
 export function useBauportalEntries(onlyUnconfirmed = false) {
     return useQuery({
@@ -1392,7 +1001,7 @@ export function useUpdateBauportalEntry() {
             });
             queryClient.setQueriesData<BauportalEntry[]>(
                 { queryKey: ["bauportal-entries"] },
-                (old) => (old ? old.map((e) => (e.id === entryId ? { ...e, ...data } : e)) : old),
+                (old) => (old ? old.map((e) => (e.id === entryId ? mergeDefined(e, data) : e)) : old),
             );
             return { snapshots };
         },
@@ -1424,33 +1033,9 @@ export function useConfirmAllBauportal() {
 // Medien/Presse importer (#48)
 // ---------------------------------------------------------------------------
 
-export type MediaEntry = {
-    id: number;
-    url: string | null;
-    publication: string | null;
-    published_date: string | null;
-    raw_text: string | null;
-    quote: string | null;
-    asserted_phase: string | null;
-    observed_date: string | null;
-    suggested_project_id: number | null;
-    suggested_project_name: string | null;
-    project_id: number | null;
-    project_name: string | null;
-    confirmed: boolean;
-    created_at: string | null;
-    username_snapshot: string | null;
-};
+export type MediaEntry = components["schemas"]["MediaEntrySchema"];
 
-export type MediaUpdatePayload = {
-    publication?: string | null;
-    published_date?: string | null;
-    asserted_phase?: string | null;
-    observed_date?: string | null;
-    quote?: string | null;
-    project_id?: number | null;
-    confirmed?: boolean;
-};
+export type MediaUpdatePayload = components["schemas"]["MediaUpdateInput"];
 
 export function useMediaEntries(onlyUnconfirmed = false) {
     return useQuery({
@@ -1507,22 +1092,7 @@ export function useDeleteMediaEntry() {
 // Fulda-Runde importer (#46)
 // ---------------------------------------------------------------------------
 
-export type FuldaEntry = {
-    id: number;
-    announcement_year: number;
-    source_label: string | null;
-    document_date: string | null;
-    raw_name: string;
-    abschnitt: string | null;
-    category: string | null;
-    announced_phase: string | null;
-    expected_date: string | null;
-    project_ids: number[];
-    project_names: string[];
-    confirmed: boolean;
-    created_at: string | null;
-    username_snapshot: string | null;
-};
+export type FuldaEntry = components["schemas"]["FuldaEntrySchema"];
 
 export type FuldaParseSummary = {
     ocr_status: string;
@@ -1530,24 +1100,9 @@ export type FuldaParseSummary = {
     source_label: string | null;
 };
 
-export type FuldaYearSummary = {
-    announcement_year: number;
-    total: number;
-    confirmed: number;
-    source_label: string | null;
-    document_date: string | null;
-};
+export type FuldaYearSummary = components["schemas"]["FuldaYearSummary"];
 
-export type FuldaUpdatePayload = {
-    announcement_year?: number;
-    source_label?: string | null;
-    abschnitt?: string | null;
-    announced_phase?: string | null;
-    category?: string | null;
-    expected_date?: string | null;
-    project_ids?: number[];
-    confirmed?: boolean;
-};
+export type FuldaUpdatePayload = components["schemas"]["FuldaUpdateInput"];
 
 export function useFuldaEntries(onlyUnconfirmed = false, year: number | null = null) {
     return useQuery({
@@ -1601,7 +1156,7 @@ export function useUpdateFuldaEntry() {
                 queryKey: ["fulda-entries"],
             });
             queryClient.setQueriesData<FuldaEntry[]>({ queryKey: ["fulda-entries"] }, (old) =>
-                old ? old.map((e) => (e.id === entryId ? { ...e, ...data } : e)) : old,
+                old ? old.map((e) => (e.id === entryId ? mergeDefined(e, data) : e)) : old,
             );
             return { snapshots };
         },
@@ -1698,11 +1253,7 @@ export function useRetryVibAiForEntry() {
     });
 }
 
-export type VibDraftSchema = {
-    task_id: string;
-    year: number;
-    created_at: string;
-};
+export type VibDraftSchema = components["schemas"]["VibDraftSchema"];
 
 export function useVibDrafts() {
     return useQuery({
@@ -1726,20 +1277,9 @@ export function useDeleteVibDraft() {
 // Admin: Offene Zuordnungen (unassigned FinVe / VIB entries)
 // ---------------------------------------------------------------------------
 
-export type UnassignedFinve = {
-    id: number;
-    name: string | null;
-    is_sammel_finve: boolean;
-    starting_year: number | null;
-};
+export type UnassignedFinve = components["schemas"]["UnassignedFinveSchema"];
 
-export type UnassignedVibEntry = {
-    id: number;
-    vib_name_raw: string;
-    vib_section: string | null;
-    category: string;
-    report_year: number;
-};
+export type UnassignedVibEntry = components["schemas"]["UnassignedVibEntrySchema"];
 
 export function useUnassignedFinves(enabled = true) {
     return useQuery({
@@ -1791,17 +1331,14 @@ export function useAssignVibEntry() {
 // Routing / Geometry management
 // ---------------------------------------------------------------------------
 
-export type OperationalPointRef = {
-    id: number;
-    op_id: string | null;
-    name: string | null;
-    type: string | null;
-    latitude: number | null;
-    longitude: number | null;
-};
+export type OperationalPointRef = components["schemas"]["OperationalPointRef"];
 
-export type RoutePreviewFeature = {
-    type: "Feature";
+// The backend types the preview Feature loosely (dict); the concrete shape is
+// stable (services/route_service.py) and narrowed here on top of the schema.
+export type RoutePreviewFeature = Omit<
+    components["schemas"]["RoutePreviewOut"],
+    "geometry" | "properties"
+> & {
     geometry: { type: "LineString"; coordinates: number[][] };
     properties: {
         distance_m: number;
@@ -1962,13 +1499,7 @@ export function useDeleteTodo() {
 
 // --- Guides ("Anleitungen") section overrides --------------------------------
 
-export type GuideOverride = {
-    guide_slug: string;
-    section_key: string;
-    body_markdown: string;
-    updated_at: string | null;
-    username_snapshot: string | null;
-};
+export type GuideOverride = components["schemas"]["GuideOverrideSchema"];
 
 export function useGuideOverrides(guideSlug: string) {
     return useQuery({

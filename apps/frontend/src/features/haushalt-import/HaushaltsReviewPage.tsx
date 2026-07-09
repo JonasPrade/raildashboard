@@ -20,6 +20,7 @@ import {
     useConfirmHaushaltsImport,
     useDeleteParseResult,
     type HaushaltsParseRow,
+    type HaushaltsParseTaskResult,
 } from "../../shared/api/queries";
 import { ReviewTable } from "./components/ReviewTable";
 import { formatDateTime } from "../../shared/format";
@@ -47,12 +48,14 @@ function HaushaltsReviewPageContent() {
         );
     }
 
-    const displayRows: HaushaltsParseRow[] = rows ?? (result.result_json?.rows ?? []);
+    // result_json carries the raw parse task result (untyped dict on the wire).
+    const parsedResult = (result.result_json ?? null) as HaushaltsParseTaskResult | null;
+    const displayRows: HaushaltsParseRow[] = rows ?? (parsedResult?.rows ?? []);
     const isConfirmed = result.confirmed_at !== null;
 
     const handleProjectIdsChange = (finveNumber: number, projectIds: number[]) => {
         setRows((prev) => {
-            const base = prev ?? (result.result_json?.rows ?? []);
+            const base = prev ?? (parsedResult?.rows ?? []);
             return base.map((r) =>
                 r.finve_number === finveNumber ? { ...r, project_ids: projectIds } : r
             );
