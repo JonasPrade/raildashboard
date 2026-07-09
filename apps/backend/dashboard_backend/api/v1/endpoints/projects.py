@@ -169,7 +169,7 @@ def patch_project(
 
     # Record before/after values in changelog (committed together with the update below)
     create_changelog_for_patch(db, project, update_data, current_user.id, current_user.username)
-    return update_project(db, project_id, update_data)
+    return update_project(db, project_id, update_data, project=project)
 
 
 @router.get("/{project_id}/finves", response_model=list[FinveWithBudgetsSchema])
@@ -292,4 +292,4 @@ def revert_project_field(
         current_user.username,
         action="REVERT",
     )
-    return update_project(db, project_id, {field_name: target_value})
+    return update_project(db, project_id, {field_name: target_value}, project=project)

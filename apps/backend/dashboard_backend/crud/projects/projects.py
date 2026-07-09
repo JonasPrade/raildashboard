@@ -2,7 +2,7 @@
 import json
 from typing import Any, List, Optional
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from dashboard_backend.models.projects import Project
 from dashboard_backend.models.projects.project_group import ProjectGroup
@@ -10,12 +10,23 @@ from dashboard_backend.models.projects.project_group import ProjectGroup
 
 def get_projects(db: Session):
     """Gibt alle finalisierten Projekte zurück (Entwürfe ausgeblendet)."""
-    return db.query(Project).filter(Project.is_draft.is_(False)).all()
+    # ProjectSchema serializes project_groups — eager-load to avoid 1+N queries.
+    return (
+        db.query(Project)
+        .options(selectinload(Project.project_groups))
+        .filter(Project.is_draft.is_(False))
+        .all()
+    )
 
 
 def get_draft_projects(db: Session):
     """Gibt alle noch nicht finalisierten Projekte (Entwürfe) zurück."""
-    return db.query(Project).filter(Project.is_draft.is_(True)).all()
+    return (
+        db.query(Project)
+        .options(selectinload(Project.project_groups))
+        .filter(Project.is_draft.is_(True))
+        .all()
+    )
 
 
 def get_project_by_id(db: Session, project_id: int):
@@ -100,9 +111,14 @@ def create_project(db: Session, data: dict) -> Project:
     return project
 
 
-def update_project(db: Session, project_id: int, update_data: dict):
-    """Aktualisiert ein bestehendes Projekt."""
-    project = get_project_by_id(db, project_id)
+def update_project(db: Session, project_id: int, update_data: dict, project: Project | None = None):
+    """Aktualisiert ein bestehendes Projekt.
+
+    Callers that already loaded the project (e.g. for changelog recording)
+    can pass it via *project* to avoid a second identical SELECT.
+    """
+    if project is None:
+        project = get_project_by_id(db, project_id)
     if not project:
         return None
 

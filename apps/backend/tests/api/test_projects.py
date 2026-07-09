@@ -294,7 +294,7 @@ def test_patch_project_success(client, create_user, monkeypatch):
 
     monkeypatch.setattr(projects_route, "get_project_by_id", lambda db, pid: _make_project(pid))
     monkeypatch.setattr(projects_route, "create_changelog_for_patch", lambda *a, **kw: None)
-    monkeypatch.setattr(projects_route, "update_project", lambda db, pid, data: updated)
+    monkeypatch.setattr(projects_route, "update_project", lambda db, pid, data, project=None: updated)
 
     resp = client.patch(
         "/api/v1/projects/1",
