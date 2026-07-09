@@ -6,7 +6,6 @@ import hmac
 import os
 import time
 from collections.abc import Iterable
-from typing import Callable
 
 from fastapi import Cookie, Depends, HTTPException, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
@@ -16,9 +15,6 @@ from sqlalchemy.orm import Session
 
 from dashboard_backend.crud import users as users_crud
 from dashboard_backend.database import get_db
-
-
-PasswordHasher = Callable[[str], str]
 
 
 _ITERATIONS = 390_000

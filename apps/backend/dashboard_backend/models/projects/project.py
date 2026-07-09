@@ -120,7 +120,6 @@ class Project(Base):
         back_populates='projects'
     )
 
-    # project_progress = relationship('ProjectProgress', backref='project', cascade="all, delete-orphan")
     superior_project = relationship('Project', remote_side='Project.id')
 
     # indexes

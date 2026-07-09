@@ -1,4 +1,3 @@
-# dashboard_backend/crud/projects.py
 import json
 from typing import Any, List, Optional
 
