@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from dashboard_backend.core.permissions import ADMIN_ROLE_NAME
 from dashboard_backend.crud import roles as roles_crud
@@ -18,8 +18,19 @@ def _resolve_role_id(db: Session, role_name: str) -> int:
     return role.id
 
 
+# Auth runs on every request: load role + permissions together with the user
+# in one query (User.role is join-eager, but Role.permissions would otherwise
+# fire a second selectin query per lookup).
+_AUTH_EAGER = joinedload(User.role).joinedload(Role.permissions)
+
+
 def get_user_by_username(db: Session, username: str) -> User | None:
-    return db.query(User).filter(User.username == username).one_or_none()
+    return (
+        db.query(User)
+        .options(_AUTH_EAGER)
+        .filter(User.username == username)
+        .one_or_none()
+    )
 
 
 def get_users(db: Session) -> list[User]:
@@ -53,7 +64,12 @@ def update_password(db: Session, user: User, new_hashed_password: str) -> User:
 
 
 def get_user_by_id(db: Session, user_id: int) -> User | None:
-    return db.query(User).filter(User.id == user_id).one_or_none()
+    return (
+        db.query(User)
+        .options(_AUTH_EAGER)
+        .filter(User.id == user_id)
+        .one_or_none()
+    )
 
 
 def update_user(
