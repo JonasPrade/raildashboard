@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import Session
 
+from dashboard_backend.crud.changelog import diff_to_entries
+
 from dashboard_backend.models.haushalt.budget_change_log import BudgetChangeLog, BudgetChangeLogEntry
 from dashboard_backend.models.haushalt.budget_titel_entry import BudgetTitelEntry
 from dashboard_backend.models.haushalt.finve_change_log import FinveChangeLog, FinveChangeLogEntry
@@ -138,66 +140,58 @@ def delete_parse_result(db: Session, parse_result_id: int) -> bool:
 _FINVE_TRACKED_FIELDS = ("name", "starting_year", "cost_estimate_original", "is_sammel_finve")
 
 
-def upsert_finve(
+def _upsert_tracked(
     db: Session,
-    proposed: ProposedFinve,
+    *,
+    model_cls,
+    log_cls,
+    entry_cls,
+    log_fk: str,
+    proposed,
+    key_filter,
+    tracked_fields: tuple[str, ...],
+    exclude: set[str],
     user: "User | None",
     haushalt_year: int,
-) -> tuple[Finve, bool, FinveChangeLog | None]:
-    """Insert or update a Finve record.
+):
+    """Generic tracked upsert shared by ``upsert_finve`` / ``upsert_budget``.
 
-    Returns (finve, created, changelog).
+    Query per ``key_filter`` → create the row from all proposed fields with a
+    CREATE changelog (None values skipped), or diff+apply the tracked fields
+    with an UPDATE changelog (None when nothing changed). New tracked fields
+    only need an entry in the importer's tracked-fields tuple.
+
+    Returns ``(row, created, changelog)``.
     """
-    existing = db.query(Finve).filter(Finve.id == proposed.id).first()
+    existing = db.query(model_cls).filter(*key_filter).first()
 
     if existing is None:
-        finve = Finve(
-            id=proposed.id,
-            name=proposed.name,
-            starting_year=proposed.starting_year,
-            cost_estimate_original=proposed.cost_estimate_original,
-            is_sammel_finve=proposed.is_sammel_finve,
-        )
-        db.add(finve)
+        row = model_cls(**proposed.model_dump())
+        db.add(row)
         db.flush()
 
-        changelog = FinveChangeLog(
-            finve_id=finve.id,
+        changelog = log_cls(
+            **{log_fk: row.id},
             haushalt_year=haushalt_year,
             username_snapshot=user.username if user else None,
             timestamp=datetime.utcnow(),
             action="CREATE",
             entries=[
-                FinveChangeLogEntry(field_name=f, old_value=None, new_value=json.dumps(getattr(finve, f)))
-                for f in _FINVE_TRACKED_FIELDS
-                if getattr(finve, f) is not None
+                entry_cls(field_name=f, old_value=None, new_value=json.dumps(getattr(row, f)))
+                for f in tracked_fields
+                if getattr(row, f) is not None
             ],
         )
         db.add(changelog)
-        return finve, True, changelog
+        return row, True, changelog
 
-    # Update existing finve, track only changed fields
-    update_data = proposed.model_dump(exclude={"id"})
-    entries = []
-    for field, new_val in update_data.items():
-        if field not in _FINVE_TRACKED_FIELDS:
-            continue
-        old_val = getattr(existing, field)
-        if old_val == new_val:
-            continue
-        entries.append(
-            FinveChangeLogEntry(
-                field_name=field,
-                old_value=json.dumps(old_val) if old_val is not None else None,
-                new_value=json.dumps(new_val) if new_val is not None else None,
-            )
-        )
-        setattr(existing, field, new_val)
+    update_data = proposed.model_dump(exclude=exclude)
+    entries = diff_to_entries(entry_cls, existing, update_data, tracked_fields, apply=True)
 
     changelog = None
     if entries:
-        changelog = FinveChangeLog(
-            finve_id=existing.id,
+        changelog = log_cls(
+            **{log_fk: existing.id},
             haushalt_year=haushalt_year,
             username_snapshot=user.username if user else None,
             timestamp=datetime.utcnow(),
@@ -207,6 +201,28 @@ def upsert_finve(
         db.add(changelog)
 
     return existing, False, changelog
+
+
+def upsert_finve(
+    db: Session,
+    proposed: ProposedFinve,
+    user: "User | None",
+    haushalt_year: int,
+) -> tuple[Finve, bool, FinveChangeLog | None]:
+    """Insert or update a Finve record. Returns (finve, created, changelog)."""
+    return _upsert_tracked(
+        db,
+        model_cls=Finve,
+        log_cls=FinveChangeLog,
+        entry_cls=FinveChangeLogEntry,
+        log_fk="finve_id",
+        proposed=proposed,
+        key_filter=(Finve.id == proposed.id,),
+        tracked_fields=_FINVE_TRACKED_FIELDS,
+        exclude={"id"},
+        user=user,
+        haushalt_year=haushalt_year,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -241,80 +257,22 @@ def upsert_budget(
 
     Returns (budget, created, changelog).
     """
-    existing = (
-        db.query(Budget)
-        .filter(Budget.budget_year == proposed.budget_year, Budget.fin_ve == proposed.fin_ve)
-        .first()
+    return _upsert_tracked(
+        db,
+        model_cls=Budget,
+        log_cls=BudgetChangeLog,
+        entry_cls=BudgetChangeLogEntry,
+        log_fk="budget_id",
+        proposed=proposed,
+        key_filter=(
+            Budget.budget_year == proposed.budget_year,
+            Budget.fin_ve == proposed.fin_ve,
+        ),
+        tracked_fields=_BUDGET_TRACKED_FIELDS,
+        exclude={"budget_year", "fin_ve"},
+        user=user,
+        haushalt_year=haushalt_year,
     )
-
-    if existing is None:
-        budget = Budget(
-            budget_year=proposed.budget_year,
-            fin_ve=proposed.fin_ve,
-            lfd_nr=proposed.lfd_nr,
-            bedarfsplan_number=proposed.bedarfsplan_number,
-            cost_estimate_original=proposed.cost_estimate_original,
-            cost_estimate_last_year=proposed.cost_estimate_last_year,
-            cost_estimate_actual=proposed.cost_estimate_actual,
-            delta_previous_year=proposed.delta_previous_year,
-            delta_previous_year_relativ=proposed.delta_previous_year_relativ,
-            delta_previous_year_reasons=proposed.delta_previous_year_reasons,
-            spent_two_years_previous=proposed.spent_two_years_previous,
-            allowed_previous_year=proposed.allowed_previous_year,
-            spending_residues=proposed.spending_residues,
-            year_planned=proposed.year_planned,
-            next_years=proposed.next_years,
-            sammel_finve=proposed.sammel_finve,
-        )
-        db.add(budget)
-        db.flush()
-
-        changelog = BudgetChangeLog(
-            budget_id=budget.id,
-            haushalt_year=haushalt_year,
-            username_snapshot=user.username if user else None,
-            timestamp=datetime.utcnow(),
-            action="CREATE",
-            entries=[
-                BudgetChangeLogEntry(field_name=f, old_value=None, new_value=json.dumps(getattr(budget, f)))
-                for f in _BUDGET_TRACKED_FIELDS
-                if getattr(budget, f) is not None
-            ],
-        )
-        db.add(changelog)
-        return budget, True, changelog
-
-    # Update existing budget
-    update_data = proposed.model_dump(exclude={"budget_year", "fin_ve"})
-    entries = []
-    for field, new_val in update_data.items():
-        if field not in _BUDGET_TRACKED_FIELDS:
-            continue
-        old_val = getattr(existing, field)
-        if old_val == new_val:
-            continue
-        entries.append(
-            BudgetChangeLogEntry(
-                field_name=field,
-                old_value=json.dumps(old_val) if old_val is not None else None,
-                new_value=json.dumps(new_val) if new_val is not None else None,
-            )
-        )
-        setattr(existing, field, new_val)
-
-    changelog = None
-    if entries:
-        changelog = BudgetChangeLog(
-            budget_id=existing.id,
-            haushalt_year=haushalt_year,
-            username_snapshot=user.username if user else None,
-            timestamp=datetime.utcnow(),
-            action="UPDATE",
-            entries=entries,
-        )
-        db.add(changelog)
-
-    return existing, False, changelog
 
 
 # ---------------------------------------------------------------------------
