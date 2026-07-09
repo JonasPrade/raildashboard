@@ -108,30 +108,41 @@ const BASE_PROJECT_PROPERTIES = (project: MapViewProject) => ({
     groupColor: project.groupColor,
 });
 
-const createProjectLineFeature = (project: MapViewProject): GeoJSONFeature | null => {
+type ProjectFeatures = {
+    line: GeoJSONFeature | null;
+    point: GeoJSONFeature | null;
+};
+
+/** Parse a project's GeoJSON once and build both map features from it. */
+const createProjectFeatures = (project: MapViewProject): ProjectFeatures => {
     const geojson = parseProjectGeojson(project.geojson_representation);
-    if (!geojson) return null;
+    if (!geojson) return { line: null, point: null };
     const lines = extractLineCoordinates(geojson);
-    if (lines.length === 0) return null;
+    const points = extractPointCoordinates(geojson);
+    const properties = BASE_PROJECT_PROPERTIES(project);
     return {
-        id: project.id,
-        type: "Feature",
-        geometry: { type: "MultiLineString", coordinates: lines },
-        properties: BASE_PROJECT_PROPERTIES(project),
+        line: lines.length
+            ? {
+                  id: project.id,
+                  type: "Feature",
+                  geometry: { type: "MultiLineString", coordinates: lines },
+                  properties,
+              }
+            : null,
+        point: points.length
+            ? {
+                  id: project.id,
+                  type: "Feature",
+                  geometry: { type: "MultiPoint", coordinates: points },
+                  properties,
+              }
+            : null,
     };
 };
 
-const createProjectPointFeature = (project: MapViewProject): GeoJSONFeature | null => {
-    const geojson = parseProjectGeojson(project.geojson_representation);
-    if (!geojson) return null;
-    const points = extractPointCoordinates(geojson);
-    if (points.length === 0) return null;
-    return {
-        id: project.id,
-        type: "Feature",
-        geometry: { type: "MultiPoint", coordinates: points },
-        properties: BASE_PROJECT_PROPERTIES(project),
-    };
+type FeatureCacheEntry = ProjectFeatures & {
+    geojson: string | null | undefined;
+    groupColor: string | undefined;
 };
 
 // ── component ────────────────────────────────────────────────────────────────
@@ -171,21 +182,46 @@ export default function MapView({ projects, lineWidth = 4, pointSize = 5, height
         projectsRef.current = projects;
     }, [projects]);
 
-    // One MultiLineString feature per project
-    const lineFeatureCollection = useMemo<GeoJSONFeatureCollection>(() => ({
-        type: "FeatureCollection",
-        features: projects
-            .map(createProjectLineFeature)
-            .filter((f): f is GeoJSONFeature => f !== null),
-    }), [projects]);
-
-    // One MultiPoint feature per project (only when the GeoJSON contains points)
-    const pointFeatureCollection = useMemo<GeoJSONFeatureCollection>(() => ({
-        type: "FeatureCollection",
-        features: projects
-            .map(createProjectPointFeature)
-            .filter((f): f is GeoJSONFeature => f !== null),
-    }), [projects]);
+    // Features are built once per project and cached by id — filtering (e.g.
+    // typing in the search field) only reassembles the collections from
+    // prebuilt features instead of re-parsing every geojson_representation.
+    // A changed geometry or group color invalidates that project's entry.
+    const featureCacheRef = useRef(new Map<number, FeatureCacheEntry>());
+    const { lineFeatureCollection, pointFeatureCollection } = useMemo(() => {
+        const cache = featureCacheRef.current;
+        const lines: GeoJSONFeature[] = [];
+        const points: GeoJSONFeature[] = [];
+        for (const project of projects) {
+            const cached = cache.get(project.id);
+            let entry: FeatureCacheEntry;
+            if (
+                cached &&
+                cached.geojson === project.geojson_representation &&
+                cached.groupColor === project.groupColor
+            ) {
+                entry = cached;
+            } else {
+                entry = {
+                    geojson: project.geojson_representation,
+                    groupColor: project.groupColor,
+                    ...createProjectFeatures(project),
+                };
+                cache.set(project.id, entry);
+            }
+            if (entry.line) lines.push(entry.line);
+            if (entry.point) points.push(entry.point);
+        }
+        return {
+            lineFeatureCollection: {
+                type: "FeatureCollection",
+                features: lines,
+            } as GeoJSONFeatureCollection,
+            pointFeatureCollection: {
+                type: "FeatureCollection",
+                features: points,
+            } as GeoJSONFeatureCollection,
+        };
+    }, [projects]);
 
     useEffect(() => {
         if (!tileLayerUrl || !mapContainerRef.current) {
