@@ -1,174 +1,28 @@
 import { useState } from "react";
 import {
-    Box,
+    Anchor,
     Collapse,
-    ColorSwatch,
     Group,
     Loader,
     Stack,
-    Table,
-    Tabs,
     Text,
     Title,
-    Anchor,
 } from "@mantine/core";
 import { Link } from "react-router-dom";
 import { ChronicleCard, ChronicleDataChip } from "../../../components/chronicle";
-import { DonutChart, LineChart } from "@mantine/charts";
-import {
-    type FinveWithBudgets,
-    type BudgetSummary,
-    type TitelEntry,
-    useProjectFinves,
-} from "../../../shared/api/queries";
-import { chartNum, formatTEuro, formatTEuroWithZero } from "../../../shared/format";
+import { type FinveWithBudgets, useProjectFinves } from "../../../shared/api/queries";
+import { FinveBudgetDetails } from "../../finves/shared/FinveBudgetDetails";
+import { formatTEuro } from "../../../shared/format";
 
 // ---------------------------------------------------------------------------
-// Collect all unique non-nachrichtlich titeln across all budget years
-// Returns { key: short chart key, label: full readable label }
-// ---------------------------------------------------------------------------
-
-// Distinct CSS hex colors for up to 10 Titel series (must be plain CSS for DonutChart)
-const SERIE_COLORS = [
-    "#339af0", "#20c997", "#51cf66", "#fcc419", "#ff922b",
-    "#ff6b6b", "#cc5de8", "#5c7cfa", "#22b8cf", "#94d82d",
-];
-
-// ---------------------------------------------------------------------------
-// DonutChart: veranschlagt per Haushaltstiteln for the most recent report
-// ---------------------------------------------------------------------------
-
-function buildPieData(budget: BudgetSummary) {
-    return budget.titel_entries
-        .filter((e) => !e.is_nachrichtlich && (e.veranschlagt ?? 0) > 0)
-        .map((e, i) => ({
-            name: e.label,
-            value: e.veranschlagt ?? 0,
-            color: SERIE_COLORS[i % SERIE_COLORS.length],
-        }));
-}
-
-// ---------------------------------------------------------------------------
-// Custom legend rendered below a chart (avoids recharts clipping issues)
-// ---------------------------------------------------------------------------
-
-function ChartLegend({ items }: { items: { label: string; color: string }[] }) {
-    return (
-        <Group gap="md" mt="xs" wrap="wrap">
-            {items.map((item) => (
-                <Group key={item.label} gap={6} align="center">
-                    <ColorSwatch color={item.color} size={12} />
-                    <Text size="xs" c="dimmed">{item.label}</Text>
-                </Group>
-            ))}
-        </Group>
-    );
-}
-
-// ---------------------------------------------------------------------------
-// LineChart: total cost estimate per report year (one series)
-// ---------------------------------------------------------------------------
-
-function buildLineData(budgets: BudgetSummary[]) {
-    return budgets.map((b) => ({
-        Jahr: String(b.budget_year),
-        "Gesamtkosten": chartNum(b.cost_estimate_actual),
-    }));
-}
-
-
-const CHART_TOOLTIP_PROPS = {
-    contentStyle: {
-        background: "var(--mantine-color-body)",
-        border: "1px solid var(--mantine-color-default-border)",
-        borderRadius: "var(--mantine-radius-sm)",
-        color: "var(--mantine-color-text)",
-        fontSize: 12,
-    },
-} as const;
-
-// ---------------------------------------------------------------------------
-// Titel detail table per year
-// ---------------------------------------------------------------------------
-
-function TitelTable({ entries, year }: { entries: TitelEntry[]; year: number }) {
-    const regular = entries.filter((e) => !e.is_nachrichtlich);
-    const nachrichtlich = entries.filter((e) => e.is_nachrichtlich);
-
-    const renderRows = (rows: TitelEntry[]) =>
-        rows.map((e, i) => (
-            <Table.Tr key={i}>
-                <Table.Td><Text size="xs">{e.label}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{formatTEuro(e.cost_estimate_last_year)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{formatTEuro(e.cost_estimate_aktuell)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{formatTEuro(e.verausgabt_bis)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{formatTEuro(e.bewilligt)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{formatTEuro(e.ausgabereste_transferred)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs" fw={600}>{formatTEuro(e.veranschlagt)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{formatTEuro(e.vorhalten_future)}</Text></Table.Td>
-            </Table.Tr>
-        ));
-
-    const thead = (
-        <Table.Thead>
-            <Table.Tr>
-                <Table.Th>Kapitel / Titel</Table.Th>
-                <Table.Th ta="right">Vorjahr</Table.Th>
-                <Table.Th ta="right">Aktuell</Table.Th>
-                <Table.Th ta="right">Verausgabt bis {year - 1}</Table.Th>
-                <Table.Th ta="right">Bewilligt {year}</Table.Th>
-                <Table.Th ta="right">Ausgabereste</Table.Th>
-                <Table.Th ta="right">Veranschlagt {year}</Table.Th>
-                <Table.Th ta="right">Vorhalten {year + 1} ff.</Table.Th>
-            </Table.Tr>
-        </Table.Thead>
-    );
-
-    return (
-        <Stack gap="xs">
-            {regular.length > 0 && (
-                <Box style={{ overflowX: "auto" }}>
-                    <Table withColumnBorders fz="xs" style={{ minWidth: 800 }}>
-                        {thead}
-                        <Table.Tbody>{renderRows(regular)}</Table.Tbody>
-                    </Table>
-                </Box>
-            )}
-            {nachrichtlich.length > 0 && (
-                <Stack gap={4}>
-                    <Text size="xs" fw={600} c="dimmed">Nachrichtlich: EVU / Dritte</Text>
-                    <Box style={{ overflowX: "auto" }}>
-                        <Table withColumnBorders fz="xs" style={{ minWidth: 800 }}>
-                            {thead}
-                            <Table.Tbody>{renderRows(nachrichtlich)}</Table.Tbody>
-                        </Table>
-                    </Box>
-                </Stack>
-            )}
-        </Stack>
-    );
-}
-
-// ---------------------------------------------------------------------------
-// Single FinVe card with charts
+// Single FinVe card with charts (chart/table internals live in
+// features/finves/shared/FinveBudgetDetails, shared with the FinVe overview)
 // ---------------------------------------------------------------------------
 
 function FinveCard({ finve }: { finve: FinveWithBudgets }) {
     const [open, setOpen] = useState(false);
     const hasBudgets = finve.budgets.length > 0;
-    const hasMultipleYears = finve.budgets.length >= 2;
     const lastBudget = finve.budgets.at(-1);
-    const hasTitelEntries = (lastBudget?.titel_entries ?? []).some(
-        (e) => !e.is_nachrichtlich && (e.veranschlagt ?? 0) > 0
-    );
-
-    const pieData = lastBudget ? buildPieData(lastBudget) : [];
-    const lineData = buildLineData(finve.budgets);
-    const yMax = Math.ceil(
-        Math.max(...finve.budgets.map((b) => b.cost_estimate_actual ?? 0)) * 1.1
-    );
-
-    const firstTab = hasMultipleYears ? "costs" : hasTitelEntries ? "budget" : "table";
 
     // SammelFinVe: compact tag, linked to the FinVe overview (deep-linked by id).
     if (finve.is_sammel_finve) {
@@ -230,82 +84,7 @@ function FinveCard({ finve }: { finve: FinveWithBudgets }) {
 
                 {hasBudgets && (
                     <Collapse in={open}>
-                        <Tabs defaultValue={firstTab} mt="xs">
-                            <Tabs.List>
-                                {hasMultipleYears && (
-                                    <Tabs.Tab value="costs">Kostenentwicklung</Tabs.Tab>
-                                )}
-                                {hasTitelEntries && (
-                                    <Tabs.Tab value="budget">Budgetverteilung</Tabs.Tab>
-                                )}
-                                {lastBudget && lastBudget.titel_entries.length > 0 && (
-                                    <Tabs.Tab value="table">Haushaltbericht {lastBudget!.budget_year}</Tabs.Tab>
-                                )}
-                            </Tabs.List>
-
-                            {/* LineChart: total cost estimate per report year */}
-                            {hasMultipleYears && (
-                                <Tabs.Panel value="costs" pt="md">
-                                    <Stack gap="xs">
-                                        <Text size="xs" c="dimmed">
-                                            Gesamtkostenschätzung je Haushaltsbericht (T€)
-                                        </Text>
-                                        <Box style={{ overflowX: "auto" }}>
-                                            <LineChart
-                                                h={280}
-                                                data={lineData}
-                                                dataKey="Jahr"
-                                                series={[{ name: "Gesamtkosten", color: "green.6" }]}
-                                                curveType="monotone"
-                                                tickLine="x"
-                                                gridAxis="y"
-                                                withDots
-                                                valueFormatter={formatTEuroWithZero}
-                                                yAxisProps={{ width: 130, domain: [0, yMax] }}
-                                                tooltipProps={CHART_TOOLTIP_PROPS}
-                                            />
-                                        </Box>
-                                    </Stack>
-                                </Tabs.Panel>
-                            )}
-
-                            {/* DonutChart: veranschlagt per Titel for the most recent report */}
-                            {hasTitelEntries && (
-                                <Tabs.Panel value="budget" pt="md">
-                                    <Stack gap="xs">
-                                        <Text size="xs" c="dimmed">
-                                            Budgetverteilung nach Haushaltstiteln – Haushaltsbericht {lastBudget!.budget_year} (T€)
-                                        </Text>
-                                        <Group justify="center">
-                                            <DonutChart
-                                                data={pieData}
-                                                size={220}
-                                                thickness={36}
-                                                withTooltip
-                                                tooltipDataSource="segment"
-                                                valueFormatter={formatTEuroWithZero}
-                                            />
-                                        </Group>
-                                        <ChartLegend
-                                            items={pieData.map((d) => ({
-                                                label: d.name,
-                                                color: d.color,
-                                            }))}
-                                        />
-                                    </Stack>
-                                </Tabs.Panel>
-                            )}
-
-                            {/* Detail table for the most recent year */}
-                            {lastBudget && lastBudget.titel_entries.length > 0 && (
-                                <Tabs.Panel value="table" pt="md">
-                                    <TitelTable
-                                        entries={lastBudget.titel_entries}
-                                        year={lastBudget.budget_year}
-                                    />
-                                </Tabs.Panel>
-                            )}
-                        </Tabs>
+                        <FinveBudgetDetails budgets={finve.budgets} tabsMt="xs" />
                     </Collapse>
                 )}
             </Stack>
