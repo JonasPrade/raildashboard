@@ -65,7 +65,9 @@ def test_patch_vib_entry_updates_fields(client, monkeypatch, create_user):
         return _MOCK_ENTRY
 
     monkeypatch.setattr(vib_route, "update_vib_entry", fake_update)
-    monkeypatch.setattr(vib_route, "_entry_to_schema", lambda e: _MOCK_ENTRY)
+    monkeypatch.setattr(
+        vib_route.VibEntrySchema, "from_entry", staticmethod(lambda e: _MOCK_ENTRY)
+    )
 
     resp = client.patch(
         "/api/v1/import/vib/entries/1",

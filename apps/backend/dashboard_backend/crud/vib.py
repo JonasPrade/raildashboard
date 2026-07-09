@@ -14,11 +14,27 @@ from dashboard_backend.models.vib.vib_report import VibReport
 from dashboard_backend.schemas.vib import (
     VibConfirmEntryInput,
     VibConfirmResponse,
+    VibEntryFieldsBase,
     VibEntryUpdateSchema,
+    VibPfaEntryProposed,
 )
 
 if TYPE_CHECKING:
     from dashboard_backend.models.users import User
+
+
+# Shared VIB entry content fields — derived from the single source of truth
+# (VibEntryFieldsBase) instead of a hand-maintained list.
+_ENTRY_CONTENT_FIELDS = frozenset(VibEntryFieldsBase.model_fields)
+
+
+def _pfa_from_schema(vib_entry_id: int, pfa_data: VibPfaEntryProposed) -> VibPfaEntry:
+    """Map a PFA schema row to its ORM object (suggested_project_id is a
+    transient review-UI hint and has no DB column)."""
+    return VibPfaEntry(
+        vib_entry_id=vib_entry_id,
+        **pfa_data.model_dump(exclude={"suggested_project_id"}),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -159,22 +175,7 @@ def create_vib_report_with_entries(
             vib_report_id=report.id,
             vib_section=entry_data.vib_section,
             vib_lfd_nr=entry_data.vib_lfd_nr,
-            vib_name_raw=entry_data.vib_name_raw,
-            category=entry_data.category,
-            raw_text=entry_data.raw_text,
-            bauaktivitaeten=entry_data.bauaktivitaeten,
-            teilinbetriebnahmen=entry_data.teilinbetriebnahmen,
-            verkehrliche_zielsetzung=entry_data.verkehrliche_zielsetzung,
-            durchgefuehrte_massnahmen=entry_data.durchgefuehrte_massnahmen,
-            noch_umzusetzende_massnahmen=entry_data.noch_umzusetzende_massnahmen,
-            sonstiges=entry_data.sonstiges,
-            strecklaenge_km=entry_data.strecklaenge_km,
-            gesamtkosten_mio_eur=entry_data.gesamtkosten_mio_eur,
-            entwurfsgeschwindigkeit=entry_data.entwurfsgeschwindigkeit,
-            planungsstand=entry_data.planungsstand,
-            status_planung=entry_data.status_planung,
-            status_bau=entry_data.status_bau,
-            status_abgeschlossen=entry_data.status_abgeschlossen,
+            **entry_data.model_dump(include=_ENTRY_CONTENT_FIELDS),
         )
         db.add(vib_entry)
         db.flush()  # get vib_entry.id
@@ -189,18 +190,7 @@ def create_vib_report_with_entries(
         entries_created += 1
 
         for pfa_data in entry_data.pfa_entries:
-            db.add(VibPfaEntry(
-                vib_entry_id=vib_entry.id,
-                abschnitt_label=pfa_data.abschnitt_label,
-                nr_pfa=pfa_data.nr_pfa,
-                oertlichkeit=pfa_data.oertlichkeit,
-                entwurfsplanung=pfa_data.entwurfsplanung,
-                abschluss_finve=pfa_data.abschluss_finve,
-                datum_pfb=pfa_data.datum_pfb,
-                baubeginn=pfa_data.baubeginn,
-                inbetriebnahme=pfa_data.inbetriebnahme,
-                project_id=pfa_data.project_id,
-            ))
+            db.add(_pfa_from_schema(vib_entry.id, pfa_data))
             pfa_entries_created += 1
 
     return VibConfirmResponse(
@@ -261,15 +251,6 @@ def get_vib_entries_for_project(db: Session, project_id: int) -> list[VibEntry]:
 # VibEntry PATCH
 # ---------------------------------------------------------------------------
 
-_SCALAR_FIELDS = [
-    "vib_name_raw", "category", "verkehrliche_zielsetzung",
-    "durchgefuehrte_massnahmen", "noch_umzusetzende_massnahmen",
-    "bauaktivitaeten", "teilinbetriebnahmen", "sonstiges", "raw_text",
-    "strecklaenge_km", "gesamtkosten_mio_eur", "entwurfsgeschwindigkeit",
-    "planungsstand", "status_planung", "status_bau", "status_abgeschlossen",
-]
-
-
 def get_vib_entry_full(db: Session, entry_id: int) -> VibEntry | None:
     """Load a VibEntry with pfa_entries, projects, and report eager-loaded."""
     return (
@@ -296,8 +277,8 @@ def update_vib_entry(db: Session, entry_id: int, data: VibEntryUpdateSchema) -> 
     if entry is None:
         return None
 
-    # Apply scalar fields
-    for field in _SCALAR_FIELDS:
+    # Apply scalar content fields (shared set derived from VibEntryFieldsBase)
+    for field in _ENTRY_CONTENT_FIELDS:
         value = getattr(data, field)
         if value is not None:
             setattr(entry, field, value)
@@ -307,18 +288,7 @@ def update_vib_entry(db: Session, entry_id: int, data: VibEntryUpdateSchema) -> 
         entry.pfa_entries.clear()
         db.flush()
         for pfa_data in data.pfa_entries:
-            entry.pfa_entries.append(VibPfaEntry(
-                vib_entry_id=entry_id,
-                abschnitt_label=pfa_data.abschnitt_label,
-                nr_pfa=pfa_data.nr_pfa,
-                oertlichkeit=pfa_data.oertlichkeit,
-                entwurfsplanung=pfa_data.entwurfsplanung,
-                abschluss_finve=pfa_data.abschluss_finve,
-                datum_pfb=pfa_data.datum_pfb,
-                baubeginn=pfa_data.baubeginn,
-                inbetriebnahme=pfa_data.inbetriebnahme,
-                project_id=pfa_data.project_id,
-            ))
+            entry.pfa_entries.append(_pfa_from_schema(entry_id, pfa_data))
 
     # Replace project links
     if data.project_ids is not None:

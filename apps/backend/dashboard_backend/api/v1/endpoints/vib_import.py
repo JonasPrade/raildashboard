@@ -476,39 +476,6 @@ def delete_vib_report(
     db.commit()
 
 
-# ---------------------------------------------------------------------------
-# Helper: build VibEntrySchema from a loaded VibEntry ORM object
-# ---------------------------------------------------------------------------
-
-def _entry_to_schema(entry) -> VibEntrySchema:
-    return VibEntrySchema(
-        id=entry.id,
-        vib_report_id=entry.vib_report_id,
-        vib_section=entry.vib_section,
-        vib_lfd_nr=entry.vib_lfd_nr,
-        vib_name_raw=entry.vib_name_raw,
-        category=entry.category,
-        raw_text=entry.raw_text,
-        bauaktivitaeten=entry.bauaktivitaeten,
-        teilinbetriebnahmen=entry.teilinbetriebnahmen,
-        verkehrliche_zielsetzung=entry.verkehrliche_zielsetzung,
-        durchgefuehrte_massnahmen=entry.durchgefuehrte_massnahmen,
-        noch_umzusetzende_massnahmen=entry.noch_umzusetzende_massnahmen,
-        sonstiges=entry.sonstiges,
-        strecklaenge_km=entry.strecklaenge_km,
-        gesamtkosten_mio_eur=entry.gesamtkosten_mio_eur,
-        entwurfsgeschwindigkeit=entry.entwurfsgeschwindigkeit,
-        planungsstand=entry.planungsstand,
-        status_planung=entry.status_planung,
-        status_bau=entry.status_bau,
-        status_abgeschlossen=entry.status_abgeschlossen,
-        ai_extracted=entry.ai_extracted,
-        pfa_entries=entry.pfa_entries,
-        project_ids=[p.id for p in entry.projects],
-        report_year=entry.report.year,
-    )
-
-
 def list_confirmed_vib_entries(db: Session):
     """Return every confirmed VibEntry with eager-loaded report + projects."""
     from dashboard_backend.models.vib.vib_entry import VibEntry
@@ -553,7 +520,7 @@ def get_vib_entry_endpoint(
     entry = get_vib_entry_full(db, entry_id)
     if entry is None:
         raise HTTPException(status_code=404, detail="VIB-Eintrag nicht gefunden")
-    return _entry_to_schema(entry)
+    return VibEntrySchema.from_entry(entry)
 
 
 # ---------------------------------------------------------------------------
@@ -576,4 +543,4 @@ def patch_vib_entry(
     if entry is None:
         raise HTTPException(status_code=404, detail="VIB-Eintrag nicht gefunden")
     db.commit()
-    return _entry_to_schema(entry)
+    return VibEntrySchema.from_entry(entry)
