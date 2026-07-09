@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import {
     ActionIcon,
     Alert,
@@ -124,8 +124,11 @@ export default function MapPage() {
             : allProjects;
     }, [selectedGroups, onlySuperior]);
 
+    // Defer the search term for the map filter: the text input stays snappy
+    // while the (cheap, but setData-triggering) map update lags a beat behind.
+    const deferredSearch = useDeferredValue(localSearch);
     const filteredMapProjects = useMemo(() => {
-        const term = localSearch.trim().toLowerCase();
+        const term = deferredSearch.trim().toLowerCase();
         if (!term) return selectedProjects;
         return selectedProjects.filter(
             (p) =>
@@ -133,7 +136,7 @@ export default function MapPage() {
                 p.project_number?.toLowerCase().includes(term) ||
                 p.description?.toLowerCase().includes(term),
         );
-    }, [selectedProjects, localSearch]);
+    }, [selectedProjects, deferredSearch]);
 
     // --- List tab: single-group selection (first entry in ?group) ---
     const selectedGroupId = useMemo(() => {
