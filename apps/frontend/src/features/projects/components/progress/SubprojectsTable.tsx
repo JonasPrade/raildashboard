@@ -7,20 +7,13 @@ import type { ProgressChild } from "../../../../shared/api/queries";
 import {
     LIFECYCLE_LABEL,
     MAIN_PHASES,
+    MAIN_PHASE_COLOR,
     MAIN_PHASE_LABEL,
     UNKNOWN_LABEL,
     type LifecycleStatus,
     type MainPhase,
     groupChildrenByPhase,
 } from "./phaseMeta";
-
-const PHASE_COLOR: Record<MainPhase, string> = {
-    NICHT_GESTARTET: "gray",
-    VORPLANUNG: "blue",
-    GENEHMIGUNGSPLANUNG: "indigo",
-    BAU: "orange",
-    IN_BETRIEB: "green",
-};
 
 function phaseBadge(child: ProgressChild) {
     if (child.is_known === false) {
@@ -36,13 +29,13 @@ function phaseBadge(child: ProgressChild) {
     if (child.is_superior && lo && hi && lo !== hi) {
         return (
             <Group gap={4} wrap="nowrap">
-                <Badge variant="light" color={PHASE_COLOR[lo] ?? "gray"}>
+                <Badge variant="light" color={MAIN_PHASE_COLOR[lo] ?? "gray"}>
                     {MAIN_PHASE_LABEL[lo] ?? lo}
                 </Badge>
                 <Text size="xs" c="dimmed">
                     –
                 </Text>
-                <Badge variant="light" color={PHASE_COLOR[hi] ?? "gray"}>
+                <Badge variant="light" color={MAIN_PHASE_COLOR[hi] ?? "gray"}>
                     {MAIN_PHASE_LABEL[hi] ?? hi}
                 </Badge>
             </Group>
@@ -50,7 +43,7 @@ function phaseBadge(child: ProgressChild) {
     }
     const phase = child.effective_phase as MainPhase;
     return (
-        <Badge variant="light" color={PHASE_COLOR[phase] ?? "gray"}>
+        <Badge variant="light" color={MAIN_PHASE_COLOR[phase] ?? "gray"}>
             {MAIN_PHASE_LABEL[phase] ?? phase}
         </Badge>
     );
@@ -79,7 +72,7 @@ export default function SubprojectsTable({ children }: { children: ProgressChild
                         const count = byPhase[phase]?.length ?? 0;
                         if (count === 0) return null;
                         return (
-                            <Badge key={phase} variant="light" color={PHASE_COLOR[phase]}>
+                            <Badge key={phase} variant="light" color={MAIN_PHASE_COLOR[phase]}>
                                 {count}× {MAIN_PHASE_LABEL[phase]}
                             </Badge>
                         );

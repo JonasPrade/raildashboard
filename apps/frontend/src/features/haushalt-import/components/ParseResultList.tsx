@@ -5,6 +5,7 @@ import { notifications } from "@mantine/notifications";
 import { useNavigate } from "react-router-dom";
 import type { ParseResultPublic } from "../../../shared/api/queries";
 import { useDeleteParseResult } from "../../../shared/api/queries";
+import { formatDateTime } from "../../../shared/format";
 
 function StatusBadge({ status }: { status: ParseResultPublic["status"] }) {
     return <ChronicleDataChip>{status}</ChronicleDataChip>;
@@ -68,7 +69,7 @@ export function ParseResultList({ results }: Props) {
                         </Table.Td>
                         <Table.Td>
                             <Text size="sm" c="dimmed">
-                                {new Date(r.parsed_at).toLocaleString("de-DE", { timeZone: "Europe/Berlin" })}
+                                {formatDateTime(r.parsed_at)}
                             </Text>
                         </Table.Td>
                         <Table.Td>
@@ -80,7 +81,7 @@ export function ParseResultList({ results }: Props) {
                         <Table.Td>
                             {r.confirmed_at ? (
                                 <Text size="sm" c="dimmed">
-                                    {new Date(r.confirmed_at).toLocaleString("de-DE", { timeZone: "Europe/Berlin" })}
+                                    {formatDateTime(r.confirmed_at)}
                                 </Text>
                             ) : (
                                 <Text size="sm" c="dimmed">–</Text>

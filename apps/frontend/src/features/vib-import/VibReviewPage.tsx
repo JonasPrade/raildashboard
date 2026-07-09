@@ -15,7 +15,7 @@ import {
 import { ChronicleHeadline, ChronicleDataChip } from "../../components/chronicle";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
-import { useAuth } from "../../lib/auth";
+import RequirePermission from "../../components/RequirePermission";
 import {
     useVibParseResult,
     useConfirmVibImport,
@@ -29,10 +29,9 @@ import {
 } from "../../shared/api/queries";
 import VibEntryEditForm from "./VibEntryEditForm";
 
-export default function VibReviewPage() {
+function VibReviewPageContent() {
     const { taskId } = useParams<{ taskId: string }>();
     const navigate = useNavigate();
-    const { can } = useAuth();
 
     const { data: parseResult, isLoading, isError } = useVibParseResult(taskId ?? null);
     const { data: projects } = useProjects();
@@ -45,16 +44,6 @@ export default function VibReviewPage() {
     const [entries, setEntries] = useState<VibEntryProposed[] | null>(null);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [retryingIdx, setRetryingIdx] = useState<number | null>(null);
-
-    if (!can("vib.import")) {
-        return (
-            <Container size="sm" py="xl">
-                <Alert color="red" variant="light" title="Kein Zugriff">
-                    Diese Seite ist nur für Editoren und Administratoren zugänglich.
-                </Alert>
-            </Container>
-        );
-    }
 
     if (isLoading) {
         return (
@@ -255,5 +244,13 @@ export default function VibReviewPage() {
                 )}
             </Stack>
         </Container>
+    );
+}
+
+export default function VibReviewPage() {
+    return (
+        <RequirePermission perm="vib.import">
+            <VibReviewPageContent />
+        </RequirePermission>
     );
 }

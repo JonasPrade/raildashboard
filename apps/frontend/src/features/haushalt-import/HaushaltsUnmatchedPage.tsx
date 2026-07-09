@@ -13,26 +13,15 @@ import {
 } from "@mantine/core";
 import { ChronicleHeadline, ChronicleDataChip } from "../../components/chronicle";
 import { notifications } from "@mantine/notifications";
-import { useAuth } from "../../lib/auth";
+import RequirePermission from "../../components/RequirePermission";
 import { useUnmatchedRows, useResolveUnmatchedRow } from "../../shared/api/queries";
 
-export default function HaushaltsUnmatchedPage() {
-    const { can } = useAuth();
+function HaushaltsUnmatchedPageContent() {
     const [showResolved, setShowResolved] = useState(false);
     const [resolveValues, setResolveValues] = useState<Record<number, number | "">>({});
 
     const { data: rows, isLoading, isError } = useUnmatchedRows(showResolved ? undefined : false);
     const resolve = useResolveUnmatchedRow();
-
-    if (!can("haushalt.import")) {
-        return (
-            <Container size="sm" py="xl">
-                <Alert color="red" variant="light" title="Kein Zugriff">
-                    Diese Seite ist nur für Editoren und Administratoren zugänglich.
-                </Alert>
-            </Container>
-        );
-    }
 
     const handleResolve = async (rowId: number) => {
         const finveId = resolveValues[rowId];
@@ -135,5 +124,13 @@ export default function HaushaltsUnmatchedPage() {
                 )}
             </Stack>
         </Container>
+    );
+}
+
+export default function HaushaltsUnmatchedPage() {
+    return (
+        <RequirePermission perm="haushalt.import">
+            <HaushaltsUnmatchedPageContent />
+        </RequirePermission>
     );
 }

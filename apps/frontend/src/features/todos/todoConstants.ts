@@ -1,4 +1,5 @@
 import type { TodoPriority, TodoStatus } from "../../shared/api/queries";
+import { formatDateShort } from "../../shared/format";
 
 // German user-facing labels and Mantine colours for the to-do (Aufgaben) feature.
 
@@ -44,7 +45,7 @@ export function formatDate(dateStr: string | null | undefined): string {
     if (!dateStr) return "";
     const d = new Date(`${dateStr}T00:00:00`);
     if (Number.isNaN(d.getTime())) return dateStr;
-    return d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+    return formatDateShort(d);
 }
 
 /** Up to two uppercase initials from a username, for assignee avatars. */

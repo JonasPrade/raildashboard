@@ -10,6 +10,7 @@ import {
 } from "@mantine/core";
 import { type BvwpProjectData, useProjectBvwp } from "../../../shared/api/queries";
 import { ChronicleCard, ChronicleDataChip } from "../../../components/chronicle";
+import { formatTEuroWithZero } from "../../../shared/format";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -44,7 +45,7 @@ const GRUNDDATEN_FIELDS: FieldDef[] = [
 
 const KOSTEN_FIELDS: FieldDef[] = [
     { label: "Geplante Gesamtkosten", format: (d) => fmtMio(d.planned_total_cost) },
-    { label: "Tatsächliche Kosten", format: (d) => d.actual_cost != null ? d.actual_cost.toLocaleString("de-DE") + " T€" : null },
+    { label: "Tatsächliche Kosten", format: (d) => d.actual_cost != null ? formatTEuroWithZero(d.actual_cost) : null },
     { label: "Instandhaltungskosten", format: (d) => fmtMio(d.maintenance_cost) },
     { label: "Investitionskosten", format: (d) => fmtMio(d.investment_cost) },
     { label: "Planungskosten", format: (d) => fmtMio(d.planning_cost) },

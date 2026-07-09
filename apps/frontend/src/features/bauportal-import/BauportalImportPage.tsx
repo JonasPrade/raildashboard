@@ -29,21 +29,11 @@ import {
 } from "../../shared/api/queries";
 import { filterProjectOption } from "../../lib/filterProjectOption";
 import CreateDraftProjectModal from "../projects/CreateDraftProjectModal";
-
-const PHASE_LABEL: Record<string, string> = {
-    NICHT_GESTARTET: "Nicht gestartet",
-    VORPLANUNG: "Vorplanung",
-    GENEHMIGUNGSPLANUNG: "Genehmigungsplanung",
-    BAU: "Bau",
-    IN_BETRIEB: "In Betrieb",
-};
-
-const PHASE_COLOR: Record<string, string> = {
-    VORPLANUNG: "gray",
-    GENEHMIGUNGSPLANUNG: "blue",
-    BAU: "orange",
-    IN_BETRIEB: "green",
-};
+import {
+    MAIN_PHASE_COLOR,
+    MAIN_PHASE_LABEL,
+    type MainPhase,
+} from "../projects/components/progress/phaseMeta";
 
 type ProjectOption = { value: string; label: string };
 
@@ -96,8 +86,8 @@ function MatchRow({
             </Table.Td>
             <Table.Td>
                 {entry.mapped_phase ? (
-                    <Badge color={PHASE_COLOR[entry.mapped_phase] ?? "gray"} variant="light">
-                        {PHASE_LABEL[entry.mapped_phase] ?? entry.mapped_phase}
+                    <Badge color={MAIN_PHASE_COLOR[entry.mapped_phase as MainPhase] ?? "gray"} variant="light">
+                        {MAIN_PHASE_LABEL[entry.mapped_phase as MainPhase] ?? entry.mapped_phase}
                     </Badge>
                 ) : (
                     <Text size="xs" c="dimmed" title={entry.status_raw ?? undefined}>

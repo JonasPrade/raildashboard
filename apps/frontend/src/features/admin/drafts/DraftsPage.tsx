@@ -15,6 +15,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { ChronicleCard, ChronicleHeadline } from "../../../components/chronicle";
 import { useAuth } from "../../../lib/auth";
+import RequirePermission from "../../../components/RequirePermission";
 import {
     useDeleteProject,
     useDraftProjects,
@@ -22,7 +23,7 @@ import {
     type Project,
 } from "../../../shared/api/queries";
 
-export default function DraftsPage() {
+function DraftsPageContent() {
     const { can } = useAuth();
     const canManage = can("project.create");
     const navigate = useNavigate();
@@ -32,16 +33,6 @@ export default function DraftsPage() {
     const del = useDeleteProject();
 
     const [toDelete, setToDelete] = useState<Project | null>(null);
-
-    if (!canManage) {
-        return (
-            <Container size="sm" py="xl">
-                <Alert color="red" variant="light" title="Kein Zugriff">
-                    Diese Seite ist nur für Editoren und Administratoren zugänglich.
-                </Alert>
-            </Container>
-        );
-    }
 
     const handleFinalize = async (p: Project) => {
         if (p.id == null) return;
@@ -155,5 +146,13 @@ export default function DraftsPage() {
                 </Stack>
             </Modal>
         </Container>
+    );
+}
+
+export default function DraftsPage() {
+    return (
+        <RequirePermission perm="project.create">
+            <DraftsPageContent />
+        </RequirePermission>
     );
 }

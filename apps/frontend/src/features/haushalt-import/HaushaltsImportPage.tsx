@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-    Alert,
     Anchor,
     Button,
     Container,
@@ -15,7 +14,7 @@ import {
 } from "@mantine/core";
 import { ChronicleHeadline, ChronicleCard } from "../../components/chronicle";
 import { notifications } from "@mantine/notifications";
-import { useAuth } from "../../lib/auth";
+import RequirePermission from "../../components/RequirePermission";
 import {
     useParseResults,
     useStartHaushaltsImport,
@@ -24,8 +23,7 @@ import {
 } from "../../shared/api/queries";
 import { ParseResultList } from "./components/ParseResultList";
 
-export default function HaushaltsImportPage() {
-    const { can } = useAuth();
+function HaushaltsImportPageContent() {
     const navigate = useNavigate();
 
     const [file, setFile] = useState<File | null>(null);
@@ -66,16 +64,6 @@ export default function HaushaltsImportPage() {
     const progress = taskStatus.data?.status === "PROGRESS"
         ? (taskStatus.data.result as TaskProgressMeta | null)
         : null;
-
-    if (!can("haushalt.import")) {
-        return (
-            <Container size="sm" py="xl">
-                <Alert color="red" variant="light" title="Kein Zugriff">
-                    Diese Seite ist nur für Editoren und Administratoren zugänglich.
-                </Alert>
-            </Container>
-        );
-    }
 
     return (
         <Container size="lg" py="xl">
@@ -152,5 +140,13 @@ export default function HaushaltsImportPage() {
                 </ChronicleCard>
             </Stack>
         </Container>
+    );
+}
+
+export default function HaushaltsImportPage() {
+    return (
+        <RequirePermission perm="haushalt.import">
+            <HaushaltsImportPageContent />
+        </RequirePermission>
     );
 }

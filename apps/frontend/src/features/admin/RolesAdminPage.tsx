@@ -20,29 +20,17 @@ import {
     ChronicleDataChip,
     ChronicleButton,
 } from "../../components/chronicle";
-import { useAuth } from "../../lib/auth";
+import RequirePermission from "../../components/RequirePermission";
 import { useDeleteRole, useRoles, type Role } from "../../shared/api/queries";
 import { RoleFormModal } from "./RoleFormModal";
 
-export default function RolesAdminPage() {
-    const { can } = useAuth();
-    const canManage = can("role.manage");
+function RolesAdminPageContent() {
 
     const { data: roles, isLoading, isError } = useRoles();
     const deleteRole = useDeleteRole();
 
     const [modalOpened, setModalOpened] = useState(false);
     const [editingRole, setEditingRole] = useState<Role | null>(null);
-
-    if (!canManage) {
-        return (
-            <Container size="sm" py="xl">
-                <Alert color="red" variant="light" title="Kein Zugriff">
-                    Die Rollenverwaltung ist nur mit der Berechtigung „Rollen & Rechte verwalten" zugänglich.
-                </Alert>
-            </Container>
-        );
-    }
 
     const openCreate = () => {
         setEditingRole(null);
@@ -179,5 +167,16 @@ export default function RolesAdminPage() {
                 role={editingRole}
             />
         </Container>
+    );
+}
+
+export default function RolesAdminPage() {
+    return (
+        <RequirePermission
+            perm="role.manage"
+            message={'Die Rollenverwaltung ist nur mit der Berechtigung „Rollen & Rechte verwalten" zugänglich.'}
+        >
+            <RolesAdminPageContent />
+        </RequirePermission>
     );
 }

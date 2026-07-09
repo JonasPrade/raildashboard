@@ -21,6 +21,7 @@ import {
     type TextChangeLog,
     type TextChangeLogEntry,
 } from "../../shared/api/queries";
+import { formatDateTimeShort } from "../../shared/format";
 
 // German labels for all tracked project fields
 const PROJECT_FIELD_LABELS: Record<string, string> = {
@@ -134,14 +135,7 @@ type ChangeLogItemProps = {
 };
 
 function ChangeLogItem({ log, canEdit, revertingEntryId, onRevert }: ChangeLogItemProps) {
-    const date = new Date(log.timestamp).toLocaleString("de-DE", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        timeZone: "Europe/Berlin",
-    });
+    const date = formatDateTimeShort(log.timestamp);
 
     const summary = (
         <Group gap="sm" wrap="nowrap">
@@ -211,14 +205,7 @@ type TextChangeLogItemProps = {
 };
 
 function TextChangeLogItem({ log }: TextChangeLogItemProps) {
-    const date = new Date(log.timestamp).toLocaleString("de-DE", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        timeZone: "Europe/Berlin",
-    });
+    const date = formatDateTimeShort(log.timestamp);
 
     const summary = (
         <Group gap="sm" wrap="nowrap">

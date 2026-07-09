@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-    Alert,
     Button,
     Checkbox,
     Container,
@@ -17,7 +16,7 @@ import {
 import { ChronicleHeadline, ChronicleCard } from "../../components/chronicle";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
-import { useAuth } from "../../lib/auth";
+import RequirePermission from "../../components/RequirePermission";
 import {
     useStartVibImport,
     useTaskStatus,
@@ -27,9 +26,9 @@ import {
     useDeleteVibDraft,
     type TaskProgressMeta,
 } from "../../shared/api/queries";
+import { formatDateNumeric, formatDateTime } from "../../shared/format";
 
-export default function VibImportPage() {
-    const { can } = useAuth();
+function VibImportPageContent() {
     const navigate = useNavigate();
 
     const [file, setFile] = useState<File | null>(null);
@@ -112,16 +111,6 @@ export default function VibImportPage() {
                 }),
         });
     };
-
-    if (!can("vib.import")) {
-        return (
-            <Container size="sm" py="xl">
-                <Alert color="red" variant="light" title="Kein Zugriff">
-                    Diese Seite ist nur für Editoren und Administratoren zugänglich.
-                </Alert>
-            </Container>
-        );
-    }
 
     return (
         <Container size="lg" py="xl">
@@ -256,7 +245,7 @@ export default function VibImportPage() {
                                             <Table.Tr key={d.task_id}>
                                                 <Table.Td>{d.year}</Table.Td>
                                                 <Table.Td>
-                                                    {new Date(d.created_at).toLocaleString("de-DE", { timeZone: "Europe/Berlin" })}
+                                                    {formatDateTime(d.created_at)}
                                                 </Table.Td>
                                                 <Table.Td>
                                                     <Group gap="xs" justify="flex-end">
@@ -332,10 +321,7 @@ export default function VibImportPage() {
                                             <Table.Td>{r.year}</Table.Td>
                                             <Table.Td>{r.drucksache_nr ?? "–"}</Table.Td>
                                             <Table.Td>
-                                                {new Date(r.imported_at).toLocaleDateString(
-                                                    "de-DE",
-                                                    { timeZone: "Europe/Berlin" }
-                                                )}
+                                                {formatDateNumeric(r.imported_at)}
                                             </Table.Td>
                                             <Table.Td>{r.entry_count}</Table.Td>
                                             <Table.Td>
@@ -363,5 +349,13 @@ export default function VibImportPage() {
                 </ChronicleCard>
             </Stack>
         </Container>
+    );
+}
+
+export default function VibImportPage() {
+    return (
+        <RequirePermission perm="vib.import">
+            <VibImportPageContent />
+        </RequirePermission>
     );
 }

@@ -11,15 +11,15 @@ import {
 } from "@mantine/core";
 
 import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
-import { useAuth } from "../../lib/auth";
+import RequirePermission from "../../components/RequirePermission";
 import {
     type SammelFinveProgress,
     useSammelFinveProgress,
     useSetFinveProgressPhase,
 } from "../../shared/api/queries";
 import {
-    MAIN_PHASES,
     MAIN_PHASE_LABEL,
+    mainPhaseOptions,
     type MainPhase,
 } from "../projects/components/progress/phaseMeta";
 
@@ -27,7 +27,7 @@ const AUTO = "__auto__";
 
 const PHASE_OPTIONS = [
     { value: AUTO, label: "— automatisch —" },
-    ...MAIN_PHASES.map((p) => ({ value: p, label: MAIN_PHASE_LABEL[p] })),
+    ...mainPhaseOptions(),
 ];
 
 function PhaseBadge({ value, dimmed }: { value: string | null | undefined; dimmed?: boolean }) {
@@ -91,20 +91,8 @@ function Row({ finve }: { finve: SammelFinveProgress }) {
     );
 }
 
-export default function FinveProgressAdminPage() {
-    const { can } = useAuth();
-    const canEdit = can("progress.edit");
+function FinveProgressAdminPageContent() {
     const { data, isLoading } = useSammelFinveProgress();
-
-    if (!canEdit) {
-        return (
-            <Container size="sm" py="xl">
-                <Alert color="red" variant="light" title="Kein Zugriff">
-                    Sie benötigen die Berechtigung „Planungsstand bearbeiten".
-                </Alert>
-            </Container>
-        );
-    }
 
     const rows = data ?? [];
     const needing = rows.filter((r) => r.needs_assignment).length;
@@ -155,5 +143,16 @@ export default function FinveProgressAdminPage() {
                 </ChronicleCard>
             </Stack>
         </Container>
+    );
+}
+
+export default function FinveProgressAdminPage() {
+    return (
+        <RequirePermission
+            perm="progress.edit"
+            message={'Sie benötigen die Berechtigung „Planungsstand bearbeiten".'}
+        >
+            <FinveProgressAdminPageContent />
+        </RequirePermission>
     );
 }

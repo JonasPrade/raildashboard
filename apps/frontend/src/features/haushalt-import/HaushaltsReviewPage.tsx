@@ -13,7 +13,7 @@ import {
 import { ChronicleHeadline, ChronicleDataChip } from "../../components/chronicle";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
-import { useAuth } from "../../lib/auth";
+import RequirePermission from "../../components/RequirePermission";
 import {
     useParseResult,
     useProjects,
@@ -22,29 +22,19 @@ import {
     type HaushaltsParseRow,
 } from "../../shared/api/queries";
 import { ReviewTable } from "./components/ReviewTable";
+import { formatDateTime } from "../../shared/format";
 
-export default function HaushaltsReviewPage() {
+function HaushaltsReviewPageContent() {
     const { parseResultId } = useParams<{ parseResultId: string }>();
     const id = Number(parseResultId);
 
     const navigate = useNavigate();
-    const { can } = useAuth();
     const { data: result, isLoading, isError } = useParseResult(id);
     const { data: projects } = useProjects();
     const confirm = useConfirmHaushaltsImport();
     const deleteResult = useDeleteParseResult();
 
     const [rows, setRows] = useState<HaushaltsParseRow[] | null>(null);
-
-    if (!can("haushalt.import")) {
-        return (
-            <Container size="sm" py="xl">
-                <Alert color="red" variant="light" title="Kein Zugriff">
-                    Diese Seite ist nur für Editoren und Administratoren zugänglich.
-                </Alert>
-            </Container>
-        );
-    }
 
     if (isLoading) return <Container py="xl"><Group justify="center"><Loader /></Group></Container>;
     if (isError || !result) {
@@ -128,14 +118,14 @@ export default function HaushaltsReviewPage() {
                             </Anchor>
                         </Group>
                         <Text size="sm" c="dimmed">
-                            {result.pdf_filename} · geparst am {new Date(result.parsed_at).toLocaleString("de-DE", { timeZone: "Europe/Berlin" })}
+                            {result.pdf_filename} · geparst am {formatDateTime(result.parsed_at)}
                             {result.username_snapshot ? ` von ${result.username_snapshot}` : ""}
                         </Text>
                     </Stack>
 
                     {isConfirmed ? (
                         <ChronicleDataChip>
-                            Importiert am {new Date(result.confirmed_at!).toLocaleString("de-DE", { timeZone: "Europe/Berlin" })}
+                            Importiert am {formatDateTime(result.confirmed_at!)}
                             {result.confirmed_by_snapshot ? ` von ${result.confirmed_by_snapshot}` : ""}
                         </ChronicleDataChip>
                     ) : (
@@ -175,5 +165,13 @@ export default function HaushaltsReviewPage() {
                 />
             </Stack>
         </Container>
+    );
+}
+
+export default function HaushaltsReviewPage() {
+    return (
+        <RequirePermission perm="haushalt.import">
+            <HaushaltsReviewPageContent />
+        </RequirePermission>
     );
 }

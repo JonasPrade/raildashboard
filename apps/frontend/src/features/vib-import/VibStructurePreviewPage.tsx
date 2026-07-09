@@ -16,7 +16,7 @@ import {
 import { ChronicleHeadline, ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useAuth } from "../../lib/auth";
+import RequirePermission from "../../components/RequirePermission";
 import {
     useVibParseResult,
     type VibEntryProposed,
@@ -164,10 +164,9 @@ function ExpandedRawText({ entry }: { entry: VibEntryProposed }) {
     );
 }
 
-export default function VibStructurePreviewPage() {
+function VibStructurePreviewPageContent() {
     const { taskId } = useParams<{ taskId: string }>();
     const navigate = useNavigate();
-    const { can } = useAuth();
 
     const { data: parseResult, isLoading, isError } = useVibParseResult(taskId ?? null);
     const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
@@ -179,16 +178,6 @@ export default function VibStructurePreviewPage() {
             else next.add(idx);
             return next;
         });
-
-    if (!can("vib.import")) {
-        return (
-            <Container size="sm" py="xl">
-                <Alert color="red" variant="light" title="Kein Zugriff">
-                    Diese Seite ist nur für Editoren und Administratoren zugänglich.
-                </Alert>
-            </Container>
-        );
-    }
 
     if (isLoading) {
         return (
@@ -244,7 +233,6 @@ export default function VibStructurePreviewPage() {
                         </div>
                     </Group>
                 </ChronicleCard>
-
 
                 <ChronicleCard style={{ padding: 0 }}>
                     <Table withTableBorder>
@@ -309,5 +297,13 @@ export default function VibStructurePreviewPage() {
                 </Group>
             </Stack>
         </Container>
+    );
+}
+
+export default function VibStructurePreviewPage() {
+    return (
+        <RequirePermission perm="vib.import">
+            <VibStructurePreviewPageContent />
+        </RequirePermission>
     );
 }

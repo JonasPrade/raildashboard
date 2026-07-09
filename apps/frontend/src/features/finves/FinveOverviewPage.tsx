@@ -19,21 +19,13 @@ import {
 import { ChronicleHeadline, ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import { DonutChart, LineChart } from "@mantine/charts";
 import { useFinves, type BudgetSummary, type FinveListItem, type TitelEntry } from "../../shared/api/queries";
+import { chartNum, formatTEuro, formatTEuroWithZero } from "../../shared/format";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 type TypeFilter = "all" | "regular" | "sammel";
-
-function fmt(val: number | null) {
-    if (val === null || val === 0) return "–";
-    return val.toLocaleString("de-DE") + " T€";
-}
-
-function fmtNum(val: number | null): number {
-    return val ?? 0;
-}
 
 // ---------------------------------------------------------------------------
 // Chart data builders (same logic as FinveSection.tsx)
@@ -58,7 +50,7 @@ function buildPieData(budget: BudgetSummary) {
 function buildLineData(budgets: BudgetSummary[]) {
     return budgets.map((b) => ({
         Jahr: String(b.budget_year),
-        "Gesamtkosten": fmtNum(b.cost_estimate_actual),
+        "Gesamtkosten": chartNum(b.cost_estimate_actual),
     }));
 }
 
@@ -106,13 +98,13 @@ function TitelTable({ entries, year }: { entries: TitelEntry[]; year: number }) 
         rows.map((e, i) => (
             <Table.Tr key={i}>
                 <Table.Td><Text size="xs">{e.label}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{fmt(e.cost_estimate_last_year)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{fmt(e.cost_estimate_aktuell)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{fmt(e.verausgabt_bis)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{fmt(e.bewilligt)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{fmt(e.ausgabereste_transferred)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs" fw={600}>{fmt(e.veranschlagt)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{fmt(e.vorhalten_future)}</Text></Table.Td>
+                <Table.Td ta="right"><Text size="xs">{formatTEuro(e.cost_estimate_last_year)}</Text></Table.Td>
+                <Table.Td ta="right"><Text size="xs">{formatTEuro(e.cost_estimate_aktuell)}</Text></Table.Td>
+                <Table.Td ta="right"><Text size="xs">{formatTEuro(e.verausgabt_bis)}</Text></Table.Td>
+                <Table.Td ta="right"><Text size="xs">{formatTEuro(e.bewilligt)}</Text></Table.Td>
+                <Table.Td ta="right"><Text size="xs">{formatTEuro(e.ausgabereste_transferred)}</Text></Table.Td>
+                <Table.Td ta="right"><Text size="xs" fw={600}>{formatTEuro(e.veranschlagt)}</Text></Table.Td>
+                <Table.Td ta="right"><Text size="xs">{formatTEuro(e.vorhalten_future)}</Text></Table.Td>
             </Table.Tr>
         ));
 
@@ -195,13 +187,13 @@ function FinveCard({ finve }: { finve: FinveListItem }) {
                         {finve.cost_estimate_original != null && (
                             <Stack gap={2} align="flex-end">
                                 <Text size="xs" c="dimmed">Ursprgl. Kosten</Text>
-                                <Text size="sm" fw={600}>{fmt(finve.cost_estimate_original)}</Text>
+                                <Text size="sm" fw={600}>{formatTEuro(finve.cost_estimate_original)}</Text>
                             </Stack>
                         )}
                         {lastBudget?.cost_estimate_actual != null && (
                             <Stack gap={2} align="flex-end">
                                 <Text size="xs" c="dimmed">Aktuell ({lastBudget.budget_year})</Text>
-                                <Text size="sm" fw={600}>{fmt(lastBudget.cost_estimate_actual)}</Text>
+                                <Text size="sm" fw={600}>{formatTEuro(lastBudget.cost_estimate_actual)}</Text>
                             </Stack>
                         )}
                     </Group>
@@ -281,7 +273,7 @@ function FinveCard({ finve }: { finve: FinveListItem }) {
                                                     tickLine="x"
                                                     gridAxis="y"
                                                     withDots
-                                                    valueFormatter={(v: number) => v != null ? v.toLocaleString("de-DE") + " T€" : "–"}
+                                                    valueFormatter={formatTEuroWithZero}
                                                     yAxisProps={{ width: 130, domain: [0, yMax] }}
                                                     tooltipProps={{
                                                         contentStyle: {
@@ -312,7 +304,7 @@ function FinveCard({ finve }: { finve: FinveListItem }) {
                                                     thickness={36}
                                                     withTooltip
                                                     tooltipDataSource="segment"
-                                                    valueFormatter={(v: number) => v.toLocaleString("de-DE") + " T€"}
+                                                    valueFormatter={formatTEuroWithZero}
                                                 />
                                             </Group>
                                             <ChartLegend
