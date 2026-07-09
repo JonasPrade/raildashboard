@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from dashboard_backend.models.associations.progress_track_document import (
     ProgressTrackDocument,
@@ -213,8 +213,11 @@ def sync_derived_observations(db: Session, project_id: int) -> int:
     any_pf_evidence = False
 
     # --- VIB entries linked to the project (m:n) ---
+    # Eager-load report + pfa_entries: both are touched per entry below and
+    # would otherwise lazy-load with two extra queries per VIB entry.
     vib_entries = (
         db.query(VibEntry)
+        .options(joinedload(VibEntry.report), selectinload(VibEntry.pfa_entries))
         .join(vib_entry_project, vib_entry_project.c.vib_entry_id == VibEntry.id)
         .filter(vib_entry_project.c.project_id == project_id)
         .all()

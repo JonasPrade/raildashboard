@@ -10,7 +10,7 @@ and whole years can be dropped at once.
 
 from __future__ import annotations
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, load_only
 
 from dashboard_backend.crud.projects.progress import recompute_progress
 from dashboard_backend.models.projects.fulda_announcement import FuldaAnnouncement
@@ -87,7 +87,13 @@ def parse_and_store(
 
     document_date = parse_flexible_date(extracted.get("document_date"))
     source_label = extracted.get("source_label")
-    projects = db.query(Project).all()
+    # The fuzzy matcher only reads id/name/superior_project_id — don't drag
+    # geojson_representation (potentially MBs per row) along for every project.
+    projects = (
+        db.query(Project)
+        .options(load_only(Project.id, Project.name, Project.superior_project_id))
+        .all()
+    )
     by_id = {p.id: p for p in projects}
     children_by_superior: dict[int, list[Project]] = {}
     for p in projects:
