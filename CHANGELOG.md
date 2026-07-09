@@ -12,6 +12,13 @@ section as part of the release commit, immediately before tagging.
 
 ## [Unreleased]
 
+### Changed
+- Delivery performance: the frontend nginx now gzips text responses (including
+  proxied `/api/` JSON/GeoJSON) and serves hashed `/assets/` with
+  `Cache-Control: immutable` (`index.html`: `no-cache`); the backend container
+  runs uvicorn with `--workers 2` so synchronous import/extraction requests no
+  longer serialize all other traffic.
+
 ## [v0.0.6] - 2026-07-07
 
 ### Added
