@@ -9,10 +9,10 @@ the admin endpoint (Kleine Anfragen are short).
 
 from __future__ import annotations
 
-import json
 import logging
 
 from dashboard_backend.core.config import settings
+from dashboard_backend.services.llm import call_llm_json
 from dashboard_backend.tasks.vib_ocr import extract_full_pdf_text
 
 logger = logging.getLogger(__name__)
@@ -149,25 +149,6 @@ def normalize_items(raw_items) -> list[dict]:
     return items
 
 
-def _call_llm(prompt: str) -> dict:
-    from openai import OpenAI  # lazy import
-
-    client = OpenAI(
-        base_url=settings.llm_base_url,
-        api_key=settings.llm_api_key or "no-key",
-    )
-    response = client.chat.completions.create(
-        model=settings.llm_model,
-        messages=[
-            {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user", "content": prompt},
-        ],
-        response_format={"type": "json_object"},
-        temperature=0,
-    )
-    return json.loads(response.choices[0].message.content)
-
-
 def extract_fulda_announcements(text: str) -> dict:
     """Extract Fulda announcements from OCR text.
 
@@ -183,7 +164,7 @@ def extract_fulda_announcements(text: str) -> dict:
         text=text[:_MAX_TEXT_CHARS], categories=_CATEGORY_CATALOG
     )
     try:
-        result = _call_llm(prompt)
+        result = call_llm_json(_SYSTEM_PROMPT, prompt)
     except Exception as exc:  # noqa: BLE001 - extraction is best-effort
         logger.warning("Fulda LLM extraction failed: %s", exc)
         return empty
