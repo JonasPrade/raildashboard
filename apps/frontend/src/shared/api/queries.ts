@@ -11,6 +11,121 @@ function mergeDefined<T extends object>(entry: T, patch: object): T {
     return next as T;
 }
 
+/**
+ * Single source of truth for react-query cache keys. A typo'd string literal
+ * silently breaks invalidation, so keys live only here: bare arrays are also
+ * the prefix that matches every parameterised variant (e.g. queryKeys.progress
+ * invalidates all per-project progress queries).
+ */
+export const queryKeys = {
+    textTypes: ["textTypes"],
+    projects: ["projects"],
+    project: (id: number) => ["project", id] as const,
+    projectTexts: (projectId: number) => ["projectTexts", projectId] as const,
+    projectDrafts: ["projectDrafts"],
+    projectGroups: ["projectGroups"],
+    appSettings: ["appSettings"],
+    projectRoutes: (projectId: number) => ["projectRoutes", projectId] as const,
+    progress: ["project-progress"],
+    progressFor: (projectId: number) => ["project-progress", projectId] as const,
+    sammelFinveProgress: ["sammel-finve-progress"],
+    projectFinves: (projectId: number) => ["project-finves", projectId] as const,
+    projectBvwp: (projectId: number) => ["project-bvwp", projectId] as const,
+    projectVib: ["project-vib"],
+    projectVibFor: (projectId: number) => ["project-vib", projectId] as const,
+    projectChangelog: (projectId: number) => ["project-changelog", projectId] as const,
+    projectTextChangelog: (projectId: number) => ["project-text-changelog", projectId] as const,
+    finves: ["finves"],
+    users: ["users"],
+    userOptions: ["user-options"],
+    roles: ["roles"],
+    permissions: ["permissions"],
+    haushaltParseResults: ["haushalt-parse-results"],
+    haushaltParseResult: (id: number) => ["haushalt-parse-result", id] as const,
+    haushaltUnmatched: ["haushalt-unmatched"],
+    haushaltUnmatchedFor: (resolved?: boolean) => ["haushalt-unmatched", resolved] as const,
+    taskStatus: (taskId: string | null) => ["task-status", taskId] as const,
+    vibParseResult: (taskId: string | null) => ["vib-parse-result", taskId] as const,
+    vibReports: ["vib-reports"],
+    vibDrafts: ["vib-drafts"],
+    vibEntry: (entryId: number | null) => ["vib-entry", entryId] as const,
+    vibEntriesConfirmed: ["vib-entries-confirmed"],
+    vibAiAvailable: ["vib-ai-available"],
+    vibOcrAvailable: ["vib-ocr-available"],
+    adminUnassignedFinves: ["admin-unassigned-finves"],
+    adminUnassignedVibEntries: ["admin-unassigned-vib-entries"],
+    bauportalEntries: ["bauportal-entries"],
+    bauportalEntriesFor: (onlyUnconfirmed: boolean) => ["bauportal-entries", onlyUnconfirmed] as const,
+    mediaEntries: ["media-entries"],
+    mediaEntriesFor: (onlyUnconfirmed: boolean) => ["media-entries", onlyUnconfirmed] as const,
+    fuldaEntries: ["fulda-entries"],
+    fuldaEntriesFor: (onlyUnconfirmed: boolean, year: number | null) =>
+        ["fulda-entries", onlyUnconfirmed, year] as const,
+    fuldaYears: ["fulda-years"],
+    fuldaYearSummaries: ["fulda-year-summaries"],
+    operationalPoints: (q: string) => ["operational-points", q] as const,
+    todos: ["todos"],
+    guideOverrides: (guideSlug: string) => ["guide-overrides", guideSlug] as const,
+} as const;
+
+type InvalidateKeys<TData, TVariables> =
+    | ReadonlyArray<readonly unknown[]>
+    | ((data: TData, variables: TVariables) => ReadonlyArray<readonly unknown[]>);
+
+/**
+ * The standard mutation shape: run ``mutationFn``, then invalidate a fixed
+ * (or variables-derived) set of query keys. Covers every mutation without
+ * extra cache writes; hooks with setQueryData/optimistic logic stay explicit.
+ */
+export function useInvalidatingMutation<TData, TVariables = void>(
+    mutationFn: (variables: TVariables) => Promise<TData>,
+    keys: InvalidateKeys<TData, TVariables>,
+) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn,
+        onSuccess: (data, variables) => {
+            const resolved = typeof keys === "function" ? keys(data, variables) : keys;
+            for (const key of resolved) {
+                queryClient.invalidateQueries({ queryKey: key });
+            }
+        },
+    });
+}
+
+/**
+ * PATCH one entry of a cached list optimistically: cancel in-flight fetches,
+ * snapshot every matching list, merge the patch into the entry (defined keys
+ * only), roll back on error and refetch on settle. Shared by the Bauportal and
+ * Fulda review tables.
+ */
+function useOptimisticEntryPatch<TEntry extends { id: number }, TData, TPatch extends object>(config: {
+    listKey: readonly unknown[];
+    settledKeys: ReadonlyArray<readonly unknown[]>;
+    mutationFn: (variables: { entryId: number; data: TPatch }) => Promise<TData>;
+}) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: config.mutationFn,
+        onMutate: async ({ entryId, data }) => {
+            await queryClient.cancelQueries({ queryKey: config.listKey });
+            const snapshots = queryClient.getQueriesData<TEntry[]>({ queryKey: config.listKey });
+            queryClient.setQueriesData<TEntry[]>({ queryKey: config.listKey }, (old) =>
+                old ? old.map((e) => (e.id === entryId ? mergeDefined(e, data) : e)) : old,
+            );
+            return { snapshots };
+        },
+        onError: (_err, _vars, context) => {
+            context?.snapshots?.forEach(([key, value]) => queryClient.setQueryData(key, value));
+        },
+        onSettled: () => {
+            for (const key of config.settledKeys) {
+                queryClient.invalidateQueries({ queryKey: key });
+            }
+        },
+    });
+}
+
 export type Project = components["schemas"]["ProjectSchema"];
 export type ProjectGroup = components["schemas"]["ProjectGroupSchema"];
 export type ProjectRoute = components["schemas"]["RouteOut"];
@@ -36,29 +151,25 @@ export type ProjectTextUpdate = components["schemas"]["ProjectTextUpdate"];
 
 export function useTextTypes() {
     return useQuery({
-        queryKey: ["textTypes"],
+        queryKey: queryKeys.textTypes,
         queryFn: () => api<ProjectTextType[]>("/api/v1/text_types"),
     });
 }
 
 export function useCreateTextType() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (name: string) =>
+    return useInvalidatingMutation(
+        (name: string) =>
             api<ProjectTextType>("/api/v1/text_types", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name }),
+                json: { name },
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["textTypes"] });
-        },
-    });
+        [queryKeys.textTypes],
+    );
 }
 
 export function useProjectTexts(projectId: number) {
     return useQuery({
-        queryKey: ["projectTexts", projectId],
+        queryKey: queryKeys.projectTexts(projectId),
         enabled: Number.isFinite(projectId),
         queryFn: () =>
             api<ProjectText[]>(`/api/v1/projects/${projectId}/texts`),
@@ -66,50 +177,38 @@ export function useProjectTexts(projectId: number) {
 }
 
 export function useCreateProjectText(projectId: number) {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (payload: ProjectTextCreate) =>
+    return useInvalidatingMutation(
+        (payload: ProjectTextCreate) =>
             api<ProjectText>(`/api/v1/projects/${projectId}/texts`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+                json: payload,
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["projectTexts", projectId] });
-        },
-    });
+        [queryKeys.projectTexts(projectId)],
+    );
 }
 
 export function useUpdateProjectText(projectId: number) {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: ({ textId, payload }: { textId: number; payload: ProjectTextUpdate }) =>
+    return useInvalidatingMutation(
+        ({ textId, payload }: { textId: number; payload: ProjectTextUpdate }) =>
             api<ProjectText>(`/api/v1/projects/texts/${textId}`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+                json: payload,
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["projectTexts", projectId] });
-        },
-    });
+        [queryKeys.projectTexts(projectId)],
+    );
 }
 
 export function useDeleteProjectText(projectId: number) {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (textId: number) =>
+    return useInvalidatingMutation(
+        (textId: number) =>
             api<void>(`/api/v1/projects/texts/${textId}`, { method: "DELETE" }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["projectTexts", projectId] });
-        },
-    });
+        [queryKeys.projectTexts(projectId)],
+    );
 }
 
 export function useUploadTextAttachment(projectId: number) {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: ({ textId, file }: { textId: number; file: File }) => {
+    return useInvalidatingMutation(
+        ({ textId, file }: { textId: number; file: File }) => {
             const formData = new FormData();
             formData.append("file", file);
             // No Content-Type header — browser sets multipart/form-data with boundary
@@ -118,28 +217,23 @@ export function useUploadTextAttachment(projectId: number) {
                 body: formData,
             });
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["projectTexts", projectId] });
-        },
-    });
+        [queryKeys.projectTexts(projectId)],
+    );
 }
 
 export function useDeleteTextAttachment(projectId: number) {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: ({ textId, attachmentId }: { textId: number; attachmentId: number }) =>
+    return useInvalidatingMutation(
+        ({ textId, attachmentId }: { textId: number; attachmentId: number }) =>
             api<void>(`/api/v1/projects/texts/${textId}/attachments/${attachmentId}`, {
                 method: "DELETE",
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["projectTexts", projectId] });
-        },
-    });
+        [queryKeys.projectTexts(projectId)],
+    );
 }
 
 export function useProjects() {
     return useQuery({
-        queryKey: ["projects"],
+        queryKey: queryKeys.projects,
         queryFn: () => api<Project[]>("/api/v1/projects/"),
     });
 }
@@ -158,65 +252,52 @@ export type ProgressChild = components["schemas"]["ProgressChildSchema"];
 export type ProgressForecast = components["schemas"]["ProgressForecastSchema"];
 export type ForecastStep = components["schemas"]["ForecastStepSchema"];
 
-const progressKey = (projectId: number) => ["project-progress", projectId];
-
 export function useProjectProgress(projectId: number) {
     return useQuery({
-        queryKey: progressKey(projectId),
+        queryKey: queryKeys.progressFor(projectId),
         enabled: Number.isFinite(projectId),
         queryFn: () => api<ProjectProgress>(`/api/v1/projects/${projectId}/progress`),
     });
 }
 
 export function useUpdateProjectProgress(projectId: number) {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (payload: ProjectProgressUpdate) =>
+    return useInvalidatingMutation(
+        (payload: ProjectProgressUpdate) =>
             api<ProjectProgress>(`/api/v1/projects/${projectId}/progress`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+                json: payload,
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: progressKey(projectId) });
-        },
-    });
+        [queryKeys.progressFor(projectId)],
+    );
 }
 
 export function useAddProgressObservation(projectId: number) {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (payload: ProgressObservationCreate) =>
+    return useInvalidatingMutation(
+        (payload: ProgressObservationCreate) =>
             api<ProjectProgress>(`/api/v1/projects/${projectId}/progress/observations`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+                json: payload,
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: progressKey(projectId) });
-        },
-    });
+        [queryKeys.progressFor(projectId)],
+    );
 }
 
 export function useDeleteProgressObservation(projectId: number) {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (observationId: number) =>
+    return useInvalidatingMutation(
+        (observationId: number) =>
             api<ProjectProgress>(
                 `/api/v1/projects/${projectId}/progress/observations/${observationId}`,
                 { method: "DELETE" },
             ),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: progressKey(projectId) });
-        },
-    });
+        [queryKeys.progressFor(projectId)],
+    );
 }
 
 export type SammelFinveProgress = components["schemas"]["SammelFinveProgressSchema"];
 
 export function useSammelFinveProgress() {
     return useQuery({
-        queryKey: ["sammel-finve-progress"],
+        queryKey: queryKeys.sammelFinveProgress,
         queryFn: () => api<SammelFinveProgress[]>("/api/v1/finves/sammel-progress"),
     });
 }
@@ -227,33 +308,29 @@ export function useSetFinveProgressPhase() {
         mutationFn: ({ finveId, phase }: { finveId: number; phase: string | null }) =>
             api<SammelFinveProgress[]>(`/api/v1/finves/${finveId}/progress-phase`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ progress_phase: phase }),
+                json: { progress_phase: phase },
             }),
         onSuccess: (data) => {
-            queryClient.setQueryData(["sammel-finve-progress"], data);
+            queryClient.setQueryData(queryKeys.sammelFinveProgress, data);
             // A changed mapping affects derived progress on linked projects.
-            queryClient.invalidateQueries({ queryKey: ["project-progress"] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.progress });
         },
     });
 }
 
 export function useRecomputeProgress(projectId: number) {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: () =>
+    return useInvalidatingMutation(
+        () =>
             api<ProjectProgress>(`/api/v1/projects/${projectId}/progress/recompute`, {
                 method: "POST",
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: progressKey(projectId) });
-        },
-    });
+        [queryKeys.progressFor(projectId)],
+    );
 }
 
 export function useProject(id: number) {
     return useQuery({
-        queryKey: ["project", id],
+        queryKey: queryKeys.project(id),
         enabled: Number.isFinite(id),
         queryFn: () =>
             api<Project>("/api/v1/projects/:project_id", {
@@ -264,7 +341,7 @@ export function useProject(id: number) {
 
 export function useProjectGroups() {
     return useQuery({
-        queryKey: ["projectGroups"],
+        queryKey: queryKeys.projectGroups,
         queryFn: () => api<ProjectGroup[]>("/api/v1/project_groups/"),
     });
 }
@@ -274,38 +351,33 @@ export type ProjectGroupCreatePayload = components["schemas"]["ProjectGroupCreat
 export type ProjectGroupUpdatePayload = components["schemas"]["ProjectGroupUpdate"];
 
 export function useCreateProjectGroup() {
-    const qc = useQueryClient();
-    return useMutation({
-        mutationFn: (payload: ProjectGroupCreatePayload) =>
+    return useInvalidatingMutation(
+        (payload: ProjectGroupCreatePayload) =>
             api<ProjectGroup>("/api/v1/project_groups/", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+                json: payload,
             }),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ["projectGroups"] }),
-    });
+        [queryKeys.projectGroups],
+    );
 }
 
 export function useUpdateProjectGroup() {
-    const qc = useQueryClient();
-    return useMutation({
-        mutationFn: ({ groupId, ...payload }: { groupId: number } & ProjectGroupUpdatePayload) =>
+    return useInvalidatingMutation(
+        ({ groupId, ...payload }: { groupId: number } & ProjectGroupUpdatePayload) =>
             api<ProjectGroup>(`/api/v1/project_groups/${groupId}`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+                json: payload,
             }),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ["projectGroups"] }),
-    });
+        [queryKeys.projectGroups],
+    );
 }
 
 export function useDeleteProjectGroup() {
-    const qc = useQueryClient();
-    return useMutation({
-        mutationFn: (groupId: number) =>
+    return useInvalidatingMutation(
+        (groupId: number) =>
             api<void>(`/api/v1/project_groups/${groupId}`, { method: "DELETE" }),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ["projectGroups"] }),
-    });
+        [queryKeys.projectGroups],
+    );
 }
 
 export type MapGroupMode = AppSettings["map_group_mode"];
@@ -313,31 +385,26 @@ export type AppSettings = components["schemas"]["AppSettingsSchema"];
 
 export function useAppSettings() {
     return useQuery({
-        queryKey: ["appSettings"],
+        queryKey: queryKeys.appSettings,
         queryFn: () => api<AppSettings>("/api/v1/settings/"),
     });
 }
 
 export function useUpdateAppSettings() {
-    const qc = useQueryClient();
-    return useMutation({
-        mutationFn: (map_group_mode: MapGroupMode) =>
+    return useInvalidatingMutation(
+        (map_group_mode: MapGroupMode) =>
             api<AppSettings>("/api/v1/settings/", {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ map_group_mode }),
+                json: { map_group_mode },
             }),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ["appSettings"] }),
-    });
+        [queryKeys.appSettings],
+    );
 }
-
-const projectRoutesQueryKey = (projectId: number) => ["projectRoutes", projectId];
 
 export function updateProject(id: number, payload: ProjectUpdatePayload) {
     return api<Project>("/api/v1/projects/:project_id", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        json: payload,
         params: { path: { project_id: id } },
     });
 }
@@ -354,14 +421,13 @@ export function useCreateProject() {
         mutationFn: (payload: ProjectCreatePayload) =>
             api<Project>("/api/v1/projects/", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+                json: payload,
             }),
         onSuccess: (created) => {
-            queryClient.invalidateQueries({ queryKey: ["projects"] });
-            queryClient.invalidateQueries({ queryKey: ["projectDrafts"] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.projects });
+            queryClient.invalidateQueries({ queryKey: queryKeys.projectDrafts });
             if (created.id != null) {
-                queryClient.setQueryData(["project", created.id], created);
+                queryClient.setQueryData(queryKeys.project(created.id), created);
             }
         },
     });
@@ -374,7 +440,7 @@ export function useCreateProject() {
 /** List all draft (not yet finalized) projects. Admin-only (project.create). */
 export function useDraftProjects(enabled = true) {
     return useQuery({
-        queryKey: ["projectDrafts"],
+        queryKey: queryKeys.projectDrafts,
         enabled,
         queryFn: () => api<Project[]>("/api/v1/projects/drafts"),
     });
@@ -387,10 +453,10 @@ export function useFinalizeProject() {
         mutationFn: (projectId: number) =>
             api<Project>(`/api/v1/projects/${projectId}/finalize`, { method: "POST" }),
         onSuccess: (project) => {
-            queryClient.invalidateQueries({ queryKey: ["projects"] });
-            queryClient.invalidateQueries({ queryKey: ["projectDrafts"] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.projects });
+            queryClient.invalidateQueries({ queryKey: queryKeys.projectDrafts });
             if (project.id != null) {
-                queryClient.setQueryData(["project", project.id], project);
+                queryClient.setQueryData(queryKeys.project(project.id), project);
             }
         },
     });
@@ -398,39 +464,36 @@ export function useFinalizeProject() {
 
 /** Delete a project (used to discard drafts). */
 export function useDeleteProject() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (projectId: number) =>
+    return useInvalidatingMutation(
+        (projectId: number) =>
             api<void>(`/api/v1/projects/${projectId}`, { method: "DELETE" }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["projects"] });
-            queryClient.invalidateQueries({ queryKey: ["projectDrafts"] });
-        },
-    });
+        [
+            queryKeys.projects,
+            queryKeys.projectDrafts,
+        ],
+    );
 }
 
 export function useLinkFinvesToProject(projectId: number) {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (finveIds: number[]) =>
+    return useInvalidatingMutation(
+        (finveIds: number[]) =>
             api<void>(`/api/v1/projects/${projectId}/finves`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ finve_ids: finveIds }),
+                json: { finve_ids: finveIds },
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["project-finves", projectId] });
-            queryClient.invalidateQueries({ queryKey: ["finves"] });
-            queryClient.invalidateQueries({ queryKey: ["admin-unassigned-finves"] });
-        },
-    });
+        [
+            queryKeys.projectFinves(projectId),
+            queryKeys.finves,
+            queryKeys.adminUnassignedFinves,
+        ],
+    );
 }
 
 export type ConfirmedVibEntry = components["schemas"]["VibEntryListItemSchema"];
 
 export function useConfirmedVibEntries(enabled: boolean = true) {
     return useQuery({
-        queryKey: ["vib-entries-confirmed"],
+        queryKey: queryKeys.vibEntriesConfirmed,
         queryFn: () => api<ConfirmedVibEntry[]>("/api/v1/import/vib/entries"),
         enabled,
     });
@@ -450,7 +513,7 @@ export type TextChangeLog = components["schemas"]["TextChangeLogRead"];
 
 export function useProjectChangelog(projectId: number) {
     return useQuery({
-        queryKey: ["project-changelog", projectId],
+        queryKey: queryKeys.projectChangelog(projectId),
         enabled: Number.isFinite(projectId),
         queryFn: () => api<ChangeLog[]>(`/api/v1/projects/${projectId}/changelog`),
     });
@@ -458,7 +521,7 @@ export function useProjectChangelog(projectId: number) {
 
 export function useProjectTextChangelog(projectId: number) {
     return useQuery({
-        queryKey: ["project-text-changelog", projectId],
+        queryKey: queryKeys.projectTextChangelog(projectId),
         enabled: Number.isFinite(projectId),
         queryFn: () => api<TextChangeLog[]>(`/api/v1/projects/${projectId}/texts/changelog`),
     });
@@ -470,13 +533,12 @@ export function useRevertProjectField(projectId: number) {
         mutationFn: (changelogEntryId: number) =>
             api<Project>(`/api/v1/projects/${projectId}/changelog/revert`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ changelog_entry_id: changelogEntryId }),
+                json: { changelog_entry_id: changelogEntryId },
             }),
         onSuccess: (updatedProject) => {
-            queryClient.setQueryData(["project", projectId], updatedProject);
-            queryClient.invalidateQueries({ queryKey: ["projects"] });
-            queryClient.invalidateQueries({ queryKey: ["project-changelog", projectId] });
+            queryClient.setQueryData(queryKeys.project(projectId), updatedProject);
+            queryClient.invalidateQueries({ queryKey: queryKeys.projects });
+            queryClient.invalidateQueries({ queryKey: queryKeys.projectChangelog(projectId) });
         },
     });
 }
@@ -487,68 +549,53 @@ export function useRevertProjectField(projectId: number) {
 
 export function useUsers() {
     return useQuery({
-        queryKey: ["users"],
+        queryKey: queryKeys.users,
         queryFn: () => api<User[]>("/api/v1/users/"),
     });
 }
 
 export function useCreateUser() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (payload: { username: string; password: string; role: string }) =>
+    return useInvalidatingMutation(
+        (payload: { username: string; password: string; role: string }) =>
             api<User>("/api/v1/users/", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+                json: payload,
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["users"] });
-        },
-    });
+        [queryKeys.users],
+    );
 }
 
 export function useUpdateUserRole() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: ({ userId, role }: { userId: number; role: string }) =>
+    return useInvalidatingMutation(
+        ({ userId, role }: { userId: number; role: string }) =>
             api<User>(`/api/v1/users/${userId}`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ role }),
+                json: { role },
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["users"] });
-        },
-    });
+        [queryKeys.users],
+    );
 }
 
 export function useUpdateUser() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: ({ userId, username, role }: { userId: number; username?: string; role?: string }) =>
+    return useInvalidatingMutation(
+        ({ userId, username, role }: { userId: number; username?: string; role?: string }) =>
             api<User>(`/api/v1/users/${userId}`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
+                json: {
                     ...(username !== undefined ? { username } : {}),
                     ...(role !== undefined ? { role } : {}),
-                }),
+                },
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["users"] });
-        },
-    });
+        [queryKeys.users],
+    );
 }
 
 export function useDeleteUser() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (userId: number) =>
+    return useInvalidatingMutation(
+        (userId: number) =>
             api<void>(`/api/v1/users/${userId}`, { method: "DELETE" }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["users"] });
-        },
-    });
+        [queryKeys.users],
+    );
 }
 
 export function useSetUserPassword() {
@@ -556,8 +603,7 @@ export function useSetUserPassword() {
         mutationFn: ({ userId, password }: { userId: number; password: string }) =>
             api<void>(`/api/v1/users/${userId}/password`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ password }),
+                json: { password },
             }),
     });
 }
@@ -568,37 +614,32 @@ export function useSetUserPassword() {
 
 export function useRoles() {
     return useQuery({
-        queryKey: ["roles"],
+        queryKey: queryKeys.roles,
         queryFn: () => api<Role[]>("/api/v1/roles/"),
     });
 }
 
 export function usePermissions() {
     return useQuery({
-        queryKey: ["permissions"],
+        queryKey: queryKeys.permissions,
         queryFn: () => api<Permission[]>("/api/v1/permissions/"),
     });
 }
 
 export function useCreateRole() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (payload: { name: string; description?: string | null; permissions: string[] }) =>
+    return useInvalidatingMutation(
+        (payload: { name: string; description?: string | null; permissions: string[] }) =>
             api<Role>("/api/v1/roles/", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+                json: payload,
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["roles"] });
-        },
-    });
+        [queryKeys.roles],
+    );
 }
 
 export function useUpdateRole() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: ({
+    return useInvalidatingMutation(
+        ({
             roleId,
             ...payload
         }: {
@@ -609,24 +650,18 @@ export function useUpdateRole() {
         }) =>
             api<Role>(`/api/v1/roles/${roleId}`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+                json: payload,
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["roles"] });
-        },
-    });
+        [queryKeys.roles],
+    );
 }
 
 export function useDeleteRole() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (roleId: number) =>
+    return useInvalidatingMutation(
+        (roleId: number) =>
             api<void>(`/api/v1/roles/${roleId}`, { method: "DELETE" }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["roles"] });
-        },
-    });
+        [queryKeys.roles],
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -641,7 +676,7 @@ export type FinveWithBudgets = components["schemas"]["FinveWithBudgetsSchema"];
 
 export function useProjectFinves(projectId: number) {
     return useQuery({
-        queryKey: ["project-finves", projectId],
+        queryKey: queryKeys.projectFinves(projectId),
         queryFn: () => api<FinveWithBudgets[]>(`/api/v1/projects/${projectId}/finves`),
         enabled: !Number.isNaN(projectId),
     });
@@ -651,7 +686,7 @@ export type BvwpProjectData = components["schemas"]["BvwpProjectDataSchema"];
 
 export function useProjectBvwp(projectId: number) {
     return useQuery({
-        queryKey: ["project-bvwp", projectId],
+        queryKey: queryKeys.projectBvwp(projectId),
         enabled: !Number.isNaN(projectId),
         queryFn: async () => {
             try {
@@ -673,7 +708,7 @@ export type FinveListItem = components["schemas"]["FinveListItemSchema"];
 
 export function useFinves() {
     return useQuery({
-        queryKey: ["finves"],
+        queryKey: queryKeys.finves,
         queryFn: () => api<FinveListItem[]>("/api/v1/finves/"),
     });
 }
@@ -733,14 +768,14 @@ export type TaskStatusResponse = components["schemas"]["TaskStatusResponse"];
 
 export function useParseResults() {
     return useQuery({
-        queryKey: ["haushalt-parse-results"],
+        queryKey: queryKeys.haushaltParseResults,
         queryFn: () => api<ParseResultPublic[]>("/api/v1/import/haushalt/parse-result"),
     });
 }
 
 export function useParseResult(id: number) {
     return useQuery({
-        queryKey: ["haushalt-parse-result", id],
+        queryKey: queryKeys.haushaltParseResult(id),
         enabled: Number.isFinite(id),
         queryFn: () => api<ParseResultPublic>(`/api/v1/import/haushalt/parse-result/${id}`),
     });
@@ -748,7 +783,7 @@ export function useParseResult(id: number) {
 
 export function useTaskStatus(taskId: string | null) {
     return useQuery({
-        queryKey: ["task-status", taskId],
+        queryKey: queryKeys.taskStatus(taskId),
         enabled: taskId !== null,
         refetchInterval: (query) => {
             const status = (query.state.data as TaskStatusResponse | undefined)?.status;
@@ -773,35 +808,30 @@ export function useStartHaushaltsImport() {
 }
 
 export function useDeleteParseResult() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (id: number) =>
+    return useInvalidatingMutation(
+        (id: number) =>
             api<void>(`/api/v1/import/haushalt/parse-result/${id}`, { method: "DELETE" }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["haushalt-parse-results"] });
-        },
-    });
+        [queryKeys.haushaltParseResults],
+    );
 }
 
 export function useConfirmHaushaltsImport() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (payload: HaushaltsConfirmRequest) =>
+    return useInvalidatingMutation(
+        (payload: HaushaltsConfirmRequest) =>
             api<HaushaltsConfirmResponse>("/api/v1/import/haushalt/confirm", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+                json: payload,
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["haushalt-parse-results"] });
-            queryClient.invalidateQueries({ queryKey: ["haushalt-unmatched"] });
-        },
-    });
+        [
+            queryKeys.haushaltParseResults,
+            queryKeys.haushaltUnmatched,
+        ],
+    );
 }
 
 export function useUnmatchedRows(resolved?: boolean) {
     return useQuery({
-        queryKey: ["haushalt-unmatched", resolved],
+        queryKey: queryKeys.haushaltUnmatchedFor(resolved),
         queryFn: () => {
             const qs = resolved !== undefined ? `?resolved=${resolved}` : "";
             return api<UnmatchedBudgetRow[]>(`/api/v1/import/haushalt/unmatched${qs}`);
@@ -810,18 +840,14 @@ export function useUnmatchedRows(resolved?: boolean) {
 }
 
 export function useResolveUnmatchedRow() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: ({ rowId, finveId }: { rowId: number; finveId: number }) =>
+    return useInvalidatingMutation(
+        ({ rowId, finveId }: { rowId: number; finveId: number }) =>
             api<UnmatchedBudgetRow>(`/api/v1/import/haushalt/unmatched/${rowId}`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ finve_id: finveId }),
+                json: { finve_id: finveId },
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["haushalt-unmatched"] });
-        },
-    });
+        [queryKeys.haushaltUnmatched],
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -850,7 +876,7 @@ export type VibEntryForProject = components["schemas"]["VibEntryForProjectSchema
 
 export function useVibParseResult(taskId: string | null) {
     return useQuery({
-        queryKey: ["vib-parse-result", taskId],
+        queryKey: queryKeys.vibParseResult(taskId),
         enabled: taskId !== null,
         queryFn: () => api<VibParseTaskResult>(`/api/v1/import/vib/parse-result/${taskId}`),
         retry: false,
@@ -888,65 +914,58 @@ export function useStartVibImport() {
 
 export function useVibReports() {
     return useQuery({
-        queryKey: ["vib-reports"],
+        queryKey: queryKeys.vibReports,
         queryFn: () => api<VibReportSchema[]>("/api/v1/import/vib/reports"),
     });
 }
 
 export function useDeleteVibReport() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (id: number) =>
+    return useInvalidatingMutation(
+        (id: number) =>
             api<void>(`/api/v1/import/vib/reports/${id}`, { method: "DELETE" }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["vib-reports"] });
-        },
-    });
+        [queryKeys.vibReports],
+    );
 }
 
 export function useConfirmVibImport() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (payload: VibConfirmRequest) =>
+    return useInvalidatingMutation(
+        (payload: VibConfirmRequest) =>
             api<VibConfirmResponse>("/api/v1/import/vib/confirm", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+                json: payload,
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["vib-reports"] });
-            queryClient.invalidateQueries({ queryKey: ["vib-drafts"] });
-        },
-    });
+        [
+            queryKeys.vibReports,
+            queryKeys.vibDrafts,
+        ],
+    );
 }
 
 export function useProjectVibEntries(projectId: number) {
     return useQuery({
-        queryKey: ["project-vib", projectId],
+        queryKey: queryKeys.projectVibFor(projectId),
         queryFn: () => api<VibEntryForProject[]>(`/api/v1/projects/${projectId}/vib`),
     });
 }
 
 export function useUpdateVibEntry() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: ({ entryId, data }: { entryId: number; data: Partial<VibEntryProposed> }) =>
+    return useInvalidatingMutation(
+        ({ entryId, data }: { entryId: number; data: Partial<VibEntryProposed> }) =>
             api<VibEntrySchema>(`/api/v1/import/vib/entries/${entryId}`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data),
+                json: data,
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["project-vib"] });
-            queryClient.invalidateQueries({ queryKey: ["admin-unassigned-vib-entries"] });
-            queryClient.invalidateQueries({ queryKey: ["vib-entries-confirmed"] });
-        },
-    });
+        [
+            queryKeys.projectVib,
+            queryKeys.adminUnassignedVibEntries,
+            queryKeys.vibEntriesConfirmed,
+        ],
+    );
 }
 
 export function useVibEntry(entryId: number | null) {
     return useQuery({
-        queryKey: ["vib-entry", entryId],
+        queryKey: queryKeys.vibEntry(entryId),
         queryFn: () => api<VibEntrySchema>(`/api/v1/import/vib/entries/${entryId}`),
         enabled: entryId !== null,
     });
@@ -964,7 +983,7 @@ export type BauportalImportSummary = components["schemas"]["BauportalImportSumma
 
 export function useBauportalEntries(onlyUnconfirmed = false) {
     return useQuery({
-        queryKey: ["bauportal-entries", onlyUnconfirmed],
+        queryKey: queryKeys.bauportalEntriesFor(onlyUnconfirmed),
         queryFn: () =>
             api<BauportalEntry[]>(
                 `/api/v1/import/bauportal/entries?only_unconfirmed=${onlyUnconfirmed}`,
@@ -973,60 +992,38 @@ export function useBauportalEntries(onlyUnconfirmed = false) {
 }
 
 export function useFetchBauportal() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: () =>
+    return useInvalidatingMutation(
+        () =>
             api<BauportalImportSummary>("/api/v1/import/bauportal/fetch", { method: "POST" }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["bauportal-entries"] });
-        },
-    });
+        [queryKeys.bauportalEntries],
+    );
 }
 
 export function useUpdateBauportalEntry() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: ({ entryId, data }: { entryId: number; data: BauportalUpdatePayload }) =>
+    // Optimistic write-through so an assignment/confirm never appears to
+    // "jump back" before the refetch; rolls back if the PATCH fails.
+    return useOptimisticEntryPatch<BauportalEntry, BauportalEntry, BauportalUpdatePayload>({
+        listKey: queryKeys.bauportalEntries,
+        settledKeys: [queryKeys.bauportalEntries, queryKeys.progress],
+        mutationFn: ({ entryId, data }) =>
             api<BauportalEntry>(`/api/v1/import/bauportal/entries/${entryId}`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data),
+                json: data,
             }),
-        // Optimistic write-through so an assignment/confirm never appears to
-        // "jump back" before the refetch; roll back if the PATCH fails.
-        onMutate: async ({ entryId, data }) => {
-            await queryClient.cancelQueries({ queryKey: ["bauportal-entries"] });
-            const snapshots = queryClient.getQueriesData<BauportalEntry[]>({
-                queryKey: ["bauportal-entries"],
-            });
-            queryClient.setQueriesData<BauportalEntry[]>(
-                { queryKey: ["bauportal-entries"] },
-                (old) => (old ? old.map((e) => (e.id === entryId ? mergeDefined(e, data) : e)) : old),
-            );
-            return { snapshots };
-        },
-        onError: (_err, _vars, context) => {
-            context?.snapshots?.forEach(([key, value]) => queryClient.setQueryData(key, value));
-        },
-        onSettled: () => {
-            queryClient.invalidateQueries({ queryKey: ["bauportal-entries"] });
-            queryClient.invalidateQueries({ queryKey: ["project-progress"] });
-        },
     });
 }
 
 export function useConfirmAllBauportal() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: () =>
+    return useInvalidatingMutation(
+        () =>
             api<{ confirmed: number }>("/api/v1/import/bauportal/confirm-all", {
                 method: "POST",
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["bauportal-entries"] });
-            queryClient.invalidateQueries({ queryKey: ["project-progress"] });
-        },
-    });
+        [
+            queryKeys.bauportalEntries,
+            queryKeys.progress,
+        ],
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -1039,53 +1036,46 @@ export type MediaUpdatePayload = components["schemas"]["MediaUpdateInput"];
 
 export function useMediaEntries(onlyUnconfirmed = false) {
     return useQuery({
-        queryKey: ["media-entries", onlyUnconfirmed],
+        queryKey: queryKeys.mediaEntriesFor(onlyUnconfirmed),
         queryFn: () =>
             api<MediaEntry[]>(`/api/v1/import/media/entries?only_unconfirmed=${onlyUnconfirmed}`),
     });
 }
 
 export function useExtractMedia() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: ({ url, text }: { url?: string; text?: string }) =>
+    return useInvalidatingMutation(
+        ({ url, text }: { url?: string; text?: string }) =>
             api<MediaEntry>("/api/v1/import/media/extract", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ url: url || null, text: text || null }),
+                json: { url: url || null, text: text || null },
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["media-entries"] });
-        },
-    });
+        [queryKeys.mediaEntries],
+    );
 }
 
 export function useUpdateMediaEntry() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: ({ entryId, data }: { entryId: number; data: MediaUpdatePayload }) =>
+    return useInvalidatingMutation(
+        ({ entryId, data }: { entryId: number; data: MediaUpdatePayload }) =>
             api<MediaEntry>(`/api/v1/import/media/entries/${entryId}`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data),
+                json: data,
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["media-entries"] });
-            queryClient.invalidateQueries({ queryKey: ["project-progress"] });
-        },
-    });
+        [
+            queryKeys.mediaEntries,
+            queryKeys.progress,
+        ],
+    );
 }
 
 export function useDeleteMediaEntry() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (entryId: number) =>
+    return useInvalidatingMutation(
+        (entryId: number) =>
             api<void>(`/api/v1/import/media/entries/${entryId}`, { method: "DELETE" }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["media-entries"] });
-            queryClient.invalidateQueries({ queryKey: ["project-progress"] });
-        },
-    });
+        [
+            queryKeys.mediaEntries,
+            queryKeys.progress,
+        ],
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -1106,7 +1096,7 @@ export type FuldaUpdatePayload = components["schemas"]["FuldaUpdateInput"];
 
 export function useFuldaEntries(onlyUnconfirmed = false, year: number | null = null) {
     return useQuery({
-        queryKey: ["fulda-entries", onlyUnconfirmed, year],
+        queryKey: queryKeys.fuldaEntriesFor(onlyUnconfirmed, year),
         queryFn: () => {
             const params = new URLSearchParams({ only_unconfirmed: String(onlyUnconfirmed) });
             if (year != null) params.set("year", String(year));
@@ -1117,7 +1107,7 @@ export function useFuldaEntries(onlyUnconfirmed = false, year: number | null = n
 
 export function useFuldaYearSummaries() {
     return useQuery({
-        queryKey: ["fulda-year-summaries"],
+        queryKey: queryKeys.fuldaYearSummaries,
         queryFn: () => api<FuldaYearSummary[]>("/api/v1/import/fulda/year-summaries"),
     });
 }
@@ -1139,92 +1129,68 @@ export function useParseFulda() {
 }
 
 export function useUpdateFuldaEntry() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: ({ entryId, data }: { entryId: number; data: FuldaUpdatePayload }) =>
+    // Optimistic write-through so an edit never appears to "jump back" before
+    // the refetch; rolls back if the PATCH fails.
+    return useOptimisticEntryPatch<FuldaEntry, FuldaEntry, FuldaUpdatePayload>({
+        listKey: queryKeys.fuldaEntries,
+        settledKeys: [queryKeys.fuldaEntries, queryKeys.fuldaYearSummaries, queryKeys.progress],
+        mutationFn: ({ entryId, data }) =>
             api<FuldaEntry>(`/api/v1/import/fulda/entries/${entryId}`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data),
+                json: data,
             }),
-        // Optimistic write-through: reflect the edit in every cached entries list
-        // immediately so a change never appears to "jump back" before the refetch,
-        // and roll back if the PATCH fails.
-        onMutate: async ({ entryId, data }) => {
-            await queryClient.cancelQueries({ queryKey: ["fulda-entries"] });
-            const snapshots = queryClient.getQueriesData<FuldaEntry[]>({
-                queryKey: ["fulda-entries"],
-            });
-            queryClient.setQueriesData<FuldaEntry[]>({ queryKey: ["fulda-entries"] }, (old) =>
-                old ? old.map((e) => (e.id === entryId ? mergeDefined(e, data) : e)) : old,
-            );
-            return { snapshots };
-        },
-        onError: (_err, _vars, context) => {
-            context?.snapshots?.forEach(([key, value]) =>
-                queryClient.setQueryData(key, value),
-            );
-        },
-        onSettled: () => {
-            queryClient.invalidateQueries({ queryKey: ["fulda-entries"] });
-            queryClient.invalidateQueries({ queryKey: ["fulda-year-summaries"] });
-            queryClient.invalidateQueries({ queryKey: ["project-progress"] });
-        },
     });
 }
 
 export function useDeleteFuldaEntry() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (entryId: number) =>
+    return useInvalidatingMutation(
+        (entryId: number) =>
             api<void>(`/api/v1/import/fulda/entries/${entryId}`, { method: "DELETE" }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["fulda-entries"] });
-            queryClient.invalidateQueries({ queryKey: ["fulda-year-summaries"] });
-            queryClient.invalidateQueries({ queryKey: ["project-progress"] });
-        },
-    });
+        [
+            queryKeys.fuldaEntries,
+            queryKeys.fuldaYearSummaries,
+            queryKeys.progress,
+        ],
+    );
 }
 
 export function useConfirmFuldaYear() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (year: number) =>
+    return useInvalidatingMutation(
+        (year: number) =>
             api<{ confirmed: number }>(`/api/v1/import/fulda/years/${year}/confirm`, {
                 method: "POST",
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["fulda-entries"] });
-            queryClient.invalidateQueries({ queryKey: ["fulda-year-summaries"] });
-            queryClient.invalidateQueries({ queryKey: ["project-progress"] });
-        },
-    });
+        [
+            queryKeys.fuldaEntries,
+            queryKeys.fuldaYearSummaries,
+            queryKeys.progress,
+        ],
+    );
 }
 
 export function useDeleteFuldaYear() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (year: number) =>
+    return useInvalidatingMutation(
+        (year: number) =>
             api<void>(`/api/v1/import/fulda/years/${year}`, { method: "DELETE" }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["fulda-entries"] });
-            queryClient.invalidateQueries({ queryKey: ["fulda-years"] });
-            queryClient.invalidateQueries({ queryKey: ["fulda-year-summaries"] });
-            queryClient.invalidateQueries({ queryKey: ["project-progress"] });
-        },
-    });
+        [
+            queryKeys.fuldaEntries,
+            queryKeys.fuldaYears,
+            queryKeys.fuldaYearSummaries,
+            queryKeys.progress,
+        ],
+    );
 }
 
 export function useVibAiAvailable() {
     return useQuery({
-        queryKey: ["vib-ai-available"],
+        queryKey: queryKeys.vibAiAvailable,
         queryFn: () => api<{ available: boolean; model: string | null }>("/api/v1/import/vib/ai-available"),
     });
 }
 
 export function useVibOcrAvailable() {
     return useQuery({
-        queryKey: ["vib-ocr-available"],
+        queryKey: queryKeys.vibOcrAvailable,
         queryFn: () => api<{ available: boolean; model: string | null }>("/api/v1/import/vib/ocr-available"),
     });
 }
@@ -1235,11 +1201,10 @@ export function useSaveVibDraft() {
         mutationFn: ({ taskId, data }: { taskId: string; data: VibParseTaskResult }) =>
             api<void>(`/api/v1/import/vib/draft/${taskId}`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data),
+                json: data,
             }),
         onSuccess: (_, { taskId, data }) => {
-            queryClient.setQueryData(["vib-parse-result", taskId], data);
+            queryClient.setQueryData(queryKeys.vibParseResult(taskId), data);
         },
     });
 }
@@ -1257,20 +1222,17 @@ export type VibDraftSchema = components["schemas"]["VibDraftSchema"];
 
 export function useVibDrafts() {
     return useQuery({
-        queryKey: ["vib-drafts"],
+        queryKey: queryKeys.vibDrafts,
         queryFn: () => api<VibDraftSchema[]>("/api/v1/import/vib/drafts"),
     });
 }
 
 export function useDeleteVibDraft() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (taskId: string) =>
+    return useInvalidatingMutation(
+        (taskId: string) =>
             api<void>(`/api/v1/import/vib/drafts/${taskId}`, { method: "DELETE" }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["vib-drafts"] });
-        },
-    });
+        [queryKeys.vibDrafts],
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -1283,7 +1245,7 @@ export type UnassignedVibEntry = components["schemas"]["UnassignedVibEntrySchema
 
 export function useUnassignedFinves(enabled = true) {
     return useQuery({
-        queryKey: ["admin-unassigned-finves"],
+        queryKey: queryKeys.adminUnassignedFinves,
         queryFn: () => api<UnassignedFinve[]>("/api/v1/admin/unassigned-finves"),
         enabled,
     });
@@ -1291,40 +1253,32 @@ export function useUnassignedFinves(enabled = true) {
 
 export function useUnassignedVibEntries(enabled = true) {
     return useQuery({
-        queryKey: ["admin-unassigned-vib-entries"],
+        queryKey: queryKeys.adminUnassignedVibEntries,
         queryFn: () => api<UnassignedVibEntry[]>("/api/v1/admin/unassigned-vib-entries"),
         enabled,
     });
 }
 
 export function useAssignFinve() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: ({ finveId, projectIds }: { finveId: number; projectIds: number[] }) =>
+    return useInvalidatingMutation(
+        ({ finveId, projectIds }: { finveId: number; projectIds: number[] }) =>
             api<void>(`/api/v1/admin/unassigned-finves/${finveId}/assign`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ project_ids: projectIds }),
+                json: { project_ids: projectIds },
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["admin-unassigned-finves"] });
-        },
-    });
+        [queryKeys.adminUnassignedFinves],
+    );
 }
 
 export function useAssignVibEntry() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: ({ entryId, projectIds }: { entryId: number; projectIds: number[] }) =>
+    return useInvalidatingMutation(
+        ({ entryId, projectIds }: { entryId: number; projectIds: number[] }) =>
             api<void>(`/api/v1/admin/unassigned-vib-entries/${entryId}/assign`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ project_ids: projectIds }),
+                json: { project_ids: projectIds },
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["admin-unassigned-vib-entries"] });
-        },
-    });
+        [queryKeys.adminUnassignedVibEntries],
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -1353,7 +1307,7 @@ export type RoutePreviewFeature = Omit<
 
 export function useOperationalPointSearch(q: string) {
     return useQuery({
-        queryKey: ["operational-points", q],
+        queryKey: queryKeys.operationalPoints(q),
         enabled: q.length >= 2,
         queryFn: () =>
             api<OperationalPointRef[]>(`/api/v1/operational-points/?q=${encodeURIComponent(q)}&limit=20`),
@@ -1369,25 +1323,20 @@ export function useCalculateRoute() {
         }) =>
             api<RoutePreviewFeature>("/api/v1/routes/calculate", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ profile: "rail_default", options: {}, ...payload }),
+                json: { profile: "rail_default", options: {}, ...payload },
             }),
     });
 }
 
 export function useConfirmRoute(projectId: number) {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (feature: RoutePreviewFeature) =>
+    return useInvalidatingMutation(
+        (feature: RoutePreviewFeature) =>
             api<ProjectRoute>(`/api/v1/projects/${projectId}/routes`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ feature }),
+                json: { feature },
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: projectRoutesQueryKey(projectId) });
-        },
-    });
+        [queryKeys.projectRoutes(projectId)],
+    );
 }
 
 export function useUpdateProjectGeometry(projectId: number) {
@@ -1396,8 +1345,8 @@ export function useUpdateProjectGeometry(projectId: number) {
         mutationFn: (geojson_representation: string | null) =>
             updateProject(projectId, { geojson_representation }),
         onSuccess: (updatedProject) => {
-            queryClient.setQueryData(["project", projectId], updatedProject);
-            queryClient.invalidateQueries({ queryKey: ["projects"] });
+            queryClient.setQueryData(queryKeys.project(projectId), updatedProject);
+            queryClient.invalidateQueries({ queryKey: queryKeys.projects });
         },
     });
 }
@@ -1423,7 +1372,7 @@ export type TodoFilters = {
 };
 
 const todosKey = (filters?: TodoFilters) =>
-    filters ? (["todos", filters] as const) : (["todos"] as const);
+    filters ? ([...queryKeys.todos, filters] as const) : queryKeys.todos;
 
 function buildTodoQuery(filters?: TodoFilters): string {
     if (!filters) return "";
@@ -1450,51 +1399,40 @@ export function useTodos(filters?: TodoFilters, enabled = true) {
 /** Minimal user list (id + username) for the assignee picker. */
 export function useUserOptions(enabled = true) {
     return useQuery({
-        queryKey: ["user-options"],
+        queryKey: queryKeys.userOptions,
         enabled,
         queryFn: () => api<UserOption[]>(`/api/v1/users/options`),
     });
 }
 
 export function useCreateTodo() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (payload: TodoCreate) =>
+    return useInvalidatingMutation(
+        (payload: TodoCreate) =>
             api<Todo>(`/api/v1/todos/`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+                json: payload,
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["todos"] });
-        },
-    });
+        [queryKeys.todos],
+    );
 }
 
 export function useUpdateTodo() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: ({ id, payload }: { id: number; payload: TodoUpdate }) =>
+    return useInvalidatingMutation(
+        ({ id, payload }: { id: number; payload: TodoUpdate }) =>
             api<Todo>(`/api/v1/todos/${id}`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+                json: payload,
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["todos"] });
-        },
-    });
+        [queryKeys.todos],
+    );
 }
 
 export function useDeleteTodo() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (id: number) =>
+    return useInvalidatingMutation(
+        (id: number) =>
             api<void>(`/api/v1/todos/${id}`, { method: "DELETE" }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["todos"] });
-        },
-    });
+        [queryKeys.todos],
+    );
 }
 
 // --- Guides ("Anleitungen") section overrides --------------------------------
@@ -1503,7 +1441,7 @@ export type GuideOverride = components["schemas"]["GuideOverrideSchema"];
 
 export function useGuideOverrides(guideSlug: string) {
     return useQuery({
-        queryKey: ["guide-overrides", guideSlug],
+        queryKey: queryKeys.guideOverrides(guideSlug),
         queryFn: () => api<GuideOverride[]>(`/api/v1/guides/${guideSlug}/overrides`),
     });
 }
@@ -1522,11 +1460,10 @@ export function useSaveGuideOverride() {
         }) =>
             api<GuideOverride>(`/api/v1/guides/${guideSlug}/overrides/${sectionKey}`, {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ body_markdown: bodyMarkdown }),
+                json: { body_markdown: bodyMarkdown },
             }),
         onSuccess: (_data, { guideSlug }) => {
-            queryClient.invalidateQueries({ queryKey: ["guide-overrides", guideSlug] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.guideOverrides(guideSlug) });
         },
     });
 }
@@ -1539,7 +1476,7 @@ export function useDeleteGuideOverride() {
                 method: "DELETE",
             }),
         onSuccess: (_data, { guideSlug }) => {
-            queryClient.invalidateQueries({ queryKey: ["guide-overrides", guideSlug] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.guideOverrides(guideSlug) });
         },
     });
 }

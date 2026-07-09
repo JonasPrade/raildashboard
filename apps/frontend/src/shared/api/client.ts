@@ -12,6 +12,8 @@ type ApiRequestInit = RequestInit & {
     params?: {
         path?: PathParams;
     };
+    /** JSON payload: sets the body and the Content-Type header in one go. */
+    json?: unknown;
 };
 
 function resolvePath(path: string, pathParams?: PathParams) {
@@ -27,13 +29,15 @@ function resolvePath(path: string, pathParams?: PathParams) {
 }
 
 export async function api<T>(path: string, init: ApiRequestInit = {}): Promise<T> {
-    const { params, headers, ...requestInit } = init;
+    const { params, headers, json, ...requestInit } = init;
     const resolvedPath = resolvePath(path, params?.path);
     const response = await fetch(`${API_BASE}${resolvedPath}`, {
         ...requestInit,
+        ...(json !== undefined ? { body: JSON.stringify(json) } : {}),
         credentials: "include",
         headers: {
             Accept: "application/json",
+            ...(json !== undefined ? { "Content-Type": "application/json" } : {}),
             ...(headers ?? {}),
         },
     });

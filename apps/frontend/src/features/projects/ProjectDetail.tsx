@@ -22,6 +22,7 @@ import {
     useProject,
     useProjectBvwp,
     useProjects,
+    queryKeys,
 } from "../../shared/api/queries";
 import ProjectEdit, { createUpdatePayload, type ProjectEditFormValues } from "./ProjectEdit";
 
@@ -149,8 +150,8 @@ export default function ProjectDetail() {
     const mutation = useMutation({
         mutationFn: (values: ProjectEditFormValues) => updateProject(projectId, createUpdatePayload(values)),
         onSuccess: (updatedProject) => {
-            queryClient.setQueryData(["project", projectId], updatedProject);
-            queryClient.invalidateQueries({ queryKey: ["projects"] });
+            queryClient.setQueryData(queryKeys.project(projectId), updatedProject);
+            queryClient.invalidateQueries({ queryKey: queryKeys.projects });
             setEditOpened(false);
             notifications.show({
                 color: "green",

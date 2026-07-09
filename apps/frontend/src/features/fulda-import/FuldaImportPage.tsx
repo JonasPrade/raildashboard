@@ -24,6 +24,7 @@ import {
     useFuldaYearSummaries,
     useParseFulda,
     useTaskStatus,
+    queryKeys,
 } from "../../shared/api/queries";
 
 export default function FuldaImportPage() {
@@ -60,9 +61,9 @@ export default function FuldaImportPage() {
             const summary = taskStatus.result as FuldaParseSummary | null;
             setTaskId(null);
             setFile(null);
-            queryClient.invalidateQueries({ queryKey: ["fulda-entries"] });
-            queryClient.invalidateQueries({ queryKey: ["fulda-years"] });
-            queryClient.invalidateQueries({ queryKey: ["fulda-year-summaries"] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.fuldaEntries });
+            queryClient.invalidateQueries({ queryKey: queryKeys.fuldaYears });
+            queryClient.invalidateQueries({ queryKey: queryKeys.fuldaYearSummaries });
             notifications.show({
                 color: "green",
                 title: `Fulda-Runde ${importYear} ausgewertet`,
