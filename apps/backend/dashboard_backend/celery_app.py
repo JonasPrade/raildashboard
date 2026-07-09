@@ -9,6 +9,7 @@ celery_app = Celery(
         "dashboard_backend.tasks.vib",
         "dashboard_backend.tasks.vib_ai_extraction",
         "dashboard_backend.tasks.haushalt",
+        "dashboard_backend.tasks.fulda",
     ],
 )
 

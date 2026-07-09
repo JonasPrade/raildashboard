@@ -18,33 +18,34 @@ from dashboard_backend.routing.auth_router import AuthRouter
 from dashboard_backend.schemas.fulda import (
     FuldaConfirmSummary,
     FuldaEntrySchema,
-    FuldaParseSummary,
     FuldaUpdateInput,
     FuldaYearSummary,
 )
+from dashboard_backend.schemas.tasks import TaskLaunchResponse
+from dashboard_backend.tasks.fulda import parse_fulda_pdf
 
 router = AuthRouter()
 
 _require_edit = Depends(require_permission("progress.edit"))
 
 
-@router.post("/parse", response_model=FuldaParseSummary)
+@router.post("/parse", response_model=TaskLaunchResponse)
 async def parse_fulda(
     pdf: UploadFile = File(...),
     year: int = Form(...),
     current_user: User = Depends(require_permission("progress.edit")),
-    db: Session = Depends(get_db),
 ):
-    """Upload a Fulda Kleine-Anfrage PDF for ``year``; OCR + LLM extract drafts."""
+    """Upload a Fulda Kleine-Anfrage PDF for ``year``; OCR + LLM run in Celery.
+
+    Returns the Celery task_id for polling via GET /api/v1/tasks/{task_id};
+    the task result is the summary ``{ocr_status, created, source_label}``.
+    """
     pdf_bytes = await pdf.read()
     if not pdf_bytes:
         raise HTTPException(status_code=400, detail="Leere Datei")
-    try:
-        return fulda_crud.parse_and_store(
-            db, pdf_bytes=pdf_bytes, year=year, user=current_user
-        )
-    except Exception as exc:  # noqa: BLE001 - OCR/LLM failures surface as 502
-        raise HTTPException(status_code=502, detail=f"Fulda-Parsing fehlgeschlagen: {exc}") from exc
+    user_info = {"id": current_user.id, "username": current_user.username}
+    result = parse_fulda_pdf.delay(pdf_bytes, year, pdf.filename or "upload.pdf", user_info)
+    return TaskLaunchResponse(task_id=result.id)
 
 
 @router.get("/years", response_model=list[int], dependencies=[_require_edit])

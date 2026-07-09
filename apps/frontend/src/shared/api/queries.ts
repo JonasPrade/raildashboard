@@ -1568,21 +1568,17 @@ export function useFuldaYearSummaries() {
 }
 
 export function useParseFulda() {
-    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: ({ file, year }: { file: File; year: number }) => {
             const form = new FormData();
             form.append("pdf", file);
             form.append("year", String(year));
-            return api<FuldaParseSummary>("/api/v1/import/fulda/parse", {
+            // OCR + LLM run in a Celery task; poll via useTaskStatus. The
+            // fulda query keys are invalidated when the task reaches SUCCESS.
+            return api<TaskLaunchResponse>("/api/v1/import/fulda/parse", {
                 method: "POST",
                 body: form,
             });
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["fulda-entries"] });
-            queryClient.invalidateQueries({ queryKey: ["fulda-years"] });
-            queryClient.invalidateQueries({ queryKey: ["fulda-year-summaries"] });
         },
     });
 }

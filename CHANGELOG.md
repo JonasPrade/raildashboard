@@ -18,6 +18,10 @@ section as part of the release commit, immediately before tagging.
   `Cache-Control: immutable` (`index.html`: `no-cache`); the backend container
   runs uvicorn with `--workers 2` so synchronous import/extraction requests no
   longer serialize all other traffic.
+- Fulda-Runde import: OCR + LLM extraction now runs as a Celery background
+  task (like the Haushalt/VIB importers) instead of inline in the request —
+  the upload returns immediately and the page polls for completion. Previously
+  a large PDF blocked the entire backend event loop for minutes.
 
 ## [v0.0.6] - 2026-07-07
 

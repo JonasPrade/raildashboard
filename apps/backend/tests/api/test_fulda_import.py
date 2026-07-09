@@ -55,16 +55,21 @@ def test_parse_forbidden_for_viewer(client, create_user):
 # --- parse -------------------------------------------------------------------
 
 
-def test_parse_returns_summary(client, create_user, monkeypatch):
+def test_parse_starts_task(client, create_user, monkeypatch):
     create_user("editor-f", "pass123", UserRole.editor)
     captured = {}
 
-    def _parse(db, *, pdf_bytes, year, user):
+    class _FakeResult:
+        id = "task-123"
+
+    def _delay(pdf_bytes, year, filename, user_info):
         captured["len"] = len(pdf_bytes)
         captured["year"] = year
-        return {"ocr_status": "done", "created": 7, "source_label": "Drs 20/123"}
+        captured["filename"] = filename
+        captured["username"] = user_info["username"]
+        return _FakeResult()
 
-    monkeypatch.setattr(fulda_route.fulda_crud, "parse_and_store", _parse)
+    monkeypatch.setattr(fulda_route.parse_fulda_pdf, "delay", _delay)
     resp = client.post(
         "/api/v1/import/fulda/parse",
         files=_pdf_upload(),
@@ -72,25 +77,22 @@ def test_parse_returns_summary(client, create_user, monkeypatch):
         headers=basic_auth_header("editor-f", "pass123"),
     )
     assert resp.status_code == 200
-    assert resp.json()["created"] == 7
+    assert resp.json()["task_id"] == "task-123"
     assert captured["len"] > 0
     assert captured["year"] == 2026
+    assert captured["filename"] == "fulda.pdf"
+    assert captured["username"] == "editor-f"
 
 
-def test_parse_failure_502(client, create_user, monkeypatch):
+def test_parse_rejects_empty_file(client, create_user):
     create_user("editor-f2", "pass123", UserRole.editor)
-
-    def _parse(db, *, pdf_bytes, year, user):
-        raise RuntimeError("ocr exploded")
-
-    monkeypatch.setattr(fulda_route.fulda_crud, "parse_and_store", _parse)
     resp = client.post(
         "/api/v1/import/fulda/parse",
-        files=_pdf_upload(),
+        files={"pdf": ("empty.pdf", io.BytesIO(b""), "application/pdf")},
         data={"year": "2026"},
         headers=basic_auth_header("editor-f2", "pass123"),
     )
-    assert resp.status_code == 502
+    assert resp.status_code == 400
 
 
 # --- list / update / delete --------------------------------------------------
