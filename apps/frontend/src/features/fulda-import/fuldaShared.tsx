@@ -1,19 +1,15 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
     ActionIcon,
-    Anchor,
     Badge,
     Group,
-    Loader,
     MultiSelect,
     Stack,
     Table,
     Text,
     Title,
-    Tooltip,
 } from "@mantine/core";
-import { notifications } from "@mantine/notifications";
-import { IconPlus, IconTrash } from "@tabler/icons-react";
+import { IconTrash } from "@tabler/icons-react";
 
 import {
     useDeleteFuldaEntry,
@@ -22,7 +18,12 @@ import {
     type Project,
 } from "../../shared/api/queries";
 import { filterProjectOption } from "../../lib/filterProjectOption";
-import CreateDraftProjectModal from "../projects/CreateDraftProjectModal";
+import {
+    ConfirmBadge,
+    MissingProjectAnchor,
+    SavingIndicator,
+    usePatchWithToast,
+} from "../import-review/shared";
 
 // Fixed display order of the phase tables (one table per category per year).
 export const CATEGORY_ORDER = [
@@ -76,20 +77,7 @@ export function FuldaRow({
 }) {
     const update = useUpdateFuldaEntry();
     const remove = useDeleteFuldaEntry();
-    const [draftOpen, setDraftOpen] = useState(false);
-
-    const patch = (data: Parameters<typeof update.mutate>[0]["data"]) =>
-        update.mutate(
-            { entryId: entry.id, data },
-            {
-                onError: () =>
-                    notifications.show({
-                        color: "red",
-                        title: "Fehler",
-                        message: "Änderung konnte nicht gespeichert werden.",
-                    }),
-            },
-        );
+    const patch = usePatchWithToast(update, entry.id);
 
     // The phase is implied by the table (category), so there is no per-row phase
     // picker — confirming only needs at least one assigned project/subproject.
@@ -120,48 +108,28 @@ export function FuldaRow({
                         filter={filterProjectOption}
                         nothingFoundMessage="Kein Projekt gefunden"
                     />
-                    <Anchor
-                        component="button"
-                        type="button"
-                        size="xs"
-                        style={{ alignSelf: "flex-start" }}
-                        onClick={() => setDraftOpen(true)}
-                    >
-                        <Group gap={2} wrap="nowrap" component="span">
-                            <IconPlus size={11} />
-                            Projekt fehlt?
-                        </Group>
-                    </Anchor>
+                    <MissingProjectAnchor
+                        alignSelfStart
+                        initialName={draftName(entry)}
+                        sourceLabel="Fulda-Runde"
+                        onCreated={(project: Project) => {
+                            if (project.id == null) return;
+                            patch({ project_ids: [...entry.project_ids, project.id] });
+                        }}
+                    />
                 </Stack>
-                <CreateDraftProjectModal
-                    opened={draftOpen}
-                    onClose={() => setDraftOpen(false)}
-                    initialName={draftName(entry)}
-                    sourceLabel="Fulda-Runde"
-                    onCreated={(project: Project) => {
-                        if (project.id == null) return;
-                        patch({ project_ids: [...entry.project_ids, project.id] });
-                    }}
-                />
             </Table.Td>
             <Table.Td>
                 <Group gap="xs" wrap="nowrap">
-                    <Badge
-                        variant="light"
-                        color={entry.confirmed ? "green" : "gray"}
-                        style={{ cursor: "pointer" }}
-                        onClick={() =>
-                            (canConfirm || entry.confirmed) &&
-                            patch({ confirmed: !entry.confirmed })
-                        }
-                        title={canConfirm ? "Übernehmen/zurücknehmen" : "Mind. ein Projekt zuordnen"}
-                    >
-                        {entry.confirmed ? "aktiv" : "offen"}
-                    </Badge>
+                    <ConfirmBadge
+                        confirmed={entry.confirmed}
+                        canConfirm={canConfirm}
+                        onToggle={() => patch({ confirmed: !entry.confirmed })}
+                        confirmTitle="Übernehmen/zurücknehmen"
+                        blockedTitle="Mind. ein Projekt zuordnen"
+                    />
                     {update.isPending ? (
-                        <Tooltip label="Wird gespeichert …" withArrow>
-                            <Loader size={14} />
-                        </Tooltip>
+                        <SavingIndicator />
                     ) : (
                         <ActionIcon
                             variant="subtle"

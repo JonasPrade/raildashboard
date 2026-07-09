@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     Alert,
@@ -23,43 +23,23 @@ import {
     type FuldaParseSummary,
     useFuldaYearSummaries,
     useParseFulda,
-    useTaskStatus,
     queryKeys,
 } from "../../shared/api/queries";
+import { useImportTask } from "../import-review/shared";
 
 export default function FuldaImportPage() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [file, setFile] = useState<File | null>(null);
     const [importYear, setImportYear] = useState<number>(new Date().getFullYear());
-    const [taskId, setTaskId] = useState<string | null>(null);
 
     const { data: summaries, isLoading } = useFuldaYearSummaries();
     const parse = useParseFulda();
-    const { data: taskStatus } = useTaskStatus(taskId);
-
-    const handleParse = () => {
-        if (!file) return;
-        parse.mutate(
-            { file, year: importYear },
-            {
-                onSuccess: (launch) => setTaskId(launch.task_id),
-                onError: () =>
-                    notifications.show({
-                        color: "red",
-                        title: "Auswertung fehlgeschlagen",
-                        message: "Das PDF konnte nicht hochgeladen werden.",
-                    }),
-            },
-        );
-    };
-
     // OCR + LLM run in a Celery task — react once it finishes.
-    useEffect(() => {
-        if (!taskId || !taskStatus) return;
-        if (taskStatus.status === "SUCCESS") {
-            const summary = taskStatus.result as FuldaParseSummary | null;
-            setTaskId(null);
+    const task = useImportTask({
+        onSuccess: (result) => {
+            const summary = result as FuldaParseSummary | null;
+            task.reset();
             setFile(null);
             queryClient.invalidateQueries({ queryKey: queryKeys.fuldaEntries });
             queryClient.invalidateQueries({ queryKey: queryKeys.fuldaYears });
@@ -72,17 +52,32 @@ export default function FuldaImportPage() {
                     : "Auswertung abgeschlossen — bitte prüfen.",
             });
             navigate(`/admin/fulda-import/year/${importYear}`);
-        } else if (taskStatus.status === "FAILURE") {
-            setTaskId(null);
+        },
+        onFailure: (error) =>
             notifications.show({
                 color: "red",
                 title: "Auswertung fehlgeschlagen",
-                message: taskStatus.error ?? "Das PDF konnte nicht verarbeitet werden.",
-            });
-        }
-    }, [taskId, taskStatus, importYear, navigate, queryClient]);
+                message: error ?? "Das PDF konnte nicht verarbeitet werden.",
+            }),
+    });
 
-    const isParsing = parse.isPending || taskId !== null;
+    const handleParse = () => {
+        if (!file) return;
+        parse.mutate(
+            { file, year: importYear },
+            {
+                onSuccess: (launch) => task.start(launch.task_id),
+                onError: () =>
+                    notifications.show({
+                        color: "red",
+                        title: "Auswertung fehlgeschlagen",
+                        message: "Das PDF konnte nicht hochgeladen werden.",
+                    }),
+            },
+        );
+    };
+
+    const isParsing = parse.isPending || task.taskId !== null;
 
     return (
         <Container size="lg" py="xl">

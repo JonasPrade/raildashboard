@@ -8,7 +8,6 @@ import {
     Group,
     Loader,
     NumberInput,
-    Progress,
     Stack,
     Table,
     Text,
@@ -19,13 +18,12 @@ import { notifications } from "@mantine/notifications";
 import RequirePermission from "../../components/RequirePermission";
 import {
     useStartVibImport,
-    useTaskStatus,
     useVibReports,
     useDeleteVibReport,
     useVibDrafts,
     useDeleteVibDraft,
-    type TaskProgressMeta,
 } from "../../shared/api/queries";
+import { TaskProgressIndicator, useImportTask } from "../import-review/shared";
 import { formatDateNumeric, formatDateTime } from "../../shared/format";
 
 function VibImportPageContent() {
@@ -37,7 +35,6 @@ function VibImportPageContent() {
     const [startPage, setStartPage] = useState<number | "">("");
     const [endPage, setEndPage] = useState<number | "">("");
     const [stripHeadersFooters, setStripHeadersFooters] = useState(true);
-    const [taskId, setTaskId] = useState<string | null>(null);
 
     useEffect(() => {
         if (!file) { setPdfUrl(null); return; }
@@ -47,7 +44,11 @@ function VibImportPageContent() {
     }, [file]);
 
     const startImport = useStartVibImport();
-    const taskStatus = useTaskStatus(taskId);
+    const task = useImportTask({
+        onSuccess: (_result, finishedTaskId) => {
+            navigate(`/admin/vib-import/preview/${finishedTaskId}`);
+        },
+    });
     const { data: reports, isLoading: reportsLoading } = useVibReports();
     const deleteReport = useDeleteVibReport();
     const { data: drafts, isLoading: draftsLoading } = useVibDrafts();
@@ -63,33 +64,14 @@ function VibImportPageContent() {
                 endPage: endPage !== "" ? endPage : undefined,
                 stripHeadersFooters,
             });
-            setTaskId(task_id);
+            task.start(task_id);
         } catch {
             notifications.show({ color: "red", message: "Upload fehlgeschlagen." });
         }
     };
 
-    // Poll task and redirect on success
-    useEffect(() => {
-        if (!taskId || !taskStatus.data) return;
-        const { status } = taskStatus.data;
-        if (status === "SUCCESS") {
-            navigate(`/admin/vib-import/preview/${taskId}`);
-        }
-        if (status === "FAILURE") {
-            notifications.show({
-                color: "red",
-                message: `Parser-Fehler: ${taskStatus.data.error ?? "Unbekannter Fehler"}`,
-            });
-            setTaskId(null);
-        }
-    }, [taskStatus.data, taskId, navigate]);
-
-    const isParsing = taskId !== null && taskStatus.data?.status !== "SUCCESS";
-    const progress =
-        taskStatus.data?.status === "PROGRESS"
-            ? (taskStatus.data.result as TaskProgressMeta | null)
-            : null;
+    const isParsing = task.isRunning;
+    const progress = task.progress;
 
     const handleDeleteReport = (id: number, reportYear: number) => {
         modals.openConfirmModal({
@@ -185,27 +167,10 @@ function VibImportPageContent() {
                         </Group>
 
                         {isParsing && (
-                            <Stack gap={4}>
-                                <Group gap="xs">
-                                    <Loader size="xs" />
-                                    <Text size="sm">
-                                        {progress?.step_label
-                                            ? progress.step_label
-                                            : progress?.current_page != null
-                                              ? `Seite ${progress.current_page} / ${progress.total_pages}`
-                                              : "Parsing läuft…"}
-                                    </Text>
-                                </Group>
-                                <Progress
-                                    value={
-                                        progress?.current_page != null && progress?.total_pages != null
-                                            ? Math.round((progress.current_page / progress.total_pages) * 100)
-                                            : 100
-                                    }
-                                    animated={!progress || progress.step === "ocr"}
-                                    size="sm"
-                                />
-                            </Stack>
+                            <TaskProgressIndicator
+                                progress={progress}
+                                animated={!progress || progress.step === "ocr"}
+                            />
                         )}
                     </Stack>
                 </ChronicleCard>

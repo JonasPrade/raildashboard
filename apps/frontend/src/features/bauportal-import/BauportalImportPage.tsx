@@ -9,14 +9,12 @@ import {
     Loader,
     Select,
     Stack,
-    Switch,
     Table,
     Text,
     Title,
-    Tooltip,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconChecks, IconExternalLink, IconPlus, IconRefresh } from "@tabler/icons-react";
+import { IconChecks, IconExternalLink, IconRefresh } from "@tabler/icons-react";
 
 import {
     useBauportalEntries,
@@ -29,6 +27,13 @@ import {
 } from "../../shared/api/queries";
 import { filterProjectOption } from "../../lib/filterProjectOption";
 import CreateDraftProjectModal from "../projects/CreateDraftProjectModal";
+import {
+    ConfirmBadge,
+    MissingProjectAnchor,
+    SavingIndicator,
+    UnconfirmedFilter,
+    usePatchWithToast,
+} from "../import-review/shared";
 import {
     MAIN_PHASE_COLOR,
     MAIN_PHASE_LABEL,
@@ -47,19 +52,7 @@ function MatchRow({
     onCreateDraft: (entry: BauportalEntry) => void;
 }) {
     const update = useUpdateBauportalEntry();
-
-    const patch = (data: Parameters<typeof update.mutate>[0]["data"]) =>
-        update.mutate(
-            { entryId: entry.id, data },
-            {
-                onError: () =>
-                    notifications.show({
-                        color: "red",
-                        title: "Fehler",
-                        message: "Die Änderung konnte nicht gespeichert werden.",
-                    }),
-            },
-        );
+    const patch = usePatchWithToast(update, entry.id);
 
     const isSuggestion =
         entry.project_id != null &&
@@ -120,40 +113,20 @@ function MatchRow({
                         ) : (
                             <span />
                         )}
-                        <Anchor
-                            component="button"
-                            type="button"
-                            size="xs"
-                            onClick={() => onCreateDraft(entry)}
-                        >
-                            <Group gap={2} wrap="nowrap" component="span">
-                                <IconPlus size={11} />
-                                Projekt fehlt?
-                            </Group>
-                        </Anchor>
+                        <MissingProjectAnchor onClick={() => onCreateDraft(entry)} />
                     </Group>
                 </Stack>
             </Table.Td>
             <Table.Td>
                 <Group gap="xs" wrap="nowrap">
-                    <Badge
-                        variant="light"
-                        color={entry.confirmed ? "green" : "gray"}
-                        style={{ cursor: canConfirm || entry.confirmed ? "pointer" : "not-allowed" }}
-                        onClick={() =>
-                            (canConfirm || entry.confirmed) && patch({ confirmed: !entry.confirmed })
-                        }
-                        title={
-                            canConfirm ? "Übernehmen / zurücknehmen" : "Erst ein Projekt zuordnen"
-                        }
-                    >
-                        {entry.confirmed ? "aktiv" : "offen"}
-                    </Badge>
-                    {update.isPending && (
-                        <Tooltip label="Wird gespeichert …" withArrow>
-                            <Loader size={14} />
-                        </Tooltip>
-                    )}
+                    <ConfirmBadge
+                        confirmed={entry.confirmed}
+                        canConfirm={canConfirm}
+                        onToggle={() => patch({ confirmed: !entry.confirmed })}
+                        confirmTitle="Übernehmen / zurücknehmen"
+                        blockedTitle="Erst ein Projekt zuordnen"
+                    />
+                    {update.isPending && <SavingIndicator />}
                 </Group>
             </Table.Td>
         </Table.Tr>
@@ -267,11 +240,7 @@ export default function BauportalImportPage() {
                 </Group>
 
                 <Group justify="space-between">
-                    <Switch
-                        label="Nur offene (unbestätigt)"
-                        checked={onlyUnconfirmed}
-                        onChange={(e) => setOnlyUnconfirmed(e.currentTarget.checked)}
-                    />
+                    <UnconfirmedFilter checked={onlyUnconfirmed} onChange={setOnlyUnconfirmed} />
                     {entries && (
                         <Text size="sm" c="dimmed">
                             {entries.length} Einträge · {confirmedCount} aktiv
