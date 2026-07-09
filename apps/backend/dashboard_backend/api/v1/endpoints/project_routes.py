@@ -1,15 +1,12 @@
 from __future__ import annotations
 
 from typing import Any, Dict, List
-from uuid import UUID
-
 from fastapi import Depends, HTTPException, Query
 from geoalchemy2.shape import to_shape
 from shapely.geometry import LineString
 from sqlalchemy.orm import Session
 
 from dashboard_backend.core.security import require_permission
-from dashboard_backend.crud.routes import get_route_by_id
 from dashboard_backend.database import get_db
 from dashboard_backend.dependencies.routes import get_route_service
 from dashboard_backend.models.routes import Route
@@ -97,33 +94,6 @@ async def confirm_route(
     return _to_route_out(route)
 
 
-@router.put(
-    "/projects/{project_id}/routes/{route_id}",
-    response_model=RouteOut,
-)
-async def replace_route(
-    project_id: int,
-    route_id: UUID,
-    request: RouteConfirmIn,
-    db: Session = Depends(get_db),
-    service: RouteService = Depends(get_route_service),
-) -> RouteOut:
-    """Confirm a calculated route and replace an existing one in the project.
-
-    The frontend sends back the GeoJSON Feature it received from /routes/calculate.
-    The existing route (identified by route_id) is updated in-place.
-    """
-    try:
-        route = service.confirm_and_replace(db, project_id, route_id, request.feature)
-    except ValueError as error:
-        raise HTTPException(status_code=422, detail=str(error)) from error
-
-    if route is None:
-        raise HTTPException(status_code=404, detail="route not found")
-
-    return _to_route_out(route)
-
-
 @router.get(
     "/projects/{project_id}/routes",
     response_model=List[RouteOut],
@@ -138,10 +108,3 @@ async def list_routes(
     routes = await service.list_for_project(db, project_id, limit=limit, offset=offset)
     return [_to_route_out(route) for route in routes]
 
-
-@router.get("/routes/{route_id}", response_model=RouteOut)
-async def get_route(route_id: UUID, db: Session = Depends(get_db)) -> RouteOut:
-    route = get_route_by_id(db, route_id)
-    if route is None:
-        raise HTTPException(status_code=404, detail="route not found")
-    return _to_route_out(route)

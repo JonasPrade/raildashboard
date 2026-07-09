@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from uuid import uuid4
 
 import pytest
 
@@ -101,28 +100,6 @@ def test_list_routes_returns_routes(client, create_user, routing_stub):
     assert isinstance(payload, list)
     assert len(payload) == 1
     assert payload[0]["project_id"] == PROJECT_ID
-
-
-def test_get_route_detail(client, create_user, routing_stub):
-    create_user("planner", "secret123", UserRole.editor)
-    headers = basic_auth_header("planner", "secret123")
-
-    post_response = client.post(
-        f"/api/v1/projects/{PROJECT_ID}/routes",
-        json={"feature": VALID_FEATURE},
-        headers=headers,
-    )
-    assert post_response.status_code == 201
-    route_id = post_response.json()["route_id"]
-
-    detail_response = client.get(f"/api/v1/routes/{route_id}")
-    assert detail_response.status_code == 200
-    assert detail_response.json()["route_id"] == route_id
-
-
-def test_get_route_returns_404_for_unknown_route(client):
-    response = client.get(f"/api/v1/routes/{uuid4()}")
-    assert response.status_code == 404
 
 
 # ---------------------------------------------------------------------------

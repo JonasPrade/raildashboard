@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import List, Optional
-from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -12,11 +11,6 @@ from dashboard_backend.models.routes import Route
 
 def get_route_by_cache_key(db: Session, cache_key: str) -> Optional[Route]:
     statement = select(Route).where(Route.cache_key == cache_key)
-    return db.execute(statement).scalar_one_or_none()
-
-
-def get_route_by_id(db: Session, route_id: UUID) -> Optional[Route]:
-    statement = select(Route).where(Route.id == route_id)
     return db.execute(statement).scalar_one_or_none()
 
 
@@ -51,16 +45,4 @@ def persist_route(db: Session, route: Route) -> Route:
     return route
 
 
-def update_route(db: Session, route_id: UUID, project_id: int, **fields) -> Optional[Route]:
-    """Replace an existing route's geometry and metadata in-place.
 
-    Returns None if no route with that id/project_id combination exists.
-    """
-    route = get_route_by_id(db, route_id)
-    if route is None or route.project_id != project_id:
-        return None
-    for key, value in fields.items():
-        setattr(route, key, value)
-    db.commit()
-    db.refresh(route)
-    return route

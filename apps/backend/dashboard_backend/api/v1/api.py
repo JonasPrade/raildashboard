@@ -1,12 +1,11 @@
 # dashboard_backend/api/v1/api.py
 from fastapi import APIRouter
-from .endpoints import auth, health, operational_points, project_routes, project_texts, route, projects, project_groups, project_progress, users, tasks, todos, haushalt_import, finves, settings, vib_import, bauportal_import, media_import, fulda_import, admin_assignments, roles, permissions, guides
+from .endpoints import auth, health, operational_points, project_routes, project_texts, projects, project_groups, project_progress, users, tasks, todos, haushalt_import, finves, settings, vib_import, bauportal_import, media_import, fulda_import, admin_assignments, roles, permissions, guides
 
 api_router = APIRouter()
 api_router.include_router(health.router, tags=["health"])
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(operational_points.router, prefix="/operational-points", tags=["operational-points"])
-api_router.include_router(route.router, prefix="/route", tags=["route"])
 api_router.include_router(projects.router, prefix="/projects", tags=["projects"])
 api_router.include_router(project_progress.router, prefix="/projects", tags=["project-progress"])
 api_router.include_router(project_groups.router, prefix="/project_groups", tags=["project_groups"])
