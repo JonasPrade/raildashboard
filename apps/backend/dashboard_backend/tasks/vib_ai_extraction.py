@@ -1,7 +1,6 @@
 """Celery task: LLM-based sub-block extraction for VIB entries."""
 from __future__ import annotations
 
-import json
 import logging
 import re
 
@@ -11,6 +10,7 @@ from dashboard_backend.celery_app import celery_app
 from dashboard_backend.core.config import settings
 from dashboard_backend.crud.vib import get_draft_by_task_id, update_draft_ai_result
 from dashboard_backend.database import Session
+from dashboard_backend.services.llm import call_llm_json, summarise_error
 from dashboard_backend.schemas.vib import VibEntryProposed, VibParseTaskResult
 
 logger = logging.getLogger(__name__)
@@ -72,45 +72,7 @@ _TEXT_FIELDS = [
 _BOOL_STATUS_FIELDS = ["status_planung", "status_bau", "status_abgeschlossen"]
 
 
-def _call_llm(prompt: str) -> dict:
-    """Send prompt to configured LLM, return parsed JSON dict."""
-    from openai import OpenAI  # lazy import
-
-    client = OpenAI(
-        base_url=settings.llm_base_url,
-        api_key=settings.llm_api_key or "no-key",
-    )
-    response = client.chat.completions.create(
-        model=settings.llm_model,
-        messages=[
-            {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user", "content": prompt},
-        ],
-        response_format={"type": "json_object"},
-        temperature=0,
-    )
-    return json.loads(response.choices[0].message.content)
-
-
 _TEILINBETRIEBNAHMEN_NONE_RE = re.compile(r"^\s*[-–]\s*[Kk]eine\.?\s*$")
-
-
-def _summarise_error(exc: Exception) -> str:
-    """Return a short human-readable error label for display in the review UI.
-
-    Detects common API error patterns (rate limit, auth, timeout) and returns
-    a concise label; falls back to the first 120 chars of the exception string.
-    """
-    msg = str(exc)
-    if "429" in msg or "capacity exceeded" in msg.lower() or "rate limit" in msg.lower():
-        return "429 – Kapazität überschritten"
-    if "401" in msg or "unauthorized" in msg.lower() or "authentication" in msg.lower():
-        return "401 – Authentifizierungsfehler"
-    if "503" in msg or "unavailable" in msg.lower():
-        return "503 – Service nicht verfügbar"
-    if "timeout" in msg.lower():
-        return "Timeout"
-    return msg[:120]
 
 
 def _normalize_teilinbetriebnahmen(val: str) -> str | None:
@@ -195,7 +157,7 @@ def extract_vib_blocks(
                     vib_name_raw=entry_dict.get("vib_name_raw") or "?",
                     raw_text=raw_text[:6000],
                 )
-                ai_result = _call_llm(prompt)
+                ai_result = call_llm_json(_SYSTEM_PROMPT, prompt)
                 entries_as_dicts[idx] = _merge_ai_result(entry_dict, ai_result)
                 entries_as_dicts[idx]["ai_extraction_failed"] = False
                 entries_as_dicts[idx]["ai_extraction_error"] = None
@@ -207,7 +169,7 @@ def extract_vib_blocks(
                     exc,
                 )
                 entries_as_dicts[idx]["ai_extraction_failed"] = True
-                entries_as_dicts[idx]["ai_extraction_error"] = _summarise_error(exc)
+                entries_as_dicts[idx]["ai_extraction_error"] = summarise_error(exc)
 
         updated_result = VibParseTaskResult(
             year=result.year,

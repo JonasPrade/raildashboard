@@ -117,8 +117,8 @@ def test_extract_uses_llm(monkeypatch):
     monkeypatch.setattr(fulda_extraction.settings, "llm_base_url", "http://llm.local")
     monkeypatch.setattr(
         fulda_extraction,
-        "_call_llm",
-        lambda prompt: {
+        "call_llm_json",
+        lambda system_prompt, prompt: {
             "source_label": "Drs 20/999",
             "document_date": "2026-01-15",
             "items": [
@@ -137,8 +137,8 @@ def test_extract_uses_llm(monkeypatch):
 def test_extract_survives_llm_error(monkeypatch):
     monkeypatch.setattr(fulda_extraction.settings, "llm_base_url", "http://llm.local")
 
-    def _boom(prompt):
+    def _boom(system_prompt, prompt):
         raise RuntimeError("down")
 
-    monkeypatch.setattr(fulda_extraction, "_call_llm", _boom)
+    monkeypatch.setattr(fulda_extraction, "call_llm_json", _boom)
     assert extract_fulda_announcements("text")["items"] == []

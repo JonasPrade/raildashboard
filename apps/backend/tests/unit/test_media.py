@@ -89,8 +89,8 @@ def test_extract_uses_llm_and_validates_phase(monkeypatch):
     monkeypatch.setattr(media_extraction.settings, "llm_base_url", "http://llm.local")
     monkeypatch.setattr(
         media_extraction,
-        "_call_llm",
-        lambda prompt: {
+        "call_llm_json",
+        lambda system_prompt, prompt: {
             "publication": "FAZ",
             "published_date": "2026-03-01",
             "project_name": "Ausbau Hanau–Würzburg",
@@ -108,7 +108,7 @@ def test_extract_uses_llm_and_validates_phase(monkeypatch):
 def test_extract_drops_invalid_phase(monkeypatch):
     monkeypatch.setattr(media_extraction.settings, "llm_base_url", "http://llm.local")
     monkeypatch.setattr(
-        media_extraction, "_call_llm", lambda prompt: {"phase": "Halbfertig"}
+        media_extraction, "call_llm_json", lambda system_prompt, prompt: {"phase": "Halbfertig"}
     )
     assert extract_media_report("text")["phase"] is None
 
@@ -116,8 +116,8 @@ def test_extract_drops_invalid_phase(monkeypatch):
 def test_extract_survives_llm_error(monkeypatch):
     monkeypatch.setattr(media_extraction.settings, "llm_base_url", "http://llm.local")
 
-    def _boom(prompt):
+    def _boom(system_prompt, prompt):
         raise RuntimeError("llm down")
 
-    monkeypatch.setattr(media_extraction, "_call_llm", _boom)
+    monkeypatch.setattr(media_extraction, "call_llm_json", _boom)
     assert extract_media_report("text")["phase"] is None

@@ -319,9 +319,10 @@ def retry_vib_ai_for_entry(
     db: Session = Depends(get_db),
 ):
     """Re-run LLM extraction synchronously for a single entry and persist the result."""
+    from dashboard_backend.services.llm import call_llm_json
     from dashboard_backend.tasks.vib_ai_extraction import (
+        _SYSTEM_PROMPT,
         _USER_PROMPT_TEMPLATE,
-        _call_llm,
         _merge_ai_result,
     )
 
@@ -349,7 +350,7 @@ def retry_vib_ai_for_entry(
         raw_text=raw_text[:6000],
     )
     try:
-        ai_result = _call_llm(prompt)
+        ai_result = call_llm_json(_SYSTEM_PROMPT, prompt)
         entry_dict = _merge_ai_result(entry_dict, ai_result)
         entry_dict["ai_extraction_failed"] = False
         entry_dict["ai_extraction_error"] = None
