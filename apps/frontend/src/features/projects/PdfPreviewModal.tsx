@@ -1,7 +1,14 @@
 import { useState } from "react";
-import { Document, Page } from "react-pdf";
+import { Document, Page, pdfjs } from "react-pdf";
+import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import "react-pdf/dist/Page/AnnotationLayer.css";
+import "react-pdf/dist/Page/TextLayer.css";
 import { ActionIcon, Anchor, Group, Loader, Modal, Stack, Text } from "@mantine/core";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
+
+// Worker is bundled locally (no CDN dependency); this module is lazy-loaded,
+// so pdfjs and its worker only load when a PDF preview is opened.
+pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
 type PdfPreviewModalProps = {
     opened: boolean;

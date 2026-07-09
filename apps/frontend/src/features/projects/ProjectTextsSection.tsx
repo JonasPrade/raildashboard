@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
     ActionIcon,
     Alert,
@@ -35,7 +35,9 @@ import {
     useUploadTextAttachment,
 } from "../../shared/api/queries";
 import { API_BASE } from "../../shared/api/client";
-import PdfPreviewModal from "./PdfPreviewModal";
+
+// Lazy: pulls in react-pdf/pdfjs (~400 KB) only when a preview is opened.
+const PdfPreviewModal = lazy(() => import("./PdfPreviewModal"));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -404,12 +406,14 @@ function AttachmentList({ attachments, textId, projectId, canEdit }: AttachmentL
             </Stack>
 
             {previewAttachment && (
-                <PdfPreviewModal
-                    opened={previewAttachment !== null}
-                    onClose={() => setPreviewAttachment(null)}
-                    attachmentUrl={`${API_BASE}/api/v1/projects/texts/${textId}/attachments/${previewAttachment.id}/download?inline=true`}
-                    filename={previewAttachment.filename}
-                />
+                <Suspense fallback={null}>
+                    <PdfPreviewModal
+                        opened={previewAttachment !== null}
+                        onClose={() => setPreviewAttachment(null)}
+                        attachmentUrl={`${API_BASE}/api/v1/projects/texts/${textId}/attachments/${previewAttachment.id}/download?inline=true`}
+                        filename={previewAttachment.filename}
+                    />
+                </Suspense>
             )}
         </>
     );
