@@ -1,6 +1,5 @@
 import {
     ActionIcon,
-    Anchor,
     Badge,
     Box,
     Collapse,
@@ -14,10 +13,10 @@ import {
     Tooltip,
 } from "@mantine/core";
 import { useState } from "react";
-import { IconPlus } from "@tabler/icons-react";
 import type { HaushaltsParseRow, Project } from "../../../shared/api/queries";
 import { filterProjectOption } from "../../../lib/filterProjectOption";
 import CreateDraftProjectModal from "../../projects/CreateDraftProjectModal";
+import { MissingProjectAnchor } from "../../import-review/shared";
 import { formatNumberDe } from "../../../shared/format";
 
 function fmtPct(val: number | null) {
@@ -195,10 +194,7 @@ function DataRow({
                                         ) : (
                                             <span />
                                         )}
-                                        <Anchor
-                                            component="button"
-                                            type="button"
-                                            size="xs"
+                                        <MissingProjectAnchor
                                             onClick={() =>
                                                 setDraft({
                                                     name: row.name,
@@ -211,12 +207,7 @@ function DataRow({
                                                     },
                                                 })
                                             }
-                                        >
-                                            <Group gap={2} wrap="nowrap" component="span">
-                                                <IconPlus size={11} />
-                                                Projekt fehlt?
-                                            </Group>
-                                        </Anchor>
+                                        />
                                     </Group>
                                 </Stack>
                             )
@@ -283,11 +274,8 @@ function DataRow({
                                     ? <Text size="xs" c="blue">✦</Text>
                                     : undefined}
                             />
-                            <Anchor
-                                component="button"
-                                type="button"
-                                size="xs"
-                                style={{ alignSelf: "flex-start" }}
+                            <MissingProjectAnchor
+                                alignSelfStart
                                 onClick={() =>
                                     setDraft({
                                         name: projectName,
@@ -297,12 +285,7 @@ function DataRow({
                                         },
                                     })
                                 }
-                            >
-                                <Group gap={2} wrap="nowrap" component="span">
-                                    <IconPlus size={11} />
-                                    Projekt fehlt?
-                                </Group>
-                            </Anchor>
+                            />
                         </Stack>
                     </Table.Td>
                     <Table.Td colSpan={11} />

@@ -28,6 +28,7 @@ import {
     useUpdateMediaEntry,
     type MediaEntry,
 } from "../../shared/api/queries";
+import { UnconfirmedFilter, usePatchWithToast } from "../import-review/shared";
 import { mainPhaseOptions } from "../projects/components/progress/phaseMeta";
 import { formatDate } from "../../shared/format";
 
@@ -43,18 +44,7 @@ function MediaCard({
     const update = useUpdateMediaEntry();
     const remove = useDeleteMediaEntry();
 
-    const patch = (data: Parameters<typeof update.mutate>[0]["data"]) =>
-        update.mutate(
-            { entryId: entry.id, data },
-            {
-                onError: () =>
-                    notifications.show({
-                        color: "red",
-                        title: "Fehler",
-                        message: "Änderung konnte nicht gespeichert werden.",
-                    }),
-            },
-        );
+    const patch = usePatchWithToast(update, entry.id);
 
     const canConfirm = entry.project_id != null && entry.asserted_phase != null;
 
@@ -225,11 +215,7 @@ export default function MediaImportPage() {
                 </Card>
 
                 <Group justify="space-between">
-                    <Switch
-                        label="Nur offene (unbestätigt)"
-                        checked={onlyUnconfirmed}
-                        onChange={(e) => setOnlyUnconfirmed(e.currentTarget.checked)}
-                    />
+                    <UnconfirmedFilter checked={onlyUnconfirmed} onChange={setOnlyUnconfirmed} />
                     {entries && (
                         <Text size="sm" c="dimmed">
                             {entries.length} Berichte

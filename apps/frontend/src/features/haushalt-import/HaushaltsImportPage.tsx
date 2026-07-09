@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
     Anchor,
@@ -8,7 +8,6 @@ import {
     Group,
     Loader,
     NumberInput,
-    Progress,
     Stack,
     Text,
 } from "@mantine/core";
@@ -18,9 +17,8 @@ import RequirePermission from "../../components/RequirePermission";
 import {
     useParseResults,
     useStartHaushaltsImport,
-    useTaskStatus,
-    type TaskProgressMeta,
 } from "../../shared/api/queries";
+import { TaskProgressIndicator, useImportTask } from "../import-review/shared";
 import { ParseResultList } from "./components/ParseResultList";
 
 function HaushaltsImportPageContent() {
@@ -28,42 +26,30 @@ function HaushaltsImportPageContent() {
 
     const [file, setFile] = useState<File | null>(null);
     const [year, setYear] = useState<number>(new Date().getFullYear());
-    const [taskId, setTaskId] = useState<string | null>(null);
 
     const { data: results, isLoading: resultsLoading } = useParseResults();
     const startImport = useStartHaushaltsImport();
-    const taskStatus = useTaskStatus(taskId);
+    const task = useImportTask({
+        onSuccess: (result) => {
+            const parseResultId = (result as { parse_result_id?: number } | null)?.parse_result_id;
+            if (parseResultId) {
+                navigate(`/admin/haushalt-import/review/${parseResultId}`);
+            }
+        },
+    });
 
     const handleUpload = async () => {
         if (!file) return;
         try {
             const { task_id } = await startImport.mutateAsync({ pdf: file, year });
-            setTaskId(task_id);
+            task.start(task_id);
         } catch {
             notifications.show({ color: "red", message: "Upload fehlgeschlagen." });
         }
     };
 
-    // Poll task and redirect on success
-    useEffect(() => {
-        if (!taskId || !taskStatus.data) return;
-        const { status, result } = taskStatus.data;
-        if (status === "SUCCESS" && result) {
-            const parseResultId = (result as { parse_result_id?: number }).parse_result_id;
-            if (parseResultId) {
-                navigate(`/admin/haushalt-import/review/${parseResultId}`);
-            }
-        }
-        if (status === "FAILURE") {
-            notifications.show({ color: "red", message: `Parser-Fehler: ${taskStatus.data.error}` });
-            setTaskId(null);
-        }
-    }, [taskStatus.data, taskId, navigate]);
-
-    const isParsing = taskId !== null && taskStatus.data?.status !== "SUCCESS";
-    const progress = taskStatus.data?.status === "PROGRESS"
-        ? (taskStatus.data.result as TaskProgressMeta | null)
-        : null;
+    const isParsing = task.isRunning;
+    const progress = task.progress;
 
     return (
         <Container size="lg" py="xl">
@@ -106,23 +92,14 @@ function HaushaltsImportPageContent() {
                         </Group>
 
                         {isParsing && (
-                            <Stack gap={4}>
-                                <Group gap="xs">
-                                    <Loader size="xs" />
-                                    <Text size="sm">
-                                        {progress?.current_page != null
-                                            ? `Seite ${progress.current_page} / ${progress.total_pages} — ${progress.rows_found} Zeilen gefunden`
-                                            : "Parsing läuft…"}
-                                    </Text>
-                                </Group>
-                                <Progress
-                                    value={progress?.current_page != null && progress?.total_pages != null
-                                        ? Math.round((progress.current_page / progress.total_pages) * 100)
-                                        : 100}
-                                    animated={!progress}
-                                    size="sm"
-                                />
-                            </Stack>
+                            <TaskProgressIndicator
+                                progress={progress}
+                                label={
+                                    progress?.current_page != null
+                                        ? `Seite ${progress.current_page} / ${progress.total_pages} — ${progress.rows_found} Zeilen gefunden`
+                                        : undefined
+                                }
+                            />
                         )}
                     </Stack>
                 </ChronicleCard>
