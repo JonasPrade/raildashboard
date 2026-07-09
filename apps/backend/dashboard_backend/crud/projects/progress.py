@@ -155,6 +155,7 @@ def derive_for_project(
     today: date,
     *,
     persist_timestamp: bool = True,
+    observations: list[ProgressObservation] | None = None,
 ) -> DerivationResult:
     """Run the pure derivation for one project and cache the computed values.
 
@@ -162,18 +163,22 @@ def derive_for_project(
     lazy-resync staleness marker: it is only bumped when a real derived-data
     resync happened, so cheap headline recomputes on every GET don't keep the
     cache perpetually "fresh" and starve the resync (see ``_ensure_fresh``).
+
+    ``observations`` may pass pre-loaded non-expected observations (used by the
+    batched superior aggregation); when None they are queried here.
     """
 
     # Expected (future) milestones never contribute to the current headline —
     # they only inform the forecast (see ``_build_forecast_for_project``).
-    observations = (
-        db.query(ProgressObservation)
-        .filter(
-            ProgressObservation.project_id == project.id,
-            ProgressObservation.is_expected.is_(False),
+    if observations is None:
+        observations = (
+            db.query(ProgressObservation)
+            .filter(
+                ProgressObservation.project_id == project.id,
+                ProgressObservation.is_expected.is_(False),
+            )
+            .all()
         )
-        .all()
-    )
     result = derive_headline(
         _to_inputs(observations),
         has_pf=bool(progress.has_planfeststellung),
@@ -204,25 +209,43 @@ def sync_derived_observations(db: Session, project_id: int) -> int:
     derived rows written. Derived churn is intentionally **not** audited.
     """
 
+    return sync_derived_observations_bulk(db, [project_id]).get(project_id, 0)
+
+
+def sync_derived_observations_bulk(
+    db: Session, project_ids: list[int]
+) -> dict[int, int]:
+    """Batched :func:`sync_derived_observations` for many projects at once.
+
+    Loads each derived-observation source (VIB entries, assigned PFAs, FinVes,
+    Bauportal, Medien, Fulda) with **one** query over all ``project_ids`` and
+    groups in Python — the per-project materialisation rules are unchanged.
+    Used by the superior aggregation so a stale subtree resyncs in a constant
+    number of queries instead of ~10 per leaf. Returns ``{project_id: rows}``.
+    """
+
+    if not project_ids:
+        return {}
+
     db.query(ProgressObservation).filter(
-        ProgressObservation.project_id == project_id,
+        ProgressObservation.project_id.in_(project_ids),
         ProgressObservation.is_derived.is_(True),
     ).delete(synchronize_session=False)
 
-    specs: list[DerivedSpec] = []
-    any_pf_evidence = False
+    specs_by_project: dict[int, list[DerivedSpec]] = {pid: [] for pid in project_ids}
+    pf_evidence_projects: set[int] = set()
 
-    # --- VIB entries linked to the project (m:n) ---
+    # --- VIB entries linked to the projects (m:n) ---
     # Eager-load report + pfa_entries: both are touched per entry below and
     # would otherwise lazy-load with two extra queries per VIB entry.
-    vib_entries = (
-        db.query(VibEntry)
+    vib_rows = (
+        db.query(VibEntry, vib_entry_project.c.project_id)
         .options(joinedload(VibEntry.report), selectinload(VibEntry.pfa_entries))
         .join(vib_entry_project, vib_entry_project.c.vib_entry_id == VibEntry.id)
-        .filter(vib_entry_project.c.project_id == project_id)
+        .filter(vib_entry_project.c.project_id.in_(project_ids))
         .all()
     )
-    for entry in vib_entries:
+    for entry, project_id in vib_rows:
         report = entry.report
         # Use the authoritative report ``year`` (year-end), not ``report_date``:
         # the latter is freetext-parsed and observed to be unreliable
@@ -247,8 +270,8 @@ def sync_derived_observations(db: Session, project_id: int) -> int:
             if pfa.project_id is None
         ]
         if pfa_has_pf_evidence(pfas):
-            any_pf_evidence = True
-        specs.extend(
+            pf_evidence_projects.add(project_id)
+        specs_by_project[project_id].extend(
             vib_entry_to_specs(
                 vib_entry_id=entry.id,
                 status_planung=bool(entry.status_planung),
@@ -261,13 +284,13 @@ def sync_derived_observations(db: Session, project_id: int) -> int:
             )
         )
 
-    # --- PFAs assigned directly to this project (project as leaf subproject) ---
+    # --- PFAs assigned directly to these projects (project as leaf subproject) ---
     # These belong to a VIB entry linked to the *parent*, so the m:n query above
     # does not reach them; query by the PFA→project assignment instead.
     assigned_pfa_rows = (
         db.query(VibPfaEntry, VibEntry)
         .join(VibEntry, VibEntry.id == VibPfaEntry.vib_entry_id)
-        .filter(VibPfaEntry.project_id == project_id)
+        .filter(VibPfaEntry.project_id.in_(project_ids))
         .all()
     )
     for pfa, entry in assigned_pfa_rows:
@@ -282,8 +305,8 @@ def sync_derived_observations(db: Session, project_id: int) -> int:
             inbetriebnahme=pfa.inbetriebnahme,
         )
         if pfa_has_pf_evidence([pfa_input]):
-            any_pf_evidence = True
-        specs.extend(
+            pf_evidence_projects.add(pfa.project_id)
+        specs_by_project[pfa.project_id].extend(
             pfa_to_specs(
                 pfa=pfa_input,
                 vib_entry_id=entry.id,
@@ -291,18 +314,18 @@ def sync_derived_observations(db: Session, project_id: int) -> int:
             )
         )
 
-    # --- FinVe records linked to the project ---
+    # --- FinVe records linked to the projects ---
     finve_rows = (
-        db.query(Finve, FinveToProject.haushalt_year)
+        db.query(Finve, FinveToProject.project_id)
         .join(FinveToProject, FinveToProject.finve_id == Finve.id)
-        .filter(FinveToProject.project_id == project_id)
+        .filter(FinveToProject.project_id.in_(project_ids))
         .all()
     )
-    seen_finve: set[int] = set()
-    for finve, _year in finve_rows:
-        if finve.id in seen_finve:
+    seen_finve: set[tuple[int, int]] = set()
+    for finve, project_id in finve_rows:
+        if (project_id, finve.id) in seen_finve:
             continue  # a Sammel-FinVe can have several year-scoped links
-        seen_finve.add(finve.id)
+        seen_finve.add((project_id, finve.id))
         finve_spec = finve_to_spec(
             finve_id=finve.id,
             is_sammel=bool(finve.is_sammel_finve),
@@ -311,13 +334,13 @@ def sync_derived_observations(db: Session, project_id: int) -> int:
             manual_phase=_enum_or_none(MainPhase, finve.progress_phase),
         )
         if finve_spec is not None:  # ambiguous Sammel-FinVe → skipped
-            specs.append(finve_spec)
+            specs_by_project[project_id].append(finve_spec)
 
-    # --- DB-Bauportal records confirm-matched to this project ---
+    # --- DB-Bauportal records confirm-matched to these projects ---
     bauportal_rows = (
         db.query(BauportalStatus)
         .filter(
-            BauportalStatus.project_id == project_id,
+            BauportalStatus.project_id.in_(project_ids),
             BauportalStatus.confirmed.is_(True),
         )
         .all()
@@ -331,13 +354,13 @@ def sync_derived_observations(db: Session, project_id: int) -> int:
             observed_date=observed,
         )
         if bauportal_spec is not None:  # mixed/umbrella entry → no contribution
-            specs.append(bauportal_spec)
+            specs_by_project[row.project_id].append(bauportal_spec)
 
-    # --- Confirmed Medien/Presse reports matched to this project ---
+    # --- Confirmed Medien/Presse reports matched to these projects ---
     media_rows = (
         db.query(MediaReport)
         .filter(
-            MediaReport.project_id == project_id,
+            MediaReport.project_id.in_(project_ids),
             MediaReport.confirmed.is_(True),
         )
         .all()
@@ -352,22 +375,22 @@ def sync_derived_observations(db: Session, project_id: int) -> int:
             quote=row.quote,
         )
         if media_spec is not None:  # no valid phase yet → no contribution
-            specs.append(media_spec)
+            specs_by_project[row.project_id].append(media_spec)
 
-    # --- Confirmed Fulda-Runde announcements matched to this project ---
+    # --- Confirmed Fulda-Runde announcements matched to these projects ---
     fulda_rows = (
-        db.query(FuldaAnnouncement)
+        db.query(FuldaAnnouncement, fulda_announcement_to_project.c.project_id)
         .join(
             fulda_announcement_to_project,
             fulda_announcement_to_project.c.fulda_announcement_id == FuldaAnnouncement.id,
         )
         .filter(
-            fulda_announcement_to_project.c.project_id == project_id,
+            fulda_announcement_to_project.c.project_id.in_(project_ids),
             FuldaAnnouncement.confirmed.is_(True),
         )
         .all()
     )
-    for row in fulda_rows:
+    for row, project_id in fulda_rows:
         observed_date = row.expected_date or row.document_date
         if observed_date is None and row.announcement_year:
             observed_date = date(row.announcement_year, 1, 1)
@@ -379,40 +402,42 @@ def sync_derived_observations(db: Session, project_id: int) -> int:
             source_label=row.source_label,
         )
         if fulda_spec is not None:  # no derivable phase → no contribution
-            specs.append(fulda_spec)
+            specs_by_project[project_id].append(fulda_spec)
 
-    for spec in specs:
-        db.add(
-            ProgressObservation(
-                project_id=project_id,
-                source_type=spec.source_type.value,
-                track=spec.track.value,
-                asserted_state=spec.asserted_state,
-                observed_date=spec.observed_date,
-                confidence=spec.confidence,
-                note=spec.note,
-                is_derived=True,
-                vib_entry_id=spec.vib_entry_id,
-                vib_pfa_entry_id=spec.vib_pfa_entry_id,
-                finve_id=spec.finve_id,
-                bauportal_status_id=spec.bauportal_status_id,
-                media_report_id=spec.media_report_id,
-                fulda_announcement_id=spec.fulda_announcement_id,
+    for project_id, specs in specs_by_project.items():
+        for spec in specs:
+            db.add(
+                ProgressObservation(
+                    project_id=project_id,
+                    source_type=spec.source_type.value,
+                    track=spec.track.value,
+                    asserted_state=spec.asserted_state,
+                    observed_date=spec.observed_date,
+                    confidence=spec.confidence,
+                    note=spec.note,
+                    is_derived=True,
+                    vib_entry_id=spec.vib_entry_id,
+                    vib_pfa_entry_id=spec.vib_pfa_entry_id,
+                    finve_id=spec.finve_id,
+                    bauportal_status_id=spec.bauportal_status_id,
+                    media_report_id=spec.media_report_id,
+                    fulda_announcement_id=spec.fulda_announcement_id,
+                )
             )
-        )
 
     # Auto-enable the PF lane when VIB documents a Planfeststellungsverfahren.
-    if any_pf_evidence:
-        progress = (
+    if pf_evidence_projects:
+        progress_rows = (
             db.query(ProjectProgress)
-            .filter(ProjectProgress.project_id == project_id)
-            .first()
+            .filter(ProjectProgress.project_id.in_(pf_evidence_projects))
+            .all()
         )
-        if progress is not None and not progress.has_planfeststellung:
-            progress.has_planfeststellung = True
+        for progress in progress_rows:
+            if not progress.has_planfeststellung:
+                progress.has_planfeststellung = True
 
     db.flush()
-    return len(specs)
+    return {pid: len(specs) for pid, specs in specs_by_project.items()}
 
 
 def _ensure_fresh(
@@ -526,6 +551,52 @@ def _build_forecast_for_project(
 # --- Read --------------------------------------------------------------------
 
 
+def _load_subtree(db: Session, root_id: int) -> dict[int, list[Project]]:
+    """Load all descendants of ``root_id`` with one IN-query per depth level.
+
+    Returns ``{parent_id: [children]}``; project_groups are eager-loaded because
+    the leaf derivation reads them (``resolve_parl_relevant``).
+    """
+    children_by_parent: dict[int, list[Project]] = {}
+    frontier = [root_id]
+    while frontier:
+        rows = (
+            db.query(Project)
+            .options(selectinload(Project.project_groups))
+            .filter(Project.superior_project_id.in_(frontier))
+            .all()
+        )
+        frontier = []
+        for child in rows:
+            children_by_parent.setdefault(child.superior_project_id, []).append(child)
+            frontier.append(child.id)
+    return children_by_parent
+
+
+def _bulk_get_or_create_progress(
+    db: Session, project_ids: list[int]
+) -> dict[int, ProjectProgress]:
+    """Fetch ProjectProgress rows for all ids in one query; create missing rows
+    in a single flush (no per-row commit)."""
+    rows = (
+        db.query(ProjectProgress)
+        .filter(ProjectProgress.project_id.in_(project_ids))
+        .all()
+    )
+    by_id = {row.project_id: row for row in rows}
+    missing = [pid for pid in project_ids if pid not in by_id]
+    for pid in missing:
+        row = ProjectProgress(
+            project_id=pid,
+            lifecycle_status=LifecycleStatus.AKTIV.value,
+        )
+        db.add(row)
+        by_id[pid] = row
+    if missing:
+        db.flush()
+    return by_id
+
+
 def _build_aggregation_node(db: Session, project: Project, today: date) -> AggregationNode:
     """Build a planning-state aggregation node for ``project`` and (recursively)
     all of its subprojects, so a superior at any depth spans its leaf descendants.
@@ -533,35 +604,83 @@ def _build_aggregation_node(db: Session, project: Project, today: date) -> Aggre
     Leaves carry their own derived phase; intermediate nodes carry a manual phase
     override (which pins the whole subtree) but never their own observations — the
     state lives at the leaves. See ``aggregate_tree`` for the aggregation rule.
+
+    Batched (#89): the subtree, the ProjectProgress rows, the stale-leaf resync
+    and the leaf observations are each loaded in a constant number of queries,
+    so the query count is sublinear in the number of subprojects.
     """
 
-    children = (
-        db.query(Project).filter(Project.superior_project_id == project.id).all()
-    )
-    progress = get_or_create_progress(db, project.id)
-    lifecycle = (
-        _enum_or_none(LifecycleStatus, progress.lifecycle_status) or LifecycleStatus.AKTIV
-    )
+    children_by_parent = _load_subtree(db, project.id)
+    projects_by_id: dict[int, Project] = {project.id: project}
+    for children in children_by_parent.values():
+        for child in children:
+            projects_by_id[child.id] = child
 
-    if not children:
-        result = _ensure_fresh(db, project, progress, today)
+    progress_by_id = _bulk_get_or_create_progress(db, list(projects_by_id))
+
+    leaf_ids = [pid for pid in projects_by_id if pid not in children_by_parent]
+
+    # Stale leaves resync in one batched pass (same staleness rule as
+    # ``_ensure_fresh``); their ``computed_at`` is bumped by the derivation.
+    now = datetime.utcnow()
+    stale_leaf_ids = {
+        pid
+        for pid in leaf_ids
+        if progress_by_id[pid].computed_at is None
+        or (now - progress_by_id[pid].computed_at) > STALENESS_WINDOW
+    }
+    if stale_leaf_ids:
+        sync_derived_observations_bulk(db, list(stale_leaf_ids))
+
+    # One query for all leaves' non-expected observations.
+    obs_by_project: dict[int, list[ProgressObservation]] = {pid: [] for pid in leaf_ids}
+    if leaf_ids:
+        for obs in (
+            db.query(ProgressObservation)
+            .filter(
+                ProgressObservation.project_id.in_(leaf_ids),
+                ProgressObservation.is_expected.is_(False),
+            )
+            .all()
+        ):
+            obs_by_project[obs.project_id].append(obs)
+
+    def build(node_project: Project) -> AggregationNode:
+        progress = progress_by_id[node_project.id]
+        lifecycle = (
+            _enum_or_none(LifecycleStatus, progress.lifecycle_status)
+            or LifecycleStatus.AKTIV
+        )
+        children = children_by_parent.get(node_project.id, [])
+
+        if not children:
+            result = derive_for_project(
+                db,
+                node_project,
+                progress,
+                today,
+                persist_timestamp=node_project.id in stale_leaf_ids,
+                observations=obs_by_project.get(node_project.id, []),
+            )
+            return AggregationNode(
+                leaf_phase=result.effective_phase,
+                leaf_is_known=result.is_known,
+                project_id=node_project.id,
+                name=node_project.name,
+                lifecycle=lifecycle,
+            )
+
         return AggregationNode(
-            leaf_phase=result.effective_phase,
-            leaf_is_known=result.is_known,
-            project_id=project.id,
-            name=project.name,
+            leaf_phase=MainPhase.NICHT_GESTARTET,  # unused for intermediate nodes
+            leaf_is_known=False,
+            manual_override=_enum_or_none(MainPhase, progress.manual_phase_override),
+            children=[build(child) for child in children],
+            project_id=node_project.id,
+            name=node_project.name,
             lifecycle=lifecycle,
         )
 
-    return AggregationNode(
-        leaf_phase=MainPhase.NICHT_GESTARTET,  # unused for intermediate nodes
-        leaf_is_known=False,
-        manual_override=_enum_or_none(MainPhase, progress.manual_phase_override),
-        children=[_build_aggregation_node(db, child, today) for child in children],
-        project_id=project.id,
-        name=project.name,
-        lifecycle=lifecycle,
-    )
+    return build(project)
 
 
 def get_progress_view(db: Session, project_id: int, today: date | None = None) -> dict | None:
