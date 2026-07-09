@@ -46,9 +46,52 @@ def verify_password(password: str, stored_hash: str) -> bool:
     return hmac.compare_digest(derived_key, expected_key)
 
 
+# --- Short-lived Basic-auth credential cache (#92, option b) -----------------
+#
+# Every HTTP-Basic request re-ran PBKDF2 with 390k iterations (~100-300 ms CPU).
+# After one successful full verification the credentials are remembered for a
+# few minutes as an HMAC fingerprint keyed with a random per-process secret:
+# useless outside this process, gone on restart, and the stored hash is part of
+# the fingerprint so a password change invalidates the entry immediately.
+# Stored password hashes stay at 390k iterations — only the per-request
+# re-verification is skipped.
+
+_BASIC_CACHE_TTL_SECONDS = 300
+_BASIC_CACHE_MAX_ENTRIES = 1024
+_basic_cache_key = os.urandom(32)
+_basic_cache: dict[str, tuple[float, bytes]] = {}  # username -> (expiry, fingerprint)
+
+
+def _credential_fingerprint(username: str, password: str, stored_hash: str) -> bytes:
+    message = f"{username}\x00{password}\x00{stored_hash}".encode("utf-8")
+    return hmac.new(_basic_cache_key, message, hashlib.sha256).digest()
+
+
+def _verify_password_cached(username: str, password: str, stored_hash: str) -> bool:
+    now = time.monotonic()
+    fingerprint = _credential_fingerprint(username, password, stored_hash)
+    cached = _basic_cache.get(username)
+    if cached is not None and cached[0] > now and hmac.compare_digest(cached[1], fingerprint):
+        return True
+    # Full PBKDF2 verification; failed attempts never touch existing entries
+    # (a wrong password must not evict a legitimate cached credential).
+    if not verify_password(password, stored_hash):
+        return False
+    if len(_basic_cache) >= _BASIC_CACHE_MAX_ENTRIES:
+        expired = [name for name, (expiry, _) in _basic_cache.items() if expiry <= now]
+        for name in expired:
+            _basic_cache.pop(name, None)
+        if len(_basic_cache) >= _BASIC_CACHE_MAX_ENTRIES:
+            _basic_cache.clear()
+    _basic_cache[username] = (now + _BASIC_CACHE_TTL_SECONDS, fingerprint)
+    return True
+
+
 def _authenticate(credentials: HTTPBasicCredentials, db: Session):
     user = users_crud.get_user_by_username(db, credentials.username)
-    if not user or not verify_password(credentials.password, user.hashed_password):
+    if not user or not _verify_password_cached(
+        credentials.username, credentials.password, user.hashed_password
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
