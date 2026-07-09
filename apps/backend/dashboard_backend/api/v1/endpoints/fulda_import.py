@@ -28,7 +28,7 @@ router = AuthRouter()
 _require_edit = Depends(require_permission("progress.edit"))
 
 
-@router.post("/parse", response_model=FuldaParseSummary, dependencies=[_require_edit])
+@router.post("/parse", response_model=FuldaParseSummary)
 async def parse_fulda(
     pdf: UploadFile = File(...),
     year: int = Form(...),

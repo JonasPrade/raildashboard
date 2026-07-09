@@ -95,7 +95,7 @@ def vib_ocr_available():
 # POST /parse — start PDF parse task
 # ---------------------------------------------------------------------------
 
-@router.post("/parse", response_model=TaskLaunchResponse, dependencies=[_require_editor])
+@router.post("/parse", response_model=TaskLaunchResponse)
 async def start_vib_parse(
     pdf: UploadFile = File(...),
     year: int = Form(...),
@@ -239,7 +239,6 @@ def confirm_vib_import(
 @router.post(
     "/extract-ai/{parse_task_id}",
     response_model=TaskLaunchResponse,
-    dependencies=[_require_editor],
 )
 def start_vib_ai_extraction(
     parse_task_id: str,

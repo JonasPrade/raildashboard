@@ -40,7 +40,7 @@ _require_editor = Depends(require_permission("haushalt.import"))
 # POST /parse — start PDF parse task
 # ---------------------------------------------------------------------------
 
-@router.post("/parse", response_model=TaskLaunchResponse, dependencies=[_require_editor])
+@router.post("/parse", response_model=TaskLaunchResponse)
 async def start_parse(
     pdf: UploadFile = File(...),
     year: int = Form(...),

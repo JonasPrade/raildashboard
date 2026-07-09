@@ -27,7 +27,7 @@ router = AuthRouter()
 _require_edit = Depends(require_permission("progress.edit"))
 
 
-@router.post("/extract", response_model=MediaEntrySchema, dependencies=[_require_edit])
+@router.post("/extract", response_model=MediaEntrySchema)
 def extract_media(
     body: MediaExtractInput,
     current_user: User = Depends(require_permission("progress.edit")),

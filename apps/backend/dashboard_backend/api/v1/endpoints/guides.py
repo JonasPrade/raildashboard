@@ -32,7 +32,6 @@ def list_guide_overrides(guide_slug: str, db: Session = Depends(get_db)):
 @router.put(
     "/{guide_slug}/overrides/{section_key}",
     response_model=GuideOverrideSchema,
-    dependencies=[_require_edit],
 )
 def put_guide_override(
     guide_slug: str,
