@@ -10,64 +10,21 @@ import {
 
 import type { Project, ProjectUpdatePayload } from "../../shared/api/queries";
 import { ProjectEditFields } from "./ProjectEditFields";
+import { BOOL_KEYS, NUM_KEYS, type BoolKey, type NumKey } from "./projectPropertyFields";
 
+/**
+ * Form state: the ~8 explicit scalar/text fields plus every toggle/number
+ * property derived from PROPERTY_SECTIONS (see projectPropertyFields.ts).
+ */
 export type ProjectEditFormValues = {
     name: string;
     project_number: string | null;
     description: string | null;
     justification: string | null;
     length: number | null;
-    new_vmax: number | null;
-    etcs_level: number | null;
-    number_junction_station: number | null;
-    number_overtaking_station: number | null;
-    filling_stations_count: number | null;
-    effects_passenger_long_rail: boolean;
-    effects_passenger_local_rail: boolean;
-    effects_cargo_rail: boolean;
-    nbs: boolean;
-    abs: boolean;
-    second_track: boolean;
-    third_track: boolean;
-    fourth_track: boolean;
-    curve: boolean;
-    increase_speed: boolean;
-    tunnel_structural_gauge: boolean;
-    tilting: boolean;
-    new_station: boolean;
-    platform: boolean;
-    junction_station: boolean;
-    overtaking_station: boolean;
-    depot: boolean;
-    level_free_platform_entrance: boolean;
-    double_occupancy: boolean;
-    simultaneous_train_entries: boolean;
-    buffer_track: boolean;
-    overpass: boolean;
-    noise_barrier: boolean;
-    railroad_crossing: boolean;
-    gwb: boolean;
-    etcs: boolean;
-    new_estw: boolean;
-    new_dstw: boolean;
-    block_increase: boolean;
-    station_railroad_switches: boolean;
-    flying_junction: boolean;
-    elektrification: boolean;
-    optimised_electrification: boolean;
-    charging_station: boolean;
-    small_charging_station: boolean;
-    battery: boolean;
-    h2: boolean;
-    efuel: boolean;
-    filling_stations_efuel: boolean;
-    filling_stations_h2: boolean;
-    filling_stations_diesel: boolean;
-    sgv740m: boolean;
-    sanierung: boolean;
-    closure: boolean;
     project_group_ids: number[];
-};
+} & Record<BoolKey, boolean> &
+    Record<NumKey, number | null>;
 
 type ProjectEditProps = {
     project: Project;
@@ -78,10 +35,6 @@ type ProjectEditProps = {
     errorMessage?: string;
 };
 
-function b(v: boolean | null | undefined): boolean {
-    return Boolean(v);
-}
-
 export function createInitialValues(project: Project): ProjectEditFormValues {
     return {
         name: project.name,
@@ -89,60 +42,20 @@ export function createInitialValues(project: Project): ProjectEditFormValues {
         description: project.description ?? null,
         justification: project.justification ?? null,
         length: project.length ?? null,
-        new_vmax: project.new_vmax ?? null,
-        etcs_level: project.etcs_level ?? null,
-        number_junction_station: project.number_junction_station ?? null,
-        number_overtaking_station: project.number_overtaking_station ?? null,
-        filling_stations_count: project.filling_stations_count ?? null,
-        effects_passenger_long_rail: b(project.effects_passenger_long_rail),
-        effects_passenger_local_rail: b(project.effects_passenger_local_rail),
-        effects_cargo_rail: b(project.effects_cargo_rail),
-        nbs: b(project.nbs),
-        abs: b(project.abs),
-        second_track: b(project.second_track),
-        third_track: b(project.third_track),
-        fourth_track: b(project.fourth_track),
-        curve: b(project.curve),
-        increase_speed: b(project.increase_speed),
-        tunnel_structural_gauge: b(project.tunnel_structural_gauge),
-        tilting: b(project.tilting),
-        new_station: b(project.new_station),
-        platform: b(project.platform),
-        junction_station: b(project.junction_station),
-        overtaking_station: b(project.overtaking_station),
-        depot: b(project.depot),
-        level_free_platform_entrance: b(project.level_free_platform_entrance),
-        double_occupancy: b(project.double_occupancy),
-        simultaneous_train_entries: b(project.simultaneous_train_entries),
-        buffer_track: b(project.buffer_track),
-        overpass: b(project.overpass),
-        noise_barrier: b(project.noise_barrier),
-        railroad_crossing: b(project.railroad_crossing),
-        gwb: b(project.gwb),
-        etcs: b(project.etcs),
-        new_estw: b(project.new_estw),
-        new_dstw: b(project.new_dstw),
-        block_increase: b(project.block_increase),
-        station_railroad_switches: b(project.station_railroad_switches),
-        flying_junction: b(project.flying_junction),
-        elektrification: b(project.elektrification),
-        optimised_electrification: b(project.optimised_electrification),
-        charging_station: b(project.charging_station),
-        small_charging_station: b(project.small_charging_station),
-        battery: b(project.battery),
-        h2: b(project.h2),
-        efuel: b(project.efuel),
-        filling_stations_efuel: b(project.filling_stations_efuel),
-        filling_stations_h2: b(project.filling_stations_h2),
-        filling_stations_diesel: b(project.filling_stations_diesel),
-        sgv740m: b(project.sgv740m),
-        sanierung: b(project.sanierung),
-        closure: b(project.closure),
         project_group_ids: (project.project_groups ?? []).map((g) => g.id),
+        ...(Object.fromEntries(BOOL_KEYS.map((k) => [k, Boolean(project[k])])) as Record<
+            BoolKey,
+            boolean
+        >),
+        ...(Object.fromEntries(NUM_KEYS.map((k) => [k, project[k] ?? null])) as Record<
+            NumKey,
+            number | null
+        >),
     };
 }
 
 export function createUpdatePayload(values: ProjectEditFormValues): ProjectUpdatePayload {
+    // NumberInput can hold "" while typing — anything non-numeric becomes null.
     const num = (v: number | null) => (typeof v === "number" ? v : null);
     return {
         name: values.name.trim(),
@@ -150,56 +63,12 @@ export function createUpdatePayload(values: ProjectEditFormValues): ProjectUpdat
         description: values.description?.trim() || null,
         justification: values.justification?.trim() || null,
         length: num(values.length),
-        new_vmax: num(values.new_vmax),
-        etcs_level: num(values.etcs_level),
-        number_junction_station: num(values.number_junction_station),
-        number_overtaking_station: num(values.number_overtaking_station),
-        filling_stations_count: num(values.filling_stations_count),
-        effects_passenger_long_rail: values.effects_passenger_long_rail,
-        effects_passenger_local_rail: values.effects_passenger_local_rail,
-        effects_cargo_rail: values.effects_cargo_rail,
-        nbs: values.nbs,
-        abs: values.abs,
-        second_track: values.second_track,
-        third_track: values.third_track,
-        fourth_track: values.fourth_track,
-        curve: values.curve,
-        increase_speed: values.increase_speed,
-        tunnel_structural_gauge: values.tunnel_structural_gauge,
-        tilting: values.tilting,
-        new_station: values.new_station,
-        platform: values.platform,
-        junction_station: values.junction_station,
-        overtaking_station: values.overtaking_station,
-        depot: values.depot,
-        level_free_platform_entrance: values.level_free_platform_entrance,
-        double_occupancy: values.double_occupancy,
-        simultaneous_train_entries: values.simultaneous_train_entries,
-        buffer_track: values.buffer_track,
-        overpass: values.overpass,
-        noise_barrier: values.noise_barrier,
-        railroad_crossing: values.railroad_crossing,
-        gwb: values.gwb,
-        etcs: values.etcs,
-        new_estw: values.new_estw,
-        new_dstw: values.new_dstw,
-        block_increase: values.block_increase,
-        station_railroad_switches: values.station_railroad_switches,
-        flying_junction: values.flying_junction,
-        elektrification: values.elektrification,
-        optimised_electrification: values.optimised_electrification,
-        charging_station: values.charging_station,
-        small_charging_station: values.small_charging_station,
-        battery: values.battery,
-        h2: values.h2,
-        efuel: values.efuel,
-        filling_stations_efuel: values.filling_stations_efuel,
-        filling_stations_h2: values.filling_stations_h2,
-        filling_stations_diesel: values.filling_stations_diesel,
-        sgv740m: values.sgv740m,
-        sanierung: values.sanierung,
-        closure: values.closure,
         project_group_ids: values.project_group_ids,
+        ...(Object.fromEntries(BOOL_KEYS.map((k) => [k, values[k]])) as Record<BoolKey, boolean>),
+        ...(Object.fromEntries(NUM_KEYS.map((k) => [k, num(values[k])])) as Record<
+            NumKey,
+            number | null
+        >),
     };
 }
 
