@@ -94,6 +94,23 @@ def _nth_line(value: str | None, n: int) -> str | None:
     return lines[n] if n < len(lines) else None
 
 
+def _titel_numeric_fields(cells: list, line_idx: int) -> dict:
+    """The seven numeric TitelEntryProposed fields from the standard columns.
+
+    ``line_idx`` selects the line inside each multi-line cell (0 = first line).
+    A new/renumbered PDF column only needs to be changed here.
+    """
+    return {
+        "cost_estimate_last_year": _parse_int(_nth_line(_cell(cells, _COL_COST_LAST_YEAR), line_idx)),
+        "cost_estimate_aktuell": _parse_int(_nth_line(_cell(cells, _COL_COST_ACTUAL), line_idx)),
+        "verausgabt_bis": _parse_int(_nth_line(_cell(cells, _COL_SPENT_TWO_PREV), line_idx)),
+        "bewilligt": _parse_int(_nth_line(_cell(cells, _COL_ALLOWED_PREV), line_idx)),
+        "ausgabereste_transferred": _parse_int(_nth_line(_cell(cells, _COL_AUSGABERESTE), line_idx)),
+        "veranschlagt": _parse_int(_nth_line(_cell(cells, _COL_YEAR_PLANNED), line_idx)),
+        "vorhalten_future": _parse_int(_nth_line(_cell(cells, _COL_NEXT_YEARS), line_idx)),
+    }
+
+
 _KAP_TITEL_RE = re.compile(r"Kap\.\s*(\d+)[^,\n]*(?:,\s*|\s+)Titel\s+([\d ]+)", re.IGNORECASE)
 
 
@@ -246,27 +263,7 @@ def _extract_inline_titel_entries(cells: list) -> list["TitelEntryProposed"]:
                 titel_nr=kap["titel_nr"],
                 label=f"Kap. {kap['kapitel']}, Titel {kap['titel_nr']}",
                 is_nachrichtlich=False,
-                cost_estimate_last_year=_parse_int(
-                    _nth_line(_cell(cells, _COL_COST_LAST_YEAR), idx)
-                ),
-                cost_estimate_aktuell=_parse_int(
-                    _nth_line(_cell(cells, _COL_COST_ACTUAL), idx)
-                ),
-                verausgabt_bis=_parse_int(
-                    _nth_line(_cell(cells, _COL_SPENT_TWO_PREV), idx)
-                ),
-                bewilligt=_parse_int(
-                    _nth_line(_cell(cells, _COL_ALLOWED_PREV), idx)
-                ),
-                ausgabereste_transferred=_parse_int(
-                    _nth_line(_cell(cells, _COL_AUSGABERESTE), idx)
-                ),
-                veranschlagt=_parse_int(
-                    _nth_line(_cell(cells, _COL_YEAR_PLANNED), idx)
-                ),
-                vorhalten_future=_parse_int(
-                    _nth_line(_cell(cells, _COL_NEXT_YEARS), idx)
-                ),
+                **_titel_numeric_fields(cells, idx),
             )
         )
     return result
@@ -299,27 +296,7 @@ def _extract_nachrichtlich_entries(cells: list) -> list["TitelEntryProposed"]:
                 titel_nr="",
                 label=label,
                 is_nachrichtlich=True,
-                cost_estimate_last_year=_parse_int(
-                    _nth_line(_cell(cells, _COL_COST_LAST_YEAR), i)
-                ),
-                cost_estimate_aktuell=_parse_int(
-                    _nth_line(_cell(cells, _COL_COST_ACTUAL), i)
-                ),
-                verausgabt_bis=_parse_int(
-                    _nth_line(_cell(cells, _COL_SPENT_TWO_PREV), i)
-                ),
-                bewilligt=_parse_int(
-                    _nth_line(_cell(cells, _COL_ALLOWED_PREV), i)
-                ),
-                ausgabereste_transferred=_parse_int(
-                    _nth_line(_cell(cells, _COL_AUSGABERESTE), i)
-                ),
-                veranschlagt=_parse_int(
-                    _nth_line(_cell(cells, _COL_YEAR_PLANNED), i)
-                ),
-                vorhalten_future=_parse_int(
-                    _nth_line(_cell(cells, _COL_NEXT_YEARS), i)
-                ),
+                **_titel_numeric_fields(cells, i),
             )
         )
     return result
@@ -397,14 +374,73 @@ def _build_titel_entry(cells: list) -> TitelEntryProposed:
         titel_nr=titel_nr,
         label=label,
         is_nachrichtlich=False,
-        cost_estimate_last_year=_parse_int(_first_line(_cell(cells, _COL_COST_LAST_YEAR))),
-        cost_estimate_aktuell=_parse_int(_first_line(_cell(cells, _COL_COST_ACTUAL))),
-        verausgabt_bis=_parse_int(_first_line(_cell(cells, _COL_SPENT_TWO_PREV))),
-        bewilligt=_parse_int(_first_line(_cell(cells, _COL_ALLOWED_PREV))),
-        ausgabereste_transferred=_parse_int(_first_line(_cell(cells, _COL_AUSGABERESTE))),
-        veranschlagt=_parse_int(_first_line(_cell(cells, _COL_YEAR_PLANNED))),
-        vorhalten_future=_parse_int(_first_line(_cell(cells, _COL_NEXT_YEARS))),
+        **_titel_numeric_fields(cells, 0),
     )
+
+
+def _build_proposed(
+    cells: list,
+    year: int,
+    finve_nr: int,
+    lfd_nr: str | None,
+    bedarfsplan_nr: str | None,
+    name: str,
+    is_sv: bool,
+) -> tuple[ProposedFinve, ProposedBudget]:
+    """Build the ProposedFinve/ProposedBudget pair for a main FinVe row.
+
+    Used for regular rows and for orphaned-SV recovery — the two callers only
+    differ in how name/lfd_nr/bedarfsplan were determined.
+    """
+    proposed_finve = ProposedFinve(
+        id=finve_nr,
+        name=name,
+        starting_year=_parse_int(_cell(cells, _COL_STARTING_YEAR)),
+        cost_estimate_original=_parse_int(_first_line(_cell(cells, _COL_COST_ORIG))),
+        is_sammel_finve=is_sv,
+    )
+    proposed_budget = ProposedBudget(
+        budget_year=year,
+        lfd_nr=lfd_nr,
+        fin_ve=finve_nr,
+        bedarfsplan_number=bedarfsplan_nr,
+        cost_estimate_original=_parse_int(_first_line(_cell(cells, _COL_COST_ORIG))),
+        cost_estimate_last_year=_parse_int(_first_line(_cell(cells, _COL_COST_LAST_YEAR))),
+        cost_estimate_actual=_parse_int(_first_line(_cell(cells, _COL_COST_ACTUAL))),
+        delta_previous_year=_parse_int(_first_line(_cell(cells, _COL_DELTA_ABS))),
+        delta_previous_year_relativ=_parse_float(_first_line(_cell(cells, _COL_DELTA_REL))),
+        delta_previous_year_reasons=_first_line(_cell(cells, _COL_DELTA_REASONS)),
+        spent_two_years_previous=_parse_int(_first_line(_cell(cells, _COL_SPENT_TWO_PREV))),
+        allowed_previous_year=_parse_int(_first_line(_cell(cells, _COL_ALLOWED_PREV))),
+        spending_residues=_parse_int(_first_line(_cell(cells, _COL_AUSGABERESTE))),
+        year_planned=_parse_int(_first_line(_cell(cells, _COL_YEAR_PLANNED))),
+        next_years=_parse_int(_first_line(_cell(cells, _COL_NEXT_YEARS))),
+        sammel_finve=is_sv,
+    )
+    return proposed_finve, proposed_budget
+
+
+def _refresh_sv_suggestions(
+    row: HaushaltsParseResultSchema,
+    finve_projects: dict[int, list[int]] | None,
+    all_projects: list | None,
+) -> None:
+    """Recompute per-Erläuterung and whole-SV suggestions after new sub-lines.
+
+    Keeps existing project links: the SV-level suggestion only pre-fills
+    ``project_ids`` when the FinVe has no linked projects yet.
+    """
+    if not all_projects:
+        return
+    row.erlaeuterung_suggestions = suggest_per_erlaeuterung_project(
+        row.erlaeuterung_projects, all_projects
+    )
+    if not (finve_projects or {}).get(row.finve_number):
+        sv_suggestions = suggest_projects_for_sv_erlaeuterung(
+            row.erlaeuterung_projects, all_projects
+        )
+        row.suggested_project_ids = sv_suggestions
+        row.project_ids = sv_suggestions
 
 
 def _parse_pdf(
@@ -525,17 +561,7 @@ def _parse_pdf(
                         extracted = _extract_erlaeuterung_projects(erlaeuterung_text)
                         if extracted:
                             current_row.erlaeuterung_projects.extend(extracted)
-                            if all_projects:
-                                # Recompute suggestions with the full (possibly extended) list
-                                current_row.erlaeuterung_suggestions = suggest_per_erlaeuterung_project(
-                                    current_row.erlaeuterung_projects, all_projects
-                                )
-                                if not (finve_projects or {}).get(current_row.finve_number):
-                                    sv_suggestions = suggest_projects_for_sv_erlaeuterung(
-                                        current_row.erlaeuterung_projects, all_projects
-                                    )
-                                    current_row.suggested_project_ids = sv_suggestions
-                                    current_row.project_ids = sv_suggestions
+                            _refresh_sv_suggestions(current_row, finve_projects, all_projects)
                 elif _is_nachrichtlich_row(cells):
                     # Nachrichtlich row: may contain multiple stacked entries
                     if current_row is not None:
@@ -556,36 +582,18 @@ def _parse_pdf(
                             sv_status = "update" if recovered_finve_nr in known_finve_ids else "new"
                             sv_existing_ids = (finve_projects or {}).get(recovered_finve_nr, [])
                             sv_inline_titel = _extract_inline_titel_entries(cells)
+                            sv_finve, sv_budget = _build_proposed(
+                                cells, year, recovered_finve_nr,
+                                lfd_nr="YYY", bedarfsplan_nr=None,
+                                name=sv_name, is_sv=True,
+                            )
                             current_row = HaushaltsParseResultSchema(
                                 finve_number=recovered_finve_nr,
                                 name=sv_name,
                                 status=sv_status,
                                 is_sammel_finve=True,
-                                proposed_finve=ProposedFinve(
-                                    id=recovered_finve_nr,
-                                    name=sv_name,
-                                    starting_year=_parse_int(_cell(cells, _COL_STARTING_YEAR)),
-                                    cost_estimate_original=_parse_int(_first_line(_cell(cells, _COL_COST_ORIG))),
-                                    is_sammel_finve=True,
-                                ),
-                                proposed_budget=ProposedBudget(
-                                    budget_year=year,
-                                    lfd_nr="YYY",
-                                    fin_ve=recovered_finve_nr,
-                                    bedarfsplan_number=None,
-                                    cost_estimate_original=_parse_int(_first_line(_cell(cells, _COL_COST_ORIG))),
-                                    cost_estimate_last_year=_parse_int(_first_line(_cell(cells, _COL_COST_LAST_YEAR))),
-                                    cost_estimate_actual=_parse_int(_first_line(_cell(cells, _COL_COST_ACTUAL))),
-                                    delta_previous_year=_parse_int(_first_line(_cell(cells, _COL_DELTA_ABS))),
-                                    delta_previous_year_relativ=_parse_float(_first_line(_cell(cells, _COL_DELTA_REL))),
-                                    delta_previous_year_reasons=_first_line(_cell(cells, _COL_DELTA_REASONS)),
-                                    spent_two_years_previous=_parse_int(_first_line(_cell(cells, _COL_SPENT_TWO_PREV))),
-                                    allowed_previous_year=_parse_int(_first_line(_cell(cells, _COL_ALLOWED_PREV))),
-                                    spending_residues=_parse_int(_first_line(_cell(cells, _COL_AUSGABERESTE))),
-                                    year_planned=_parse_int(_first_line(_cell(cells, _COL_YEAR_PLANNED))),
-                                    next_years=_parse_int(_first_line(_cell(cells, _COL_NEXT_YEARS))),
-                                    sammel_finve=True,
-                                ),
+                                proposed_finve=sv_finve,
+                                proposed_budget=sv_budget,
                                 proposed_titel_entries=sv_inline_titel,
                                 project_ids=sv_existing_ids,
                                 suggested_project_ids=[],
@@ -620,16 +628,7 @@ def _parse_pdf(
                                 current_row.finve_number, len(extracted),
                                 len(current_row.erlaeuterung_projects),
                             )
-                            if all_projects:
-                                current_row.erlaeuterung_suggestions = suggest_per_erlaeuterung_project(
-                                    current_row.erlaeuterung_projects, all_projects
-                                )
-                                if not (finve_projects or {}).get(current_row.finve_number):
-                                    sv_suggestions = suggest_projects_for_sv_erlaeuterung(
-                                        current_row.erlaeuterung_projects, all_projects
-                                    )
-                                    current_row.suggested_project_ids = sv_suggestions
-                                    current_row.project_ids = sv_suggestions
+                            _refresh_sv_suggestions(current_row, finve_projects, all_projects)
                 continue
 
             # Flush previous row
@@ -646,31 +645,10 @@ def _parse_pdf(
             raw_name = _extract_project_name(_cell(cells, _COL_NAME))
             is_sv = _is_sammel_finve(raw_name)
 
-            proposed_finve = ProposedFinve(
-                id=finve_nr,
-                name=raw_name,
-                starting_year=_parse_int(_cell(cells, _COL_STARTING_YEAR)),
-                cost_estimate_original=_parse_int(_first_line(_cell(cells, _COL_COST_ORIG))),
-                is_sammel_finve=is_sv,
-            )
-
-            proposed_budget = ProposedBudget(
-                budget_year=year,
-                lfd_nr=lfd_nr,
-                fin_ve=finve_nr,
-                bedarfsplan_number=bedarfsplan_nr,
-                cost_estimate_original=_parse_int(_first_line(_cell(cells, _COL_COST_ORIG))),
-                cost_estimate_last_year=_parse_int(_first_line(_cell(cells, _COL_COST_LAST_YEAR))),
-                cost_estimate_actual=_parse_int(_first_line(_cell(cells, _COL_COST_ACTUAL))),
-                delta_previous_year=_parse_int(_first_line(_cell(cells, _COL_DELTA_ABS))),
-                delta_previous_year_relativ=_parse_float(_first_line(_cell(cells, _COL_DELTA_REL))),
-                delta_previous_year_reasons=_first_line(_cell(cells, _COL_DELTA_REASONS)),
-                spent_two_years_previous=_parse_int(_first_line(_cell(cells, _COL_SPENT_TWO_PREV))),
-                allowed_previous_year=_parse_int(_first_line(_cell(cells, _COL_ALLOWED_PREV))),
-                spending_residues=_parse_int(_first_line(_cell(cells, _COL_AUSGABERESTE))),
-                year_planned=_parse_int(_first_line(_cell(cells, _COL_YEAR_PLANNED))),
-                next_years=_parse_int(_first_line(_cell(cells, _COL_NEXT_YEARS))),
-                sammel_finve=is_sv,
+            proposed_finve, proposed_budget = _build_proposed(
+                cells, year, finve_nr,
+                lfd_nr=lfd_nr, bedarfsplan_nr=bedarfsplan_nr,
+                name=raw_name, is_sv=is_sv,
             )
 
             if finve_nr in known_finve_ids:
@@ -695,12 +673,12 @@ def _parse_pdf(
                 name=raw_name,
                 status=status,
                 is_sammel_finve=is_sv,
-                    proposed_finve=proposed_finve,
-                    proposed_budget=proposed_budget,
-                    proposed_titel_entries=inline_titel,
-                    project_ids=existing_project_ids if existing_project_ids else suggested_ids,
-                    suggested_project_ids=suggested_ids,
-                )
+                proposed_finve=proposed_finve,
+                proposed_budget=proposed_budget,
+                proposed_titel_entries=inline_titel,
+                project_ids=existing_project_ids if existing_project_ids else suggested_ids,
+                suggested_project_ids=suggested_ids,
+            )
 
         # Flush last row
         if current_row is not None:

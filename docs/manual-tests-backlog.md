@@ -11,6 +11,20 @@ Test-Checkliste des ermöglichenden Issues hochgezogen und hier entfernt.
 
 ---
 
+## Haushalt-Parser-Refactor #90 — Golden-Vergleich mit Referenz-PDF (Stand 2026-07-09)
+
+Braucht ein echtes Haushaltsbericht-PDF (nicht im Repo). Die drei extrahierten
+Blöcke sind durch synthetische Snapshot-Tests
+(`tests/unit/test_haushalt_parser_blocks.py`) abgesichert; der End-to-End-Golden
+steht noch aus:
+
+- [ ] `apps/backend/scripts/dump_parse_result.py` (mit `.venv/bin/python` aus
+      `apps/backend/`) auf einem Referenz-PDF **vor** und **nach** dem Merge von
+      PR #110 laufen lassen — Output muss byte-identisch sein (`diff`).
+- [ ] Celery-Worker nach dem Merge neu starten (Parser-Code geändert).
+
+---
+
 ## Legacy — aus `review-checklist.md` migriert (Stand 2026-06-12)
 
 Diese Punkte stammen aus der abgelösten `review-checklist.md`. Sie brauchen
