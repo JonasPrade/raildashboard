@@ -34,15 +34,29 @@ def include_object(object, name, type_, reflected, compare_to):
     """
     Diese Funktion entscheidet, welche Objekte von Alembic bei der
     Autogenerierung von Migrationen berücksichtigt werden sollen.
+
+    Die DB-Rolle hat ``search_path = "$user", public, tiger, topology``
+    (für PostGIS-Geocoding). Dadurch macht Postgres' ``pg_table_is_visible()``
+    auch unqualifizierte TIGER-/Topology-Tabellen (``county``, ``faces``,
+    ``state``, ``topology`` selbst, ...) "sichtbar", und Alembics schemalose
+    Reflektion sammelt sie als Tabellen ohne Schema ein — obwohl sie nicht in
+    ``public`` liegen. Da keine dieser Tabellen in ``Base.metadata`` steht,
+    hält Autogenerate sie für gelöscht und schlägt ``DROP TABLE`` vor.
+
+    Fix: jedes rein-reflektierte Objekt (in der DB vorhanden, aber ohne
+    Gegenstück im Modell) wird von der Autogenerierung ausgeschlossen —
+    unabhängig vom Typ (Tabelle, Spalte, Index, Constraint). Das ist das
+    offizielle Alembic-Muster für "von Migrationen nicht verwaltete
+    Fremd-Objekte ignorieren" (siehe Alembic-Doku, Abschnitt
+    "Omitting Elements Reflected from the Database"). Nebeneffekt: auch
+    echte verwaiste App-Tabellen (z. B. Alt-Routing-Reste) werden dadurch
+    nicht mehr automatisch zum Löschen vorgeschlagen — das ist gewollt,
+    ein DROP TABLE auf App-Daten soll immer eine bewusste, handschriftliche
+    Migration sein, kein Autogenerate-Nebeneffekt.
     """
-    if type_ == "table" and name == "spatial_ref_sys":
-        # Wenn es eine Tabelle ist und der Name 'spatial_ref_sys' ist,
-        # geben wir False zurück, um sie von der Migration auszuschließen.
+    if reflected and compare_to is None:
         return False
-    else:
-        # Alle anderen Objekte (Tabellen, Spalten, Indizes etc.)
-        # werden weiterhin berücksichtigt.
-        return True
+    return True
 
 
 def run_migrations_offline() -> None:
