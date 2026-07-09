@@ -121,34 +121,7 @@ def get_project_vib(project_id: int, db: Session = Depends(get_db)):
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     entries = get_vib_entries_for_project(db, project_id)
-    result = []
-    for e in entries:
-        result.append(VibEntryForProjectSchema(
-            id=e.id,
-            year=e.report.year,
-            drucksache_nr=e.report.drucksache_nr,
-            vib_section=e.vib_section,
-            vib_name_raw=e.vib_name_raw,
-            category=e.category,
-            bauaktivitaeten=e.bauaktivitaeten,
-            teilinbetriebnahmen=e.teilinbetriebnahmen,
-            verkehrliche_zielsetzung=e.verkehrliche_zielsetzung,
-            durchgefuehrte_massnahmen=e.durchgefuehrte_massnahmen,
-            noch_umzusetzende_massnahmen=e.noch_umzusetzende_massnahmen,
-            sonstiges=e.sonstiges,
-            raw_text=e.raw_text,
-            strecklaenge_km=e.strecklaenge_km,
-            gesamtkosten_mio_eur=e.gesamtkosten_mio_eur,
-            entwurfsgeschwindigkeit=e.entwurfsgeschwindigkeit,
-            planungsstand=e.planungsstand,
-            status_planung=e.status_planung,
-            status_bau=e.status_bau,
-            status_abgeschlossen=e.status_abgeschlossen,
-            ai_extracted=e.ai_extracted,
-            pfa_entries=e.pfa_entries,
-            project_ids=[p.id for p in e.projects],
-        ))
-    return result
+    return [VibEntryForProjectSchema.from_entry(e) for e in entries]
 
 
 @router.patch("/{project_id}", response_model=ProjectSchema)

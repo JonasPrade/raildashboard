@@ -343,6 +343,27 @@ def _parse_toc(full_text: str) -> dict[str, str]:
 _PFA_MD_SEPARATOR_RE = re.compile(r"^\|[\s\-:|]+\|$")
 
 
+def _pfa_row(
+    abschnitt_label: str | None,
+    nr_pfa: str | None,
+    oertlichkeit: str | None,
+    entwurfsplanung: str | None,
+    date_values: list[str | None],
+) -> VibPfaEntryProposed:
+    """Build a PFA row, mapping up to four positional date values onto the
+    abschluss_finve / datum_pfb / baubeginn / inbetriebnahme columns."""
+    return VibPfaEntryProposed(
+        abschnitt_label=abschnitt_label,
+        nr_pfa=nr_pfa,
+        oertlichkeit=oertlichkeit,
+        entwurfsplanung=entwurfsplanung,
+        abschluss_finve=date_values[0] if len(date_values) > 0 else None,
+        datum_pfb=date_values[1] if len(date_values) > 1 else None,
+        baubeginn=date_values[2] if len(date_values) > 2 else None,
+        inbetriebnahme=date_values[3] if len(date_values) > 3 else None,
+    )
+
+
 def _parse_pfa_table_markdown(lines: list[str]) -> list[VibPfaEntryProposed]:
     """Parse a PFA table in markdown pipe-table format (Mistral OCR output).
 
@@ -405,15 +426,12 @@ def _parse_pfa_table_markdown(lines: list[str]) -> list[VibPfaEntryProposed]:
             # Numbered PFA row — update the inherited nr_pfa tracker
             last_nr_pfa = nr_pfa
 
-        entries.append(VibPfaEntryProposed(
+        entries.append(_pfa_row(
             abschnitt_label=current_abschnitt,
             nr_pfa=nr_pfa,
             oertlichkeit=_norm(cells[1]) if len(cells) > 1 else None,
             entwurfsplanung=_norm(cells[2]) if len(cells) > 2 else None,
-            abschluss_finve=_norm(cells[3]) if len(cells) > 3 else None,
-            datum_pfb=_norm(cells[4]) if len(cells) > 4 else None,
-            baubeginn=_norm(cells[5]) if len(cells) > 5 else None,
-            inbetriebnahme=_norm(cells[6]) if len(cells) > 6 else None,
+            date_values=[_norm(c) for c in cells[3:7]],
         ))
 
     return entries
@@ -473,27 +491,17 @@ def _parse_pfa_table(block_text: str) -> list[VibPfaEntryProposed]:
                         prev_ort = (prev_ort + " " + extra_ort).strip()
                     after_status = line[status_match.start():]
                     tokens = after_status.split()
-                    entries[-1] = VibPfaEntryProposed(
+                    entries[-1] = _pfa_row(
                         abschnitt_label=prev.abschnitt_label,
                         nr_pfa=prev.nr_pfa,
                         oertlichkeit=prev_ort or None,
                         entwurfsplanung=tokens[0] if tokens else None,
-                        abschluss_finve=tokens[1] if len(tokens) > 1 else None,
-                        datum_pfb=tokens[2] if len(tokens) > 2 else None,
-                        baubeginn=tokens[3] if len(tokens) > 3 else None,
-                        inbetriebnahme=tokens[4] if len(tokens) > 4 else None,
+                        date_values=tokens[1:],
                     )
                 else:
                     # Pure location continuation
-                    entries[-1] = VibPfaEntryProposed(
-                        abschnitt_label=prev.abschnitt_label,
-                        nr_pfa=prev.nr_pfa,
-                        oertlichkeit=(prev_ort + " " + line).strip() or None,
-                        entwurfsplanung=prev.entwurfsplanung,
-                        abschluss_finve=prev.abschluss_finve,
-                        datum_pfb=prev.datum_pfb,
-                        baubeginn=prev.baubeginn,
-                        inbetriebnahme=prev.inbetriebnahme,
+                    entries[-1] = prev.model_copy(
+                        update={"oertlichkeit": (prev_ort + " " + line).strip() or None}
                     )
             continue
 
@@ -515,17 +523,13 @@ def _parse_pfa_table(block_text: str) -> list[VibPfaEntryProposed]:
             entwurfsplanung = None
             date_tokens = []
 
-        entry = VibPfaEntryProposed(
+        entries.append(_pfa_row(
             abschnitt_label=current_abschnitt,
             nr_pfa=nr_pfa,
             oertlichkeit=oertlichkeit,
             entwurfsplanung=entwurfsplanung,
-            abschluss_finve=date_tokens[0] if len(date_tokens) > 0 else None,
-            datum_pfb=date_tokens[1] if len(date_tokens) > 1 else None,
-            baubeginn=date_tokens[2] if len(date_tokens) > 2 else None,
-            inbetriebnahme=date_tokens[3] if len(date_tokens) > 3 else None,
-        )
-        entries.append(entry)
+            date_values=date_tokens,
+        ))
 
     return entries
 
