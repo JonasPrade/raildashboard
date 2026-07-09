@@ -17,6 +17,45 @@ _SKIP_FIELDS = {"centroid", "project_group_ids"}
 _TEXT_TRACKED_FIELDS = ("header", "text", "weblink", "logo_url", "type")
 
 
+def diff_to_entries(
+    entry_cls,
+    obj,
+    update_data: dict,
+    tracked_fields: tuple[str, ...] | None = None,
+    *,
+    skip_fields: frozenset[str] = frozenset(),
+    apply: bool = False,
+) -> list:
+    """Diff ``update_data`` against ``obj``'s current values into changelog entry rows.
+
+    This is the single serialization point for all change tracking (project,
+    project text, Finve, Budget): old/new values are ``json.dumps``-encoded,
+    unchanged fields are skipped. ``tracked_fields=None`` tracks every key not
+    in ``skip_fields``; ``apply=True`` additionally writes the new values onto
+    ``obj`` (used by the Haushalt upserts). ``obj=None`` treats every old value
+    as None (CREATE-style diffs).
+    """
+    entries = []
+    for field, new_val in update_data.items():
+        if tracked_fields is not None and field not in tracked_fields:
+            continue
+        if field in skip_fields:
+            continue
+        old_val = getattr(obj, field, None)
+        if old_val == new_val:
+            continue
+        entries.append(
+            entry_cls(
+                field_name=field,
+                old_value=json.dumps(old_val) if old_val is not None else None,
+                new_value=json.dumps(new_val) if new_val is not None else None,
+            )
+        )
+        if apply:
+            setattr(obj, field, new_val)
+    return entries
+
+
 def create_changelog_for_patch(
     db: Session,
     project: Project,
@@ -31,21 +70,7 @@ def create_changelog_for_patch(
     the session (not yet committed), or None if no fields differ.
     The caller is responsible for committing the session.
     """
-    entries = []
-    for field, new_val in update_data.items():
-        if field in _SKIP_FIELDS:
-            continue
-        old_val = getattr(project, field, None)
-        if old_val == new_val:
-            continue
-        entries.append(
-            ChangeLogEntry(
-                field_name=field,
-                old_value=json.dumps(old_val) if old_val is not None else None,
-                new_value=json.dumps(new_val) if new_val is not None else None,
-            )
-        )
-
+    entries = diff_to_entries(ChangeLogEntry, project, update_data, skip_fields=_SKIP_FIELDS)
     if not entries:
         return None
 
@@ -94,20 +119,8 @@ def _make_text_entries(fields: tuple[str, ...], old_obj: ProjectText | None, new
     For DELETE: old_obj holds all field values, new_data is None.
     For PATCH:  both are provided; only changed fields are recorded.
     """
-    entries = []
-    for field in fields:
-        old_val = getattr(old_obj, field, None) if old_obj else None
-        new_val = new_data.get(field) if new_data else None
-        if old_val == new_val:
-            continue
-        entries.append(
-            TextChangeLogEntry(
-                field_name=field,
-                old_value=json.dumps(old_val) if old_val is not None else None,
-                new_value=json.dumps(new_val) if new_val is not None else None,
-            )
-        )
-    return entries
+    data = {f: (new_data.get(f) if new_data else None) for f in fields}
+    return diff_to_entries(TextChangeLogEntry, old_obj, data)
 
 
 def _add_text_changelog(
