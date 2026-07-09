@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     Alert,
@@ -17,40 +17,71 @@ import {
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { IconChevronRight, IconUpload } from "@tabler/icons-react";
+import { useQueryClient } from "@tanstack/react-query";
 
-import { useFuldaYearSummaries, useParseFulda } from "../../shared/api/queries";
+import {
+    type FuldaParseSummary,
+    useFuldaYearSummaries,
+    useParseFulda,
+    useTaskStatus,
+} from "../../shared/api/queries";
 
 export default function FuldaImportPage() {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const [file, setFile] = useState<File | null>(null);
     const [importYear, setImportYear] = useState<number>(new Date().getFullYear());
+    const [taskId, setTaskId] = useState<string | null>(null);
 
     const { data: summaries, isLoading } = useFuldaYearSummaries();
     const parse = useParseFulda();
+    const { data: taskStatus } = useTaskStatus(taskId);
 
     const handleParse = () => {
         if (!file) return;
         parse.mutate(
             { file, year: importYear },
             {
-                onSuccess: (summary) => {
-                    setFile(null);
-                    notifications.show({
-                        color: "green",
-                        title: `Fulda-Runde ${importYear} ausgewertet`,
-                        message: `${summary.created} Einträge erkannt (OCR: ${summary.ocr_status}) — bitte prüfen.`,
-                    });
-                    navigate(`/admin/fulda-import/year/${importYear}`);
-                },
+                onSuccess: (launch) => setTaskId(launch.task_id),
                 onError: () =>
                     notifications.show({
                         color: "red",
                         title: "Auswertung fehlgeschlagen",
-                        message: "Das PDF konnte nicht verarbeitet werden.",
+                        message: "Das PDF konnte nicht hochgeladen werden.",
                     }),
             },
         );
     };
+
+    // OCR + LLM run in a Celery task — react once it finishes.
+    useEffect(() => {
+        if (!taskId || !taskStatus) return;
+        if (taskStatus.status === "SUCCESS") {
+            const summary = taskStatus.result as FuldaParseSummary | null;
+            setTaskId(null);
+            setFile(null);
+            queryClient.invalidateQueries({ queryKey: ["fulda-entries"] });
+            queryClient.invalidateQueries({ queryKey: ["fulda-years"] });
+            queryClient.invalidateQueries({ queryKey: ["fulda-year-summaries"] });
+            notifications.show({
+                color: "green",
+                title: `Fulda-Runde ${importYear} ausgewertet`,
+                message: summary
+                    ? `${summary.created} Einträge erkannt (OCR: ${summary.ocr_status}) — bitte prüfen.`
+                    : "Auswertung abgeschlossen — bitte prüfen.",
+            });
+            navigate(`/admin/fulda-import/year/${importYear}`);
+        } else if (taskStatus.status === "FAILURE") {
+            setTaskId(null);
+            notifications.show({
+                color: "red",
+                title: "Auswertung fehlgeschlagen",
+                message: taskStatus.error ?? "Das PDF konnte nicht verarbeitet werden.",
+            });
+        }
+    }, [taskId, taskStatus, importYear, navigate, queryClient]);
+
+    const isParsing = parse.isPending || taskId !== null;
 
     return (
         <Container size="lg" py="xl">
@@ -88,10 +119,16 @@ export default function FuldaImportPage() {
                             leftSection={<IconUpload size={16} />}
                             style={{ flex: 1, maxWidth: 420 }}
                         />
-                        <Button onClick={handleParse} loading={parse.isPending} disabled={!file}>
+                        <Button onClick={handleParse} loading={isParsing} disabled={!file}>
                             Auswerten & durcharbeiten
                         </Button>
                     </Group>
+                    {isParsing && (
+                        <Text size="sm" c="dimmed" mt="xs">
+                            OCR und KI-Auswertung laufen im Hintergrund — das kann bei großen
+                            PDFs einige Minuten dauern. Die Seite bleibt benutzbar.
+                        </Text>
+                    )}
                 </Paper>
 
                 {/* Year overview table */}

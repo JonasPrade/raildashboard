@@ -27,12 +27,6 @@ class FuldaEntrySchema(BaseModel):
     username_snapshot: str | None = None
 
 
-class FuldaParseSummary(BaseModel):
-    ocr_status: str
-    created: int
-    source_label: str | None = None
-
-
 class FuldaConfirmSummary(BaseModel):
     """Result of confirming a whole year at once."""
 
