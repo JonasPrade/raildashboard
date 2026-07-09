@@ -98,25 +98,3 @@ export function FlapNumber({
         </span>
     );
 }
-
-type FlapTextProps = {
-    text: string;
-    width?: number;
-    height?: number;
-    fontSize?: number;
-    variant?: Variant;
-    gap?: number;
-    style?: CSSProperties;
-};
-
-export function FlapText({ text, width, height, fontSize, variant, gap = 4, style }: FlapTextProps) {
-    return (
-        <span style={{ display: "inline-flex", gap, ...style }}>
-            {[...text.toUpperCase()].map((c, i) => (
-                <FlapDigit key={`${i}-${c}`} width={width} height={height} fontSize={fontSize} variant={variant}>
-                    {c === " " ? " " : c}
-                </FlapDigit>
-            ))}
-        </span>
-    );
-}
