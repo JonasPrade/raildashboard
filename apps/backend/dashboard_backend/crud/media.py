@@ -8,7 +8,7 @@ are editor-owned, so unlike derived observations they can be edited and deleted.
 
 from __future__ import annotations
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, load_only
 
 from dashboard_backend.crud.projects.progress import recompute_progress
 from dashboard_backend.models.projects.media_report import MediaReport
@@ -50,7 +50,13 @@ def create_from_input(
 
     suggested_project_id = None
     if extracted.get("project_name"):
-        projects = db.query(Project).all()
+        # The fuzzy matcher only reads id/name — skip the heavy columns
+        # (geojson_representation can be MBs per row).
+        projects = (
+            db.query(Project)
+            .options(load_only(Project.id, Project.name))
+            .all()
+        )
         suggested_project_id = suggest_project_for_bauportal(
             extracted["project_name"], projects
         )
@@ -74,7 +80,7 @@ def create_from_input(
     db.add(row)
     db.commit()
     db.refresh(row)
-    return _entry_dict(db, row)
+    return _entry_dict(row, _project_name_map(db, [row.project_id, row.suggested_project_id]))
 
 
 def _project_name_map(db: Session, ids: list[int | None]) -> dict[int, str]:
@@ -85,8 +91,7 @@ def _project_name_map(db: Session, ids: list[int | None]) -> dict[int, str]:
     return {row.id: row.name for row in rows}
 
 
-def _entry_dict(db: Session, row: MediaReport) -> dict:
-    names = _project_name_map(db, [row.project_id, row.suggested_project_id])
+def _entry_dict(row: MediaReport, names: dict[int, str]) -> dict:
     return {
         "id": row.id,
         "url": row.url,
@@ -111,7 +116,11 @@ def list_entries(db: Session, *, only_unconfirmed: bool = False) -> list[dict]:
     if only_unconfirmed:
         query = query.filter(MediaReport.confirmed.is_(False))
     rows = query.order_by(MediaReport.created_at.desc(), MediaReport.id.desc()).all()
-    return [_entry_dict(db, row) for row in rows]
+    # One batched name lookup for all rows (was one query per row).
+    names = _project_name_map(
+        db, [i for row in rows for i in (row.project_id, row.suggested_project_id)]
+    )
+    return [_entry_dict(row, names) for row in rows]
 
 
 def update_entry(db: Session, entry_id: int, payload: dict) -> dict | None:
@@ -142,7 +151,7 @@ def update_entry(db: Session, entry_id: int, payload: dict) -> dict | None:
         recompute_progress(db, affected)
 
     db.refresh(row)
-    return _entry_dict(db, row)
+    return _entry_dict(row, _project_name_map(db, [row.project_id, row.suggested_project_id]))
 
 
 def delete_entry(db: Session, entry_id: int) -> bool:
