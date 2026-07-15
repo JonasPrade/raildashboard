@@ -12,6 +12,19 @@ section as part of the release commit, immediately before tagging.
 
 ## [Unreleased]
 
+## [v0.0.8] - 2026-07-15
+
+### Fixed
+- Production (`dashboard.schienengruen.de`) was completely broken (blank page,
+  `Uncaught TypeError: can't access property "useLayoutEffect" of undefined`)
+  because the `manualChunks` vendor-splitting introduced in v0.0.7 put Mantine
+  and React/react-dom/scheduler into two separate output chunks
+  (`mantine` / `react-vendor`) that imported from each other, creating a
+  circular dependency between the two chunk files. Fixed by merging both into
+  a single `vendor-react` chunk in `apps/frontend/vite.config.ts` — Mantine is
+  a peer-dependent UI layer used almost everywhere in the app, so there is no
+  meaningful cache-granularity loss from shipping it together with React.
+
 ## [v0.0.7] - 2026-07-09
 
 Efficiency and cleanup release: the repo-wide optimization audit
