@@ -94,10 +94,27 @@ services:
     networks:
       - raildashboard-net
 
-  # graphhopper: disabled — not yet required by any service.
-  # Re-enable and configure GH_OSM_URL in .env when routing is needed. When you do,
-  # add a raildashboard-graphhopper image to the CI build matrix and reference it here
-  # as `image: ghcr.io/jonasprade/raildashboard-graphhopper:${IMAGE_TAG}`.
+  graphhopper:
+    image: ghcr.io/jonasprade/raildashboard-graphhopper:${IMAGE_TAG}
+    restart: unless-stopped
+    environment:
+      # URL to an OSM PBF extract. Downloaded automatically on first start if the
+      # graph cache volume is empty. Example: https://download.geofabrik.de/europe/germany-latest.osm.pbf
+      GH_OSM_URL: ${GH_OSM_URL:-}
+    volumes:
+      # Named volume: OSM PBF + built graph cache persist across restarts.
+      # No local data/ directory needed on the server.
+      - ghdata:/data
+    ports:
+      - "8989:8989"
+    networks:
+      - raildashboard-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8989/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 300s   # graph build can take several minutes on first run
 
   frontend:
     image: ghcr.io/jonasprade/raildashboard-frontend:${IMAGE_TAG}
@@ -112,6 +129,7 @@ services:
 volumes:
   pgdata:
   uploads:    # text attachment files — back this up alongside the database!
+  ghdata:     # GraphHopper OSM extract + built graph cache
 
 networks:
   raildashboard-net:

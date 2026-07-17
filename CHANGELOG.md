@@ -12,6 +12,17 @@ section as part of the release commit, immediately before tagging.
 
 ## [Unreleased]
 
+## [v0.0.9] - 2026-07-17
+
+### Fixed
+- Re-enabled the GraphHopper routing service in production (`docker-compose.yml`),
+  now pulling `raildashboard-graphhopper` from GHCR like the other services instead of
+  building on the server. It had been disabled since v0.0.5-era infra work with the
+  reasoning "not required by any service yet", but the route-calculation feature
+  (project creation wizard → Geometrie step) depends on it and was silently broken.
+  CI build matrix (`.github/workflows/deploy.yml`) now also builds/pushes the
+  `graphhopper` image.
+
 ## [v0.0.8] - 2026-07-15
 
 ### Fixed

@@ -30,6 +30,10 @@ services:
     build:
       context: apps/backend
 
+  graphhopper:
+    build:
+      context: docker/graphhopper
+
   frontend:
     build:
       context: apps/frontend

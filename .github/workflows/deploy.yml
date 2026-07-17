@@ -100,6 +100,9 @@ jobs:
           - service: db
             context: docker/db
             build_args: ""
+          - service: graphhopper
+            context: docker/graphhopper
+            build_args: ""
     steps:
       - uses: actions/checkout@v4
 
