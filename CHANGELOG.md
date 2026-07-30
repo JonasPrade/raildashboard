@@ -12,6 +12,8 @@ section as part of the release commit, immediately before tagging.
 
 ## [Unreleased]
 
+## [v0.0.10] - 2026-07-30
+
 ### Added
 - Superior project can now be set from the project edit drawer (`superior_project_id`), which
   makes the edited project a subproject of the selected one. The project search behind it
