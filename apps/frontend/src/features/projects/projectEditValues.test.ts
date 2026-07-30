@@ -29,6 +29,13 @@ describe("createInitialValues", () => {
         }
     });
 
+    it("reads the superior project, defaulting to null", () => {
+        expect(createInitialValues(makeProject()).superior_project_id).toBeNull();
+        expect(
+            createInitialValues(makeProject({ superior_project_id: 7 })).superior_project_id,
+        ).toBe(7);
+    });
+
     it("keeps set property values", () => {
         const values = createInitialValues(
             makeProject({ nbs: true, new_vmax: 250, number_junction_station: 2 }),
@@ -51,6 +58,14 @@ describe("createUpdatePayload", () => {
         expect(payload.project_number).toBeNull();
         expect(payload.description).toBe("Beschreibung");
         expect(payload.justification).toBeNull();
+    });
+
+    it("carries the superior project through, including its removal", () => {
+        const values = createInitialValues(makeProject({ superior_project_id: 7 }));
+        expect(createUpdatePayload(values).superior_project_id).toBe(7);
+
+        values.superior_project_id = null;
+        expect(createUpdatePayload(values).superior_project_id).toBeNull();
     });
 
     it("normalises non-numeric number-field state to null", () => {

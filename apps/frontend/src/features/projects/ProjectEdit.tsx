@@ -22,6 +22,7 @@ export type ProjectEditFormValues = {
     description: string | null;
     justification: string | null;
     length: number | null;
+    superior_project_id: number | null;
     project_group_ids: number[];
 } & Record<BoolKey, boolean> &
     Record<NumKey, number | null>;
@@ -42,6 +43,7 @@ export function createInitialValues(project: Project): ProjectEditFormValues {
         description: project.description ?? null,
         justification: project.justification ?? null,
         length: project.length ?? null,
+        superior_project_id: project.superior_project_id ?? null,
         project_group_ids: (project.project_groups ?? []).map((g) => g.id),
         ...(Object.fromEntries(BOOL_KEYS.map((k) => [k, Boolean(project[k])])) as Record<
             BoolKey,
@@ -63,6 +65,7 @@ export function createUpdatePayload(values: ProjectEditFormValues): ProjectUpdat
         description: values.description?.trim() || null,
         justification: values.justification?.trim() || null,
         length: num(values.length),
+        superior_project_id: values.superior_project_id,
         project_group_ids: values.project_group_ids,
         ...(Object.fromEntries(BOOL_KEYS.map((k) => [k, values[k]])) as Record<BoolKey, boolean>),
         ...(Object.fromEntries(NUM_KEYS.map((k) => [k, num(values[k])])) as Record<
@@ -112,7 +115,12 @@ export function ProjectEdit({
             styles={{ body: { display: "flex", flexDirection: "column", height: "100%", padding: 0 } }}
         >
             <ScrollArea style={{ flex: 1 }} p="md">
-                <ProjectEditFields values={values} setValues={setValues} geojson={project.geojson_representation} />
+                <ProjectEditFields
+                    values={values}
+                    setValues={setValues}
+                    geojson={project.geojson_representation}
+                    projectId={project.id ?? null}
+                />
             </ScrollArea>
 
             <Box p="md" style={{ borderTop: "1px solid var(--mantine-color-default-border)" }}>
