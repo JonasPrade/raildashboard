@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 from fastapi import Depends, HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from dashboard_backend.api.deps import get_project_or_404
@@ -15,12 +16,14 @@ from dashboard_backend.crud.changelog import (
 )
 from dashboard_backend.crud.projects.bvwp import get_bvwp_data
 from dashboard_backend.crud.projects.projects import (
+    ProjectHierarchyError,
     create_project,
     delete_project,
     finalize_project,
     get_draft_projects,
     get_projects,
     update_project,
+    validate_superior_project,
 )
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.crud.vib import get_vib_entries_for_project
@@ -42,6 +45,17 @@ from dashboard_backend.schemas.vib import VibEntryForProjectSchema
 router = AuthRouter()
 
 
+def _validate_hierarchy(db: Session, project_id: int | None, update_data: dict) -> None:
+    """Reject a superior_project_id that does not exist, is the project itself, or
+    already sits below it in the tree. Translates to HTTP 400."""
+    if "superior_project_id" not in update_data:
+        return
+    try:
+        validate_superior_project(db, project_id, update_data["superior_project_id"])
+    except ProjectHierarchyError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @router.get("/", response_model=list[ProjectSchema])
 def read_all_projects(db: Session = Depends(get_db)):
     """Retrieve all projects."""
@@ -55,7 +69,9 @@ def create_project_endpoint(
     db: Session = Depends(get_db),
 ):
     """Create a new project. Only `name` is required."""
-    return create_project(db, body.model_dump(exclude_unset=True))
+    data = body.model_dump(exclude_unset=True)
+    _validate_hierarchy(db, None, data)
+    return create_project(db, data)
 
 
 # NOTE: must be declared before GET /{project_id} so "drafts" is not captured
@@ -88,8 +104,18 @@ def delete_project_endpoint(
     current_user: User = Depends(require_permission("project.delete")),
     db: Session = Depends(get_db),
 ):
-    """Delete a project (used to discard drafts)."""
-    if not delete_project(db, project_id):
+    """Delete a project — a draft discarded in the wizard or a finalized project
+    removed from the detail page. Subprojects are removed with it (FK ON DELETE
+    CASCADE), so the frontend asks for confirmation twice."""
+    try:
+        deleted = delete_project(db, project_id)
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="Das Projekt kann nicht gelöscht werden, weil noch Verknüpfungen bestehen.",
+        ) from exc
+    if not deleted:
         raise HTTPException(status_code=404, detail="Project not found")
     return None
 
@@ -133,6 +159,8 @@ def patch_project(
     update_data = body.model_dump(exclude_unset=True)
     if not update_data:
         return project
+
+    _validate_hierarchy(db, project.id, update_data)
 
     # Record before/after values in changelog (committed together with the update below)
     create_changelog_for_patch(db, project, update_data, current_user.id, current_user.username)

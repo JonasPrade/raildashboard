@@ -110,6 +110,7 @@ export default function Step1Stammdaten({ project, onCreated }: Props) {
                 label="Übergeordnetes Projekt"
                 value={superiorId}
                 onChange={setSuperiorId}
+                excludeSubtreeOfId={project?.id ?? null}
             />
             <MultiSelect
                 label="Projektgruppen"

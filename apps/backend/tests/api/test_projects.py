@@ -1,6 +1,8 @@
 """Tests for the /api/v1/projects/ endpoints."""
 from __future__ import annotations
 
+from sqlalchemy.exc import IntegrityError
+
 import dashboard_backend.api.v1.endpoints.projects as projects_route
 import dashboard_backend.api.deps as api_deps
 from dashboard_backend.schemas.projects import ProjectSchema
@@ -208,6 +210,20 @@ def test_delete_project_success(client, create_user, monkeypatch):
     assert resp.status_code == 204
 
 
+def test_delete_project_conflict_on_integrity_error(client, create_user, monkeypatch):
+    create_user("editor", "pass123", UserRole.editor)
+
+    def raise_integrity_error(db, pid):
+        raise IntegrityError("DELETE", {}, Exception("FK violation"))
+
+    monkeypatch.setattr(projects_route, "delete_project", raise_integrity_error)
+    resp = client.delete(
+        "/api/v1/projects/4",
+        headers=basic_auth_header("editor", "pass123"),
+    )
+    assert resp.status_code == 409
+
+
 def test_delete_project_not_found(client, create_user, monkeypatch):
     create_user("editor", "pass123", UserRole.editor)
     monkeypatch.setattr(projects_route, "delete_project", lambda db, pid: False)
@@ -304,6 +320,88 @@ def test_patch_project_success(client, create_user, monkeypatch):
     )
     assert resp.status_code == 200
     assert resp.json()["name"] == "Updated Name"
+
+
+def test_patch_project_rejects_invalid_superior_project(client, create_user, monkeypatch):
+    create_user("editor", "pass123", UserRole.editor)
+
+    def raise_hierarchy_error(db, project_id, superior_project_id):
+        raise projects_route.ProjectHierarchyError("Zyklus")
+
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
+    monkeypatch.setattr(projects_route, "validate_superior_project", raise_hierarchy_error)
+
+    resp = client.patch(
+        "/api/v1/projects/1",
+        json={"superior_project_id": 2},
+        headers=basic_auth_header("editor", "pass123"),
+    )
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "Zyklus"
+
+
+def test_patch_project_validates_superior_against_own_id(client, create_user, monkeypatch):
+    create_user("editor", "pass123", UserRole.editor)
+    calls: list = []
+    updated = _make_project(1, "Alpha")
+
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
+    monkeypatch.setattr(
+        projects_route,
+        "validate_superior_project",
+        lambda db, project_id, superior_project_id: calls.append((project_id, superior_project_id)),
+    )
+    monkeypatch.setattr(projects_route, "create_changelog_for_patch", lambda *a, **kw: None)
+    monkeypatch.setattr(projects_route, "update_project", lambda db, pid, data, project=None: updated)
+
+    resp = client.patch(
+        "/api/v1/projects/1",
+        json={"superior_project_id": 7},
+        headers=basic_auth_header("editor", "pass123"),
+    )
+    assert resp.status_code == 200
+    assert calls == [(1, 7)]
+
+
+def test_patch_project_without_superior_skips_hierarchy_check(client, create_user, monkeypatch):
+    create_user("editor", "pass123", UserRole.editor)
+    calls: list = []
+
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
+    monkeypatch.setattr(
+        projects_route,
+        "validate_superior_project",
+        lambda *a, **kw: calls.append(a),
+    )
+    monkeypatch.setattr(projects_route, "create_changelog_for_patch", lambda *a, **kw: None)
+    monkeypatch.setattr(
+        projects_route, "update_project", lambda db, pid, data, project=None: _make_project(pid)
+    )
+
+    resp = client.patch(
+        "/api/v1/projects/1",
+        json={"name": "Only the name"},
+        headers=basic_auth_header("editor", "pass123"),
+    )
+    assert resp.status_code == 200
+    assert calls == []
+
+
+def test_create_project_rejects_invalid_superior_project(client, create_user, monkeypatch):
+    create_user("editor", "pass123", UserRole.editor)
+
+    def raise_hierarchy_error(db, project_id, superior_project_id):
+        raise projects_route.ProjectHierarchyError("existiert nicht")
+
+    monkeypatch.setattr(projects_route, "validate_superior_project", raise_hierarchy_error)
+
+    resp = client.post(
+        "/api/v1/projects/",
+        json={"name": "Neu", "superior_project_id": 999},
+        headers=basic_auth_header("editor", "pass123"),
+    )
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "existiert nicht"
 
 
 def test_patch_project_not_found(client, create_user, monkeypatch):

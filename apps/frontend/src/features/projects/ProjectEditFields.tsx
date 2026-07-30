@@ -15,6 +15,7 @@ import { Fragment, useMemo, useState } from "react";
 import { useProjectGroups } from "../../shared/api/queries";
 import { computeGeojsonLengthKm } from "../../shared/geo/length";
 import type { ProjectEditFormValues } from "./ProjectEdit";
+import ProjectSearchSelect from "./ProjectSearchSelect";
 import {
     PROPERTY_SECTIONS,
     type BoolKey,
@@ -27,6 +28,8 @@ export type ProjectEditFieldsProps = {
     setValues: React.Dispatch<React.SetStateAction<ProjectEditFormValues>>;
     /** Project geometry (geojson_representation). Enables "Länge aus Geometrie berechnen". */
     geojson?: string | null;
+    /** Id of the edited project — keeps it and its subprojects out of the parent search. */
+    projectId?: number | null;
 };
 
 
@@ -83,7 +86,12 @@ function NumberField({
     );
 }
 
-export function ProjectEditFields({ values, setValues, geojson }: ProjectEditFieldsProps) {
+export function ProjectEditFields({
+    values,
+    setValues,
+    geojson,
+    projectId = null,
+}: ProjectEditFieldsProps) {
     const { data: groups = [] } = useProjectGroups();
     const projectGroupOptions = useMemo(
         () => groups.map((g) => ({ value: String(g.id), label: g.name })),
@@ -193,6 +201,14 @@ export function ProjectEditFields({ values, setValues, geojson }: ProjectEditFie
                     const value = event.currentTarget.value;
                     setValues((prev) => ({ ...prev, justification: value || null }));
                 }}
+            />
+
+            <ProjectSearchSelect
+                label="Übergeordnetes Projekt"
+                description="Ordnet dieses Projekt einem Dachprojekt unter — es wird damit zu dessen Unterprojekt."
+                value={values.superior_project_id}
+                onChange={(id) => setValues((prev) => ({ ...prev, superior_project_id: id }))}
+                excludeSubtreeOfId={projectId}
             />
 
             <MultiSelect

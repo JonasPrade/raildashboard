@@ -1,5 +1,5 @@
 import json
-from typing import Any, List, Optional
+from typing import Any, Callable, List, Optional
 
 from sqlalchemy.orm import Session, selectinload
 
@@ -56,42 +56,120 @@ def _extract_features(geojson_str: Optional[str]) -> List[Any]:
     return []
 
 
-def recompute_parent_geojson(db: Session, project: Project) -> None:
-    """Recompute and persist the geojson_representation of every ancestor of *project*.
+def recompute_geojson_for_parent(db: Session, parent_id: Optional[int]) -> None:
+    """Recompute and persist the geojson_representation of *parent_id* and its ancestors.
 
-    Walks the superior_project chain upwards. At each level, all direct children's
-    geojson_representations are flattened into a FeatureCollection and stored on the
-    parent. The recursion stops when a project has no superior project.
+    At each level, all direct children's geojson_representations are flattened into a
+    FeatureCollection and stored on the parent, then the walk continues upwards. The
+    walk stops at the root — `_seen` guards against a corrupt cyclic chain.
     """
-    if project.superior_project_id is None:
-        return
+    seen: set[int] = set()
+    current_id = parent_id
 
-    parent = get_project_by_id(db, project.superior_project_id)
-    if parent is None:
-        return
+    while current_id is not None and current_id not in seen:
+        seen.add(current_id)
+        parent = get_project_by_id(db, current_id)
+        if parent is None:
+            return
 
-    children = (
-        db.query(Project)
-        .filter(Project.superior_project_id == parent.id)
-        .all()
-    )
-
-    features: List[Any] = []
-    for child in children:
-        features.extend(_extract_features(child.geojson_representation))
-
-    if features:
-        parent.geojson_representation = json.dumps(
-            {"type": "FeatureCollection", "features": features}
+        children = (
+            db.query(Project)
+            .filter(Project.superior_project_id == parent.id)
+            .all()
         )
-    else:
-        parent.geojson_representation = None
 
-    db.commit()
-    db.refresh(parent)
+        features: List[Any] = []
+        for child in children:
+            features.extend(_extract_features(child.geojson_representation))
 
-    # Recurse upwards to update grandparent, great-grandparent, …
-    recompute_parent_geojson(db, parent)
+        if features:
+            parent.geojson_representation = json.dumps(
+                {"type": "FeatureCollection", "features": features}
+            )
+        else:
+            parent.geojson_representation = None
+
+        db.commit()
+        db.refresh(parent)
+
+        # Continue upwards to update grandparent, great-grandparent, …
+        current_id = parent.superior_project_id
+
+
+def recompute_parent_geojson(db: Session, project: Project) -> None:
+    """Recompute the geojson_representation of every ancestor of *project*."""
+    recompute_geojson_for_parent(db, project.superior_project_id)
+
+
+class ProjectHierarchyError(ValueError):
+    """Raised when a superior-project assignment would produce an invalid hierarchy."""
+
+
+def ancestor_ids(project_id: int, parent_of: Callable[[int], Optional[int]]) -> List[int]:
+    """Ids of all ancestors of *project_id*, nearest parent first.
+
+    *parent_of* maps a project id to its superior_project_id. A corrupt cyclic chain
+    terminates the walk instead of looping forever.
+    """
+    ancestors: List[int] = []
+    seen = {project_id}
+
+    current_id = parent_of(project_id)
+    while current_id is not None and current_id not in seen:
+        ancestors.append(current_id)
+        seen.add(current_id)
+        current_id = parent_of(current_id)
+
+    return ancestors
+
+
+def check_superior_project(
+    project_id: Optional[int],
+    superior_project_id: Optional[int],
+    *,
+    exists: Callable[[int], bool],
+    parent_of: Callable[[int], Optional[int]],
+) -> None:
+    """Pure hierarchy rules — the data is supplied via *exists* / *parent_of*.
+
+    Rejects unknown parents, self-references and any parent that already sits below the
+    project in the tree (which would create a cycle). *project_id* is None while the
+    project is still being created — only the existence check applies then.
+
+    Raises ProjectHierarchyError with a user-facing (German) message.
+    """
+    if superior_project_id is None:
+        return
+
+    if project_id is not None and superior_project_id == project_id:
+        raise ProjectHierarchyError(
+            "Ein Projekt kann nicht sich selbst als übergeordnetes Projekt haben."
+        )
+
+    if not exists(superior_project_id):
+        raise ProjectHierarchyError(
+            f"Das übergeordnete Projekt mit der ID {superior_project_id} existiert nicht."
+        )
+
+    if project_id is not None and project_id in ancestor_ids(superior_project_id, parent_of):
+        raise ProjectHierarchyError(
+            "Das gewählte Projekt ist bereits ein Unterprojekt dieses Projekts — "
+            "das würde einen Zyklus erzeugen."
+        )
+
+
+def validate_superior_project(
+    db: Session, project_id: Optional[int], superior_project_id: Optional[int]
+) -> None:
+    """Database-backed wrapper around check_superior_project()."""
+    check_superior_project(
+        project_id,
+        superior_project_id,
+        exists=lambda pid: get_project_by_id(db, pid) is not None,
+        parent_of=lambda pid: db.query(Project.superior_project_id)
+        .filter(Project.id == pid)
+        .scalar(),
+    )
 
 
 def create_project(db: Session, data: dict) -> Project:
@@ -130,14 +208,23 @@ def update_project(db: Session, project_id: int, update_data: dict, project: Pro
 
     geojson_changed = "geojson_representation" in update_data
 
+    previous_superior_id = project.superior_project_id
+    superior_changed = (
+        "superior_project_id" in update_data
+        and update_data["superior_project_id"] != previous_superior_id
+    )
+
     for key, value in update_data.items():
         setattr(project, key, value)
     db.commit()
     db.refresh(project)
 
-    # Cascade geometry upwards only when the geometry actually changed
-    if geojson_changed:
+    # Cascade geometry upwards when the geometry changed — or when the project moved
+    # in the tree, in which case both the old and the new parent chain are stale.
+    if geojson_changed or superior_changed:
         recompute_parent_geojson(db, project)
+    if superior_changed:
+        recompute_geojson_for_parent(db, previous_superior_id)
 
     return project
 

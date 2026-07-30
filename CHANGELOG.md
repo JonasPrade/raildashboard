@@ -12,6 +12,25 @@ section as part of the release commit, immediately before tagging.
 
 ## [Unreleased]
 
+### Added
+- Superior project can now be set from the project edit drawer (`superior_project_id`), which
+  makes the edited project a subproject of the selected one. The project search behind it
+  (`ProjectSearchSelect`) ignores word order, umlauts and dashes, ranks hits by relevance,
+  displays the current selection even for drafts, and hides the project itself together with
+  its whole subtree.
+- Delete a project from the detail page (permission `project.delete`) behind a two-step
+  confirmation; the first dialog states how many subprojects would be deleted along with it.
+
+### Changed
+- `POST`/`PATCH /api/v1/projects` validate `superior_project_id`: unknown projects,
+  self-references and cycles (picking one's own descendant as parent) are rejected with
+  HTTP 400 instead of producing a 500 or a broken tree.
+- Moving a project in the tree now recomputes the aggregated geometry of both the previous
+  and the new parent chain; the upward walk stops on cyclic legacy data instead of recursing
+  forever.
+- `DELETE /api/v1/projects/{id}` answers a foreign-key conflict with HTTP 409 instead of a
+  server error.
+
 ## [v0.0.9] - 2026-07-17
 
 ### Fixed

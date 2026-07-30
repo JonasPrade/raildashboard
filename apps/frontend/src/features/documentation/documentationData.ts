@@ -52,12 +52,38 @@ export const featureHighlights: FeatureHighlight[] = [
         title: "Projekteigenschaften bearbeiten",
         description:
             "Editors und Admins können alle Felder eines Projekts über die Seitenleiste 'Projekt bearbeiten' ändern. " +
-            "Dazu gehört jetzt auch die Zuordnung zu Projektgruppen.",
+            "Dazu gehört die Zuordnung zu Projektgruppen und das übergeordnete Projekt.",
         details: [
             "MultiSelect-Feld mit allen verfügbaren Projektgruppen (gefüllt via useProjectGroups())",
             "Aktuelle Gruppen-Zuordnung wird als Initialwert aus project.project_groups geladen",
             "Änderungen werden als project_group_ids-Array per PATCH /api/v1/projects/{id} gespeichert",
             "Nur für editor/admin sichtbar"
+        ]
+    },
+    {
+        title: "Über-/Unterprojekt zuordnen",
+        description:
+            "Im Bearbeiten-Drawer lässt sich über die Suche „Übergeordnetes Projekt“ ein Dachprojekt wählen — " +
+            "das bearbeitete Projekt wird damit dessen Unterprojekt und taucht auf der Detailseite des " +
+            "Dachprojekts unter „Unterprojekte“ auf.",
+        details: [
+            "Suche über Projektname und Projektnummer, unabhängig von Wortreihenfolge, Umlauten und Bindestrichen",
+            "Treffer nach Relevanz sortiert; das aktuell gewählte Projekt bleibt sichtbar, ✕ entfernt die Zuordnung",
+            "Das Projekt selbst und alle seine Unterprojekte sind ausgeblendet — das Backend lehnt Zyklen zusätzlich mit HTTP 400 ab",
+            "Die Geometrie des alten und des neuen Dachprojekts wird nach dem Umhängen automatisch neu aggregiert",
+            "Nur für editor/admin sichtbar (Recht project.edit)"
+        ]
+    },
+    {
+        title: "Projekt löschen",
+        description:
+            "Auf der Projekt-Detailseite können Nutzer mit dem Recht project.delete ein Projekt entfernen. " +
+            "Der Vorgang ist doppelt abgesichert, weil er nicht rückgängig gemacht werden kann.",
+        details: [
+            "Zwei aufeinanderfolgende Bestätigungsdialoge („Löschen“ → „Endgültig löschen“)",
+            "Der erste Dialog nennt die Anzahl der Unterprojekte, die mitgelöscht werden (FK ON DELETE CASCADE)",
+            "Nach dem Löschen führt die App zurück zur Projektübersicht",
+            "Nur für editor/admin sichtbar (Recht project.delete)"
         ]
     },
     {

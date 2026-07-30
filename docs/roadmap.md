@@ -298,6 +298,8 @@ Quelle: `docs/DESIGN.md` (am 2026-04-25 auf Richtung F neu geschrieben). Vollst�
 - [x] `PATCH /api/v1/projects/{id}` — schreibt ChangeLog-Einträge je geändertem Feld (Rolle: editor/admin)
 - [x] `GET /api/v1/projects/{id}/changelog` — öffentlich lesbar
 - [x] Bearbeitungsformular in `ProjectDetail` (editor/admin); alle Felder bearbeitbar
+- [x] Übergeordnetes Projekt im Bearbeiten-Drawer setzbar (`superior_project_id`) — durchsuchbare Projektauswahl (umlaut-/bindestrich-tolerant, relevanzsortiert), eigener Teilbaum ausgeblendet; Backend lehnt Selbstzuordnung und Zyklen mit HTTP 400 ab und rechnet die Geometrie von altem und neuem Dachprojekt neu
+- [x] Projekt löschen auf der Detailseite (Recht `project.delete`) mit zweistufiger Bestätigung inkl. Hinweis auf mitgelöschte Unterprojekte
 - [x] Versionshistorie-Timeline in `ProjectDetail` (`ProjectHistorySection.tsx`); nur für eingeloggte Nutzer
 - [x] „Zurücksetzen"-Button pro `ChangeLogEntry` (editor/admin) via `useRevertProjectField` hook
 

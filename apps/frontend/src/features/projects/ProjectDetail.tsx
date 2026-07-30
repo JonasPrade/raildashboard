@@ -13,12 +13,14 @@ import {
     Text,
 } from "@mantine/core";
 import { ChronicleCard, ChronicleDataChip, ChronicleHeadline } from "../../components/chronicle";
+import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import {
     type Project,
     updateProject,
+    useDeleteProject,
     useProject,
     useProjectBvwp,
     useProjects,
@@ -49,7 +51,13 @@ import { trainCategoryLabels, featureGroups } from "./projectFeatureConfig";
 // ── Detail rows (Projektstammdaten) ──────────────────────────────────────────
 // getValue returning null → Zeile wird nicht dargestellt
 
-const detailRows: Array<{ label: string; getValue: (project: Project) => string | null }> = [
+const SUPERIOR_ROW_ID = "superior";
+
+const detailRows: Array<{
+    id?: string;
+    label: string;
+    getValue: (project: Project) => string | null;
+}> = [
     {
         label: "Projektnummer",
         getValue: (project) => project.project_number ?? null,
@@ -62,6 +70,7 @@ const detailRows: Array<{ label: string; getValue: (project: Project) => string 
                 : null,
     },
     {
+        id: SUPERIOR_ROW_ID,
         label: "Übergeordnetes Projekt",
         getValue: (project) =>
             project.superior_project_id !== null && project.superior_project_id !== undefined
@@ -138,6 +147,7 @@ export default function ProjectDetail() {
     const historyRef = useRef<HTMLDivElement>(null);
     const { user, can } = useAuth();
     const canEdit = can("project.edit");
+    const canDelete = can("project.delete");
     const canCreateTask = can("todo.create");
     const projectId = Number(params.projectId);
 
@@ -172,6 +182,8 @@ export default function ProjectDetail() {
         },
     });
 
+    const deleteMutation = useDeleteProject();
+
     const project = data;
 
     const mutationErrorMessage = mutation.isError
@@ -193,6 +205,72 @@ export default function ProjectDetail() {
             (p) => p.superior_project_id === project.id && typeof p.id === "number",
         );
     }, [project, allProjects]);
+
+    // Löschen: zweistufige Bestätigung, weil der Vorgang nicht rückgängig zu machen ist
+    // und angehängte Unterprojekte mitgelöscht werden (FK ON DELETE CASCADE).
+    const handleDelete = () => {
+        if (!project || project.id == null) return;
+
+        const runDelete = () =>
+            deleteMutation.mutate(project.id as number, {
+                onSuccess: () => {
+                    notifications.show({
+                        color: "green",
+                        title: "Projekt gelöscht",
+                        message: `„${project.name}" wurde gelöscht.`,
+                    });
+                    navigate("/");
+                },
+                onError: (deleteError: unknown) => {
+                    notifications.show({
+                        color: "red",
+                        title: "Löschen fehlgeschlagen",
+                        message:
+                            deleteError instanceof Error
+                                ? deleteError.message
+                                : "Das Projekt konnte nicht gelöscht werden.",
+                    });
+                },
+            });
+
+        modals.openConfirmModal({
+            title: "Projekt löschen",
+            children: (
+                <Stack gap="xs">
+                    <Text size="sm">
+                        Soll das Projekt „{project.name}" wirklich gelöscht werden?
+                    </Text>
+                    {subProjects.length > 0 && (
+                        <Text size="sm" c="red" fw={500}>
+                            Achtung: {subProjects.length}{" "}
+                            {subProjects.length === 1 ? "Unterprojekt wird" : "Unterprojekte werden"}{" "}
+                            mitgelöscht.
+                        </Text>
+                    )}
+                    <Text size="sm" c="dimmed">
+                        Texte, Planungsstand, Verknüpfungen und Versionshistorie des Projekts gehen
+                        dabei verloren.
+                    </Text>
+                </Stack>
+            ),
+            labels: { confirm: "Löschen", cancel: "Abbrechen" },
+            confirmProps: { color: "red" },
+            // Zweite Rückfrage — erst danach wird tatsächlich gelöscht.
+            onConfirm: () =>
+                modals.openConfirmModal({
+                    title: "Wirklich endgültig löschen?",
+                    children: (
+                        <Text size="sm">
+                            Letzte Nachfrage: „{project.name}" wird unwiderruflich gelöscht. Dieser
+                            Schritt kann nicht rückgängig gemacht werden.
+                        </Text>
+                    ),
+                    labels: { confirm: "Endgültig löschen", cancel: "Abbrechen" },
+                    confirmProps: { color: "red" },
+                    onConfirm: runDelete,
+                }),
+        });
+    };
 
     // Extract centroid [lon, lat] from the project's GeoJSON centroid field
     const mapCenter = useMemo((): [number, number] | null => {
@@ -296,7 +374,14 @@ export default function ProjectDetail() {
     }
 
     const visibleDetailRows = detailRows
-        .map(({ label, getValue }) => ({ label, value: getValue(project) }))
+        .map(({ id, label, getValue }) => ({
+            label,
+            // The raw id is meaningless to readers — show the parent's name once it is loaded.
+            value:
+                id === SUPERIOR_ROW_ID && superiorProject
+                    ? superiorProject.name
+                    : getValue(project),
+        }))
         .filter(({ value }) => value !== null) as Array<{ label: string; value: string }>;
 
     const tocSections: TocSection[] = [
@@ -388,6 +473,16 @@ export default function ProjectDetail() {
                                 </Button>
                                 <Button onClick={() => setEditOpened(true)}>Bearbeiten</Button>
                             </>
+                        )}
+                        {canDelete && (
+                            <Button
+                                variant="outline"
+                                color="red"
+                                onClick={handleDelete}
+                                loading={deleteMutation.isPending}
+                            >
+                                Löschen
+                            </Button>
                         )}
                     </Group>
                 </Group>
