@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Index, Integer, ForeignKey, UniqueConstraint
 from dashboard_backend.models.base import Base
 
 
@@ -10,4 +10,6 @@ class DocumentToProject(Base):
 
     __table_args__ = (
         UniqueConstraint('project_id', 'document_id', name='uq_document_to_project'),
+        # document → projects; the primary key leads with project_id.
+        Index('ix_document_to_project_document_id', 'document_id'),
     )

@@ -92,6 +92,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Project Options
+         * @description Minimal project list (id, name, number, parent) for pickers and dropdowns.
+         *
+         *     ``GET /`` returns the full ``ProjectSchema`` including
+         *     ``geojson_representation``; every consumer that only renders a select box
+         *     should use this route instead.
+         */
+        get: operations["read_project_options_api_v1_projects_options_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/drafts": {
         parameters: {
             query?: never;
@@ -148,7 +172,9 @@ export interface paths {
         post?: never;
         /**
          * Delete Project Endpoint
-         * @description Delete a project (used to discard drafts).
+         * @description Delete a project — a draft discarded in the wizard or a finalized project
+         *     removed from the detail page. Subprojects are removed with it (FK ON DELETE
+         *     CASCADE), so the frontend asks for confirmation twice.
          */
         delete: operations["delete_project_endpoint_api_v1_projects__project_id__delete"];
         options?: never;
@@ -3228,6 +3254,24 @@ export interface components {
             /** Is Default Selected */
             is_default_selected?: boolean | null;
         };
+        /**
+         * ProjectOptionSchema
+         * @description Minimal project reference for pickers, dropdowns and parent/child labels.
+         *
+         *     ``ProjectSchema`` carries ``geojson_representation`` — often hundreds of
+         *     kilobytes per project — so a page that only needs "id → name" must not fetch
+         *     the full list. Mirrors the ``UserOption`` pattern.
+         */
+        ProjectOptionSchema: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Project Number */
+            project_number?: string | null;
+            /** Superior Project Id */
+            superior_project_id?: number | null;
+        };
         /** ProjectProgressSchema */
         ProjectProgressSchema: {
             /** Project Id */
@@ -5085,6 +5129,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_project_options_api_v1_projects_options_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectOptionSchema"][];
                 };
             };
         };

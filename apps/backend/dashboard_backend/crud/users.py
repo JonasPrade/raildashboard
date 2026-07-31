@@ -34,7 +34,9 @@ def get_user_by_username(db: Session, username: str) -> User | None:
 
 
 def get_users(db: Session) -> list[User]:
-    return db.query(User).order_by(User.username).all()
+    # UserRead serialises ``permissions``, which walks Role.permissions — without
+    # the eager load that is one extra selectin query per user in the list.
+    return db.query(User).options(_AUTH_EAGER).order_by(User.username).all()
 
 
 def create_user(db: Session, user_in: UserCreate, password_hasher: Callable[[str], str]) -> User:

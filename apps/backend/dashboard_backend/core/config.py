@@ -20,6 +20,11 @@ def _find_env_file() -> str | None:
 class Settings(BaseSettings):
     # Explicitly map environment variable names for clarity
     database_url: str  # expects DATABASE_URL in .env
+    # SQLAlchemy connection pool (see database.py). Keep pool_size + max_overflow
+    # per uvicorn worker below the Postgres max_connections budget.
+    db_pool_size: int = 10
+    db_max_overflow: int = 20
+    db_pool_recycle_seconds: int = 1800
     environment: str = "development"
     debug: bool = False
     rinf_api_url: Optional[str] = None

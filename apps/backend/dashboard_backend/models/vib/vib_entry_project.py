@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, Table
+from sqlalchemy import Column, ForeignKey, Index, Integer, Table
 
 from dashboard_backend.models.base import Base
 
@@ -17,4 +17,7 @@ vib_entry_project = Table(
         ForeignKey("project.id", ondelete="CASCADE"),
         primary_key=True,
     ),
+    # The derived-observation sync and the forecast both filter by project_id;
+    # the composite primary key leads with vib_entry_id and cannot serve them.
+    Index("ix_vib_entry_project_project_id", "project_id"),
 )

@@ -4,7 +4,7 @@ import json
 
 from fastapi import Depends, HTTPException
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, selectinload
 
 from dashboard_backend.api.deps import get_project_or_404
 from dashboard_backend.core.security import require_auth, require_permission
@@ -21,7 +21,9 @@ from dashboard_backend.crud.projects.projects import (
     delete_project,
     finalize_project,
     get_draft_projects,
+    get_project_options,
     get_projects,
+    get_subprojects,
     update_project,
     validate_superior_project,
 )
@@ -32,7 +34,12 @@ from dashboard_backend.models.users import User
 from dashboard_backend.routing.auth_router import AuthRouter
 from dashboard_backend.schemas.changelog import ChangeLogRead, RevertFieldRequest
 from dashboard_backend.schemas.projects import ProjectSchema
-from dashboard_backend.schemas.projects.project_schema import BudgetSummarySchema, FinveWithBudgetsSchema, TitelEntrySchema
+from dashboard_backend.schemas.projects.project_schema import (
+    BudgetSummarySchema,
+    FinveWithBudgetsSchema,
+    ProjectOptionSchema,
+    TitelEntrySchema,
+)
 from dashboard_backend.models.projects.finve import Finve
 from dashboard_backend.models.projects.budget import Budget
 from dashboard_backend.models.haushalt.budget_titel_entry import BudgetTitelEntry
@@ -72,6 +79,19 @@ def create_project_endpoint(
     data = body.model_dump(exclude_unset=True)
     _validate_hierarchy(db, None, data)
     return create_project(db, data)
+
+
+# NOTE: must be declared before GET /{project_id} so "options" is not captured
+# as a project id.
+@router.get("/options", response_model=list[ProjectOptionSchema])
+def read_project_options(db: Session = Depends(get_db)):
+    """Minimal project list (id, name, number, parent) for pickers and dropdowns.
+
+    ``GET /`` returns the full ``ProjectSchema`` including
+    ``geojson_representation``; every consumer that only renders a select box
+    should use this route instead.
+    """
+    return get_project_options(db)
 
 
 # NOTE: must be declared before GET /{project_id} so "drafts" is not captured
@@ -126,6 +146,15 @@ def read_project(project: Project = Depends(get_project_or_404)):
     return project
 
 
+@router.get("/{project_id}/subprojects", response_model=list[ProjectSchema])
+def read_subprojects(
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+):
+    """Direct subprojects of a project, drafts excluded."""
+    return get_subprojects(db, project.id)
+
+
 @router.get("/{project_id}/bvwp", response_model=BvwpProjectDataSchema)
 def get_project_bvwp(
     project: Project = Depends(get_project_or_404),
@@ -178,12 +207,17 @@ def get_project_finves(
     if not finve_ids:
         return []
 
-    # Eager-load budgets → titel_entries → titel in one query
+    # Eager-load budgets → titel_entries → titel. selectinload (not joinedload)
+    # for the two collection hops: a joined load multiplies the rows
+    # (finves × budgets × titel_entries) and repeats every parent column in each
+    # one, while selectinload issues one flat query per level.
     finves = (
         db.query(Finve)
         .filter(Finve.id.in_(finve_ids))
         .options(
-            joinedload(Finve.budgets).joinedload(Budget.titel_entries).joinedload(BudgetTitelEntry.titel)
+            selectinload(Finve.budgets)
+            .selectinload(Budget.titel_entries)
+            .joinedload(BudgetTitelEntry.titel)
         )
         .all()
     )
@@ -276,4 +310,4 @@ def revert_project_field(
         current_user.username,
         action="REVERT",
     )
-    return update_project(db, project_id, {field_name: target_value}, project=project)
+    return update_project(db, project.id, {field_name: target_value}, project=project)

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Index, Integer, ForeignKey, UniqueConstraint
 from dashboard_backend.models.base import Base
 
 
@@ -11,6 +11,9 @@ class ProjectToProjectGroup(Base):
 
     __table_args__ = (
         UniqueConstraint('project_id', 'project_group_id', name='uq_project_to_project_group'),
+        # Group → projects is the map page's main lookup; the unique constraint
+        # leads with project_id and cannot serve it, so it was a seq scan.
+        Index('ix_project_to_project_group_group_id', 'project_group_id'),
     )
 
     def __repr__(self):

@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from dashboard_backend.models.associations.finve_to_project import FinveToProject
 from dashboard_backend.models.haushalt.budget_titel_entry import BudgetTitelEntry
@@ -15,11 +15,14 @@ from dashboard_backend.schemas.projects.project_schema import (
 
 def list_finves(db: Session) -> list[FinveListItemSchema]:
     """Return all FinVes with linked project refs and full budget history."""
+    # selectinload (not joinedload) for the two collection hops: joining both
+    # produces finves × budgets × titel_entries rows with every parent column
+    # repeated, whereas selectinload runs one flat query per level.
     finves = (
         db.query(Finve)
         .options(
-            joinedload(Finve.budgets)
-            .joinedload(Budget.titel_entries)
+            selectinload(Finve.budgets)
+            .selectinload(Budget.titel_entries)
             .joinedload(BudgetTitelEntry.titel)
         )
         .order_by(Finve.id)

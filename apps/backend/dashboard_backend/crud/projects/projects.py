@@ -28,6 +28,44 @@ def get_draft_projects(db: Session):
     )
 
 
+def get_project_options(db: Session) -> List[Any]:
+    """Minimal (id, name, project_number, superior_project_id) rows for pickers.
+
+    Selects only the four columns instead of whole ORM entities: the dropdowns
+    that use this would otherwise transfer every project's
+    ``geojson_representation``, which dwarfs the rest of the row.
+    """
+    return (
+        db.query(
+            Project.id,
+            Project.name,
+            Project.project_number,
+            Project.superior_project_id,
+        )
+        .filter(Project.is_draft.is_(False))
+        .order_by(Project.name)
+        .all()
+    )
+
+
+def get_subprojects(db: Session, project_id: int):
+    """Direct children of *project_id* (drafts excluded), ordered by name.
+
+    The detail page needs the children in full (map geometry + summary cards).
+    Fetching them by parent beats loading every project and filtering client-side.
+    """
+    return (
+        db.query(Project)
+        .options(selectinload(Project.project_groups))
+        .filter(
+            Project.superior_project_id == project_id,
+            Project.is_draft.is_(False),
+        )
+        .order_by(Project.name)
+        .all()
+    )
+
+
 def get_project_by_id(db: Session, project_id: int):
     """Gibt ein einzelnes Projekt anhand der ID zurück (auch Entwürfe)."""
     return db.query(Project).filter(Project.id == project_id).first()

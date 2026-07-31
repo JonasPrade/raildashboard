@@ -23,7 +23,7 @@ import {
     useDeleteProject,
     useProject,
     useProjectBvwp,
-    useProjects,
+    useSubprojects,
     queryKeys,
 } from "../../shared/api/queries";
 import ProjectEdit, { createUpdatePayload, type ProjectEditFormValues } from "./ProjectEdit";
@@ -154,7 +154,6 @@ export default function ProjectDetail() {
     const isInvalidId = Number.isNaN(projectId);
 
     const { data, isLoading, isError, error } = useProject(projectId);
-    const { data: allProjects } = useProjects();
     const { data: bvwpData } = useProjectBvwp(projectId);
 
     const mutation = useMutation({
@@ -192,19 +191,19 @@ export default function ProjectDetail() {
             : "Die Änderungen konnten nicht gespeichert werden."
         : undefined;
 
-    // Übergeordnetes Projekt (falls vorhanden)
-    const superiorProject = useMemo(() => {
-        if (!project?.superior_project_id || !allProjects) return null;
-        return allProjects.find((p) => p.id === project.superior_project_id) ?? null;
-    }, [project, allProjects]);
+    // Übergeordnetes Projekt und Unterprojekte werden gezielt geladen — die
+    // Alternative (die vollständige Projektliste holen und filtern) überträgt
+    // die Geometrie jedes einzelnen Projekts im Bestand.
+    // Drafts stay hidden here, as they were when this came out of the (already
+    // draft-free) project list.
+    const { data: superior } = useProject(project?.superior_project_id ?? Number.NaN);
+    const superiorProject = superior && !superior.is_draft ? superior : null;
 
-    // Unterprojekte (Projekte die dieses als superior haben)
-    const subProjects = useMemo(() => {
-        if (!project?.id || !allProjects) return [];
-        return allProjects.filter(
-            (p) => p.superior_project_id === project.id && typeof p.id === "number",
-        );
-    }, [project, allProjects]);
+    const { data: subProjectsData } = useSubprojects(project?.id ?? Number.NaN);
+    const subProjects = useMemo(
+        () => (subProjectsData ?? []).filter((p) => typeof p.id === "number"),
+        [subProjectsData],
+    );
 
     // Löschen: zweistufige Bestätigung, weil der Vorgang nicht rückgängig zu machen ist
     // und angehängte Unterprojekte mitgelöscht werden (FK ON DELETE CASCADE).

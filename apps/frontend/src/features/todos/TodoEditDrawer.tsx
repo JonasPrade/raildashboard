@@ -12,7 +12,7 @@ import {
 import { notifications } from "@mantine/notifications";
 import {
     useCreateTodo,
-    useProjects,
+    useProjectOptions,
     useUpdateTodo,
     useUserOptions,
     type Todo,
@@ -36,7 +36,7 @@ export default function TodoEditDrawer({ opened, onClose, todo, defaultProjectId
     const isEdit = todo !== null;
     const createTodo = useCreateTodo();
     const updateTodo = useUpdateTodo();
-    const { data: projects } = useProjects();
+    const { data: projects } = useProjectOptions();
     const { data: users } = useUserOptions(opened);
 
     const [title, setTitle] = useState("");
