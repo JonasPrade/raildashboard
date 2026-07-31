@@ -125,7 +125,6 @@ export function FuldaRow({
                         confirmed={entry.confirmed}
                         canConfirm={canConfirm}
                         onToggle={() => patch({ confirmed: !entry.confirmed })}
-                        confirmTitle="Übernehmen/zurücknehmen"
                         blockedTitle="Mind. ein Projekt zuordnen"
                     />
                     {update.isPending ? (
