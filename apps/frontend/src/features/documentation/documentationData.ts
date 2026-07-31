@@ -103,6 +103,20 @@ export const featureHighlights: FeatureHighlight[] = [
         ]
     },
     {
+        title: "Geometrie von Überprojekten",
+        description:
+            "Ein Projekt mit Unterprojekten wählt im Geometrie-Editor über einen Kippschalter, woher " +
+            "seine Kartengeometrie stammt: automatisch aus den Unterprojekten zusammengesetzt " +
+            "(Voreinstellung) oder selbst gepflegt.",
+        details: [
+            "Schalter „Geometrie automatisch aus Unterprojekten zusammensetzen“ — nur sichtbar, wenn das Projekt Unterprojekte hat",
+            "Automatik an: Jede Geometrie-Änderung in einem Unterprojekt berechnet die Geometrie des Überprojekts (und seiner Überprojekte) neu; die Bearbeitung ist gesperrt",
+            "Automatik aus: Das Projekt behält die zuletzt zusammengesetzte Geometrie als Startpunkt und pflegt sie ab dann selbst — Änderungen an Unterprojekten lassen sie unangetastet",
+            "Wieder einschalten ersetzt die eigene Geometrie durch die der Unterprojekte (Rückfrage vor dem Umschalten)",
+            "Die Kartendarstellung der Unterprojekte in der Detailansicht bleibt davon unberührt"
+        ]
+    },
+    {
         title: "Planungsstand (Projektfortschritt)",
         description:
             "Die ProjectDetail-Seite zeigt einen abgeleiteten Planungsstand: einen horizontalen " +

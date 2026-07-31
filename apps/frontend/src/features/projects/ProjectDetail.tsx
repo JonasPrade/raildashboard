@@ -791,6 +791,7 @@ export default function ProjectDetail() {
                         project={project}
                         opened={geometryModalOpen}
                         onClose={() => setGeometryModalOpen(false)}
+                        subProjectCount={subProjects.length}
                     />
                 </Suspense>
             )}

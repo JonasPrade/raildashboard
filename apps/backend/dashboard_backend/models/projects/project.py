@@ -80,6 +80,13 @@ class Project(Base):
 
     # some additionale fields for Geojson and centroid to avoid anoying calculations
     geojson_representation = Column(Text)  # storing the GeoJSON as a text field
+
+    # How a project with subprojects gets its geometry: True (default) = aggregated from
+    # the direct subprojects on every change, False = maintained on the project itself and
+    # never overwritten by the cascade. Has no effect on projects without subprojects.
+    geojson_from_subprojects = Column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
     centroid = Column(Geometry('POINT'))  # storing the centroid as a point geometry
 
     # Relationships

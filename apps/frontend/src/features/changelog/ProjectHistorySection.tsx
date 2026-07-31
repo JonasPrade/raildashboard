@@ -81,6 +81,7 @@ const PROJECT_FIELD_LABELS: Record<string, string> = {
     simultaneous_train_entries: "Gleichzeitige Zugeinfahrten",
     tilting: "Neigetechnik",
     geojson_representation: "GeoJSON-Geometrie",
+    geojson_from_subprojects: "Geometrie aus Unterprojekten",
 };
 
 const TEXT_FIELD_LABELS: Record<string, string> = {

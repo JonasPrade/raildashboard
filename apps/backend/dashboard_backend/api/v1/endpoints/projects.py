@@ -22,6 +22,7 @@ from dashboard_backend.crud.projects.projects import (
     finalize_project,
     get_draft_projects,
     get_projects,
+    has_subprojects,
     update_project,
     validate_superior_project,
 )
@@ -54,6 +55,29 @@ def _validate_hierarchy(db: Session, project_id: int | None, update_data: dict) 
         validate_superior_project(db, project_id, update_data["superior_project_id"])
     except ProjectHierarchyError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+def _validate_geometry_ownership(db: Session, project: Project, update_data: dict) -> None:
+    """Reject writing the geometry of a project that aggregates it from its subprojects.
+
+    Such a project does not own its geometry — the next change anywhere in its subtree
+    would silently discard what was written here. Switching the toggle off in the same
+    request is allowed and hands the geometry back to the project.
+    """
+    if "geojson_representation" not in update_data:
+        return
+
+    requested = update_data.get("geojson_from_subprojects")
+    aggregated = project.geojson_from_subprojects if requested is None else requested
+    if aggregated and has_subprojects(db, project.id):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Die Geometrie dieses Projekts wird automatisch aus seinen Unterprojekten "
+                "zusammengesetzt. Schalte die automatische Zusammensetzung ab, um eine "
+                "eigene Geometrie zu pflegen."
+            ),
+        )
 
 
 @router.get("/", response_model=list[ProjectSchema])
@@ -161,6 +185,7 @@ def patch_project(
         return project
 
     _validate_hierarchy(db, project.id, update_data)
+    _validate_geometry_ownership(db, project, update_data)
 
     # Record before/after values in changelog (committed together with the update below)
     create_changelog_for_patch(db, project, update_data, current_user.id, current_user.username)
@@ -266,6 +291,8 @@ def revert_project_field(
 
     # Parse stored JSON value back to the original Python type
     target_value = json.loads(entry.old_value) if entry.old_value is not None else None
+
+    _validate_geometry_ownership(db, project, {field_name: target_value})
 
     # Record the revert action in the changelog before applying it
     create_changelog_for_patch(

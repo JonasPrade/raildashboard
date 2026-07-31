@@ -148,7 +148,9 @@ export interface paths {
         post?: never;
         /**
          * Delete Project Endpoint
-         * @description Delete a project (used to discard drafts).
+         * @description Delete a project — a draft discarded in the wizard or a finalized project
+         *     removed from the detail page. Subprojects are removed with it (FK ON DELETE
+         *     CASCADE), so the frontend asks for confirmation twice.
          */
         delete: operations["delete_project_endpoint_api_v1_projects__project_id__delete"];
         options?: never;
@@ -3018,6 +3020,8 @@ export interface components {
             superior_project_id?: number | null;
             /** Is Draft */
             is_draft?: boolean | null;
+            /** Geojson From Subprojects */
+            geojson_from_subprojects?: boolean | null;
             /** Length */
             length?: number | null;
             /** Effects Passenger Long Rail */
@@ -3625,6 +3629,11 @@ export interface components {
             tilting: boolean | null;
             /** Geojson Representation */
             geojson_representation?: string | null;
+            /**
+             * Geojson From Subprojects
+             * @default true
+             */
+            geojson_from_subprojects: boolean;
             /** Centroid */
             centroid?: unknown | null;
             /**
@@ -3713,6 +3722,8 @@ export interface components {
             superior_project_id?: number | null;
             /** Is Draft */
             is_draft?: boolean | null;
+            /** Geojson From Subprojects */
+            geojson_from_subprojects?: boolean | null;
             /** Length */
             length?: number | null;
             /** Effects Passenger Long Rail */

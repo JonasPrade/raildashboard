@@ -56,12 +56,26 @@ def _extract_features(geojson_str: Optional[str]) -> List[Any]:
     return []
 
 
+def has_subprojects(db: Session, project_id: int) -> bool:
+    """True if at least one project has *project_id* as its superior project."""
+    return (
+        db.query(Project.id)
+        .filter(Project.superior_project_id == project_id)
+        .first()
+        is not None
+    )
+
+
 def recompute_geojson_for_parent(db: Session, parent_id: Optional[int]) -> None:
     """Recompute and persist the geojson_representation of *parent_id* and its ancestors.
 
     At each level, all direct children's geojson_representations are flattened into a
     FeatureCollection and stored on the parent, then the walk continues upwards. The
     walk stops at the root — `_seen` guards against a corrupt cyclic chain.
+
+    A parent with `geojson_from_subprojects = False` owns its geometry: it is left
+    untouched and the walk stops there, because an unchanged geometry cannot change what
+    its own ancestors aggregate.
     """
     seen: set[int] = set()
     current_id = parent_id
@@ -70,6 +84,8 @@ def recompute_geojson_for_parent(db: Session, parent_id: Optional[int]) -> None:
         seen.add(current_id)
         parent = get_project_by_id(db, current_id)
         if parent is None:
+            return
+        if not parent.geojson_from_subprojects:
             return
 
         children = (
@@ -201,6 +217,10 @@ def update_project(db: Session, project_id: int, update_data: dict, project: Pro
 
     update_data = dict(update_data)
 
+    # NOT NULL toggle — an explicit null in a PATCH payload can only mean "unchanged".
+    if update_data.get("geojson_from_subprojects", False) is None:
+        del update_data["geojson_from_subprojects"]
+
     # Handle many-to-many group assignment separately
     group_ids = update_data.pop("project_group_ids", None)
     if group_ids is not None:
@@ -214,15 +234,26 @@ def update_project(db: Session, project_id: int, update_data: dict, project: Pro
         and update_data["superior_project_id"] != previous_superior_id
     )
 
+    # Switching back to "aggregate from subprojects" makes the project's own geometry stale.
+    switched_to_aggregated = (
+        update_data.get("geojson_from_subprojects") is True
+        and not project.geojson_from_subprojects
+    )
+
     for key, value in update_data.items():
         setattr(project, key, value)
     db.commit()
     db.refresh(project)
 
-    # Cascade geometry upwards when the geometry changed — or when the project moved
-    # in the tree, in which case both the old and the new parent chain are stale.
-    if geojson_changed or superior_changed:
+    if switched_to_aggregated and has_subprojects(db, project.id):
+        # Rebuild the project's own geometry from its subprojects. The walk starts at the
+        # project itself and continues upwards, so the ancestor chain is covered too.
+        recompute_geojson_for_parent(db, project.id)
+    elif geojson_changed or superior_changed:
+        # Cascade geometry upwards when the geometry changed — or when the project moved
+        # in the tree, in which case both the old and the new parent chain are stale.
         recompute_parent_geojson(db, project)
+
     if superior_changed:
         recompute_geojson_for_parent(db, previous_superior_id)
 

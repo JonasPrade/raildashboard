@@ -151,10 +151,13 @@ The same editor (`GeometryEditor`) also runs in the project-creation wizard (ste
 
 **Delete-only flow:** Toggling "delete existing" without providing new geometry clears `geojson_representation` via `useUpdateProjectGeometry(null)`.
 
+**Superior projects (`subProjectCount > 0`):** the panel starts with the toggle "Geometrie automatisch aus Unterprojekten zusammensetzen" (`project.geojson_from_subprojects`). While it is on, the geometry belongs to the subprojects — every editing section is replaced by an explanatory alert and the save button is hidden; the map still shows the aggregated geometry. Turning it on asks for confirmation first, because the backend then replaces the project's own geometry with the union of its subprojects. `ProjectDetail` passes the subproject count down through `GeometryManagementModal`; the creation wizard leaves it at 0, so the toggle never appears there. See `docs/features/feature-parent-geometry-mode.md`.
+
 Key hooks (all in `shared/api/queries.ts`):
 - `useCalculateRoute()` — mutation for the calculate endpoint
 - `useConfirmRoute(projectId)` — mutation for the confirm endpoint
 - `useUpdateProjectGeometry(projectId)` — mutation wrapping `updateProject` for the `geojson_representation` field
+- `useUpdateProjectGeojsonSource(projectId)` — mutation wrapping `updateProject` for the `geojson_from_subprojects` toggle
 
 ### Haushalt PDF import (`features/haushalt-import/`)
 
