@@ -12,6 +12,8 @@ section as part of the release commit, immediately before tagging.
 
 ## [Unreleased]
 
+## [v0.0.12] - 2026-07-31
+
 ### Added
 - Superior projects can now choose where their map geometry comes from: a new toggle
   "Geometrie automatisch aus Unterprojekten zusammensetzen" in the geometry editor switches
