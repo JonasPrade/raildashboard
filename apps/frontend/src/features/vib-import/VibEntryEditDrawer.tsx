@@ -3,7 +3,7 @@ import { Button, Drawer, Group, ScrollArea, Stack, Text } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
     useUpdateVibEntry,
-    useProjects,
+    useProjectOptions,
     type VibEntrySchema,
     type VibEntryProposed,
 } from "../../shared/api/queries";
@@ -33,7 +33,7 @@ function toProposed(entry: VibEntrySchema): VibEntryProposed {
 }
 
 export default function VibEntryEditDrawer({ entry, opened, onClose }: Props) {
-    const { data: projects } = useProjects();
+    const { data: projects } = useProjectOptions();
     const updateEntry = useUpdateVibEntry();
 
     const [draft, setDraft] = useState<VibEntryProposed | null>(null);

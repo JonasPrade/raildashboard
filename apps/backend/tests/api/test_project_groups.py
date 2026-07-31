@@ -42,7 +42,9 @@ def _stub_projects_serialization(monkeypatch):
         return _to_schema(grp) if grp else None
 
     def wrapped_delete(db, group_id):
-        grp = pg_crud.get_project_group_by_id(db, group_id)
+        # get_project_group_ref (not …_by_id) — the latter eager-loads the
+        # project list, which the SQLite test DB has no table for.
+        grp = pg_crud.get_project_group_ref(db, group_id)
         if grp is None:
             return None
         # Deleting a m:n parent would lazy-load ``projects`` (to clear the

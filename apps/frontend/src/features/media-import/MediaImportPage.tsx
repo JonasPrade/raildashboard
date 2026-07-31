@@ -24,7 +24,7 @@ import {
     useDeleteMediaEntry,
     useExtractMedia,
     useMediaEntries,
-    useProjects,
+    useProjectOptions,
     useUpdateMediaEntry,
     type MediaEntry,
 } from "../../shared/api/queries";
@@ -140,7 +140,7 @@ export default function MediaImportPage() {
     const [onlyUnconfirmed, setOnlyUnconfirmed] = useState(false);
 
     const { data: entries, isLoading } = useMediaEntries(onlyUnconfirmed);
-    const { data: projects } = useProjects();
+    const { data: projects } = useProjectOptions();
     const extract = useExtractMedia();
 
     const projectOptions = useMemo(

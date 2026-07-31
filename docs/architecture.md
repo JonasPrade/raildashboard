@@ -114,6 +114,25 @@ The backend uses **HTTP Basic Auth**. The `AuthRouter` class (`routing/auth_rout
 - `404` for missing resources, `400` for invalid input, `409` for conflicts (e.g. duplicate username), `403` for authorisation failures.
 - Use `HTTPException` directly; do not wrap in custom exception classes unless there's a cross-cutting reason.
 
+### Query performance rules
+
+- **Eager-load anything a response schema serialises.** A nested Pydantic model over a
+  relationship (`ProjectGroupSchema.projects`, `ProjectSchema.project_groups`,
+  `UserRead.permissions`) turns into one lazy `SELECT` per parent row at serialisation
+  time. Declare the loader options in the CRUD function that feeds the endpoint.
+- **`selectinload` for collections, `joinedload` for many-to-one.** Chaining `joinedload`
+  across two collections produces a row per element of the cross product with every parent
+  column repeated; `selectinload` issues one flat query per level instead.
+- **Filter in SQL, not in the schema.** Rows dropped by a Pydantic validator (e.g. drafts)
+  were still fetched, hydrated and serialised.
+- **Index the other direction of an m:n table.** Postgres does not index foreign-key
+  columns automatically, and a composite primary key or unique constraint only serves
+  lookups that lead with its first column. Every association table therefore carries an
+  explicit index on the trailing column.
+- **Return the narrowest schema.** `ProjectSchema` carries `geojson_representation`; list
+  routes that feed pickers use `ProjectOptionSchema` (`GET /projects/options`) instead —
+  see `apps/backend/README.md` → *Project lists: pick the narrowest route*.
+
 ### Database migrations
 
 Every model change requires an Alembic migration:

@@ -72,6 +72,22 @@ class ProjectRefSchema(BaseModel):
     name: str
 
 
+class ProjectOptionSchema(BaseModel):
+    """Minimal project reference for pickers, dropdowns and parent/child labels.
+
+    ``ProjectSchema`` carries ``geojson_representation`` — often hundreds of
+    kilobytes per project — so a page that only needs "id → name" must not fetch
+    the full list. Mirrors the ``UserOption`` pattern.
+    """
+
+    id: int
+    name: str
+    project_number: Optional[str] = None
+    superior_project_id: Optional[int] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ProjectGroupRef(BaseModel):
     id: int
     name: str

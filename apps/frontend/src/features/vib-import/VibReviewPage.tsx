@@ -19,7 +19,7 @@ import RequirePermission from "../../components/RequirePermission";
 import {
     useVibParseResult,
     useConfirmVibImport,
-    useProjects,
+    useProjectOptions,
     useSaveVibDraft,
     useRetryVibAiForEntry,
     useVibAiAvailable,
@@ -34,7 +34,7 @@ function VibReviewPageContent() {
     const navigate = useNavigate();
 
     const { data: parseResult, isLoading, isError } = useVibParseResult(taskId ?? null);
-    const { data: projects } = useProjects();
+    const { data: projects } = useProjectOptions();
     const { data: aiAvailable } = useVibAiAvailable();
     const { data: ocrAvailable } = useVibOcrAvailable();
     const confirm = useConfirmVibImport();

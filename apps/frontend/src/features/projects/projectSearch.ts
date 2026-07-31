@@ -25,11 +25,31 @@ export function normalizeSearchText(value: string | null | undefined): string {
         .trim();
 }
 
+/**
+ * Normalised name/number of a project, cached per object.
+ *
+ * ``normalizeSearchText`` runs four regex passes; without this cache every
+ * keystroke re-normalised every project twice over (once to filter, once to
+ * rank). React Query hands out stable project objects, so the entries survive
+ * across keystrokes and the WeakMap releases them when the list is replaced.
+ */
+const normalizedCache = new WeakMap<object, { name: string; number: string }>();
+
+function normalized(project: SearchableProject): { name: string; number: string } {
+    const cached = normalizedCache.get(project);
+    if (cached) return cached;
+    const entry = {
+        name: normalizeSearchText(project.name),
+        number: normalizeSearchText(project.project_number),
+    };
+    normalizedCache.set(project, entry);
+    return entry;
+}
+
 /** Rank of a project for `normalizedQuery` — lower is better. */
 function rank(project: SearchableProject, normalizedQuery: string): number {
     if (normalizedQuery === "") return 0;
-    const name = normalizeSearchText(project.name);
-    const number = normalizeSearchText(project.project_number);
+    const { name, number } = normalized(project);
 
     if (name === normalizedQuery || number === normalizedQuery) return 0;
     if (name.startsWith(normalizedQuery) || number.startsWith(normalizedQuery)) return 1;
@@ -96,12 +116,13 @@ export function searchProjects<T extends SearchableProject>(
         if (typeof project.id !== "number") return false;
         if (excludeIds?.has(project.id)) return false;
         if (tokens.length === 0) return true;
-        const haystack = `${normalizeSearchText(project.name)} ${normalizeSearchText(
-            project.project_number,
-        )}`;
+        const { name, number } = normalized(project);
+        const haystack = `${name} ${number}`;
         return tokens.every((token) => haystack.includes(token));
     });
 
+    // Rank once per match, then sort on the precomputed value — a comparator
+    // that called rank() would recompute it O(n log n) times.
     return matches
         .map((project) => ({ project, rank: rank(project, normalizedQuery) }))
         .sort(

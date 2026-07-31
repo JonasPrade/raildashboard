@@ -17,7 +17,7 @@ import { notifications } from "@mantine/notifications";
 import RequirePermission from "../../components/RequirePermission";
 import { filterProjectOption } from "../../lib/filterProjectOption";
 import {
-    useProjects,
+    useProjectOptions,
     useUnassignedFinves,
     useUnassignedVibEntries,
     useAssignFinve,
@@ -34,7 +34,7 @@ function UnassignedPageContent() {
 
     const { data: finves, isLoading: finvesLoading } = useUnassignedFinves();
     const { data: vibEntries, isLoading: vibLoading } = useUnassignedVibEntries();
-    const { data: projects } = useProjects();
+    const { data: projects } = useProjectOptions();
     const assignFinve = useAssignFinve();
     const assignVib = useAssignVibEntry();
 
