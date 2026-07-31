@@ -186,6 +186,26 @@ export interface paths {
         patch: operations["patch_project_api_v1_projects__project_id__patch"];
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/subprojects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Subprojects
+         * @description Direct subprojects of a project, drafts excluded.
+         */
+        get: operations["read_subprojects_api_v1_projects__project_id__subprojects_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/bvwp": {
         parameters: {
             query?: never;
@@ -3044,6 +3064,8 @@ export interface components {
             superior_project_id?: number | null;
             /** Is Draft */
             is_draft?: boolean | null;
+            /** Geojson From Subprojects */
+            geojson_from_subprojects?: boolean | null;
             /** Length */
             length?: number | null;
             /** Effects Passenger Long Rail */
@@ -3669,6 +3691,11 @@ export interface components {
             tilting: boolean | null;
             /** Geojson Representation */
             geojson_representation?: string | null;
+            /**
+             * Geojson From Subprojects
+             * @default true
+             */
+            geojson_from_subprojects: boolean;
             /** Centroid */
             centroid?: unknown | null;
             /**
@@ -3757,6 +3784,8 @@ export interface components {
             superior_project_id?: number | null;
             /** Is Draft */
             is_draft?: boolean | null;
+            /** Geojson From Subprojects */
+            geojson_from_subprojects?: boolean | null;
             /** Length */
             length?: number | null;
             /** Effects Passenger Long Rail */
@@ -5303,6 +5332,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_subprojects_api_v1_projects__project_id__subprojects_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectSchema"][];
                 };
             };
             /** @description Validation Error */

@@ -440,6 +440,75 @@ def test_create_project_rejects_invalid_superior_project(client, create_user, mo
     assert resp.json()["detail"] == "existiert nicht"
 
 
+def test_patch_geometry_rejected_when_aggregated_from_subprojects(client, create_user, monkeypatch):
+    create_user("editor", "pass123", UserRole.editor)
+
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
+    monkeypatch.setattr(projects_route, "has_subprojects", lambda db, pid: True)
+
+    resp = client.patch(
+        "/api/v1/projects/1",
+        json={"geojson_representation": '{"type": "FeatureCollection", "features": []}'},
+        headers=basic_auth_header("editor", "pass123"),
+    )
+    assert resp.status_code == 400
+    assert "Unterprojekten" in resp.json()["detail"]
+
+
+def test_patch_geometry_allowed_without_subprojects(client, create_user, monkeypatch):
+    create_user("editor", "pass123", UserRole.editor)
+    updated = _make_project(1, "Alpha")
+
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
+    monkeypatch.setattr(projects_route, "has_subprojects", lambda db, pid: False)
+    monkeypatch.setattr(projects_route, "create_changelog_for_patch", lambda *a, **kw: None)
+    monkeypatch.setattr(projects_route, "update_project", lambda db, pid, data, project=None: updated)
+
+    resp = client.patch(
+        "/api/v1/projects/1",
+        json={"geojson_representation": '{"type": "FeatureCollection", "features": []}'},
+        headers=basic_auth_header("editor", "pass123"),
+    )
+    assert resp.status_code == 200
+
+
+def test_patch_geometry_allowed_when_switching_off_in_the_same_request(client, create_user, monkeypatch):
+    create_user("editor", "pass123", UserRole.editor)
+    updated = _make_project(1, "Alpha")
+
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
+    monkeypatch.setattr(projects_route, "has_subprojects", lambda db, pid: True)
+    monkeypatch.setattr(projects_route, "create_changelog_for_patch", lambda *a, **kw: None)
+    monkeypatch.setattr(projects_route, "update_project", lambda db, pid, data, project=None: updated)
+
+    resp = client.patch(
+        "/api/v1/projects/1",
+        json={
+            "geojson_from_subprojects": False,
+            "geojson_representation": '{"type": "FeatureCollection", "features": []}',
+        },
+        headers=basic_auth_header("editor", "pass123"),
+    )
+    assert resp.status_code == 200
+
+
+def test_patch_mode_toggle_alone_is_not_blocked(client, create_user, monkeypatch):
+    create_user("editor", "pass123", UserRole.editor)
+    updated = _make_project(1, "Alpha")
+
+    monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
+    monkeypatch.setattr(projects_route, "has_subprojects", lambda db, pid: True)
+    monkeypatch.setattr(projects_route, "create_changelog_for_patch", lambda *a, **kw: None)
+    monkeypatch.setattr(projects_route, "update_project", lambda db, pid, data, project=None: updated)
+
+    resp = client.patch(
+        "/api/v1/projects/1",
+        json={"geojson_from_subprojects": True},
+        headers=basic_auth_header("editor", "pass123"),
+    )
+    assert resp.status_code == 200
+
+
 def test_patch_project_not_found(client, create_user, monkeypatch):
     create_user("editor", "pass123", UserRole.editor)
     monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: None)

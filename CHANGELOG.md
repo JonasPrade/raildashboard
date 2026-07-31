@@ -12,6 +12,26 @@ section as part of the release commit, immediately before tagging.
 
 ## [Unreleased]
 
+### Added
+- Superior projects can now choose where their map geometry comes from: a new toggle
+  "Geometrie automatisch aus Unterprojekten zusammensetzen" in the geometry editor switches
+  between the aggregated geometry of the subprojects (default, previous behaviour) and a
+  geometry maintained on the project itself. Backed by the new project field
+  `geojson_from_subprojects` (defaults to `true` for existing rows).
+
+### Changed
+- The upward geometry cascade stops at a project that maintains its own geometry, so a change
+  in a subproject no longer overwrites it. Switching the toggle back on rebuilds the geometry
+  from the subprojects immediately and continues the cascade upwards.
+- `PATCH /api/v1/projects/{id}` rejects a direct `geojson_representation` write on a project
+  that aggregates its geometry from subprojects (HTTP 400) instead of accepting a value that
+  the next change in the subtree would silently discard.
+
+### Database
+- Migration `20260731002` adds `project.geojson_from_subprojects` (boolean, `NOT NULL`,
+  server default `true`), the toggle deciding whether a project with subprojects aggregates
+  its geometry from them or maintains its own.
+
 ## [v0.0.11] - 2026-07-31
 
 ### Added

@@ -1383,6 +1383,23 @@ export function useUpdateProjectGeometry(projectId: number) {
     });
 }
 
+/**
+ * Switch a superior project between the two geometry sources: aggregated from its
+ * subprojects (true) or maintained on the project itself (false). Turning it back on
+ * makes the backend rebuild the geometry from the subprojects right away.
+ */
+export function useUpdateProjectGeojsonSource(projectId: number) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (geojson_from_subprojects: boolean) =>
+            updateProject(projectId, { geojson_from_subprojects }),
+        onSuccess: (updatedProject) => {
+            queryClient.setQueryData(queryKeys.project(projectId), updatedProject);
+            queryClient.invalidateQueries({ queryKey: queryKeys.projects });
+        },
+    });
+}
+
 // ---------------------------------------------------------------------------
 // To-dos (Aufgaben)
 // ---------------------------------------------------------------------------

@@ -12,11 +12,16 @@ import {
     Switch,
     Text,
 } from "@mantine/core";
+import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
 
 import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import type { OperationalPointRef, Project, RoutePreviewFeature } from "../../shared/api/queries";
-import { useConfirmRoute, useUpdateProjectGeometry } from "../../shared/api/queries";
+import {
+    useConfirmRoute,
+    useUpdateProjectGeojsonSource,
+    useUpdateProjectGeometry,
+} from "../../shared/api/queries";
 import { computeGeojsonLengthKm } from "../../shared/geo/length";
 import GeometryPreviewMap, { type DrawMode } from "./GeometryPreviewMap";
 import RouteCalculatorForm from "./RouteCalculatorForm";
@@ -44,6 +49,12 @@ type Props = {
      * The modal uses "100%" (fills the fullscreen body), the wizard a fixed px value.
      */
     height?: number | string;
+    /**
+     * Number of subprojects. Above 0 the project is a superior project and may choose
+     * between its own geometry and one aggregated from its subprojects; the wizard
+     * (where a project cannot have subprojects yet) leaves this at 0.
+     */
+    subProjectCount?: number;
 };
 
 /**
@@ -60,6 +71,7 @@ export default function GeometryEditor({
     cancelLabel = "Abbrechen",
     showCancel = true,
     height = "100%",
+    subProjectCount = 0,
 }: Props) {
     const projectId = project.id as number;
 
@@ -85,8 +97,15 @@ export default function GeometryEditor({
         hasDrawn ? JSON.stringify({ type: "FeatureCollection", features: drawnFeatures }) : null,
     );
 
+    // A superior project either owns its geometry or has it aggregated from its
+    // subprojects. While aggregated, editing is pointless — the next change anywhere in
+    // the subtree would overwrite it — so the editor shows the toggle and nothing else.
+    const isSuperiorProject = subProjectCount > 0;
+    const isAggregated = isSuperiorProject && project.geojson_from_subprojects;
+
     const confirmRoute = useConfirmRoute(projectId);
     const updateGeometry = useUpdateProjectGeometry(projectId);
+    const updateGeojsonSource = useUpdateProjectGeojsonSource(projectId);
 
     const isPending = confirmRoute.isPending || updateGeometry.isPending;
 
@@ -108,6 +127,49 @@ export default function GeometryEditor({
         setSelectedFeatureIndices(new Set());
         setDrawMode(null);
         setDrawnFeatures([]);
+    }
+
+    /** Persist the geometry source. Switching back to aggregated replaces the project's
+     *  own geometry with the union of its subprojects — hence the confirmation. */
+    function applyGeojsonSource(fromSubprojects: boolean) {
+        updateGeojsonSource.mutate(fromSubprojects, {
+            onSuccess: () => {
+                resetInputs();
+                notifications.show({
+                    color: "green",
+                    title: "Geometrie-Quelle geändert",
+                    message: fromSubprojects
+                        ? "Die Geometrie wird jetzt aus den Unterprojekten zusammengesetzt."
+                        : "Die Geometrie dieses Projekts kann jetzt selbst gepflegt werden.",
+                });
+            },
+            onError: () => {
+                notifications.show({
+                    color: "red",
+                    title: "Fehler",
+                    message: "Die Geometrie-Quelle konnte nicht geändert werden.",
+                });
+            },
+        });
+    }
+
+    function handleGeojsonSourceChange(fromSubprojects: boolean) {
+        if (!fromSubprojects) {
+            applyGeojsonSource(false);
+            return;
+        }
+        modals.openConfirmModal({
+            title: "Geometrie aus Unterprojekten zusammensetzen?",
+            children: (
+                <Text size="sm">
+                    Die eigene Geometrie dieses Projekts wird durch die Geometrien seiner
+                    Unterprojekte ersetzt und ab sofort bei jeder Änderung dort automatisch neu
+                    berechnet.
+                </Text>
+            ),
+            labels: { confirm: "Zusammensetzen", cancel: "Abbrechen" },
+            onConfirm: () => applyGeojsonSource(true),
+        });
     }
 
     function toggleFeatureSelection(idx: number) {
@@ -301,208 +363,233 @@ export default function GeometryEditor({
                             </ChronicleDataChip>
                         </div>
 
-                        {hasExisting && (
+                        {isSuperiorProject && (
                             <Switch
-                                label="Bestehende Geometrie löschen"
-                                checked={deleteExisting}
-                                onChange={(e) => setDeleteExisting(e.currentTarget.checked)}
-                                color="red"
-                                disabled={selectionMode || drawMode !== null}
+                                label="Geometrie automatisch aus Unterprojekten zusammensetzen"
+                                description={
+                                    subProjectCount === 1
+                                        ? "Aus der Geometrie des Unterprojekts zusammensetzen, statt sie hier selbst zu pflegen."
+                                        : `Aus den Geometrien der ${subProjectCount} Unterprojekte zusammensetzen, statt sie hier selbst zu pflegen.`
+                                }
+                                checked={isAggregated}
+                                onChange={(e) => handleGeojsonSourceChange(e.currentTarget.checked)}
+                                disabled={updateGeojsonSource.isPending}
                             />
                         )}
 
-                        {hasExisting && (
+                        {isAggregated ? (
+                            <Alert color="blue" variant="light" title="Automatisch zusammengesetzt">
+                                Die Karte zeigt die vereinigten Geometrien der Unterprojekte. Ändere
+                                die Geometrie im jeweiligen Unterprojekt — oder schalte die
+                                automatische Zusammensetzung ab, um für dieses Projekt eine eigene
+                                Geometrie zu pflegen.
+                            </Alert>
+                        ) : (
                             <>
-                                <Switch
-                                    label="Einzelne Features auswählen & löschen"
-                                    checked={selectionMode}
-                                    onChange={(e) => {
-                                        setSelectionMode(e.currentTarget.checked);
-                                        if (!e.currentTarget.checked) setSelectedFeatureIndices(new Set());
-                                    }}
-                                    color="red"
-                                    disabled={deleteExisting || drawMode !== null || hasDrawn}
-                                />
-                                {selectionMode && (
-                                    <Stack gap="xs">
-                                        <Text size="xs" c="dimmed">
-                                            Klicke auf der Karte einzelne Linien oder Punkte, um sie auszuwählen.
-                                            Ausgewählte Features erscheinen rot.
-                                        </Text>
-                                        <Group justify="space-between" align="center">
-                                            <ChronicleDataChip>
-                                                {selectedFeatureIndices.size} ausgewählt
-                                            </ChronicleDataChip>
-                                            {selectedFeatureIndices.size > 0 && (
+                                {hasExisting && (
+                                    <Switch
+                                        label="Bestehende Geometrie löschen"
+                                        checked={deleteExisting}
+                                        onChange={(e) => setDeleteExisting(e.currentTarget.checked)}
+                                        color="red"
+                                        disabled={selectionMode || drawMode !== null}
+                                    />
+                                )}
+
+                                {hasExisting && (
+                                    <>
+                                        <Switch
+                                            label="Einzelne Features auswählen & löschen"
+                                            checked={selectionMode}
+                                            onChange={(e) => {
+                                                setSelectionMode(e.currentTarget.checked);
+                                                if (!e.currentTarget.checked) setSelectedFeatureIndices(new Set());
+                                            }}
+                                            color="red"
+                                            disabled={deleteExisting || drawMode !== null || hasDrawn}
+                                        />
+                                        {selectionMode && (
+                                            <Stack gap="xs">
+                                                <Text size="xs" c="dimmed">
+                                                    Klicke auf der Karte einzelne Linien oder Punkte, um sie auszuwählen.
+                                                    Ausgewählte Features erscheinen rot.
+                                                </Text>
+                                                <Group justify="space-between" align="center">
+                                                    <ChronicleDataChip>
+                                                        {selectedFeatureIndices.size} ausgewählt
+                                                    </ChronicleDataChip>
+                                                    {selectedFeatureIndices.size > 0 && (
+                                                        <Button
+                                                            size="xs"
+                                                            variant="subtle"
+                                                            onClick={() => setSelectedFeatureIndices(new Set())}
+                                                        >
+                                                            Zurücksetzen
+                                                        </Button>
+                                                    )}
+                                                </Group>
                                                 <Button
-                                                    size="xs"
-                                                    variant="subtle"
-                                                    onClick={() => setSelectedFeatureIndices(new Set())}
+                                                    color="red"
+                                                    size="sm"
+                                                    disabled={selectedFeatureIndices.size === 0 || updateGeometry.isPending}
+                                                    loading={updateGeometry.isPending}
+                                                    onClick={handleDeleteSelectedFeatures}
                                                 >
-                                                    Zurücksetzen
+                                                    Auswahl löschen ({selectedFeatureIndices.size})
                                                 </Button>
-                                            )}
-                                        </Group>
+                                            </Stack>
+                                        )}
+                                    </>
+                                )}
+
+                                <Divider label="Zeichnen" labelPosition="left" />
+
+                                <Stack gap="xs">
+                                    <Text size="xs" c="dimmed">
+                                        Zeichne Linien und Punkte direkt auf der Karte. „Linie zeichnen": Klick für Klick
+                                        Stützpunkte setzen, Doppelklick beendet die Linie. „Bearbeiten": Stützpunkte
+                                        verschieben, einfügen (Mittelpunkt) oder löschen.
+                                    </Text>
+                                    <Button.Group>
                                         <Button
+                                            size="xs"
+                                            variant={drawMode === "line" ? "filled" : "default"}
+                                            onClick={() => setDrawMode(drawMode === "line" ? null : "line")}
+                                            disabled={selectionMode || deleteExisting}
+                                        >
+                                            Linie zeichnen
+                                        </Button>
+                                        <Button
+                                            size="xs"
+                                            variant={drawMode === "point" ? "filled" : "default"}
+                                            onClick={() => setDrawMode(drawMode === "point" ? null : "point")}
+                                            disabled={selectionMode || deleteExisting}
+                                        >
+                                            Punkt setzen
+                                        </Button>
+                                        <Button
+                                            size="xs"
+                                            variant={drawMode === "select" ? "filled" : "default"}
+                                            onClick={() => setDrawMode(drawMode === "select" ? null : "select")}
+                                            disabled={selectionMode || deleteExisting || !hasDrawn}
+                                        >
+                                            Bearbeiten
+                                        </Button>
+                                        <Button
+                                            size="xs"
+                                            variant="default"
+                                            onClick={() => setDrawMode(null)}
+                                            disabled={drawMode === null}
+                                        >
+                                            Fertig
+                                        </Button>
+                                    </Button.Group>
+                                    <Group justify="space-between" align="center">
+                                        <ChronicleDataChip>
+                                            {drawnFeatures.length} gezeichnet
+                                            {drawnLengthKm != null ? ` · ${drawnLengthKm.toLocaleString("de-DE")} km` : ""}
+                                        </ChronicleDataChip>
+                                        {hasDrawn && (
+                                            <Button
+                                                size="xs"
+                                                variant="subtle"
+                                                color="red"
+                                                onClick={() => { setDrawnFeatures([]); setDrawMode(null); }}
+                                            >
+                                                Zurücksetzen
+                                            </Button>
+                                        )}
+                                    </Group>
+                                </Stack>
+
+                                <Divider label="Route berechnen" labelPosition="left" />
+
+                                {routeError && (
+                                    <Alert color="red" variant="light" onClose={() => setRouteError(null)} withCloseButton>
+                                        {routeError}
+                                    </Alert>
+                                )}
+
+                                <RouteCalculatorForm
+                                    onResult={(feature, stations) => {
+                                        setRouteError(null);
+                                        setUploadedGeojson(null);
+                                        setPreviewFeature(feature);
+                                        setRouteStations(stations);
+                                    }}
+                                    onError={setRouteError}
+                                />
+
+                                <Divider label="Betriebsstellen hinzufügen" labelPosition="left" />
+
+                                <StationSelect
+                                    key={pointSelectKey}
+                                    label="Betriebsstelle suchen"
+                                    value={null}
+                                    onChange={(op) => {
+                                        if (op && !selectedPoints.some((p) => p.id === op.id)) {
+                                            setSelectedPoints((prev) => [...prev, op]);
+                                        }
+                                        setPointSelectKey((k) => k + 1);
+                                    }}
+                                />
+
+                                {selectedPoints.map((op) => (
+                                    <Group key={op.id} justify="space-between" align="center" gap="xs">
+                                        <div>
+                                            <Text size="sm" fw={500}>● {op.name ?? op.op_id}</Text>
+                                            {op.op_id && op.name && (
+                                                <Text size="xs" c="dimmed">{op.op_id}</Text>
+                                            )}
+                                        </div>
+                                        <ActionIcon
+                                            variant="subtle"
                                             color="red"
                                             size="sm"
-                                            disabled={selectedFeatureIndices.size === 0 || updateGeometry.isPending}
-                                            loading={updateGeometry.isPending}
-                                            onClick={handleDeleteSelectedFeatures}
+                                            onClick={() => setSelectedPoints((prev) => prev.filter((p) => p.id !== op.id))}
+                                            aria-label="Entfernen"
                                         >
-                                            Auswahl löschen ({selectedFeatureIndices.size})
-                                        </Button>
-                                    </Stack>
+                                            ×
+                                        </ActionIcon>
+                                    </Group>
+                                ))}
+
+                                <Divider label="Oder: GeoJSON hochladen" labelPosition="left" />
+
+                                {uploadError && (
+                                    <Alert color="red" variant="light" onClose={() => setUploadError(null)} withCloseButton>
+                                        {uploadError}
+                                    </Alert>
+                                )}
+
+                                <FileInput
+                                    label="GeoJSON-Datei"
+                                    placeholder="Datei auswählen…"
+                                    accept=".geojson,.json"
+                                    onChange={handleFileUpload}
+                                />
+
+                                {/* Preview info */}
+                                {previewFeature && (
+                                    <ChronicleCard>
+                                        <Stack gap={4}>
+                                            <Text size="sm" fw={600}>Berechnete Route</Text>
+                                            <Text size="sm" c="dimmed">
+                                                Distanz: {(previewFeature.properties.distance_m / 1000).toFixed(1)} km
+                                            </Text>
+                                            <Text size="sm" c="dimmed">
+                                                Dauer: {Math.round(previewFeature.properties.duration_ms / 60_000)} min
+                                            </Text>
+                                        </Stack>
+                                    </ChronicleCard>
+                                )}
+
+                                {uploadedGeojson && !previewFeature && (
+                                    <ChronicleCard>
+                                        <Text size="sm" fw={600} c="green">GeoJSON geladen — bitte prüfen</Text>
+                                    </ChronicleCard>
                                 )}
                             </>
-                        )}
-
-                        <Divider label="Zeichnen" labelPosition="left" />
-
-                        <Stack gap="xs">
-                            <Text size="xs" c="dimmed">
-                                Zeichne Linien und Punkte direkt auf der Karte. „Linie zeichnen": Klick für Klick
-                                Stützpunkte setzen, Doppelklick beendet die Linie. „Bearbeiten": Stützpunkte
-                                verschieben, einfügen (Mittelpunkt) oder löschen.
-                            </Text>
-                            <Button.Group>
-                                <Button
-                                    size="xs"
-                                    variant={drawMode === "line" ? "filled" : "default"}
-                                    onClick={() => setDrawMode(drawMode === "line" ? null : "line")}
-                                    disabled={selectionMode || deleteExisting}
-                                >
-                                    Linie zeichnen
-                                </Button>
-                                <Button
-                                    size="xs"
-                                    variant={drawMode === "point" ? "filled" : "default"}
-                                    onClick={() => setDrawMode(drawMode === "point" ? null : "point")}
-                                    disabled={selectionMode || deleteExisting}
-                                >
-                                    Punkt setzen
-                                </Button>
-                                <Button
-                                    size="xs"
-                                    variant={drawMode === "select" ? "filled" : "default"}
-                                    onClick={() => setDrawMode(drawMode === "select" ? null : "select")}
-                                    disabled={selectionMode || deleteExisting || !hasDrawn}
-                                >
-                                    Bearbeiten
-                                </Button>
-                                <Button
-                                    size="xs"
-                                    variant="default"
-                                    onClick={() => setDrawMode(null)}
-                                    disabled={drawMode === null}
-                                >
-                                    Fertig
-                                </Button>
-                            </Button.Group>
-                            <Group justify="space-between" align="center">
-                                <ChronicleDataChip>
-                                    {drawnFeatures.length} gezeichnet
-                                    {drawnLengthKm != null ? ` · ${drawnLengthKm.toLocaleString("de-DE")} km` : ""}
-                                </ChronicleDataChip>
-                                {hasDrawn && (
-                                    <Button
-                                        size="xs"
-                                        variant="subtle"
-                                        color="red"
-                                        onClick={() => { setDrawnFeatures([]); setDrawMode(null); }}
-                                    >
-                                        Zurücksetzen
-                                    </Button>
-                                )}
-                            </Group>
-                        </Stack>
-
-                        <Divider label="Route berechnen" labelPosition="left" />
-
-                        {routeError && (
-                            <Alert color="red" variant="light" onClose={() => setRouteError(null)} withCloseButton>
-                                {routeError}
-                            </Alert>
-                        )}
-
-                        <RouteCalculatorForm
-                            onResult={(feature, stations) => {
-                                setRouteError(null);
-                                setUploadedGeojson(null);
-                                setPreviewFeature(feature);
-                                setRouteStations(stations);
-                            }}
-                            onError={setRouteError}
-                        />
-
-                        <Divider label="Betriebsstellen hinzufügen" labelPosition="left" />
-
-                        <StationSelect
-                            key={pointSelectKey}
-                            label="Betriebsstelle suchen"
-                            value={null}
-                            onChange={(op) => {
-                                if (op && !selectedPoints.some((p) => p.id === op.id)) {
-                                    setSelectedPoints((prev) => [...prev, op]);
-                                }
-                                setPointSelectKey((k) => k + 1);
-                            }}
-                        />
-
-                        {selectedPoints.map((op) => (
-                            <Group key={op.id} justify="space-between" align="center" gap="xs">
-                                <div>
-                                    <Text size="sm" fw={500}>● {op.name ?? op.op_id}</Text>
-                                    {op.op_id && op.name && (
-                                        <Text size="xs" c="dimmed">{op.op_id}</Text>
-                                    )}
-                                </div>
-                                <ActionIcon
-                                    variant="subtle"
-                                    color="red"
-                                    size="sm"
-                                    onClick={() => setSelectedPoints((prev) => prev.filter((p) => p.id !== op.id))}
-                                    aria-label="Entfernen"
-                                >
-                                    ×
-                                </ActionIcon>
-                            </Group>
-                        ))}
-
-                        <Divider label="Oder: GeoJSON hochladen" labelPosition="left" />
-
-                        {uploadError && (
-                            <Alert color="red" variant="light" onClose={() => setUploadError(null)} withCloseButton>
-                                {uploadError}
-                            </Alert>
-                        )}
-
-                        <FileInput
-                            label="GeoJSON-Datei"
-                            placeholder="Datei auswählen…"
-                            accept=".geojson,.json"
-                            onChange={handleFileUpload}
-                        />
-
-                        {/* Preview info */}
-                        {previewFeature && (
-                            <ChronicleCard>
-                                <Stack gap={4}>
-                                    <Text size="sm" fw={600}>Berechnete Route</Text>
-                                    <Text size="sm" c="dimmed">
-                                        Distanz: {(previewFeature.properties.distance_m / 1000).toFixed(1)} km
-                                    </Text>
-                                    <Text size="sm" c="dimmed">
-                                        Dauer: {Math.round(previewFeature.properties.duration_ms / 60_000)} min
-                                    </Text>
-                                </Stack>
-                            </ChronicleCard>
-                        )}
-
-                        {uploadedGeojson && !previewFeature && (
-                            <ChronicleCard>
-                                <Text size="sm" fw={600} c="green">GeoJSON geladen — bitte prüfen</Text>
-                            </ChronicleCard>
                         )}
                     </Stack>
                 </ScrollArea>
@@ -510,14 +597,16 @@ export default function GeometryEditor({
                 {/* Footer buttons */}
                 <Box p="md" style={{ borderTop: "1px solid var(--mantine-color-default-border)" }}>
                     <Stack gap="xs">
-                        <Button
-                            onClick={handleAccept}
-                            loading={isPending}
-                            disabled={!canAccept}
-                            color={isDeleteOnly ? "red" : undefined}
-                        >
-                            {isDeleteOnly ? "Geometrie löschen" : saveLabel}
-                        </Button>
+                        {!isAggregated && (
+                            <Button
+                                onClick={handleAccept}
+                                loading={isPending}
+                                disabled={!canAccept}
+                                color={isDeleteOnly ? "red" : undefined}
+                            >
+                                {isDeleteOnly ? "Geometrie löschen" : saveLabel}
+                            </Button>
+                        )}
                         {showCancel && (
                             <Button variant="default" onClick={onCancel} disabled={isPending}>
                                 {cancelLabel}

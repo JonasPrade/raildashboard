@@ -45,10 +45,14 @@ Werden ignoriert; sie tragen keine Features bei.
 
 ### Eigene Geometrie eines Parent-Projekts
 
-Ein Parent-Projekt hat **keine** eigene, manuell gepflegte Geometrie. Die
-`geojson_representation` eines Projekts mit Subprojekten wird **immer** aus seinen Kindern
-berechnet und überschrieben. Setzt man `geojson_representation` eines Projekts direkt, das
-selbst `superior_project_id` hat, läuft die Kaskade aber genauso aufwärts.
+Standardmäßig hat ein Parent-Projekt **keine** eigene, manuell gepflegte Geometrie: die
+`geojson_representation` eines Projekts mit Subprojekten wird aus seinen Kindern berechnet und
+überschrieben. Setzt man `geojson_representation` eines Projekts direkt, das selbst
+`superior_project_id` hat, läuft die Kaskade genauso aufwärts.
+
+Ein Parent-Projekt kann diese Automatik seit `geojson_from_subprojects = false` abschalten und
+seine Geometrie selbst pflegen — die Kaskade stoppt dann an ihm. Siehe
+`docs/features/feature-parent-geometry-mode.md`.
 
 ## Akzeptanzkriterien
 

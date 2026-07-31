@@ -362,6 +362,15 @@ Routes are hashed (SHA-256) from waypoints, profile, options, and `GRAPH_VERSION
 
 When `geojson_representation` is updated on any project via `PATCH /api/v1/projects/{id}`, the CRUD layer (`crud/projects/projects.py :: recompute_parent_geojson`) automatically recomputes the `geojson_representation` of all ancestor projects as a `FeatureCollection` of their children's features. The cascade walks up the `superior_project_id` chain recursively until it reaches a root project. Sub-projects without a geometry are ignored.
 
+### Geometry source of a superior project
+
+`project.geojson_from_subprojects` (boolean, default `true`) decides where a project with sub-projects gets its geometry from:
+
+- `true` — aggregated from the sub-projects as described above. Writing `geojson_representation` directly is rejected with HTTP 400, because the next change in the subtree would discard it.
+- `false` — maintained on the project itself. The upward cascade stops at such a project: its geometry does not change, so neither does the geometry its own ancestors aggregate.
+
+Switching the flag back to `true` rebuilds the project's geometry from its sub-projects immediately (and cascades upwards); switching it to `false` keeps the last aggregated geometry as the starting point for manual editing. The flag has no effect on a project without sub-projects. See `docs/features/feature-parent-geometry-mode.md`.
+
 ## Testing
 Pytest drives automated tests:
 ```bash

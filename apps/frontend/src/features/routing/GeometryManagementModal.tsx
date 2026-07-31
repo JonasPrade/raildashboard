@@ -7,9 +7,16 @@ type Props = {
     project: Project;
     opened: boolean;
     onClose: () => void;
+    /** Number of subprojects — enables the "aggregate geometry from subprojects" toggle. */
+    subProjectCount?: number;
 };
 
-export default function GeometryManagementModal({ project, opened, onClose }: Props) {
+export default function GeometryManagementModal({
+    project,
+    opened,
+    onClose,
+    subProjectCount = 0,
+}: Props) {
     return (
         <Modal
             opened={opened}
@@ -27,6 +34,7 @@ export default function GeometryManagementModal({ project, opened, onClose }: Pr
                     saveLabel="Übernehmen"
                     cancelLabel="Abbrechen"
                     height="100%"
+                    subProjectCount={subProjectCount}
                 />
             )}
         </Modal>

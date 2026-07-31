@@ -20,6 +20,10 @@ class ProjectFieldsBase(BaseModel):
     # Draft state: set to True by the creation wizard, cleared on finalize.
     is_draft: Optional[bool] = None
 
+    # True: geometry is aggregated from the subprojects, False: maintained on the project
+    # itself. Only has an effect on projects that actually have subprojects.
+    geojson_from_subprojects: Optional[bool] = None
+
     length: Optional[float] = None
 
     effects_passenger_long_rail: Optional[bool] = None

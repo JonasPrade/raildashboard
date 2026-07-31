@@ -173,6 +173,9 @@ class ProjectSchema(BaseModel):
     tilting: Optional[bool] = False
 
     geojson_representation: Optional[str] = None
+    # True: geometry is aggregated from the subprojects, False: maintained on the project
+    # itself (only relevant for projects that have subprojects).
+    geojson_from_subprojects: bool = True
     centroid: Optional[Any]  = None # Für Geo-Daten, ggf. anpassen
     project_groups: list[ProjectGroupRef] = []
 
