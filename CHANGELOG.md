@@ -18,6 +18,23 @@ section as part of the release commit, immediately before tagging.
   between the aggregated geometry of the subprojects (default, previous behaviour) and a
   geometry maintained on the project itself. Backed by the new project field
   `geojson_from_subprojects` (defaults to `true` for existing rows).
+
+### Changed
+- The upward geometry cascade stops at a project that maintains its own geometry, so a change
+  in a subproject no longer overwrites it. Switching the toggle back on rebuilds the geometry
+  from the subprojects immediately and continues the cascade upwards.
+- `PATCH /api/v1/projects/{id}` rejects a direct `geojson_representation` write on a project
+  that aggregates its geometry from subprojects (HTTP 400) instead of accepting a value that
+  the next change in the subtree would silently discard.
+
+### Database
+- Migration `20260731002` adds `project.geojson_from_subprojects` (boolean, `NOT NULL`,
+  server default `true`), the toggle deciding whether a project with subprojects aggregates
+  its geometry from them or maintains its own.
+
+## [v0.0.11] - 2026-07-31
+
+### Added
 - `GET /api/v1/projects/options` — minimal project list (id, name, number, parent) for
   pickers and dropdowns. Ten frontend views that only render a select box now use it
   instead of `GET /api/v1/projects/`, which carries every project's
@@ -41,12 +58,10 @@ section as part of the release commit, immediately before tagging.
   report of assigned PFAs.
 - Project search (`ProjectSearchSelect`) caches each project's normalised name/number, so
   typing no longer re-normalises the whole list on every keystroke.
-- The upward geometry cascade stops at a project that maintains its own geometry, so a change
-  in a subproject no longer overwrites it. Switching the toggle back on rebuilds the geometry
-  from the subprojects immediately and continues the cascade upwards.
-- `PATCH /api/v1/projects/{id}` rejects a direct `geojson_representation` write on a project
-  that aggregates its geometry from subprojects (HTTP 400) instead of accepting a value that
-  the next change in the subtree would silently discard.
+- Import review (DB-Bauportal, Fulda-Runde): once an entry has a project assigned, the confirm
+  column shows an explicit „Übernehmen" button instead of the grey `offen` badge, so the
+  pending action is visible. Unassigned rows keep the `offen` badge, confirmed rows the green
+  `aktiv` badge (click to revoke).
 
 ### Fixed
 - `POST /api/v1/projects/{id}/changelog/revert` raised `NameError` instead of reverting the
@@ -59,9 +74,6 @@ section as part of the release commit, immediately before tagging.
   `project_to_operation_point.operational_point_id`,
   `project_to_section_of_line.section_of_line_id`). Their composite keys all lead with
   `project_id`, so the opposite join direction was a sequential scan.
-- Migration `20260731002` adds `project.geojson_from_subprojects` (boolean, `NOT NULL`,
-  server default `true`), the toggle deciding whether a project with subprojects aggregates
-  its geometry from them or maintains its own.
 
 ## [v0.0.10] - 2026-07-30
 

@@ -145,7 +145,9 @@ function BauportalTableExample() {
                                 <Text size="xs" c="dimmed">✦ Vorschlag – bitte prüfen</Text>
                             </Stack>
                         </Table.Td>
-                        <Table.Td><Badge variant="light" color="gray">offen</Badge></Table.Td>
+                        <Table.Td>
+                            <Button size="compact-xs" color="blue">Übernehmen</Button>
+                        </Table.Td>
                     </Table.Tr>
                     <Table.Tr>
                         <Table.Td>

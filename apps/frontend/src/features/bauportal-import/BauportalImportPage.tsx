@@ -123,7 +123,6 @@ function MatchRow({
                         confirmed={entry.confirmed}
                         canConfirm={canConfirm}
                         onToggle={() => patch({ confirmed: !entry.confirmed })}
-                        confirmTitle="Übernehmen / zurücknehmen"
                         blockedTitle="Erst ein Projekt zuordnen"
                     />
                     {update.isPending && <SavingIndicator />}
