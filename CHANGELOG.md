@@ -12,6 +12,8 @@ section as part of the release commit, immediately before tagging.
 
 ## [Unreleased]
 
+## [v0.0.11] - 2026-07-31
+
 ### Added
 - `GET /api/v1/projects/options` — minimal project list (id, name, number, parent) for
   pickers and dropdowns. Ten frontend views that only render a select box now use it
