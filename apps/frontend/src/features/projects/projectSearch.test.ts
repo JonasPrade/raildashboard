@@ -59,6 +59,17 @@ describe("searchProjects", () => {
     it("returns nothing when no token matches", () => {
         expect(searchProjects(PROJECTS, "flughafen")).toEqual([]);
     });
+
+    it("returns the same results on repeated calls with the same objects", () => {
+        // searchProjects caches each project's normalised text per object —
+        // repeated queries over the same list must stay consistent.
+        const first = names(searchProjects(PROJECTS, "lubeck"));
+        const second = names(searchProjects(PROJECTS, "lubeck"));
+        const other = names(searchProjects(PROJECTS, "bielefeld"));
+        expect(second).toEqual(first);
+        expect(other).toEqual(["NBS Hannover–Bielefeld"]);
+        expect(names(searchProjects(PROJECTS, "lubeck"))).toEqual(first);
+    });
 });
 
 describe("collectSubtreeIds", () => {

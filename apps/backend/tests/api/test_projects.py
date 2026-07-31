@@ -1,6 +1,8 @@
 """Tests for the /api/v1/projects/ endpoints."""
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from sqlalchemy.exc import IntegrityError
 
 import dashboard_backend.api.v1.endpoints.projects as projects_route
@@ -48,6 +50,40 @@ def test_list_projects_empty(client, monkeypatch):
     monkeypatch.setattr(projects_route, "get_projects", lambda db: [])
 
     resp = client.get("/api/v1/projects/")
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+# ---------------------------------------------------------------------------
+# GET /api/v1/projects/options
+# ---------------------------------------------------------------------------
+
+
+def test_list_project_options_returns_minimal_fields(client, monkeypatch):
+    """The picker route must not leak the heavy ProjectSchema fields."""
+    # get_project_options() selects individual columns, so it yields
+    # SQLAlchemy Row objects — serialised by attribute access, like these stubs.
+    rows = [
+        SimpleNamespace(id=1, name="Alpha", project_number="1-001", superior_project_id=None),
+        SimpleNamespace(id=2, name="Beta", project_number=None, superior_project_id=1),
+    ]
+    monkeypatch.setattr(projects_route, "get_project_options", lambda db: rows)
+
+    resp = client.get("/api/v1/projects/options")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body == [
+        {"id": 1, "name": "Alpha", "project_number": "1-001", "superior_project_id": None},
+        {"id": 2, "name": "Beta", "project_number": None, "superior_project_id": 1},
+    ]
+    assert all("geojson_representation" not in item for item in body)
+
+
+def test_project_options_route_is_not_shadowed_by_project_id(client, monkeypatch):
+    """"options" must resolve to the picker route, not to GET /{project_id}."""
+    monkeypatch.setattr(projects_route, "get_project_options", lambda db: [])
+
+    resp = client.get("/api/v1/projects/options")
     assert resp.status_code == 200
     assert resp.json() == []
 

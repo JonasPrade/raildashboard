@@ -13,7 +13,7 @@ import {
     Tooltip,
 } from "@mantine/core";
 import { useState } from "react";
-import type { HaushaltsParseRow, Project } from "../../../shared/api/queries";
+import type { HaushaltsParseRow, Project, ProjectOption } from "../../../shared/api/queries";
 import { filterProjectOption } from "../../../lib/filterProjectOption";
 import CreateDraftProjectModal from "../../projects/CreateDraftProjectModal";
 import { MissingProjectAnchor } from "../../import-review/shared";
@@ -46,7 +46,7 @@ function colCount(readonly: boolean | undefined) {
 
 type Props = {
     rows: HaushaltsParseRow[];
-    projects: Project[];
+    projects: ProjectOption[];
     onProjectIdsChange: (finveNumber: number, projectIds: number[]) => void;
     readonly?: boolean;
 };
@@ -428,7 +428,7 @@ function RowGroup({
 }: {
     title: string;
     rows: HaushaltsParseRow[];
-    projects: Project[];
+    projects: ProjectOption[];
     onProjectIdsChange: Props["onProjectIdsChange"];
     readonly?: boolean;
 }) {

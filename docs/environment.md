@@ -18,6 +18,13 @@ Copy `.env.example` to `.env` and fill in values. Required variables:
 | `ROUTING_TIMEOUT_SECONDS` | Backend | Optional — timeout in seconds for routing requests (default: `20`) |
 | `GRAPH_VERSION` | Backend | Routing graph build identifier; increment after deploying a new OSM extract |
 | `BACKEND_CORS_ORIGINS` | Backend | JSON array of allowed CORS origins; defaults to `["http://localhost:5173"]` — **must be set in production** |
+| `DB_POOL_SIZE` | Backend | Optional — SQLAlchemy pool size per uvicorn worker (default: `10`) |
+| `DB_MAX_OVERFLOW` | Backend | Optional — extra connections above the pool under load (default: `20`) |
+| `DB_POOL_RECYCLE_SECONDS` | Backend | Optional — retire pooled connections after this age (default: `1800`) |
+
+> Sizing note: the backend container runs 2 uvicorn workers, so the worst case is
+> `2 × (DB_POOL_SIZE + DB_MAX_OVERFLOW)` connections. Keep that below the Postgres
+> `max_connections` budget, leaving headroom for the Celery worker and migrations.
 
 > ⚠️ **Never modify or overwrite `.env`.** It contains personal local settings. Only read from it.
 

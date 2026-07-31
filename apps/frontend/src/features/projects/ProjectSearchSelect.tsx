@@ -11,7 +11,7 @@ import {
 import { useDebouncedValue } from "@mantine/hooks";
 import { useMemo, useState } from "react";
 
-import { useProject, useProjects } from "../../shared/api/queries";
+import { useProject, useProjectOptions } from "../../shared/api/queries";
 import { collectSubtreeIds, searchProjects } from "./projectSearch";
 
 /** Options rendered at once — the full match count is shown in the footer. */
@@ -48,7 +48,7 @@ export default function ProjectSearchSelect({
         onDropdownOpen: () => combobox.updateSelectedOptionIndex("active"),
     });
 
-    const { data: projects = [], isFetching } = useProjects();
+    const { data: projects = [], isFetching } = useProjectOptions();
     // The current value may not be part of the list (drafts are excluded from
     // GET /projects/) — fetch it directly so the input still shows its name.
     const { data: fetchedValue } = useProject(value ?? Number.NaN);

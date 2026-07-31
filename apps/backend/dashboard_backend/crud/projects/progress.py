@@ -287,9 +287,12 @@ def sync_derived_observations_bulk(
     # --- PFAs assigned directly to these projects (project as leaf subproject) ---
     # These belong to a VIB entry linked to the *parent*, so the m:n query above
     # does not reach them; query by the PFA→project assignment instead.
+    # ``entry.report`` is read for every row below — eager-load it, otherwise
+    # each assigned PFA costs one extra SELECT.
     assigned_pfa_rows = (
         db.query(VibPfaEntry, VibEntry)
         .join(VibEntry, VibEntry.id == VibPfaEntry.vib_entry_id)
+        .options(joinedload(VibEntry.report))
         .filter(VibPfaEntry.project_id.in_(project_ids))
         .all()
     )
@@ -690,7 +693,14 @@ def get_progress_view(db: Session, project_id: int, today: date | None = None) -
     """
 
     today = today or date.today()
-    project = db.query(Project).filter(Project.id == project_id).first()
+    # project_groups is read by resolve_parl_relevant() below — eager-load it
+    # instead of paying a lazy SELECT on the way out.
+    project = (
+        db.query(Project)
+        .options(selectinload(Project.project_groups))
+        .filter(Project.id == project_id)
+        .first()
+    )
     if project is None:
         return None
 

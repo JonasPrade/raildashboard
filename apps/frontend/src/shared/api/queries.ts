@@ -20,6 +20,10 @@ function mergeDefined<T extends object>(entry: T, patch: object): T {
 export const queryKeys = {
     textTypes: ["textTypes"],
     projects: ["projects"],
+    // Nested under `projects` on purpose: every existing
+    // invalidateQueries(queryKeys.projects) then refreshes the picker list too.
+    projectOptions: ["projects", "options"],
+    subprojects: (parentId: number) => ["projects", "subprojects", parentId] as const,
     project: (id: number) => ["project", id] as const,
     projectTexts: (projectId: number) => ["projectTexts", projectId] as const,
     projectDrafts: ["projectDrafts"],
@@ -127,6 +131,7 @@ function useOptimisticEntryPatch<TEntry extends { id: number }, TData, TPatch ex
 }
 
 export type Project = components["schemas"]["ProjectSchema"];
+export type ProjectOption = components["schemas"]["ProjectOptionSchema"];
 export type ProjectGroup = components["schemas"]["ProjectGroupSchema"];
 export type ProjectRoute = components["schemas"]["RouteOut"];
 export type User = components["schemas"]["UserRead"];
@@ -235,6 +240,33 @@ export function useProjects() {
     return useQuery({
         queryKey: queryKeys.projects,
         queryFn: () => api<Project[]>("/api/v1/projects/"),
+    });
+}
+
+/**
+ * Direct subprojects of a project, in full (the detail page renders them on the
+ * map and as summary cards). Scoped to one parent instead of fetching every
+ * project and filtering client-side.
+ */
+export function useSubprojects(projectId: number) {
+    return useQuery({
+        queryKey: queryKeys.subprojects(projectId),
+        enabled: Number.isFinite(projectId),
+        queryFn: () => api<Project[]>(`/api/v1/projects/${projectId}/subprojects`),
+    });
+}
+
+/**
+ * Minimal project list (id, name, number, parent) for pickers and dropdowns.
+ *
+ * Prefer this over {@link useProjects} wherever the full project record is not
+ * rendered: `ProjectSchema` carries `geojson_representation`, which dominates
+ * the payload and is pure waste for a select box.
+ */
+export function useProjectOptions() {
+    return useQuery({
+        queryKey: queryKeys.projectOptions,
+        queryFn: () => api<ProjectOption[]>("/api/v1/projects/options"),
     });
 }
 

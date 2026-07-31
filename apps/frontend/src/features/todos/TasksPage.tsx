@@ -18,7 +18,7 @@ import { notifications } from "@mantine/notifications";
 import { useAuth } from "../../lib/auth";
 import {
     useCreateTodo,
-    useProjects,
+    useProjectOptions,
     useTodos,
     useUserOptions,
     type Todo,
@@ -51,7 +51,7 @@ export default function TasksPage() {
     );
 
     const { data: todos, isLoading, isError } = useTodos(filters, user !== null);
-    const { data: projects } = useProjects();
+    const { data: projects } = useProjectOptions();
     const { data: users } = useUserOptions(user !== null);
     const createTodo = useCreateTodo();
     const { changeStatus, confirmDelete } = useTodoActions();

@@ -92,6 +92,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Project Options
+         * @description Minimal project list (id, name, number, parent) for pickers and dropdowns.
+         *
+         *     ``GET /`` returns the full ``ProjectSchema`` including
+         *     ``geojson_representation``; every consumer that only renders a select box
+         *     should use this route instead.
+         */
+        get: operations["read_project_options_api_v1_projects_options_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/drafts": {
         parameters: {
             query?: never;
@@ -160,6 +184,26 @@ export interface paths {
          * @description Update project fields. All changed fields are recorded in the changelog.
          */
         patch: operations["patch_project_api_v1_projects__project_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/subprojects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Subprojects
+         * @description Direct subprojects of a project, drafts excluded.
+         */
+        get: operations["read_subprojects_api_v1_projects__project_id__subprojects_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/projects/{project_id}/bvwp": {
@@ -3232,6 +3276,24 @@ export interface components {
             /** Is Default Selected */
             is_default_selected?: boolean | null;
         };
+        /**
+         * ProjectOptionSchema
+         * @description Minimal project reference for pickers, dropdowns and parent/child labels.
+         *
+         *     ``ProjectSchema`` carries ``geojson_representation`` — often hundreds of
+         *     kilobytes per project — so a page that only needs "id → name" must not fetch
+         *     the full list. Mirrors the ``UserOption`` pattern.
+         */
+        ProjectOptionSchema: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Project Number */
+            project_number?: string | null;
+            /** Superior Project Id */
+            superior_project_id?: number | null;
+        };
         /** ProjectProgressSchema */
         ProjectProgressSchema: {
             /** Project Id */
@@ -5100,6 +5162,26 @@ export interface operations {
             };
         };
     };
+    read_project_options_api_v1_projects_options_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectOptionSchema"][];
+                };
+            };
+        };
+    };
     read_draft_projects_api_v1_projects_drafts_get: {
         parameters: {
             query?: never;
@@ -5250,6 +5332,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_subprojects_api_v1_projects__project_id__subprojects_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectSchema"][];
                 };
             };
             /** @description Validation Error */

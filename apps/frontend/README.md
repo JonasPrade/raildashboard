@@ -176,6 +176,12 @@ Lightweight task system for **logged-in users only** (no public view). Central p
 * **Separation of concerns:** Put UI components in `components/`, technical helpers in `lib/`, and global types in `types.ts` or `shared/`.
 * **Mantine components:** Prefer Mantine for layout and UI work, and keep theme colours consistent (`theme.ts`).
 * **Routing:** Register new pages as children of the shared `Layout` component in `router.tsx`.
+* **Fetch the narrowest project list:** `useProjects()` returns the full `ProjectSchema`
+  including `geojson_representation`, which dominates the payload. Use
+  `useProjectOptions()` (id, name, number, parent) for pickers and dropdowns, and
+  `useSubprojects(parentId)` for a project's direct children. Reserve `useProjects()` for
+  views that genuinely render every project's geometry. All three cache keys sit under the
+  `["projects"]` prefix, so existing invalidations cover them.
 * **Keep documentation current:** Any functional or visual change must be reflected in both developer- and user-facing docs (README, in-app documentation page).
 
 ## Documentation inside the app

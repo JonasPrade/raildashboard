@@ -17,7 +17,7 @@ import {
     useConfirmFuldaYear,
     useDeleteFuldaYear,
     useFuldaEntries,
-    useProjects,
+    useProjectOptions,
 } from "../../shared/api/queries";
 import { CATEGORY_ORDER, PhaseTable, bucketByCategory } from "./fuldaShared";
 
@@ -27,7 +27,7 @@ export default function FuldaYearDetailPage() {
     const year = Number(yearParam);
 
     const { data: entries, isLoading } = useFuldaEntries(false, year);
-    const { data: projects } = useProjects();
+    const { data: projects } = useProjectOptions();
     const deleteYear = useDeleteFuldaYear();
     const confirmYear = useConfirmFuldaYear();
 

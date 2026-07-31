@@ -20,7 +20,7 @@ import {
     useBauportalEntries,
     useConfirmAllBauportal,
     useFetchBauportal,
-    useProjects,
+    useProjectOptions,
     useUpdateBauportalEntry,
     type BauportalEntry,
     type Project,
@@ -136,7 +136,7 @@ function MatchRow({
 export default function BauportalImportPage() {
     const [onlyUnconfirmed, setOnlyUnconfirmed] = useState(false);
     const { data: entries, isLoading } = useBauportalEntries(onlyUnconfirmed);
-    const { data: projects } = useProjects();
+    const { data: projects } = useProjectOptions();
     const fetchBauportal = useFetchBauportal();
     const confirmAll = useConfirmAllBauportal();
     const update = useUpdateBauportalEntry();

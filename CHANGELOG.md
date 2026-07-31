@@ -17,15 +17,51 @@ section as part of the release commit, immediately before tagging.
   "Geometrie automatisch aus Unterprojekten zusammensetzen" in the geometry editor switches
   between the aggregated geometry of the subprojects (default, previous behaviour) and a
   geometry maintained on the project itself. Backed by the new project field
-  `geojson_from_subprojects` (migration `20260731001`, defaults to `true` for existing rows).
+  `geojson_from_subprojects` (defaults to `true` for existing rows).
+- `GET /api/v1/projects/options` — minimal project list (id, name, number, parent) for
+  pickers and dropdowns. Ten frontend views that only render a select box now use it
+  instead of `GET /api/v1/projects/`, which carries every project's
+  `geojson_representation`.
+- `GET /api/v1/projects/{id}/subprojects` — direct children of a project. The project
+  detail page used to download the full project list just to filter it client-side.
+- Optional pool settings `DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, `DB_POOL_RECYCLE_SECONDS`
+  (see `docs/environment.md`).
 
 ### Changed
+- `GET /api/v1/project_groups/` eager-loads groups → projects → project groups and
+  excludes drafts in SQL. It previously issued one query per group plus one per project
+  (`1 + groups + groups × projects`) and loaded draft rows only to drop them during
+  serialisation.
+- FinVe budget history (`GET /api/v1/finves/`, `GET /api/v1/projects/{id}/finves`) loads
+  `budgets → titel_entries` with `selectinload` instead of nested `joinedload`, which
+  produced a row per finve × budget × titel entry with all parent columns repeated.
+- Database connections are checked with `pool_pre_ping` and recycled before idle timeouts.
+- Fewer per-request queries: the user list eager-loads role permissions, the progress view
+  eager-loads the project's groups, and the derived-observation sync eager-loads the VIB
+  report of assigned PFAs.
+- Project search (`ProjectSearchSelect`) caches each project's normalised name/number, so
+  typing no longer re-normalises the whole list on every keystroke.
 - The upward geometry cascade stops at a project that maintains its own geometry, so a change
   in a subproject no longer overwrites it. Switching the toggle back on rebuilds the geometry
   from the subprojects immediately and continues the cascade upwards.
 - `PATCH /api/v1/projects/{id}` rejects a direct `geojson_representation` write on a project
   that aggregates its geometry from subprojects (HTTP 400) instead of accepting a value that
   the next change in the subtree would silently discard.
+
+### Fixed
+- `POST /api/v1/projects/{id}/changelog/revert` raised `NameError` instead of reverting the
+  field (an undefined `project_id` was passed to the update).
+
+### Database
+- Migration `20260731001` adds reverse-direction indexes on the association tables
+  (`project_to_project_group.project_group_id`, `vib_entry_project.project_id`,
+  `fulda_announcement_to_project.project_id`, `document_to_project.document_id`,
+  `project_to_operation_point.operational_point_id`,
+  `project_to_section_of_line.section_of_line_id`). Their composite keys all lead with
+  `project_id`, so the opposite join direction was a sequential scan.
+- Migration `20260731002` adds `project.geojson_from_subprojects` (boolean, `NOT NULL`,
+  server default `true`), the toggle deciding whether a project with subprojects aggregates
+  its geometry from them or maintains its own.
 
 ## [v0.0.10] - 2026-07-30
 

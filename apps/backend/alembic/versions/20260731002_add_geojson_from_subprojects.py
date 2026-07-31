@@ -5,16 +5,16 @@ from the subprojects (default, the previous unconditional behaviour) or maintain
 on the project itself. Existing rows default to ``true`` and therefore keep their
 current behaviour.
 
-Revision ID: 20260731001
-Revises: 060f7da497a8
+Revision ID: 20260731002
+Revises: 20260731001
 Create Date: 2026-07-31
 """
 
 import sqlalchemy as sa
 from alembic import op
 
-revision = "20260731001"
-down_revision = "060f7da497a8"
+revision = "20260731002"
+down_revision = "20260731001"
 branch_labels = None
 depends_on = None
 

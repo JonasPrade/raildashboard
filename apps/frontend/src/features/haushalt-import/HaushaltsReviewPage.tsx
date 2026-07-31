@@ -16,7 +16,7 @@ import { notifications } from "@mantine/notifications";
 import RequirePermission from "../../components/RequirePermission";
 import {
     useParseResult,
-    useProjects,
+    useProjectOptions,
     useConfirmHaushaltsImport,
     useDeleteParseResult,
     type HaushaltsParseRow,
@@ -31,7 +31,7 @@ function HaushaltsReviewPageContent() {
 
     const navigate = useNavigate();
     const { data: result, isLoading, isError } = useParseResult(id);
-    const { data: projects } = useProjects();
+    const { data: projects } = useProjectOptions();
     const confirm = useConfirmHaushaltsImport();
     const deleteResult = useDeleteParseResult();
 

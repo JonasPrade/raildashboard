@@ -195,7 +195,7 @@ During parsing, new FinVes (not yet in DB) are automatically matched against all
 GET /api/v1/projects/{project_id}/finves
 ```
 
-Returns all FinVes linked to a project with their full budget history including per-Haushaltstiteln breakdown (`BudgetTitelEntry`). Uses eager-loading (`joinedload`) for `budgets → titel_entries → titel`. No authentication required beyond the standard project read access.
+Returns all FinVes linked to a project with their full budget history including per-Haushaltstiteln breakdown (`BudgetTitelEntry`). Eager-loads `budgets → titel_entries` with `selectinload` and `titel` with `joinedload`. The two collection hops deliberately use `selectinload`: joining both multiplies the result into finve × budget × titel-entry rows with every parent column repeated. No authentication required beyond the standard project read access.
 
 ### FinVe overview endpoint
 
@@ -237,6 +237,25 @@ Body: { "project_group_ids": [1, 3] }
 ```
 
 When `project_group_ids` is present in the payload, `update_project()` (CRUD layer) replaces the many-to-many `project_to_project_group` rows atomically. Omitting the field leaves existing group assignments unchanged. Requires `editor` or `admin` role.
+
+### Project lists: pick the narrowest route
+
+`ProjectSchema` contains `geojson_representation`, which dominates the payload of any
+project list. Three routes serve different needs — use the narrowest one that fits:
+
+```
+GET /api/v1/projects/                      # full ProjectSchema for every project
+GET /api/v1/projects/options               # id, name, project_number, superior_project_id
+GET /api/v1/projects/{project_id}/subprojects   # full ProjectSchema, direct children only
+```
+
+`/options` (`ProjectOptionSchema`, mirroring `GET /users/options`) backs every picker and
+dropdown; `/subprojects` backs the project detail page, which renders the children on a map
+and therefore needs their geometry — but only theirs. Both exclude drafts. Reach for
+`GET /` only when the whole corpus is genuinely rendered.
+
+> Route order matters: `/options` and `/drafts` are declared before `/{project_id}` in
+> `api/v1/endpoints/projects.py`, otherwise FastAPI captures them as a project id.
 
 ### BVWP assessment data
 
