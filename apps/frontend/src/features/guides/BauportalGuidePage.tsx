@@ -30,7 +30,9 @@ Die Meldung nach dem Abruf zeigt, wie viele Einträge insgesamt geholt, neu ange
         {
             key: "uebernehmen",
             title: "Übernehmen",
-            body: `Mit **„Alle übernehmen (N)"** bestätigst du auf einen Schlag alle zugeordneten, noch offenen Einträge. N zeigt an, wie viele bereit sind (zugeordnet und unbestätigt). Zuordnungen lassen sich auch nach dem Übernehmen weiter anpassen.
+            body: `Sobald einem Eintrag ein Projekt zugeordnet ist, erscheint in der Spalte **Übernehmen** ein Button **„Übernehmen"** — damit bestätigst du genau diese Zeile. Ohne Zuordnung steht dort das graue Badge \`offen\`, nach dem Bestätigen das grüne Badge \`aktiv\` (Klick darauf nimmt die Übernahme wieder zurück).
+
+Mit **„Alle übernehmen (N)"** bestätigst du auf einen Schlag alle zugeordneten, noch offenen Einträge. N zeigt an, wie viele bereit sind (zugeordnet und unbestätigt). Zuordnungen lassen sich auch nach dem Übernehmen weiter anpassen.
 
 > [!blue] Was dabei entsteht
 > Jede bestätigte Zuordnung erzeugt eine abgeleitete **Beobachtung** mit der Quelle \`Bauportal\`. Wie stark sie den angezeigten Stand beeinflusst, entscheidet die [glaubwürdigkeitsbasierte Ableitung](/admin/anleitungen/projektfortschritt) (Vertrauen je Quelle × Aktualität).`,

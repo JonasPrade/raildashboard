@@ -38,7 +38,7 @@ const DEF: GuideDef = {
 
 1. Ordne über das Auswahlfeld ein oder mehrere **Projekte** zu. Das \`✦\`-Symbol markiert einen automatischen Vorschlag (Fuzzy-Matching über den Namen) — bitte prüfen.
 2. Findet sich kein passendes Projekt, kannst du über **„Projekt fehlt?"** direkt einen **Projekt-Entwurf** anlegen und ihn später fertigstellen (siehe [Anleitung: Projekt anlegen](/admin/anleitungen/projekt-anlegen)).
-3. Ein Eintrag lässt sich **bestätigen**, sobald mindestens ein Projekt zugeordnet ist (Badge \`offen\` → \`aktiv\`). Mit **„Alle übernehmen (N)"** bestätigst du alle zugeordneten, offenen Einträge auf einmal.
+3. Sobald mindestens ein Projekt zugeordnet ist, wird aus dem grauen Badge \`offen\` ein Button **„Übernehmen"** — ein Klick bestätigt den Eintrag (Badge \`aktiv\`, erneuter Klick nimmt die Übernahme zurück). Mit **„Alle übernehmen (N)"** bestätigst du alle zugeordneten, offenen Einträge auf einmal.
 
 Ein einmal ausgewerteter Jahrgang lässt sich jederzeit über die Jahrgangs-Tabelle erneut öffnen und weiterbearbeiten — du musst nicht alles in einem Rutsch erledigen.`,
             exampleKey: "fulda-year-table",

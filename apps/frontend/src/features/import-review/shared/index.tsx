@@ -6,9 +6,20 @@
  */
 
 import { useEffect, useState } from "react";
-import { Anchor, Badge, Group, Loader, Progress, Stack, Switch, Text, Tooltip } from "@mantine/core";
+import {
+    Anchor,
+    Badge,
+    Button,
+    Group,
+    Loader,
+    Progress,
+    Stack,
+    Switch,
+    Text,
+    Tooltip,
+} from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconPlus } from "@tabler/icons-react";
+import { IconCheck, IconPlus } from "@tabler/icons-react";
 import type { UseMutationResult } from "@tanstack/react-query";
 
 import {
@@ -44,28 +55,57 @@ export function usePatchWithToast<TData, TError, TPatch, TContext>(
 // Confirm badge + saving indicator cluster
 // ---------------------------------------------------------------------------
 
+/**
+ * Three visually distinct states so the pending action is obvious:
+ * assigned-but-unconfirmed renders an actual „Übernehmen"-button instead of a
+ * badge that merely reads „offen".
+ */
 export function ConfirmBadge({
     confirmed,
     canConfirm,
     onToggle,
-    confirmTitle = "Übernehmen / zurücknehmen",
+    confirmTitle = "Zuordnung übernehmen",
+    revokeTitle = "Übernahme zurücknehmen",
     blockedTitle = "Erst ein Projekt zuordnen",
 }: {
     confirmed: boolean;
     canConfirm: boolean;
     onToggle: () => void;
     confirmTitle?: string;
+    revokeTitle?: string;
     blockedTitle?: string;
 }) {
+    if (confirmed) {
+        return (
+            <Badge
+                variant="light"
+                color="green"
+                style={{ cursor: "pointer" }}
+                onClick={onToggle}
+                title={revokeTitle}
+            >
+                aktiv
+            </Badge>
+        );
+    }
+
+    if (canConfirm) {
+        return (
+            <Button
+                size="compact-xs"
+                color="blue"
+                leftSection={<IconCheck size={13} />}
+                onClick={onToggle}
+                title={confirmTitle}
+            >
+                Übernehmen
+            </Button>
+        );
+    }
+
     return (
-        <Badge
-            variant="light"
-            color={confirmed ? "green" : "gray"}
-            style={{ cursor: canConfirm || confirmed ? "pointer" : "not-allowed" }}
-            onClick={() => (canConfirm || confirmed) && onToggle()}
-            title={canConfirm ? confirmTitle : blockedTitle}
-        >
-            {confirmed ? "aktiv" : "offen"}
+        <Badge variant="light" color="gray" style={{ cursor: "not-allowed" }} title={blockedTitle}>
+            offen
         </Badge>
     );
 }

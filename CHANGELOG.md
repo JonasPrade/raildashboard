@@ -36,6 +36,10 @@ section as part of the release commit, immediately before tagging.
   report of assigned PFAs.
 - Project search (`ProjectSearchSelect`) caches each project's normalised name/number, so
   typing no longer re-normalises the whole list on every keystroke.
+- Import review (DB-Bauportal, Fulda-Runde): once an entry has a project assigned, the confirm
+  column shows an explicit „Übernehmen" button instead of the grey `offen` badge, so the
+  pending action is visible. Unassigned rows keep the `offen` badge, confirmed rows the green
+  `aktiv` badge (click to revoke).
 
 ### Fixed
 - `POST /api/v1/projects/{id}/changelog/revert` raised `NameError` instead of reverting the
