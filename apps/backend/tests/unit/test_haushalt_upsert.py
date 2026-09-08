@@ -226,3 +226,31 @@ def test_budget_of_a_keyed_measure_uses_the_assigned_finve_id(db):
     assert budget.fin_ve == finve.id
     assert budget.cost_estimate_actual == 383_234
 
+
+def test_keyed_finve_id_cannot_collide_with_a_printed_number(db):
+    """FinVe numbers are the primary key and are inserted explicitly, so the
+    sequence never learns about them. A keyed measure must therefore take its
+    id from the reserved band, not the next sequence value."""
+    upsert_finve(db, ProposedFinve(id=5108, name="ABS mit gedruckter Nummer"), None, 2027)
+    db.flush()
+
+    keyed, created, _ = upsert_finve(db, _keyed("t5:B0091", "Mitteldeutsches Revier"), None, 2027)
+    assert created is True
+    assert keyed.id >= 900_000
+
+
+def test_keyed_finves_get_consecutive_ids_from_the_band(db):
+    first, _, _ = upsert_finve(db, _keyed("t2:SV 52/2017", "SV 52"), None, 2027)
+    db.flush()
+    second, _, _ = upsert_finve(db, _keyed("t2:SV 53/2017", "SV 53"), None, 2027)
+    db.flush()
+    assert (first.id, second.id) == (900_000, 900_001)
+
+
+def test_reimport_reuses_the_id_instead_of_taking_a_new_one(db):
+    first, _, _ = upsert_finve(db, _keyed("t4:F 03 E 0793", "Bau FinVe"), None, 2026)
+    db.flush()
+    again, created, _ = upsert_finve(db, _keyed("t4:F 03 E 0793", "Bau FinVe"), None, 2027)
+    assert created is False
+    assert again.id == first.id
+

@@ -52,6 +52,11 @@ section as part of the release commit, immediately before tagging.
   and were appended to the last Sammel-FinVe of the first table — in the 2027 report that gave
   "SV Rest 2025" 51 instead of 3 Titel entries and 78 instead of 1 Erläuterung project. The tables
   are now detected from their page caption and each is parsed on its own.
+- A measure without a printed FinVe number no longer collides with a real one on insert. FinVe
+  numbers are the primary key and are written explicitly, so the sequence never advances past them
+  and the first auto-assigned id hit an existing row (`duplicate key value violates unique
+  constraint "finve_pkey"`). Those measures now take their id from a reserved band above any number
+  the report prints.
 - A "–" placeholder that overhangs its column rule is no longer read as the sign of the next column.
   On the ERTMS pages that turned a Veranschlagt value of 33.186 into -33.186; the column grid is now
   shifted a point to the right, which the report's right-aligned cells make safe.

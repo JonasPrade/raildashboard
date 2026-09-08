@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from dashboard_backend.crud.changelog import diff_to_entries
@@ -168,6 +169,7 @@ def _upsert_tracked(
     exclude: set[str],
     user: "User | None",
     haushalt_year: int,
+    assign_id=None,
 ):
     """Generic tracked upsert shared by ``upsert_finve`` / ``upsert_budget``.
 
@@ -182,9 +184,12 @@ def _upsert_tracked(
 
     if existing is None:
         create_data = proposed.model_dump()
-        # An auto-assigned primary key must not be passed as an explicit None
         if create_data.get("id", False) is None:
-            create_data.pop("id")
+            if assign_id is not None:
+                create_data["id"] = assign_id(db)
+            else:
+                # Let the database assign the key
+                create_data.pop("id")
         row = model_cls(**create_data)
         db.add(row)
         db.flush()
@@ -222,6 +227,30 @@ def _upsert_tracked(
     return existing, False, changelog
 
 
+# FinVe numbers are printed in the report and are the primary key, so a measure
+# without a printed number cannot take the next sequence value: the sequence
+# knows nothing about the ids the importer inserts explicitly, and the first
+# auto-assigned id collides with one of them. Keyed measures therefore get their
+# id from a band far above any number the report will ever print (the highest in
+# the 2027 report is 5108).
+_KEYED_FINVE_ID_BASE = 900_000
+
+
+def _next_keyed_finve_id(db: Session) -> int:
+    """The next free id in the band reserved for measures without a number.
+
+    Imports run one at a time (a single Celery task per parse result), so the
+    read-then-insert is safe; the unique index on ``finve_key`` is what actually
+    prevents a measure from being written twice.
+    """
+    highest = (
+        db.query(func.max(Finve.id))
+        .filter(Finve.id >= _KEYED_FINVE_ID_BASE)
+        .scalar()
+    )
+    return _KEYED_FINVE_ID_BASE if highest is None else int(highest) + 1
+
+
 def upsert_finve(
     db: Session,
     proposed: ProposedFinve,
@@ -250,6 +279,7 @@ def upsert_finve(
         exclude={"id", "finve_key"},
         user=user,
         haushalt_year=haushalt_year,
+        assign_id=_next_keyed_finve_id if proposed.finve_key else None,
     )
 
 

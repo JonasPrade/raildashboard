@@ -78,9 +78,17 @@ Wiederholt der Bericht eine Kennung — 2027 steht `F 03 E 0793` zweimal, einmal
 für die ursprüngliche Vereinbarung und einmal für die Änderungsvereinbarung —,
 bekommt die zweite Zeile `#2` angehängt, in der Reihenfolge des Berichts.
 
-Diese Maßnahmen bekommen ihre `finve.id` von der Datenbank und tragen
-`temporary_finve_number = true`. `upsert_finve` matcht sie beim nächsten
-Jahrgang über `finve_key`, nicht über die Nummer.
+Diese Maßnahmen tragen `temporary_finve_number = true`, und `upsert_finve`
+matcht sie beim nächsten Jahrgang über `finve_key`, nicht über die Nummer.
+
+Ihre `finve.id` kommt **nicht** aus der Datenbank-Sequenz, sondern aus einem
+reservierten Band ab `900_000` (`_KEYED_FINVE_ID_BASE`). Grund: FinVe-Nummern
+sind der Primärschlüssel und werden vom Importer explizit eingefügt — die
+Sequenz erfährt davon nichts und steht danach weit unterhalb der vergebenen
+Nummern. Die erste automatisch vergebene ID kollidierte deshalb mit einer
+gedruckten FinVe-Nummer (`duplicate key value violates unique constraint
+"finve_pkey"`). Das Band liegt weit über jeder Nummer, die der Bericht je
+druckt (höchste 2027: 5108).
 
 > **Grenze:** Die `#2`-Nummerierung hängt an der Reihenfolge im Bericht. Käme in
 > einem künftigen Jahrgang eine weitere Zeile mit derselben Kennung *davor*
