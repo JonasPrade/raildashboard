@@ -204,6 +204,19 @@ The parser runs three stages (see `docs/features/feature-pdf-import-unification.
 4. **Confirm** — `POST /api/v1/import/haushalt/confirm` — transactionally writes Finve, Budget, BudgetTitelEntry; syncs `FinveToProject` for both `new` and `update` rows (bidirectional add/remove); 409 Conflict on double-import
 5. **Unmatched rows** — `GET /api/v1/import/haushalt/unmatched?resolved=false`; resolve with `PATCH /api/v1/import/haushalt/unmatched/{id}`. Rows without a FinVe number (e.g. early-planning projects like `B0134 L 06`) are automatically placed here.
 
+### Inspecting a parse run
+
+```
+make list-parse-results               # which runs exist
+make summarise-parse-result ID=3      # how run 3 read the PDF
+make dump-parse-result ID=3           # the full result_json (megabytes)
+```
+
+The summary prints the text source, the column mapping, one line per table of Teil B with its page
+range and row count, the rows by status and table, how many measures were identified by key instead
+of a FinVe number, and — in `compare` mode — the OCR comparison. That is the fastest way to review
+an import without clicking through the review UI.
+
 ### Comparing the two extraction paths
 
 ```

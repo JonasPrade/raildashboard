@@ -21,7 +21,7 @@ mit FinVe-Nummern, Kostenschätzungen und Jahresansätzen je Haushaltskonto.
 | API-Endpoints | `apps/backend/dashboard_backend/api/v1/endpoints/haushalt_import.py` |
 | Frontend | `apps/frontend/src/features/haushalt-import/` |
 | Fuzzy-Matching | `apps/backend/dashboard_backend/tasks/finve_matching.py` |
-| Debug-Script | `apps/backend/scripts/dump_parse_result.py` |
+| Debug-Script | `apps/backend/scripts/dump_parse_result.py` (`make summarise-parse-result ID=<n>`) |
 
 ---
 
