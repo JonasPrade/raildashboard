@@ -6,10 +6,10 @@ Jährlicher Import der Anlage VWIB, Teil B (Bundeshaushalt) als PDF.
 Die Tabelle enthält alle Bedarfsplanmaßnahmen des Schienenwegeinvestitionsprogramms
 mit FinVe-Nummern, Kostenschätzungen und Jahresansätzen je Haushaltskonto.
 
-**Status: vollständig implementiert.** Der Mehrtabellen-Import ist am
-2026-09-08 auf dem Dev-Server gegen den EP-12-Bericht Teil B 2027 verifiziert
-(141 Zeilen aus fünf Tabellen, Import bestätigt) — Details in
-`docs/manual-tests-backlog.md`.
+**Status: vollständig implementiert.** Das Einlesen ist am 2026-09-08 auf dem
+Dev-Server gegen den EP-12-Bericht Teil B 2027 verifiziert (141 Zeilen aus fünf
+Tabellen, Spaltenzuordnung aus der Kopfzeile). Der Import-Schritt selbst ist dort
+noch offen — Stand in `docs/manual-tests-backlog.md`.
 
 ---
 

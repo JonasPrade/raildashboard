@@ -23,10 +23,10 @@ festgehalten.
 
 ---
 
-## Haushalts-Import auf der gemeinsamen PDF-Pipeline (erledigt 2026-09-08)
+## Haushalts-Import auf der gemeinsamen PDF-Pipeline (Stand 2026-09-08)
 
-Auf dem Dev-Server gegen den EP-12-Bericht Teil B 2027 durchgeführt und
-bestätigt:
+Auf dem Dev-Server gegen den EP-12-Bericht Teil B 2027 **bis einschließlich
+Parse-Lauf** durchgeführt und bestätigt:
 
 - Migrationen `20260908001` und `20260908002` angewendet.
 - Parse-Lauf (`make summarise-parse-result ID=28`): alle fünf Tabellen erkannt
@@ -36,10 +36,17 @@ bestätigt:
 - Statusverteilung gegen die bestehenden Importe 2025/2026 plausibel: 81 `update`
   (bekannte FinVe-Nummern aus Tabelle 1), 60 `new` (58 Maßnahmen ohne gedruckte
   Nummer plus 2 neue Bedarfsplan-Maßnahmen).
-- Import bestätigt — der Fehler `duplicate key value violates unique constraint
-  "finve_pkey"` (Fix `a5ef1b1`) tritt nicht mehr auf.
 
-Offen bleibt nur noch der Wiedererkennungs-Test unten.
+Offen — Lauf 28 steht weiterhin auf `importiert: nein`:
+
+- [ ] Im Review auf **„Importieren"** klicken. Erwartung: Erfolgsmeldung mit
+      ~60 FinVes neu und ~81 aktualisiert; danach zeigt
+      `make summarise-parse-result ID=28` ein Datum unter „importiert".
+- [ ] Das ist die Stelle, an der lokal `duplicate key value violates unique
+      constraint "finve_pkey"` auftrat (Fix `a5ef1b1`). Kommt ein 500er, gehören
+      die letzten ~30 Zeilen des Backend-Logs dazu.
+- [ ] Danach `/finves` prüfen: Stichprobe B0080 / FinVe 275 veranschlagt 77.859,
+      `t5:B0094` veranschlagt 3.186.
 
 ---
 
@@ -47,8 +54,9 @@ Offen bleibt nur noch der Wiedererkennungs-Test unten.
 
 Der Lauf vom 2026-09-08 war der **erste** mit `finve_key`, deshalb erschienen
 alle 58 Maßnahmen der Tabellen 2–5 als „Neu". Ob `upsert_finve` sie beim nächsten
-Mal über den Schlüssel wiederfindet, zeigt sich erst beim zweiten Import. Lokal
-gegen PostgreSQL verifiziert (141 × „Änd."), auf dem Dev-Server noch offen.
+Mal über den Schlüssel wiederfindet, zeigt sich erst nach einem bestätigten
+Import — setzt also den Punkt oben voraus. Lokal gegen PostgreSQL verifiziert
+(141 × „Änd."), auf dem Dev-Server noch offen.
 
 - [ ] Denselben Bericht mit Jahr 2027 erneut hochladen (Parsen genügt, kein
       Bestätigen nötig) und `make summarise-parse-result ID=<neue-id>` aufrufen.
