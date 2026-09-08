@@ -136,6 +136,36 @@ class TableSectionSchema(BaseModel):
     column_map_source: Optional[str] = None
 
 
+class ExtractionValueDifference(BaseModel):
+    """One field where the two extraction paths disagree."""
+
+    row_key: str
+    field: str
+    pdfplumber: Optional[str] = None
+    ocr: Optional[str] = None
+
+
+class ExtractionComparisonSchema(BaseModel):
+    """Result of running the OCR path alongside pdfplumber on the same PDF.
+
+    The evidence the staged plan asks for before OCR may supply the values:
+    same rows, same numbers. ``identical`` is the condition to reach.
+    """
+
+    ocr_status: str  # "done" | "fallback" | "failed" | "error"
+    ocr_model: str = ""
+    rows_pdfplumber: int = 0
+    rows_ocr: int = 0
+    rows_matched: int = 0
+    rows_only_pdfplumber: list[str] = []
+    rows_only_ocr: list[str] = []
+    value_differences: list[ExtractionValueDifference] = []
+    # Differences beyond the ones listed above (the list is capped)
+    value_differences_total: int = 0
+    identical: bool = False
+    error: Optional[str] = None
+
+
 # ---------------------------------------------------------------------------
 # Full task result (stored in HaushaltsParseResult.result_json)
 # ---------------------------------------------------------------------------
@@ -150,6 +180,10 @@ class HaushaltsParseTaskResult(BaseModel):
     # before any value is imported.
     column_map: Optional[ColumnMappingSchema] = None
     sections: list[TableSectionSchema] = []
+    # Which extraction supplied the values, and — in compare mode — how the two
+    # paths differ. None when only pdfplumber ran.
+    extraction_source: str = "pdfplumber"
+    extraction_comparison: Optional[ExtractionComparisonSchema] = None
 
 
 # ---------------------------------------------------------------------------

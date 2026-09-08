@@ -36,8 +36,15 @@ section as part of the release commit, immediately before tagging.
 - `haushalts_parse_result` keeps the document text and the column mapping of each run
   (`ocr_raw_text`, `ocr_status`, `ocr_model`, `column_map_json`, `column_map_source`;
   migration `20260908001`), so a past import stays inspectable.
-- New setting `HAUSHALT_OCR_ENABLED` (default off) runs the shared OCR stage over the Haushalt PDF
-  as well and stores its text with the run. Table values always come from pdfplumber.
+- The Haushalt import can now read the report through the shared OCR stage instead of pdfplumber.
+  `HAUSHALT_EXTRACTION` picks the path: `pdfplumber` (default, unchanged behaviour), `compare` (both
+  run on the same PDF, pdfplumber supplies the values and the row/value diff is stored with the run
+  and shown in the review) or `ocr` (OCR supplies the values, pdfplumber is the fallback). Both
+  paths hand the parser the same rows of cells, so the comparison isolates the text recognition.
+- `scripts/compare_haushalt_extraction.py` runs that comparison on a PDF and exits 0 only when both
+  paths agree on every row and every value — the condition for switching to `ocr`.
+- `OcrResult` now carries the markdown of each recognised table per page (`tables`), which is what
+  lets a table source read the grid instead of the prose.
 
 ### Fixed
 - The Haushalt import no longer folds the other tables of Annex VWIB Part B (Lärmsanierung, ERTMS,

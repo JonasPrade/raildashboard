@@ -260,9 +260,9 @@ Teil B zum HH-Entwurf 2027).
 | 1 Stufe-1-Vereinheitlichung | **erledigt** | `services/document_ocr.py` mit `OcrResult(text, pages, model, status, images)`; Credentials kommen aus `settings`, nicht mehr aus vier Aufrufstellen. VIB und Fulda ziehen darüber; `tasks/vib_ocr.py` existiert nicht mehr. |
 | 2 OCR-Persistenz-Mixin | **erledigt** | `models/mixins.py::OcrSourceMixin` (`ocr_raw_text`/`ocr_status`/`ocr_model`), genutzt von `VibDraftReport` und neu von `HaushaltsParseResult` (Migration `20260908001`). |
 | 3 Medien-Importer um PDF-Upload | offen | — |
-| 4 Haushalt: OCR-Pfad parallel | **teilweise** | Schalter `HAUSHALT_OCR_ENABLED` (Default aus) lässt die gemeinsame Stufe 1 über dasselbe PDF laufen und speichert deren Text beim Lauf. Tabellenwerte kommen weiterhin ausschließlich aus pdfplumber. |
+| 4 Haushalt: OCR-Pfad parallel | **erledigt (Vergleich gegen echte API offen)** | `HAUSHALT_EXTRACTION=compare` liest dasselbe PDF über beide Wege und speichert den Zeilen- und Wertevergleich beim Lauf; im Review sichtbar. Werte kommen dabei aus pdfplumber. Vergleichsskript: `scripts/compare_haushalt_extraction.py`. |
 | 5 Haushalt: `column_map` + Review-UI | **erledigt** | `tasks/haushalt_columns.py`; Anzeige im Review über `ColumnMappingPanel`. |
-| 6 pdfplumber zum Fallback zurückstufen | offen | Setzt einen vollständigen Jahresimport über den OCR-Pfad voraus. |
+| 6 pdfplumber zum Fallback zurückstufen | vorbereitet, nicht aktiviert | `HAUSHALT_EXTRACTION=ocr` schaltet um; die Umschaltung setzt einen sauberen `compare`-Lauf voraus (Exit-Code 0 des Vergleichsskripts). |
 
 ### Abweichungen von der Empfehlung — und warum
 
@@ -303,10 +303,47 @@ Ausgabe in `tests/fixtures/haushalt_ep12_2027_pages.json`.
 
 ### Beantwortete offene Fragen
 
-- *Läuft der Haushalt bei fehlendem `OCR_API_KEY` weiterhin vollwertig?* Ja — der
-  Haushalt liest die Tabelle grundsätzlich über pdfplumber; OCR ist ein
-  zuschaltbarer Zusatz für den gespeicherten Dokumenttext, kein Pflichtpfad.
+- *Läuft der Haushalt bei fehlendem `OCR_API_KEY` weiterhin vollwertig?* Ja —
+  `HAUSHALT_EXTRACTION` steht per Default auf `pdfplumber`, und auch in den
+  Modi `compare`/`ocr` trägt pdfplumber den Import, wenn die OCR-Stufe ausfällt
+  oder keine Zeilen findet. Ein Import scheitert nie an einem fremden Dienst.
 - *Braucht `column_map` eine Versionierung pro Berichtsjahr?* Nicht als eigene
   Tabelle: die Zuordnung wird je Lauf in `haushalts_parse_result.column_map_json`
   gespeichert und ist damit pro Import nachvollziehbar. Da die deterministische
   Erkennung ohnehin ohne LLM-Call auskommt, spart eine Wiederverwendung nichts.
+
+
+### Was für Schritt 6 noch fehlt
+
+Die Umstellung der Werte auf die OCR-Stufe hängt an genau einer offenen Frage:
+gibt Mistral die 16-spaltige Tabelle originalgetreu als Markdown zurück?
+
+Beantwortet ist bereits, dass alles *danach* stimmt: aus originalgetreuen
+Markdown-Tabellen erzeugt der OCR-Pfad dieselben Zeilen, dieselben Tabellen und
+dieselben Werte wie pdfplumber (`tests/unit/test_haushalt_ocr_path.py` schickt
+die aufgezeichneten pdfplumber-Zellen als Markdown durch den OCR-Pfad zurück).
+Segmentierung, Spaltenzuordnung und Werteübertragung sind auf beiden Wegen
+derselbe Code.
+
+Offen ist der Lauf gegen die echte API — in der Entwicklungsumgebung liegt kein
+`OCR_API_KEY`. Vorgehen:
+
+```bash
+cd apps/backend
+OCR_API_KEY=… .venv/bin/python scripts/compare_haushalt_extraction.py EP12_Teil_B.pdf 2027
+```
+
+Exit-Code 0 → `HAUSHALT_EXTRACTION=ocr` ist vertretbar. Exit-Code 1 → der
+Report nennt jede abweichende Zeile und jedes abweichende Feld; solange
+Abweichungen bestehen, bleibt pdfplumber die Quelle der Zahlen.
+
+Ein Wort zur Erwartung: Für **Fließtext** (VIB, Fulda) ist die OCR-Stufe klar
+überlegen, dafür wurde sie eingeführt. Für den Haushalt ist der Fall weniger
+eindeutig, weil dort die *Spaltengeometrie* über die Richtigkeit jeder Zahl
+entscheidet. Der Mehrtabellen-Import hat dafür ein konkretes Beispiel geliefert:
+Ein „–"-Platzhalter, der einen halben Punkt über seine Spaltenlinie ragte, wurde
+als Vorzeichen der Nachbarspalte gelesen und machte aus 33.186 eine −33.186.
+Gefunden und behoben wurde das über die Zellkoordinaten, die pdfplumber liefert
+und eine Markdown-Tabelle nicht mehr enthält. Das ist kein Argument gegen
+Schritt 6 — es ist das Argument dafür, ihn erst nach dem grünen Vergleich zu
+gehen, so wie diese Evaluation es ohnehin vorsieht.

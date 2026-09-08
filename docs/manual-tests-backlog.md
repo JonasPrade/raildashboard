@@ -59,6 +59,27 @@ Import-Lauf selbst ist erst nach dem nächsten Rollout ausführbar.
 
 ---
 
+## Haushalt: Vergleich pdfplumber ↔ Mistral OCR (Stand 2026-09-08)
+
+Braucht einen gültigen `OCR_API_KEY`; in der Entwicklungsumgebung ist keiner
+vorhanden. Das ist der offene Schritt 4/6 aus
+`docs/features/feature-pdf-import-unification.md`.
+
+- [ ] `OCR_API_KEY=… .venv/bin/python scripts/compare_haushalt_extraction.py EP12_Teil_B.pdf 2027`
+      aus `apps/backend` laufen lassen.
+- [ ] Ergebnis festhalten: Zeilenzahl beider Wege, Zahl der abweichenden Werte,
+      Exit-Code.
+- [ ] Bei Exit-Code 0: `HAUSHALT_EXTRACTION=ocr` in einer Testumgebung setzen,
+      Bericht importieren und Stichproben gegen das PDF prüfen (B0080 / FinVe 275:
+      veranschlagt 77.859; Tabelle 3 / `t3:F08Q0770`: veranschlagt 33.186).
+- [ ] Bei Exit-Code 1: die genannten Abweichungen im Feature-Doc festhalten —
+      pdfplumber bleibt dann die Quelle der Zahlen.
+- [ ] Alternativ im laufenden System: `HAUSHALT_EXTRACTION=compare` setzen, Bericht
+      hochladen → Review zeigt das Panel „Texterkennung im Vergleich" mit grünem
+      Badge „identisch" oder der Liste der Abweichungen.
+
+---
+
 ## Legacy — aus `review-checklist.md` migriert (Stand 2026-06-12)
 
 Diese Punkte stammen aus der abgelösten `review-checklist.md`. Sie brauchen

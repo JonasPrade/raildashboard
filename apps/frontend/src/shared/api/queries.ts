@@ -802,12 +802,37 @@ export type HaushaltsTableSection = {
     column_map_source: string | null;
 };
 
+export type HaushaltsExtractionDifference = {
+    row_key: string;
+    field: string;
+    pdfplumber: string | null;
+    ocr: string | null;
+};
+
+/** Result of running the OCR path alongside pdfplumber on the same PDF —
+ *  the evidence needed before OCR may supply the imported values. */
+export type HaushaltsExtractionComparison = {
+    ocr_status: string;
+    ocr_model: string;
+    rows_pdfplumber: number;
+    rows_ocr: number;
+    rows_matched: number;
+    rows_only_pdfplumber: string[];
+    rows_only_ocr: string[];
+    value_differences: HaushaltsExtractionDifference[];
+    value_differences_total: number;
+    identical: boolean;
+    error: string | null;
+};
+
 export type HaushaltsParseTaskResult = {
     year: number;
     rows: HaushaltsParseRow[];
     unmatched_rows: Record<string, unknown>[];
     column_map?: HaushaltsColumnMapping | null;
     sections?: HaushaltsTableSection[];
+    extraction_source?: string;
+    extraction_comparison?: HaushaltsExtractionComparison | null;
 };
 
 export type ParseResultPublic = components["schemas"]["ParseResultPublicSchema"];

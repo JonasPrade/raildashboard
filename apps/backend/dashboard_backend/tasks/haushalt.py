@@ -3,9 +3,10 @@
 Three stages, following ``docs/features/feature-pdf-import-unification.md``:
 
   1. Textgewinnung — pdfplumber reads the table structure and the page text.
-     The shared stage 1 (``services.document_ocr``) can be switched on with
-     ``HAUSHALT_OCR_ENABLED`` to store its markdown with the run as well; the
-     table values always come from pdfplumber.
+     ``HAUSHALT_EXTRACTION`` can run the shared stage 1
+     (``services.document_ocr``) alongside it (``compare``) or in its place
+     (``ocr``); both paths hand the same rows of cells to stage 2, so the
+     comparison is a like-for-like diff of what would be imported.
   2. Segmentierung — Teil B holds several tables (Bedarfsplanmaßnahmen,
      Lärmsanierung, ERTMS, …); only the Bedarfsplan table carries FinVe rows,
      so the others are detected and skipped instead of bleeding into the last
@@ -36,14 +37,18 @@ from dashboard_backend.models.associations.finve_to_project import FinveToProjec
 from dashboard_backend.models.projects.finve import Finve
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.tasks.finve_matching import suggest_projects_for_finve, suggest_projects_for_sv_erlaeuterung, suggest_per_erlaeuterung_project
-from dashboard_backend.services.document_ocr import extract_document_text
+from dashboard_backend.services.document_ocr import OcrResult, extract_document_text
 from dashboard_backend.tasks.haushalt_columns import (
+    CANONICAL_COLUMNS,
     ColumnMap,
     is_header_row,
     resolve_column_map,
 )
+from dashboard_backend.tasks.haushalt_markdown import parse_page_tables
 from dashboard_backend.tasks.haushalt_keys import build_finve_key, has_measure_marker
 from dashboard_backend.schemas.haushalt_import import (
+    ExtractionComparisonSchema,
+    ExtractionValueDifference,
     HaushaltsParseResultSchema,
     HaushaltsParseTaskResult,
     ProposedBudget,
@@ -750,6 +755,96 @@ def _extract_pages(pdf_bytes: bytes, task: Task | None = None) -> list[Extracted
     return pages
 
 
+# Cap on the differences listed in a comparison — enough to see the pattern,
+# not so many that the parse result grows unbounded.
+_MAX_LISTED_DIFFERENCES = 50
+
+# Fields whose disagreement between the two paths actually matters: everything
+# that ends up in a Budget or Finve row.
+_COMPARED_BUDGET_FIELDS = (
+    "lfd_nr", "bedarfsplan_number", "cost_estimate_original", "cost_estimate_last_year",
+    "cost_estimate_actual", "delta_previous_year", "delta_previous_year_relativ",
+    "spent_two_years_previous", "allowed_previous_year", "spending_residues",
+    "year_planned", "next_years",
+)
+_COMPARED_FINVE_FIELDS = ("name", "starting_year", "cost_estimate_original")
+
+
+def _extract_pages_from_ocr(ocr: OcrResult) -> list[ExtractedPage]:
+    """Stage 1 via the shared OCR service, in the shape the parser reads.
+
+    The markdown tables the model returns are translated into the same rows of
+    cells pdfplumber produces (``haushalt_markdown``), so every later stage —
+    segmentation, column mapping, value transfer — is identical on both paths.
+    """
+    pages: list[ExtractedPage] = []
+    for index, page_text in enumerate(ocr.pages):
+        tables = ocr.tables[index] if index < len(ocr.tables) else []
+        pages.append(
+            ExtractedPage(
+                number=index + 1,
+                text=page_text,
+                rows=parse_page_tables(tables, width=len(CANONICAL_COLUMNS)),
+            )
+        )
+    return pages
+
+
+def _compare_extractions(
+    from_pdfplumber: HaushaltsParseTaskResult,
+    from_ocr: HaushaltsParseTaskResult,
+    ocr: OcrResult,
+) -> ExtractionComparisonSchema:
+    """Row-by-row, value-by-value diff of the two extraction paths.
+
+    This is the evidence the staged plan asks for before OCR may supply the
+    values: same rows, same numbers.  It never changes what gets imported.
+    """
+    left = {row.row_key: row for row in from_pdfplumber.rows}
+    right = {row.row_key: row for row in from_ocr.rows}
+    shared = sorted(set(left) & set(right))
+
+    differences: list[ExtractionValueDifference] = []
+    total = 0
+    for row_key in shared:
+        pairs = [
+            (_COMPARED_BUDGET_FIELDS, left[row_key].proposed_budget, right[row_key].proposed_budget),
+            (_COMPARED_FINVE_FIELDS, left[row_key].proposed_finve, right[row_key].proposed_finve),
+        ]
+        for fields, a, b in pairs:
+            if a is None or b is None:
+                continue
+            for field_name in fields:
+                a_value, b_value = getattr(a, field_name), getattr(b, field_name)
+                if a_value == b_value:
+                    continue
+                total += 1
+                if len(differences) < _MAX_LISTED_DIFFERENCES:
+                    differences.append(
+                        ExtractionValueDifference(
+                            row_key=row_key,
+                            field=field_name,
+                            pdfplumber=None if a_value is None else str(a_value),
+                            ocr=None if b_value is None else str(b_value),
+                        )
+                    )
+
+    only_left = sorted(set(left) - set(right))
+    only_right = sorted(set(right) - set(left))
+    return ExtractionComparisonSchema(
+        ocr_status=ocr.status,
+        ocr_model=ocr.model,
+        rows_pdfplumber=len(left),
+        rows_ocr=len(right),
+        rows_matched=len(shared),
+        rows_only_pdfplumber=only_left[:_MAX_LISTED_DIFFERENCES],
+        rows_only_ocr=only_right[:_MAX_LISTED_DIFFERENCES],
+        value_differences=differences,
+        value_differences_total=total,
+        identical=not only_left and not only_right and total == 0,
+    )
+
+
 def _parse_pdf(
     pdf_bytes: bytes,
     year: int,
@@ -759,17 +854,91 @@ def _parse_pdf(
     task: Task | None = None,
     known_finve_keys: dict[str, int] | None = None,
 ) -> tuple[HaushaltsParseTaskResult, DocumentText]:
-    """Parse a Haushalt PDF into a task result plus the text it worked from."""
-    pages = _extract_pages(pdf_bytes, task=task)
-    result = _parse_extracted_pages(
-        pages,
-        year,
-        known_finve_ids,
-        finve_projects=finve_projects,
-        all_projects=all_projects,
-        known_finve_keys=known_finve_keys,
+    """Parse a Haushalt PDF into a task result plus the text it worked from.
+
+    ``HAUSHALT_EXTRACTION`` decides which path supplies the values:
+    ``pdfplumber`` (default, no OCR call), ``compare`` (both run, pdfplumber
+    supplies the values and the diff is recorded) or ``ocr`` (the OCR path
+    supplies the values, pdfplumber is the fallback).
+    """
+    from dashboard_backend.core.config import settings
+
+    mode = (settings.haushalt_extraction or "pdfplumber").strip().lower()
+    if mode not in ("pdfplumber", "compare", "ocr"):
+        logger.warning("Unknown HAUSHALT_EXTRACTION %r — falling back to pdfplumber", mode)
+        mode = "pdfplumber"
+
+    def _parse(pages: list[ExtractedPage]) -> HaushaltsParseTaskResult:
+        return _parse_extracted_pages(
+            pages,
+            year,
+            known_finve_ids,
+            finve_projects=finve_projects,
+            all_projects=all_projects,
+            known_finve_keys=known_finve_keys,
+        )
+
+    pdfplumber_pages = _extract_pages(pdf_bytes, task=task)
+    pdfplumber_result = _parse(pdfplumber_pages)
+    pdfplumber_text = "\n".join(page.text for page in pdfplumber_pages)
+
+    if mode == "pdfplumber":
+        pdfplumber_result.extraction_source = "pdfplumber"
+        return pdfplumber_result, DocumentText(
+            text=pdfplumber_text, model="pdfplumber", status="done"
+        )
+
+    ocr, ocr_error = _run_ocr_stage(pdf_bytes)
+    if ocr is None or not ocr.pages:
+        # No usable OCR output — the verified path carries the import, and the
+        # failure is recorded rather than silently ignored.
+        logger.warning("Haushalt OCR stage unusable (%s) — keeping the pdfplumber result", ocr_error)
+        pdfplumber_result.extraction_source = "pdfplumber"
+        pdfplumber_result.extraction_comparison = ExtractionComparisonSchema(
+            ocr_status="failed" if ocr is None else ocr.status,
+            ocr_model="" if ocr is None else ocr.model,
+            rows_pdfplumber=len(pdfplumber_result.rows),
+            error=ocr_error or "OCR returned no pages",
+        )
+        return pdfplumber_result, DocumentText(
+            text=pdfplumber_text, model="pdfplumber", status="done"
+        )
+
+    ocr_result = _parse(_extract_pages_from_ocr(ocr))
+    comparison = _compare_extractions(pdfplumber_result, ocr_result, ocr)
+    logger.info(
+        "Haushalt extraction comparison: pdfplumber %d rows, OCR %d rows, %d value differences (identical=%s)",
+        comparison.rows_pdfplumber, comparison.rows_ocr,
+        comparison.value_differences_total, comparison.identical,
     )
-    return result, _document_text(pdf_bytes, [page.text for page in pages])
+
+    document = DocumentText(text=ocr.text, model=ocr.model, status=ocr.status)
+    if mode == "ocr":
+        if not ocr_result.rows:
+            logger.warning("HAUSHALT_EXTRACTION=ocr but the OCR path found no rows — using pdfplumber")
+            pdfplumber_result.extraction_source = "pdfplumber"
+            pdfplumber_result.extraction_comparison = comparison
+            return pdfplumber_result, document
+        ocr_result.extraction_source = "ocr"
+        ocr_result.extraction_comparison = comparison
+        return ocr_result, document
+
+    pdfplumber_result.extraction_source = "pdfplumber"
+    pdfplumber_result.extraction_comparison = comparison
+    return pdfplumber_result, document
+
+
+def _run_ocr_stage(pdf_bytes: bytes) -> tuple[OcrResult | None, str | None]:
+    """Run the shared stage 1, turning a failure into a value instead of a raise.
+
+    An import must never fail because an external service is down — the
+    pdfplumber path can always carry it.
+    """
+    try:
+        return extract_document_text(pdf_bytes), None
+    except Exception as exc:
+        logger.warning("Haushalt OCR stage failed: %s", exc, exc_info=True)
+        return None, str(exc)[:200]
 
 
 def _is_bedarfsplan_section(section: TableSection, sections: list[TableSection]) -> bool:
@@ -1175,31 +1344,6 @@ def _parse_section(
         rows.append(current_row)
 
     return rows, unmatched_rows, cmap
-
-
-def _document_text(pdf_bytes: bytes, page_texts: list[str]) -> DocumentText:
-    """The document text stored with the run.
-
-    pdfplumber's own page text by default. With ``HAUSHALT_OCR_ENABLED`` the
-    shared stage 1 (Mistral OCR, pymupdf fallback) is run over the same PDF so
-    the Haushalt run is inspectable in the same terms as a VIB run.  Either way
-    the table values above came from pdfplumber — this text is never parsed for
-    numbers.
-    """
-    from dashboard_backend.core.config import settings
-
-    if not settings.haushalt_ocr_enabled:
-        return DocumentText(text="\n".join(page_texts), model="pdfplumber", status="done")
-
-    try:
-        ocr = extract_document_text(pdf_bytes)
-    except Exception as exc:  # never fail an import over the inspection copy
-        logger.warning("Haushalt OCR stage failed, keeping pdfplumber text: %s", exc)
-        return DocumentText(text="\n".join(page_texts), model="pdfplumber", status="done")
-
-    if not ocr.text.strip():
-        return DocumentText(text="\n".join(page_texts), model="pdfplumber", status="done")
-    return DocumentText(text=ocr.text, model=ocr.model, status=ocr.status)
 
 
 @celery_app.task(bind=True)

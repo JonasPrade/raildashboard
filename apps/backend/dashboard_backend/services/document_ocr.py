@@ -51,6 +51,10 @@ class OcrResult:
 
     text: str                              # markdown, all pages joined
     pages: list[str] = field(default_factory=list)   # markdown per page
+    # Per page, the markdown of each table the OCR model recognised. Kept apart
+    # from the page markdown so a table-bearing source (the Haushalt report)
+    # reads the grid directly instead of hunting for it in the prose.
+    tables: list[list[str]] = field(default_factory=list)
     model: str = "none"                    # "mistral-ocr-*" | "pymupdf" | "none"
     status: str = "failed"                 # "done" | "fallback" | "failed"
     images: list[dict] = field(default_factory=list)
@@ -148,6 +152,14 @@ def _pages_to_list(pages: list, strip_headers_footers: bool, strip_images: bool 
     """Per-page markdown, in document order — the ``OcrResult.pages`` field."""
     return [
         _page_to_text(page, strip_headers_footers=strip_headers_footers, strip_images=strip_images)
+        for page in pages
+    ]
+
+
+def _pages_to_tables(pages: list) -> list[list[str]]:
+    """Per page, the markdown of every table the model recognised."""
+    return [
+        [tbl.content or "" for tbl in (getattr(page, "tables", None) or [])]
         for page in pages
     ]
 
@@ -261,6 +273,7 @@ def extract_document_text(
             return OcrResult(
                 text="\n".join(page_texts),
                 pages=page_texts,
+                tables=_pages_to_tables(pages),
                 model=model_used,
                 status="done",
                 images=ocr_images,
@@ -279,6 +292,7 @@ def extract_document_text(
     return OcrResult(
         text="\n".join(page_texts),
         pages=page_texts,
+        tables=[[] for _ in page_texts],  # pymupdf recognises no table structure
         model="pymupdf",
         status="fallback",
         images=[],

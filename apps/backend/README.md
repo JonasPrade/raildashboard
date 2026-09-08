@@ -165,8 +165,9 @@ A task optionally links to one project (`project_id`, `ON DELETE SET NULL`) or i
 `services/document_ocr.py` is stage 1 of every PDF importer: `extract_document_text(pdf_bytes, …)`
 returns an `OcrResult(text, pages, model, status, images)` — Mistral OCR when `OCR_API_KEY` is set,
 pymupdf otherwise. Credentials and model come from `settings`, so callers pass only the bytes and an
-optional page range. VIB and Fulda-Runde read through it; the Haushalt import uses it optionally
-(`HAUSHALT_OCR_ENABLED`) for the document text it stores with a run.
+optional page range. `OcrResult.tables` carries the markdown of each recognised table per page, which
+is what lets a table source read the grid rather than the prose. VIB and Fulda-Runde read through it;
+the Haushalt import can run it alongside or instead of pdfplumber (`HAUSHALT_EXTRACTION`).
 
 Draft models keep that outcome via `models/mixins.py::OcrSourceMixin` (`ocr_raw_text`, `ocr_status`,
 `ocr_model`) — currently `vib_draft_report` and `haushalts_parse_result`.
@@ -177,7 +178,13 @@ Yearly import of Annex VWIB Part B (federal budget) as PDF. Requires `pdfplumber
 
 The parser runs three stages (see `docs/features/feature-pdf-import-unification.md`):
 
-1. **Text** — pdfplumber per page: table rows plus page text.
+1. **Text** — pdfplumber per page: table rows plus page text, or the shared OCR stage.
+   `HAUSHALT_EXTRACTION` picks: `pdfplumber` (default, no OCR call), `compare` (both run,
+   pdfplumber supplies the values and the row/value diff is recorded on the run) or `ocr` (OCR
+   supplies the values, pdfplumber is the fallback). Both paths hand stage 2 the same rows of
+   cells — pdfplumber from the ruling grid, OCR from its markdown tables via
+   `tasks/haushalt_markdown.py` — so the comparison measures the text recognition and nothing else.
+   If OCR fails or finds no rows, pdfplumber carries the import and the failure is recorded.
 2. **Segmentation** — Part B contains five tables (`Tabelle 1 - Bedarfsplanmaßnahmen`,
    `Tabelle 2 - Lärmsanierung`, ERTMS, Kleine und Mittlere Maßnahmen, InvKG). All of them are
    imported, each as its own section with its own column map; the sections found, their page ranges
@@ -196,6 +203,18 @@ The parser runs three stages (see `docs/features/feature-pdf-import-unification.
 3. **Review** — `GET /api/v1/import/haushalt/parse-result/{id}` returns full parse result (rows classified as `new` / `update` / `unmatched`). Each row includes pre-populated `project_ids` from existing `FinveToProject` associations.
 4. **Confirm** — `POST /api/v1/import/haushalt/confirm` — transactionally writes Finve, Budget, BudgetTitelEntry; syncs `FinveToProject` for both `new` and `update` rows (bidirectional add/remove); 409 Conflict on double-import
 5. **Unmatched rows** — `GET /api/v1/import/haushalt/unmatched?resolved=false`; resolve with `PATCH /api/v1/import/haushalt/unmatched/{id}`. Rows without a FinVe number (e.g. early-planning projects like `B0134 L 06`) are automatically placed here.
+
+### Comparing the two extraction paths
+
+```
+cd apps/backend
+OCR_API_KEY=… .venv/bin/python scripts/compare_haushalt_extraction.py EP12_Teil_B.pdf 2027
+```
+
+Exit code 0 means both paths found the same rows with the same values — the condition for setting
+`HAUSHALT_EXTRACTION=ocr`. Exit code 1 lists every differing row and field. The script refuses to
+run without a working OCR key rather than reporting a comparison against the pymupdf fallback,
+which recognises no table structure.
 
 ### Row identity without a FinVe number
 

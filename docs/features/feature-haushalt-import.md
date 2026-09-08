@@ -31,7 +31,7 @@ Die drei Stufen aus [`feature-pdf-import-unification.md`](feature-pdf-import-uni
 
 | Stufe | Was passiert | Wo |
 |---|---|---|
-| 1 Textgewinnung | `pdfplumber` liest Tabellenstruktur **und** Seitentext; Seiten ohne Trennlinien werden aus den Textzeilen rekonstruiert. Optional läuft zusätzlich die gemeinsame OCR-Stufe (`HAUSHALT_OCR_ENABLED`), deren Text mit dem Lauf gespeichert wird | `_extract_pages`, `_page_table_rows`, `services/document_ocr.py` |
+| 1 Textgewinnung | `pdfplumber` liest Tabellenstruktur **und** Seitentext; Seiten ohne Trennlinien werden aus den Textzeilen rekonstruiert. Alternativ liefert die gemeinsame OCR-Stufe dieselben Zeilen aus Markdown-Tabellen — welcher Weg zählt, entscheidet `HAUSHALT_EXTRACTION` | `_extract_pages`, `_page_table_rows`, `_extract_pages_from_ocr`, `services/document_ocr.py` |
 | 2 Segmentierung | Teil B besteht aus mehreren Tabellen; jede wird als eigener Abschnitt verarbeitet | `_detect_table_sections`, `_parse_section` |
 | 3 Semantik | Die Kopfzeile wird **einmal pro Dokument** auf das kanonische Schema gemappt, danach werden alle Werte deterministisch übertragen | `haushalt_columns.resolve_column_map` |
 
@@ -86,6 +86,49 @@ Jahrgang über `finve_key`, nicht über die Nummer.
 > einem künftigen Jahrgang eine weitere Zeile mit derselben Kennung *davor*
 > hinzu, verschiebt sich die Zuordnung. Betroffen sind nur echte Doubletten
 > (2027: eine).
+
+### Textgewinnung: pdfplumber oder Mistral OCR (`HAUSHALT_EXTRACTION`)
+
+Die Evaluation sieht vor, dass der Haushalt seine Texte langfristig über
+dieselbe OCR-Stufe bezieht wie VIB und Fulda — aber erst, wenn ein Vergleich
+belegt, dass dabei dieselben Zahlen herauskommen (Schritte 4 und 6 der
+empfohlenen Reihenfolge). Genau das steuert eine einzige Einstellung:
+
+| Wert | Was passiert |
+|---|---|
+| `pdfplumber` (Default) | Der verifizierte Weg, kein OCR-Aufruf, keine Kosten |
+| `compare` | Beide Wege laufen über dasselbe PDF. **Die Werte kommen aus pdfplumber**; der Zeilen- und Wertevergleich wird im Parse-Ergebnis gespeichert und im Review angezeigt |
+| `ocr` | Die OCR-Stufe liefert die Werte, pdfplumber ist Rückfallebene (Schritt 6 — erst nach einem sauberen `compare`-Lauf) |
+
+Beide Wege übergeben **dieselbe Zeilenform** an Stufe 2: pdfplumber liefert
+Zellen aus dem Linienraster, die OCR-Stufe dieselben Zellen aus ihren
+Markdown-Tabellen (`tasks/haushalt_markdown.py`, `OcrResult.tables`). Dadurch
+sind Segmentierung, Spaltenzuordnung und Werteübertragung auf beiden Wegen
+identisch — der Vergleich misst wirklich nur die Texterkennung.
+
+Fällt die OCR-Stufe aus oder findet sie keine Zeilen, trägt pdfplumber den
+Import; der Fehlschlag wird im Vergleich vermerkt statt verschluckt. Ein Import
+scheitert nie an einem fremden Dienst.
+
+### Den Vergleich fahren
+
+```bash
+cd apps/backend
+OCR_API_KEY=… .venv/bin/python scripts/compare_haushalt_extraction.py EP12_Teil_B.pdf 2027
+```
+
+Exit-Code 0 heißt: gleiche Zeilen, gleiche Werte — die Bedingung, um
+`HAUSHALT_EXTRACTION=ocr` zu setzen. Exit-Code 1 listet jede abweichende Zeile
+und jedes abweichende Feld. Ohne gültigen Schlüssel bricht das Skript ab, statt
+einen Vergleich gegen den pymupdf-Notnagel zu berichten (der keine Tabellen
+erkennt und die Zahlen wertlos machen würde).
+
+**Stand:** Der Vergleich gegen die echte API steht noch aus — in der
+Entwicklungsumgebung liegt kein OCR-Schlüssel. Abgesichert ist bisher, dass der
+OCR-Pfad aus *originalgetreuen* Markdown-Tabellen dieselben 29 Zeilen und
+dieselben Werte erzeugt wie pdfplumber (`tests/unit/test_haushalt_ocr_path.py`,
+Round-Trip über die aufgezeichneten Seiten). Offen ist damit genau eine Frage:
+ob Mistral die Tabelle originalgetreu zurückgibt.
 
 ### Zeilen ohne Trennlinien rekonstruieren
 
@@ -248,6 +291,8 @@ Neue Titel in künftigen PDFs werden automatisch registriert.
 | `tests/unit/test_haushalt_columns.py` | Kopfzeilen-Erkennung, Spaltenzuordnung (inkl. vertauschtem Layout und LLM-Rückfallebene), Tabellen-Segmentierung |
 | `tests/unit/test_haushalt_parse_2027.py` | Golden-Lauf gegen den EP-12-Bericht Teil B 2027 — alle fünf Tabellen, Segmentierung, Spaltenzuordnung, Zeilen-Identität und exakte Werte gegen den gedruckten Bericht |
 | `tests/unit/test_haushalt_keys.py` | Schlüssel-Bildung für Maßnahmen ohne FinVe-Nummer |
+| `tests/unit/test_haushalt_markdown.py` | Markdown-Tabellen der OCR-Stufe → Zeilenform des Parsers |
+| `tests/unit/test_haushalt_ocr_path.py` | OCR-Pfad end-to-end (Round-Trip), Vergleichslogik und die drei `HAUSHALT_EXTRACTION`-Modi inkl. OCR-Ausfall |
 | `tests/unit/test_haushalt_parser_blocks.py` | Titel-/Nachrichtlich-Blöcke |
 | `tests/unit/test_haushalt_upsert.py` | Upsert nach dem Bestätigen |
 

@@ -24,6 +24,7 @@ import {
 } from "../../shared/api/queries";
 import { ReviewTable } from "./components/ReviewTable";
 import { ColumnMappingPanel } from "./components/ColumnMappingPanel";
+import { ExtractionComparisonPanel } from "./components/ExtractionComparisonPanel";
 import { formatDateTime } from "../../shared/format";
 
 function HaushaltsReviewPageContent() {
@@ -164,6 +165,11 @@ function HaushaltsReviewPageContent() {
                 <ColumnMappingPanel
                     columnMap={parsedResult?.column_map}
                     sections={parsedResult?.sections}
+                />
+
+                <ExtractionComparisonPanel
+                    comparison={parsedResult?.extraction_comparison}
+                    source={parsedResult?.extraction_source}
                 />
 
                 <ReviewTable
