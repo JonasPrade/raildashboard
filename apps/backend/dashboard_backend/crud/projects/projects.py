@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from dashboard_backend.models.projects import Project
 from dashboard_backend.models.projects.project_group import ProjectGroup
+from dashboard_backend.services.constituency_matching import recompute_links_for_project_ids
 
 
 def get_projects(db: Session):
@@ -116,15 +117,16 @@ def recompute_geojson_for_parent(db: Session, parent_id: Optional[int]) -> None:
     its own ancestors aggregate.
     """
     seen: set[int] = set()
+    touched: List[int] = []
     current_id = parent_id
 
     while current_id is not None and current_id not in seen:
         seen.add(current_id)
         parent = get_project_by_id(db, current_id)
         if parent is None:
-            return
+            break
         if not parent.geojson_from_subprojects:
-            return
+            break
 
         children = (
             db.query(Project)
@@ -145,9 +147,14 @@ def recompute_geojson_for_parent(db: Session, parent_id: Optional[int]) -> None:
 
         db.commit()
         db.refresh(parent)
+        touched.append(parent.id)
 
         # Continue upwards to update grandparent, great-grandparent, …
         current_id = parent.superior_project_id
+
+    # The aggregated geometry just changed at every level walked — the
+    # constituency links of those projects are stale in exactly the same way.
+    recompute_links_for_project_ids(db, touched)
 
 
 def recompute_parent_geojson(db: Session, project: Project) -> None:
@@ -239,6 +246,8 @@ def create_project(db: Session, data: dict) -> Project:
     db.add(project)
     db.commit()
     db.refresh(project)
+    if project.geojson_representation:
+        recompute_links_for_project_ids(db, [project.id])
     return project
 
 
@@ -282,6 +291,11 @@ def update_project(db: Session, project_id: int, update_data: dict, project: Pro
         setattr(project, key, value)
     db.commit()
     db.refresh(project)
+
+    if geojson_changed:
+        # The project's own geometry changed — its constituency links follow. The
+        # ancestors are handled by the cascade below, which recomputes theirs.
+        recompute_links_for_project_ids(db, [project.id])
 
     if switched_to_aggregated and has_subprojects(db, project.id):
         # Rebuild the project's own geometry from its subprojects. The walk starts at the

@@ -146,15 +146,18 @@ wenige tausend Zeilen. Er berührt die **Geometrien nicht** und damit auch nicht
 - **Je Projekt** (der Normalfall, bei jeder Geometrieänderung): eine Query, die die
   Projektgeometrie gegen die 299 Wahlkreise hält. Der GiST-Index auf
   `constituency.geom` reduziert das auf die wenigen Kandidaten, die die Bounding-Box
-  schneiden — Größenordnung Millisekunden. Bei einem Teilprojekt kommt die
-  Vorfahrenkette dazu, also typisch ein bis drei weitere Projekte.
-- **Vollständiger Neuaufbau** (`POST /parliament/recompute-links`, Celery-Task):
-  einmal über alle Projekte mit Geometrie. Größenordnung Sekunden bis wenige Minuten;
-  gebraucht wird er nur nach einem Geometrie-Import oder einer neuen Wahlperiode.
+  schneiden. **Gemessen** gegen die echten 299 Wahlkreisgeometrien (PostGIS 3.4,
+  Linienprojekt Hamburg–Berlin über 10 Wahlkreise): **7 ms**. Bei einem Teilprojekt
+  kommt die Vorfahrenkette dazu, also typisch ein bis drei weitere Projekte.
+- **Vollständiger Neuaufbau** (`POST /parliament/recompute-links`, Celery-Task): einmal
+  über alle Projekte mit Geometrie. Hochgerechnet aus der Messung liegt der Bestand
+  (Größenordnung 1.000 Projekte) bei **unter 10 Sekunden**. Gebraucht wird er nur nach
+  einem Geometrie-Import oder einer neuen Wahlperiode.
+- Der Geometrie-Import selbst (299 Wahlkreise aus GeoJSON) lief in **1,7 s**.
 
 Die inkrementelle Pflege reicht damit im laufenden Betrieb; der Neuaufbau ist die
-Reparatur, nicht der Normalfall. Beide Laufzeiten sind gegen den echten Bestand zu
-messen — Eintrag in `docs/manual-tests-backlog.md`.
+Reparatur, nicht der Normalfall. Die Hochrechnung ist gegen den echten Bestand zu
+bestätigen — Eintrag in `docs/manual-tests-backlog.md`.
 
 ### Sichtbarkeit
 
@@ -162,9 +165,15 @@ messen — Eintrag in `docs/manual-tests-backlog.md`.
 `AuthRouter` gated nur Nicht-GET-Methoden). Die Zuordnung ist öffentliche Information
 über Amtsträger aus einer CC0-Quelle; im bestehenden Berechtigungsmodell gibt es keinen
 Grund, sie hinter `editor` zu verschieben. **Geschrieben** wird nur über den Import, und
-der bekommt ein eigenes Recht `parliament.import` (Gruppe „Inhalte", vorgeseedet für
-`editor`) — nicht wegen der Daten, sondern weil ein Importlauf externe Abrufe auslöst
-und Bestandsdaten überschreibt.
+der bekommt ein eigenes Recht `parliament.import` (Gruppe „Inhalte") — nicht wegen der
+Daten, sondern weil ein Importlauf externe Abrufe auslöst und Bestandsdaten
+überschreibt.
+
+Das Recht wird **keiner System-Rolle vorgeseedet**: `admin` hat es über den
+Superadmin-Bypass ohnehin, und der `editor`-Seed bildet bewusst den historischen
+Rechtebestand ab (`tests/api/test_roles_seed.py` prüft ihn exakt) — dieselbe
+Entscheidung wie zuvor bei `guides.edit`. Wer den Import einer anderen Rolle geben
+will, hakt ihn unter `/admin/roles` an.
 
 ## Datenquellen
 

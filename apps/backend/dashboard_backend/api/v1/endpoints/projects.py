@@ -14,6 +14,7 @@ from dashboard_backend.crud.changelog import (
     get_changelog_entry,
     get_project_changelog,
 )
+from dashboard_backend.crud import parliament as parliament_crud
 from dashboard_backend.crud.projects.bvwp import get_bvwp_data
 from dashboard_backend.crud.projects.projects import (
     ProjectHierarchyError,
@@ -33,7 +34,13 @@ from dashboard_backend.crud.vib import get_vib_entries_for_project
 from dashboard_backend.database import get_db
 from dashboard_backend.models.users import User
 from dashboard_backend.routing.auth_router import AuthRouter
+from dashboard_backend.models.parliament import IMPORT_KIND_POLITICIANS
 from dashboard_backend.schemas.changelog import ChangeLogRead, RevertFieldRequest
+from dashboard_backend.schemas.parliament import (
+    ImportRunSchema,
+    ProjectConstituenciesSchema,
+    ProjectConstituencySchema,
+)
 from dashboard_backend.schemas.projects import ProjectSchema
 from dashboard_backend.schemas.projects.project_schema import (
     BudgetSummarySchema,
@@ -177,6 +184,52 @@ def read_subprojects(
 ):
     """Direct subprojects of a project, drafts excluded."""
     return get_subprojects(db, project.id)
+
+
+@router.get("/{project_id}/constituencies", response_model=ProjectConstituenciesSchema)
+def read_project_constituencies(
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+):
+    """Constituencies this project touches, heaviest first, with their MPs.
+
+    Public, like the other project reads. A project without a geometry returns an
+    empty list plus ``has_geometry = false`` — the UI says *why* there is nothing
+    to show instead of rendering an empty block.
+    """
+    rows = parliament_crud.links_for_project(db, project.id)
+    mandates_by_constituency = parliament_crud.mandates_for_constituencies(
+        db, [constituency.id for _, constituency in rows]
+    )
+
+    constituencies: list[ProjectConstituencySchema] = []
+    for link, constituency in rows:
+        direct, listed = parliament_crud.split_mandates(
+            mandates_by_constituency.get(constituency.id, [])
+        )
+        constituencies.append(
+            ProjectConstituencySchema(
+                id=constituency.id,
+                number=constituency.number,
+                name=constituency.name,
+                state=constituency.state,
+                length_km=link.length_km,
+                share=link.share,
+                overlap_kind=link.overlap_kind,
+                direct_mandates=direct,
+                list_mandates=listed,
+                has_direct_mandate=bool(direct),
+                has_any_mandate=bool(direct or listed),
+            )
+        )
+
+    last_import = parliament_crud.last_successful_run(db, IMPORT_KIND_POLITICIANS)
+    return ProjectConstituenciesSchema(
+        project_id=project.id,
+        has_geometry=bool(project.geojson_representation),
+        constituencies=constituencies,
+        last_import=ImportRunSchema.model_validate(last_import) if last_import else None,
+    )
 
 
 @router.get("/{project_id}/bvwp", response_model=BvwpProjectDataSchema)
