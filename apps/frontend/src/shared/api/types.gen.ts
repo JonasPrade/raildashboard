@@ -206,6 +206,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/constituencies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Project Constituencies
+         * @description Constituencies this project touches, heaviest first, with their MPs.
+         *
+         *     Public, like the other project reads. A project without a geometry returns an
+         *     empty list plus ``has_geometry = false`` — the UI says *why* there is nothing
+         *     to show instead of rendering an empty block.
+         */
+        get: operations["read_project_constituencies_api_v1_projects__project_id__constituencies_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/bvwp": {
         parameters: {
             query?: never;
@@ -1878,6 +1902,160 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/parliament/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Status
+         * @description Abrufstand, key figures and how much of the portfolio is covered.
+         */
+        get: operations["read_status_api_v1_parliament_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/parliament/politicians": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Politicians
+         * @description The working list before an appointment: name search + committee/faction filter.
+         */
+        get: operations["read_politicians_api_v1_parliament_politicians_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/parliament/politicians/{mandate_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Politician */
+        get: operations["read_politician_api_v1_parliament_politicians__mandate_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/parliament/constituencies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Constituencies */
+        get: operations["read_constituencies_api_v1_parliament_constituencies_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/parliament/constituencies/geojson": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Constituencies Geojson
+         * @description Outlines as a map layer, simplified so the map stays responsive.
+         *
+         *     0.002° is roughly 150 m — the same order the prototype used, fine enough for
+         *     a constituency outline and small enough to ship to the browser.
+         */
+        get: operations["read_constituencies_geojson_api_v1_parliament_constituencies_geojson_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/parliament/constituencies/{constituency_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Constituency */
+        get: operations["read_constituency_api_v1_parliament_constituencies__constituency_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/parliament/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Import
+         * @description Refresh the members of parliament from abgeordnetenwatch.
+         */
+        post: operations["start_import_api_v1_parliament_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/parliament/recompute-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Recompute Links
+         * @description Rebuild ``project_to_constituency`` for the whole portfolio.
+         */
+        post: operations["start_recompute_links_api_v1_parliament_recompute_links_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2506,6 +2684,119 @@ export interface components {
              */
             entries: components["schemas"]["ChangeLogEntryRead"][];
         };
+        /**
+         * CommitteeRoleSchema
+         * @description Membership in one of the two committees this feature tracks.
+         */
+        CommitteeRoleSchema: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Role */
+            role?: string | null;
+            /** Role Label */
+            role_label?: string | null;
+        };
+        /** CommitteeSchema */
+        CommitteeSchema: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * Member Count
+             * @default 0
+             */
+            member_count: number;
+        };
+        /** ConstituencyDetailSchema */
+        ConstituencyDetailSchema: {
+            /** Id */
+            id: number;
+            /** Number */
+            number: number;
+            /** Name */
+            name: string;
+            /** State */
+            state?: string | null;
+            /**
+             * Projects
+             * @default []
+             */
+            projects: components["schemas"]["ConstituencyProjectSchema"][];
+            /**
+             * Direct Mandates
+             * @default []
+             */
+            direct_mandates: components["schemas"]["MandateSchema"][];
+            /**
+             * List Mandates
+             * @default []
+             */
+            list_mandates: components["schemas"]["MandateSchema"][];
+            /** Has Direct Mandate */
+            has_direct_mandate: boolean;
+            /** Has Any Mandate */
+            has_any_mandate: boolean;
+        };
+        /** ConstituencyListItemSchema */
+        ConstituencyListItemSchema: {
+            /** Id */
+            id: number;
+            /** Number */
+            number: number;
+            /** Name */
+            name: string;
+            /** State */
+            state?: string | null;
+            /**
+             * Project Count
+             * @default 0
+             */
+            project_count: number;
+            /**
+             * Mandate Count
+             * @default 0
+             */
+            mandate_count: number;
+            /**
+             * Has Direct Mandate
+             * @default false
+             */
+            has_direct_mandate: boolean;
+            /**
+             * Has Geometry
+             * @default false
+             */
+            has_geometry: boolean;
+        };
+        /** ConstituencyProjectSchema */
+        ConstituencyProjectSchema: {
+            /** Project Id */
+            project_id: number;
+            /** Name */
+            name: string;
+            /** Project Number */
+            project_number?: string | null;
+            /** Length Km */
+            length_km: number;
+            /** Share */
+            share: number;
+            /** Overlap Kind */
+            overlap_kind: string;
+        };
+        /** ConstituencySummarySchema */
+        ConstituencySummarySchema: {
+            /** Id */
+            id: number;
+            /** Number */
+            number: number;
+            /** Name */
+            name: string;
+            /** State */
+            state?: string | null;
+        };
         /** DebugTaskRequest */
         DebugTaskRequest: {
             /** X */
@@ -2787,6 +3078,23 @@ export interface components {
              */
             project_ids: number[];
         };
+        /** ImportRunSchema */
+        ImportRunSchema: {
+            /** Id */
+            id: number;
+            /** Kind */
+            kind: string;
+            /** Status */
+            status: string;
+            /** Started At */
+            started_at?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Stats */
+            stats?: unknown;
+            /** Error */
+            error?: string | null;
+        };
         /** LinkDocumentInput */
         LinkDocumentInput: {
             /** Document Id */
@@ -2796,6 +3104,42 @@ export interface components {
         LinkFinvesInput: {
             /** Finve Ids */
             finve_ids?: number[];
+        };
+        /**
+         * MandateSchema
+         * @description One member of parliament, seen through their mandate.
+         *
+         *     ``is_direct_mandate`` and "ran here, entered over the list" are two different
+         *     degrees of responsibility and stay apart all the way into the UI.
+         */
+        MandateSchema: {
+            /** Mandate Id */
+            mandate_id: number;
+            /** Politician Id */
+            politician_id: number;
+            /** Name */
+            name: string;
+            /** First Name */
+            first_name?: string | null;
+            /** Last Name */
+            last_name?: string | null;
+            /** Fraction */
+            fraction?: string | null;
+            /** Party */
+            party?: string | null;
+            /** Mandate Type */
+            mandate_type?: string | null;
+            /** Is Direct Mandate */
+            is_direct_mandate: boolean;
+            /** Profile Url */
+            profile_url?: string | null;
+            /** Info */
+            info?: string | null;
+            /**
+             * Committees
+             * @default []
+             */
+            committees: components["schemas"]["CommitteeRoleSchema"][];
         };
         /** MediaEntrySchema */
         MediaEntrySchema: {
@@ -2884,6 +3228,63 @@ export interface components {
             /** Longitude */
             longitude?: number | null;
         };
+        /** ParliamentPeriodSchema */
+        ParliamentPeriodSchema: {
+            /** Id */
+            id: number;
+            /** External Id */
+            external_id: number;
+            /** Label */
+            label: string;
+            /** Parliament Label */
+            parliament_label?: string | null;
+        };
+        /**
+         * ParliamentStatusSchema
+         * @description Everything the UI needs to say how current the data is.
+         */
+        ParliamentStatusSchema: {
+            period?: components["schemas"]["ParliamentPeriodSchema"] | null;
+            last_politician_import?: components["schemas"]["ImportRunSchema"] | null;
+            last_constituency_import?: components["schemas"]["ImportRunSchema"] | null;
+            last_link_run?: components["schemas"]["ImportRunSchema"] | null;
+            /**
+             * Is Stale
+             * @default false
+             */
+            is_stale: boolean;
+            /**
+             * Stale After Days
+             * @default 60
+             */
+            stale_after_days: number;
+            /**
+             * Counts
+             * @default {}
+             */
+            counts: {
+                [key: string]: number;
+            };
+            /**
+             * Coverage
+             * @default {}
+             */
+            coverage: {
+                [key: string]: number;
+            };
+            /**
+             * Fractions
+             * @default []
+             */
+            fractions: string[];
+            /**
+             * Committees
+             * @default []
+             */
+            committees: components["schemas"]["CommitteeSchema"][];
+            /** Geometry Attribution */
+            geometry_attribution?: string | null;
+        };
         /** ParseResultPublicSchema */
         ParseResultPublicSchema: {
             /** Id */
@@ -2939,6 +3340,98 @@ export interface components {
             url: string;
             /** Comment */
             comment?: string | null;
+        };
+        /** PoliticianDetailSchema */
+        PoliticianDetailSchema: {
+            /** Politician Id */
+            politician_id: number;
+            /** Mandate Id */
+            mandate_id: number;
+            /** Name */
+            name: string;
+            /** First Name */
+            first_name?: string | null;
+            /** Last Name */
+            last_name?: string | null;
+            /** Fraction */
+            fraction?: string | null;
+            /** Party */
+            party?: string | null;
+            /** Mandate Type */
+            mandate_type?: string | null;
+            /** Is Direct Mandate */
+            is_direct_mandate: boolean;
+            /** Profile Url */
+            profile_url?: string | null;
+            constituency?: components["schemas"]["ConstituencySummarySchema"] | null;
+            /**
+             * Committees
+             * @default []
+             */
+            committees: components["schemas"]["CommitteeRoleSchema"][];
+            /**
+             * Project Count
+             * @default 0
+             */
+            project_count: number;
+            /**
+             * Projects
+             * @default []
+             */
+            projects: components["schemas"]["PoliticianProjectSchema"][];
+        };
+        /** PoliticianListItemSchema */
+        PoliticianListItemSchema: {
+            /** Politician Id */
+            politician_id: number;
+            /** Mandate Id */
+            mandate_id: number;
+            /** Name */
+            name: string;
+            /** First Name */
+            first_name?: string | null;
+            /** Last Name */
+            last_name?: string | null;
+            /** Fraction */
+            fraction?: string | null;
+            /** Party */
+            party?: string | null;
+            /** Mandate Type */
+            mandate_type?: string | null;
+            /** Is Direct Mandate */
+            is_direct_mandate: boolean;
+            /** Profile Url */
+            profile_url?: string | null;
+            constituency?: components["schemas"]["ConstituencySummarySchema"] | null;
+            /**
+             * Committees
+             * @default []
+             */
+            committees: components["schemas"]["CommitteeRoleSchema"][];
+            /**
+             * Project Count
+             * @default 0
+             */
+            project_count: number;
+        };
+        /** PoliticianProjectSchema */
+        PoliticianProjectSchema: {
+            /** Project Id */
+            project_id: number;
+            /** Name */
+            name: string;
+            /** Project Number */
+            project_number?: string | null;
+            /** Length Km */
+            length_km: number;
+            /** Share */
+            share: number;
+            /** Overlap Kind */
+            overlap_kind: string;
+            /** Constituency Number */
+            constituency_number: number;
+            /** Constituency Name */
+            constituency_name: string;
         };
         /**
          * ProgressChildSchema
@@ -3063,6 +3556,53 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /** ProjectConstituenciesSchema */
+        ProjectConstituenciesSchema: {
+            /** Project Id */
+            project_id: number;
+            /** Has Geometry */
+            has_geometry: boolean;
+            /**
+             * Constituencies
+             * @default []
+             */
+            constituencies: components["schemas"]["ProjectConstituencySchema"][];
+            last_import?: components["schemas"]["ImportRunSchema"] | null;
+        };
+        /**
+         * ProjectConstituencySchema
+         * @description A constituency touched by one project, with its weight.
+         */
+        ProjectConstituencySchema: {
+            /** Id */
+            id: number;
+            /** Number */
+            number: number;
+            /** Name */
+            name: string;
+            /** State */
+            state?: string | null;
+            /** Length Km */
+            length_km: number;
+            /** Share */
+            share: number;
+            /** Overlap Kind */
+            overlap_kind: string;
+            /**
+             * Direct Mandates
+             * @default []
+             */
+            direct_mandates: components["schemas"]["MandateSchema"][];
+            /**
+             * List Mandates
+             * @default []
+             */
+            list_mandates: components["schemas"]["MandateSchema"][];
+            /** Has Direct Mandate */
+            has_direct_mandate: boolean;
+            /** Has Any Mandate */
+            has_any_mandate: boolean;
         };
         /**
          * ProjectCreate
@@ -5391,6 +5931,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_project_constituencies_api_v1_projects__project_id__constituencies_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectConstituenciesSchema"];
                 };
             };
             /** @description Validation Error */
@@ -8768,6 +9339,237 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_status_api_v1_parliament_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParliamentStatusSchema"];
+                };
+            };
+        };
+    };
+    read_politicians_api_v1_parliament_politicians_get: {
+        parameters: {
+            query?: {
+                /** @description Namensteil */
+                query?: string | null;
+                /** @description verkehr | haushalt */
+                committee?: string | null;
+                fraction?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PoliticianListItemSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_politician_api_v1_parliament_politicians__mandate_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mandate_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PoliticianDetailSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_constituencies_api_v1_parliament_constituencies_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConstituencyListItemSchema"][];
+                };
+            };
+        };
+    };
+    read_constituencies_geojson_api_v1_parliament_constituencies_geojson_get: {
+        parameters: {
+            query?: {
+                /** @description Vereinfachung in Grad (0 = Rohgeometrie) */
+                tolerance?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_constituency_api_v1_parliament_constituencies__constituency_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                constituency_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConstituencyDetailSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_import_api_v1_parliament_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskLaunchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_recompute_links_api_v1_parliament_recompute_links_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskLaunchResponse"];
+                };
             };
             /** @description Validation Error */
             422: {

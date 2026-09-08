@@ -68,6 +68,9 @@ export function Header() {
             <NavLink to="/finves" style={({ isActive }) => isActive ? navLinkActive : navLinkBase} onClick={closeDrawer}>
                 ▸ Haushalt
             </NavLink>
+            <NavLink to="/abgeordnete" style={({ isActive }) => isActive ? navLinkActive : navLinkBase} onClick={closeDrawer}>
+                ▸ Abgeordnete
+            </NavLink>
             {user && (
                 <NavLink to="/tasks" style={({ isActive }) => isActive ? navLinkActive : navLinkBase} onClick={closeDrawer}>
                     ▸ Aufgaben
@@ -95,6 +98,9 @@ export function Header() {
             </NavLink>
             <NavLink to="/finves" style={({ isActive }) => isActive ? drawerNavActive : drawerNavBase} onClick={closeDrawer}>
                 ▸ Haushalt
+            </NavLink>
+            <NavLink to="/abgeordnete" style={({ isActive }) => isActive ? drawerNavActive : drawerNavBase} onClick={closeDrawer}>
+                ▸ Abgeordnete
             </NavLink>
             {user && (
                 <NavLink to="/tasks" style={({ isActive }) => isActive ? drawerNavActive : drawerNavBase} onClick={closeDrawer}>

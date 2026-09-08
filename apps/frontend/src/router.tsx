@@ -30,6 +30,7 @@ const UnassignedPage = lazyWithRetry(() => import("./features/admin/UnassignedPa
 const FinveProgressAdminPage = lazyWithRetry(() => import("./features/admin/FinveProgressAdminPage"));
 const NewProjectPage = lazyWithRetry(() => import("./features/admin/new-project/NewProjectPage"));
 const TasksPage = lazyWithRetry(() => import("./features/todos/TasksPage"));
+const AbgeordnetePage = lazyWithRetry(() => import("./features/abgeordnete/AbgeordnetePage"));
 const DraftsPage = lazyWithRetry(() => import("./features/admin/drafts/DraftsPage"));
 const AnleitungenPage = lazyWithRetry(() => import("./features/guides/AnleitungenPage"));
 const ProjektfortschrittGuidePage = lazyWithRetry(() => import("./features/guides/ProjektfortschrittGuidePage"));
@@ -67,6 +68,14 @@ export const router = createBrowserRouter([
                 element: (
                     <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
                         <ProjectDetail />
+                    </Suspense>
+                ),
+            },
+            {
+                path: "abgeordnete",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <AbgeordnetePage />
                     </Suspense>
                 ),
             },

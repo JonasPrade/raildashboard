@@ -14,6 +14,8 @@ type Props = {
     onSearchChange: (value: string) => void;
     totalProjects: number;
     filteredCount: number;
+    showConstituencies: boolean;
+    onShowConstituenciesChange: (value: boolean) => void;
 };
 
 export default function MapControls({
@@ -28,6 +30,8 @@ export default function MapControls({
     onSearchChange,
     totalProjects,
     filteredCount,
+    showConstituencies,
+    onShowConstituenciesChange,
 }: Props) {
     return (
         <Box
@@ -73,6 +77,12 @@ export default function MapControls({
                     <ChronicleButton onClick={onOpenFilters}>
                         Projektgruppen
                     </ChronicleButton>
+                    <Switch
+                        label="Wahlkreise"
+                        checked={showConstituencies}
+                        onChange={(e) => onShowConstituenciesChange(e.currentTarget.checked)}
+                        size="sm"
+                    />
                     <Switch
                         label="Nur Hauptprojekte"
                         checked={onlySuperior}

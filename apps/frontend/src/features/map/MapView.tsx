@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Stack } from "@mantine/core";
 import maplibregl from "maplibre-gl";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import type { Project } from "../../shared/api/queries";
+import type { ConstituencyFeatureCollection, Project } from "../../shared/api/queries";
 import ProjectSummaryCard from "../projects/ProjectSummaryCard";
 import { ChronicleButton } from "../../components/chronicle";
 
@@ -156,6 +156,12 @@ type Props = {
     clickable?: boolean;
     /** Initial map center [longitude, latitude]. Overrides the default Germany center. */
     initialCenter?: [number, number] | null;
+    /** Constituency outlines as a switchable background layer (© GeoBasis-DE / BKG). */
+    constituencies?: ConstituencyFeatureCollection | null;
+    /** Called with the clicked constituency id, or null when the click missed. */
+    onConstituencySelect?: (constituencyId: number | null) => void;
+    /** Highlighted constituency, driven by the selection panel. */
+    selectedConstituencyId?: number | null;
 };
 
 type SelectedProject = {
@@ -164,7 +170,17 @@ type SelectedProject = {
     y: number;
 };
 
-export default function MapView({ projects, lineWidth = 4, pointSize = 5, height = 800, clickable = true, initialCenter }: Props) {
+export default function MapView({
+    projects,
+    lineWidth = 4,
+    pointSize = 5,
+    height = 800,
+    clickable = true,
+    initialCenter,
+    constituencies = null,
+    onConstituencySelect,
+    selectedConstituencyId = null,
+}: Props) {
     const mapContainerRef = useRef<HTMLDivElement | null>(null);
     const mapInstanceRef = useRef<maplibregl.Map | null>(null);
     const hoverFeatureIdRef = useRef<string | number | null>(null);
@@ -239,6 +255,10 @@ export default function MapView({ projects, lineWidth = 4, pointSize = 5, height
                         tileSize: 256,
                         attribution: tileAttribution,
                     },
+                    constituencies: {
+                        type: "geojson",
+                        data: { type: "FeatureCollection", features: [] },
+                    },
                     "project-routes": {
                         type: "geojson",
                         data: { type: "FeatureCollection", features: [] },
@@ -253,6 +273,37 @@ export default function MapView({ projects, lineWidth = 4, pointSize = 5, height
                         id: "basemap",
                         type: "raster",
                         source: "basemap",
+                    },
+                    // Below the project layers on purpose: the outlines are
+                    // context, the projects are the subject.
+                    {
+                        id: "constituencies-fill",
+                        type: "fill",
+                        source: "constituencies",
+                        paint: {
+                            "fill-color": "#0f2347",
+                            "fill-opacity": [
+                                "case",
+                                ["boolean", ["feature-state", "selected"], false],
+                                0.22,
+                                0.05,
+                            ],
+                        },
+                    },
+                    {
+                        id: "constituencies-outline",
+                        type: "line",
+                        source: "constituencies",
+                        paint: {
+                            "line-color": "#0f2347",
+                            "line-width": [
+                                "case",
+                                ["boolean", ["feature-state", "selected"], false],
+                                2.5,
+                                0.8,
+                            ],
+                            "line-opacity": 0.6,
+                        },
                     },
                     {
                         id: "project-routes-line",
@@ -431,6 +482,74 @@ export default function MapView({ projects, lineWidth = 4, pointSize = 5, height
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (pointSource) pointSource.setData(pointFeatureCollection as any);
     }, [lineFeatureCollection, pointFeatureCollection, isMapReady]);
+
+    // Constituency layer: data, visibility and the selected outline.
+    useEffect(() => {
+        if (!isMapReady) return;
+        const mapInstance = mapInstanceRef.current;
+        if (!mapInstance) return;
+        const source = mapInstance.getSource("constituencies") as
+            | maplibregl.GeoJSONSource
+            | undefined;
+        const data = constituencies ?? { type: "FeatureCollection" as const, features: [] };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (source) source.setData(data as any);
+        const visibility = constituencies ? "visible" : "none";
+        for (const layer of ["constituencies-fill", "constituencies-outline"]) {
+            mapInstance.setLayoutProperty(layer, "visibility", visibility);
+        }
+    }, [constituencies, isMapReady]);
+
+    const previousConstituencyRef = useRef<number | null>(null);
+    useEffect(() => {
+        if (!isMapReady) return;
+        const mapInstance = mapInstanceRef.current;
+        if (!mapInstance) return;
+        if (previousConstituencyRef.current !== null) {
+            mapInstance.setFeatureState(
+                { source: "constituencies", id: previousConstituencyRef.current },
+                { selected: false },
+            );
+        }
+        if (selectedConstituencyId !== null) {
+            mapInstance.setFeatureState(
+                { source: "constituencies", id: selectedConstituencyId },
+                { selected: true },
+            );
+        }
+        previousConstituencyRef.current = selectedConstituencyId;
+    }, [selectedConstituencyId, isMapReady, constituencies]);
+
+    // Clicking an outline selects the constituency — the third entry point.
+    useEffect(() => {
+        if (!isMapReady || !onConstituencySelect) return undefined;
+        const mapInstance = mapInstanceRef.current;
+        if (!mapInstance) return undefined;
+
+        const handleClick = (event: maplibregl.MapMouseEvent) => {
+            // A project click wins: the outline is context, not the subject.
+            const projectHits = mapInstance.queryRenderedFeatures(event.point, {
+                layers: ["project-routes-line", "project-points-circle"],
+            });
+            if (projectHits.length > 0) return;
+
+            const hits = mapInstance.queryRenderedFeatures(event.point, {
+                layers: ["constituencies-fill"],
+            });
+            const properties = hits[0]?.properties;
+            if (!isRecord(properties)) {
+                onConstituencySelect(null);
+                return;
+            }
+            const value = Number(properties.constituency_id);
+            onConstituencySelect(Number.isFinite(value) ? value : null);
+        };
+
+        mapInstance.on("click", handleClick);
+        return () => {
+            mapInstance.off("click", handleClick);
+        };
+    }, [isMapReady, onConstituencySelect]);
 
     // Update line-width expression when the slider changes
     useEffect(() => {

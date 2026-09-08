@@ -25,9 +25,16 @@ import { useSearchParams } from "react-router-dom";
 
 import GroupFilterDrawer, { type ProjectGroupOption } from "../projects/GroupFilterDrawer";
 import { ProjectCard } from "../projects/ProjectCard";
+import ConstituencyPanel from "../abgeordnete/ConstituencyPanel";
 import MapControls from "./MapControls";
 import MapView, { type MapViewProject } from "./MapView";
-import { useProjectGroups, useAppSettings, type ProjectGroup, type Project } from "../../shared/api/queries";
+import {
+    useAppSettings,
+    useConstituencyGeojson,
+    useProjectGroups,
+    type Project,
+    type ProjectGroup,
+} from "../../shared/api/queries";
 
 const DEFAULT_GROUP_COLOR = "#2563eb";
 const hasNumericId = (
@@ -46,10 +53,14 @@ export default function MapPage() {
     const mapGroupMode = appSettings?.map_group_mode ?? "preconfigured";
     const [searchParams, setSearchParams] = useSearchParams();
     const [lineWidth, setLineWidth] = useState(DEFAULT_LINE_WIDTH);
+    const [selectedConstituencyId, setSelectedConstituencyId] = useState<number | null>(null);
     const [pointSize, setPointSize] = useState(DEFAULT_POINT_SIZE);
 
     const view = searchParams.get("view") ?? "map";
     const onlySuperior = searchParams.get("only_superior") !== "false"; // default true
+    // Layer state lives in the URL like the other map settings, so a link
+    // carries the view someone was looking at.
+    const showConstituencies = searchParams.get("wahlkreise") === "1";
 
     // --- Search state: local for immediate input, debounced to URL ---
     const [localSearch, setLocalSearch] = useState(() => searchParams.get("search") ?? "");
@@ -64,6 +75,17 @@ export default function MapPage() {
         }, 200);
         return () => clearTimeout(timer);
     }, [localSearch, setSearchParams]);
+
+    const constituencyGeojson = useConstituencyGeojson(showConstituencies);
+
+    const handleShowConstituenciesChange = (checked: boolean) => {
+        if (!checked) setSelectedConstituencyId(null);
+        setSearchParams((prev) => {
+            if (checked) prev.set("wahlkreise", "1");
+            else prev.delete("wahlkreise");
+            return prev;
+        });
+    };
 
     const handleOnlySuperiorChange = (checked: boolean) => {
         setSearchParams((prev) => {
@@ -448,7 +470,40 @@ export default function MapPage() {
             <Container size="xl">
                 {viewToggle}
                 <Box style={{ position: "relative" }}>
-                    <MapView projects={filteredMapProjects} lineWidth={lineWidth} pointSize={pointSize} />
+                    <MapView
+                        projects={filteredMapProjects}
+                        lineWidth={lineWidth}
+                        pointSize={pointSize}
+                        constituencies={
+                            showConstituencies ? constituencyGeojson.data ?? null : null
+                        }
+                        onConstituencySelect={
+                            showConstituencies ? setSelectedConstituencyId : undefined
+                        }
+                        selectedConstituencyId={selectedConstituencyId}
+                    />
+                    {showConstituencies && selectedConstituencyId !== null && (
+                        <ConstituencyPanel
+                            constituencyId={selectedConstituencyId}
+                            onClose={() => setSelectedConstituencyId(null)}
+                        />
+                    )}
+                    {showConstituencies && constituencyGeojson.data?.attribution && (
+                        <Text
+                            size="xs"
+                            c="dimmed"
+                            style={{
+                                position: "absolute",
+                                bottom: 6,
+                                left: 12,
+                                zIndex: 5,
+                                background: "rgba(255,255,255,0.85)",
+                                padding: "2px 6px",
+                            }}
+                        >
+                            {constituencyGeojson.data.attribution}
+                        </Text>
+                    )}
                     {isLoading && groups.length === 0 && (
                         <Box
                             style={{
@@ -507,6 +562,8 @@ export default function MapPage() {
                         onSearchChange={setLocalSearch}
                         totalProjects={selectedProjects.length}
                         filteredCount={filteredMapProjects.length}
+                        showConstituencies={showConstituencies}
+                        onShowConstituenciesChange={handleShowConstituenciesChange}
                     />
                 </Box>
             </Container>
