@@ -181,7 +181,11 @@ def _upsert_tracked(
     existing = db.query(model_cls).filter(*key_filter).first()
 
     if existing is None:
-        row = model_cls(**proposed.model_dump())
+        create_data = proposed.model_dump()
+        # An auto-assigned primary key must not be passed as an explicit None
+        if create_data.get("id", False) is None:
+            create_data.pop("id")
+        row = model_cls(**create_data)
         db.add(row)
         db.flush()
 
@@ -224,7 +228,16 @@ def upsert_finve(
     user: "User | None",
     haushalt_year: int,
 ) -> tuple[Finve, bool, FinveChangeLog | None]:
-    """Insert or update a Finve record. Returns (finve, created, changelog)."""
+    """Insert or update a Finve record. Returns (finve, created, changelog).
+
+    Measures the report lists without a FinVe number are matched on their
+    ``finve_key`` instead of the primary key, so the same measure keeps its row
+    across report years even though its id was assigned by the database.
+    """
+    if proposed.finve_key:
+        key_filter = (Finve.finve_key == proposed.finve_key,)
+    else:
+        key_filter = (Finve.id == proposed.id,)
     return _upsert_tracked(
         db,
         model_cls=Finve,
@@ -232,9 +245,9 @@ def upsert_finve(
         entry_cls=FinveChangeLogEntry,
         log_fk="finve_id",
         proposed=proposed,
-        key_filter=(Finve.id == proposed.id,),
+        key_filter=key_filter,
         tracked_fields=_FINVE_TRACKED_FIELDS,
-        exclude={"id"},
+        exclude={"id", "finve_key"},
         user=user,
         haushalt_year=haushalt_year,
     )

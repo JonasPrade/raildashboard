@@ -2744,8 +2744,19 @@ export interface components {
          * @description One row submitted in the confirm request (project_ids may be adjusted by user).
          */
         HaushaltsConfirmRowInput: {
+            /** Row Key */
+            row_key: string;
             /** Finve Number */
-            finve_number: number;
+            finve_number?: number | null;
+            /** Finve Key */
+            finve_key?: string | null;
+            /** Table Number */
+            table_number?: number | null;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
             /** Status */
             status: string;
             /**
@@ -3907,7 +3918,7 @@ export interface components {
             /** Lfd Nr */
             lfd_nr?: string | null;
             /** Fin Ve */
-            fin_ve: number;
+            fin_ve?: number | null;
             /** Bedarfsplan Number */
             bedarfsplan_number?: string | null;
             /** Cost Estimate Original */
@@ -3941,10 +3952,16 @@ export interface components {
         /**
          * ProposedFinve
          * @description Proposed Finve values from the PDF parser.
+         *
+         *     Either ``id`` (the FinVe number printed in column 2 of the Bedarfsplan
+         *     table) or ``finve_key`` (the string identity of a measure the report lists
+         *     without a FinVe number) identifies the row — see ``haushalt_keys``.
          */
         ProposedFinve: {
             /** Id */
-            id: number;
+            id?: number | null;
+            /** Finve Key */
+            finve_key?: string | null;
             /** Name */
             name: string;
             /** Starting Year */
@@ -3956,6 +3973,11 @@ export interface components {
              * @default false
              */
             is_sammel_finve: boolean;
+            /**
+             * Temporary Finve Number
+             * @default false
+             */
+            temporary_finve_number: boolean;
         };
         /** RevertFieldRequest */
         RevertFieldRequest: {

@@ -141,8 +141,9 @@ def confirm_import(
 
         # 1. HaushaltTitel get_or_create handled inside upsert_budget_titel_entries
         # 2. Finve INSERT/UPDATE
+        finve = None
         if row.proposed_finve:
-            _, created, _ = upsert_finve(db, row.proposed_finve, current_user, record.haushalt_year)
+            finve, created, _ = upsert_finve(db, row.proposed_finve, current_user, record.haushalt_year)
             if created:
                 finves_created += 1
             else:
@@ -150,6 +151,12 @@ def confirm_import(
 
         # 3. Budget INSERT/UPDATE
         if row.proposed_budget:
+            # A measure without a printed FinVe number only learns its id here,
+            # from the Finve row just created or matched on its key.
+            if row.proposed_budget.fin_ve is None:
+                if finve is None:
+                    continue
+                row.proposed_budget.fin_ve = finve.id
             budget, created, _ = upsert_budget(
                 db, row.proposed_budget, current_user, record.haushalt_year
             )
@@ -163,8 +170,8 @@ def confirm_import(
                 upsert_budget_titel_entries(db, budget.id, row.proposed_titel_entries)
 
         # 5. Sync FinveToProject for new and updated FinVes
-        if row.status in ("new", "update") and row.proposed_finve:
-            finve_id = row.proposed_finve.id
+        if row.status in ("new", "update") and row.proposed_finve and finve is not None:
+            finve_id = finve.id
             is_sammel = row.proposed_finve.is_sammel_finve
             # SV-FinVes track membership per haushalt_year; regular FinVes use NULL (permanent)
             link_year = record.haushalt_year if is_sammel else None
@@ -193,7 +200,10 @@ def confirm_import(
     # 6. Save unmatched rows if requested
     if body.unmatched_action == "save":
         unmatched_rows_data = [
-            {"raw_finve_number": str(row.finve_number), "raw_name": row.name}
+            {
+                "raw_finve_number": str(row.finve_number or row.finve_key or row.row_key),
+                "raw_name": row.name,
+            }
             for row in body.rows
             if row.status == "unmatched"
         ]

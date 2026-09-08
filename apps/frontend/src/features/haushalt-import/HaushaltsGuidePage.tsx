@@ -32,14 +32,14 @@ Diese Anlage wird jährlich zusammen mit dem Bundeshaushaltsentwurf veröffentli
 5. Nach Abschluss wird die Seite automatisch zur Ergebnis-Überprüfung weitergeleitet.
 
 > [!blue] Hinweis
-> Teil B enthält mehrere Tabellen. Eingelesen wird ausschließlich „Tabelle 1 – Bedarfsplanmaßnahmen"; Lärmsanierung, ERTMS, Kleine und Mittlere Maßnahmen sowie InvKG-Maßnahmen enthalten keine FinVe-Nummern und werden übersprungen. Welche Tabellen erkannt wurden, steht im Review.`,
+> Teil B enthält fünf Tabellen (Bedarfsplanmaßnahmen, Lärmsanierung, ERTMS, Kleine und Mittlere Maßnahmen, Maßnahmen nach InvKG). Alle werden eingelesen und im Review als eigene Blöcke angezeigt. Nur die Bedarfsplan-Tabelle druckt FinVe-Nummern — die übrigen Maßnahmen werden über ihre Kennung im Bericht (z. B. „SV 52/2017", „F 03 E 0793", „B0094") erkannt und erhalten eine vorläufige FinVe-Nummer.`,
         },
         {
             key: "spaltenzuordnung",
             title: "Spaltenzuordnung prüfen",
             body: `Ganz oben im Review steht das Panel **„Spaltenzuordnung"**. Es zeigt zwei Dinge, die vor allen Einzelzeilen geprüft gehören:
 
-1. **Welche Tabelle eingelesen wurde** und welche übersprungen wurden (mit Seitenzahlen).
+1. **Welche Tabellen eingelesen wurden**, mit Seitenzahlen und Zeilenzahl je Tabelle. Weicht eine Zeilenzahl stark vom Vorjahr ab, lohnt ein Blick ins PDF.
 2. **Woher die Zuordnung stammt** – als Badge:
    - \`aus der Tabellenüberschrift\` (grün): Die Kopfzeile des PDFs wurde gelesen. Normalfall, nichts zu tun.
    - \`per KI zugeordnet\` (gelb): Die Überschriften waren ungewöhnlich, ein Sprachmodell hat sie den Zielfeldern zugeordnet. Über „Details anzeigen" kurz gegenprüfen.

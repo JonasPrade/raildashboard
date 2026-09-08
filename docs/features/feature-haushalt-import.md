@@ -31,8 +31,8 @@ Die drei Stufen aus [`feature-pdf-import-unification.md`](feature-pdf-import-uni
 
 | Stufe | Was passiert | Wo |
 |---|---|---|
-| 1 Textgewinnung | `pdfplumber` liest Tabellenstruktur **und** Seitentext. Optional läuft zusätzlich die gemeinsame OCR-Stufe (`HAUSHALT_OCR_ENABLED`), deren Text mit dem Lauf gespeichert wird | `_extract_pages`, `services/document_ocr.py` |
-| 2 Segmentierung | Teil B besteht aus mehreren Tabellen; nur die Bedarfsplan-Tabelle wird verarbeitet | `_detect_table_sections`, `_select_import_section` |
+| 1 Textgewinnung | `pdfplumber` liest Tabellenstruktur **und** Seitentext; Seiten ohne Trennlinien werden aus den Textzeilen rekonstruiert. Optional läuft zusätzlich die gemeinsame OCR-Stufe (`HAUSHALT_OCR_ENABLED`), deren Text mit dem Lauf gespeichert wird | `_extract_pages`, `_page_table_rows`, `services/document_ocr.py` |
+| 2 Segmentierung | Teil B besteht aus mehreren Tabellen; jede wird als eigener Abschnitt verarbeitet | `_detect_table_sections`, `_parse_section` |
 | 3 Semantik | Die Kopfzeile wird **einmal pro Dokument** auf das kanonische Schema gemappt, danach werden alle Werte deterministisch übertragen | `haushalt_columns.resolve_column_map` |
 
 **Zahlenwerte laufen nie durch ein Modell.** Ein LLM wird ausschließlich für die
@@ -41,21 +41,74 @@ deterministische Erkennung an der Kopfzeile scheitert.
 
 ### Tabellen von Teil B
 
-Der Bericht enthält (Stand HH-Entwurf 2027) fünf Tabellen. Nur die erste liefert
-FinVe-Zeilen; die übrigen listen Positionen ohne FinVe-Nummer und werden erkannt,
-protokolliert und übersprungen — vor der Segmentierung landeten ihre Zeilen als
-Titel- und Erläuterungs-Untereinträge an der letzten Sammel-FinVe von Tabelle 1.
+Der Bericht enthält (Stand HH-Entwurf 2027) fünf Tabellen. **Alle werden
+eingelesen**, jede aber als eigener Abschnitt mit eigener Spaltenzuordnung —
+vor der Segmentierung landeten die Zeilen der Tabellen 2–5 als Titel- und
+Erläuterungs-Untereinträge an der letzten Sammel-FinVe von Tabelle 1.
 
-| Tabelle | Inhalt | Import |
-|---|---|---|
-| 1 | Bedarfsplanmaßnahmen | ja |
-| 2 | Lärmsanierung | nein |
-| 3 | ERTMS | nein |
-| 4 | Kleine und Mittlere Maßnahmen der Bundesschienenwege | nein |
-| 5 | Maßnahmen nach InvKG | nein |
+| Tabelle | Inhalt | Zeilen 2027 | Identität der Zeile |
+|---|---|---|---|
+| 1 | Bedarfsplanmaßnahmen | 83 (+2 unmatched) | FinVe-Nummer aus Spalte 2 |
+| 2 | Lärmsanierung | 8 | `finve_key` (`t2:SV 52/2017`) |
+| 3 | ERTMS | 10 | `finve_key` (`t3:F08Q0770`) |
+| 4 | Kleine und Mittlere Maßnahmen der Bundesschienenwege | 11 | `finve_key` (`t4:F 03 E 0793`) |
+| 5 | Maßnahmen nach InvKG | 29 | `finve_key` (`t5:B0094`) |
 
 Erkennung über die Seitenüberschrift `Tabelle <N> - <Titel>`. Ein Bericht ohne
-solche Überschriften wird wie bisher als eine einzige Tabelle behandelt.
+solche Überschriften wird wie bisher als eine einzige Tabelle behandelt. Im
+Review erscheint jede Tabelle als eigener Block.
+
+### Identität ohne FinVe-Nummer (`finve_key`)
+
+Nur Tabelle 1 druckt eine FinVe-Nummer; sie bleibt der Primärschlüssel von
+`finve`. Die übrigen Tabellen identifizieren ihre Maßnahmen über eine
+Zeichenkette, die in `finve.finve_key` landet (`tasks/haushalt_keys.py`):
+
+| Erste Spalte im PDF | Schlüssel |
+|---|---|
+| `YYY SV 52/2017` | `t2:SV 52/2017` |
+| `YYY` + FinVe-Spalte `F08Q0770` | `t3:F08Q0770` |
+| `YYY F 03 E 0793` | `t4:F 03 E 0793` |
+| `B0094 5/ Nr.1 F 21/S 0555` | `t5:B0094` |
+| `YYY` ohne Kennung | `t2:foerderrichtlinie-laermsanierung-1999` (Slug + Aufnahmejahr) |
+
+Tabelle 5 nutzt die laufende Nummer, weil sie sich einen durchgehenden
+`B####`-Raum mit Tabelle 1 teilt (im Bericht 2027 geprüft: keine Überschneidung).
+Wiederholt der Bericht eine Kennung — 2027 steht `F 03 E 0793` zweimal, einmal
+für die ursprüngliche Vereinbarung und einmal für die Änderungsvereinbarung —,
+bekommt die zweite Zeile `#2` angehängt, in der Reihenfolge des Berichts.
+
+Diese Maßnahmen bekommen ihre `finve.id` von der Datenbank und tragen
+`temporary_finve_number = true`. `upsert_finve` matcht sie beim nächsten
+Jahrgang über `finve_key`, nicht über die Nummer.
+
+> **Grenze:** Die `#2`-Nummerierung hängt an der Reihenfolge im Bericht. Käme in
+> einem künftigen Jahrgang eine weitere Zeile mit derselben Kennung *davor*
+> hinzu, verschiebt sich die Zuordnung. Betroffen sind nur echte Doubletten
+> (2027: eine).
+
+### Zeilen ohne Trennlinien rekonstruieren
+
+Die ERTMS-Seiten (2027: S. 27–31) und eine Seite der Kleinen und Mittleren
+Maßnahmen (S. 34) drucken keine waagerechten Linien zwischen den Maßnahmen.
+pdfplumber fasst dort einen ganzen Abschnitt in die erste Zelle zusammen —
+erkennbar an einer ersten Spalte mit mehreren hundert Zeichen. Für solche Seiten
+greift `_page_table_rows` auf eine zeilenbasierte Extraktion zurück und
+gruppiert die Textzeilen wieder zu logischen Zeilen (`_regroup_text_rows`):
+neue Zeile bei `YYY`/`B####` in Spalte 1 oder bei `Erläuterung:` /
+`nachrichtlich:` in der Bezeichnungsspalte. Das Ergebnis hat exakt die Zellform
+der linienbasierten Extraktion (mehrzeilige Zellen mit gestapelten
+Unterpositionen) — auf einer Seite mit Linien geprüft, wo beide Wege dasselbe
+liefern müssen.
+
+Dabei wird das Spaltenraster um **einen Punkt nach rechts** verschoben
+(`_COLUMN_EDGE_SHIFT`): Der Bericht setzt die Zellen rechtsbündig, und ein
+Gedankenstrich als Platzhalter ragt minimal über die Spaltenlinie hinaus (die
+Ausgabereste-Linie liegt bei x = 708, der Strich bei x ≈ 708,6). Ohne die
+Verschiebung liest pdfplumber ihn als Teil der nächsten Spalte, aus `33.186`
+wird `- 33.186` und daraus **−33.186**. Da die Zellen rechtsbündig sind, kann
+die Verschiebung nur einen solchen Überhang zurückholen, nie eine Zahl in die
+falsche Spalte schieben.
 
 ### Spaltenzuordnung (`column_map`)
 
@@ -69,10 +122,12 @@ Statt pro Jahrgang neue Indizes zu pflegen, wird die Kopfzeile gemappt:
 3. **`fallback`** — das feste 2026-Layout, damit ein PDF ohne lesbare Kopfzeile
    weiterhin so geparst wird wie bisher.
 
-Die gewählte Zuordnung steht im Parse-Ergebnis (`column_map`) und in
-`haushalts_parse_result.column_map_json`; das Review zeigt sie oberhalb der
-Tabelle an und warnt sichtbar, wenn `fallback` gegriffen hat oder ein Zielfeld
-ohne Spalte geblieben ist.
+Die Zuordnung wird **je Tabelle** bestimmt; die des ersten Abschnitts steht im
+Parse-Ergebnis (`column_map`) und in `haushalts_parse_result.column_map_json`,
+die Quelle jeder weiteren in `sections[].column_map_source`. Das Review zeigt sie
+oberhalb der Tabelle an und warnt sichtbar, wenn `fallback` gegriffen hat, eine
+Tabelle nicht über die Kopfzeile gemappt werden konnte oder ein Zielfeld ohne
+Spalte geblieben ist.
 
 ---
 
@@ -153,6 +208,7 @@ Neue Titel in künftigen PDFs werden automatisch registriert.
 
 - `HaushaltTitel` — Lookup-Tabelle für Haushaltstitel
 - `BudgetTitelEntry` — Titeluntereinträge je Budget-Zeile
+- `Finve.finve_key` — Identität einer Maßnahme ohne FinVe-Nummer (Migration `20260908002`)
 - `HaushaltsParseResult` — Zwischen-/Endergebnis des Parse-Tasks; speichert zusätzlich den Dokumenttext (`ocr_raw_text`/`ocr_status`/`ocr_model` aus `models.mixins.OcrSourceMixin`) und die verwendete Spaltenzuordnung (`column_map_json`, `column_map_source`)
 - `FinveChangeLog`, `BudgetChangeLog` — Änderungshistorie
 - `UnmatchedBudgetRow` — Zeilen ohne Projekt-Match zur Nachbearbeitung
@@ -179,7 +235,8 @@ Neue Titel in künftigen PDFs werden automatisch registriert.
 - Separate Sektion "Sammel-FinVes (Phase 2)" mit per-Projekt-Unterzeilen + Fuzzy-Vorschlägen
 - Unmatched-Nachbearbeitung nach Confirm
 - Import-Anleitung unter `/admin/haushalt-import/guide` (Schritt-für-Schritt für Endnutzer)
-- Panel „Spaltenzuordnung" über der Review-Tabelle: welche Tabelle(n) eingelesen bzw. übersprungen wurden, woher die Zuordnung stammt, und je Zielfeld die erkannte PDF-Spalte
+- Panel „Spaltenzuordnung“ über der Review-Tabelle: welche Tabellen mit wie vielen Zeilen eingelesen wurden, woher die Zuordnung stammt, und je Zielfeld die erkannte PDF-Spalte
+- Review-Tabelle nach Tabellen von Teil B gruppiert (Überschrift je Tabelle); Zeilen ohne FinVe-Nummer zeigen statt der Nummer ihren `finve_key`
 - Nach Bestätigung: automatische Weiterleitung zur Import-Übersicht
 
 ---
@@ -189,11 +246,13 @@ Neue Titel in künftigen PDFs werden automatisch registriert.
 | Test | Deckt ab |
 |---|---|
 | `tests/unit/test_haushalt_columns.py` | Kopfzeilen-Erkennung, Spaltenzuordnung (inkl. vertauschtem Layout und LLM-Rückfallebene), Tabellen-Segmentierung |
-| `tests/unit/test_haushalt_parse_2027.py` | Golden-Lauf gegen den EP-12-Bericht Teil B 2027 — Segmentierung, Spaltenzuordnung und exakte Werte gegen den gedruckten Bericht |
+| `tests/unit/test_haushalt_parse_2027.py` | Golden-Lauf gegen den EP-12-Bericht Teil B 2027 — alle fünf Tabellen, Segmentierung, Spaltenzuordnung, Zeilen-Identität und exakte Werte gegen den gedruckten Bericht |
+| `tests/unit/test_haushalt_keys.py` | Schlüssel-Bildung für Maßnahmen ohne FinVe-Nummer |
 | `tests/unit/test_haushalt_parser_blocks.py` | Titel-/Nachrichtlich-Blöcke |
 | `tests/unit/test_haushalt_upsert.py` | Upsert nach dem Bestätigen |
 
 Die Fixture `tests/fixtures/haushalt_ep12_2027_pages.json` ist die aufgezeichnete
-pdfplumber-Ausgabe (Seitentext + Tabellenzeilen) von sechs repräsentativen Seiten
-des Berichts — das PDF selbst wäre mit ~3,8 MB zu groß fürs Repo. Neue Seiten
+pdfplumber-Ausgabe (Seitentext + Tabellenzeilen) von neun repräsentativen Seiten
+des Berichts — je mindestens eine aus jeder der fünf Tabellen, darunter die
+rekonstruierten ERTMS- und KMM-Seiten — das PDF selbst wäre mit ~3,8 MB zu groß fürs Repo. Neue Seiten
 lassen sich mit `_extract_pages` aus einem PDF nachziehen.

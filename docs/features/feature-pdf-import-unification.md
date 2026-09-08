@@ -21,7 +21,7 @@ bewertet, ob und wie weit sie auf dieses System umgestellt werden sollten.
 |---|---|---|---|---|---|
 | **VIB** (Verkehrsinvestitionsbericht) | Mistral OCR → Markdown, pymupdf-Fallback | TOC-verankertes Block-Splitting (Regex) | LLM je Vorhabenblock (`call_llm_json`) | Celery, 2-stufig mit Preview | `services/document_ocr.py`, `tasks/vib.py`, `tasks/vib_ai_extraction.py` |
 | **Fulda-Runde** (Kleine Anfrage) | Mistral OCR (ruft `services.document_ocr` auf) | keine — Volltext in einem Stück | LLM über das ganze Dokument | Celery, einstufig | `tasks/fulda.py`, `tasks/fulda_extraction.py` |
-| **Haushalt** (Anlage VWIB, Teil B) | `pdfplumber.extract_table()` je Seite | Tabellen-Segmentierung (Tabelle 1) + Flat-Table über deren Seiten | `column_map` je Dokument (Header → LLM → Fallback), Werte deterministisch | Celery, einstufig | `tasks/haushalt.py`, `tasks/haushalt_columns.py` |
+| **Haushalt** (Anlage VWIB, Teil B) | `pdfplumber.extract_table()` je Seite, Zeilen-Rekonstruktion auf Seiten ohne Trennlinien | Segmentierung in die fünf Tabellen von Teil B + Flat-Table je Tabelle | `column_map` je Tabelle (Header → LLM → Fallback), Werte deterministisch | Celery, einstufig | `tasks/haushalt.py`, `tasks/haushalt_columns.py`, `tasks/haushalt_keys.py` |
 | **Medien/Presse** | kein PDF — URL-Fetch oder Paste, HTML→Text | keine | LLM über den Volltext | synchron im Endpoint | `tasks/media_extraction.py` |
 | **Bauportal** | kein PDF — öffentliche JSON-API | — | — | synchron im Endpoint | `tasks/bauportal.py` |
 
@@ -274,22 +274,30 @@ als zweite Stufe erhalten und greift, wenn der Abgleich ein Pflichtfeld nicht
 findet — genau der Fall, den die Empfehlung adressiert. Ergebnis ist dieselbe
 Entkopplung vom Jahrgang bei strikt geringerem Risiko.
 
-**Zusätzlich zur Empfehlung: Tabellen-Segmentierung.** Der 2027-Bericht zeigte
-ein Problem, das die Evaluation nicht erfasst hatte: Teil B enthält fünf Tabellen,
-und der Parser las alle als eine. Die Zeilen der Tabellen 2–5 (Lärmsanierung,
-ERTMS, Kleine und Mittlere Maßnahmen, InvKG) haben keine FinVe-Nummer und landeten
-deshalb als Titel- und Erläuterungs-Untereinträge an der letzten Sammel-FinVe von
-Tabelle 1 — im 2027-Bericht 51 statt 3 Titel-Einträge und 78 statt 1 Erläuterungs-
-Projekt an „SV Rest 2025". Die Segmentierung nach der Seitenüberschrift
-`Tabelle <N> - <Titel>` behebt das.
+**Zusätzlich zur Empfehlung: Tabellen-Segmentierung und Mehrtabellen-Import.**
+Der 2027-Bericht zeigte ein Problem, das die Evaluation nicht erfasst hatte: Teil B
+enthält fünf Tabellen, und der Parser las alle als eine. Die Zeilen der Tabellen
+2–5 (Lärmsanierung, ERTMS, Kleine und Mittlere Maßnahmen, InvKG) haben keine
+FinVe-Nummer und landeten deshalb als Titel- und Erläuterungs-Untereinträge an der
+letzten Sammel-FinVe von Tabelle 1 — im 2027-Bericht 51 statt 3 Titel-Einträge und
+78 statt 1 Erläuterungs-Projekt an „SV Rest 2025". Die Segmentierung nach der
+Seitenüberschrift `Tabelle <N> - <Titel>` behebt das; seither wird **jede** der
+fünf Tabellen eingelesen (Details in `feature-haushalt-import.md`). Dafür waren
+zwei Dinge nötig, die die Evaluation nicht vorgesehen hatte: eine Identität für
+Maßnahmen ohne FinVe-Nummer (`finve.finve_key`) und eine Rekonstruktion der
+Zeilen auf den ERTMS-Seiten, wo pdfplumber mangels Trennlinien ganze Abschnitte
+in eine Zelle zusammenfasst.
 
 ### Golden-Fixture-Vergleich
 
 Die von der Evaluation geforderte Bedingung („identisches PDF, alter und neuer
-Pfad, Zeilen- und Wertegleichheit") ist am EP-12-Bericht Teil B 2027 erfüllt:
-83 FinVe-Zeilen und 2 unmatched Zeilen vor wie nach der Umstellung, **null**
-Abweichungen in `proposed_finve` und `proposed_budget`. Die einzige Differenz ist
-die beseitigte Kontamination an „SV Rest 2025". Als Regressionsschutz im Repo:
+Pfad, Zeilen- und Wertegleichheit") ist am EP-12-Bericht Teil B 2027 für die
+Bedarfsplan-Tabelle erfüllt: 83 FinVe-Zeilen und 2 unmatched Zeilen vor wie nach
+der Umstellung, **null** Abweichungen in `proposed_finve` und `proposed_budget`.
+Die einzige Differenz ist die beseitigte Kontamination an „SV Rest 2025". Diese
+Gleichheit gilt auch nach dem Mehrtabellen-Import weiter — die Tabellen 2–5
+kommen als 58 zusätzliche Zeilen hinzu, ohne eine einzige Zeile der Tabelle 1 zu
+verändern. Als Regressionsschutz im Repo:
 `tests/unit/test_haushalt_parse_2027.py` gegen die aufgezeichnete pdfplumber-
 Ausgabe in `tests/fixtures/haushalt_ep12_2027_pages.json`.
 

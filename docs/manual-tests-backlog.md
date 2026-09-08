@@ -32,19 +32,30 @@ Import-Lauf selbst ist erst nach dem nächsten Rollout ausführbar.
       `ocr_raw_text`, `ocr_status`, `ocr_model`, `column_map_json`,
       `column_map_source`.
 - [ ] Celery-Worker nach dem Rollout neu starten (Parser-Code geändert).
+- [ ] `finve` hat die Spalte `finve_key` mit eindeutigem Index.
 - [ ] EP-12-Bericht Teil B 2027 unter `/admin/haushalt-import` mit Jahr 2027
       hochladen → Review öffnet sich, Panel „Spaltenzuordnung" zeigt den grünen
       Badge „aus der Tabellenüberschrift".
-- [ ] Im Panel steht „Eingelesen: Tabelle 1 – Bedarfsplanmaßnahmen" und
-      „Übersprungen: Tabelle 2 – Lärmsanierung, Tabelle 3 – ERTMS, Tabelle 4 –
-      Kleine und Mittlere Maßnahmen …, Tabelle 5 – Maßnahmen nach InvKG".
+- [ ] Im Panel steht „Eingelesen:" mit allen fünf Tabellen und ihren Zeilenzahlen
+      (Tabelle 1: 83, 2: 8, 3: 10, 4: 11, 5: 29).
 - [ ] „Details anzeigen" → 16 Zeilen, „Veranschlagt" zeigt Spalte 15 mit der
       Überschrift „veranschlagt 2027".
-- [ ] Zeile „SV Rest 2025" aufklappen → höchstens eine Handvoll Titel-Einträge
-      und ein Erläuterungs-Projekt (vor der Änderung waren es 51 bzw. 78).
+- [ ] Die Review-Tabelle hat fünf Überschriften („Tabelle 1 – Bedarfsplanmaßnahmen"
+      bis „Tabelle 5 – Maßnahmen nach InvKG").
+- [ ] Zeile „SV Rest 2025" (Tabelle 1) aufklappen → drei Titel-Einträge und ein
+      Erläuterungs-Projekt (vor der Änderung waren es 51 bzw. 78).
+- [ ] In Tabelle 3 steht bei „Baustufen I + II des Digitalen Knotens Stuttgart"
+      unter „Veranschl. 2027" **33.186** (positiv, nicht −33.186).
+- [ ] In Tabelle 4 erscheinen zwei Zeilen „Bau FinVe Wilhelmshaven Ölweiche –
+      Wilhelmshaven Nord" (17.025 und 2.489) als getrennte Maßnahmen.
+- [ ] Bei Zeilen der Tabellen 2–5 steht in der Spalte „Lfd.Nr. / FinVe / BP"
+      statt einer FinVe-Nummer die Kennung (z. B. `t4:F 03 E 0793`).
 - [ ] Importieren → Erfolgsmeldung; die FinVe-Übersicht `/finves` zeigt für 2027
       die Budgetwerte des Berichts (Stichprobe B0080 / FinVe 275: veranschlagt
-      77.859).
+      77.859; Tabelle 5 / `t5:B0094`: veranschlagt 3.186).
+- [ ] Denselben Bericht ein zweites Mal importieren (nach Verwerfen des ersten
+      Laufs) → die Maßnahmen der Tabellen 2–5 erscheinen als „Änd.", nicht als
+      „Neu": der `finve_key` hat sie wiedererkannt, es entstehen keine Dubletten.
 
 ---
 

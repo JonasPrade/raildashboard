@@ -178,10 +178,11 @@ Yearly import of Annex VWIB Part B (federal budget) as PDF. Requires `pdfplumber
 The parser runs three stages (see `docs/features/feature-pdf-import-unification.md`):
 
 1. **Text** — pdfplumber per page: table rows plus page text.
-2. **Segmentation** — Part B contains several tables (`Tabelle 1 - Bedarfsplanmaßnahmen`,
-   `Tabelle 2 - Lärmsanierung`, ERTMS, …). Only the Bedarfsplan table has FinVe rows; the others are
-   detected from the page caption and skipped. Which sections were found and which one was imported
-   is reported back in the parse result (`sections`).
+2. **Segmentation** — Part B contains five tables (`Tabelle 1 - Bedarfsplanmaßnahmen`,
+   `Tabelle 2 - Lärmsanierung`, ERTMS, Kleine und Mittlere Maßnahmen, InvKG). All of them are
+   imported, each as its own section with its own column map; the sections found, their page ranges
+   and row counts come back in the parse result (`sections`). Pages without horizontal rules (the
+   ERTMS table) have their rows rebuilt from the text lines first — see *Row reconstruction* below.
 3. **Column mapping** — `tasks/haushalt_columns.py` maps the table's own header onto the 16 canonical
    fields once per document, then every value is transferred deterministically through that map.
    No number passes through a model. Detection order: deterministic header match → one LLM call with
@@ -195,6 +196,34 @@ The parser runs three stages (see `docs/features/feature-pdf-import-unification.
 3. **Review** — `GET /api/v1/import/haushalt/parse-result/{id}` returns full parse result (rows classified as `new` / `update` / `unmatched`). Each row includes pre-populated `project_ids` from existing `FinveToProject` associations.
 4. **Confirm** — `POST /api/v1/import/haushalt/confirm` — transactionally writes Finve, Budget, BudgetTitelEntry; syncs `FinveToProject` for both `new` and `update` rows (bidirectional add/remove); 409 Conflict on double-import
 5. **Unmatched rows** — `GET /api/v1/import/haushalt/unmatched?resolved=false`; resolve with `PATCH /api/v1/import/haushalt/unmatched/{id}`. Rows without a FinVe number (e.g. early-planning projects like `B0134 L 06`) are automatically placed here.
+
+### Row identity without a FinVe number
+
+Only the Bedarfsplan table prints a FinVe number, which stays the primary key of `finve`. The other
+tables identify their measures by a string, stored in the new `finve.finve_key` (migration
+`20260908002`) and built in `tasks/haushalt_keys.py`:
+
+| First column in the PDF | Key |
+|---|---|
+| `YYY SV 52/2017` | `t2:SV 52/2017` |
+| `YYY` + FinVe column `F08Q0770` | `t3:F08Q0770` |
+| `YYY F 03 E 0793` | `t4:F 03 E 0793` |
+| `B0094 5/ Nr.1 F 21/S 0555` | `t5:B0094` |
+| `YYY` with no designation | slug of the measure name plus its starting year |
+
+Those rows get their `finve.id` from the database, carry `temporary_finve_number = true`, and
+`upsert_finve` matches them on `finve_key` in the next report year. `ProposedBudget.fin_ve` is
+therefore empty in the parse result and filled in on confirm from the Finve row.
+
+### Row reconstruction on pages without rules
+
+`_page_table_rows()` falls back to a text-line extraction when a page's first column runs to
+hundreds of characters — the symptom of pdfplumber collapsing a whole section into one cell because
+the page prints no horizontal rules (the ERTMS pages, and one page of the KMM table).
+`_regroup_text_rows()` then joins the lines of each column back together between identifier lines,
+reproducing the same multi-line cells the ruling-line extraction gives. The column grid is shifted
+one point right (`_COLUMN_EDGE_SHIFT`) because the report right-aligns its cells and a "–"
+placeholder overhangs its rule — without the shift `33.186` reads as `- 33.186`, i.e. -33186.
 
 ### PDF format notes (2026+)
 

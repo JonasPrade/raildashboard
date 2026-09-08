@@ -319,7 +319,9 @@ Siehe: `docs/features/feature-haushalt-import.md`
 
 - [x] Celery-Task `parse_haushalt_pdf` (`tasks/haushalt.py`) mit `pdfplumber`; Parser für zusammengeführte Spalten, mehrzeilige Zellen, Haushaltstitel-Lookup auto-erweiterbar via `get_or_create`
 - [x] **Spaltenzuordnung statt fester Indizes** (`tasks/haushalt_columns.py`) — die Kopfzeile der Tabelle wird einmal pro Dokument auf das kanonische Schema gemappt (deterministisch, LLM als Rückfallebene, festes 2026-Layout als letzte Stufe); Werte werden immer deterministisch übertragen. Im Review sichtbar
-- [x] **Tabellen-Segmentierung** — Teil B enthält fünf Tabellen; nur „Tabelle 1 – Bedarfsplanmaßnahmen" wird eingelesen, die übrigen (Lärmsanierung, ERTMS, Kleine und Mittlere Maßnahmen, InvKG) werden erkannt und übersprungen
+- [x] **Alle fünf Tabellen von Teil B** — Segmentierung über die Seitenüberschrift `Tabelle <N> - <Titel>`; jede Tabelle wird als eigener Abschnitt mit eigener Spaltenzuordnung eingelesen und im Review als eigener Block angezeigt (2027: 83 + 58 Zeilen)
+- [x] **Identität ohne FinVe-Nummer** (`finve.finve_key`, `tasks/haushalt_keys.py`) — die Tabellen 2–5 drucken keine FinVe-Nummer; ihre Maßnahmen werden über die Kennung des Berichts (`t2:SV 52/2017`, `t5:B0094`) jahresübergreifend wiedererkannt
+- [x] **Zeilen-Rekonstruktion** — auf Seiten ohne waagerechte Trennlinien (ERTMS) baut der Parser die Zeilen aus den Textzeilen neu auf und korrigiert das rechtsbündige Spaltenraster, damit ein „–"-Platzhalter nicht als Vorzeichen der Nachbarspalte gelesen wird
 - [x] **Herkunft je Lauf gespeichert** — `haushalts_parse_result.ocr_*` (gemeinsames `OcrSourceMixin`) und `column_map_*`
 - [x] DB-Modelle: `HaushaltTitel`, `BudgetTitelEntry`, `HaushaltsParseResult`, `FinveChangeLog`, `BudgetChangeLog`, `UnmatchedBudgetRow`
 - [x] API: `POST /parse`, `GET /parse-result`, `POST /confirm`, `GET/PATCH /unmatched`

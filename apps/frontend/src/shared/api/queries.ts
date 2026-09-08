@@ -756,7 +756,13 @@ export type ProposedFinve = components["schemas"]["ProposedFinve"];
 export type ProposedBudget = components["schemas"]["ProposedBudget"];
 
 export type HaushaltsParseRow = {
-    finve_number: number;
+    /** Stable identity of the row inside one parse result: the FinVe number
+     *  where the report prints one, otherwise the measure's string key. */
+    row_key: string;
+    finve_number: number | null;
+    finve_key: string | null;
+    table_number: number | null;
+    table_title: string;
     name: string;
     status: "new" | "update" | "unmatched";
     is_sammel_finve: boolean;
@@ -792,6 +798,8 @@ export type HaushaltsTableSection = {
     page_from: number;
     page_to: number;
     imported: boolean;
+    row_count: number;
+    column_map_source: string | null;
 };
 
 export type HaushaltsParseTaskResult = {

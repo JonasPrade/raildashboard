@@ -9,8 +9,9 @@ from __future__ import annotations
 
 from dashboard_backend.tasks.haushalt import (
     _detect_table_sections,
+    _is_bedarfsplan_section,
     _is_table_totals_row,
-    _select_import_section,
+    _regroup_text_rows,
 )
 from dashboard_backend.tasks.haushalt_columns import (
     CANONICAL_COLUMNS,
@@ -195,26 +196,58 @@ def test_page_without_caption_stays_with_the_previous_table():
     assert [(s.number, s.pages) for s in sections] == [(1, [1, 2]), (2, [3])]
 
 
-def test_only_the_bedarfsplan_table_is_imported():
+def test_only_the_bedarfsplan_table_expects_a_printed_finve_number():
+    """Every table is imported, but only Tabelle 1 prints FinVe numbers — the
+    others identify their measures by a string key instead."""
     sections = _detect_table_sections(
         [_page(1, "Bedarfsplanmaßnahmen"), _page(2, "Lärmsanierung"), _page(5, "Maßnahmen nach InvKG")]
     )
-    selected = _select_import_section(sections)
-    assert selected.number == 1
-    assert [s.imported for s in sections] == [True, False, False]
+    assert [_is_bedarfsplan_section(s, sections) for s in sections] == [True, False, False]
 
 
 def test_document_without_captions_is_one_section_over_all_pages():
     """Pre-2027 reports without "Tabelle N" captions keep the old behaviour of
-    treating the whole document as a single table."""
+    treating the whole document as a single table that prints FinVe numbers."""
     sections = _detect_table_sections(["irgendein Text", "noch eine Seite"])
     assert len(sections) == 1
     assert sections[0].number is None
     assert sections[0].pages == [1, 2]
-    assert _select_import_section(sections).pages == [1, 2]
+    assert _is_bedarfsplan_section(sections[0], sections) is True
 
 
 def test_totals_row_is_recognised():
     assert _is_table_totals_row("TABELLENSUMMEN\ndavon:\nKap. 1202, Titel 891 01") is True
     assert _is_table_totals_row("ABS Angermünde- Grenze D/PL") is False
     assert _is_table_totals_row(None) is False
+
+
+def test_totals_row_is_recognised_by_its_dotted_running_number():
+    """On a rebuilt page the "TABELLENSUMMEN" label ends up in another cell; the
+    dotted placeholder in the running-number column is what is left of it."""
+    assert _is_table_totals_row("Erläuterung: …", ". \n. \n. \n.") is True
+    assert _is_table_totals_row("Erläuterung: …", "YYY") is False
+
+
+# ---------------------------------------------------------------------------
+# Rebuilding rows on pages without horizontal rules
+# ---------------------------------------------------------------------------
+
+def test_regroup_joins_text_lines_back_into_one_row_per_measure():
+    """The ERTMS pages have no rules between measures, so the rows are taken
+    from the text lines and regrouped — one row per measure, sub-entries stacked
+    inside the cells exactly as the ruling-line extraction produces them."""
+    text_rows = [
+        ["YYY", "F08Q0770", None, "Baustufen I + II", "2020", "216.050"] + [None] * 10,
+        [None, None, None, "davon:", None, None] + [None] * 10,
+        [None, None, None, "Kap. 1202, Titel 891 06", None, "222.377"] + [None] * 10,
+        [None, None, None, "nachrichtlich: Eigenmittel der EIU", None, "16.000"] + [None] * 10,
+        ["YYY", "F21Q0774", None, "Baustufe III", "2022", "1.064.666"] + [None] * 10,
+    ]
+    rows = _regroup_text_rows(text_rows, 16)
+    assert len(rows) == 3
+    assert rows[0][0] == "YYY"
+    assert rows[0][3] == "Baustufen I + II\ndavon:\nKap. 1202, Titel 891 06"
+    assert rows[0][5] == "216.050\n222.377"
+    # the nachrichtlich block opens a row of its own, as it does on a ruled page
+    assert rows[1][3] == "nachrichtlich: Eigenmittel der EIU"
+    assert rows[2][3] == "Baustufe III"

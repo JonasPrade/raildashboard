@@ -47,7 +47,7 @@ function colCount(readonly: boolean | undefined) {
 type Props = {
     rows: HaushaltsParseRow[];
     projects: ProjectOption[];
-    onProjectIdsChange: (finveNumber: number, projectIds: number[]) => void;
+    onProjectIdsChange: (rowKey: string, projectIds: number[]) => void;
     readonly?: boolean;
 };
 
@@ -92,7 +92,7 @@ function DataRow({
             ...nextSub.filter((id): id is number => id !== null),
             ...nextExtra,
         ])];
-        onProjectIdsChange(row.finve_number, ids);
+        onProjectIdsChange(row.row_key, ids);
     }
 
     function handleSubAssign(idx: number, projectId: number | null) {
@@ -148,7 +148,9 @@ function DataRow({
                 {/* Lfd. Nr. / FinVe / Bedarfsplan stacked */}
                 <Table.Td style={{ whiteSpace: "nowrap" }}>
                     <Text size="xs" fw={600}>{b?.lfd_nr ?? "–"}</Text>
-                    <Text size="xs" c="dimmed">{row.finve_number}</Text>
+                    <Text size="xs" c="dimmed">
+                        {row.finve_number ?? row.finve_key ?? "–"}
+                    </Text>
                     <Text size="xs" c="dimmed">{b?.bedarfsplan_number ?? "–"}</Text>
                 </Table.Td>
 
@@ -171,7 +173,7 @@ function DataRow({
                                         data={annotatedOptions}
                                         value={row.project_ids.map(String)}
                                         onChange={(vals) =>
-                                            onProjectIdsChange(row.finve_number, vals.map(Number))
+                                            onProjectIdsChange(row.row_key, vals.map(Number))
                                         }
                                         placeholder="Projekte wählen..."
                                         searchable
@@ -200,7 +202,7 @@ function DataRow({
                                                     name: row.name,
                                                     onCreated: (project) => {
                                                         if (project.id == null) return;
-                                                        onProjectIdsChange(row.finve_number, [
+                                                        onProjectIdsChange(row.row_key, [
                                                             ...row.project_ids,
                                                             project.id,
                                                         ]);
@@ -487,7 +489,7 @@ function RowGroup({
                     <Table.Tbody>
                         {rows.map((row) => (
                             <DataRow
-                                key={row.finve_number}
+                                key={row.row_key}
                                 row={row}
                                 projectOptions={projectOptions}
                                 onProjectIdsChange={onProjectIdsChange}
@@ -501,7 +503,8 @@ function RowGroup({
     );
 }
 
-export function ReviewTable({ rows, projects, onProjectIdsChange, readonly }: Props) {
+/** The rows of one table of Teil B, grouped by status as before. */
+function TableRows({ rows, projects, onProjectIdsChange, readonly }: Props) {
     const regularNew    = rows.filter((r) => r.status === "new"    && !r.is_sammel_finve);
     const regularUpdate = rows.filter((r) => r.status === "update" && !r.is_sammel_finve);
     const svRows        = rows.filter((r) => r.is_sammel_finve ?? false);
@@ -544,6 +547,55 @@ export function ReviewTable({ rows, projects, onProjectIdsChange, readonly }: Pr
                 onProjectIdsChange={onProjectIdsChange}
                 readonly={readonly}
             />
+        </Stack>
+    );
+}
+
+/**
+ * Teil B holds several tables — the Bedarfsplan measures plus Lärmsanierung,
+ * ERTMS, Kleine und Mittlere Maßnahmen and the InvKG measures. Only the first
+ * prints a FinVe number, so the tables are kept visually apart instead of being
+ * mixed into one list of rows.
+ */
+export function ReviewTable({ rows, projects, onProjectIdsChange, readonly }: Props) {
+    const tableNumbers = [...new Set(rows.map((r) => r.table_number ?? 0))].sort((a, b) => a - b);
+
+    if (tableNumbers.length <= 1) {
+        return (
+            <TableRows
+                rows={rows}
+                projects={projects}
+                onProjectIdsChange={onProjectIdsChange}
+                readonly={readonly}
+            />
+        );
+    }
+
+    return (
+        <Stack gap={40}>
+            {tableNumbers.map((number) => {
+                const tableRows = rows.filter((r) => (r.table_number ?? 0) === number);
+                const title = tableRows[0]?.table_title ?? "";
+                return (
+                    <Stack key={number} gap="sm">
+                        <Group gap="xs" align="baseline">
+                            <Title order={3} size="h4">
+                                {number ? `Tabelle ${number}` : "Ohne Tabellenangabe"}
+                                {title ? ` – ${title}` : ""}
+                            </Title>
+                            <Text size="xs" c="dimmed">
+                                {tableRows.length} Zeilen
+                            </Text>
+                        </Group>
+                        <TableRows
+                            rows={tableRows}
+                            projects={projects}
+                            onProjectIdsChange={onProjectIdsChange}
+                            readonly={readonly}
+                        />
+                    </Stack>
+                );
+            })}
         </Stack>
     );
 }

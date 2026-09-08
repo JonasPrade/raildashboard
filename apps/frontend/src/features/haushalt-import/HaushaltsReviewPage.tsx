@@ -54,11 +54,11 @@ function HaushaltsReviewPageContent() {
     const displayRows: HaushaltsParseRow[] = rows ?? (parsedResult?.rows ?? []);
     const isConfirmed = result.confirmed_at !== null;
 
-    const handleProjectIdsChange = (finveNumber: number, projectIds: number[]) => {
+    const handleProjectIdsChange = (rowKey: string, projectIds: number[]) => {
         setRows((prev) => {
             const base = prev ?? (parsedResult?.rows ?? []);
             return base.map((r) =>
-                r.finve_number === finveNumber ? { ...r, project_ids: projectIds } : r
+                r.row_key === rowKey ? { ...r, project_ids: projectIds } : r
             );
         });
     };

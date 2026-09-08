@@ -153,3 +153,76 @@ def test_upsert_budget_create_and_update_snapshot(db):
     ]
     assert budget2.cost_estimate_actual == 1700
     assert budget2.year_planned is None
+
+
+# ---------------------------------------------------------------------------
+# Measures without a FinVe number are matched on their key (#127 follow-up)
+# ---------------------------------------------------------------------------
+
+def _keyed(finve_key: str, name: str, **kwargs) -> ProposedFinve:
+    return ProposedFinve(
+        id=None,
+        finve_key=finve_key,
+        name=name,
+        temporary_finve_number=True,
+        **kwargs,
+    )
+
+
+def test_keyed_finve_gets_an_id_from_the_database(db):
+    """Tabellen 2–5 print no FinVe number, so the row is created with an
+    auto-assigned id and remembers the key it was identified by."""
+    finve, created, _ = upsert_finve(
+        db, _keyed("t4:F 03 E 0793", "Bau FinVe Wilhelmshaven"), None, 2027
+    )
+    assert created is True
+    assert finve.id is not None
+    assert finve.finve_key == "t4:F 03 E 0793"
+    assert finve.temporary_finve_number is True
+
+
+def test_same_key_updates_the_same_row_in_the_next_year(db):
+    first, _, _ = upsert_finve(
+        db, _keyed("t2:SV 52/2017", "Sammelvereinbarung 52", cost_estimate_original=53_301), None, 2026
+    )
+    db.flush()
+    second, created, changelog = upsert_finve(
+        db, _keyed("t2:SV 52/2017", "Sammelvereinbarung 52", cost_estimate_original=91_369), None, 2027
+    )
+    assert created is False
+    assert second.id == first.id
+    assert _entry_tuples(changelog) == [("cost_estimate_original", "53301", "91369")]
+
+
+def test_different_keys_stay_separate_rows(db):
+    first, _, _ = upsert_finve(db, _keyed("t4:F 03 E 0793", "Bau FinVe"), None, 2027)
+    db.flush()
+    second, created, _ = upsert_finve(db, _keyed("t4:F 03 E 0793#2", "Bau FinVe"), None, 2027)
+    assert created is True
+    assert second.id != first.id
+
+
+def test_keyed_finve_does_not_collide_with_a_numbered_one(db):
+    numbered, _, _ = upsert_finve(
+        db, ProposedFinve(id=275, name="ABS Angermünde- Grenze D/PL"), None, 2027
+    )
+    db.flush()
+    keyed, created, _ = upsert_finve(db, _keyed("t5:B0094", "Mitteldeutsches Revier"), None, 2027)
+    assert created is True
+    assert keyed.id != numbered.id
+    assert numbered.finve_key is None
+
+
+def test_budget_of_a_keyed_measure_uses_the_assigned_finve_id(db):
+    finve, _, _ = upsert_finve(db, _keyed("t3:F08Q0770", "Digitaler Knoten Stuttgart"), None, 2027)
+    db.flush()
+    budget, created, _ = upsert_budget(
+        db,
+        ProposedBudget(budget_year=2027, fin_ve=finve.id, cost_estimate_actual=383_234),
+        None,
+        2027,
+    )
+    assert created is True
+    assert budget.fin_ve == finve.id
+    assert budget.cost_estimate_actual == 383_234
+

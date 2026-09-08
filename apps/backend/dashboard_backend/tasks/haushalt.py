@@ -42,6 +42,7 @@ from dashboard_backend.tasks.haushalt_columns import (
     is_header_row,
     resolve_column_map,
 )
+from dashboard_backend.tasks.haushalt_keys import build_finve_key, has_measure_marker
 from dashboard_backend.schemas.haushalt_import import (
     HaushaltsParseResultSchema,
     HaushaltsParseTaskResult,
@@ -112,9 +113,16 @@ def _select_import_section(sections: list[TableSection]) -> TableSection | None:
     return chosen
 
 
-def _is_table_totals_row(name_cell: str | None) -> bool:
+# The totals row prints a dotted placeholder instead of a running number; on
+# pages whose rows had to be rebuilt that is the only marker left of it.
+_DOTTED_ID_RE = re.compile(r"^[.\s]+$")
+
+
+def _is_table_totals_row(name_cell: str | None, id_cell: str | None = None) -> bool:
     """True for the "TABELLENSUMMEN" row that closes a table."""
-    return bool(name_cell) and bool(_TABLE_TOTALS_RE.match(name_cell.strip()))
+    if name_cell and _TABLE_TOTALS_RE.match(name_cell.strip()):
+        return True
+    return bool(id_cell) and bool(_DOTTED_ID_RE.match(str(id_cell)))
 
 
 # ---------------------------------------------------------------------------
@@ -384,6 +392,60 @@ def _extract_nachrichtlich_entries(cells: list, cmap: ColumnMap) -> list["TitelE
     return result
 
 
+def _is_position_row(cells: list, cmap: ColumnMap) -> bool:
+    """True for a named breakdown position of a measure in Tabellen 2–5.
+
+    Those tables list a measure's parts as plain labels with values
+    ("A -Sammelposition", "Dortmund Knoten 1 - Z1108") where the Bedarfsplan
+    table would print Kap./Titel lines. A row qualifies when it has a label in
+    the name column and at least one value in a numeric column — a pure text
+    continuation of an Erläuterung has no values and is left alone.
+    """
+    label = _first_line(_cell_of(cells, cmap, "name"))
+    if not label or _is_table_totals_row(label):
+        return False
+    if label.lower().startswith(("erläuterung", "nachrichtlich", "davon")):
+        return False
+    return any(
+        _parse_int(_first_line(_cell_of(cells, cmap, field))) is not None
+        for field in (
+            "cost_original", "cost_last_year", "cost_actual",
+            "spent_two_years_previous", "allowed_previous_year",
+            "ausgabereste", "year_planned", "next_years",
+        )
+    )
+
+
+def _extract_position_entries(cells: list, cmap: ColumnMap) -> list["TitelEntryProposed"]:
+    """Build sub-entries for the named breakdown positions of Tabellen 2–5.
+
+    Stored like the nachrichtlich entries: the label identifies the entry, the
+    seven numeric fields come from the standard columns. Line i of the label
+    cell pairs with line i of each numeric column, the same way the report
+    stacks them.
+    """
+    labels = [
+        line for line in _split_multiline(_cell_of(cells, cmap, "name"))
+        if line and not line.lower().startswith(("erläuterung", "nachrichtlich", "davon"))
+    ]
+    entries: list[TitelEntryProposed] = []
+    for i, label in enumerate(labels):
+        numeric = _titel_numeric_fields(cells, cmap, i)
+        if all(value is None for value in numeric.values()):
+            continue
+        entries.append(
+            TitelEntryProposed(
+                titel_key=f"pos:{label}"[:50],
+                kapitel="",
+                titel_nr="",
+                label=label,
+                is_nachrichtlich=False,
+                **numeric,
+            )
+        )
+    return entries
+
+
 def _parse_combined_id_cell(cell: str | None) -> tuple[str | None, int | None, str | None]:
     """Parse the first column which may combine lfd_nr, finve and bedarfsplan.
 
@@ -464,19 +526,23 @@ def _build_proposed(
     cells: list,
     cmap: ColumnMap,
     year: int,
-    finve_nr: int,
+    finve_nr: int | None,
     lfd_nr: str | None,
     bedarfsplan_nr: str | None,
     name: str,
     is_sv: bool,
+    finve_key: str | None = None,
 ) -> tuple[ProposedFinve, ProposedBudget]:
     """Build the ProposedFinve/ProposedBudget pair for a main FinVe row.
 
-    Used for regular rows and for orphaned-SV recovery — the two callers only
-    differ in how name/lfd_nr/bedarfsplan were determined.
+    Used for regular rows, for orphaned-SV recovery and for the measures of the
+    tables that print no FinVe number — those carry ``finve_key`` instead of
+    ``finve_nr`` and get their id assigned by the database on confirm.
     """
     proposed_finve = ProposedFinve(
         id=finve_nr,
+        finve_key=finve_key,
+        temporary_finve_number=finve_key is not None,
         name=name,
         starting_year=_parse_int(_cell_of(cells, cmap, "starting_year")),
         cost_estimate_original=_parse_int(_first_line(_cell_of(cells, cmap, "cost_original"))),
@@ -544,6 +610,118 @@ class ExtractedPage:
     rows: list[list] = dataclass_field(default_factory=list)
 
 
+# Some pages of Teil B carry no horizontal rules between the measures (the ERTMS
+# table and one page of the Kleine-und-Mittlere-Maßnahmen table).  pdfplumber
+# then collapses a whole section into the first cell instead of one row per
+# measure.  A first column longer than this is that symptom — a real identifier
+# ("B0094 5/ Nr.1 F 21/S 0555") stays well below it.
+_MERGED_COL0_CHARS = 60
+
+# Fallback extraction for those pages: keep the column grid from the ruling
+# lines, but take the row boundaries from the text lines.
+_TEXT_ROW_SETTINGS = {"vertical_strategy": "lines", "horizontal_strategy": "text"}
+
+# The report right-aligns its cells, and a "–" placeholder is printed a hair
+# past its column's right edge (the Ausgabereste dash sits at x≈708.6 with the
+# rule at 708).  pdfplumber then reads it as part of the next column, where it
+# turns "33.186" into "- 33.186" and the parser into -33186.  Moving the grid
+# a point to the right pulls such an overhang back where it belongs; it cannot
+# push anything the other way, because the cells are right-aligned.
+_COLUMN_EDGE_SHIFT = 1.0
+
+# A text line that opens a new logical row: an identifier in the first column,
+# or one of the labelled sub-blocks in the name column.
+_ROW_START_ID_RE = re.compile(r"^\s*(B\d+|YYY)\b")
+_ROW_START_NAME_RE = re.compile(r"^\s*(nachrichtlich:|Erl(ä|ae)uterung:)", re.IGNORECASE)
+
+
+def _regroup_text_rows(text_rows: list[list], width: int) -> list[list]:
+    """Rebuild logical table rows from one-line-per-row extraction.
+
+    ``horizontal_strategy="text"`` gives one row per printed line, which is too
+    fine: the parser expects one row per measure with the sub-entries stacked as
+    newline-separated lines inside each cell (that is what the ruling-line
+    extraction produces, and what ``_extract_inline_titel_entries`` reads).
+    Joining the lines of each column back together between identifier lines
+    reproduces exactly that shape.
+    """
+    grouped: list[list[list[str]]] = []
+    current: list[list[str]] | None = None
+
+    for row in text_rows:
+        padded = list(row) + [None] * (width - len(row))
+        starts_row = bool(_ROW_START_ID_RE.match(str(padded[0] or ""))) or bool(
+            _ROW_START_NAME_RE.match(str(padded[3] or "").strip())
+        )
+        if current is None or starts_row:
+            if current is not None:
+                grouped.append(current)
+            current = [[] for _ in range(width)]
+        for i in range(width):
+            value = str(padded[i] or "").strip()
+            if value:
+                current[i].append(value)
+    if current is not None:
+        grouped.append(current)
+
+    return [["\n".join(cell) if cell else None for cell in row] for row in grouped]
+
+
+def _column_edges(page) -> list[float]:
+    """The x positions of the table's column rules on this page.
+
+    Every page of Teil B is printed on the same grid, so these are stable across
+    the document; taking them per page avoids assuming a fixed layout.
+    """
+    tables = page.find_tables()
+    if not tables:
+        return []
+    cells = tables[0].cells
+    if not cells:
+        return []
+    return sorted({round(cell[0], 1) for cell in cells} | {round(cell[2], 1) for cell in cells})
+
+
+def _page_table_rows(page) -> list[list]:
+    """Table rows of one page, repairing pages whose rows pdfplumber merges."""
+    rows = [row for row in (page.extract_table() or []) if row]
+    longest_col0 = max((len(str(row[0] or "")) for row in rows), default=0)
+    if longest_col0 <= _MERGED_COL0_CHARS:
+        return rows
+
+    width = max((len(row) for row in rows), default=0)
+    settings = dict(_TEXT_ROW_SETTINGS)
+    edges = _column_edges(page)
+    if edges:
+        settings = {
+            "vertical_strategy": "explicit",
+            "horizontal_strategy": "text",
+            "explicit_vertical_lines": [edge + _COLUMN_EDGE_SHIFT for edge in edges],
+        }
+    try:
+        text_rows = [row for row in (page.extract_table(settings) or []) if row]
+    except Exception as exc:
+        logger.warning("Page %s: text-row extraction failed (%s), keeping merged rows", page.page_number, exc)
+        return rows
+
+    # A different column count would shift every value one column — the merged
+    # rows are the lesser evil, and the review shows what came out.
+    text_width = max((len(row) for row in text_rows), default=0)
+    if not text_rows or text_width != width:
+        logger.warning(
+            "Page %s: merged rows detected but the text-row grid has %d columns instead of %d — keeping the merged rows",
+            page.page_number, text_width, width,
+        )
+        return rows
+
+    repaired = _regroup_text_rows(text_rows, width)
+    logger.info(
+        "Page %s: repaired merged rows (%d -> %d rows, longest first cell %d chars)",
+        page.page_number, len(rows), len(repaired), longest_col0,
+    )
+    return repaired
+
+
 def _extract_pages(pdf_bytes: bytes, task: Task | None = None) -> list[ExtractedPage]:
     """Stage 1 for the Haushalt: pdfplumber text + table rows, page by page."""
     import pdfplumber
@@ -566,7 +744,7 @@ def _extract_pages(pdf_bytes: bytes, task: Task | None = None) -> list[Extracted
                 ExtractedPage(
                     number=page_idx,
                     text=page.extract_text() or "",
-                    rows=[row for row in (page.extract_table() or []) if row],
+                    rows=_page_table_rows(page),
                 )
             )
     return pages
@@ -579,6 +757,7 @@ def _parse_pdf(
     finve_projects: dict[int, list[int]] | None = None,
     all_projects: list | None = None,
     task: Task | None = None,
+    known_finve_keys: dict[str, int] | None = None,
 ) -> tuple[HaushaltsParseTaskResult, DocumentText]:
     """Parse a Haushalt PDF into a task result plus the text it worked from."""
     pages = _extract_pages(pdf_bytes, task=task)
@@ -588,8 +767,21 @@ def _parse_pdf(
         known_finve_ids,
         finve_projects=finve_projects,
         all_projects=all_projects,
+        known_finve_keys=known_finve_keys,
     )
     return result, _document_text(pdf_bytes, [page.text for page in pages])
+
+
+def _is_bedarfsplan_section(section: TableSection, sections: list[TableSection]) -> bool:
+    """True for the one table whose rows carry a printed FinVe number.
+
+    That is the Bedarfsplan table (Tabelle 1) — or, in a report without table
+    captions, the single section covering the whole document.
+    """
+    numbered = [s.number for s in sections if s.number is not None]
+    if not numbered:
+        return True
+    return section.number == min(numbered)
 
 
 def _parse_extracted_pages(
@@ -598,49 +790,109 @@ def _parse_extracted_pages(
     known_finve_ids: set[int],
     finve_projects: dict[int, list[int]] | None = None,
     all_projects: list | None = None,
+    known_finve_keys: dict[str, int] | None = None,
 ) -> HaushaltsParseTaskResult:
     """Stages 2 and 3: segment the document, map the columns, transfer the values.
 
     Split out from :func:`_parse_pdf` so the whole parse can be exercised on
     recorded pdfplumber output without carrying a multi-megabyte PDF fixture.
     """
-    rows: list[HaushaltsParseResultSchema] = []
-    unmatched_rows: list[dict] = []
-
-    current_row: HaushaltsParseResultSchema | None = None
-
     total_pages = len(pages)
     logger.info("Starting PDF parse: %d pages, year=%d", total_pages, year)
 
-    # Stage 2: the page texts carry the "Tabelle N – …" captions that
-    # separate the Bedarfsplan table from the rest of Teil B, and the raw
-    # lines the SV page-break recovery scans.
-    page_texts: list[str] = [page.text for page in pages]
-
-    sections = _detect_table_sections(page_texts)
-    selected = _select_import_section(sections)
-    import_pages = {page for section in sections if section.imported for page in section.pages}
-    if not import_pages:
-        import_pages = set(range(1, total_pages + 1))
+    # Stage 2: the page texts carry the "Tabelle N – …" captions that split
+    # Teil B into its tables, and the raw lines the SV page-break recovery scans.
+    sections = _detect_table_sections([page.text for page in pages])
     logger.info(
-        "Teil B sections: %s — importing %s",
+        "Teil B sections: %s",
         ", ".join(
             f"Tabelle {s.number or '?'} '{s.title}' (S. {s.pages[0]}–{s.pages[-1]})"
             for s in sections
         ) or "none detected",
-        f"Tabelle {selected.number or '?'} '{selected.title}'" if selected else "all pages",
     )
 
-    # Phase 1: flatten the selected section's pages into one table + build a
-    # global SV name→finve_nr lookup from raw text.  Processing a single flat
-    # stream means page-break artefacts (missing col-0, split Erläuterung
-    # blocks) are invisible to the row-processing logic in Phase 2.
+    rows: list[HaushaltsParseResultSchema] = []
+    unmatched_rows: list[dict] = []
+    section_schemas: list[TableSectionSchema] = []
+    document_map: ColumnMap | None = None
+    # Keys handed out so far — shared across sections so a repeated identifier
+    # is disambiguated document-wide.
+    taken_keys: set[str] = set()
+
+    for section in sections:
+        section_rows, section_unmatched, cmap = _parse_section(
+            section,
+            pages,
+            year,
+            known_finve_ids,
+            finve_projects=finve_projects,
+            all_projects=all_projects,
+            known_finve_keys=known_finve_keys or {},
+            taken_keys=taken_keys,
+            expects_finve_number=_is_bedarfsplan_section(section, sections),
+        )
+        section.imported = bool(section_rows) or bool(section_unmatched)
+        rows.extend(section_rows)
+        unmatched_rows.extend(section_unmatched)
+        if document_map is None:
+            document_map = cmap
+        section_schemas.append(
+            TableSectionSchema(
+                number=section.number,
+                title=section.title,
+                page_from=section.pages[0],
+                page_to=section.pages[-1],
+                imported=section.imported,
+                row_count=len(section_rows),
+                column_map_source=cmap.source,
+            )
+        )
+        logger.info(
+            "Tabelle %s '%s': %d rows, %d unmatched (column map: %s)",
+            section.number, section.title, len(section_rows), len(section_unmatched), cmap.source,
+        )
+
+    logger.info(
+        "PDF parse complete: %d rows, %d unmatched rows across %d tables",
+        len(rows), len(unmatched_rows), len(sections),
+    )
+    return HaushaltsParseTaskResult(
+        year=year,
+        rows=rows,
+        unmatched_rows=unmatched_rows,
+        column_map=document_map.to_json() if document_map else None,
+        sections=section_schemas,
+    )
+
+
+def _parse_section(
+    section: TableSection,
+    pages: list[ExtractedPage],
+    year: int,
+    known_finve_ids: set[int],
+    *,
+    finve_projects: dict[int, list[int]] | None,
+    all_projects: list | None,
+    known_finve_keys: dict[str, int],
+    taken_keys: set[str],
+    expects_finve_number: bool,
+) -> tuple[list[HaushaltsParseResultSchema], list[dict], ColumnMap]:
+    """Parse one table of Teil B into rows, unmatched rows and its column map."""
+    rows: list[HaushaltsParseResultSchema] = []
+    unmatched_rows: list[dict] = []
+    current_row: HaushaltsParseResultSchema | None = None
+    section_pages = set(section.pages)
+
+    # Phase 1: flatten the section's pages into one table + build a global SV
+    # name→finve_nr lookup from raw text.  Processing a single flat stream means
+    # page-break artefacts (missing col-0, split Erläuterung blocks) are
+    # invisible to the row-processing logic in Phase 2.
     all_table_rows: list[list] = []
     header_rows: list[list] = []
     global_sv_lookup: dict[str, int] = {}
 
     for page in pages:
-        if page.number not in import_pages:
+        if page.number not in section_pages:
             continue
         if page.rows:
             all_table_rows.extend(page.rows)
@@ -648,19 +900,13 @@ def _parse_extracted_pages(
                 header_rows = [row for row in page.rows if is_header_row(row)]
         global_sv_lookup.update(_build_sv_raw_lookup(page.text))
 
-    logger.info(
-        "Collected %d raw table rows; %d SV entries in raw-text lookup",
-        len(all_table_rows),
-        len(global_sv_lookup),
-    )
-
-    # Stage 3: one column mapping for the whole document — every value below
-    # is then transferred deterministically through it.
+    # Stage 3: one column mapping per table — every value below is then
+    # transferred deterministically through it.
     cmap = resolve_column_map(header_rows)
     if cmap.missing:
         logger.warning(
-            "Haushalt column map (%s) has no column for: %s",
-            cmap.source, ", ".join(cmap.missing),
+            "Tabelle %s column map (%s) has no column for: %s",
+            section.number, cmap.source, ", ".join(cmap.missing),
         )
 
     # Phase 2: process flat table in a single pass.
@@ -683,7 +929,9 @@ def _parse_extracted_pages(
             continue
 
         # Skip the totals row that closes the table
-        if _is_table_totals_row(_cell_of(cells, cmap, "name")):
+        if _is_table_totals_row(
+            _cell_of(cells, cmap, "name"), _cell_of(cells, cmap, "lfd_nr")
+        ):
             continue
 
         # --- Detect main FinVe row ---
@@ -705,8 +953,58 @@ def _parse_extracted_pages(
             except (ValueError, TypeError):
                 pass
 
+        if finve_nr is None and not expects_finve_number:
+            # Tables 2–5 print no FinVe number; a row that carries an identifier
+            # in the first column ("YYY SV 52/2017", "B0094 5/ Nr.1 …") is a
+            # measure of its own and gets a string identity instead.
+            identifier_cell = _cell_of(cells, cmap, "lfd_nr")
+            finve_cell = _cell_of(cells, cmap, "finve_nr")
+            # A row whose name column opens a labelled sub-block belongs to the
+            # measure above it, whatever stray heading text landed in column 1.
+            is_sub_block = _is_erlaeuterung_row(cells, cmap) or _is_nachrichtlich_row(cells)
+            if not is_sub_block and (has_measure_marker(identifier_cell) or lfd_nr is not None):
+                if current_row is not None:
+                    rows.append(current_row)
+                raw_name = _extract_project_name(_cell_of(cells, cmap, "name"))
+                finve_key = build_finve_key(
+                    section.number,
+                    identifier_cell,
+                    finve_cell,
+                    raw_name,
+                    _parse_int(_cell_of(cells, cmap, "starting_year")),
+                    taken_keys,
+                )
+                is_sv = _is_sammel_finve(raw_name)
+                keyed_finve, keyed_budget = _build_proposed(
+                    cells, cmap, year, None,
+                    lfd_nr=lfd_nr or (identifier_cell or "").strip() or None,
+                    bedarfsplan_nr=bedarfsplan_nr,
+                    name=raw_name, is_sv=is_sv, finve_key=finve_key,
+                )
+                known_id = known_finve_keys.get(finve_key)
+                existing_ids = (finve_projects or {}).get(known_id, []) if known_id else []
+                suggested_ids: list[int] = []
+                if known_id is None and all_projects and not is_sv:
+                    suggested_ids = suggest_projects_for_finve(raw_name, all_projects)
+                current_row = HaushaltsParseResultSchema(
+                    row_key=finve_key,
+                    finve_number=known_id,
+                    finve_key=finve_key,
+                    table_number=section.number,
+                    table_title=section.title,
+                    name=raw_name,
+                    status="update" if known_id is not None else "new",
+                    is_sammel_finve=is_sv,
+                    proposed_finve=keyed_finve,
+                    proposed_budget=keyed_budget,
+                    proposed_titel_entries=_extract_inline_titel_entries(cells, cmap),
+                    project_ids=existing_ids if existing_ids else suggested_ids,
+                    suggested_project_ids=suggested_ids,
+                )
+                continue
+
         if finve_nr is None:
-            if lfd_nr is not None:
+            if lfd_nr is not None and expects_finve_number:
                 # Has an lfd_nr but no FinVe number (e.g. "B0134 L 06") —
                 # project without assigned FinVe yet. Flush previous row and
                 # record as unmatched instead of misrouting as a Titel sub-row.
@@ -720,6 +1018,7 @@ def _parse_extracted_pages(
                         "raw_finve_number": None,
                         "raw_bedarfsplan": bedarfsplan_nr,
                         "raw_name": raw_name,
+                        "table_number": section.number,
                     }
                 )
                 continue
@@ -761,7 +1060,10 @@ def _parse_extracted_pages(
                             name=sv_name, is_sv=True,
                         )
                         current_row = HaushaltsParseResultSchema(
+                            row_key=str(recovered_finve_nr),
                             finve_number=recovered_finve_nr,
+                            table_number=section.number,
+                            table_title=section.title,
                             name=sv_name,
                             status=sv_status,
                             is_sammel_finve=True,
@@ -785,6 +1087,18 @@ def _parse_extracted_pages(
                     current_row.proposed_titel_entries.append(
                         _build_titel_entry(cells, cmap)
                     )
+            elif (
+                not expects_finve_number
+                and current_row is not None
+                and _is_position_row(cells, cmap)
+            ):
+                # Tables 2–5 break a measure down into named positions
+                # ("A -Sammelposition", "Dortmund Knoten 1 - Z1108") instead of
+                # Kap./Titel lines. They carry values, so they are kept as
+                # sub-entries of the measure rather than dropped.
+                current_row.proposed_titel_entries.extend(
+                    _extract_position_entries(cells, cmap)
+                )
             else:
                 # Erläuterung continuation row: subsequent page cells that lack the
                 # "Erläuterung:" prefix but contain more bullet-listed project names.
@@ -842,7 +1156,10 @@ def _parse_extracted_pages(
             suggested_ids = suggest_projects_for_finve(raw_name, all_projects)
 
         current_row = HaushaltsParseResultSchema(
+            row_key=str(finve_nr),
             finve_number=finve_nr,
+            table_number=section.number,
+            table_title=section.title,
             name=raw_name,
             status=status,
             is_sammel_finve=is_sv,
@@ -857,28 +1174,7 @@ def _parse_extracted_pages(
     if current_row is not None:
         rows.append(current_row)
 
-    logger.info(
-        "PDF parse complete: %d FinVe rows, %d unmatched rows (column map: %s)",
-        len(rows),
-        len(unmatched_rows),
-        cmap.source,
-    )
-    return HaushaltsParseTaskResult(
-        year=year,
-        rows=rows,
-        unmatched_rows=unmatched_rows,
-        column_map=cmap.to_json(),
-        sections=[
-            TableSectionSchema(
-                number=section.number,
-                title=section.title,
-                page_from=section.pages[0],
-                page_to=section.pages[-1],
-                imported=section.imported,
-            )
-            for section in sections
-        ],
-    )
+    return rows, unmatched_rows, cmap
 
 
 def _document_text(pdf_bytes: bytes, page_texts: list[str]) -> DocumentText:
@@ -930,6 +1226,15 @@ def parse_haushalt_pdf(
         known_ids: set[int] = {row[0] for row in db.query(Finve.id).all()}
         logger.info("Loaded %d known Finve IDs from DB", len(known_ids))
 
+        # Measures without a FinVe number are recognised again by their key
+        known_keys: dict[str, int] = {
+            key: finve_id
+            for finve_id, key in db.query(Finve.id, Finve.finve_key)
+            .filter(Finve.finve_key.isnot(None))
+            .all()
+        }
+        logger.info("Loaded %d known Finve keys from DB", len(known_keys))
+
         # Load existing Finve→Project associations to pre-populate project_ids.
         # Regular FinVes use NULL year (permanent); SV-FinVes use the most recent year per finve.
         from sqlalchemy import func as _func
@@ -971,6 +1276,7 @@ def parse_haushalt_pdf(
             finve_projects=finve_projects,
             all_projects=all_projects,
             task=self,
+            known_finve_keys=known_keys,
         )
 
         # Build a minimal user-like object from user_info dict for save_parse_result

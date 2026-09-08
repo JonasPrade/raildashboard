@@ -18,8 +18,9 @@ const SOURCE_COLOR: Record<HaushaltsColumnMapping["source"], string> = {
 };
 
 /**
- * Shows how the parser read the PDF before any value is imported: which table
- * of Teil B was used, and which PDF column each target field was taken from.
+ * Shows how the parser read the PDF before any value is imported: which tables
+ * of Teil B it found and how many rows each yielded, and which PDF column each
+ * target field was taken from.
  * The values themselves are transferred verbatim through this mapping — if the
  * mapping is right, the numbers are right, so it is the one thing worth
  * checking up front.
@@ -38,6 +39,9 @@ export function ColumnMappingPanel({
     const imported = sections?.filter((s) => s.imported) ?? [];
     const skipped = sections?.filter((s) => !s.imported) ?? [];
     const unmapped = columnMap?.columns.filter((c) => c.index === null) ?? [];
+    const oddMapping = imported.filter(
+        (s) => s.column_map_source && s.column_map_source !== "header",
+    );
 
     return (
         <Stack gap="xs">
@@ -56,18 +60,34 @@ export function ColumnMappingPanel({
             </Group>
 
             {imported.length > 0 && (
-                <Text size="xs" c="dimmed">
-                    Eingelesen:{" "}
-                    {imported
-                        .map((s) => `Tabelle ${s.number ?? "?"} – ${s.title} (S. ${s.page_from}–${s.page_to})`)
-                        .join(", ")}
+                <Stack gap={2}>
+                    <Text size="xs" c="dimmed">
+                        Eingelesen:{" "}
+                        {imported
+                            .map(
+                                (s) =>
+                                    `Tabelle ${s.number ?? "?"} – ${s.title} (S. ${s.page_from}–${s.page_to}, ${s.row_count} Zeilen)`,
+                            )
+                            .join(" · ")}
+                    </Text>
                     {skipped.length > 0 && (
-                        <>
-                            {" · Übersprungen: "}
+                        <Text size="xs" c="dimmed">
+                            Ohne verwertbare Zeilen:{" "}
                             {skipped.map((s) => `Tabelle ${s.number ?? "?"} – ${s.title}`).join(", ")}
-                        </>
+                        </Text>
                     )}
-                </Text>
+                </Stack>
+            )}
+
+            {oddMapping.length > 0 && (
+                <Alert color="yellow" variant="light" title="Spalten einer Tabelle nicht aus der Kopfzeile erkannt">
+                    Für{" "}
+                    {oddMapping
+                        .map((s) => `Tabelle ${s.number ?? "?"} (${s.column_map_source})`)
+                        .join(", ")}{" "}
+                    stammt die Spaltenzuordnung nicht aus der Tabellenüberschrift. Werte dieser Tabelle
+                    bitte stichprobenartig gegen das PDF prüfen.
+                </Alert>
             )}
 
             {columnMap?.source === "fallback" && (
