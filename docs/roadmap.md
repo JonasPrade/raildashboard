@@ -195,7 +195,7 @@ Siehe: `docs/features/feature-new-project-wizard.md`
 
 - [ ] **VIB-Review: OCR-Bilder anzeigen** — Im Review und in `VibStructurePreviewPage` extrahierte Mistral-OCR-Bilder (Diagramme, Karten, Fortschrittsbalken) pro Vorhaben anzeigen. Backend-Infrastruktur bereits implementiert: `ocr_images_json` auf `VibDraftReport`, `GET /draft/{task_id}/images` (Metadaten) und `GET /draft/{task_id}/image/{id}` (Bytes). Offen: pro-Eintrag-Zuordnung der Bilder (page_index-Matching gegen entry block_start/end-Seiten) und Frontend-Komponente (Galerie oder Inline-Thumbnails in der Strukturvorschau).
 
-- [ ] **PDF-Import vereinheitlichen** — Die OCR-Stufe der VIB-Pipeline (PDF → Markdown, dann Zuordnung aufs Zielformat) als gemeinsamen Service für alle PDF-Quellen bereitstellen; Haushalt-Spaltenlayout per LLM auf das kanonische Schema mappen statt pro Jahrgang neue Heuristiken. Evaluation und empfohlene Reihenfolge: `docs/features/feature-pdf-import-unification.md`
+- [ ] **PDF-Import vereinheitlichen** — Die OCR-Stufe der VIB-Pipeline (PDF → Markdown, dann Zuordnung aufs Zielformat) als gemeinsamen Service für alle PDF-Quellen bereitstellen; Haushalt-Spaltenlayout per LLM auf das kanonische Schema mappen statt pro Jahrgang neue Heuristiken. Evaluation und empfohlene Reihenfolge: `docs/features/feature-pdf-import-unification.md`. Umgesetzt: Schritt 1 (`services/document_ocr.py` mit `OcrResult`), Schritt 2 (OCR-Persistenz-Mixin) und Schritt 5 (Spaltenzuordnung des Haushalts). Offen: Schritt 3 (Medien-PDF-Upload) und die vollständige OCR-Umstellung des Haushalts (Schritte 4/6).
 
 - [ ] **Netzzustandsbericht** — PDF-Import, Extraktion relevanter Kennzahlen in die Datenbank
 
@@ -260,7 +260,7 @@ Jährlicher Import des VIB-PDFs (Abschnitt B: Schienenwege). Vollständig implem
 Siehe: `docs/features/feature-vib-import.md`
 
 - [x] **Parser** — per-page column detection (bimodal x0), TOC-anchored block boundaries, `_VORHABEN_SECTION_RE` for plain and Markdown headings, PFA pipe-table parsing, debug script `scripts/dump_vib_parse_result.py`
-- [x] **Mistral OCR Pipeline** — `tasks/vib_ocr.py`: `mistral-ocr-latest` API + pymupdf fallback; inline table resolution; header/footer stripping; page-range extraction; image collection stored as JSON in `vib_draft_report.ocr_images_json`
+- [x] **Mistral OCR Pipeline** — `services/document_ocr.py` (bis v0.0.12 `tasks/vib_ocr.py`, jetzt gemeinsame Stufe 1 aller PDF-Importe): `mistral-ocr-latest` API + pymupdf fallback; inline table resolution; header/footer stripping; page-range extraction; image collection stored as JSON in `vib_draft_report.ocr_images_json`
 - [x] **API** — Celery task `extract_vib_blocks`; image endpoints `GET /draft/{task_id}/images` + `/image/{id}`; single-entry AI extraction endpoint
 - [x] **Review-UI** — `VibStructurePreviewPage` with Markdown rendering, quality indicators, sub-section badges; `VibReviewPage` with editable sub-block fields and inline PFA table; per-entry "KI extrahieren" button; m:n project assignment (`project_ids`)
 
@@ -317,7 +317,10 @@ Jährlicher Import der Anlage VWIB, Teil B (Bundeshaushalt) als PDF. Enthält al
 
 Siehe: `docs/features/feature-haushalt-import.md`
 
-- [x] Celery-Task `parse_haushalt_pdf` (`tasks/haushalt.py`) mit `pdfplumber`; Parser für 2026-Format (zusammengeführte Spalten, mehrzeilige Zellen, Haushaltstitel-Lookup auto-erweiterbar via `get_or_create`)
+- [x] Celery-Task `parse_haushalt_pdf` (`tasks/haushalt.py`) mit `pdfplumber`; Parser für zusammengeführte Spalten, mehrzeilige Zellen, Haushaltstitel-Lookup auto-erweiterbar via `get_or_create`
+- [x] **Spaltenzuordnung statt fester Indizes** (`tasks/haushalt_columns.py`) — die Kopfzeile der Tabelle wird einmal pro Dokument auf das kanonische Schema gemappt (deterministisch, LLM als Rückfallebene, festes 2026-Layout als letzte Stufe); Werte werden immer deterministisch übertragen. Im Review sichtbar
+- [x] **Tabellen-Segmentierung** — Teil B enthält fünf Tabellen; nur „Tabelle 1 – Bedarfsplanmaßnahmen" wird eingelesen, die übrigen (Lärmsanierung, ERTMS, Kleine und Mittlere Maßnahmen, InvKG) werden erkannt und übersprungen
+- [x] **Herkunft je Lauf gespeichert** — `haushalts_parse_result.ocr_*` (gemeinsames `OcrSourceMixin`) und `column_map_*`
 - [x] DB-Modelle: `HaushaltTitel`, `BudgetTitelEntry`, `HaushaltsParseResult`, `FinveChangeLog`, `BudgetChangeLog`, `UnmatchedBudgetRow`
 - [x] API: `POST /parse`, `GET /parse-result`, `POST /confirm`, `GET/PATCH /unmatched`
 - [x] Frontend: Upload-Flow mit Celery-Polling, Review-Tabelle (neu/geändert/unmatched), Projektzuordnung per MultiSelect, Import-Anleitung unter `/admin/haushalt-import/guide`

@@ -1,7 +1,9 @@
 # Feature: PDF-Import vereinheitlichen — Evaluation
 
-> **Status: Evaluation / Entscheidungsvorlage.** Nichts hiervon ist implementiert.
-> Umsetzung erst nach Zerlegung in Board-Issues (`docs/github-projects.md`).
+> **Status: teilweise umgesetzt.** Schritte 1, 2 und 5 der empfohlenen Reihenfolge
+> sind implementiert (siehe *Umsetzungsstand* unten); Schritt 3 (Medien-PDF-Upload)
+> und die vollständige OCR-Umstellung des Haushalts (Schritte 4 und 6) sind offen.
+> Der Rest dieser Datei bleibt die Entscheidungsgrundlage.
 
 ## Ziel dieser Evaluation
 
@@ -17,9 +19,9 @@ bewertet, ob und wie weit sie auf dieses System umgestellt werden sollten.
 
 | Quelle | Textgewinnung | Strukturierung | Semantik | Ausführung | Code |
 |---|---|---|---|---|---|
-| **VIB** (Verkehrsinvestitionsbericht) | Mistral OCR → Markdown, pymupdf-Fallback | TOC-verankertes Block-Splitting (Regex) | LLM je Vorhabenblock (`call_llm_json`) | Celery, 2-stufig mit Preview | `tasks/vib_ocr.py`, `tasks/vib.py`, `tasks/vib_ai_extraction.py` |
-| **Fulda-Runde** (Kleine Anfrage) | Mistral OCR (ruft `tasks.vib_ocr` auf) | keine — Volltext in einem Stück | LLM über das ganze Dokument | Celery, einstufig | `tasks/fulda.py`, `tasks/fulda_extraction.py` |
-| **Haushalt** (Anlage VWIB, Teil B) | `pdfplumber.extract_table()` je Seite | Flat-Table über alle Seiten + ~15 Format-Heuristiken | **keine** — reine Regex/Spaltenindex-Logik | Celery, einstufig | `tasks/haushalt.py` (802 Zeilen) |
+| **VIB** (Verkehrsinvestitionsbericht) | Mistral OCR → Markdown, pymupdf-Fallback | TOC-verankertes Block-Splitting (Regex) | LLM je Vorhabenblock (`call_llm_json`) | Celery, 2-stufig mit Preview | `services/document_ocr.py`, `tasks/vib.py`, `tasks/vib_ai_extraction.py` |
+| **Fulda-Runde** (Kleine Anfrage) | Mistral OCR (ruft `services.document_ocr` auf) | keine — Volltext in einem Stück | LLM über das ganze Dokument | Celery, einstufig | `tasks/fulda.py`, `tasks/fulda_extraction.py` |
+| **Haushalt** (Anlage VWIB, Teil B) | `pdfplumber.extract_table()` je Seite | Tabellen-Segmentierung (Tabelle 1) + Flat-Table über deren Seiten | `column_map` je Dokument (Header → LLM → Fallback), Werte deterministisch | Celery, einstufig | `tasks/haushalt.py`, `tasks/haushalt_columns.py` |
 | **Medien/Presse** | kein PDF — URL-Fetch oder Paste, HTML→Text | keine | LLM über den Volltext | synchron im Endpoint | `tasks/media_extraction.py` |
 | **Bauportal** | kein PDF — öffentliche JSON-API | — | — | synchron im Endpoint | `tasks/bauportal.py` |
 
@@ -244,3 +246,59 @@ Schritte 1–3 sind unabhängig vom Haushalt und können vorgezogen werden.
   über pdfplumber laufen (Empfehlung: ja) oder wie VIB/Fulda degradieren?
 - Braucht das `column_map` eine Versionierung pro Berichtsjahr in der DB, damit
   ein Re-Import desselben Jahrgangs ohne LLM-Call auskommt?
+
+
+---
+
+## Umsetzungsstand
+
+Stand nach der Aktualisierung des Haushalts-Imports (verifiziert am EP-12-Bericht
+Teil B zum HH-Entwurf 2027).
+
+| Schritt | Stand | Ergebnis |
+|---|---|---|
+| 1 Stufe-1-Vereinheitlichung | **erledigt** | `services/document_ocr.py` mit `OcrResult(text, pages, model, status, images)`; Credentials kommen aus `settings`, nicht mehr aus vier Aufrufstellen. VIB und Fulda ziehen darüber; `tasks/vib_ocr.py` existiert nicht mehr. |
+| 2 OCR-Persistenz-Mixin | **erledigt** | `models/mixins.py::OcrSourceMixin` (`ocr_raw_text`/`ocr_status`/`ocr_model`), genutzt von `VibDraftReport` und neu von `HaushaltsParseResult` (Migration `20260908001`). |
+| 3 Medien-Importer um PDF-Upload | offen | — |
+| 4 Haushalt: OCR-Pfad parallel | **teilweise** | Schalter `HAUSHALT_OCR_ENABLED` (Default aus) lässt die gemeinsame Stufe 1 über dasselbe PDF laufen und speichert deren Text beim Lauf. Tabellenwerte kommen weiterhin ausschließlich aus pdfplumber. |
+| 5 Haushalt: `column_map` + Review-UI | **erledigt** | `tasks/haushalt_columns.py`; Anzeige im Review über `ColumnMappingPanel`. |
+| 6 pdfplumber zum Fallback zurückstufen | offen | Setzt einen vollständigen Jahresimport über den OCR-Pfad voraus. |
+
+### Abweichungen von der Empfehlung — und warum
+
+**Die Spaltenzuordnung ist deterministisch-zuerst, nicht LLM-zuerst.** Die
+Kopfzeile der Tabelle steht in der pdfplumber-Ausgabe bereits als Text zur
+Verfügung; ein Musterabgleich darauf löst alle bisher gesehenen Layouts (2026 und
+2027) ohne externen Dienst, ohne Kosten und reproduzierbar. Der LLM-Call bleibt
+als zweite Stufe erhalten und greift, wenn der Abgleich ein Pflichtfeld nicht
+findet — genau der Fall, den die Empfehlung adressiert. Ergebnis ist dieselbe
+Entkopplung vom Jahrgang bei strikt geringerem Risiko.
+
+**Zusätzlich zur Empfehlung: Tabellen-Segmentierung.** Der 2027-Bericht zeigte
+ein Problem, das die Evaluation nicht erfasst hatte: Teil B enthält fünf Tabellen,
+und der Parser las alle als eine. Die Zeilen der Tabellen 2–5 (Lärmsanierung,
+ERTMS, Kleine und Mittlere Maßnahmen, InvKG) haben keine FinVe-Nummer und landeten
+deshalb als Titel- und Erläuterungs-Untereinträge an der letzten Sammel-FinVe von
+Tabelle 1 — im 2027-Bericht 51 statt 3 Titel-Einträge und 78 statt 1 Erläuterungs-
+Projekt an „SV Rest 2025". Die Segmentierung nach der Seitenüberschrift
+`Tabelle <N> - <Titel>` behebt das.
+
+### Golden-Fixture-Vergleich
+
+Die von der Evaluation geforderte Bedingung („identisches PDF, alter und neuer
+Pfad, Zeilen- und Wertegleichheit") ist am EP-12-Bericht Teil B 2027 erfüllt:
+83 FinVe-Zeilen und 2 unmatched Zeilen vor wie nach der Umstellung, **null**
+Abweichungen in `proposed_finve` und `proposed_budget`. Die einzige Differenz ist
+die beseitigte Kontamination an „SV Rest 2025". Als Regressionsschutz im Repo:
+`tests/unit/test_haushalt_parse_2027.py` gegen die aufgezeichnete pdfplumber-
+Ausgabe in `tests/fixtures/haushalt_ep12_2027_pages.json`.
+
+### Beantwortete offene Fragen
+
+- *Läuft der Haushalt bei fehlendem `OCR_API_KEY` weiterhin vollwertig?* Ja — der
+  Haushalt liest die Tabelle grundsätzlich über pdfplumber; OCR ist ein
+  zuschaltbarer Zusatz für den gespeicherten Dokumenttext, kein Pflichtpfad.
+- *Braucht `column_map` eine Versionierung pro Berichtsjahr?* Nicht als eigene
+  Tabelle: die Zuordnung wird je Lauf in `haushalts_parse_result.column_map_json`
+  gespeichert und ist damit pro Import nachvollziehbar. Da die deterministische
+  Erkennung ohnehin ohne LLM-Call auskommt, spart eine Wiederverwendung nichts.

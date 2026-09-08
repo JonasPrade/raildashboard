@@ -23,6 +23,7 @@ import {
     type HaushaltsParseTaskResult,
 } from "../../shared/api/queries";
 import { ReviewTable } from "./components/ReviewTable";
+import { ColumnMappingPanel } from "./components/ColumnMappingPanel";
 import { formatDateTime } from "../../shared/format";
 
 function HaushaltsReviewPageContent() {
@@ -159,6 +160,11 @@ function HaushaltsReviewPageContent() {
                         {result.error_message}
                     </Alert>
                 )}
+
+                <ColumnMappingPanel
+                    columnMap={parsedResult?.column_map}
+                    sections={parsedResult?.sections}
+                />
 
                 <ReviewTable
                     rows={displayRows}

@@ -26,13 +26,31 @@ Diese Anlage wird jährlich zusammen mit dem Bundeshaushaltsentwurf veröffentli
             body: `Gehe zu [Haushalts-Import](/admin/haushalt-import).
 
 1. Klicke auf „PDF auswählen…" und wähle die heruntergeladene VWIB-Teil-B-Datei aus.
-2. Trage das **Haushaltsjahr** ein (z. B. 2026). Dieses Jahr wird für die Zuordnung der Sammel-FinVes genutzt und sollte dem Jahr des PDFs entsprechen.
+2. Trage das **Haushaltsjahr** ein (z. B. 2027). Dieses Jahr wird für die Zuordnung der Sammel-FinVes genutzt und sollte dem Jahr des PDFs entsprechen.
 3. Klicke auf **„PDF parsen"**. Der Server extrahiert die Tabelle mit pdfplumber und analysiert alle Zeilen im Hintergrund.
 4. Während des Parsens wird ein Fortschrittsbalken angezeigt (Seite X / Gesamtseiten, Anzahl gefundener Zeilen). Bei großen PDFs kann das einige Sekunden dauern.
 5. Nach Abschluss wird die Seite automatisch zur Ergebnis-Überprüfung weitergeleitet.
 
 > [!blue] Hinweis
-> Der Parser ist auf das 2026-Format kalibriert (zusammengeführte erste drei Spalten, mehrzeilige Zellen, Kap./Titel-Unterzeilen). Ältere PDFs können abweichende Strukturen haben.`,
+> Teil B enthält mehrere Tabellen. Eingelesen wird ausschließlich „Tabelle 1 – Bedarfsplanmaßnahmen"; Lärmsanierung, ERTMS, Kleine und Mittlere Maßnahmen sowie InvKG-Maßnahmen enthalten keine FinVe-Nummern und werden übersprungen. Welche Tabellen erkannt wurden, steht im Review.`,
+        },
+        {
+            key: "spaltenzuordnung",
+            title: "Spaltenzuordnung prüfen",
+            body: `Ganz oben im Review steht das Panel **„Spaltenzuordnung"**. Es zeigt zwei Dinge, die vor allen Einzelzeilen geprüft gehören:
+
+1. **Welche Tabelle eingelesen wurde** und welche übersprungen wurden (mit Seitenzahlen).
+2. **Woher die Zuordnung stammt** – als Badge:
+   - \`aus der Tabellenüberschrift\` (grün): Die Kopfzeile des PDFs wurde gelesen. Normalfall, nichts zu tun.
+   - \`per KI zugeordnet\` (gelb): Die Überschriften waren ungewöhnlich, ein Sprachmodell hat sie den Zielfeldern zugeordnet. Über „Details anzeigen" kurz gegenprüfen.
+   - \`Standard-Layout (2026)\` (orange): Die Kopfzeile konnte nicht gelesen werden, es gilt das Spalten-Layout von 2026. Hier unbedingt einige Werte stichprobenartig gegen das PDF prüfen, bevor importiert wird.
+
+Über **„Details anzeigen"** wird je Zielfeld die erkannte PDF-Spalte samt Überschrift aufgelistet.
+
+> [!yellow] Warum das zuerst kommt
+> Die Zahlen werden unverändert aus der zugeordneten Spalte übernommen. Stimmt die Zuordnung, stimmen die Werte – stimmt sie nicht, sind alle Werte systematisch verschoben. Das ist in der Zeilenliste kaum zu erkennen, in diesem Panel dagegen in Sekunden.
+
+Ist die Zuordnung falsch, den Lauf über „Verwerfen" beenden und einen Administrator hinzuziehen; eine Korrektur direkt im Review ist derzeit nicht möglich.`,
         },
         {
             key: "phase1-finves",
@@ -101,7 +119,9 @@ cd apps/backend && celery -A dashboard_backend.celery_app worker --loglevel=info
         {
             key: "ts-keine-zeilen",
             title: "Der Parser erkennt keine Zeilen (0 Zeilen gefunden)",
-            body: `Das hochgeladene PDF entspricht möglicherweise nicht dem erwarteten Format. Prüfe, ob es sich um die Anlage VWIB Teil B handelt und ob das PDF selektierbare Texte enthält (kein Scan ohne OCR). PDFs anderer Jahrgänge können abweichende Spaltenstrukturen haben und benötigen ggf. Parser-Anpassungen.`,
+            body: `Das hochgeladene PDF entspricht möglicherweise nicht dem erwarteten Format. Prüfe, ob es sich um die Anlage VWIB Teil B handelt und ob das PDF selektierbare Texte enthält (kein Scan ohne OCR).
+
+Abweichende Spaltenüberschriften eines anderen Jahrgangs sind dagegen kein Problem mehr: Der Parser liest die Kopfzeile des jeweiligen PDFs. Welche Zuordnung er gefunden hat, steht im Panel „Spaltenzuordnung" im Review.`,
         },
     ],
 };

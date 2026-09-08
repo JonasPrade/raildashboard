@@ -14,6 +14,11 @@ from dashboard_backend.tasks.haushalt import (
     _extract_inline_titel_entries,
     _extract_nachrichtlich_entries,
 )
+from dashboard_backend.tasks.haushalt_columns import LEGACY_COLUMN_MAP, ColumnMap
+
+# The blocks now read their columns through a ColumnMap; the legacy map is the
+# fixed 2026 layout these synthetic rows are written in.
+CMAP = ColumnMap(indices=dict(LEGACY_COLUMN_MAP), source="fallback")
 
 # Columns: 0 lfd, 1 finve, 2 bedarfsplan, 3 name, 4 start year, 5 cost orig,
 # 6 cost last year, 7 cost actual, 8 delta abs, 9 delta rel, 10 reasons,
@@ -39,7 +44,7 @@ def test_inline_titel_entries_snapshot():
         c_14="90\n50\n40",
         c_15="980\n500\n480",
     )
-    entries = _extract_inline_titel_entries(cells)
+    entries = _extract_inline_titel_entries(cells, CMAP)
     assert [e.model_dump() for e in entries] == [
         {
             "titel_key": "891_01", "kapitel": "1202", "titel_nr": "891 01",
@@ -59,7 +64,7 @@ def test_inline_titel_entries_snapshot():
 
 
 def test_inline_titel_entries_without_davon_is_empty():
-    assert _extract_inline_titel_entries(_row("ABS Hanau–Würzburg")) == []
+    assert _extract_inline_titel_entries(_row("ABS Hanau–Würzburg"), CMAP) == []
 
 
 def test_nachrichtlich_entries_snapshot():
@@ -69,7 +74,7 @@ def test_nachrichtlich_entries_snapshot():
              None, None,
              "100\n200", "110\n210", None, None, None,
              "10\n20", "1\n2", "3\n4", "5\n6", "7\n8"]
-    entries = _extract_nachrichtlich_entries(cells)
+    entries = _extract_nachrichtlich_entries(cells, CMAP)
     assert [e.model_dump() for e in entries] == [
         {
             "titel_key": "nachrichtlich: Beteiligung Dritter", "kapitel": "", "titel_nr": "",
@@ -93,7 +98,7 @@ def test_build_titel_entry_old_format_snapshot():
     cells = [None, None, None, "Kap. 1202 Titel 891 01", None, None,
              "600\nrest", "650", None, None, None,
              "200", "80", "6", "50", "500"]
-    entry = _build_titel_entry(cells)
+    entry = _build_titel_entry(cells, CMAP)
     # titel_nr "891 01 600": the joined-cells regex greedily includes the first
     # numeric cell — long-standing behavior, pinned as-is (not worth changing).
     assert entry.model_dump() == {

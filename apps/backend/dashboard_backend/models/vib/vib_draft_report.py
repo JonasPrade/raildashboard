@@ -3,9 +3,10 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from dashboard_backend.models.base import Base
+from dashboard_backend.models.mixins import OcrSourceMixin
 
 
-class VibDraftReport(Base):
+class VibDraftReport(OcrSourceMixin, Base):
     """Stores the raw VIB parse result in the DB immediately after the Celery task
     completes — before the user reviews/corrects and confirms the import.
 
@@ -27,10 +28,8 @@ class VibDraftReport(Base):
         nullable=True,
     )
 
-    # OCR extraction fields — populated by parse_vib_pdf when OCR is used
-    ocr_raw_text = Column(Text, nullable=True)       # full OCR text before block-splitting
-    ocr_status = Column(String(20), nullable=True)   # "done" | "fallback" | "failed"
-    ocr_model = Column(String(100), nullable=True)   # e.g. "mistral-ocr-2512" or "pymupdf"
+    # ocr_raw_text / ocr_status / ocr_model come from OcrSourceMixin —
+    # populated by parse_vib_pdf from the OcrResult of stage 1.
     ocr_images_json = Column(Text, nullable=True)    # JSON list of {page_index, id, image_base64}
 
     created_by = relationship("User", foreign_keys=[created_by_user_id])

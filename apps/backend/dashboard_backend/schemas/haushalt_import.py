@@ -87,6 +87,37 @@ class HaushaltsParseResultSchema(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Column mapping + table sections (how the PDF was read)
+# ---------------------------------------------------------------------------
+
+class ColumnMappingEntry(BaseModel):
+    """One canonical field and the PDF column it was read from."""
+
+    field: str
+    label: str
+    index: Optional[int] = None
+    header: Optional[str] = None
+
+
+class ColumnMappingSchema(BaseModel):
+    """The column layout the parser mapped this document's values through."""
+
+    source: Literal["header", "llm", "fallback"]
+    columns: list[ColumnMappingEntry] = []
+    missing: list[str] = []
+
+
+class TableSectionSchema(BaseModel):
+    """One "Tabelle N – …" of Teil B and whether this run imported it."""
+
+    number: Optional[int] = None
+    title: str = ""
+    page_from: int
+    page_to: int
+    imported: bool = False
+
+
+# ---------------------------------------------------------------------------
 # Full task result (stored in HaushaltsParseResult.result_json)
 # ---------------------------------------------------------------------------
 
@@ -96,6 +127,10 @@ class HaushaltsParseTaskResult(BaseModel):
     year: int
     rows: list[HaushaltsParseResultSchema] = []
     unmatched_rows: list[dict[str, Any]] = []
+    # How the PDF was read — shown in the review so the layout can be checked
+    # before any value is imported.
+    column_map: Optional[ColumnMappingSchema] = None
+    sections: list[TableSectionSchema] = []
 
 
 # ---------------------------------------------------------------------------
@@ -167,5 +202,9 @@ class ParseResultPublicSchema(BaseModel):
     confirmed_at: Optional[datetime] = None
     confirmed_by_snapshot: Optional[str] = None
     result_json: Optional[dict[str, Any]] = None
+    # Stage 1 provenance — which extractor produced the text this run read
+    ocr_status: Optional[str] = None
+    ocr_model: Optional[str] = None
+    column_map_source: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)

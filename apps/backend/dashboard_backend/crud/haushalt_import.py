@@ -72,8 +72,18 @@ def save_parse_result(
     status: str,
     result_json: dict | None,
     error: str | None,
+    document_text: str | None = None,
+    text_status: str | None = None,
+    text_model: str | None = None,
+    column_map: dict | None = None,
+    column_map_source: str | None = None,
 ) -> HaushaltsParseResult:
-    """Persist a new HaushaltsParseResult row and flush it to get an ID."""
+    """Persist a new HaushaltsParseResult row and flush it to get an ID.
+
+    ``document_text``/``text_*`` keep the stage-1 output (see
+    ``services.document_ocr``) and ``column_map*`` the layout the values were
+    transferred through — both so a run stays inspectable after the fact.
+    """
     record = HaushaltsParseResult(
         haushalt_year=year,
         pdf_filename=filename,
@@ -82,6 +92,11 @@ def save_parse_result(
         status=status,
         result_json=result_json,
         error_message=error,
+        ocr_raw_text=document_text,
+        ocr_status=text_status,
+        ocr_model=text_model,
+        column_map_json=column_map,
+        column_map_source=column_map_source,
     )
     db.add(record)
     db.flush()

@@ -769,10 +769,37 @@ export type HaushaltsParseRow = {
     suggested_project_ids: number[];
 };
 
+// The parse result is stored as an untyped JSON blob on the wire (result_json),
+// so these shapes mirror the backend schemas in schemas/haushalt_import.py.
+export type HaushaltsColumnMappingEntry = {
+    field: string;
+    label: string;
+    index: number | null;
+    header: string | null;
+};
+
+export type HaushaltsColumnMapping = {
+    /** How the layout was determined: read off the table header, mapped by the
+     *  LLM, or the fixed 2026 fallback. */
+    source: "header" | "llm" | "fallback";
+    columns: HaushaltsColumnMappingEntry[];
+    missing: string[];
+};
+
+export type HaushaltsTableSection = {
+    number: number | null;
+    title: string;
+    page_from: number;
+    page_to: number;
+    imported: boolean;
+};
+
 export type HaushaltsParseTaskResult = {
     year: number;
     rows: HaushaltsParseRow[];
     unmatched_rows: Record<string, unknown>[];
+    column_map?: HaushaltsColumnMapping | null;
+    sections?: HaushaltsTableSection[];
 };
 
 export type ParseResultPublic = components["schemas"]["ParseResultPublicSchema"];

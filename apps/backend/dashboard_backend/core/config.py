@@ -54,6 +54,12 @@ class Settings(BaseSettings):
     # Can be overridden per-import via the upload form.
     ocr_strip_headers_footers: bool = True
 
+    # Haushalt import: run the shared OCR stage over the PDF as well, so the run
+    # stores the same machine-readable document text as VIB/Fulda. Off by default —
+    # the table values always come from pdfplumber either way, so OCR only adds
+    # cost per import. Turning it on does not change any imported number.
+    haushalt_ocr_enabled: bool = False
+
     model_config = SettingsConfigDict(
         env_file=_find_env_file(),
         case_sensitive=False,

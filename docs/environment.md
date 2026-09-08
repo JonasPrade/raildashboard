@@ -15,6 +15,11 @@ Copy `.env.example` to `.env` and fill in values. Required variables:
 | `LLM_BASE_URL` | Backend | Optional — OpenAI-compatible endpoint for AI extraction; leave empty to disable |
 | `LLM_API_KEY` | Backend | Optional — API key for the LLM endpoint |
 | `LLM_MODEL` | Backend | Optional — model name (default: `gpt-4o-mini`) |
+| `OCR_API_KEY` | Backend | Optional — Mistral OCR key for the shared PDF text stage; empty falls back to pymupdf |
+| `OCR_BASE_URL` | Backend | Optional — Mistral OCR endpoint (default: `https://api.mistral.ai`) |
+| `OCR_MODEL` | Backend | Optional — OCR model name (default: `mistral-ocr-latest`) |
+| `OCR_STRIP_HEADERS_FOOTERS` | Backend | Optional — drop running headers/footers from OCR output (default: `true`) |
+| `HAUSHALT_OCR_ENABLED` | Backend | Optional — also OCR the Haushalt PDF and store its text with the parse run (default: `false`); table values always come from pdfplumber |
 | `ROUTING_TIMEOUT_SECONDS` | Backend | Optional — timeout in seconds for routing requests (default: `20`) |
 | `GRAPH_VERSION` | Backend | Routing graph build identifier; increment after deploying a new OSM extract |
 | `BACKEND_CORS_ORIGINS` | Backend | JSON array of allowed CORS origins; defaults to `["http://localhost:5173"]` — **must be set in production** |

@@ -1,8 +1,26 @@
+"""Haushalt importer (Anlage VWIB, Teil B) — PDF table → Finve/Budget rows.
+
+Three stages, following ``docs/features/feature-pdf-import-unification.md``:
+
+  1. Textgewinnung — pdfplumber reads the table structure and the page text.
+     The shared stage 1 (``services.document_ocr``) can be switched on with
+     ``HAUSHALT_OCR_ENABLED`` to store its markdown with the run as well; the
+     table values always come from pdfplumber.
+  2. Segmentierung — Teil B holds several tables (Bedarfsplanmaßnahmen,
+     Lärmsanierung, ERTMS, …); only the Bedarfsplan table carries FinVe rows,
+     so the others are detected and skipped instead of bleeding into the last
+     row of the first one.
+  3. Semantik — the column layout is mapped onto the canonical schema once per
+     document (``haushalt_columns``); every value is then transferred
+     deterministically through that map.  No number passes through a model.
+"""
+
 from __future__ import annotations
 
 import io
 import logging
 import re
+from dataclasses import dataclass, field as dataclass_field
 
 from celery import Task
 
@@ -18,33 +36,97 @@ from dashboard_backend.models.associations.finve_to_project import FinveToProjec
 from dashboard_backend.models.projects.finve import Finve
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.tasks.finve_matching import suggest_projects_for_finve, suggest_projects_for_sv_erlaeuterung, suggest_per_erlaeuterung_project
+from dashboard_backend.services.document_ocr import extract_document_text
+from dashboard_backend.tasks.haushalt_columns import (
+    ColumnMap,
+    is_header_row,
+    resolve_column_map,
+)
 from dashboard_backend.schemas.haushalt_import import (
     HaushaltsParseResultSchema,
     HaushaltsParseTaskResult,
     ProposedBudget,
     ProposedFinve,
+    TableSectionSchema,
     TitelEntryProposed,
 )
 
 # ---------------------------------------------------------------------------
-# Column indices (0-based) in the extracted PDF table rows
+# Table sections — Teil B is several tables in one PDF
 # ---------------------------------------------------------------------------
-_COL_LFD_NR = 0
-_COL_FINVE_NR = 1
-_COL_BEDARFSPLAN = 2
-_COL_NAME = 3
-_COL_STARTING_YEAR = 4
-_COL_COST_ORIG = 5
-_COL_COST_LAST_YEAR = 6
-_COL_COST_ACTUAL = 7
-_COL_DELTA_ABS = 8
-_COL_DELTA_REL = 9
-_COL_DELTA_REASONS = 10
-_COL_SPENT_TWO_PREV = 11
-_COL_ALLOWED_PREV = 12
-_COL_AUSGABERESTE = 13
-_COL_YEAR_PLANNED = 14
-_COL_NEXT_YEARS = 15
+
+# Page caption, e.g. "Tabelle 1 - Bedarfsplanmaßnahmen"
+_TABLE_CAPTION_RE = re.compile(r"^[ \t]*Tabelle\s+(\d+)\s*[-–—]\s*(.+?)\s*$", re.MULTILINE)
+
+# Closing row of every table — a totals line, not a FinVe
+_TABLE_TOTALS_RE = re.compile(r"^\s*(TABELLENSUMMEN|SUMME)\b", re.IGNORECASE)
+
+
+@dataclass
+class TableSection:
+    """One "Tabelle N – …" of Teil B and the pages it spans (1-indexed)."""
+
+    number: int | None
+    title: str
+    pages: list[int] = dataclass_field(default_factory=list)
+    imported: bool = False
+
+
+def _detect_table_sections(page_texts: list[str]) -> list[TableSection]:
+    """Group the PDF's pages by the "Tabelle N – …" caption they carry.
+
+    A page without a caption belongs to the last captioned section (tables run
+    over many pages, the caption repeats but may be missed on a page).  A PDF
+    with no caption at all yields a single unnumbered section over all pages —
+    the pre-2027 behaviour of treating the whole document as one table.
+    """
+    sections: list[TableSection] = []
+    for page_no, text in enumerate(page_texts, start=1):
+        match = _TABLE_CAPTION_RE.search(text or "")
+        if match:
+            number, title = int(match.group(1)), match.group(2).strip()
+            if not sections or sections[-1].number != number:
+                sections.append(TableSection(number=number, title=title))
+        elif not sections:
+            sections.append(TableSection(number=None, title=""))
+        sections[-1].pages.append(page_no)
+    return sections
+
+
+def _select_import_section(sections: list[TableSection]) -> TableSection | None:
+    """The one table this importer reads: the Bedarfsplan table (Tabelle 1).
+
+    The other tables of Teil B (Lärmsanierung, ERTMS, Kleine und Mittlere
+    Maßnahmen, InvKG) list positions without a FinVe number and do not map onto
+    Finve/Budget rows.  Marks every section carrying the chosen table number as
+    imported — a missed caption in the middle of the table would otherwise
+    split it in two — and returns the first of them.
+    """
+    numbered = [s for s in sections if s.number is not None]
+    chosen = min(numbered, key=lambda s: s.number) if numbered else (sections[0] if sections else None)
+    if chosen is None:
+        return None
+    for section in sections:
+        if section.number == chosen.number:
+            section.imported = True
+    return chosen
+
+
+def _is_table_totals_row(name_cell: str | None) -> bool:
+    """True for the "TABELLENSUMMEN" row that closes a table."""
+    return bool(name_cell) and bool(_TABLE_TOTALS_RE.match(name_cell.strip()))
+
+
+# ---------------------------------------------------------------------------
+# Column access — every value goes through the document's ColumnMap
+# ---------------------------------------------------------------------------
+
+def _cell_of(cells: list, cmap: ColumnMap, field_name: str) -> str | None:
+    """The cell of ``field_name`` in this row, or None when unmapped/empty."""
+    idx = cmap.index(field_name)
+    if idx is None:
+        return None
+    return _cell(cells, idx)
 
 
 def _parse_int(value: str | None) -> int | None:
@@ -94,20 +176,20 @@ def _nth_line(value: str | None, n: int) -> str | None:
     return lines[n] if n < len(lines) else None
 
 
-def _titel_numeric_fields(cells: list, line_idx: int) -> dict:
+def _titel_numeric_fields(cells: list, cmap: ColumnMap, line_idx: int) -> dict:
     """The seven numeric TitelEntryProposed fields from the standard columns.
 
     ``line_idx`` selects the line inside each multi-line cell (0 = first line).
-    A new/renumbered PDF column only needs to be changed here.
+    Which column holds which field comes from the document's ColumnMap.
     """
     return {
-        "cost_estimate_last_year": _parse_int(_nth_line(_cell(cells, _COL_COST_LAST_YEAR), line_idx)),
-        "cost_estimate_aktuell": _parse_int(_nth_line(_cell(cells, _COL_COST_ACTUAL), line_idx)),
-        "verausgabt_bis": _parse_int(_nth_line(_cell(cells, _COL_SPENT_TWO_PREV), line_idx)),
-        "bewilligt": _parse_int(_nth_line(_cell(cells, _COL_ALLOWED_PREV), line_idx)),
-        "ausgabereste_transferred": _parse_int(_nth_line(_cell(cells, _COL_AUSGABERESTE), line_idx)),
-        "veranschlagt": _parse_int(_nth_line(_cell(cells, _COL_YEAR_PLANNED), line_idx)),
-        "vorhalten_future": _parse_int(_nth_line(_cell(cells, _COL_NEXT_YEARS), line_idx)),
+        "cost_estimate_last_year": _parse_int(_nth_line(_cell_of(cells, cmap, "cost_last_year"), line_idx)),
+        "cost_estimate_aktuell": _parse_int(_nth_line(_cell_of(cells, cmap, "cost_actual"), line_idx)),
+        "verausgabt_bis": _parse_int(_nth_line(_cell_of(cells, cmap, "spent_two_years_previous"), line_idx)),
+        "bewilligt": _parse_int(_nth_line(_cell_of(cells, cmap, "allowed_previous_year"), line_idx)),
+        "ausgabereste_transferred": _parse_int(_nth_line(_cell_of(cells, cmap, "ausgabereste"), line_idx)),
+        "veranschlagt": _parse_int(_nth_line(_cell_of(cells, cmap, "year_planned"), line_idx)),
+        "vorhalten_future": _parse_int(_nth_line(_cell_of(cells, cmap, "next_years"), line_idx)),
     }
 
 
@@ -126,20 +208,20 @@ _SAMMELVEREINBARUNGEN_HEADER_RE = re.compile(r"^SAMMELVEREINBARUNGEN\s*\n?", re.
 _BULLET_CHARS = "\u2010\u2011\u2012\u2013\u2014-"
 
 
-def _is_erlaeuterung_row(cells: list) -> bool:
+def _is_erlaeuterung_row(cells: list, cmap: ColumnMap) -> bool:
     """True if the row is an Erläuterung block following a FinVe entry."""
-    name_cell = _cell(cells, _COL_NAME) or ""
+    name_cell = _cell_of(cells, cmap, "name") or ""
     return name_cell.strip().lower().startswith("erläuterung:")
 
 
-def _is_erlaeuterung_continuation(cells: list) -> bool:
+def _is_erlaeuterung_continuation(cells: list, cmap: ColumnMap) -> bool:
     """True if the row looks like a continuation of an Erläuterung block.
 
     When a long Erläuterung spans multiple PDF pages, pdfplumber produces
     additional table rows for each page.  These lack the "Erläuterung:"
     prefix but start (at least one line) with a bullet character.
     """
-    name_cell = _cell(cells, _COL_NAME) or ""
+    name_cell = _cell_of(cells, cmap, "name") or ""
     # At least one non-empty line must start with a bullet char
     return any(
         line.strip() and line.strip()[0] in _BULLET_CHARS
@@ -228,7 +310,7 @@ def _extract_project_name(name_cell: str | None) -> str:
     return " ".join(line.strip() for line in name_part.split("\n") if line.strip())
 
 
-def _extract_inline_titel_entries(cells: list) -> list["TitelEntryProposed"]:
+def _extract_inline_titel_entries(cells: list, cmap: ColumnMap) -> list["TitelEntryProposed"]:
     """Extract Kap./Titel sub-entries embedded in a 2026+ main FinVe row.
 
     In the 2026 PDF format pdfplumber merges sub-entries into multi-line cells:
@@ -237,7 +319,7 @@ def _extract_inline_titel_entries(cells: list) -> list["TitelEntryProposed"]:
     Line 0 of each numeric column is the project total (already captured in
     proposed_budget). Lines 1..n correspond to the Kap. entries in the name col.
     """
-    name_cell = _cell(cells, _COL_NAME) or ""
+    name_cell = _cell_of(cells, cmap, "name") or ""
     davon_match = re.search(r"davon\s*:", name_cell, re.IGNORECASE)
     if not davon_match:
         return []
@@ -263,13 +345,13 @@ def _extract_inline_titel_entries(cells: list) -> list["TitelEntryProposed"]:
                 titel_nr=kap["titel_nr"],
                 label=f"Kap. {kap['kapitel']}, Titel {kap['titel_nr']}",
                 is_nachrichtlich=False,
-                **_titel_numeric_fields(cells, idx),
+                **_titel_numeric_fields(cells, cmap, idx),
             )
         )
     return result
 
 
-def _extract_nachrichtlich_entries(cells: list) -> list["TitelEntryProposed"]:
+def _extract_nachrichtlich_entries(cells: list, cmap: ColumnMap) -> list["TitelEntryProposed"]:
     """Extract individual nachrichtlich entries from a nachrichtlich pdfplumber row.
 
     In 2026+ PDFs a single row may contain multiple stacked entries:
@@ -277,7 +359,7 @@ def _extract_nachrichtlich_entries(cells: list) -> list["TitelEntryProposed"]:
       - Numeric cols: "value_entry0\\nvalue_entry1\\n..."
     Each label line corresponds to the same-indexed line in the numeric columns.
     """
-    label_cell = _cell(cells, _COL_NAME) or ""
+    label_cell = _cell_of(cells, cmap, "name") or ""
 
     labels = [
         line.strip()
@@ -296,7 +378,7 @@ def _extract_nachrichtlich_entries(cells: list) -> list["TitelEntryProposed"]:
                 titel_nr="",
                 label=label,
                 is_nachrichtlich=True,
-                **_titel_numeric_fields(cells, i),
+                **_titel_numeric_fields(cells, cmap, i),
             )
         )
     return result
@@ -358,7 +440,7 @@ def _is_nachrichtlich_row(cells: list) -> bool:
     return "nachrichtlich:" in joined.lower()
 
 
-def _build_titel_entry(cells: list) -> TitelEntryProposed:
+def _build_titel_entry(cells: list, cmap: ColumnMap) -> TitelEntryProposed:
     """Build a Titel entry for a separate old-format Kap./Titel sub-row."""
     joined = " ".join(str(c) for c in cells if c)
     m_key = re.search(r"Titel\s+(\d+)\s+(\d+)", joined)
@@ -367,19 +449,20 @@ def _build_titel_entry(cells: list) -> TitelEntryProposed:
     kapitel = m_kap.group(1) if m_kap else ""
     m_tnr = re.search(r"Titel\s+([\d ]+)", joined)
     titel_nr = m_tnr.group(1).strip() if m_tnr else ""
-    label = _cell(cells, _COL_NAME) or joined[:200]
+    label = _cell_of(cells, cmap, "name") or joined[:200]
     return TitelEntryProposed(
         titel_key=titel_key,
         kapitel=kapitel,
         titel_nr=titel_nr,
         label=label,
         is_nachrichtlich=False,
-        **_titel_numeric_fields(cells, 0),
+        **_titel_numeric_fields(cells, cmap, 0),
     )
 
 
 def _build_proposed(
     cells: list,
+    cmap: ColumnMap,
     year: int,
     finve_nr: int,
     lfd_nr: str | None,
@@ -395,8 +478,8 @@ def _build_proposed(
     proposed_finve = ProposedFinve(
         id=finve_nr,
         name=name,
-        starting_year=_parse_int(_cell(cells, _COL_STARTING_YEAR)),
-        cost_estimate_original=_parse_int(_first_line(_cell(cells, _COL_COST_ORIG))),
+        starting_year=_parse_int(_cell_of(cells, cmap, "starting_year")),
+        cost_estimate_original=_parse_int(_first_line(_cell_of(cells, cmap, "cost_original"))),
         is_sammel_finve=is_sv,
     )
     proposed_budget = ProposedBudget(
@@ -404,17 +487,17 @@ def _build_proposed(
         lfd_nr=lfd_nr,
         fin_ve=finve_nr,
         bedarfsplan_number=bedarfsplan_nr,
-        cost_estimate_original=_parse_int(_first_line(_cell(cells, _COL_COST_ORIG))),
-        cost_estimate_last_year=_parse_int(_first_line(_cell(cells, _COL_COST_LAST_YEAR))),
-        cost_estimate_actual=_parse_int(_first_line(_cell(cells, _COL_COST_ACTUAL))),
-        delta_previous_year=_parse_int(_first_line(_cell(cells, _COL_DELTA_ABS))),
-        delta_previous_year_relativ=_parse_float(_first_line(_cell(cells, _COL_DELTA_REL))),
-        delta_previous_year_reasons=_first_line(_cell(cells, _COL_DELTA_REASONS)),
-        spent_two_years_previous=_parse_int(_first_line(_cell(cells, _COL_SPENT_TWO_PREV))),
-        allowed_previous_year=_parse_int(_first_line(_cell(cells, _COL_ALLOWED_PREV))),
-        spending_residues=_parse_int(_first_line(_cell(cells, _COL_AUSGABERESTE))),
-        year_planned=_parse_int(_first_line(_cell(cells, _COL_YEAR_PLANNED))),
-        next_years=_parse_int(_first_line(_cell(cells, _COL_NEXT_YEARS))),
+        cost_estimate_original=_parse_int(_first_line(_cell_of(cells, cmap, "cost_original"))),
+        cost_estimate_last_year=_parse_int(_first_line(_cell_of(cells, cmap, "cost_last_year"))),
+        cost_estimate_actual=_parse_int(_first_line(_cell_of(cells, cmap, "cost_actual"))),
+        delta_previous_year=_parse_int(_first_line(_cell_of(cells, cmap, "delta_abs"))),
+        delta_previous_year_relativ=_parse_float(_first_line(_cell_of(cells, cmap, "delta_rel"))),
+        delta_previous_year_reasons=_first_line(_cell_of(cells, cmap, "delta_reasons")),
+        spent_two_years_previous=_parse_int(_first_line(_cell_of(cells, cmap, "spent_two_years_previous"))),
+        allowed_previous_year=_parse_int(_first_line(_cell_of(cells, cmap, "allowed_previous_year"))),
+        spending_residues=_parse_int(_first_line(_cell_of(cells, cmap, "ausgabereste"))),
+        year_planned=_parse_int(_first_line(_cell_of(cells, cmap, "year_planned"))),
+        next_years=_parse_int(_first_line(_cell_of(cells, cmap, "next_years"))),
         sammel_finve=is_sv,
     )
     return proposed_finve, proposed_budget
@@ -443,33 +526,31 @@ def _refresh_sv_suggestions(
         row.project_ids = sv_suggestions
 
 
-def _parse_pdf(
-    pdf_bytes: bytes,
-    year: int,
-    known_finve_ids: set[int],
-    finve_projects: dict[int, list[int]] | None = None,
-    all_projects: list | None = None,
-    task: Task | None = None,
-) -> HaushaltsParseTaskResult:
-    """Parse a Haushalt PDF and return a structured task result."""
+@dataclass
+class DocumentText:
+    """The document text a parse run worked from, for persistence and review."""
+
+    text: str = ""
+    model: str = "pdfplumber"
+    status: str = "done"
+
+
+@dataclass
+class ExtractedPage:
+    """One PDF page after stage 1: its text and the table rows pdfplumber found."""
+
+    number: int  # 1-indexed
+    text: str = ""
+    rows: list[list] = dataclass_field(default_factory=list)
+
+
+def _extract_pages(pdf_bytes: bytes, task: Task | None = None) -> list[ExtractedPage]:
+    """Stage 1 for the Haushalt: pdfplumber text + table rows, page by page."""
     import pdfplumber
 
-    rows: list[HaushaltsParseResultSchema] = []
-    unmatched_rows: list[dict] = []
-
-    current_row: HaushaltsParseResultSchema | None = None
-
+    pages: list[ExtractedPage] = []
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
         total_pages = len(pdf.pages)
-        logger.info("Starting PDF parse: %d pages, year=%d", total_pages, year)
-
-        # Phase 1: flatten all pages into one table + build global SV name→finve_nr
-        # lookup from raw text.  Processing a single flat stream means page-break
-        # artefacts (missing col-0, split Erläuterung blocks) are invisible to the
-        # row-processing logic in Phase 2.
-        all_table_rows: list[list] = []
-        global_sv_lookup: dict[str, int] = {}
-
         for page_idx, page in enumerate(pdf.pages, start=1):
             logger.info("Collecting page %d/%d", page_idx, total_pages)
             if task is not None:
@@ -481,215 +562,348 @@ def _parse_pdf(
                         "rows_found": 0,
                     },
                 )
-            table = page.extract_table()
-            if table:
-                all_table_rows.extend(table)
-            global_sv_lookup.update(_build_sv_raw_lookup(page.extract_text() or ""))
+            pages.append(
+                ExtractedPage(
+                    number=page_idx,
+                    text=page.extract_text() or "",
+                    rows=[row for row in (page.extract_table() or []) if row],
+                )
+            )
+    return pages
 
-        logger.info(
-            "Collected %d raw table rows; %d SV entries in raw-text lookup",
-            len(all_table_rows),
-            len(global_sv_lookup),
+
+def _parse_pdf(
+    pdf_bytes: bytes,
+    year: int,
+    known_finve_ids: set[int],
+    finve_projects: dict[int, list[int]] | None = None,
+    all_projects: list | None = None,
+    task: Task | None = None,
+) -> tuple[HaushaltsParseTaskResult, DocumentText]:
+    """Parse a Haushalt PDF into a task result plus the text it worked from."""
+    pages = _extract_pages(pdf_bytes, task=task)
+    result = _parse_extracted_pages(
+        pages,
+        year,
+        known_finve_ids,
+        finve_projects=finve_projects,
+        all_projects=all_projects,
+    )
+    return result, _document_text(pdf_bytes, [page.text for page in pages])
+
+
+def _parse_extracted_pages(
+    pages: list[ExtractedPage],
+    year: int,
+    known_finve_ids: set[int],
+    finve_projects: dict[int, list[int]] | None = None,
+    all_projects: list | None = None,
+) -> HaushaltsParseTaskResult:
+    """Stages 2 and 3: segment the document, map the columns, transfer the values.
+
+    Split out from :func:`_parse_pdf` so the whole parse can be exercised on
+    recorded pdfplumber output without carrying a multi-megabyte PDF fixture.
+    """
+    rows: list[HaushaltsParseResultSchema] = []
+    unmatched_rows: list[dict] = []
+
+    current_row: HaushaltsParseResultSchema | None = None
+
+    total_pages = len(pages)
+    logger.info("Starting PDF parse: %d pages, year=%d", total_pages, year)
+
+    # Stage 2: the page texts carry the "Tabelle N – …" captions that
+    # separate the Bedarfsplan table from the rest of Teil B, and the raw
+    # lines the SV page-break recovery scans.
+    page_texts: list[str] = [page.text for page in pages]
+
+    sections = _detect_table_sections(page_texts)
+    selected = _select_import_section(sections)
+    import_pages = {page for section in sections if section.imported for page in section.pages}
+    if not import_pages:
+        import_pages = set(range(1, total_pages + 1))
+    logger.info(
+        "Teil B sections: %s — importing %s",
+        ", ".join(
+            f"Tabelle {s.number or '?'} '{s.title}' (S. {s.pages[0]}–{s.pages[-1]})"
+            for s in sections
+        ) or "none detected",
+        f"Tabelle {selected.number or '?'} '{selected.title}'" if selected else "all pages",
+    )
+
+    # Phase 1: flatten the selected section's pages into one table + build a
+    # global SV name→finve_nr lookup from raw text.  Processing a single flat
+    # stream means page-break artefacts (missing col-0, split Erläuterung
+    # blocks) are invisible to the row-processing logic in Phase 2.
+    all_table_rows: list[list] = []
+    header_rows: list[list] = []
+    global_sv_lookup: dict[str, int] = {}
+
+    for page in pages:
+        if page.number not in import_pages:
+            continue
+        if page.rows:
+            all_table_rows.extend(page.rows)
+            if not header_rows:
+                header_rows = [row for row in page.rows if is_header_row(row)]
+        global_sv_lookup.update(_build_sv_raw_lookup(page.text))
+
+    logger.info(
+        "Collected %d raw table rows; %d SV entries in raw-text lookup",
+        len(all_table_rows),
+        len(global_sv_lookup),
+    )
+
+    # Stage 3: one column mapping for the whole document — every value below
+    # is then transferred deterministically through it.
+    cmap = resolve_column_map(header_rows)
+    if cmap.missing:
+        logger.warning(
+            "Haushalt column map (%s) has no column for: %s",
+            cmap.source, ", ".join(cmap.missing),
         )
 
-        # Phase 2: process flat table in a single pass.
-        # Header rows repeat at the top of each page's table — skip them wherever
-        # they appear using the same "FinVe" + "Nr." heuristic.
-        seen_first_header = False
-        for cells in all_table_rows:
-            if cells is None:
+    # Phase 2: process flat table in a single pass.
+    # Header rows repeat at the top of each page's table — skip them wherever
+    # they appear.
+    seen_first_header = False
+    for cells in all_table_rows:
+        if cells is None:
+            continue
+
+        # Detect/skip header rows (they repeat on every page)
+        if is_header_row(cells):
+            seen_first_header = True
+            continue
+        if not seen_first_header:
+            continue
+
+        # Skip empty/separator rows
+        if not any(c for c in cells):
+            continue
+
+        # Skip the totals row that closes the table
+        if _is_table_totals_row(_cell_of(cells, cmap, "name")):
+            continue
+
+        # --- Detect main FinVe row ---
+        # 2026+ format: first three columns merged into col 0 as "B0080 275 N19"
+        # Older format: lfd_nr in col 0, finve_nr as integer in col 1
+        lfd_nr, finve_nr, bedarfsplan_nr = _parse_combined_id_cell(_cell_of(cells, cmap, "lfd_nr"))
+
+        if lfd_nr is None:
+            # Not the combined format — try old format (finve integer in col 1)
+            # But first skip column-number rows like "1 | 2 | 3 | 4 ..."
+            raw_col0 = _cell_of(cells, cmap, "lfd_nr")
+            if raw_col0 and raw_col0.replace(".", "").strip().isdigit():
                 continue
 
-            joined = " ".join(str(c) for c in cells if c)
+            raw_finve = _cell_of(cells, cmap, "finve_nr")
+            try:
+                if raw_finve:
+                    finve_nr = int(raw_finve.replace(".", "").strip())
+            except (ValueError, TypeError):
+                pass
 
-            # Detect/skip header rows (they repeat on every page)
-            if "FinVe" in joined and "Nr." in joined:
-                seen_first_header = True
+        if finve_nr is None:
+            if lfd_nr is not None:
+                # Has an lfd_nr but no FinVe number (e.g. "B0134 L 06") —
+                # project without assigned FinVe yet. Flush previous row and
+                # record as unmatched instead of misrouting as a Titel sub-row.
+                if current_row is not None:
+                    rows.append(current_row)
+                    current_row = None
+                raw_name = _extract_project_name(_cell_of(cells, cmap, "name"))
+                unmatched_rows.append(
+                    {
+                        "raw_lfd_nr": lfd_nr,
+                        "raw_finve_number": None,
+                        "raw_bedarfsplan": bedarfsplan_nr,
+                        "raw_name": raw_name,
+                    }
+                )
                 continue
-            if not seen_first_header:
-                continue
 
-            # Skip empty/separator rows
-            if not any(c for c in cells):
-                continue
-
-            # --- Detect main FinVe row ---
-            # 2026+ format: first three columns merged into col 0 as "B0080 275 N19"
-            # Older format: lfd_nr in col 0, finve_nr as integer in col 1
-            lfd_nr, finve_nr, bedarfsplan_nr = _parse_combined_id_cell(_cell(cells, _COL_LFD_NR))
-
-            if lfd_nr is None:
-                # Not the combined format — try old format (finve integer in col 1)
-                # But first skip column-number rows like "1 | 2 | 3 | 4 ..."
-                raw_col0 = _cell(cells, _COL_LFD_NR)
-                if raw_col0 and raw_col0.replace(".", "").strip().isdigit():
-                    continue
-
-                raw_finve = _cell(cells, _COL_FINVE_NR)
-                try:
-                    if raw_finve:
-                        finve_nr = int(raw_finve.replace(".", "").strip())
-                except (ValueError, TypeError):
-                    pass
-
-            if finve_nr is None:
-                if lfd_nr is not None:
-                    # Has an lfd_nr but no FinVe number (e.g. "B0134 L 06") —
-                    # project without assigned FinVe yet. Flush previous row and
-                    # record as unmatched instead of misrouting as a Titel sub-row.
-                    if current_row is not None:
-                        rows.append(current_row)
-                        current_row = None
-                    raw_name = _extract_project_name(_cell(cells, _COL_NAME))
-                    unmatched_rows.append(
-                        {
-                            "raw_lfd_nr": lfd_nr,
-                            "raw_finve_number": None,
-                            "raw_bedarfsplan": bedarfsplan_nr,
-                            "raw_name": raw_name,
-                        }
+            # Not a main FinVe row — check for sub-rows
+            if _is_erlaeuterung_row(cells, cmap):
+                # Erläuterung block: append to current SV row.
+                # With the flat table, continuation rows on subsequent pages
+                # follow naturally — no "only-set-once" guard needed.
+                if current_row is not None and current_row.is_sammel_finve:
+                    erlaeuterung_text = _cell_of(cells, cmap, "name") or ""
+                    extracted = _extract_erlaeuterung_projects(erlaeuterung_text)
+                    if extracted:
+                        current_row.erlaeuterung_projects.extend(extracted)
+                        _refresh_sv_suggestions(current_row, finve_projects, all_projects)
+            elif _is_nachrichtlich_row(cells):
+                # Nachrichtlich row: may contain multiple stacked entries
+                if current_row is not None:
+                    current_row.proposed_titel_entries.extend(
+                        _extract_nachrichtlich_entries(cells, cmap)
                     )
-                    continue
-
-                # Not a main FinVe row — check for sub-rows
-                if _is_erlaeuterung_row(cells):
-                    # Erläuterung block: append to current SV row.
-                    # With the flat table, continuation rows on subsequent pages
-                    # follow naturally — no "only-set-once" guard needed.
-                    if current_row is not None and current_row.is_sammel_finve:
-                        erlaeuterung_text = _cell(cells, _COL_NAME) or ""
-                        extracted = _extract_erlaeuterung_projects(erlaeuterung_text)
-                        if extracted:
-                            current_row.erlaeuterung_projects.extend(extracted)
-                            _refresh_sv_suggestions(current_row, finve_projects, all_projects)
-                elif _is_nachrichtlich_row(cells):
-                    # Nachrichtlich row: may contain multiple stacked entries
-                    if current_row is not None:
-                        current_row.proposed_titel_entries.extend(
-                            _extract_nachrichtlich_entries(cells)
+            elif _is_titel_row(cells):
+                name_cell = _cell_of(cells, cmap, "name") or ""
+                # Orphaned SV row: lost its YYY col-0 at a page break.
+                # "davon:" distinguishes it from normal Titel sub-rows.
+                if "davon:" in name_cell.lower():
+                    sv_name = _extract_project_name(name_cell)
+                    recovered_finve_nr = global_sv_lookup.get(sv_name.lower())
+                    if recovered_finve_nr is not None:
+                        # Flush current row and create a proper SV row
+                        if current_row is not None:
+                            rows.append(current_row)
+                        sv_status = "update" if recovered_finve_nr in known_finve_ids else "new"
+                        sv_existing_ids = (finve_projects or {}).get(recovered_finve_nr, [])
+                        sv_inline_titel = _extract_inline_titel_entries(cells, cmap)
+                        sv_finve, sv_budget = _build_proposed(
+                            cells, cmap, year, recovered_finve_nr,
+                            lfd_nr="YYY", bedarfsplan_nr=None,
+                            name=sv_name, is_sv=True,
                         )
-                elif _is_titel_row(cells):
-                    name_cell = _cell(cells, _COL_NAME) or ""
-                    # Orphaned SV row: lost its YYY col-0 at a page break.
-                    # "davon:" distinguishes it from normal Titel sub-rows.
-                    if "davon:" in name_cell.lower():
-                        sv_name = _extract_project_name(name_cell)
-                        recovered_finve_nr = global_sv_lookup.get(sv_name.lower())
-                        if recovered_finve_nr is not None:
-                            # Flush current row and create a proper SV row
-                            if current_row is not None:
-                                rows.append(current_row)
-                            sv_status = "update" if recovered_finve_nr in known_finve_ids else "new"
-                            sv_existing_ids = (finve_projects or {}).get(recovered_finve_nr, [])
-                            sv_inline_titel = _extract_inline_titel_entries(cells)
-                            sv_finve, sv_budget = _build_proposed(
-                                cells, year, recovered_finve_nr,
-                                lfd_nr="YYY", bedarfsplan_nr=None,
-                                name=sv_name, is_sv=True,
-                            )
-                            current_row = HaushaltsParseResultSchema(
-                                finve_number=recovered_finve_nr,
-                                name=sv_name,
-                                status=sv_status,
-                                is_sammel_finve=True,
-                                proposed_finve=sv_finve,
-                                proposed_budget=sv_budget,
-                                proposed_titel_entries=sv_inline_titel,
-                                project_ids=sv_existing_ids,
-                                suggested_project_ids=[],
-                            )
-                            logger.info(
-                                "Recovered orphaned SV row via raw text: FinVe %d (%s)",
-                                recovered_finve_nr, sv_name,
-                            )
-                        else:
-                            logger.warning(
-                                "Orphaned SV row could not be recovered (no raw text match): %r",
-                                sv_name,
-                            )
-                    elif current_row is not None:
-                        # Old-format separate Kap./Titel row
-                        current_row.proposed_titel_entries.append(
-                            _build_titel_entry(cells)
+                        current_row = HaushaltsParseResultSchema(
+                            finve_number=recovered_finve_nr,
+                            name=sv_name,
+                            status=sv_status,
+                            is_sammel_finve=True,
+                            proposed_finve=sv_finve,
+                            proposed_budget=sv_budget,
+                            proposed_titel_entries=sv_inline_titel,
+                            project_ids=sv_existing_ids,
+                            suggested_project_ids=[],
                         )
-                else:
-                    # Erläuterung continuation row: subsequent page cells that lack the
-                    # "Erläuterung:" prefix but contain more bullet-listed project names.
-                    if (
-                        current_row is not None
-                        and current_row.is_sammel_finve
-                        and _is_erlaeuterung_continuation(cells)
-                    ):
-                        extracted = _extract_erlaeuterung_projects(_cell(cells, _COL_NAME) or "")
-                        if extracted:
-                            current_row.erlaeuterung_projects.extend(extracted)
-                            logger.debug(
-                                "Erläuterung continuation for FinVe %d: +%d projects (total %d)",
-                                current_row.finve_number, len(extracted),
-                                len(current_row.erlaeuterung_projects),
-                            )
-                            _refresh_sv_suggestions(current_row, finve_projects, all_projects)
-                continue
-
-            # Flush previous row
-            if current_row is not None:
-                rows.append(current_row)
-
-            # Resolve lfd_nr and bedarfsplan for old format (separate columns)
-            if lfd_nr is None:
-                lfd_nr = _cell(cells, _COL_LFD_NR)
-            if bedarfsplan_nr is None:
-                bedarfsplan_nr = _cell(cells, _COL_BEDARFSPLAN)
-
-            # Full project name = all lines before "davon:" in the name column
-            raw_name = _extract_project_name(_cell(cells, _COL_NAME))
-            is_sv = _is_sammel_finve(raw_name)
-
-            proposed_finve, proposed_budget = _build_proposed(
-                cells, year, finve_nr,
-                lfd_nr=lfd_nr, bedarfsplan_nr=bedarfsplan_nr,
-                name=raw_name, is_sv=is_sv,
-            )
-
-            if finve_nr in known_finve_ids:
-                status = "update"
+                        logger.info(
+                            "Recovered orphaned SV row via raw text: FinVe %d (%s)",
+                            recovered_finve_nr, sv_name,
+                        )
+                    else:
+                        logger.warning(
+                            "Orphaned SV row could not be recovered (no raw text match): %r",
+                            sv_name,
+                        )
+                elif current_row is not None:
+                    # Old-format separate Kap./Titel row
+                    current_row.proposed_titel_entries.append(
+                        _build_titel_entry(cells, cmap)
+                    )
             else:
-                status = "new"
+                # Erläuterung continuation row: subsequent page cells that lack the
+                # "Erläuterung:" prefix but contain more bullet-listed project names.
+                if (
+                    current_row is not None
+                    and current_row.is_sammel_finve
+                    and _is_erlaeuterung_continuation(cells, cmap)
+                ):
+                    extracted = _extract_erlaeuterung_projects(_cell_of(cells, cmap, "name") or "")
+                    if extracted:
+                        current_row.erlaeuterung_projects.extend(extracted)
+                        logger.debug(
+                            "Erläuterung continuation for FinVe %d: +%d projects (total %d)",
+                            current_row.finve_number, len(extracted),
+                            len(current_row.erlaeuterung_projects),
+                        )
+                        _refresh_sv_suggestions(current_row, finve_projects, all_projects)
+            continue
 
-            # Extract Kap./Titel entries embedded in multi-line cells (2026+ format).
-            # For older PDFs these will appear as separate rows and are handled below.
-            inline_titel = _extract_inline_titel_entries(cells)
-
-            existing_project_ids = (finve_projects or {}).get(finve_nr, [])
-
-            # Compute auto-suggestions only for new FinVes (no existing link).
-            # Skip SV rows — their names don't match individual project names.
-            suggested_ids: list[int] = []
-            if status == "new" and all_projects and not is_sv:
-                suggested_ids = suggest_projects_for_finve(raw_name, all_projects)
-
-            current_row = HaushaltsParseResultSchema(
-                finve_number=finve_nr,
-                name=raw_name,
-                status=status,
-                is_sammel_finve=is_sv,
-                proposed_finve=proposed_finve,
-                proposed_budget=proposed_budget,
-                proposed_titel_entries=inline_titel,
-                project_ids=existing_project_ids if existing_project_ids else suggested_ids,
-                suggested_project_ids=suggested_ids,
-            )
-
-        # Flush last row
+        # Flush previous row
         if current_row is not None:
             rows.append(current_row)
 
+        # Resolve lfd_nr and bedarfsplan for old format (separate columns)
+        if lfd_nr is None:
+            lfd_nr = _cell_of(cells, cmap, "lfd_nr")
+        if bedarfsplan_nr is None:
+            bedarfsplan_nr = _cell_of(cells, cmap, "bedarfsplan")
+
+        # Full project name = all lines before "davon:" in the name column
+        raw_name = _extract_project_name(_cell_of(cells, cmap, "name"))
+        is_sv = _is_sammel_finve(raw_name)
+
+        proposed_finve, proposed_budget = _build_proposed(
+            cells, cmap, year, finve_nr,
+            lfd_nr=lfd_nr, bedarfsplan_nr=bedarfsplan_nr,
+            name=raw_name, is_sv=is_sv,
+        )
+
+        if finve_nr in known_finve_ids:
+            status = "update"
+        else:
+            status = "new"
+
+        # Extract Kap./Titel entries embedded in multi-line cells (2026+ format).
+        # For older PDFs these will appear as separate rows and are handled below.
+        inline_titel = _extract_inline_titel_entries(cells, cmap)
+
+        existing_project_ids = (finve_projects or {}).get(finve_nr, [])
+
+        # Compute auto-suggestions only for new FinVes (no existing link).
+        # Skip SV rows — their names don't match individual project names.
+        suggested_ids: list[int] = []
+        if status == "new" and all_projects and not is_sv:
+            suggested_ids = suggest_projects_for_finve(raw_name, all_projects)
+
+        current_row = HaushaltsParseResultSchema(
+            finve_number=finve_nr,
+            name=raw_name,
+            status=status,
+            is_sammel_finve=is_sv,
+            proposed_finve=proposed_finve,
+            proposed_budget=proposed_budget,
+            proposed_titel_entries=inline_titel,
+            project_ids=existing_project_ids if existing_project_ids else suggested_ids,
+            suggested_project_ids=suggested_ids,
+        )
+
+    # Flush last row
+    if current_row is not None:
+        rows.append(current_row)
+
     logger.info(
-        "PDF parse complete: %d FinVe rows, %d unmatched rows",
+        "PDF parse complete: %d FinVe rows, %d unmatched rows (column map: %s)",
         len(rows),
         len(unmatched_rows),
+        cmap.source,
     )
-    return HaushaltsParseTaskResult(year=year, rows=rows, unmatched_rows=unmatched_rows)
+    return HaushaltsParseTaskResult(
+        year=year,
+        rows=rows,
+        unmatched_rows=unmatched_rows,
+        column_map=cmap.to_json(),
+        sections=[
+            TableSectionSchema(
+                number=section.number,
+                title=section.title,
+                page_from=section.pages[0],
+                page_to=section.pages[-1],
+                imported=section.imported,
+            )
+            for section in sections
+        ],
+    )
+
+
+def _document_text(pdf_bytes: bytes, page_texts: list[str]) -> DocumentText:
+    """The document text stored with the run.
+
+    pdfplumber's own page text by default. With ``HAUSHALT_OCR_ENABLED`` the
+    shared stage 1 (Mistral OCR, pymupdf fallback) is run over the same PDF so
+    the Haushalt run is inspectable in the same terms as a VIB run.  Either way
+    the table values above came from pdfplumber — this text is never parsed for
+    numbers.
+    """
+    from dashboard_backend.core.config import settings
+
+    if not settings.haushalt_ocr_enabled:
+        return DocumentText(text="\n".join(page_texts), model="pdfplumber", status="done")
+
+    try:
+        ocr = extract_document_text(pdf_bytes)
+    except Exception as exc:  # never fail an import over the inspection copy
+        logger.warning("Haushalt OCR stage failed, keeping pdfplumber text: %s", exc)
+        return DocumentText(text="\n".join(page_texts), model="pdfplumber", status="done")
+
+    if not ocr.text.strip():
+        return DocumentText(text="\n".join(page_texts), model="pdfplumber", status="done")
+    return DocumentText(text=ocr.text, model=ocr.model, status=ocr.status)
 
 
 @celery_app.task(bind=True)
@@ -752,7 +966,7 @@ def parse_haushalt_pdf(
         all_projects = db.query(Project).all()
         logger.info("Loaded %d projects for auto-suggestion matching", len(all_projects))
 
-        task_result = _parse_pdf(
+        task_result, document = _parse_pdf(
             pdf_bytes, year, known_ids,
             finve_projects=finve_projects,
             all_projects=all_projects,
@@ -775,6 +989,11 @@ def parse_haushalt_pdf(
             status="SUCCESS",
             result_json=task_result.model_dump(),
             error=None,
+            document_text=document.text,
+            text_status=document.status,
+            text_model=document.model,
+            column_map=task_result.column_map.model_dump() if task_result.column_map else None,
+            column_map_source=task_result.column_map.source if task_result.column_map else None,
         )
         db.commit()
         logger.info("parse_haushalt_pdf finished: parse_result_id=%d", record.id)

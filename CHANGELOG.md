@@ -12,6 +12,38 @@ section as part of the release commit, immediately before tagging.
 
 ## [Unreleased]
 
+### Added
+- The Haushalt import now maps the PDF's own table header onto the canonical schema once per
+  document instead of assuming the 2026 column order, so a report year that renames or moves a
+  column ("Vorhalten für 2027 ff." → "Vorbehalten für 2028 ff.") no longer needs parser changes.
+  Detection is deterministic first, with a single LLM call over the header texts as a fallback and
+  the fixed 2026 layout as a last resort — no value ever passes through a model.
+- The review page shows a "Spaltenzuordnung" panel above the table: which table of Teil B was read,
+  where the mapping came from, and which PDF column each target field was taken from, with an
+  explicit warning when the header could not be read or a field stayed unmapped.
+- `haushalts_parse_result` keeps the document text and the column mapping of each run
+  (`ocr_raw_text`, `ocr_status`, `ocr_model`, `column_map_json`, `column_map_source`;
+  migration `20260908001`), so a past import stays inspectable.
+- New setting `HAUSHALT_OCR_ENABLED` (default off) runs the shared OCR stage over the Haushalt PDF
+  as well and stores its text with the run. Table values always come from pdfplumber.
+
+### Fixed
+- The Haushalt import no longer folds the other tables of Annex VWIB Part B (Lärmsanierung, ERTMS,
+  Kleine und Mittlere Maßnahmen, InvKG) into the Bedarfsplan table. Their rows carry no FinVe number
+  and were appended to the last Sammel-FinVe of the first table — in the 2027 report that gave
+  "SV Rest 2025" 51 instead of 3 Titel entries and 78 instead of 1 Erläuterung project. The tables
+  are now detected from their page caption, and only "Tabelle 1 – Bedarfsplanmaßnahmen" is imported.
+- The closing `TABELLENSUMMEN` row of a table is recognised as a totals line instead of being
+  treated as an unrecoverable Sammel-FinVe row.
+
+### Changed
+- PDF text extraction moved from `tasks/vib_ocr.py` to `services/document_ocr.py` and returns a named
+  `OcrResult` (text, per-page markdown, model, status, images) instead of a 4-tuple; OCR credentials
+  are read from the settings inside the service rather than passed by every caller. VIB and
+  Fulda-Runde use it unchanged in behaviour. `pages` is now available for later page-accurate review.
+- The OCR provenance columns are shared through `models/mixins.py::OcrSourceMixin` by both
+  `vib_draft_report` and `haushalts_parse_result`.
+
 ## [v0.0.12] - 2026-07-31
 
 ### Added

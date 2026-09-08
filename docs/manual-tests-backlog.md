@@ -11,17 +11,40 @@ Test-Checkliste des ermöglichenden Issues hochgezogen und hier entfernt.
 
 ---
 
-## Haushalt-Parser-Refactor #90 — Golden-Vergleich mit Referenz-PDF (Stand 2026-07-09)
+## Haushalt-Parser-Refactor #90 — Golden-Vergleich mit Referenz-PDF (erledigt 2026-09-08)
 
-Braucht ein echtes Haushaltsbericht-PDF (nicht im Repo). Die drei extrahierten
-Blöcke sind durch synthetische Snapshot-Tests
-(`tests/unit/test_haushalt_parser_blocks.py`) abgesichert; der End-to-End-Golden
-steht noch aus:
+Erledigt durch `tests/unit/test_haushalt_parse_2027.py`: Der Golden-Lauf läuft
+gegen die aufgezeichnete pdfplumber-Ausgabe des EP-12-Berichts Teil B 2027
+(`tests/fixtures/haushalt_ep12_2027_pages.json`) und prüft Werte gegen den
+gedruckten Bericht — kein Referenz-PDF im Repo nötig. Der Vergleich alter/neuer
+Pfad auf dem vollständigen PDF (83 Zeilen, 0 Wertabweichungen) ist in
+`docs/features/feature-pdf-import-unification.md` → *Golden-Fixture-Vergleich*
+festgehalten.
 
-- [ ] `apps/backend/scripts/dump_parse_result.py` (mit `.venv/bin/python` aus
-      `apps/backend/`) auf einem Referenz-PDF **vor** und **nach** dem Merge von
-      PR #110 laufen lassen — Output muss byte-identisch sein (`diff`).
-- [ ] Celery-Worker nach dem Merge neu starten (Parser-Code geändert).
+---
+
+## Haushalts-Import auf der gemeinsamen PDF-Pipeline (Stand 2026-09-08)
+
+Braucht eine laufende Umgebung mit Celery-Worker und migrierter DB; der
+Import-Lauf selbst ist erst nach dem nächsten Rollout ausführbar.
+
+- [ ] `make migrate` läuft durch; `haushalts_parse_result` hat die Spalten
+      `ocr_raw_text`, `ocr_status`, `ocr_model`, `column_map_json`,
+      `column_map_source`.
+- [ ] Celery-Worker nach dem Rollout neu starten (Parser-Code geändert).
+- [ ] EP-12-Bericht Teil B 2027 unter `/admin/haushalt-import` mit Jahr 2027
+      hochladen → Review öffnet sich, Panel „Spaltenzuordnung" zeigt den grünen
+      Badge „aus der Tabellenüberschrift".
+- [ ] Im Panel steht „Eingelesen: Tabelle 1 – Bedarfsplanmaßnahmen" und
+      „Übersprungen: Tabelle 2 – Lärmsanierung, Tabelle 3 – ERTMS, Tabelle 4 –
+      Kleine und Mittlere Maßnahmen …, Tabelle 5 – Maßnahmen nach InvKG".
+- [ ] „Details anzeigen" → 16 Zeilen, „Veranschlagt" zeigt Spalte 15 mit der
+      Überschrift „veranschlagt 2027".
+- [ ] Zeile „SV Rest 2025" aufklappen → höchstens eine Handvoll Titel-Einträge
+      und ein Erläuterungs-Projekt (vor der Änderung waren es 51 bzw. 78).
+- [ ] Importieren → Erfolgsmeldung; die FinVe-Übersicht `/finves` zeigt für 2027
+      die Budgetwerte des Berichts (Stichprobe B0080 / FinVe 275: veranschlagt
+      77.859).
 
 ---
 

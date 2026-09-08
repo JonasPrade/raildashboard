@@ -1,6 +1,6 @@
 """OCR + LLM extraction for the Fulda-Runde importer (#46).
 
-A Fulda-Runde "Kleine Anfrage" PDF is OCR'd (reusing the VIB OCR pipeline) and
+A Fulda-Runde "Kleine Anfrage" PDF is OCR'd (shared stage 1, ``services.document_ocr``) and
 the resulting text is handed to the configured LLM, which returns the projects
 grouped by Leistungsphase category. When no LLM is configured the extraction
 returns no items and the editor enters them manually. Runs synchronously from
@@ -13,7 +13,7 @@ import logging
 
 from dashboard_backend.core.config import settings
 from dashboard_backend.services.llm import call_llm_json
-from dashboard_backend.tasks.vib_ocr import extract_full_pdf_text
+from dashboard_backend.services.document_ocr import extract_document_text
 
 logger = logging.getLogger(__name__)
 
@@ -107,14 +107,8 @@ _MAX_TEXT_CHARS = 60000
 
 def ocr_fulda_pdf(pdf_bytes: bytes) -> tuple[str, str, str]:
     """OCR a Fulda PDF. Returns (full_text, ocr_model, ocr_status)."""
-    full_text, ocr_model, ocr_status, _images = extract_full_pdf_text(
-        pdf_bytes=pdf_bytes,
-        api_key=settings.ocr_api_key,
-        base_url=settings.ocr_base_url,
-        model=settings.ocr_model,
-        strip_headers_footers=settings.ocr_strip_headers_footers,
-    )
-    return full_text, ocr_model, ocr_status
+    ocr = extract_document_text(pdf_bytes)
+    return ocr.text, ocr.model, ocr.status
 
 
 def normalize_items(raw_items) -> list[dict]:

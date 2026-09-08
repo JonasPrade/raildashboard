@@ -2900,6 +2900,12 @@ export interface components {
             result_json?: {
                 [key: string]: unknown;
             } | null;
+            /** Ocr Status */
+            ocr_status?: string | null;
+            /** Ocr Model */
+            ocr_model?: string | null;
+            /** Column Map Source */
+            column_map_source?: string | null;
         };
         /**
          * PermissionSchema
