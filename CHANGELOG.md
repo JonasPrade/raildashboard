@@ -53,6 +53,24 @@ section as part of the release commit, immediately before tagging.
   the column mapping, so a row is recognised whether the PDF merges those three columns into one
   cell ("B0080 275 N19", the 2026+ layout pdfplumber returns) or keeps them apart. The identity of a
   row no longer depends on one report generation's cell merging.
+- **Wahlkreise und Abgeordnete auf Projekten.** Project geometries are intersected with
+  the 299 Bundestag constituencies, and the members of parliament responsible for those
+  constituencies are attached to the result — the answer to "what connects this member of
+  parliament with this project?". Three entry points on the same data: a block on the
+  project detail page (constituencies heaviest first, direct mandates visibly separated
+  from "ran here, entered over the state list"), the new page `/abgeordnete` with name
+  search plus transport-/budget-committee and faction filters, and a switchable
+  constituency layer on the map whose selection shows projects and MPs.
+- Repeatable, idempotent imports: `scripts/import_constituencies.py` for the constituency
+  outlines (Die Bundeswahlleiterin, © GeoBasis-DE / BKG) and the Celery task
+  `refresh_parliament_data` for the people (abgeordnetenwatch API v2, CC0). Every run is
+  recorded as an Abrufstand and shown in the UI; a people import older than 60 days is
+  flagged as stale.
+- Public read endpoints `GET /api/v1/projects/{id}/constituencies`,
+  `/api/v1/parliament/{status,politicians,politicians/{id},constituencies,
+  constituencies/{id},constituencies/geojson}`; the two import endpoints
+  (`POST /api/v1/parliament/import`, `POST /api/v1/parliament/recompute-links`) require
+  the new capability `parliament.import`.
 
 ### Changed
 - The Haushalt import keeps taking its numbers from pdfplumber. The comparison against the real OCR
@@ -99,6 +117,14 @@ section as part of the release commit, immediately before tagging.
 - A parse result row is now addressed by `row_key` instead of the FinVe number, because a measure
   without a printed number has none; `ProposedFinve.id` and `ProposedBudget.fin_ve` became optional
   and are resolved on confirm from the Finve row matched or created for the key.
+- The geometry cascade in `crud/projects/projects.py` now also refreshes the constituency
+  links of every project it touches, so a change to a subproject keeps the parent's
+  assignment current.
+
+### Database
+- Migration `20260910001` adds `parliament_period`, `constituency` (with a GiST index on
+  the outline), `politician`, `mandate`, `committee`, `committee_membership`,
+  `parliament_import_run` and `project_to_constituency`.
 
 ## [v0.0.12] - 2026-07-31
 

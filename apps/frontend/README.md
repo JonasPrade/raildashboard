@@ -159,6 +159,31 @@ Key hooks (all in `shared/api/queries.ts`):
 - `useUpdateProjectGeometry(projectId)` — mutation wrapping `updateProject` for the `geojson_representation` field
 - `useUpdateProjectGeojsonSource(projectId)` — mutation wrapping `updateProject` for the `geojson_from_subprojects` toggle
 
+### Wahlkreise und Abgeordnete (`features/abgeordnete/`)
+
+Three entry points on the same data, answering one question: what connects this member of
+parliament with this project?
+
+- `ProjectConstituencySection.tsx` — the block on the project detail page. Constituencies
+  in descending order of kilometres; per constituency the MPs, with the direct mandate
+  first and visibly separated from "über Liste, hier angetreten" (the candidacy, not a
+  maintained *Betreuungswahlkreis* — the source has none). "Kein Direktmandat besetzt" is
+  written out; where nobody ran on the list either, the block says there is no obvious
+  contact. A project without geometry says so instead of rendering an empty list.
+- `AbgeordnetePage.tsx` at `/abgeordnete` — the working list before an appointment: name
+  search (umlaut-tolerant, same folding as the project search), committee and faction
+  filters, all persisted as URL parameters. Expanding a person shows the projects in their
+  constituency, sorted by kilometres.
+- `ConstituencyPanel.tsx` — the selection panel of the map layer. The layer itself is a
+  switch in `MapControls` (`?wahlkreise=1`), rendered by `MapView` below the project
+  layers with the © GeoBasis-DE / BKG attribution.
+
+Shared presentation (mandate row, committee badges, "51 km" vs. "Lage im Wahlkreis") lives
+in `mandateDisplay.tsx`. Data via `useProjectConstituencies()`, `usePoliticians()`,
+`usePolitician()`, `useConstituency()`, `useConstituencyGeojson()` and
+`useParliamentStatus()` in `shared/api/queries.ts`. Everything here is public — reading
+needs no login. See `docs/features/feature-abgeordnete.md`.
+
 ### Haushalt PDF import (`features/haushalt-import/`)
 
 Multi-step import workflow for federal budget PDFs. The `ReviewTable` shows auto-suggested project assignments (marked with ✦) computed during the Celery parse task via fuzzy name matching. The Projektzuordnung column has a minimum width of 320 px.

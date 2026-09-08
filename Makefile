@@ -266,7 +266,6 @@ delete-user:
 
 gen-api:
 	npm --prefix $(FRONTEND_DIR) run gen:api
-	npm --prefix $(FRONTEND_DIR) run gen:zod
 
 # ---------------------------------------------------------------------------
 # Haushalt debugging

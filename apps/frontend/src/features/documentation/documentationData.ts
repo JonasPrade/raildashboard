@@ -274,6 +274,23 @@ export const featureHighlights: FeatureHighlight[] = [
             "Each user is assigned exactly one role; the last admin is protected from demotion/deletion",
             "The frontend can(key) helper reads the effective permissions returned by /users/me"
         ]
+    },
+    {
+        title: "Wahlkreise und Abgeordnete",
+        description:
+            "Project geometries are intersected with the 299 Bundestag constituencies, and the members of parliament " +
+            "responsible for those constituencies are attached to the result — the answer to \"what connects this " +
+            "member of parliament with this project?\". Reading is public; importing requires the parliament.import capability.",
+        details: [
+            "Project detail: block \"Wahlkreise und Abgeordnete\", constituencies in descending order of kilometres",
+            "Direct mandates are shown separately from \"über Liste, hier angetreten\" (the candidacy, not a maintained Betreuungswahlkreis)",
+            "\"Kein Direktmandat besetzt\" is written out — since the electoral reform it applies to 27 of the 299 constituencies",
+            "Route /abgeordnete — name search plus transport-/budget-committee and faction filters, projects per person by kilometres",
+            "Map: switchable constituency layer (?wahlkreise=1); selecting one shows its projects and MPs",
+            "Station projects have no kilometres — they are weighted by their share of the project's points and labelled \"Lage im Wahlkreis\"",
+            "Sources: Die Bundeswahlleiterin (© GeoBasis-DE / BKG) for the outlines, abgeordnetenwatch API v2 (CC0) for the people",
+            "The Abrufstand of the last people import is visible in the UI and flagged as stale after 60 days"
+        ]
     }
 ];
 

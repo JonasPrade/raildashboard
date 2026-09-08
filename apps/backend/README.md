@@ -366,6 +366,79 @@ GET /api/v1/projects/{project_id}/bvwp
 
 Returns the full BVWP assessment record for a project (`BvwpProjectDataSchema`, ~200 optional fields). Returns `404` if no BVWP data exists for that project — the frontend uses this to conditionally show the section. No authentication required. Implemented in `crud/projects/bvwp.py` + `schemas/projects/bvwp_schema.py`.
 
+## Wahlkreise und Abgeordnete
+
+Project geometries are intersected with the 299 Bundestag constituencies, and the members
+of parliament responsible for those constituencies are attached to the result. Concept and
+the decisions behind it: `docs/features/feature-abgeordnete.md`.
+
+Two imports, because the two halves age at very different speeds.
+
+**Constituency outlines** — once per election, as a script:
+
+```bash
+cd apps/backend
+PYTHONPATH=. .venv/bin/python scripts/import_constituencies.py wkr2025.geojson \
+    --period 161 --election-year 2025
+```
+
+The file comes from Die Bundeswahlleiterin (© GeoBasis-DE / BKG); if the original is
+unreachable there is an open mirror at
+`github.com/ZeitOnline/bundestagswahl-historische-wahlkreis-daten`
+(`shapes_2025/wkr2025.geojson`). The script accepts both that file's `wkr_id`/`name`/`bl`
+fields and the shapefile export's `WKR_NR`/`WKR_NAME`/`LAND_NAME`. It rebuilds
+`project_to_constituency` afterwards unless `--skip-recompute` is given. Needs PostGIS.
+
+**Members of parliament** — whenever needed, as a Celery task
+(`POST /api/v1/parliament/import`, capability `parliament.import`): four paged endpoints of
+the abgeordnetenwatch API v2 (CC0) for the period, the 299 constituencies, the 630 mandates
+and the memberships of the transport and budget committees. The run is idempotent and
+recorded as an Abrufstand (`parliament_import_run`), which the UI shows and flags as stale
+after 60 days.
+
+Three rules the importer enforces, all of them earned the hard way:
+
+- The constituency number lives only in the label of a mandate's `constituency`
+  (`"14 - Rostock – Landkreis Rostock II (Bundestag …)"`) — cut before the first `" - "`.
+- Faction labels contain soft hyphens (`\u00ad`); they are stripped on import.
+- Only `mandate_won == "constituency"` is a direct mandate. `moved_up` is not. Where a
+  mandate has several committee roles, the strongest wins (Vorsitz > Stellv. Vorsitz >
+  Obfrau/Obmann > Sprecher/in > Mitglied > Stellv. Mitglied).
+
+### Intersection
+
+`services/constituency_matching.py` holds one statement per project: the project's GeoJSON
+is split into line-ish and point geometries, the lines are merged with `ST_UnaryUnion` (an
+aggregated parent geometry may carry the same section twice) and intersected with
+`constituency.geom`; kilometres come from `ST_Length(…::geography)`. A point-only project
+(a station) gets `length_km = 0` and is weighted by its share of the project's points
+instead. The GiST index on `constituency.geom` carries the `&&` prefilter — measured 7 ms
+for a line project spanning ten constituencies.
+
+The recompute hangs off the existing geojson cascade in `crud/projects/projects.py`, so a
+change to a subproject refreshes the parent too. `POST /api/v1/parliament/recompute-links`
+rebuilds the whole portfolio; it is needed after a geometry import, not in daily operation.
+On a non-PostgreSQL backend (the SQLite test suite) the recompute is a documented no-op.
+
+### Endpoints
+
+| Method | Path | Auth |
+|---|---|---|
+| `GET` | `/api/v1/projects/{id}/constituencies` | public |
+| `GET` | `/api/v1/parliament/status` | public |
+| `GET` | `/api/v1/parliament/politicians` (`query`, `committee`, `fraction`) | public |
+| `GET` | `/api/v1/parliament/politicians/{mandate_id}` | public |
+| `GET` | `/api/v1/parliament/constituencies` | public |
+| `GET` | `/api/v1/parliament/constituencies/{id}` | public |
+| `GET` | `/api/v1/parliament/constituencies/geojson` (`tolerance`) | public |
+| `POST` | `/api/v1/parliament/import` | `parliament.import` |
+| `POST` | `/api/v1/parliament/recompute-links` | `parliament.import` |
+
+Reading is public like every other `GET` here — the assignment is public information about
+officeholders from a CC0 source. `parliament.import` is in the capability catalogue but
+seeded to **no** system role: `admin` holds it through the superadmin bypass, and any other
+role is given it under `/admin/roles`.
+
 ## Verkehrsinvestitionsbericht (VIB) Import
 
 Yearly import of the Bundestag printed paper „Verkehrsinvestitionsbericht für das Berichtsjahr XXXX". Only **Section B** (Schienenwege der Eisenbahnen des Bundes) is imported; sections C and D are ignored.

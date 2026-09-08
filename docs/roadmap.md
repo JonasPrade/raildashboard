@@ -113,6 +113,30 @@ Themenschwerpunkt: die im v0.0.4-Rollout aufgedeckten Stabilitäts- und Tooling-
 
 ---
 
+## Wahlkreise und Abgeordnete auf Projekten
+
+Verschneidung der Projektgeometrien mit den 299 Bundestagswahlkreisen, dazu die
+zuständigen Abgeordneten aus der abgeordnetenwatch-API. Beantwortet vor jedem Gespräch
+dieselbe Frage: Was verbindet diese Abgeordnete konkret mit diesem Vorhaben?
+
+Siehe: `docs/features/feature-abgeordnete.md`. Issue-Codes: „Abgeordnete Phase 1–5".
+
+- [x] **Phase 1 — Datenmodell + Import**: `parliament_period`, `constituency` (MULTIPOLYGON
+  + GiST), `politician`, `mandate`, `committee`, `committee_membership`,
+  `parliament_import_run`; Geometrie-Import als Skript, Abgeordneten-Import als
+  Celery-Task (idempotent); Recht `parliament.import`.
+- [x] **Phase 2 — Verschneidung**: `project_to_constituency` mit Kilometern, Anteil und
+  Überlappungsart; `ST_Intersection` auf `geography`, gepflegt an der Geojson-Kaskade;
+  vollständiger Neuaufbau als Task.
+- [x] **Phase 3 — Projektdetail**: Block „Wahlkreise und Abgeordnete", Direktmandat
+  sichtbar abgesetzt von „über Liste, hier angetreten".
+- [x] **Phase 4 — Seite `/abgeordnete`**: Namenssuche, Ausschuss- und Fraktionsfilter,
+  Projekte je Person nach Kilometern.
+- [x] **Phase 5 — Kartenlayer**: zuschaltbare Wahlkreisgrenzen, Auswahl zeigt Projekte
+  und Abgeordnete.
+- [ ] **Erstbefüllung** (human task): Wahlkreis-GeoJSON beschaffen und importieren,
+  danach den Abgeordnetenstand einmal ziehen.
+
 ## Mid-Term Features
 
 ### Vervollständigung und Automatisierung Tests
