@@ -177,6 +177,13 @@ Siehe: `docs/features/feature-routing.md`
 
 Siehe: `docs/features/feature-new-project-wizard.md`
 
+### MCP-Server & API-Keys *(Backend + Frontend)*
+
+- [ ] **API-Keys als Auth-Weg** — persönliche Bearer-Tokens neben Session-Cookie und HTTP Basic, mit Widerruf, Ablauf und optionaler Rechte-Einschränkung pro Key. Eigenständig nützlich, Voraussetzung für den MCP-Server.
+
+- [ ] **MCP-Server** — Streamable-HTTP-Endpunkt `/mcp` im Backend, der Projekte, Finanzierung und Planungsstand als MCP-Tools für KI-Assistenten bereitstellt. Rechte kommen aus dem bestehenden Capability-Katalog; Importe bleiben außen vor. OAuth folgt erst mit dem Authentik-Umzug, die Key-Auth bleibt danach bestehen.
+  Siehe: `docs/features/feature-mcp-server.md`
+
 ### Sonstiges
 
 - [ ] **BVWP-Datenimport** — Übernahme der BVWP-Daten aus der Legacy-Datenbank. Voraussetzung für die Anzeige der BVWP-Bewertung (Display-Feature bereits implementiert).
