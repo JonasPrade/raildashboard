@@ -1,8 +1,8 @@
 """add constituencies, mandates and project links
 
-Revision ID: 20260908001
-Revises: 20260731002
-Create Date: 2026-09-08
+Revision ID: 20260910001
+Revises: 20260908002
+Create Date: 2026-09-10
 
 Autogenerate also reported pre-existing drift between the models and the
 migration history (unique constraints on association tables, ``routes.details``
@@ -16,8 +16,8 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "20260908001"
-down_revision: Union[str, None] = "20260731002"
+revision: str = "20260910001"
+down_revision: Union[str, None] = "20260908002"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
