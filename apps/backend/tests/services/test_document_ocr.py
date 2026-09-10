@@ -221,6 +221,19 @@ class TestExtractDocumentText:
         assert call_kwargs["model"] == "mistral-ocr-latest"
         assert call_kwargs["table_format"] == "markdown"
         assert "data:application/pdf;base64," in call_kwargs["document"]["document_url"]
+        assert result.table_format == "markdown"
+
+    def test_passes_the_requested_table_format_through(self):
+        """A table-bearing source asks for HTML — markdown cannot express a
+        line break inside a cell, and the Haushalt's records need one."""
+        mock_client = MagicMock()
+        mock_client.ocr.process.return_value = self._fake_mistral_response()
+
+        with patch("dashboard_backend.services.document_ocr.Mistral", return_value=mock_client):
+            result = extract_document_text(b"fakepdf", table_format="html")
+
+        assert mock_client.ocr.process.call_args.kwargs["table_format"] == "html"
+        assert result.table_format == "html"
 
     def test_returns_all_pages_text(self):
         pages = [

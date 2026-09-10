@@ -19,7 +19,7 @@ Copy `.env.example` to `.env` and fill in values. Required variables:
 | `OCR_BASE_URL` | Backend | Optional — Mistral OCR endpoint (default: `https://api.mistral.ai`) |
 | `OCR_MODEL` | Backend | Optional — OCR model name (default: `mistral-ocr-latest`) |
 | `OCR_STRIP_HEADERS_FOOTERS` | Backend | Optional — drop running headers/footers from OCR output (default: `true`) |
-| `HAUSHALT_EXTRACTION` | Backend | Optional — which extraction feeds the Haushalt parser: `pdfplumber` (default), `compare` (both run, pdfplumber supplies the values, the diff is recorded) or `ocr` (OCR supplies the values, pdfplumber is the fallback) |
+| `HAUSHALT_EXTRACTION` | Backend | Optional — which extraction feeds the Haushalt parser: `pdfplumber` (default), `compare` (both run, pdfplumber supplies the values, the diff is recorded) or `ocr` (OCR supplies the values, pdfplumber is the fallback). Keep the default: the comparison against the real API (2026-09-10, `mistral-ocr-latest`) found 34 of 141 rows missing and 79 differing values — see `docs/features/feature-pdf-import-unification.md` |
 | `ROUTING_TIMEOUT_SECONDS` | Backend | Optional — timeout in seconds for routing requests (default: `20`) |
 | `GRAPH_VERSION` | Backend | Routing graph build identifier; increment after deploying a new OSM extract |
 | `BACKEND_CORS_ORIGINS` | Backend | JSON array of allowed CORS origins; defaults to `["http://localhost:5173"]` — **must be set in production** |

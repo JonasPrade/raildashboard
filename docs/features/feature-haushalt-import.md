@@ -34,7 +34,7 @@ Die drei Stufen aus [`feature-pdf-import-unification.md`](feature-pdf-import-uni
 
 | Stufe | Was passiert | Wo |
 |---|---|---|
-| 1 Textgewinnung | `pdfplumber` liest Tabellenstruktur **und** Seitentext; Seiten ohne Trennlinien werden aus den Textzeilen rekonstruiert. Alternativ liefert die gemeinsame OCR-Stufe dieselben Zeilen aus Markdown-Tabellen — welcher Weg zählt, entscheidet `HAUSHALT_EXTRACTION` | `_extract_pages`, `_page_table_rows`, `_extract_pages_from_ocr`, `services/document_ocr.py` |
+| 1 Textgewinnung | `pdfplumber` liest Tabellenstruktur **und** Seitentext; Seiten ohne Trennlinien werden aus den Textzeilen rekonstruiert. Alternativ liefert die gemeinsame OCR-Stufe dieselben Zeilen aus ihren HTML-Tabellen — welcher Weg zählt, entscheidet `HAUSHALT_EXTRACTION` | `_extract_pages`, `_page_table_rows`, `_extract_pages_from_ocr`, `services/document_ocr.py` |
 | 2 Segmentierung | Teil B besteht aus mehreren Tabellen; jede wird als eigener Abschnitt verarbeitet | `_detect_table_sections`, `_parse_section` |
 | 3 Semantik | Die Kopfzeile wird **einmal pro Dokument** auf das kanonische Schema gemappt, danach werden alle Werte deterministisch übertragen | `haushalt_columns.resolve_column_map` |
 
@@ -112,10 +112,27 @@ empfohlenen Reihenfolge). Genau das steuert eine einzige Einstellung:
 | `ocr` | Die OCR-Stufe liefert die Werte, pdfplumber ist Rückfallebene (Schritt 6 — erst nach einem sauberen `compare`-Lauf) |
 
 Beide Wege übergeben **dieselbe Zeilenform** an Stufe 2: pdfplumber liefert
-Zellen aus dem Linienraster, die OCR-Stufe dieselben Zellen aus ihren
-Markdown-Tabellen (`tasks/haushalt_markdown.py`, `OcrResult.tables`). Dadurch
-sind Segmentierung, Spaltenzuordnung und Werteübertragung auf beiden Wegen
-identisch — der Vergleich misst wirklich nur die Texterkennung.
+Zellen aus dem Linienraster, die OCR-Stufe dieselben Zellen aus ihren Tabellen
+(`tasks/haushalt_markdown.py`, `OcrResult.tables`). Dadurch sind Segmentierung,
+Spaltenzuordnung und Werteübertragung auf beiden Wegen identisch — der Vergleich
+misst wirklich nur die Texterkennung.
+
+Der Haushalt fordert die Tabellen dabei als **HTML** an
+(`extract_document_text(..., table_format="html")`), nicht als Markdown wie VIB
+und Fulda. Ein Haushalts-Datensatz ist eine Zeile mit gestapelten
+`davon:`-Titelzeilen darunter, und Markdown kann keinen Zeilenumbruch innerhalb
+einer Zelle ausdrücken: das Modell klebt die Zeilen mit Leerzeichen zusammen und
+die Zuordnung Wert → Titelzeile ist weg. HTML liefert `<br>` und drückt eine
+verbundene Kopfzelle als `colspan`/`rowspan` aus — dieselbe Form, die pdfplumber
+zurückgibt.
+
+Auch die drei Identitätsspalten kommen auf beiden Wegen unterschiedlich an:
+pdfplumber gibt Lfd. Nr., FinVe-Nummer und Bedarfsplan-Nummer im 2026+-Layout in
+*einer* Zelle zurück (`"B0080 275 N19"`), die OCR-Stufe in den drei Spalten, die
+der Tabellenkopf deklariert. Die Zeilenerkennung liest beides über die
+Spaltenzuordnung (`tests/unit/test_haushalt_id_columns.py`) — die Identität
+einer Zeile hängt damit nicht mehr daran, wie ein Jahrgang seine Zellen
+verbindet.
 
 Fällt die OCR-Stufe aus oder findet sie keine Zeilen, trägt pdfplumber den
 Import; der Fehlschlag wird im Vergleich vermerkt statt verschluckt. Ein Import
@@ -134,12 +151,30 @@ und jedes abweichende Feld. Ohne gültigen Schlüssel bricht das Skript ab, stat
 einen Vergleich gegen den pymupdf-Notnagel zu berichten (der keine Tabellen
 erkennt und die Zahlen wertlos machen würde).
 
-**Stand:** Der Vergleich gegen die echte API steht noch aus — in der
-Entwicklungsumgebung liegt kein OCR-Schlüssel. Abgesichert ist bisher, dass der
-OCR-Pfad aus *originalgetreuen* Markdown-Tabellen dieselben 29 Zeilen und
-dieselben Werte erzeugt wie pdfplumber (`tests/unit/test_haushalt_ocr_path.py`,
-Round-Trip über die aufgezeichneten Seiten). Offen ist damit genau eine Frage:
-ob Mistral die Tabelle originalgetreu zurückgibt.
+**Stand (2026-09-10): der Vergleich ist gelaufen und rot — `pdfplumber` bleibt
+die Quelle der Zahlen.** Gegen den EP-12-Bericht Teil B 2027 und
+`mistral-ocr-latest`: Exit-Code 1, 141 Zeilen aus pdfplumber gegen 107 aus der
+OCR-Stufe, 79 Wertabweichungen. Drei Ursachen, keine davon auf unserer Seite
+behebbar:
+
+- Das Modell lässt den Identitätsmarker `YYY` auf den Seiten der Tabellen 2–4
+  weg. Damit fehlen 34 Zeilen — die Tabellen 2, 3 und 4 vollständig.
+- ~29 von 5.568 Zahl-Token werden anders gelesen, als der Bericht sie druckt
+  (`1.843.520 → 1.043.520`, `98.205 → 58.205`). Kein Reviewer findet das.
+- Das Minus eines negativen Deltas kommt als eigene Tabellenzelle zurück; der
+  Betrag rutscht dann in die Prozentspalte (5 Zeilen).
+
+In den Geldspalten selbst (`cost_estimate_*`, `spent_two_years_previous`,
+`allowed_previous_year`, `spending_residues`, `year_planned`) gibt es über alle
+107 gemeinsamen Zeilen **null** Abweichung — das Modell liest die Tabelle im
+Kern richtig und scheitert an den Rändern. Die vollständige Auswertung steht in
+`feature-pdf-import-unification.md` → *Schritt 6: Vergleich gelaufen*.
+
+Der Umschalter bleibt als Messinstrument für die nächste Modellgeneration.
+Abgesichert ist weiterhin, dass der OCR-Pfad aus *originalgetreuen* Tabellen
+dieselben Zeilen und Werte erzeugt wie pdfplumber
+(`tests/unit/test_haushalt_ocr_path.py` fährt den Round-Trip über die
+aufgezeichneten Seiten, in **beiden** Tabellenformaten).
 
 ### Zeilen ohne Trennlinien rekonstruieren
 
@@ -302,7 +337,8 @@ Neue Titel in künftigen PDFs werden automatisch registriert.
 | `tests/unit/test_haushalt_columns.py` | Kopfzeilen-Erkennung, Spaltenzuordnung (inkl. vertauschtem Layout und LLM-Rückfallebene), Tabellen-Segmentierung |
 | `tests/unit/test_haushalt_parse_2027.py` | Golden-Lauf gegen den EP-12-Bericht Teil B 2027 — alle fünf Tabellen, Segmentierung, Spaltenzuordnung, Zeilen-Identität und exakte Werte gegen den gedruckten Bericht |
 | `tests/unit/test_haushalt_keys.py` | Schlüssel-Bildung für Maßnahmen ohne FinVe-Nummer |
-| `tests/unit/test_haushalt_markdown.py` | Markdown-Tabellen der OCR-Stufe → Zeilenform des Parsers |
+| `tests/unit/test_haushalt_markdown.py` | Tabellen der OCR-Stufe (Markdown **und** HTML) → Zeilenform des Parsers |
+| `tests/unit/test_haushalt_id_columns.py` | Zeilenerkennung, egal ob die drei Identitätsspalten verbunden oder getrennt ankommen |
 | `tests/unit/test_haushalt_ocr_path.py` | OCR-Pfad end-to-end (Round-Trip), Vergleichslogik und die drei `HAUSHALT_EXTRACTION`-Modi inkl. OCR-Ausfall |
 | `tests/unit/test_haushalt_parser_blocks.py` | Titel-/Nachrichtlich-Blöcke |
 | `tests/unit/test_haushalt_upsert.py` | Upsert nach dem Bestätigen |

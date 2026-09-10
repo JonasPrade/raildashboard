@@ -182,9 +182,13 @@ The parser runs three stages (see `docs/features/feature-pdf-import-unification.
    `HAUSHALT_EXTRACTION` picks: `pdfplumber` (default, no OCR call), `compare` (both run,
    pdfplumber supplies the values and the row/value diff is recorded on the run) or `ocr` (OCR
    supplies the values, pdfplumber is the fallback). Both paths hand stage 2 the same rows of
-   cells — pdfplumber from the ruling grid, OCR from its markdown tables via
+   cells — pdfplumber from the ruling grid, OCR from its HTML tables via
    `tasks/haushalt_markdown.py` — so the comparison measures the text recognition and nothing else.
-   If OCR fails or finds no rows, pdfplumber carries the import and the failure is recorded.
+   (HTML, not markdown: a record spans several printed lines inside one table row and markdown
+   cannot express a line break inside a cell.) If OCR fails or finds no rows, pdfplumber carries the
+   import and the failure is recorded. **Keep the default:** the comparison against the real API
+   (2026-09-10) found 34 of 141 rows missing and 79 differing values — see
+   `docs/features/feature-pdf-import-unification.md`.
 2. **Segmentation** — Part B contains five tables (`Tabelle 1 - Bedarfsplanmaßnahmen`,
    `Tabelle 2 - Lärmsanierung`, ERTMS, Kleine und Mittlere Maßnahmen, InvKG). All of them are
    imported, each as its own section with its own column map; the sections found, their page ranges

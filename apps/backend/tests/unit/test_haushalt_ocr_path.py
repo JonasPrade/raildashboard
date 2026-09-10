@@ -1,11 +1,14 @@
 """The OCR extraction path of the Haushalt import, without an API key.
 
-Mistral OCR hands the report back as markdown tables. Rendering the recorded
-pdfplumber rows *into* that markdown and pushing them through the OCR path is a
-faithful round trip: it exercises the whole OCR side — markdown parsing, page
-assembly, table segmentation, column mapping, value transfer — and proves that
-**if** the model returns the grid faithfully, the import produces exactly the
-same rows and numbers as the verified path.
+The OCR stage hands the report back as tables — as HTML for the Haushalt, which
+is the only format that can express the stacked lines of a record inside one
+cell, and as markdown for the sources whose rows are single-line. Rendering the
+recorded pdfplumber rows *into* that markup and pushing them through the OCR
+path is a faithful round trip: it exercises the whole OCR side — table parsing,
+page assembly, table segmentation, column mapping, value transfer — and proves
+that **if** the model returns the grid faithfully, the import produces exactly
+the same rows and numbers as the verified path. Both formats are exercised so
+neither reader can drift away from the shape the parser expects.
 
 What it deliberately cannot prove is whether the model *does* return the grid
 faithfully for this report. That is what `HAUSHALT_EXTRACTION=compare` measures
@@ -15,6 +18,7 @@ against a real API, and what `scripts/compare_haushalt_extraction.py` reports.
 from __future__ import annotations
 
 import json
+from html import escape
 from pathlib import Path
 
 import pytest
@@ -56,13 +60,37 @@ def recorded_pages() -> list[ExtractedPage]:
     ]
 
 
+def _render_html_table(rows: list[list]) -> str:
+    """Rows of cells → the HTML an OCR model returns for that table."""
+
+    def _cell(value) -> str:
+        if value is None:
+            return ""
+        return escape(str(value)).replace("\n", "<br/>")
+
+    body = "".join(
+        "<tr>" + "".join(f"<td>{_cell(c)}</td>" for c in row) + "</tr>" for row in rows
+    )
+    return f"<table>{body}</table>"
+
+
+_RENDERERS = {"markdown": _render_markdown_table, "html": _render_html_table}
+
+
+@pytest.fixture(scope="module", params=sorted(_RENDERERS))
+def table_format(request) -> str:
+    return request.param
+
+
 @pytest.fixture(scope="module")
-def as_ocr_result(recorded_pages) -> OcrResult:
+def as_ocr_result(recorded_pages, table_format) -> OcrResult:
     """The same document as the OCR service would hand it over."""
+    render = _RENDERERS[table_format]
     return OcrResult(
         text="\n".join(page.text for page in recorded_pages),
         pages=[page.text for page in recorded_pages],
-        tables=[[_render_markdown_table(page.rows)] if page.rows else [] for page in recorded_pages],
+        tables=[[render(page.rows)] if page.rows else [] for page in recorded_pages],
+        table_format=table_format,
         model="mistral-ocr-2512",
         status="done",
     )
@@ -178,7 +206,7 @@ def test_comparison_names_a_missing_row(both_results, as_ocr_result):
 @pytest.fixture()
 def wired(monkeypatch, recorded_pages, as_ocr_result):
     """_parse_pdf with both stages stubbed: recorded rows, synthetic OCR."""
-    calls: dict[str, int] = {"ocr": 0}
+    calls: dict = {"ocr": 0, "kwargs": {}}
 
     monkeypatch.setattr(
         "dashboard_backend.tasks.haushalt._extract_pages",
@@ -187,6 +215,7 @@ def wired(monkeypatch, recorded_pages, as_ocr_result):
 
     def _fake_ocr(pdf_bytes, **kwargs):
         calls["ocr"] += 1
+        calls["kwargs"] = kwargs
         return as_ocr_result
 
     monkeypatch.setattr("dashboard_backend.tasks.haushalt.extract_document_text", _fake_ocr)
@@ -218,6 +247,13 @@ def test_compare_mode_keeps_the_pdfplumber_values_and_records_the_diff(wired, mo
     assert result.extraction_comparison.identical is True
     # the stored document text comes from the OCR stage in this mode
     assert document.model == "mistral-ocr-2512"
+
+
+def test_the_haushalt_asks_the_ocr_stage_for_html_tables(wired, monkeypatch):
+    """A Haushalt record spans several printed lines inside one table row, and
+    markdown has no way to express that — only HTML keeps the lines apart."""
+    _run("compare", monkeypatch)
+    assert wired["kwargs"]["table_format"] == "html"
 
 
 def test_ocr_mode_lets_the_ocr_path_supply_the_values(wired, monkeypatch):

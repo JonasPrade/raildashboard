@@ -55,6 +55,9 @@ class OcrResult:
     # from the page markdown so a table-bearing source (the Haushalt report)
     # reads the grid directly instead of hunting for it in the prose.
     tables: list[list[str]] = field(default_factory=list)
+    # How the tables above are marked up: "markdown" or "html". Set from the
+    # format the caller asked for, so a reader knows which parser applies.
+    table_format: str = "markdown"
     model: str = "none"                    # "mistral-ocr-*" | "pymupdf" | "none"
     status: str = "failed"                 # "done" | "fallback" | "failed"
     images: list[dict] = field(default_factory=list)
@@ -189,7 +192,13 @@ def _collect_images(pages: list) -> list[dict]:
     return images
 
 
-def _ocr_with_mistral(pdf_bytes: bytes, api_key: str, base_url: str, model: str) -> tuple[list, str]:
+def _ocr_with_mistral(
+    pdf_bytes: bytes,
+    api_key: str,
+    base_url: str,
+    model: str,
+    table_format: str = "markdown",
+) -> tuple[list, str]:
     """Call Mistral OCR API. Returns (pages, model_name_used)."""
     b64 = base64.b64encode(pdf_bytes).decode("ascii")
     # 5 minute timeout — VIB PDFs are ~100 pages and OCR can take 60–120s
@@ -200,7 +209,7 @@ def _ocr_with_mistral(pdf_bytes: bytes, api_key: str, base_url: str, model: str)
             "type": "document_url",
             "document_url": f"data:application/pdf;base64,{b64}",
         },
-        table_format="markdown",
+        table_format=table_format,
     )
     return response.pages, response.model
 
@@ -233,6 +242,7 @@ def extract_document_text(
     start_page: int | None = None,
     end_page: int | None = None,
     strip_headers_footers: bool | None = None,
+    table_format: str = "markdown",
 ) -> OcrResult:
     """PDF → markdown. Mistral OCR, pymupdf fallback without ``OCR_API_KEY``.
 
@@ -244,6 +254,15 @@ def extract_document_text(
     separate fields by Mistral OCR) are excluded from the joined text.  Defaults
     to ``settings.ocr_strip_headers_footers``.  Image references are always
     stripped.
+
+    table_format: how the model is asked to render a recognised table —
+    ``"markdown"`` or ``"html"``.  Markdown is the right choice for prose with
+    the occasional table (VIB, Fulda).  A source whose *record* spans several
+    printed lines inside one table row (the Haushalt report) needs ``"html"``:
+    markdown has no way to express a line break inside a cell, so the model
+    joins the stacked lines with spaces and the row geometry — which line
+    belongs to which sub-entry — is gone.  HTML keeps them as ``<br>``.
+    ``OcrResult.table_format`` records what the tables actually are.
 
     The OCR credentials and model come from ``settings`` — callers do not pass
     them, so a change of provider stays inside this module.
@@ -261,7 +280,8 @@ def extract_document_text(
     if settings.ocr_api_key:
         try:
             pages, model_used = _ocr_with_mistral(
-                pdf_bytes, settings.ocr_api_key, settings.ocr_base_url, settings.ocr_model
+                pdf_bytes, settings.ocr_api_key, settings.ocr_base_url, settings.ocr_model,
+                table_format=table_format,
             )
             n_tables = sum(len(getattr(p, "tables", None) or []) for p in pages)
             ocr_images = _collect_images(pages)
@@ -274,6 +294,7 @@ def extract_document_text(
                 text="\n".join(page_texts),
                 pages=page_texts,
                 tables=_pages_to_tables(pages),
+                table_format=table_format,
                 model=model_used,
                 status="done",
                 images=ocr_images,

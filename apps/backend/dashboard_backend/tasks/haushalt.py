@@ -451,6 +451,19 @@ def _extract_position_entries(cells: list, cmap: ColumnMap) -> list["TitelEntryP
     return entries
 
 
+# The report prints a bare dash where a value does not exist. Which dash it is
+# depends on the font, so all of them count as "no value".
+_PLACEHOLDER_DASHES = ("-", "\u2010", "\u2011", "\u2012", "\u2013", "\u2014")
+
+
+def _without_placeholder_dash(value: str | None) -> str | None:
+    """A cell that only holds a dash means "no value" — return ``None`` for it."""
+    if value is None:
+        return None
+    text = value.strip()
+    return None if text in _PLACEHOLDER_DASHES or not text else text
+
+
 def _parse_combined_id_cell(cell: str | None) -> tuple[str | None, int | None, str | None]:
     """Parse the first column which may combine lfd_nr, finve and bedarfsplan.
 
@@ -475,9 +488,7 @@ def _parse_combined_id_cell(cell: str | None) -> tuple[str | None, int | None, s
         except ValueError:
             finve_nr = None
         # A bare dash (‐ or -) in the bedarfsplan position means no bedarfsplan
-        bp = m.group(3).strip()
-        bedarfsplan = None if bp in ("-", "\u2010", "\u2011", "\u2012", "\u2013", "\u2014") else bp
-        return lfd_nr, finve_nr, bedarfsplan
+        return lfd_nr, finve_nr, _without_placeholder_dash(m.group(3))
     # Old format: just the lfd_nr (e.g. "B0080")
     if re.match(r"^B\d+$", cell):
         return cell, None, None
@@ -557,7 +568,7 @@ def _build_proposed(
         budget_year=year,
         lfd_nr=lfd_nr,
         fin_ve=finve_nr,
-        bedarfsplan_number=bedarfsplan_nr,
+        bedarfsplan_number=_without_placeholder_dash(bedarfsplan_nr),
         cost_estimate_original=_parse_int(_first_line(_cell_of(cells, cmap, "cost_original"))),
         cost_estimate_last_year=_parse_int(_first_line(_cell_of(cells, cmap, "cost_last_year"))),
         cost_estimate_actual=_parse_int(_first_line(_cell_of(cells, cmap, "cost_actual"))),
@@ -773,8 +784,8 @@ _COMPARED_FINVE_FIELDS = ("name", "starting_year", "cost_estimate_original")
 def _extract_pages_from_ocr(ocr: OcrResult) -> list[ExtractedPage]:
     """Stage 1 via the shared OCR service, in the shape the parser reads.
 
-    The markdown tables the model returns are translated into the same rows of
-    cells pdfplumber produces (``haushalt_markdown``), so every later stage —
+    The tables the model returns are translated into the same rows of cells
+    pdfplumber produces (``haushalt_markdown``), so every later stage —
     segmentation, column mapping, value transfer — is identical on both paths.
     """
     pages: list[ExtractedPage] = []
@@ -784,7 +795,11 @@ def _extract_pages_from_ocr(ocr: OcrResult) -> list[ExtractedPage]:
             ExtractedPage(
                 number=index + 1,
                 text=page_text,
-                rows=parse_page_tables(tables, width=len(CANONICAL_COLUMNS)),
+                rows=parse_page_tables(
+                    tables,
+                    width=len(CANONICAL_COLUMNS),
+                    table_format=ocr.table_format,
+                ),
             )
         )
     return pages
@@ -935,7 +950,10 @@ def _run_ocr_stage(pdf_bytes: bytes) -> tuple[OcrResult | None, str | None]:
     pdfplumber path can always carry it.
     """
     try:
-        return extract_document_text(pdf_bytes), None
+        # "html", not the default markdown: a Haushalt record spans several
+        # printed lines inside one table row, and only HTML can express that
+        # (``<br>``) — see ``tasks.haushalt_markdown``.
+        return extract_document_text(pdf_bytes, table_format="html"), None
     except Exception as exc:
         logger.warning("Haushalt OCR stage failed: %s", exc, exc_info=True)
         return None, str(exc)[:200]
@@ -1107,6 +1125,16 @@ def _parse_section(
         # 2026+ format: first three columns merged into col 0 as "B0080 275 N19"
         # Older format: lfd_nr in col 0, finve_nr as integer in col 1
         lfd_nr, finve_nr, bedarfsplan_nr = _parse_combined_id_cell(_cell_of(cells, cmap, "lfd_nr"))
+
+        if lfd_nr is not None and finve_nr is None:
+            # The first column held only the lfd_nr — the FinVe number and the
+            # Bedarfsplan number then stand in their own columns.  pdfplumber
+            # merges the three into column 0, the OCR stage keeps them apart;
+            # reading them through the column map makes the row detection work
+            # on either layout instead of on one PDF generation's cell merging.
+            finve_nr = _parse_int(_first_line(_cell_of(cells, cmap, "finve_nr")))
+            if bedarfsplan_nr is None:
+                bedarfsplan_nr = _first_line(_cell_of(cells, cmap, "bedarfsplan"))
 
         if lfd_nr is None:
             # Not the combined format — try old format (finve integer in col 1)
