@@ -16,8 +16,11 @@ RUN npm ci
 # VITE_API_BASE_URL="" → API calls go to the same origin (/api/...), nginx proxies them.
 ARG VITE_API_BASE_URL=""
 ARG REACT_APP_TILE_LAYER_URL=""
+# Unset → OpenRailwayMap default tiles; set to "off" to drop the railway overlay.
+ARG REACT_APP_RAILWAY_TILE_LAYER_URL
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ENV REACT_APP_TILE_LAYER_URL=$REACT_APP_TILE_LAYER_URL
+ENV REACT_APP_RAILWAY_TILE_LAYER_URL=$REACT_APP_RAILWAY_TILE_LAYER_URL
 
 # Vite reads .env from envDir ("../../" relative to apps/frontend), but in
 # Docker there is no repo root above /app. We place a minimal .env here so

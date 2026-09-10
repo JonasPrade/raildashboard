@@ -5,6 +5,7 @@ declare module "*.css";
 
 interface ImportMetaEnv {
     readonly REACT_APP_TILE_LAYER_URL?: string;
+    readonly REACT_APP_RAILWAY_TILE_LAYER_URL?: string;
 }
 
 interface ImportMeta {
