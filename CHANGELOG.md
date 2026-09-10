@@ -43,10 +43,36 @@ section as part of the release commit, immediately before tagging.
   paths hand the parser the same rows of cells, so the comparison isolates the text recognition.
 - `scripts/compare_haushalt_extraction.py` runs that comparison on a PDF and exits 0 only when both
   paths agree on every row and every value — the condition for switching to `ocr`.
-- `OcrResult` now carries the markdown of each recognised table per page (`tables`), which is what
-  lets a table source read the grid instead of the prose.
+- `OcrResult` now carries the markup of each recognised table per page (`tables`) and the format it
+  is in (`table_format`), which is what lets a table source read the grid instead of the prose.
+- `extract_document_text` takes a `table_format` ("markdown" or "html"). The Haushalt asks for HTML:
+  one of its records spans several printed lines inside a single table row, and markdown cannot
+  express a line break inside a cell — the model joins the stacked lines with spaces and which value
+  belongs to which sub-entry is lost. VIB and Fulda keep markdown, unchanged.
+- The Haushalt row detection reads the Lfd. Nr., the FinVe number and the Bedarfsplan number through
+  the column mapping, so a row is recognised whether the PDF merges those three columns into one
+  cell ("B0080 275 N19", the 2026+ layout pdfplumber returns) or keeps them apart. The identity of a
+  row no longer depends on one report generation's cell merging.
+
+### Changed
+- The Haushalt import keeps taking its numbers from pdfplumber. The comparison against the real OCR
+  API has now been run (EP 12 Part B, 2027 draft, `mistral-ocr-latest`) and came back red: 141 rows
+  from pdfplumber against 107 from the OCR stage, 79 differing values. The model omits the `YYY`
+  identity marker on the pages of tables 2–4 (34 rows lost, three tables entirely), reads about 29
+  of 5,568 numeric tokens differently from how the report prints them, and sometimes emits the minus
+  sign of a negative delta as a table cell of its own so the amount lands in the percent column.
+  `HAUSHALT_EXTRACTION` stays on `pdfplumber` and `pdfplumber` stays in `requirements.txt`; the
+  switch and the comparison script remain as the measuring instrument for the next model generation.
+  Full evaluation in `docs/features/feature-pdf-import-unification.md`.
 
 ### Fixed
+- A measure's Mittelherkunft — which Haushaltstitel funds how much of it — no longer loses values.
+  The report prints one line per Titel, but `extract_table` keeps only the non-empty lines of each
+  column, so a column printed on the measure's line and on the last Titel's line arrived as a single
+  value and was given to neither. The lines the report printed inside each row are now kept beside
+  it (`ExtractedPage.row_lines`) and each Titel takes the values printed on its own line. Measured
+  against the word coordinates of the EP 12 Part B 2027 report: 28 of 179 Titel rows carried a wrong
+  or missing value before, none do now. Measure-level figures were never affected.
 - The Haushalt import no longer folds the other tables of Annex VWIB Part B (Lärmsanierung, ERTMS,
   Kleine und Mittlere Maßnahmen, InvKG) into the Bedarfsplan table. Their rows carry no FinVe number
   and were appended to the last Sammel-FinVe of the first table — in the 2027 report that gave

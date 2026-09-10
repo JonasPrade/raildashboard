@@ -323,56 +323,107 @@ def _extract_project_name(name_cell: str | None) -> str:
     return " ".join(line.strip() for line in name_part.split("\n") if line.strip())
 
 
-def _extract_inline_titel_entries(cells: list, cmap: ColumnMap) -> list["TitelEntryProposed"]:
+def _kap_titel_entry(kapitel: str, titel_nr: str, numeric: dict) -> "TitelEntryProposed":
+    return TitelEntryProposed(
+        titel_key=titel_nr.replace(" ", "_"),
+        kapitel=kapitel,
+        titel_nr=titel_nr,
+        label=f"Kap. {kapitel}, Titel {titel_nr}",
+        is_nachrichtlich=False,
+        **numeric,
+    )
+
+
+def _extract_inline_titel_entries(
+    cells: list, cmap: ColumnMap, lines: list[list] | None = None
+) -> list["TitelEntryProposed"]:
     """Extract Kap./Titel sub-entries embedded in a 2026+ main FinVe row.
 
-    In the 2026 PDF format pdfplumber merges sub-entries into multi-line cells:
-      - Col 3 (name): "Project name\\ndavon:\\nKap. 1202, Titel 891 01\\n..."
-      - Numeric cols:  "project_total\\nkap1_value\\nkap2_value\\n..."
-    Line 0 of each numeric column is the project total (already captured in
-    proposed_budget). Lines 1..n correspond to the Kap. entries in the name col.
+    This is the row's Mittelherkunft: which Haushaltstitel funds how much of the
+    measure. The report prints one line per Titel, and a value belongs to the
+    Titel it stands beside.
+
+    With ``lines`` — the lines the report printed inside this row — that is read
+    directly: every line carries its own label and its own values. Without them
+    (the OCR path, which has no coordinates) the sub-entries are only available
+    stacked inside the cells, and the i-th Titel has to be paired with line i+1
+    of every numeric column. That pairing breaks as soon as a column prints a
+    value on some of the lines and nothing on others: a Titel whose column is
+    blank pulls every value below it up by one, or drops the last one entirely.
     """
     name_cell = _cell_of(cells, cmap, "name") or ""
     davon_match = re.search(r"davon\s*:", name_cell, re.IGNORECASE)
     if not davon_match:
         return []
 
+    if lines:
+        result = []
+        seen_davon = False
+        for line in lines:
+            label = _cell_of(line, cmap, "name") or ""
+            if not seen_davon:
+                seen_davon = bool(re.search(r"davon\s*:", label, re.IGNORECASE))
+                if not seen_davon:
+                    continue
+            match = _KAP_TITEL_RE.search(label)
+            if match:
+                result.append(
+                    _kap_titel_entry(
+                        match.group(1).strip(),
+                        match.group(2).strip(),
+                        _titel_numeric_fields(line, cmap, 0),
+                    )
+                )
+        return result
+
     kap_entries: list[dict] = []
     for line in name_cell[davon_match.end():].split("\n"):
-        m = _KAP_TITEL_RE.search(line)
-        if m:
+        match = _KAP_TITEL_RE.search(line)
+        if match:
             kap_entries.append(
-                {"kapitel": m.group(1).strip(), "titel_nr": m.group(2).strip()}
+                {"kapitel": match.group(1).strip(), "titel_nr": match.group(2).strip()}
             )
 
-    if not kap_entries:
-        return []
-
-    result = []
-    for i, kap in enumerate(kap_entries):
-        idx = i + 1  # 0 = project total; 1..n = per-Kap values
-        result.append(
-            TitelEntryProposed(
-                titel_key=kap["titel_nr"].replace(" ", "_"),
-                kapitel=kap["kapitel"],
-                titel_nr=kap["titel_nr"],
-                label=f"Kap. {kap['kapitel']}, Titel {kap['titel_nr']}",
-                is_nachrichtlich=False,
-                **_titel_numeric_fields(cells, cmap, idx),
-            )
-        )
-    return result
+    return [
+        # line 0 of a numeric cell is the project total; 1..n are the Kap. values
+        _kap_titel_entry(kap["kapitel"], kap["titel_nr"], _titel_numeric_fields(cells, cmap, i + 1))
+        for i, kap in enumerate(kap_entries)
+    ]
 
 
-def _extract_nachrichtlich_entries(cells: list, cmap: ColumnMap) -> list["TitelEntryProposed"]:
+def _nachrichtlich_entry(label: str, numeric: dict) -> "TitelEntryProposed":
+    return TitelEntryProposed(
+        titel_key=label[:50],
+        kapitel="",
+        titel_nr="",
+        label=label,
+        is_nachrichtlich=True,
+        **numeric,
+    )
+
+
+def _extract_nachrichtlich_entries(
+    cells: list, cmap: ColumnMap, lines: list[list] | None = None
+) -> list["TitelEntryProposed"]:
     """Extract individual nachrichtlich entries from a nachrichtlich pdfplumber row.
 
-    In 2026+ PDFs a single row may contain multiple stacked entries:
-      - Col 3: "nachrichtlich: Beteiligung Dritter\\nnachrichtlich: Eigenmittel...\\n..."
-      - Numeric cols: "value_entry0\\nvalue_entry1\\n..."
-    Each label line corresponds to the same-indexed line in the numeric columns.
+    A single row may hold several stacked entries ("nachrichtlich: Beteiligung
+    Dritter", "nachrichtlich: Eigenmittel der EIU", ...). With ``lines`` each
+    label takes the values printed beside it; without them each label is paired
+    with the same-indexed line of the numeric columns, which shifts as soon as
+    one entry leaves a column blank.
     """
     label_cell = _cell_of(cells, cmap, "name") or ""
+
+    if lines:
+        from_lines = [
+            _nachrichtlich_entry(label.strip(), _titel_numeric_fields(line, cmap, 0))
+            for line in lines
+            for label in [_cell_of(line, cmap, "name") or ""]
+            if label.strip().lower().startswith("nachrichtlich:")
+        ]
+        if from_lines:
+            return from_lines
 
     labels = [
         line.strip()
@@ -382,19 +433,10 @@ def _extract_nachrichtlich_entries(cells: list, cmap: ColumnMap) -> list["TitelE
     if not labels:
         labels = [label_cell.strip()] if label_cell.strip() else []
 
-    result = []
-    for i, label in enumerate(labels):
-        result.append(
-            TitelEntryProposed(
-                titel_key=label[:50],
-                kapitel="",
-                titel_nr="",
-                label=label,
-                is_nachrichtlich=True,
-                **_titel_numeric_fields(cells, cmap, i),
-            )
-        )
-    return result
+    return [
+        _nachrichtlich_entry(label, _titel_numeric_fields(cells, cmap, i))
+        for i, label in enumerate(labels)
+    ]
 
 
 def _is_position_row(cells: list, cmap: ColumnMap) -> bool:
@@ -421,21 +463,34 @@ def _is_position_row(cells: list, cmap: ColumnMap) -> bool:
     )
 
 
-def _extract_position_entries(cells: list, cmap: ColumnMap) -> list["TitelEntryProposed"]:
+def _extract_position_entries(
+    cells: list, cmap: ColumnMap, lines: list[list] | None = None
+) -> list["TitelEntryProposed"]:
     """Build sub-entries for the named breakdown positions of Tabellen 2–5.
 
     Stored like the nachrichtlich entries: the label identifies the entry, the
-    seven numeric fields come from the standard columns. Line i of the label
-    cell pairs with line i of each numeric column, the same way the report
-    stacks them.
+    seven numeric fields come from the standard columns. With ``lines`` a
+    position takes the values printed on its own line; without them line i of
+    the label cell is paired with line i of each numeric column.
     """
-    labels = [
-        line for line in _split_multiline(_cell_of(cells, cmap, "name"))
-        if line and not line.lower().startswith(("erläuterung", "nachrichtlich", "davon"))
-    ]
+    def _skip(label: str) -> bool:
+        return not label or label.lower().startswith(("erläuterung", "nachrichtlich", "davon"))
+
     entries: list[TitelEntryProposed] = []
-    for i, label in enumerate(labels):
-        numeric = _titel_numeric_fields(cells, cmap, i)
+    if lines:
+        sources = [
+            (label.strip(), _titel_numeric_fields(line, cmap, 0))
+            for line in lines
+            for label in [(_cell_of(line, cmap, "name") or "").strip()]
+            if not _skip(label)
+        ]
+    else:
+        labels = [
+            line for line in _split_multiline(_cell_of(cells, cmap, "name")) if not _skip(line)
+        ]
+        sources = [(label, _titel_numeric_fields(cells, cmap, i)) for i, label in enumerate(labels)]
+
+    for label, numeric in sources:
         if all(value is None for value in numeric.values()):
             continue
         entries.append(
@@ -449,6 +504,19 @@ def _extract_position_entries(cells: list, cmap: ColumnMap) -> list["TitelEntryP
             )
         )
     return entries
+
+
+# The report prints a bare dash where a value does not exist. Which dash it is
+# depends on the font, so all of them count as "no value".
+_PLACEHOLDER_DASHES = ("-", "\u2010", "\u2011", "\u2012", "\u2013", "\u2014")
+
+
+def _without_placeholder_dash(value: str | None) -> str | None:
+    """A cell that only holds a dash means "no value" — return ``None`` for it."""
+    if value is None:
+        return None
+    text = value.strip()
+    return None if text in _PLACEHOLDER_DASHES or not text else text
 
 
 def _parse_combined_id_cell(cell: str | None) -> tuple[str | None, int | None, str | None]:
@@ -475,9 +543,7 @@ def _parse_combined_id_cell(cell: str | None) -> tuple[str | None, int | None, s
         except ValueError:
             finve_nr = None
         # A bare dash (‐ or -) in the bedarfsplan position means no bedarfsplan
-        bp = m.group(3).strip()
-        bedarfsplan = None if bp in ("-", "\u2010", "\u2011", "\u2012", "\u2013", "\u2014") else bp
-        return lfd_nr, finve_nr, bedarfsplan
+        return lfd_nr, finve_nr, _without_placeholder_dash(m.group(3))
     # Old format: just the lfd_nr (e.g. "B0080")
     if re.match(r"^B\d+$", cell):
         return cell, None, None
@@ -557,7 +623,7 @@ def _build_proposed(
         budget_year=year,
         lfd_nr=lfd_nr,
         fin_ve=finve_nr,
-        bedarfsplan_number=bedarfsplan_nr,
+        bedarfsplan_number=_without_placeholder_dash(bedarfsplan_nr),
         cost_estimate_original=_parse_int(_first_line(_cell_of(cells, cmap, "cost_original"))),
         cost_estimate_last_year=_parse_int(_first_line(_cell_of(cells, cmap, "cost_last_year"))),
         cost_estimate_actual=_parse_int(_first_line(_cell_of(cells, cmap, "cost_actual"))),
@@ -613,6 +679,12 @@ class ExtractedPage:
     number: int  # 1-indexed
     text: str = ""
     rows: list[list] = dataclass_field(default_factory=list)
+    # Parallel to ``rows``: the lines the report actually printed inside each
+    # row, in the same 16 columns.  A multi-line cell keeps only its non-empty
+    # lines, so it can no longer say which of a measure's Kap./Titel lines a
+    # value stands on — these can.  Empty when the source has no coordinates
+    # (the OCR path), and every reader falls back to the cell in that case.
+    row_lines: list[list[list]] = dataclass_field(default_factory=list)
 
 
 # Some pages of Teil B carry no horizontal rules between the measures (the ERTMS
@@ -634,13 +706,17 @@ _TEXT_ROW_SETTINGS = {"vertical_strategy": "lines", "horizontal_strategy": "text
 # push anything the other way, because the cells are right-aligned.
 _COLUMN_EDGE_SHIFT = 1.0
 
+# Words whose tops are this close belong to the same printed line: the report
+# lifts a superscript and drops a wrapped label by a point or two.
+_LINE_TOLERANCE = 3.0
+
 # A text line that opens a new logical row: an identifier in the first column,
 # or one of the labelled sub-blocks in the name column.
 _ROW_START_ID_RE = re.compile(r"^\s*(B\d+|YYY)\b")
 _ROW_START_NAME_RE = re.compile(r"^\s*(nachrichtlich:|Erl(ä|ae)uterung:)", re.IGNORECASE)
 
 
-def _regroup_text_rows(text_rows: list[list], width: int) -> list[list]:
+def _regroup_text_rows(text_rows: list[list], width: int) -> tuple[list[list], list[list[list]]]:
     """Rebuild logical table rows from one-line-per-row extraction.
 
     ``horizontal_strategy="text"`` gives one row per printed line, which is too
@@ -649,27 +725,34 @@ def _regroup_text_rows(text_rows: list[list], width: int) -> list[list]:
     extraction produces, and what ``_extract_inline_titel_entries`` reads).
     Joining the lines of each column back together between identifier lines
     reproduces exactly that shape.
+
+    Returns those logical rows and, parallel to them, the printed lines each was
+    built from — the same lines, before the empty cells were dropped.
     """
     grouped: list[list[list[str]]] = []
+    lines_of: list[list[list]] = []
     current: list[list[str]] | None = None
 
     for row in text_rows:
-        padded = list(row) + [None] * (width - len(row))
+        padded = [(str(value).strip() or None) if value is not None else None for value in row]
+        padded = padded[:width] + [None] * (width - len(padded))
         starts_row = bool(_ROW_START_ID_RE.match(str(padded[0] or ""))) or bool(
-            _ROW_START_NAME_RE.match(str(padded[3] or "").strip())
+            _ROW_START_NAME_RE.match(str(padded[3] or ""))
         )
         if current is None or starts_row:
             if current is not None:
                 grouped.append(current)
             current = [[] for _ in range(width)]
+            lines_of.append([])
         for i in range(width):
-            value = str(padded[i] or "").strip()
-            if value:
-                current[i].append(value)
+            if padded[i]:
+                current[i].append(padded[i])
+        lines_of[-1].append(padded)
     if current is not None:
         grouped.append(current)
 
-    return [["\n".join(cell) if cell else None for cell in row] for row in grouped]
+    rows = [["\n".join(cell) if cell else None for cell in row] for row in grouped]
+    return rows, lines_of
 
 
 def _column_edges(page) -> list[float]:
@@ -687,14 +770,93 @@ def _column_edges(page) -> list[float]:
     return sorted({round(cell[0], 1) for cell in cells} | {round(cell[2], 1) for cell in cells})
 
 
-def _page_table_rows(page) -> list[list]:
-    """Table rows of one page, repairing pages whose rows pdfplumber merges."""
-    rows = [row for row in (page.extract_table() or []) if row]
-    longest_col0 = max((len(str(row[0] or "")) for row in rows), default=0)
-    if longest_col0 <= _MERGED_COL0_CHARS:
-        return rows
+def _printed_lines_by_row(page, row_boxes: list, width: int) -> list[list[list]]:
+    """The lines the report prints inside each table row, split into its columns.
 
+    ``extract_table`` returns a row's sub-entries stacked inside its cells, and
+    only the non-empty lines of each column survive that: a column whose value
+    stands on the third of three printed lines comes back as a one-line cell,
+    indistinguishable from one that stands on the first.  Which line a value is
+    printed on is what decides which Kap./Titel it funds, so it is read here
+    straight from the word coordinates and kept beside the row.
+
+    Returns one list of 16-column lines per entry of ``row_boxes``.
+    """
+    edges = _column_edges(page)
+    if len(edges) != width + 1:
+        return []
+    edges = [edge + _COLUMN_EDGE_SHIFT for edge in edges]
+
+    def column_of(word) -> int | None:
+        centre = (word["x0"] + word["x1"]) / 2
+        for index in range(width):
+            if edges[index] <= centre < edges[index + 1]:
+                return index
+        return None
+
+    # Words of one printed line share a baseline; the report offsets a wrapped
+    # label by a point or two, so lines within _LINE_TOLERANCE are one line.
+    by_top: dict[float, dict[int, list]] = {}
+    for word in page.extract_words():
+        column = column_of(word)
+        if column is None:
+            continue
+        by_top.setdefault(round(word["top"], 1), {}).setdefault(column, []).append(word)
+
+    lines: list[tuple[float, dict[int, list]]] = []
+    for top in sorted(by_top):
+        if lines and top - lines[-1][0] <= _LINE_TOLERANCE:
+            target = lines[-1][1]
+        else:
+            lines.append((top, {}))
+            target = lines[-1][1]
+        for column, words in by_top[top].items():
+            target.setdefault(column, []).extend(words)
+
+    per_row: list[list[list]] = [[] for _ in row_boxes]
+    for top, columns in lines:
+        cells = [
+            " ".join(word["text"] for word in sorted(words, key=lambda w: w["x0"])) or None
+            for words in (columns.get(index, []) for index in range(width))
+        ]
+        if not any(cells):
+            continue
+        for index, box in enumerate(row_boxes):
+            # box is (x0, top, x1, bottom) — a line belongs to the row it sits in
+            if box[1] - _LINE_TOLERANCE <= top < box[3]:
+                per_row[index].append(cells)
+                break
+    return per_row
+
+
+def _page_table_rows(page) -> tuple[list[list], list[list[list]]]:
+    """Table rows of one page, repairing pages whose rows pdfplumber merges.
+
+    Returns the rows and, parallel to them, the lines the report printed inside
+    each — see :func:`_printed_lines_by_row`.
+    """
+    extracted = page.extract_table() or []
+    tables = page.find_tables()
+    # find_tables()[0] is the table extract_table() returns, so its row boxes
+    # line up with the rows one for one.
+    boxes = [row.bbox for row in tables[0].rows] if tables else []
+    if len(boxes) != len(extracted):
+        boxes = []
+
+    kept = [(row, boxes[i] if boxes else None) for i, row in enumerate(extracted) if row]
+    rows = [row for row, _ in kept]
+    longest_col0 = max((len(str(row[0] or "")) for row in rows), default=0)
     width = max((len(row) for row in rows), default=0)
+
+    if longest_col0 <= _MERGED_COL0_CHARS:
+        row_boxes = [box for _, box in kept]
+        lines = (
+            _printed_lines_by_row(page, row_boxes, width)
+            if width and all(box is not None for box in row_boxes)
+            else []
+        )
+        return rows, lines
+
     settings = dict(_TEXT_ROW_SETTINGS)
     edges = _column_edges(page)
     if edges:
@@ -707,7 +869,7 @@ def _page_table_rows(page) -> list[list]:
         text_rows = [row for row in (page.extract_table(settings) or []) if row]
     except Exception as exc:
         logger.warning("Page %s: text-row extraction failed (%s), keeping merged rows", page.page_number, exc)
-        return rows
+        return rows, []
 
     # A different column count would shift every value one column — the merged
     # rows are the lesser evil, and the review shows what came out.
@@ -717,14 +879,16 @@ def _page_table_rows(page) -> list[list]:
             "Page %s: merged rows detected but the text-row grid has %d columns instead of %d — keeping the merged rows",
             page.page_number, text_width, width,
         )
-        return rows
+        return rows, []
 
-    repaired = _regroup_text_rows(text_rows, width)
+    # Here the printed lines need no coordinates: the text strategy already
+    # returns one row per printed line, and regrouping keeps them.
+    repaired, repaired_lines = _regroup_text_rows(text_rows, width)
     logger.info(
         "Page %s: repaired merged rows (%d -> %d rows, longest first cell %d chars)",
         page.page_number, len(rows), len(repaired), longest_col0,
     )
-    return repaired
+    return repaired, repaired_lines
 
 
 def _extract_pages(pdf_bytes: bytes, task: Task | None = None) -> list[ExtractedPage]:
@@ -745,11 +909,13 @@ def _extract_pages(pdf_bytes: bytes, task: Task | None = None) -> list[Extracted
                         "rows_found": 0,
                     },
                 )
+            rows, row_lines = _page_table_rows(page)
             pages.append(
                 ExtractedPage(
                     number=page_idx,
                     text=page.extract_text() or "",
-                    rows=_page_table_rows(page),
+                    rows=rows,
+                    row_lines=row_lines,
                 )
             )
     return pages
@@ -773,9 +939,13 @@ _COMPARED_FINVE_FIELDS = ("name", "starting_year", "cost_estimate_original")
 def _extract_pages_from_ocr(ocr: OcrResult) -> list[ExtractedPage]:
     """Stage 1 via the shared OCR service, in the shape the parser reads.
 
-    The markdown tables the model returns are translated into the same rows of
-    cells pdfplumber produces (``haushalt_markdown``), so every later stage —
+    The tables the model returns are translated into the same rows of cells
+    pdfplumber produces (``haushalt_markdown``), so every later stage —
     segmentation, column mapping, value transfer — is identical on both paths.
+
+    ``row_lines`` stays empty: a markup table carries no coordinates, so which
+    line of a row a value is printed on cannot be recovered from it. The Titel
+    sub-entries therefore fall back to pairing by line index on this path.
     """
     pages: list[ExtractedPage] = []
     for index, page_text in enumerate(ocr.pages):
@@ -784,7 +954,11 @@ def _extract_pages_from_ocr(ocr: OcrResult) -> list[ExtractedPage]:
             ExtractedPage(
                 number=index + 1,
                 text=page_text,
-                rows=parse_page_tables(tables, width=len(CANONICAL_COLUMNS)),
+                rows=parse_page_tables(
+                    tables,
+                    width=len(CANONICAL_COLUMNS),
+                    table_format=ocr.table_format,
+                ),
             )
         )
     return pages
@@ -935,7 +1109,10 @@ def _run_ocr_stage(pdf_bytes: bytes) -> tuple[OcrResult | None, str | None]:
     pdfplumber path can always carry it.
     """
     try:
-        return extract_document_text(pdf_bytes), None
+        # "html", not the default markdown: a Haushalt record spans several
+        # printed lines inside one table row, and only HTML can express that
+        # (``<br>``) — see ``tasks.haushalt_markdown``.
+        return extract_document_text(pdf_bytes, table_format="html"), None
     except Exception as exc:
         logger.warning("Haushalt OCR stage failed: %s", exc, exc_info=True)
         return None, str(exc)[:200]
@@ -1057,6 +1234,9 @@ def _parse_section(
     # page-break artefacts (missing col-0, split Erläuterung blocks) are
     # invisible to the row-processing logic in Phase 2.
     all_table_rows: list[list] = []
+    # Parallel to all_table_rows: the lines the report printed in each row, or an
+    # empty list where the source carries no coordinates.
+    all_row_lines: list[list[list]] = []
     header_rows: list[list] = []
     global_sv_lookup: dict[str, int] = {}
 
@@ -1065,6 +1245,8 @@ def _parse_section(
             continue
         if page.rows:
             all_table_rows.extend(page.rows)
+            page_lines = page.row_lines if len(page.row_lines) == len(page.rows) else []
+            all_row_lines.extend(page_lines or [[] for _ in page.rows])
             if not header_rows:
                 header_rows = [row for row in page.rows if is_header_row(row)]
         global_sv_lookup.update(_build_sv_raw_lookup(page.text))
@@ -1082,7 +1264,7 @@ def _parse_section(
     # Header rows repeat at the top of each page's table — skip them wherever
     # they appear.
     seen_first_header = False
-    for cells in all_table_rows:
+    for cells, row_lines in zip(all_table_rows, all_row_lines):
         if cells is None:
             continue
 
@@ -1107,6 +1289,16 @@ def _parse_section(
         # 2026+ format: first three columns merged into col 0 as "B0080 275 N19"
         # Older format: lfd_nr in col 0, finve_nr as integer in col 1
         lfd_nr, finve_nr, bedarfsplan_nr = _parse_combined_id_cell(_cell_of(cells, cmap, "lfd_nr"))
+
+        if lfd_nr is not None and finve_nr is None:
+            # The first column held only the lfd_nr — the FinVe number and the
+            # Bedarfsplan number then stand in their own columns.  pdfplumber
+            # merges the three into column 0, the OCR stage keeps them apart;
+            # reading them through the column map makes the row detection work
+            # on either layout instead of on one PDF generation's cell merging.
+            finve_nr = _parse_int(_first_line(_cell_of(cells, cmap, "finve_nr")))
+            if bedarfsplan_nr is None:
+                bedarfsplan_nr = _first_line(_cell_of(cells, cmap, "bedarfsplan"))
 
         if lfd_nr is None:
             # Not the combined format — try old format (finve integer in col 1)
@@ -1166,7 +1358,7 @@ def _parse_section(
                     is_sammel_finve=is_sv,
                     proposed_finve=keyed_finve,
                     proposed_budget=keyed_budget,
-                    proposed_titel_entries=_extract_inline_titel_entries(cells, cmap),
+                    proposed_titel_entries=_extract_inline_titel_entries(cells, cmap, row_lines),
                     project_ids=existing_ids if existing_ids else suggested_ids,
                     suggested_project_ids=suggested_ids,
                 )
@@ -1207,7 +1399,7 @@ def _parse_section(
                 # Nachrichtlich row: may contain multiple stacked entries
                 if current_row is not None:
                     current_row.proposed_titel_entries.extend(
-                        _extract_nachrichtlich_entries(cells, cmap)
+                        _extract_nachrichtlich_entries(cells, cmap, row_lines)
                     )
             elif _is_titel_row(cells):
                 name_cell = _cell_of(cells, cmap, "name") or ""
@@ -1222,7 +1414,7 @@ def _parse_section(
                             rows.append(current_row)
                         sv_status = "update" if recovered_finve_nr in known_finve_ids else "new"
                         sv_existing_ids = (finve_projects or {}).get(recovered_finve_nr, [])
-                        sv_inline_titel = _extract_inline_titel_entries(cells, cmap)
+                        sv_inline_titel = _extract_inline_titel_entries(cells, cmap, row_lines)
                         sv_finve, sv_budget = _build_proposed(
                             cells, cmap, year, recovered_finve_nr,
                             lfd_nr="YYY", bedarfsplan_nr=None,
@@ -1266,7 +1458,7 @@ def _parse_section(
                 # Kap./Titel lines. They carry values, so they are kept as
                 # sub-entries of the measure rather than dropped.
                 current_row.proposed_titel_entries.extend(
-                    _extract_position_entries(cells, cmap)
+                    _extract_position_entries(cells, cmap, row_lines)
                 )
             else:
                 # Erläuterung continuation row: subsequent page cells that lack the
@@ -1314,7 +1506,7 @@ def _parse_section(
 
         # Extract Kap./Titel entries embedded in multi-line cells (2026+ format).
         # For older PDFs these will appear as separate rows and are handled below.
-        inline_titel = _extract_inline_titel_entries(cells, cmap)
+        inline_titel = _extract_inline_titel_entries(cells, cmap, row_lines)
 
         existing_project_ids = (finve_projects or {}).get(finve_nr, [])
 

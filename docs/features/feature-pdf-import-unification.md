@@ -1,9 +1,11 @@
 # Feature: PDF-Import vereinheitlichen — Evaluation
 
-> **Status: teilweise umgesetzt.** Schritte 1, 2 und 5 der empfohlenen Reihenfolge
-> sind implementiert (siehe *Umsetzungsstand* unten); Schritt 3 (Medien-PDF-Upload)
-> und die vollständige OCR-Umstellung des Haushalts (Schritte 4 und 6) sind offen.
-> Der Rest dieser Datei bleibt die Entscheidungsgrundlage.
+> **Status: teilweise umgesetzt.** Schritte 1, 2, 4 und 5 der empfohlenen
+> Reihenfolge sind implementiert (siehe *Umsetzungsstand* unten). Schritt 6 ist
+> **beantwortet, nicht offen**: der Vergleichslauf gegen die echte API ist
+> gelaufen und rot — der Haushalt bezieht seine Zahlen weiterhin aus pdfplumber
+> (siehe *Schritt 6: Vergleich gelaufen* am Ende). Offen bleibt nur Schritt 3
+> (Medien-PDF-Upload). Der Rest dieser Datei bleibt die Entscheidungsgrundlage.
 
 ## Ziel dieser Evaluation
 
@@ -262,7 +264,7 @@ Teil B zum HH-Entwurf 2027).
 | 3 Medien-Importer um PDF-Upload | offen | — |
 | 4 Haushalt: OCR-Pfad parallel | **erledigt (Vergleich gegen echte API offen)** | `HAUSHALT_EXTRACTION=compare` liest dasselbe PDF über beide Wege und speichert den Zeilen- und Wertevergleich beim Lauf; im Review sichtbar. Werte kommen dabei aus pdfplumber. Vergleichsskript: `scripts/compare_haushalt_extraction.py`. |
 | 5 Haushalt: `column_map` + Review-UI | **erledigt** | `tasks/haushalt_columns.py`; Anzeige im Review über `ColumnMappingPanel`. |
-| 6 pdfplumber zum Fallback zurückstufen | vorbereitet, nicht aktiviert | `HAUSHALT_EXTRACTION=ocr` schaltet um; die Umschaltung setzt einen sauberen `compare`-Lauf voraus (Exit-Code 0 des Vergleichsskripts). |
+| 6 pdfplumber zum Fallback zurückstufen | **entschieden: nein** | Der Vergleich gegen die echte API ist gelaufen (2026-09-10, `mistral-ocr-latest`): Exit-Code 1, 141 ↔ 107 Zeilen, 79 Wertabweichungen. `HAUSHALT_EXTRACTION` bleibt auf `pdfplumber`. Begründung und Zahlen unten. |
 
 ### Abweichungen von der Empfehlung — und warum
 
@@ -313,37 +315,93 @@ Ausgabe in `tests/fixtures/haushalt_ep12_2027_pages.json`.
   Erkennung ohnehin ohne LLM-Call auskommt, spart eine Wiederverwendung nichts.
 
 
-### Was für Schritt 6 noch fehlt
+### Schritt 6: Vergleich gelaufen — pdfplumber bleibt die Quelle der Zahlen
 
-Die Umstellung der Werte auf die OCR-Stufe hängt an genau einer offenen Frage:
-gibt Mistral die 16-spaltige Tabelle originalgetreu als Markdown zurück?
+Der Vergleichslauf gegen die echte API ist am 2026-09-10 erfolgt, mit dem
+EP-12-Bericht Teil B zum HH-Entwurf 2027 (44 Seiten, Tabellen 1–5) und
+`mistral-ocr-latest`:
 
-Beantwortet ist bereits, dass alles *danach* stimmt: aus originalgetreuen
-Markdown-Tabellen erzeugt der OCR-Pfad dieselben Zeilen, dieselben Tabellen und
-dieselben Werte wie pdfplumber (`tests/unit/test_haushalt_ocr_path.py` schickt
-die aufgezeichneten pdfplumber-Zellen als Markdown durch den OCR-Pfad zurück).
-Segmentierung, Spaltenzuordnung und Werteübertragung sind auf beiden Wegen
-derselbe Code.
-
-Offen ist der Lauf gegen die echte API — in der Entwicklungsumgebung liegt kein
-`OCR_API_KEY`. Vorgehen:
-
-```bash
-cd apps/backend
-OCR_API_KEY=… .venv/bin/python scripts/compare_haushalt_extraction.py EP12_Teil_B.pdf 2027
+```
+.venv/bin/python scripts/compare_haushalt_extraction.py EP12_TeilB_2027.pdf 2027
+→ Exit-Code 1
+   Rows pdfplumber: 141      Rows OCR: 107      Rows in both: 107
+   Nur pdfplumber: 34        Nur OCR: 0         Wertabweichungen: 79
 ```
 
-Exit-Code 0 → `HAUSHALT_EXTRACTION=ocr` ist vertretbar. Exit-Code 1 → der
-Report nennt jede abweichende Zeile und jedes abweichende Feld; solange
-Abweichungen bestehen, bleibt pdfplumber die Quelle der Zahlen.
+Vor diesem Ergebnis stehen zwei Reparaturen, ohne die der Lauf noch weit
+schlechter aussah (141 ↔ 55 Zeilen, 69 Abweichungen, dazu 19 erfundene Zeilen):
 
-Ein Wort zur Erwartung: Für **Fließtext** (VIB, Fulda) ist die OCR-Stufe klar
-überlegen, dafür wurde sie eingeführt. Für den Haushalt ist der Fall weniger
-eindeutig, weil dort die *Spaltengeometrie* über die Richtigkeit jeder Zahl
-entscheidet. Der Mehrtabellen-Import hat dafür ein konkretes Beispiel geliefert:
-Ein „–"-Platzhalter, der einen halben Punkt über seine Spaltenlinie ragte, wurde
-als Vorzeichen der Nachbarspalte gelesen und machte aus 33.186 eine −33.186.
-Gefunden und behoben wurde das über die Zellkoordinaten, die pdfplumber liefert
-und eine Markdown-Tabelle nicht mehr enthält. Das ist kein Argument gegen
-Schritt 6 — es ist das Argument dafür, ihn erst nach dem grünen Vergleich zu
-gehen, so wie diese Evaluation es ohnehin vorsieht.
+1. **Die OCR-Stufe wird für den Haushalt auf `table_format="html"` umgestellt.**
+   Markdown kann keinen Zeilenumbruch *innerhalb* einer Zelle ausdrücken — im
+   ganzen Dokument kam kein einziges `<br>` zurück. Ein Haushalts-Datensatz ist
+   aber genau das: eine Zeile mit gestapelten `davon:`-Titelzeilen darunter.
+   Markdown klebte sie mit Leerzeichen zusammen (`"77.859 22.200 - 55.659"` in
+   einer Zelle), und welcher Wert zu welcher Titelzeile gehört, war weg. HTML
+   liefert `<br>` und drückt eine verbundene Kopfzelle als `colspan`/`rowspan`
+   aus — dieselbe Form, die pdfplumber zurückgibt.
+2. **Die drei Identitätsspalten werden über die Spaltenzuordnung gelesen.**
+   pdfplumber gibt Lfd. Nr., FinVe-Nummer und Bedarfsplan-Nummer im 2026+-Layout
+   in *einer* Zelle zurück (`"B0080 275 N19"`), die OCR-Stufe in den drei
+   Spalten, die der Tabellenkopf deklariert. Die Zeilenerkennung hing an der
+   verbundenen Variante; jetzt liest sie beide. Das ist unabhängig vom OCR-Pfad
+   der richtige Umgang mit einem Jahrgangs-Layout und öffnet die älteren
+   Berichte mit.
+
+Was danach übrig bleibt, ist nicht reparierbar — es liegt am Modell, nicht an
+der Übersetzung:
+
+| Klasse | Umfang | Bewertung |
+|---|---|---|
+| **Fehlende Zeilen** — das Modell lässt den Identitätsmarker `YYY` auf den Seiten der Tabellen 2–4 weg (21 von 44 Vorkommen im Dokument) | 34 von 141 Zeilen: Tabelle 2 (8), 3 (10) und 4 (11) **vollständig**, Tabelle 5 fünf von 29. Tabelle 1 ist mit 83/83 vollständig | Ohne den Marker hat die Zeile keine Identität; der Parser kann sie nicht erfinden |
+| **Falsch gelesene Zahlen** | ~29 von 5.568 Zahl-Token im Dokument, u. a. `1.843.520 → 1.043.520`, `98.205 → 58.205`, `33.939 → 33.999`, `244.130 → 244.110` | Genau der Fehler, den kein Reviewer findet — es gibt keine Vergleichsgröße |
+| **Vorzeichen als eigene Spalte** | 5 Zeilen: das Minus eines negativen Deltas wird als eigene Tabellenzelle ausgegeben, der Betrag rutscht in die Prozentspalte (`delta_previous_year` leer, `delta_previous_year_relativ = 4.275`) | Dieselbe Ursache wie der `–`-Platzhalter-Fall aus dem Mehrtabellen-Import: ohne Zellkoordinaten ist die Spaltengeometrie nicht rekonstruierbar |
+| **Falsch gelesene Namen** | 20 Zeilen, u. a. `Kehl → Kohl`, `Ebensfeld → Ebersfeld`, `Schienenanbindung → Schienemanbindung`, `SV EKrG 2019 → SV (KrG 2019` | Im Review sichtbar, aber Handarbeit für jeden Import |
+| **Nicht-Determinismus** | Zwei Läufe desselben PDFs lieferten unterschiedliche Zeilenzahlen (55 bzw. 38 auf dem Markdown-Pfad) und unterschiedliche Lesefehler | Ein grüner Lauf würde nichts über den nächsten aussagen |
+
+Die 79 Wertabweichungen verteilen sich über 50 der 107 gemeinsamen Zeilen:
+`lfd_nr` (24) und `bedarfsplan_number` (24) sind reine Darstellungsunterschiede
+aus der oben beschriebenen Spaltenverbindung — dort liest die OCR-Stufe sogar
+sauberer. Substanziell sind `name` (20), `delta_previous_year` und
+`delta_previous_year_relativ` (je 5) und `next_years` (1).
+
+Dazu kommt die **Mittelherkunft** — welcher Haushaltstitel wie viel einer
+Maßnahme trägt. Sie steht in keiner der 79 Abweichungen oben, weil der
+Vergleich nur Maßnahmen-Zeilen prüft, entscheidet aber über die Aussagekraft
+jeder Titel-Zeitreihe. Gegen die Wortkoordinaten des PDFs gemessen: pdfplumber
+trifft 179 von 179 vergleichbaren Titel-Zeilen, die OCR-Stufe hat bei 96 von
+165 mindestens einen falschen Wert und findet 13 Maßnahmen gar nicht erst mit
+Titel-Aufteilung. Der Grund ist derselbe wie oben — die Zuordnung Wert →
+Titelzeile hängt an der gedruckten Zeilenhöhe, und die liefert nur pdfplumber
+(Details in `feature-haushalt-import.md` → *Mittelherkunft*).
+
+**Bemerkenswert:** in den eigentlichen Geldspalten — `cost_estimate_original`,
+`cost_estimate_last_year`, `cost_estimate_actual`, `spent_two_years_previous`,
+`allowed_previous_year`, `spending_residues`, `year_planned` — steht über alle
+107 gemeinsamen Zeilen **null** Abweichung. Das Modell liest die Tabelle also im
+Kern richtig; es scheitert an den Rändern, und die Ränder entscheiden hier über
+die Richtigkeit einzelner Zahlen.
+
+### Entscheidung
+
+`HAUSHALT_EXTRACTION` bleibt per Default auf `pdfplumber`, und der Haushalt
+bezieht seine Zahlen weiter von dort. Schritt 6 ist damit beantwortet, nicht
+offen: die Umstellung ist an diesem Bericht nachweislich nicht verlustfrei, und
+die drei Fehlerklassen liegen alle außerhalb dessen, was
+`tasks/haushalt_markdown.py` oder `tasks/haushalt_columns.py` beheben können.
+
+Der Umschalter, der Vergleichsmodus und das Skript bleiben — sie sind jetzt das
+Messinstrument für die nächste Modellgeneration statt eine offene Baustelle. Was
+den Vergleich wiederholt, wiederholt ihn gegen den verbesserten OCR-Pfad: die
+beiden Reparaturen oben sind eingebaut und getestet
+(`tests/unit/test_haushalt_markdown.py`, `tests/unit/test_haushalt_id_columns.py`,
+`tests/unit/test_haushalt_ocr_path.py` fährt den Round-Trip über **beide**
+Tabellenformate).
+
+`pdfplumber` bleibt aus demselben Grund in `requirements.txt`; der in Schritt 6
+vorgesehene Ausbau der Bibliothek entfällt, solange dieses Ergebnis gilt.
+
+Ein Wort zur Erwartung, die sich bestätigt hat: Für **Fließtext** (VIB, Fulda)
+ist die OCR-Stufe klar überlegen, dafür wurde sie eingeführt. Für den Haushalt
+entscheidet die *Spaltengeometrie* über die Richtigkeit jeder Zahl, und die ist
+in einer Auszeichnungssprache ohne Zellkoordinaten nicht vollständig
+darstellbar. pdfplumber liefert sie mit.

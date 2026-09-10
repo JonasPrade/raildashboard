@@ -66,24 +66,30 @@ Import — setzt also den Punkt oben voraus. Lokal gegen PostgreSQL verifiziert
 
 ---
 
-## Haushalt: Vergleich pdfplumber ↔ Mistral OCR (Stand 2026-09-08)
+## Haushalt: Vergleich pdfplumber ↔ Mistral OCR (erledigt 2026-09-10)
 
-Braucht einen gültigen `OCR_API_KEY`; in der Entwicklungsumgebung ist keiner
-vorhanden. Das ist der offene Schritt 4/6 aus
-`docs/features/feature-pdf-import-unification.md`.
+Gelaufen mit gültigem `OCR_API_KEY` gegen den EP-12-Bericht Teil B zum
+HH-Entwurf 2027 und `mistral-ocr-latest`. **Ergebnis: Exit-Code 1** — 141 Zeilen
+aus pdfplumber gegen 107 aus der OCR-Stufe, 34 nur von pdfplumber gefunden, 79
+Wertabweichungen. `HAUSHALT_EXTRACTION` bleibt deshalb auf `pdfplumber`; die
+Stichproben gegen das PDF (B0080 / FinVe 275 und `t3:F08Q0770`) entfallen damit.
+
+- [x] Vergleichslauf gefahren, Zeilenzahlen, Abweichungen und Exit-Code
+      festgehalten.
+- [x] Abweichungen nach Klasse getrennt, die behebbaren behoben (HTML statt
+      Markdown als Tabellenformat, Identitätsspalten über die Spaltenzuordnung),
+      die verbleibenden dokumentiert:
+      `docs/features/feature-pdf-import-unification.md` → *Schritt 6: Vergleich
+      gelaufen*.
+- [x] Entscheidung: pdfplumber bleibt die Quelle der Zahlen.
+
+Der Umschalter bleibt als Messinstrument. **Wenn ein neues OCR-Modell erscheint**,
+ist der Lauf zu wiederholen — er ist jetzt ein Einzeiler:
 
 - [ ] `OCR_API_KEY=… .venv/bin/python scripts/compare_haushalt_extraction.py EP12_Teil_B.pdf 2027`
-      aus `apps/backend` laufen lassen.
-- [ ] Ergebnis festhalten: Zeilenzahl beider Wege, Zahl der abweichenden Werte,
-      Exit-Code.
-- [ ] Bei Exit-Code 0: `HAUSHALT_EXTRACTION=ocr` in einer Testumgebung setzen,
-      Bericht importieren und Stichproben gegen das PDF prüfen (B0080 / FinVe 275:
-      veranschlagt 77.859; Tabelle 3 / `t3:F08Q0770`: veranschlagt 33.186).
-- [ ] Bei Exit-Code 1: die genannten Abweichungen im Feature-Doc festhalten —
-      pdfplumber bleibt dann die Quelle der Zahlen.
-- [ ] Alternativ im laufenden System: `HAUSHALT_EXTRACTION=compare` setzen, Bericht
-      hochladen → Review zeigt das Panel „Texterkennung im Vergleich" mit grünem
-      Badge „identisch" oder der Liste der Abweichungen.
+      aus `apps/backend`; bei Exit-Code 0 die beiden Stichproben gegen das
+      gedruckte PDF prüfen (B0080 / FinVe 275: veranschlagt 77.859; Tabelle 3 /
+      `t3:F08Q0770`: veranschlagt 33.186) und erst dann den Default umstellen.
 
 ---
 

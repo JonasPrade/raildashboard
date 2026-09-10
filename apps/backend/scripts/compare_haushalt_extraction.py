@@ -68,7 +68,7 @@ def main() -> int:
     )
 
     print(f"Reading {args.pdf} with {settings.ocr_model} …", file=sys.stderr)
-    ocr = extract_document_text(pdf_bytes)
+    ocr = extract_document_text(pdf_bytes, table_format="html")
     if ocr.status != "done":
         print(
             f"\nOCR did not run ({ocr.status}, {ocr.model}). The service degraded to a text\n"
