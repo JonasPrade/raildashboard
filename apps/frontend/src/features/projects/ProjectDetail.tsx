@@ -37,6 +37,7 @@ import ProjectTextsSection from "./ProjectTextsSection";
 import { ProjectTableOfContents, type TocSection } from "./ProjectTableOfContents";
 import FinveSection from "./components/FinveSection";
 import ProgressSection from "./components/progress/ProgressSection";
+import ProjectConstituencySection from "../abgeordnete/ProjectConstituencySection";
 import TasksSection from "../todos/TasksSection";
 import TodoEditDrawer from "../todos/TodoEditDrawer";
 import BvwpDataSection from "./components/BvwpDataSection";
@@ -136,6 +137,7 @@ export default function ProjectDetail() {
     // Section refs for the table of contents
     const detailsRef = useRef<HTMLDivElement>(null);
     const progressRef = useRef<HTMLDivElement>(null);
+    const constituenciesRef = useRef<HTMLDivElement>(null);
     const textsRef = useRef<HTMLDivElement>(null);
     const justificationRef = useRef<HTMLDivElement>(null);
     const finveRef = useRef<HTMLDivElement>(null);
@@ -386,6 +388,12 @@ export default function ProjectDetail() {
     const tocSections: TocSection[] = [
         { id: "details", label: "Projektdetails", ref: detailsRef, visible: true },
         { id: "progress", label: "Planungsstand", ref: progressRef, visible: true },
+        {
+            id: "constituencies",
+            label: "Wahlkreise und Abgeordnete",
+            ref: constituenciesRef,
+            visible: true,
+        },
         { id: "texts", label: "Texte", ref: textsRef, visible: true },
         {
             id: "justification",
@@ -627,6 +635,11 @@ export default function ProjectDetail() {
                 {/* Planungsstand */}
                 <div ref={progressRef}>
                     <ProgressSection projectId={projectId} />
+                </div>
+
+                {/* Wahlkreise und Abgeordnete */}
+                <div ref={constituenciesRef}>
+                    <ProjectConstituencySection projectId={projectId} />
                 </div>
 
                 {/* Texte */}

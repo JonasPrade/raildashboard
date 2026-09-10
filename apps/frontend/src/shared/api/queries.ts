@@ -70,6 +70,15 @@ export const queryKeys = {
     operationalPoints: (q: string) => ["operational-points", q] as const,
     todos: ["todos"],
     guideOverrides: (guideSlug: string) => ["guide-overrides", guideSlug] as const,
+    parliamentStatus: ["parliament-status"],
+    projectConstituencies: (projectId: number) => ["project-constituencies", projectId] as const,
+    politicians: ["politicians"],
+    politiciansFiltered: (query: string, committee: string | null, fraction: string | null) =>
+        ["politicians", query, committee, fraction] as const,
+    politician: (mandateId: number) => ["politician", mandateId] as const,
+    constituencies: ["constituencies"],
+    constituency: (constituencyId: number) => ["constituency", constituencyId] as const,
+    constituencyGeojson: ["constituency-geojson"],
 } as const;
 
 type InvalidateKeys<TData, TVariables> =
@@ -1587,5 +1596,106 @@ export function useDeleteGuideOverride() {
         onSuccess: (_data, { guideSlug }) => {
             queryClient.invalidateQueries({ queryKey: queryKeys.guideOverrides(guideSlug) });
         },
+    });
+}
+
+// ── Wahlkreise & Abgeordnete ─────────────────────────────────────────────────
+// Read-only and public, like the rest of the project reads: the assignment is
+// public information about officeholders.
+
+export type ProjectConstituencies = components["schemas"]["ProjectConstituenciesSchema"];
+export type ProjectConstituency = components["schemas"]["ProjectConstituencySchema"];
+export type Mandate = components["schemas"]["MandateSchema"];
+export type PoliticianListItem = components["schemas"]["PoliticianListItemSchema"];
+export type PoliticianDetail = components["schemas"]["PoliticianDetailSchema"];
+export type ConstituencyListItem = components["schemas"]["ConstituencyListItemSchema"];
+export type ConstituencyDetail = components["schemas"]["ConstituencyDetailSchema"];
+export type ParliamentStatus = components["schemas"]["ParliamentStatusSchema"];
+
+export function useProjectConstituencies(projectId: number) {
+    return useQuery({
+        queryKey: queryKeys.projectConstituencies(projectId),
+        queryFn: () => api<ProjectConstituencies>(`/api/v1/projects/${projectId}/constituencies`),
+        enabled: !Number.isNaN(projectId),
+    });
+}
+
+export function useParliamentStatus() {
+    return useQuery({
+        queryKey: queryKeys.parliamentStatus,
+        queryFn: () => api<ParliamentStatus>("/api/v1/parliament/status"),
+    });
+}
+
+export function usePoliticians(params: {
+    query?: string;
+    committee?: string | null;
+    fraction?: string | null;
+}) {
+    const query = params.query?.trim() ?? "";
+    const committee = params.committee ?? null;
+    const fraction = params.fraction ?? null;
+    return useQuery({
+        queryKey: queryKeys.politiciansFiltered(query, committee, fraction),
+        queryFn: () => {
+            const search = new URLSearchParams();
+            if (query) search.set("query", query);
+            if (committee) search.set("committee", committee);
+            if (fraction) search.set("fraction", fraction);
+            const suffix = search.toString();
+            return api<PoliticianListItem[]>(
+                `/api/v1/parliament/politicians${suffix ? `?${suffix}` : ""}`,
+            );
+        },
+    });
+}
+
+export function usePolitician(mandateId: number | null) {
+    return useQuery({
+        queryKey: queryKeys.politician(mandateId ?? 0),
+        queryFn: () => api<PoliticianDetail>(`/api/v1/parliament/politicians/${mandateId}`),
+        enabled: mandateId !== null,
+    });
+}
+
+export function useConstituencies() {
+    return useQuery({
+        queryKey: queryKeys.constituencies,
+        queryFn: () => api<ConstituencyListItem[]>("/api/v1/parliament/constituencies"),
+    });
+}
+
+export function useConstituency(constituencyId: number | null) {
+    return useQuery({
+        queryKey: queryKeys.constituency(constituencyId ?? 0),
+        queryFn: () => api<ConstituencyDetail>(`/api/v1/parliament/constituencies/${constituencyId}`),
+        enabled: constituencyId !== null,
+    });
+}
+
+export type ConstituencyFeatureCollection = {
+    type: "FeatureCollection";
+    attribution?: string;
+    features: Array<{
+        type: "Feature";
+        id?: number;
+        geometry: unknown;
+        properties: {
+            constituency_id: number;
+            number: number;
+            name: string;
+            state: string | null;
+        };
+    }>;
+};
+
+export function useConstituencyGeojson(enabled: boolean) {
+    return useQuery({
+        queryKey: queryKeys.constituencyGeojson,
+        queryFn: () =>
+            api<ConstituencyFeatureCollection>("/api/v1/parliament/constituencies/geojson"),
+        enabled,
+        // The outlines change once per election — no reason to refetch them.
+        staleTime: Infinity,
     });
 }

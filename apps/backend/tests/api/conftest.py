@@ -4,7 +4,7 @@ import base64
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import Column, MetaData, Table, Text, create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 from dashboard_backend.core.security import hash_password
@@ -12,7 +12,20 @@ from dashboard_backend.crud import roles as roles_crud
 from dashboard_backend.database import get_db
 from dashboard_backend.dependencies.routes import get_route_service
 from dashboard_backend.models.app_settings import AppSettings
+from dashboard_backend.models.associations.project_to_constituency import (
+    ProjectToConstituency,
+)
 from dashboard_backend.models.guides import GuideSectionOverride
+from dashboard_backend.models.parliament import (
+    Committee,
+    CommitteeMembership,
+    Constituency,
+    Mandate,
+    ParliamentImportRun,
+    ParliamentPeriod,
+    Politician,
+)
+from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.projects.project_text import ProjectText
 from dashboard_backend.models.projects.project_text_type import ProjectTextType
 from dashboard_backend.models.roles import Role, RolePermission
@@ -30,7 +43,33 @@ engine = create_engine(SQLITE_URL, connect_args={"check_same_thread": False})
 TestingSessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 
+# geoalchemy2 wraps geometry params in spatial functions; register pass-through
+# stand-ins so plain SQLite accepts them (geometry values stay NULL here).
+@event.listens_for(engine, "connect")
+def _register_spatial_stubs(dbapi_conn, _record):
+    for name, nargs in (("GeomFromEWKT", 1), ("ST_AsEWKB", 1), ("AsEWKB", 1)):
+        dbapi_conn.create_function(name, nargs, lambda value: value)
+
+
+def _sqlite_project_table() -> Table:
+    """Clone project's table with the PostGIS centroid replaced by TEXT.
+
+    Endpoints that join project rows (e.g. the constituency links) need the
+    table to exist; the column itself is never read in these tests.
+    """
+    metadata = MetaData()
+    columns = [
+        Column("centroid", Text) if column.name == "centroid" else column.copy()
+        for column in Project.__table__.columns
+    ]
+    return Table("project", metadata, *columns)
+
+
+PROJECT_TABLE = _sqlite_project_table()
+
+
 TABLES = [
+    PROJECT_TABLE,  # clone with a SQLite-compatible centroid column
     Role.__table__,  # must precede User (FK dependency)
     RolePermission.__table__,
     User.__table__,
@@ -42,6 +81,14 @@ TABLES = [
     Todo.__table__,  # FK to project (absent here) is unenforced in SQLite
     TodoAssignee.__table__,  # must follow Todo (FK dependency)
     GuideSectionOverride.__table__,
+    ParliamentPeriod.__table__,  # must precede Constituency/Mandate (FK dependency)
+    Politician.__table__,
+    Constituency.__table__,
+    Committee.__table__,
+    Mandate.__table__,
+    CommitteeMembership.__table__,
+    ParliamentImportRun.__table__,
+    ProjectToConstituency.__table__,  # FK to project (absent here) is unenforced in SQLite
 ]
 
 

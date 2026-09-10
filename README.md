@@ -142,7 +142,7 @@ make test-frontend
 
 ## Data imports
 
-Scripts for importing external data sources live in `apps/backend/scripts/`. See `apps/backend/README.md` for details on ERA RINF XML, OpenStreetMap, and legacy database imports.
+Scripts for importing external data sources live in `apps/backend/scripts/`. See `apps/backend/README.md` for details on ERA RINF XML, OpenStreetMap, legacy database and Bundestag constituency imports.
 
 ## Docker
 

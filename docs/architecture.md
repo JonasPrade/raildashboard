@@ -93,7 +93,15 @@ Long-running operations (PDF parsing, route computation) run as Celery tasks so 
 
 Both the status endpoint and task-launch endpoints require a logged-in user (any role).
 
-### 8. Entry Point (`main.py`)
+### 9. Wahlkreise und Abgeordnete (`models/parliament/`, `services/constituency_matching.py`, `services/parliament_import.py`, `tasks/parliament.py`)
+
+Project geometries are intersected with the 299 Bundestag constituencies, and the members of parliament responsible for those constituencies are attached to the result. The intersection is materialised in `project_to_constituency` (kilometres, share, overlap kind) and refreshed from the existing geojson cascade in `crud/projects/projects.py`, including the aggregation from subprojects — never on page load.
+
+The people come from the abgeordnetenwatch API v2 (CC0) via an idempotent Celery task; the constituency outlines (Die Bundeswahlleiterin, © GeoBasis-DE / BKG) come from `scripts/import_constituencies.py`. Both record an Abrufstand in `parliament_import_run`. Reading is public, importing needs the `parliament.import` capability. See `docs/features/feature-abgeordnete.md`.
+
+The intersection is PostGIS-only; on a non-PostgreSQL bind (the SQLite test suite) `compute_links_for_project` is a documented no-op so that saving a project keeps working.
+
+### 10. Entry Point (`main.py`)
 - Initialises the FastAPI app
 - Registers API routers
 - Configures global middleware (CORS, logging)

@@ -18,6 +18,9 @@ from dashboard_backend.crud.projects.projects import (
     recompute_geojson_for_parent,
     update_project,
 )
+from dashboard_backend.models.associations.project_to_constituency import (
+    ProjectToConstituency,
+)
 from dashboard_backend.models.projects.project import Project
 
 
@@ -40,6 +43,9 @@ def db():
             dbapi_conn.create_function(name, nargs, lambda x: x)
 
     _sqlite_project_table().create(bind=engine)
+    # The geometry cascade also refreshes the constituency links of every
+    # project it touches, so the link table has to exist here.
+    ProjectToConstituency.__table__.create(bind=engine)
     session = sessionmaker(bind=engine)()
     try:
         yield session

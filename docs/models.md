@@ -4,10 +4,11 @@
 
 The backend uses a PostgreSQL database with the PostGIS extension.
 
-Tables are grouped into three domains:
+Tables are grouped into four domains:
 
 - **RailwayInfrastructure** – based on the ERA RINF data model
 - **Projects** – planned or executed railway investments and related metadata
+- **Parliament** – Bundestag constituencies, mandates and their link to projects
 - **ChangeTracking** – audit log of data modifications
 
 ### RailwayInfrastructure
@@ -51,6 +52,26 @@ See `apps/backend/docs/RINF Railway Infrastructure Data.md` for import details.
 | document_to_project | Many-to-many: Document ↔ Project |
 | ProjectPhase | Structured timeline of milestone events (planning, approval, construction) |
 | ProjectUpdateSource | Sources and content of automated data updates to projects |
+
+### Parliament
+
+Constituencies of the Bundestag and the members of parliament responsible for
+them, joined to projects through a materialised spatial intersection. See
+`docs/features/feature-abgeordnete.md`.
+
+Sources: constituency outlines from Die Bundeswahlleiterin (© GeoBasis-DE / BKG),
+people from the abgeordnetenwatch API v2 (CC0).
+
+| Table | Description |
+|---|---|
+| ParliamentPeriod | One legislative period of one parliament (currently the Bundestag only) |
+| Constituency | Wahlkreis: number 1–299, name, Bundesland, outline (`MULTIPOLYGON`, SRID 4326, GiST index) |
+| Politician | A person; outlives any single mandate |
+| Mandate | One seat in one period: faction, constituency, `is_direct_mandate` (`mandate_won == "constituency"`) |
+| Committee | Transport and budget committee of a period |
+| CommitteeMembership | Role of a mandate in a committee, strongest role only |
+| project_to_constituency | Materialised intersection: kilometres, share and overlap kind (`line` / `point`) per project and constituency |
+| ParliamentImportRun | Abrufstand per import run (kind, status, counters), shown in the UI |
 
 ### ChangeTracking
 
