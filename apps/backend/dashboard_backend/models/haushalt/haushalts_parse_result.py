@@ -6,13 +6,16 @@ from sqlalchemy import DateTime, ForeignKey, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from dashboard_backend.models.base import Base
+from dashboard_backend.models.mixins import OcrSourceMixin
 
 
-class HaushaltsParseResult(Base):
+class HaushaltsParseResult(OcrSourceMixin, Base):
     """Persisted raw output of a Haushalt PDF parse run.
 
     Enables inspection, error checking, and re-opening without re-upload.
     `confirmed_at` prevents double-import and shows import status in the list.
+    The OcrSourceMixin columns keep the document text the run worked from and
+    `column_map_json` the column layout it mapped the values through.
     """
 
     __tablename__ = "haushalts_parse_result"
@@ -34,5 +37,14 @@ class HaushaltsParseResult(Base):
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     confirmed_by_snapshot: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
+    # Column layout the deterministic value transfer used for this document,
+    # as {canonical_field: {"index": int, "header": str}} plus the detection
+    # source. Kept per run so a reviewer can see which layout was assumed and
+    # a re-import of the same report year needs no fresh detection.
+    column_map_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    column_map_source: Mapped[str | None] = mapped_column(
+        String(20), nullable=True
+    )  # "header" | "llm" | "fallback"
 
     parsed_by_user: Mapped["User"] = relationship("User")  # noqa: F821

@@ -23,6 +23,8 @@ import {
     type HaushaltsParseTaskResult,
 } from "../../shared/api/queries";
 import { ReviewTable } from "./components/ReviewTable";
+import { ColumnMappingPanel } from "./components/ColumnMappingPanel";
+import { ExtractionComparisonPanel } from "./components/ExtractionComparisonPanel";
 import { formatDateTime } from "../../shared/format";
 
 function HaushaltsReviewPageContent() {
@@ -53,11 +55,11 @@ function HaushaltsReviewPageContent() {
     const displayRows: HaushaltsParseRow[] = rows ?? (parsedResult?.rows ?? []);
     const isConfirmed = result.confirmed_at !== null;
 
-    const handleProjectIdsChange = (finveNumber: number, projectIds: number[]) => {
+    const handleProjectIdsChange = (rowKey: string, projectIds: number[]) => {
         setRows((prev) => {
             const base = prev ?? (parsedResult?.rows ?? []);
             return base.map((r) =>
-                r.finve_number === finveNumber ? { ...r, project_ids: projectIds } : r
+                r.row_key === rowKey ? { ...r, project_ids: projectIds } : r
             );
         });
     };
@@ -159,6 +161,16 @@ function HaushaltsReviewPageContent() {
                         {result.error_message}
                     </Alert>
                 )}
+
+                <ColumnMappingPanel
+                    columnMap={parsedResult?.column_map}
+                    sections={parsedResult?.sections}
+                />
+
+                <ExtractionComparisonPanel
+                    comparison={parsedResult?.extraction_comparison}
+                    source={parsedResult?.extraction_source}
+                />
 
                 <ReviewTable
                     rows={displayRows}

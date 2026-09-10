@@ -357,7 +357,7 @@ extract_vib_blocks (Phase 2): liest raw_result_json wie bisher — unverändert
 
 - [x] 4a: `mistralai` + `pymupdf` zu `requirements.txt` + Config-Felder `ocr_api_key`, `ocr_base_url`, `ocr_model`
 - [x] 4b: Alembic-Migration: `ocr_raw_text`, `ocr_status`, `ocr_model`, `ocr_images_json` in `vib_draft_report`
-- [x] 4c: `tasks/vib_ocr.py` schreiben + Tests
+- [x] 4c: `tasks/vib_ocr.py` schreiben + Tests — seit der PDF-Import-Vereinheitlichung `services/document_ocr.py` (gemeinsame Stufe 1, siehe `feature-pdf-import-unification.md`)
 - [x] 4d: `parse_vib_pdf` auf `extract_full_pdf_text` umstellen + OCR-Spalten befüllen
 - [x] 4e: `GET /ocr-available` Endpoint + Schema
 - [x] 4f: OCR-Modus-Badge in VibReviewPage; optionale Seitenbereichs-Inputs + "Kopf-/Fußzeilen ignorieren"-Checkbox im Upload-Formular

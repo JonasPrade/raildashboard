@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from dashboard_backend.crud.changelog import diff_to_entries
@@ -72,8 +73,18 @@ def save_parse_result(
     status: str,
     result_json: dict | None,
     error: str | None,
+    document_text: str | None = None,
+    text_status: str | None = None,
+    text_model: str | None = None,
+    column_map: dict | None = None,
+    column_map_source: str | None = None,
 ) -> HaushaltsParseResult:
-    """Persist a new HaushaltsParseResult row and flush it to get an ID."""
+    """Persist a new HaushaltsParseResult row and flush it to get an ID.
+
+    ``document_text``/``text_*`` keep the stage-1 output (see
+    ``services.document_ocr``) and ``column_map*`` the layout the values were
+    transferred through — both so a run stays inspectable after the fact.
+    """
     record = HaushaltsParseResult(
         haushalt_year=year,
         pdf_filename=filename,
@@ -82,6 +93,11 @@ def save_parse_result(
         status=status,
         result_json=result_json,
         error_message=error,
+        ocr_raw_text=document_text,
+        ocr_status=text_status,
+        ocr_model=text_model,
+        column_map_json=column_map,
+        column_map_source=column_map_source,
     )
     db.add(record)
     db.flush()
@@ -153,6 +169,7 @@ def _upsert_tracked(
     exclude: set[str],
     user: "User | None",
     haushalt_year: int,
+    assign_id=None,
 ):
     """Generic tracked upsert shared by ``upsert_finve`` / ``upsert_budget``.
 
@@ -166,7 +183,14 @@ def _upsert_tracked(
     existing = db.query(model_cls).filter(*key_filter).first()
 
     if existing is None:
-        row = model_cls(**proposed.model_dump())
+        create_data = proposed.model_dump()
+        if create_data.get("id", False) is None:
+            if assign_id is not None:
+                create_data["id"] = assign_id(db)
+            else:
+                # Let the database assign the key
+                create_data.pop("id")
+        row = model_cls(**create_data)
         db.add(row)
         db.flush()
 
@@ -203,13 +227,46 @@ def _upsert_tracked(
     return existing, False, changelog
 
 
+# FinVe numbers are printed in the report and are the primary key, so a measure
+# without a printed number cannot take the next sequence value: the sequence
+# knows nothing about the ids the importer inserts explicitly, and the first
+# auto-assigned id collides with one of them. Keyed measures therefore get their
+# id from a band far above any number the report will ever print (the highest in
+# the 2027 report is 5108).
+_KEYED_FINVE_ID_BASE = 900_000
+
+
+def _next_keyed_finve_id(db: Session) -> int:
+    """The next free id in the band reserved for measures without a number.
+
+    Imports run one at a time (a single Celery task per parse result), so the
+    read-then-insert is safe; the unique index on ``finve_key`` is what actually
+    prevents a measure from being written twice.
+    """
+    highest = (
+        db.query(func.max(Finve.id))
+        .filter(Finve.id >= _KEYED_FINVE_ID_BASE)
+        .scalar()
+    )
+    return _KEYED_FINVE_ID_BASE if highest is None else int(highest) + 1
+
+
 def upsert_finve(
     db: Session,
     proposed: ProposedFinve,
     user: "User | None",
     haushalt_year: int,
 ) -> tuple[Finve, bool, FinveChangeLog | None]:
-    """Insert or update a Finve record. Returns (finve, created, changelog)."""
+    """Insert or update a Finve record. Returns (finve, created, changelog).
+
+    Measures the report lists without a FinVe number are matched on their
+    ``finve_key`` instead of the primary key, so the same measure keeps its row
+    across report years even though its id was assigned by the database.
+    """
+    if proposed.finve_key:
+        key_filter = (Finve.finve_key == proposed.finve_key,)
+    else:
+        key_filter = (Finve.id == proposed.id,)
     return _upsert_tracked(
         db,
         model_cls=Finve,
@@ -217,11 +274,12 @@ def upsert_finve(
         entry_cls=FinveChangeLogEntry,
         log_fk="finve_id",
         proposed=proposed,
-        key_filter=(Finve.id == proposed.id,),
+        key_filter=key_filter,
         tracked_fields=_FINVE_TRACKED_FIELDS,
-        exclude={"id"},
+        exclude={"id", "finve_key"},
         user=user,
         haushalt_year=haushalt_year,
+        assign_id=_next_keyed_finve_id if proposed.finve_key else None,
     )
 
 

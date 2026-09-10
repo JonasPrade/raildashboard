@@ -756,7 +756,13 @@ export type ProposedFinve = components["schemas"]["ProposedFinve"];
 export type ProposedBudget = components["schemas"]["ProposedBudget"];
 
 export type HaushaltsParseRow = {
-    finve_number: number;
+    /** Stable identity of the row inside one parse result: the FinVe number
+     *  where the report prints one, otherwise the measure's string key. */
+    row_key: string;
+    finve_number: number | null;
+    finve_key: string | null;
+    table_number: number | null;
+    table_title: string;
     name: string;
     status: "new" | "update" | "unmatched";
     is_sammel_finve: boolean;
@@ -769,10 +775,64 @@ export type HaushaltsParseRow = {
     suggested_project_ids: number[];
 };
 
+// The parse result is stored as an untyped JSON blob on the wire (result_json),
+// so these shapes mirror the backend schemas in schemas/haushalt_import.py.
+export type HaushaltsColumnMappingEntry = {
+    field: string;
+    label: string;
+    index: number | null;
+    header: string | null;
+};
+
+export type HaushaltsColumnMapping = {
+    /** How the layout was determined: read off the table header, mapped by the
+     *  LLM, or the fixed 2026 fallback. */
+    source: "header" | "llm" | "fallback";
+    columns: HaushaltsColumnMappingEntry[];
+    missing: string[];
+};
+
+export type HaushaltsTableSection = {
+    number: number | null;
+    title: string;
+    page_from: number;
+    page_to: number;
+    imported: boolean;
+    row_count: number;
+    column_map_source: string | null;
+};
+
+export type HaushaltsExtractionDifference = {
+    row_key: string;
+    field: string;
+    pdfplumber: string | null;
+    ocr: string | null;
+};
+
+/** Result of running the OCR path alongside pdfplumber on the same PDF —
+ *  the evidence needed before OCR may supply the imported values. */
+export type HaushaltsExtractionComparison = {
+    ocr_status: string;
+    ocr_model: string;
+    rows_pdfplumber: number;
+    rows_ocr: number;
+    rows_matched: number;
+    rows_only_pdfplumber: string[];
+    rows_only_ocr: string[];
+    value_differences: HaushaltsExtractionDifference[];
+    value_differences_total: number;
+    identical: boolean;
+    error: string | null;
+};
+
 export type HaushaltsParseTaskResult = {
     year: number;
     rows: HaushaltsParseRow[];
     unmatched_rows: Record<string, unknown>[];
+    column_map?: HaushaltsColumnMapping | null;
+    sections?: HaushaltsTableSection[];
+    extraction_source?: string;
+    extraction_comparison?: HaushaltsExtractionComparison | null;
 };
 
 export type ParseResultPublic = components["schemas"]["ParseResultPublicSchema"];

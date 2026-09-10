@@ -32,13 +32,20 @@ class TitelEntryProposed(BaseModel):
 # ---------------------------------------------------------------------------
 
 class ProposedFinve(BaseModel):
-    """Proposed Finve values from the PDF parser."""
+    """Proposed Finve values from the PDF parser.
 
-    id: int  # FinVe-Nummer aus Spalte 2
+    Either ``id`` (the FinVe number printed in column 2 of the Bedarfsplan
+    table) or ``finve_key`` (the string identity of a measure the report lists
+    without a FinVe number) identifies the row — see ``haushalt_keys``.
+    """
+
+    id: Optional[int] = None  # FinVe-Nummer aus Spalte 2
+    finve_key: Optional[str] = None
     name: str
     starting_year: Optional[int] = None
     cost_estimate_original: Optional[int] = None
     is_sammel_finve: bool = False
+    temporary_finve_number: bool = False
 
 
 class ProposedBudget(BaseModel):
@@ -46,7 +53,9 @@ class ProposedBudget(BaseModel):
 
     budget_year: int
     lfd_nr: Optional[str] = None
-    fin_ve: int
+    # Filled in on confirm from the upserted Finve — a measure without a FinVe
+    # number only gets its id once the Finve row exists.
+    fin_ve: Optional[int] = None
     bedarfsplan_number: Optional[str] = None
     cost_estimate_original: Optional[int] = None
     cost_estimate_last_year: Optional[int] = None
@@ -69,7 +78,15 @@ class ProposedBudget(BaseModel):
 class HaushaltsParseResultSchema(BaseModel):
     """One FinVe row as returned by the PDF parser task."""
 
-    finve_number: int
+    # Stable identity of the row inside one parse result. Equal to the FinVe
+    # number where the report prints one, otherwise the string key of the
+    # measure — the review and the confirm request address rows by it.
+    row_key: str
+    finve_number: Optional[int] = None
+    finve_key: Optional[str] = None
+    # Which table of Teil B this row came from
+    table_number: Optional[int] = None
+    table_title: str = ""
     name: str
     status: str  # "new" | "update" | "unmatched"
     proposed_finve: Optional[ProposedFinve] = None
@@ -87,6 +104,69 @@ class HaushaltsParseResultSchema(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Column mapping + table sections (how the PDF was read)
+# ---------------------------------------------------------------------------
+
+class ColumnMappingEntry(BaseModel):
+    """One canonical field and the PDF column it was read from."""
+
+    field: str
+    label: str
+    index: Optional[int] = None
+    header: Optional[str] = None
+
+
+class ColumnMappingSchema(BaseModel):
+    """The column layout the parser mapped this document's values through."""
+
+    source: Literal["header", "llm", "fallback"]
+    columns: list[ColumnMappingEntry] = []
+    missing: list[str] = []
+
+
+class TableSectionSchema(BaseModel):
+    """One "Tabelle N – …" of Teil B and what this run read out of it."""
+
+    number: Optional[int] = None
+    title: str = ""
+    page_from: int
+    page_to: int
+    imported: bool = False
+    row_count: int = 0
+    column_map_source: Optional[str] = None
+
+
+class ExtractionValueDifference(BaseModel):
+    """One field where the two extraction paths disagree."""
+
+    row_key: str
+    field: str
+    pdfplumber: Optional[str] = None
+    ocr: Optional[str] = None
+
+
+class ExtractionComparisonSchema(BaseModel):
+    """Result of running the OCR path alongside pdfplumber on the same PDF.
+
+    The evidence the staged plan asks for before OCR may supply the values:
+    same rows, same numbers. ``identical`` is the condition to reach.
+    """
+
+    ocr_status: str  # "done" | "fallback" | "failed" | "error"
+    ocr_model: str = ""
+    rows_pdfplumber: int = 0
+    rows_ocr: int = 0
+    rows_matched: int = 0
+    rows_only_pdfplumber: list[str] = []
+    rows_only_ocr: list[str] = []
+    value_differences: list[ExtractionValueDifference] = []
+    # Differences beyond the ones listed above (the list is capped)
+    value_differences_total: int = 0
+    identical: bool = False
+    error: Optional[str] = None
+
+
+# ---------------------------------------------------------------------------
 # Full task result (stored in HaushaltsParseResult.result_json)
 # ---------------------------------------------------------------------------
 
@@ -96,6 +176,14 @@ class HaushaltsParseTaskResult(BaseModel):
     year: int
     rows: list[HaushaltsParseResultSchema] = []
     unmatched_rows: list[dict[str, Any]] = []
+    # How the PDF was read — shown in the review so the layout can be checked
+    # before any value is imported.
+    column_map: Optional[ColumnMappingSchema] = None
+    sections: list[TableSectionSchema] = []
+    # Which extraction supplied the values, and — in compare mode — how the two
+    # paths differ. None when only pdfplumber ran.
+    extraction_source: str = "pdfplumber"
+    extraction_comparison: Optional[ExtractionComparisonSchema] = None
 
 
 # ---------------------------------------------------------------------------
@@ -105,7 +193,11 @@ class HaushaltsParseTaskResult(BaseModel):
 class HaushaltsConfirmRowInput(BaseModel):
     """One row submitted in the confirm request (project_ids may be adjusted by user)."""
 
-    finve_number: int
+    row_key: str
+    finve_number: Optional[int] = None
+    finve_key: Optional[str] = None
+    table_number: Optional[int] = None
+    name: str = ""
     status: str
     is_sammel_finve: bool = False
     erlaeuterung_projects: list[str] = []
@@ -167,5 +259,9 @@ class ParseResultPublicSchema(BaseModel):
     confirmed_at: Optional[datetime] = None
     confirmed_by_snapshot: Optional[str] = None
     result_json: Optional[dict[str, Any]] = None
+    # Stage 1 provenance — which extractor produced the text this run read
+    ocr_status: Optional[str] = None
+    ocr_model: Optional[str] = None
+    column_map_source: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)

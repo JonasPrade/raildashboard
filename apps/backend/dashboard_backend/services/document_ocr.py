@@ -1,12 +1,12 @@
-"""VIB PDF text extraction — Mistral OCR or pymupdf fallback.
+"""Shared stage 1 of every PDF import: PDF bytes → machine-readable markdown.
 
 Pipeline:
   1. Pass full PDF bytes to Mistral OCR API (one call, returns pages).
   2. Per page: inline table content (page.tables) into the markdown,
      optionally skip page.header / page.footer, strip image refs.
-  3. Join ALL page markdowns into full_text — _parse_vib_pdf handles
-     section filtering.
-  4. Return (full_text, model_used, ocr_status) for persistence in VibDraftReport.
+  3. Return an :class:`OcrResult` — joined text plus the per-page markdown,
+     the model that produced it and a status for persistence on the
+     importer's draft model (see ``models.mixins.OcrSourceMixin``).
 
 Mistral OCR page object fields used here:
   page.markdown  — body text with [tbl-N.md](tbl-N.md) placeholders for tables
@@ -15,9 +15,10 @@ Mistral OCR page object fields used here:
   page.header    — page header string (already separated by the API)
   page.footer    — page footer string (already separated by the API)
 
-Why full text (not just section B):
-  _parse_vib_pdf needs the TOC (before section B) for canonical project names
-  and uses position-based boundary detection across the full document.
+Why full text (not just one section):
+  the VIB parser needs the TOC (before section B) for canonical project names
+  and uses position-based boundary detection across the full document; callers
+  that only want a page range pass ``start_page``/``end_page``.
 
 Fallback (no OCR_API_KEY): use pymupdf get_text("text") per page.
 """
@@ -27,12 +28,37 @@ import base64
 import io
 import logging
 import re
+from dataclasses import dataclass, field
 from types import SimpleNamespace
 
 import fitz  # pymupdf — fallback text extraction
 from mistralai.client import Mistral
 
+from dashboard_backend.core.config import settings
+
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class OcrResult:
+    """Outcome of stage 1 — the same shape for every PDF importer.
+
+    ``status`` is one of:
+      "done"     — Mistral OCR succeeded
+      "fallback" — pymupdf used (no api_key or Mistral error)
+      "failed"   — both Mistral and pymupdf unavailable
+    """
+
+    text: str                              # markdown, all pages joined
+    pages: list[str] = field(default_factory=list)   # markdown per page
+    # Per page, the markdown of each table the OCR model recognised. Kept apart
+    # from the page markdown so a table-bearing source (the Haushalt report)
+    # reads the grid directly instead of hunting for it in the prose.
+    tables: list[list[str]] = field(default_factory=list)
+    model: str = "none"                    # "mistral-ocr-*" | "pymupdf" | "none"
+    status: str = "failed"                 # "done" | "fallback" | "failed"
+    images: list[dict] = field(default_factory=list)
+
 
 _RAIL_START_RE = re.compile(r"\bB\s+Schienenwege\b", re.IGNORECASE)
 _RAIL_END_RE = re.compile(r"\bC\s+Bundesfernstra", re.IGNORECASE)
@@ -122,11 +148,26 @@ def _page_to_text(page, strip_headers_footers: bool, strip_images: bool) -> str:
     return markdown
 
 
+def _pages_to_list(pages: list, strip_headers_footers: bool, strip_images: bool = True) -> list[str]:
+    """Per-page markdown, in document order — the ``OcrResult.pages`` field."""
+    return [
+        _page_to_text(page, strip_headers_footers=strip_headers_footers, strip_images=strip_images)
+        for page in pages
+    ]
+
+
+def _pages_to_tables(pages: list) -> list[list[str]]:
+    """Per page, the markdown of every table the model recognised."""
+    return [
+        [tbl.content or "" for tbl in (getattr(page, "tables", None) or [])]
+        for page in pages
+    ]
+
+
 def _pages_to_text(pages: list, strip_headers_footers: bool = True, strip_images: bool = True) -> str:
     """Join all pages into a single string."""
     return "\n".join(
-        _page_to_text(page, strip_headers_footers=strip_headers_footers, strip_images=strip_images)
-        for page in pages
+        _pages_to_list(pages, strip_headers_footers=strip_headers_footers, strip_images=strip_images)
     )
 
 
@@ -186,47 +227,57 @@ def extract_pages_as_pdf(pdf_bytes: bytes, start_page: int, end_page: int) -> by
         return data
 
 
-def extract_full_pdf_text(
+def extract_document_text(
     pdf_bytes: bytes,
-    api_key: str,
-    base_url: str,
-    model: str,
+    *,
     start_page: int | None = None,
     end_page: int | None = None,
-    strip_headers_footers: bool = True,
-) -> tuple[str, str, str, list[dict]]:
-    """Extract the full text of a VIB PDF (all pages joined).
+    strip_headers_footers: bool | None = None,
+) -> OcrResult:
+    """PDF → markdown. Mistral OCR, pymupdf fallback without ``OCR_API_KEY``.
 
-    If start_page / end_page are given (1-indexed, inclusive), only those pages
-    are extracted and sent to OCR — all other pages are ignored.
+    Stage 1 of every PDF importer. If start_page / end_page are given
+    (1-indexed, inclusive), only those pages are extracted and sent to OCR —
+    all other pages are ignored.
 
     strip_headers_footers: when True, page.header and page.footer (returned as
-    separate fields by Mistral OCR) are excluded from the joined text.
-    Image references are always stripped.
+    separate fields by Mistral OCR) are excluded from the joined text.  Defaults
+    to ``settings.ocr_strip_headers_footers``.  Image references are always
+    stripped.
 
-    Returns:
-        (full_text, ocr_model, ocr_status) where ocr_status is one of:
-          "done"     — Mistral OCR succeeded
-          "fallback" — pymupdf used (no api_key or Mistral error)
-          "failed"   — both Mistral and pymupdf unavailable
+    The OCR credentials and model come from ``settings`` — callers do not pass
+    them, so a change of provider stays inside this module.
     """
+    if strip_headers_footers is None:
+        strip_headers_footers = settings.ocr_strip_headers_footers
+
     if start_page is not None and end_page is not None:
         try:
             pdf_bytes = extract_pages_as_pdf(pdf_bytes, start_page, end_page)
-            logger.info("VIB OCR: restricted to pages %d–%d", start_page, end_page)
+            logger.info("Document OCR: restricted to pages %d–%d", start_page, end_page)
         except Exception as exc:
             logger.warning("Failed to extract page range %d–%d, using full PDF: %s", start_page, end_page, exc)
 
-    if api_key:
+    if settings.ocr_api_key:
         try:
-            pages, model_used = _ocr_with_mistral(pdf_bytes, api_key, base_url, model)
+            pages, model_used = _ocr_with_mistral(
+                pdf_bytes, settings.ocr_api_key, settings.ocr_base_url, settings.ocr_model
+            )
             n_tables = sum(len(getattr(p, "tables", None) or []) for p in pages)
             ocr_images = _collect_images(pages)
             logger.info(
-                "VIB OCR done: %d pages, %d tables, %d images extracted (strip_headers=%s)",
+                "Document OCR done: %d pages, %d tables, %d images extracted (strip_headers=%s)",
                 len(pages), n_tables, len(ocr_images), strip_headers_footers,
             )
-            return _pages_to_text(pages, strip_headers_footers=strip_headers_footers), model_used, "done", ocr_images
+            page_texts = _pages_to_list(pages, strip_headers_footers=strip_headers_footers)
+            return OcrResult(
+                text="\n".join(page_texts),
+                pages=page_texts,
+                tables=_pages_to_tables(pages),
+                model=model_used,
+                status="done",
+                images=ocr_images,
+            )
         except Exception as exc:
             logger.warning("Mistral OCR failed, falling back to pymupdf: %s", exc, exc_info=True)
 
@@ -235,6 +286,14 @@ def extract_full_pdf_text(
         pages = _ocr_fallback_pymupdf(pdf_bytes)
     except Exception:
         logger.error("pymupdf not installed and Mistral OCR unavailable — returning empty text")
-        return "", "none", "failed", []
+        return OcrResult(text="", pages=[], model="none", status="failed", images=[])
 
-    return _pages_to_text(pages, strip_headers_footers=False), "pymupdf", "fallback", []
+    page_texts = _pages_to_list(pages, strip_headers_footers=False)
+    return OcrResult(
+        text="\n".join(page_texts),
+        pages=page_texts,
+        tables=[[] for _ in page_texts],  # pymupdf recognises no table structure
+        model="pymupdf",
+        status="fallback",
+        images=[],
+    )

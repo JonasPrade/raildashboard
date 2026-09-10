@@ -160,9 +160,41 @@ User-facing task list (Aufgaben), **distinct from the Celery `/tasks/{task_id}` 
 
 A task optionally links to one project (`project_id`, `ON DELETE SET NULL`) or is a free note, and assigns to multiple users via the `todo_assignee` m:n table. Status `OPEN`/`IN_PROGRESS`/`DONE` (DONE stamps `completed_at`), priority `LOW`/`MEDIUM`/`HIGH`, optional `due_date`. The `todo.*` capabilities ship with the editor system role. See `docs/features/feature-tasks.md`.
 
+## Shared PDF text extraction
+
+`services/document_ocr.py` is stage 1 of every PDF importer: `extract_document_text(pdf_bytes, …)`
+returns an `OcrResult(text, pages, model, status, images)` — Mistral OCR when `OCR_API_KEY` is set,
+pymupdf otherwise. Credentials and model come from `settings`, so callers pass only the bytes and an
+optional page range. `OcrResult.tables` carries the markdown of each recognised table per page, which
+is what lets a table source read the grid rather than the prose. VIB and Fulda-Runde read through it;
+the Haushalt import can run it alongside or instead of pdfplumber (`HAUSHALT_EXTRACTION`).
+
+Draft models keep that outcome via `models/mixins.py::OcrSourceMixin` (`ocr_raw_text`, `ocr_status`,
+`ocr_model`) — currently `vib_draft_report` and `haushalts_parse_result`.
+
 ## Haushaltsberichte Import
 
 Yearly import of Annex VWIB Part B (federal budget) as PDF. Requires `pdfplumber` (already in `requirements.txt`).
+
+The parser runs three stages (see `docs/features/feature-pdf-import-unification.md`):
+
+1. **Text** — pdfplumber per page: table rows plus page text, or the shared OCR stage.
+   `HAUSHALT_EXTRACTION` picks: `pdfplumber` (default, no OCR call), `compare` (both run,
+   pdfplumber supplies the values and the row/value diff is recorded on the run) or `ocr` (OCR
+   supplies the values, pdfplumber is the fallback). Both paths hand stage 2 the same rows of
+   cells — pdfplumber from the ruling grid, OCR from its markdown tables via
+   `tasks/haushalt_markdown.py` — so the comparison measures the text recognition and nothing else.
+   If OCR fails or finds no rows, pdfplumber carries the import and the failure is recorded.
+2. **Segmentation** — Part B contains five tables (`Tabelle 1 - Bedarfsplanmaßnahmen`,
+   `Tabelle 2 - Lärmsanierung`, ERTMS, Kleine und Mittlere Maßnahmen, InvKG). All of them are
+   imported, each as its own section with its own column map; the sections found, their page ranges
+   and row counts come back in the parse result (`sections`). Pages without horizontal rules (the
+   ERTMS table) have their rows rebuilt from the text lines first — see *Row reconstruction* below.
+3. **Column mapping** — `tasks/haushalt_columns.py` maps the table's own header onto the 16 canonical
+   fields once per document, then every value is transferred deterministically through that map.
+   No number passes through a model. Detection order: deterministic header match → one LLM call with
+   the header texts only → the fixed 2026 layout. The result is stored per run in
+   `haushalts_parse_result.column_map_json` / `column_map_source` and shown in the review UI.
 
 ### Import workflow
 
@@ -172,13 +204,69 @@ Yearly import of Annex VWIB Part B (federal budget) as PDF. Requires `pdfplumber
 4. **Confirm** — `POST /api/v1/import/haushalt/confirm` — transactionally writes Finve, Budget, BudgetTitelEntry; syncs `FinveToProject` for both `new` and `update` rows (bidirectional add/remove); 409 Conflict on double-import
 5. **Unmatched rows** — `GET /api/v1/import/haushalt/unmatched?resolved=false`; resolve with `PATCH /api/v1/import/haushalt/unmatched/{id}`. Rows without a FinVe number (e.g. early-planning projects like `B0134 L 06`) are automatically placed here.
 
+### Inspecting a parse run
+
+```
+make list-parse-results               # which runs exist
+make summarise-parse-result ID=3      # how run 3 read the PDF
+make dump-parse-result ID=3           # the full result_json (megabytes)
+```
+
+The summary prints the text source, the column mapping, one line per table of Teil B with its page
+range and row count, the rows by status and table, how many measures were identified by key instead
+of a FinVe number, and — in `compare` mode — the OCR comparison. That is the fastest way to review
+an import without clicking through the review UI.
+
+### Comparing the two extraction paths
+
+```
+cd apps/backend
+OCR_API_KEY=… .venv/bin/python scripts/compare_haushalt_extraction.py EP12_Teil_B.pdf 2027
+```
+
+Exit code 0 means both paths found the same rows with the same values — the condition for setting
+`HAUSHALT_EXTRACTION=ocr`. Exit code 1 lists every differing row and field. The script refuses to
+run without a working OCR key rather than reporting a comparison against the pymupdf fallback,
+which recognises no table structure.
+
+### Row identity without a FinVe number
+
+Only the Bedarfsplan table prints a FinVe number, which stays the primary key of `finve`. The other
+tables identify their measures by a string, stored in the new `finve.finve_key` (migration
+`20260908002`) and built in `tasks/haushalt_keys.py`:
+
+| First column in the PDF | Key |
+|---|---|
+| `YYY SV 52/2017` | `t2:SV 52/2017` |
+| `YYY` + FinVe column `F08Q0770` | `t3:F08Q0770` |
+| `YYY F 03 E 0793` | `t4:F 03 E 0793` |
+| `B0094 5/ Nr.1 F 21/S 0555` | `t5:B0094` |
+| `YYY` with no designation | slug of the measure name plus its starting year |
+
+Those rows get their `finve.id` from the database, carry `temporary_finve_number = true`, and
+`upsert_finve` matches them on `finve_key` in the next report year. `ProposedBudget.fin_ve` is
+therefore empty in the parse result and filled in on confirm from the Finve row.
+
+### Row reconstruction on pages without rules
+
+`_page_table_rows()` falls back to a text-line extraction when a page's first column runs to
+hundreds of characters — the symptom of pdfplumber collapsing a whole section into one cell because
+the page prints no horizontal rules (the ERTMS pages, and one page of the KMM table).
+`_regroup_text_rows()` then joins the lines of each column back together between identifier lines,
+reproducing the same multi-line cells the ruling-line extraction gives. The column grid is shifted
+one point right (`_COLUMN_EDGE_SHIFT`) because the report right-aligns its cells and a "–"
+placeholder overhangs its rule — without the shift `33.186` reads as `- 33.186`, i.e. -33186.
+
 ### PDF format notes (2026+)
 
-The 2026 PDF has a different pdfplumber layout vs. prior years:
+The 2026/2027 PDFs share a pdfplumber layout that differs from prior years:
 - First three columns (Lfd.Nr., FinVe, Bedarfsplan) are merged into one cell, e.g. `B0080 275 N19` — parsed by `_parse_combined_id_cell()`
 - Kap./Titel sub-entries and nachrichtlich entries are embedded as multi-line cells in the main row — extracted by `_extract_inline_titel_entries()` / `_extract_nachrichtlich_entries()`
 - Some entries carry a `(alt)` suffix on the Kapitel number (e.g. `Kap. 1202 (alt)`) — handled by the extended `_KAP_TITEL_RE` regex
 - Projects in early planning phase have no FinVe number (`B0134 L 06`) — automatically classified as unmatched
+- Heading, unit (`Jahr | €1.000 | %`) and column-number rows repeat on every page — recognised by `haushalt_columns.is_header_row()` and skipped
+- The closing `TABELLENSUMMEN` row is a totals line, not a FinVe row
+- Column headings shift between report years (`Vorhalten für 2027 ff.` → `Vorbehalten für 2028 ff.`) — handled by the column mapping, not by new per-year indices
 
 All import endpoints require role `editor` or `admin`.
 
@@ -215,6 +303,12 @@ Returns all FinVes with full budget history and linked projects. Requires any au
 | `<year>` | Year-scoped link — used for Sammelfinanzierungsvereinbarungen |
 
 Two partial unique indexes enforce uniqueness separately for permanent and year-scoped rows. During `POST /confirm`, SV-FinVes only sync the current import year's rows (preserving historical membership); regular FinVes sync the `NULL`-year rows as before. Deleting a confirmed parse result also removes its year-scoped `FinveToProject` rows.
+
+### Parse-run provenance (migration `20260908001`)
+
+`haushalts_parse_result` additionally stores what a run read and how: `ocr_raw_text` / `ocr_status` /
+`ocr_model` (the document text, from `OcrSourceMixin`) and `column_map_json` / `column_map_source`
+(the column layout the values were transferred through).
 
 ### New models (migration `20260306001`)
 

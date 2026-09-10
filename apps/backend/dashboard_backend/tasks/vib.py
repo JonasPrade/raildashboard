@@ -7,9 +7,8 @@ import re
 from celery import Task
 
 from dashboard_backend.celery_app import celery_app
-from dashboard_backend.core.config import settings
 from dashboard_backend.crud.vib import save_draft_report
-from dashboard_backend.tasks.vib_ocr import extract_full_pdf_text
+from dashboard_backend.services.document_ocr import extract_document_text
 from dashboard_backend.database import Session
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.schemas.vib import (
@@ -602,15 +601,13 @@ def _parse_vib_pdf(
     if task is not None:
         task.update_state(state="PROGRESS", meta={"step": "ocr", "step_label": "Texterkennung läuft (Mistral OCR)…"})
 
-    full_text, ocr_model, ocr_status, ocr_images = extract_full_pdf_text(
-        pdf_bytes=pdf_bytes,
-        api_key=settings.ocr_api_key,
-        base_url=settings.ocr_base_url,
-        model=settings.ocr_model,
+    ocr = extract_document_text(
+        pdf_bytes,
         start_page=start_page,
         end_page=end_page,
         strip_headers_footers=strip_headers_footers,
     )
+    full_text, ocr_model, ocr_status, ocr_images = ocr.text, ocr.model, ocr.status, ocr.images
     logger.info("VIB OCR finished: status=%s model=%s chars=%d", ocr_status, ocr_model, len(full_text))
 
     if ocr_status == "fallback":

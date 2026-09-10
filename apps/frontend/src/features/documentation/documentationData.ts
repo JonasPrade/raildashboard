@@ -230,9 +230,13 @@ export const featureHighlights: FeatureHighlight[] = [
         description:
             "Editors and administrators can upload the annual federal budget annex as PDF and import FinVe and Budget data into the database. " +
             "The PDF is parsed asynchronously via a Celery background task (pdfplumber). " +
-            "A review step lets users inspect every row before confirming the import.",
+            "A review step lets users inspect the column mapping and every row before confirming the import.",
         details: [
             "Upload PDF + Haushaltsjahr → background task starts, frontend polls every 2 s",
+            "Teil B enthält fünf Tabellen (Bedarfsplanmaßnahmen, Lärmsanierung, ERTMS, Kleine und Mittlere Maßnahmen, InvKG) — alle werden eingelesen und im Review als eigene Blöcke angezeigt",
+            "Nur die Bedarfsplan-Tabelle druckt FinVe-Nummern; die übrigen Maßnahmen werden über die Kennung des Berichts (z. B. SV 52/2017, F 03 E 0793, B0094) wiedererkannt und bekommen eine vorläufige FinVe-Nummer",
+            "Review page: Panel \"Spaltenzuordnung\" zeigt, welche Tabellen mit wie vielen Zeilen eingelesen wurden und aus welcher PDF-Spalte jedes Zielfeld stammt — mit Warnung, wenn die Kopfzeile nicht gelesen werden konnte",
+            "Die Spaltenzuordnung entsteht aus der Kopfzeile des PDFs (KI nur als Rückfallebene für die Überschriften); alle Zahlenwerte werden deterministisch übernommen",
             "Review page: rows classified as Neu (green) / Änderung (yellow) / Unbekannt (red)",
             "New FinVes: project assignment via multi-select before confirming",
             "Confirm button is disabled once a parse result is already imported (double-import guard)",

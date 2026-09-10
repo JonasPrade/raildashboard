@@ -12,6 +12,68 @@ section as part of the release commit, immediately before tagging.
 
 ## [Unreleased]
 
+### Added
+- The Haushalt import now reads **all five tables** of Annex VWIB Part B, not just the Bedarfsplan
+  table: Lärmsanierung, ERTMS, Kleine und Mittlere Maßnahmen and the InvKG measures are imported as
+  their own sections, each with its own column mapping, and shown as separate blocks in the review.
+  For the 2027 report that is 58 measures that were previously discarded.
+- Measures the report lists without a FinVe number now have a stable identity: the new
+  `finve.finve_key` (migration `20260908002`) holds the designation the report prints
+  (`t2:SV 52/2017`, `t4:F 03 E 0793`, `t5:B0094`, or a slug of the name where the report prints no
+  designation), so the same measure is recognised again in the next report year. Those FinVes get
+  their id from the database and are flagged `temporary_finve_number`.
+- Pages that print no horizontal rules between measures (the ERTMS table, one page of Kleine und
+  Mittlere Maßnahmen) have their rows rebuilt from the text lines, reproducing the same cell shape
+  the ruling-line extraction gives everywhere else.
+- The Haushalt import now maps the PDF's own table header onto the canonical schema once per
+  document instead of assuming the 2026 column order, so a report year that renames or moves a
+  column ("Vorhalten für 2027 ff." → "Vorbehalten für 2028 ff.") no longer needs parser changes.
+  Detection is deterministic first, with a single LLM call over the header texts as a fallback and
+  the fixed 2026 layout as a last resort — no value ever passes through a model.
+- The review page shows a "Spaltenzuordnung" panel above the table: which table of Teil B was read,
+  where the mapping came from, and which PDF column each target field was taken from, with an
+  explicit warning when the header could not be read or a field stayed unmapped.
+- `haushalts_parse_result` keeps the document text and the column mapping of each run
+  (`ocr_raw_text`, `ocr_status`, `ocr_model`, `column_map_json`, `column_map_source`;
+  migration `20260908001`), so a past import stays inspectable.
+- The Haushalt import can now read the report through the shared OCR stage instead of pdfplumber.
+  `HAUSHALT_EXTRACTION` picks the path: `pdfplumber` (default, unchanged behaviour), `compare` (both
+  run on the same PDF, pdfplumber supplies the values and the row/value diff is stored with the run
+  and shown in the review) or `ocr` (OCR supplies the values, pdfplumber is the fallback). Both
+  paths hand the parser the same rows of cells, so the comparison isolates the text recognition.
+- `scripts/compare_haushalt_extraction.py` runs that comparison on a PDF and exits 0 only when both
+  paths agree on every row and every value — the condition for switching to `ocr`.
+- `OcrResult` now carries the markdown of each recognised table per page (`tables`), which is what
+  lets a table source read the grid instead of the prose.
+
+### Fixed
+- The Haushalt import no longer folds the other tables of Annex VWIB Part B (Lärmsanierung, ERTMS,
+  Kleine und Mittlere Maßnahmen, InvKG) into the Bedarfsplan table. Their rows carry no FinVe number
+  and were appended to the last Sammel-FinVe of the first table — in the 2027 report that gave
+  "SV Rest 2025" 51 instead of 3 Titel entries and 78 instead of 1 Erläuterung project. The tables
+  are now detected from their page caption and each is parsed on its own.
+- A measure without a printed FinVe number no longer collides with a real one on insert. FinVe
+  numbers are the primary key and are written explicitly, so the sequence never advances past them
+  and the first auto-assigned id hit an existing row (`duplicate key value violates unique
+  constraint "finve_pkey"`). Those measures now take their id from a reserved band above any number
+  the report prints.
+- A "–" placeholder that overhangs its column rule is no longer read as the sign of the next column.
+  On the ERTMS pages that turned a Veranschlagt value of 33.186 into -33.186; the column grid is now
+  shifted a point to the right, which the report's right-aligned cells make safe.
+- The closing `TABELLENSUMMEN` row of a table is recognised as a totals line instead of being
+  treated as an unrecoverable Sammel-FinVe row.
+
+### Changed
+- PDF text extraction moved from `tasks/vib_ocr.py` to `services/document_ocr.py` and returns a named
+  `OcrResult` (text, per-page markdown, model, status, images) instead of a 4-tuple; OCR credentials
+  are read from the settings inside the service rather than passed by every caller. VIB and
+  Fulda-Runde use it unchanged in behaviour. `pages` is now available for later page-accurate review.
+- The OCR provenance columns are shared through `models/mixins.py::OcrSourceMixin` by both
+  `vib_draft_report` and `haushalts_parse_result`.
+- A parse result row is now addressed by `row_key` instead of the FinVe number, because a measure
+  without a printed number has none; `ProposedFinve.id` and `ProposedBudget.fin_ve` became optional
+  and are resolved on confirm from the Finve row matched or created for the key.
+
 ## [v0.0.12] - 2026-07-31
 
 ### Added

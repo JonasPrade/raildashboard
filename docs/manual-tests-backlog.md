@@ -11,17 +11,79 @@ Test-Checkliste des ermöglichenden Issues hochgezogen und hier entfernt.
 
 ---
 
-## Haushalt-Parser-Refactor #90 — Golden-Vergleich mit Referenz-PDF (Stand 2026-07-09)
+## Haushalt-Parser-Refactor #90 — Golden-Vergleich mit Referenz-PDF (erledigt 2026-09-08)
 
-Braucht ein echtes Haushaltsbericht-PDF (nicht im Repo). Die drei extrahierten
-Blöcke sind durch synthetische Snapshot-Tests
-(`tests/unit/test_haushalt_parser_blocks.py`) abgesichert; der End-to-End-Golden
-steht noch aus:
+Erledigt durch `tests/unit/test_haushalt_parse_2027.py`: Der Golden-Lauf läuft
+gegen die aufgezeichnete pdfplumber-Ausgabe des EP-12-Berichts Teil B 2027
+(`tests/fixtures/haushalt_ep12_2027_pages.json`) und prüft Werte gegen den
+gedruckten Bericht — kein Referenz-PDF im Repo nötig. Der Vergleich alter/neuer
+Pfad auf dem vollständigen PDF (83 Zeilen, 0 Wertabweichungen) ist in
+`docs/features/feature-pdf-import-unification.md` → *Golden-Fixture-Vergleich*
+festgehalten.
 
-- [ ] `apps/backend/scripts/dump_parse_result.py` (mit `.venv/bin/python` aus
-      `apps/backend/`) auf einem Referenz-PDF **vor** und **nach** dem Merge von
-      PR #110 laufen lassen — Output muss byte-identisch sein (`diff`).
-- [ ] Celery-Worker nach dem Merge neu starten (Parser-Code geändert).
+---
+
+## Haushalts-Import auf der gemeinsamen PDF-Pipeline (Stand 2026-09-08)
+
+Auf dem Dev-Server gegen den EP-12-Bericht Teil B 2027 **bis einschließlich
+Parse-Lauf** durchgeführt und bestätigt:
+
+- Migrationen `20260908001` und `20260908002` angewendet.
+- Parse-Lauf (`make summarise-parse-result ID=28`): alle fünf Tabellen erkannt
+  (S. 1–20 / 21–24 / 25–32 / 33–36 / 37–42), 83 / 8 / 10 / 11 / 29 = 141 Zeilen
+  plus 2 unmatched, Spaltenzuordnung `header` mit 16 von 16 Feldern, 58 Maßnahmen
+  über `finve_key` identifiziert.
+- Statusverteilung gegen die bestehenden Importe 2025/2026 plausibel: 81 `update`
+  (bekannte FinVe-Nummern aus Tabelle 1), 60 `new` (58 Maßnahmen ohne gedruckte
+  Nummer plus 2 neue Bedarfsplan-Maßnahmen).
+
+Offen — Lauf 28 steht weiterhin auf `importiert: nein`:
+
+- [ ] Im Review auf **„Importieren"** klicken. Erwartung: Erfolgsmeldung mit
+      ~60 FinVes neu und ~81 aktualisiert; danach zeigt
+      `make summarise-parse-result ID=28` ein Datum unter „importiert".
+- [ ] Das ist die Stelle, an der lokal `duplicate key value violates unique
+      constraint "finve_pkey"` auftrat (Fix `a5ef1b1`). Kommt ein 500er, gehören
+      die letzten ~30 Zeilen des Backend-Logs dazu.
+- [ ] Danach `/finves` prüfen: Stichprobe B0080 / FinVe 275 veranschlagt 77.859,
+      `t5:B0094` veranschlagt 3.186.
+
+---
+
+## Haushalt: Zweiter Import erkennt die Maßnahmen ohne FinVe-Nummer wieder
+
+Der Lauf vom 2026-09-08 war der **erste** mit `finve_key`, deshalb erschienen
+alle 58 Maßnahmen der Tabellen 2–5 als „Neu". Ob `upsert_finve` sie beim nächsten
+Mal über den Schlüssel wiederfindet, zeigt sich erst nach einem bestätigten
+Import — setzt also den Punkt oben voraus. Lokal gegen PostgreSQL verifiziert
+(141 × „Änd."), auf dem Dev-Server noch offen.
+
+- [ ] Denselben Bericht mit Jahr 2027 erneut hochladen (Parsen genügt, kein
+      Bestätigen nötig) und `make summarise-parse-result ID=<neue-id>` aufrufen.
+- [ ] Erwartung: `nach Status: {'update': 141}` — keine einzige Zeile „new".
+      Steht dort weiterhin `new` für die 58 Zeilen mit `finve_key`, greift der
+      Schlüssel nicht und ein Re-Import würde Dubletten anlegen.
+
+---
+
+## Haushalt: Vergleich pdfplumber ↔ Mistral OCR (Stand 2026-09-08)
+
+Braucht einen gültigen `OCR_API_KEY`; in der Entwicklungsumgebung ist keiner
+vorhanden. Das ist der offene Schritt 4/6 aus
+`docs/features/feature-pdf-import-unification.md`.
+
+- [ ] `OCR_API_KEY=… .venv/bin/python scripts/compare_haushalt_extraction.py EP12_Teil_B.pdf 2027`
+      aus `apps/backend` laufen lassen.
+- [ ] Ergebnis festhalten: Zeilenzahl beider Wege, Zahl der abweichenden Werte,
+      Exit-Code.
+- [ ] Bei Exit-Code 0: `HAUSHALT_EXTRACTION=ocr` in einer Testumgebung setzen,
+      Bericht importieren und Stichproben gegen das PDF prüfen (B0080 / FinVe 275:
+      veranschlagt 77.859; Tabelle 3 / `t3:F08Q0770`: veranschlagt 33.186).
+- [ ] Bei Exit-Code 1: die genannten Abweichungen im Feature-Doc festhalten —
+      pdfplumber bleibt dann die Quelle der Zahlen.
+- [ ] Alternativ im laufenden System: `HAUSHALT_EXTRACTION=compare` setzen, Bericht
+      hochladen → Review zeigt das Panel „Texterkennung im Vergleich" mit grünem
+      Badge „identisch" oder der Liste der Abweichungen.
 
 ---
 

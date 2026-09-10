@@ -357,7 +357,7 @@ und werden nicht ins Changelog geschrieben.
   Bestätigen erzeugt je verknüpftem Projekt eine Beobachtung (`sync_derived_observations` JOINt die
   Link-Tabelle, nur `confirmed`-Zeilen).
 - **Roh-Tabelle `fulda_announcement`:** Jahr, Roh-Name, **Abschnitt**, Kategorie, angekündigte Phase,
-  Quelle/Datum + m:n-Link zu Projekten. OCR (`vib_ocr.extract_full_pdf_text`) + LLM-Extraktion.
+  Quelle/Datum + m:n-Link zu Projekten. OCR (`services.document_ocr.extract_document_text`) + LLM-Extraktion.
 - **Mehrstufige Extraktion — LLM ordnet nur Phasen zu:** Enger Auftrag: jede Projektliste **anhand
   ihrer Frage-Überschrift** genau einer von fünf Kategorien zuordnen (Katalog in
   `FULDA_CATEGORY_LABELS`) und je Zeile `{category, project_name, abschnitt}` liefern (Projektname

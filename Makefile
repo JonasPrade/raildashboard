@@ -21,7 +21,7 @@ ALEMBIC      := .venv/bin/alembic
         release-check \
         list-users create-user change-password \
         gen-api \
-        list-parse-results dump-parse-result \
+        list-parse-results dump-parse-result summarise-parse-result \
         celery-worker \
         docker-dev-up docker-dev-down \
         docker-prod-build docker-prod-up docker-prod-down \
@@ -272,6 +272,7 @@ gen-api:
 # Haushalt debugging
 # ---------------------------------------------------------------------------
 
+# Summarise one run:             make summarise-parse-result ID=3
 # List all parse results:        make list-parse-results
 # Dump JSON for ID 3:            make dump-parse-result ID=3
 # Write JSON to file:            make dump-parse-result ID=3 > /tmp/result.json
@@ -281,6 +282,12 @@ list-parse-results:
 dump-parse-result:
 	@if [ -z "$(ID)" ]; then echo "Usage: make dump-parse-result ID=<id>"; exit 1; fi
 	cd $(BACKEND_DIR) && PYTHONPATH=. .venv/bin/python scripts/dump_parse_result.py $(ID)
+
+# How one parse run read the PDF: tables, rows, column mapping, OCR comparison.
+# Usage: make summarise-parse-result ID=3
+summarise-parse-result:
+	@if [ -z "$(ID)" ]; then echo "Usage: make summarise-parse-result ID=<id>"; exit 1; fi
+	cd $(BACKEND_DIR) && PYTHONPATH=. .venv/bin/python scripts/dump_parse_result.py $(ID) --summary
 
 # ---------------------------------------------------------------------------
 # Celery

@@ -1,14 +1,16 @@
-"""Tests for vib_ocr — Mistral OCR + pymupdf fallback."""
+"""Tests for services.document_ocr — Mistral OCR + pymupdf fallback (shared stage 1)."""
 from __future__ import annotations
 
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from dashboard_backend.tasks.vib_ocr import (
+import pytest
+
+from dashboard_backend.services.document_ocr import (
     _find_rail_section_pages,
     _inline_tables,
     _pages_to_text,
-    extract_full_pdf_text,
+    extract_document_text,
 )
 
 
@@ -135,7 +137,7 @@ class TestPagesToText:
 
 
 # ---------------------------------------------------------------------------
-# extract_full_pdf_text
+# extract_document_text
 # ---------------------------------------------------------------------------
 
 def _page_with_image(index: int, markdown: str, img_id: str, img_b64: str) -> SimpleNamespace:
@@ -149,7 +151,7 @@ def _page_with_image(index: int, markdown: str, img_id: str, img_b64: str) -> Si
 
 class TestCollectImages:
     def test_extracts_images_from_pages(self):
-        from dashboard_backend.tasks.vib_ocr import _collect_images
+        from dashboard_backend.services.document_ocr import _collect_images
         pages = [
             _page_with_image(0, "text", "img-0.jpeg", "abc123"),
             _page_with_image(1, "more", "img-1.png", "def456"),
@@ -160,19 +162,19 @@ class TestCollectImages:
         assert result[1] == {"page_index": 1, "id": "img-1.png", "image_base64": "def456"}
 
     def test_skips_images_without_base64(self):
-        from dashboard_backend.tasks.vib_ocr import _collect_images
+        from dashboard_backend.services.document_ocr import _collect_images
         img = SimpleNamespace(id="img-0.jpeg", image_base64=None)
         page = SimpleNamespace(index=0, markdown="text", images=[img])
         result = _collect_images([page])
         assert result == []
 
     def test_returns_empty_for_pages_without_images(self):
-        from dashboard_backend.tasks.vib_ocr import _collect_images
+        from dashboard_backend.services.document_ocr import _collect_images
         result = _collect_images([_page(0, "text"), _page(1, "more")])
         assert result == []
 
     def test_multiple_images_per_page(self):
-        from dashboard_backend.tasks.vib_ocr import _collect_images
+        from dashboard_backend.services.document_ocr import _collect_images
         imgs = [
             SimpleNamespace(id="img-0.jpeg", image_base64="aaa"),
             SimpleNamespace(id="img-1.jpeg", image_base64="bbb"),
@@ -184,10 +186,20 @@ class TestCollectImages:
 
 
 # ---------------------------------------------------------------------------
-# extract_full_pdf_text (images)
+# extract_document_text (images)
 # ---------------------------------------------------------------------------
 
-class TestExtractFullPdfText:
+class TestExtractDocumentText:
+    @pytest.fixture(autouse=True)
+    def _ocr_key(self, monkeypatch):
+        """Credentials come from settings now — default to a configured key."""
+        monkeypatch.setattr(
+            "dashboard_backend.services.document_ocr.settings.ocr_api_key", "sk-test"
+        )
+        monkeypatch.setattr(
+            "dashboard_backend.services.document_ocr.settings.ocr_model", "mistral-ocr-latest"
+        )
+
     def _fake_mistral_response(self):
         pages = [
             _page(0, "Inhaltsverzeichnis\nB 4.1.1 Projekt Alpha . . . 42"),
@@ -200,13 +212,9 @@ class TestExtractFullPdfText:
         mock_client = MagicMock()
         mock_client.ocr.process.return_value = self._fake_mistral_response()
 
-        with patch("dashboard_backend.tasks.vib_ocr.Mistral", return_value=mock_client):
-            text, model, status, images = extract_full_pdf_text(
-                pdf_bytes=b"fakepdf",
-                api_key="sk-test",
-                base_url="https://api.mistral.ai",
-                model="mistral-ocr-latest",
-            )
+        with patch("dashboard_backend.services.document_ocr.Mistral", return_value=mock_client):
+            result = extract_document_text(b"fakepdf")
+            text, model, status, images = result.text, result.model, result.status, result.images
 
         mock_client.ocr.process.assert_called_once()
         call_kwargs = mock_client.ocr.process.call_args.kwargs
@@ -223,35 +231,42 @@ class TestExtractFullPdfText:
         mock_client = MagicMock()
         mock_client.ocr.process.return_value = _make_ocr_response(pages)
 
-        with patch("dashboard_backend.tasks.vib_ocr.Mistral", return_value=mock_client):
-            text, model, status, images = extract_full_pdf_text(
-                pdf_bytes=b"fakepdf",
-                api_key="sk-test",
-                base_url="https://api.mistral.ai",
-                model="mistral-ocr-latest",
-            )
+        with patch("dashboard_backend.services.document_ocr.Mistral", return_value=mock_client):
+            result = extract_document_text(b"fakepdf")
+            text, model, status, images = result.text, result.model, result.status, result.images
 
         # All pages present — filtering is _parse_vib_pdf's job
         assert "Inhaltsverzeichnis" in text
         assert "Projekttext" in text
         assert "Bundesfernstraßen" in text
 
+    def test_exposes_markdown_per_page(self):
+        pages = [_page(0, "Seite eins"), _page(1, "Seite zwei")]
+        mock_client = MagicMock()
+        mock_client.ocr.process.return_value = _make_ocr_response(pages)
+
+        with patch("dashboard_backend.services.document_ocr.Mistral", return_value=mock_client):
+            result = extract_document_text(b"fakepdf")
+
+        # pages[] keeps the page boundary the joined text loses
+        assert result.pages == ["Seite eins", "Seite zwei"]
+        assert result.text == "Seite eins\nSeite zwei"
+
     def test_returns_done_status_on_success(self):
         mock_client = MagicMock()
         mock_client.ocr.process.return_value = self._fake_mistral_response()
 
-        with patch("dashboard_backend.tasks.vib_ocr.Mistral", return_value=mock_client):
-            _, model, status, _images = extract_full_pdf_text(
-                pdf_bytes=b"fakepdf",
-                api_key="sk-test",
-                base_url="https://api.mistral.ai",
-                model="mistral-ocr-latest",
-            )
+        with patch("dashboard_backend.services.document_ocr.Mistral", return_value=mock_client):
+            result = extract_document_text(b"fakepdf")
+            model, status = result.model, result.status
 
         assert status == "done"
         assert model == "mistral-ocr-2512"
 
-    def test_falls_back_to_pymupdf_when_no_api_key(self):
+    def test_falls_back_to_pymupdf_when_no_api_key(self, monkeypatch):
+        monkeypatch.setattr(
+            "dashboard_backend.services.document_ocr.settings.ocr_api_key", ""
+        )
         fake_page = MagicMock()
         fake_page.get_text.return_value = "B Schienenwege\nB.4.1.1 Projekt"
         fake_doc = MagicMock()
@@ -259,14 +274,10 @@ class TestExtractFullPdfText:
         fake_doc.__enter__ = lambda self: fake_doc
         fake_doc.__exit__ = MagicMock(return_value=False)
 
-        with patch("dashboard_backend.tasks.vib_ocr.fitz") as mock_fitz:
+        with patch("dashboard_backend.services.document_ocr.fitz") as mock_fitz:
             mock_fitz.open.return_value = fake_doc
-            text, model, status, images = extract_full_pdf_text(
-                pdf_bytes=b"fakepdf",
-                api_key="",
-                base_url="https://api.mistral.ai",
-                model="mistral-ocr-latest",
-            )
+            result = extract_document_text(b"fakepdf")
+            text, model, status, images = result.text, result.model, result.status, result.images
 
         assert "B.4.1.1" in text
         assert status == "fallback"
@@ -284,15 +295,11 @@ class TestExtractFullPdfText:
         fake_doc.__enter__ = lambda self: fake_doc
         fake_doc.__exit__ = MagicMock(return_value=False)
 
-        with patch("dashboard_backend.tasks.vib_ocr.Mistral", return_value=mock_client), \
-             patch("dashboard_backend.tasks.vib_ocr.fitz") as mock_fitz:
+        with patch("dashboard_backend.services.document_ocr.Mistral", return_value=mock_client), \
+             patch("dashboard_backend.services.document_ocr.fitz") as mock_fitz:
             mock_fitz.open.return_value = fake_doc
-            text, model, status, images = extract_full_pdf_text(
-                pdf_bytes=b"fakepdf",
-                api_key="sk-test",
-                base_url="https://api.mistral.ai",
-                model="mistral-ocr-latest",
-            )
+            result = extract_document_text(b"fakepdf")
+            text, model, status, images = result.text, result.model, result.status, result.images
 
         assert status == "fallback"
         assert model == "pymupdf"
