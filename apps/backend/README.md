@@ -185,7 +185,10 @@ The parser runs three stages (see `docs/features/feature-pdf-import-unification.
    cells — pdfplumber from the ruling grid, OCR from its HTML tables via
    `tasks/haushalt_markdown.py` — so the comparison measures the text recognition and nothing else.
    (HTML, not markdown: a record spans several printed lines inside one table row and markdown
-   cannot express a line break inside a cell.) If OCR fails or finds no rows, pdfplumber carries the
+   cannot express a line break inside a cell.) pdfplumber additionally keeps the lines the report
+   printed inside each row (`ExtractedPage.row_lines`), which is what ties a Kap./Titel value to the
+   Titel it is printed beside — see *Mittelherkunft* in
+   `docs/features/feature-haushalt-import.md`. If OCR fails or finds no rows, pdfplumber carries the
    import and the failure is recorded. **Keep the default:** the comparison against the real API
    (2026-09-10) found 34 of 141 rows missing and 79 differing values — see
    `docs/features/feature-pdf-import-unification.md`.

@@ -243,7 +243,7 @@ def test_regroup_joins_text_lines_back_into_one_row_per_measure():
         [None, None, None, "nachrichtlich: Eigenmittel der EIU", None, "16.000"] + [None] * 10,
         ["YYY", "F21Q0774", None, "Baustufe III", "2022", "1.064.666"] + [None] * 10,
     ]
-    rows = _regroup_text_rows(text_rows, 16)
+    rows, row_lines = _regroup_text_rows(text_rows, 16)
     assert len(rows) == 3
     assert rows[0][0] == "YYY"
     assert rows[0][3] == "Baustufen I + II\ndavon:\nKap. 1202, Titel 891 06"
@@ -251,3 +251,25 @@ def test_regroup_joins_text_lines_back_into_one_row_per_measure():
     # the nachrichtlich block opens a row of its own, as it does on a ruled page
     assert rows[1][3] == "nachrichtlich: Eigenmittel der EIU"
     assert rows[2][3] == "Baustufe III"
+
+
+def test_regroup_keeps_the_printed_lines_of_every_row():
+    """Joining the lines into a cell drops the empty ones — which line a value
+    was printed on is what decides which Titel it funds, so the lines come back
+    beside the row (`ExtractedPage.row_lines`)."""
+    text_rows = [
+        ["YYY", "F08Q0770", None, "Baustufen I + II", "2020", "216.050"] + [None] * 10,
+        [None, None, None, "davon:", None, None] + [None] * 10,
+        [None, None, None, "Kap. 1202, Titel 891 06", None, "222.377"] + [None] * 10,
+        ["YYY", "F21Q0774", None, "Baustufe III", "2022", "1.064.666"] + [None] * 10,
+    ]
+    rows, row_lines = _regroup_text_rows(text_rows, 16)
+
+    assert len(row_lines) == len(rows)
+    assert [len(lines) for lines in row_lines] == [3, 1]
+    # the third printed line of the first row has no value in column 5's
+    # predecessor — the cell lost that, the line keeps it
+    assert [line[3] for line in row_lines[0]] == [
+        "Baustufen I + II", "davon:", "Kap. 1202, Titel 891 06",
+    ]
+    assert [line[5] for line in row_lines[0]] == ["216.050", None, "222.377"]

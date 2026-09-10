@@ -66,6 +66,13 @@ section as part of the release commit, immediately before tagging.
   Full evaluation in `docs/features/feature-pdf-import-unification.md`.
 
 ### Fixed
+- A measure's Mittelherkunft — which Haushaltstitel funds how much of it — no longer loses values.
+  The report prints one line per Titel, but `extract_table` keeps only the non-empty lines of each
+  column, so a column printed on the measure's line and on the last Titel's line arrived as a single
+  value and was given to neither. The lines the report printed inside each row are now kept beside
+  it (`ExtractedPage.row_lines`) and each Titel takes the values printed on its own line. Measured
+  against the word coordinates of the EP 12 Part B 2027 report: 28 of 179 Titel rows carried a wrong
+  or missing value before, none do now. Measure-level figures were never affected.
 - The Haushalt import no longer folds the other tables of Annex VWIB Part B (Lärmsanierung, ERTMS,
   Kleine und Mittlere Maßnahmen, InvKG) into the Bedarfsplan table. Their rows carry no FinVe number
   and were appended to the last Sammel-FinVe of the first table — in the 2027 report that gave

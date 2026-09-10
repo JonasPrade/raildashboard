@@ -176,6 +176,47 @@ dieselben Zeilen und Werte erzeugt wie pdfplumber
 (`tests/unit/test_haushalt_ocr_path.py` fährt den Round-Trip über die
 aufgezeichneten Seiten, in **beiden** Tabellenformaten).
 
+### Mittelherkunft: der Wert gehört zu der Titelzeile, neben der er steht
+
+Eine Maßnahme führt unter `davon:` die Haushaltstitel auf, aus denen sie
+finanziert wird, und der Bericht druckt je Titel eine Zeile. `extract_table`
+stapelt diese Unterzeilen in mehrzeiligen Zellen — und behält je Spalte **nur
+die nicht-leeren Zeilen**. Damit ist nicht mehr ableitbar, auf welcher
+gedruckten Zeile ein Wert stand. Beispiel B0092 (2027, Tabelle 5):
+
+```
+B0092  Mitteldeutsches Revier: …      aktuell  verausg  bewill  veransch   vorbeh
+       (Summenzeile)                  253.333    9.203   7.077     5.634  231.419
+       Kap. 1210, Titel 891 14          9.203    9.203       —         —        —
+       Kap. 6002, Titel 893 45        244.130        —   7.077     5.634  231.419
+```
+
+„Bewilligt" steht auf der Summenzeile und auf der Kap.-6002-Zeile, sonst
+nirgends — die Zelle kommt als einzeiliges `"7.077"` an, ununterscheidbar von
+einer Maßnahme, deren Titel schlicht keinen Wert haben. Eine Paarung „i-ter
+Titel ↔ Zeile i+1 der Wertespalte" gibt den Betrag deshalb keinem Titel; steht
+ein Wert dagegen auf einer Zeile *zu viel*, rutscht alles darunter um eins hoch.
+
+Deshalb führt `ExtractedPage.row_lines` **parallel zu `rows`** die gedruckten
+Zeilen jeder Tabellenzeile mit, in denselben 16 Spalten: auf Seiten mit
+Trennlinien aus den Wortkoordinaten und der Zeilen-Bounding-Box
+(`_printed_lines_by_row`), auf den Seiten ohne Trennlinien aus der
+zeilenweisen Extraktion, die es ohnehin schon gibt (`_regroup_text_rows`).
+`_extract_inline_titel_entries`, `_extract_nachrichtlich_entries` und
+`_extract_position_entries` lesen die Werte daraus.
+
+Gemessen am EP-12-Bericht Teil B 2027, gegen die Wortkoordinaten als Wahrheit:
+179 vergleichbare Titel-Zeilen, davor 28 mit mindestens einem falschen Wert,
+danach **null**. Die Maßnahmen-Ebene war nie betroffen — die Summenzeile ist
+immer die erste Zeile einer Tabellenzeile.
+
+Ohne Koordinaten — also auf dem OCR-Pfad, wo `row_lines` leer bleibt — greift
+weiter die Paarung über den Zeilenindex. Dort ist der Fehler nicht behebbar:
+eine Markdown- oder HTML-Tabelle sagt nicht, auf welcher Druckzeile ein Wert
+stand. Auf demselben Bericht gemessen kommt der OCR-Pfad auf 96 von 165
+Titel-Zeilen mit falschem Wert; das ist einer der Gründe, warum pdfplumber die
+Quelle der Zahlen bleibt (`feature-pdf-import-unification.md`).
+
 ### Zeilen ohne Trennlinien rekonstruieren
 
 Die ERTMS-Seiten (2027: S. 27–31) und eine Seite der Kleinen und Mittleren
@@ -340,7 +381,7 @@ Neue Titel in künftigen PDFs werden automatisch registriert.
 | `tests/unit/test_haushalt_markdown.py` | Tabellen der OCR-Stufe (Markdown **und** HTML) → Zeilenform des Parsers |
 | `tests/unit/test_haushalt_id_columns.py` | Zeilenerkennung, egal ob die drei Identitätsspalten verbunden oder getrennt ankommen |
 | `tests/unit/test_haushalt_ocr_path.py` | OCR-Pfad end-to-end (Round-Trip), Vergleichslogik und die drei `HAUSHALT_EXTRACTION`-Modi inkl. OCR-Ausfall |
-| `tests/unit/test_haushalt_parser_blocks.py` | Titel-/Nachrichtlich-Blöcke |
+| `tests/unit/test_haushalt_parser_blocks.py` | Titel-/Nachrichtlich-Blöcke und die Zuordnung der Mittelherkunft über die gedruckten Zeilen |
 | `tests/unit/test_haushalt_upsert.py` | Upsert nach dem Bestätigen |
 
 Die Fixture `tests/fixtures/haushalt_ep12_2027_pages.json` ist die aufgezeichnete

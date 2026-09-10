@@ -29,7 +29,12 @@ FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "haushalt_ep12_2027
 @pytest.fixture(scope="module")
 def result():
     pages = [
-        ExtractedPage(number=entry["number"], text=entry["text"], rows=entry["rows"])
+        ExtractedPage(
+            number=entry["number"],
+            text=entry["text"],
+            rows=entry["rows"],
+            row_lines=entry.get("row_lines", []),
+        )
         for entry in json.loads(FIXTURE.read_text(encoding="utf-8"))
     ]
     return _parse_extracted_pages(pages, 2027, known_finve_ids=set())
@@ -274,3 +279,44 @@ def test_keyed_measures_never_claim_a_finve_number(result):
 def test_row_keys_are_unique(result):
     keys = [r.row_key for r in result.rows]
     assert len(keys) == len(set(keys))
+
+
+# ---------------------------------------------------------------------------
+# Mittelherkunft — which Haushaltstitel funds how much of a measure
+# ---------------------------------------------------------------------------
+
+def test_titel_entries_carry_the_values_printed_beside_them(result):
+    """B0092 asserted against the printed report.
+
+    "Bewilligt 2026" is printed on the measure's line and again on the
+    Kap.-6002 line, and nowhere else, so the cell arrives as a single "7.077".
+    Pairing by line index gives that value to no Titel at all; the printed lines
+    (`ExtractedPage.row_lines`) put it where the report puts it.
+    """
+    row = _row(result, "t5:B0092")
+    assert [
+        (e.label, e.cost_estimate_aktuell, e.verausgabt_bis, e.bewilligt,
+         e.veranschlagt, e.vorhalten_future)
+        for e in row.proposed_titel_entries
+    ] == [
+        ("Kap. 1210, Titel 891 14", 9203, 9203, None, None, None),
+        ("Kap. 6002, Titel 893 45", 244130, None, 7077, 5634, 231419),
+        ("nachrichtlich: Eigenmittel der EIU", 1894, 476, 167, 297, 954),
+        ("nachrichtlich: Projektausgaben insgesamt, alle Quellen", 255227, None, None, None, None),
+    ]
+
+
+def test_titel_entries_of_a_bedarfsplan_measure(result):
+    """B0080, Tabelle 1: three Titel, and the middle one is funded nowhere but
+    in the Gesamtausgaben — the case that shifts every value below it when the
+    sub-entries are paired by line index."""
+    row = _row(result, "275")
+    assert [
+        (e.label, e.bewilligt, e.veranschlagt, e.vorhalten_future)
+        for e in row.proposed_titel_entries
+        if not e.is_nachrichtlich
+    ] == [
+        ("Kap. 1202, Titel 891 01", 1, 22200, 77366),
+        ("Kap. 1202, Titel 891 03", None, None, None),
+        ("Kap. 1408, Titel 891 52", 83493, 55659, 71061),
+    ]

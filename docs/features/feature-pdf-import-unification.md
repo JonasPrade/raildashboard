@@ -364,6 +364,16 @@ aus der oben beschriebenen Spaltenverbindung — dort liest die OCR-Stufe sogar
 sauberer. Substanziell sind `name` (20), `delta_previous_year` und
 `delta_previous_year_relativ` (je 5) und `next_years` (1).
 
+Dazu kommt die **Mittelherkunft** — welcher Haushaltstitel wie viel einer
+Maßnahme trägt. Sie steht in keiner der 79 Abweichungen oben, weil der
+Vergleich nur Maßnahmen-Zeilen prüft, entscheidet aber über die Aussagekraft
+jeder Titel-Zeitreihe. Gegen die Wortkoordinaten des PDFs gemessen: pdfplumber
+trifft 179 von 179 vergleichbaren Titel-Zeilen, die OCR-Stufe hat bei 96 von
+165 mindestens einen falschen Wert und findet 13 Maßnahmen gar nicht erst mit
+Titel-Aufteilung. Der Grund ist derselbe wie oben — die Zuordnung Wert →
+Titelzeile hängt an der gedruckten Zeilenhöhe, und die liefert nur pdfplumber
+(Details in `feature-haushalt-import.md` → *Mittelherkunft*).
+
 **Bemerkenswert:** in den eigentlichen Geldspalten — `cost_estimate_original`,
 `cost_estimate_last_year`, `cost_estimate_actual`, `spent_two_years_previous`,
 `allowed_previous_year`, `spending_residues`, `year_planned` — steht über alle

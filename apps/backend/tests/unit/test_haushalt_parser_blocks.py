@@ -108,3 +108,87 @@ def test_build_titel_entry_old_format_snapshot():
         "verausgabt_bis": 200, "bewilligt": 80,
         "ausgabereste_transferred": 6, "veranschlagt": 50, "vorhalten_future": 500,
     }
+
+
+# ---------------------------------------------------------------------------
+# Mittelherkunft: the value belongs to the Titel it is printed beside
+# ---------------------------------------------------------------------------
+#
+# Taken from B0092 of the 2027 report, where the pairing by line index goes
+# wrong: "Bewilligt 2026" is printed on the measure's own line and again on the
+# Kap.-6002 line, and nowhere else. The cell keeps the non-empty lines only, so
+# it arrives as a single "7.077" — indistinguishable from a measure whose two
+# Titel simply have no value.
+
+_B0092_NAME = (
+    "Mitteldeutsches Revier:\ndavon:\n"
+    "Kap. 1210, Titel 891 14\nKap. 6002, Titel 893 45"
+)
+
+
+def _b0092_cells() -> list:
+    cells = [None] * 16
+    cells[0] = "B0092"
+    cells[3] = _B0092_NAME
+    cells[7] = "253.333\n9.203\n244.130"   # cost actual: on all three lines
+    cells[11] = "9.203\n9.203"             # verausgabt: measure + Kap. 1210
+    cells[12] = "7.077"                    # bewilligt: measure + Kap. 6002 only
+    return cells
+
+
+def _b0092_printed_lines() -> list[list]:
+    def line(name, cost_actual=None, verausgabt=None, bewilligt=None):
+        cells = [None] * 16
+        cells[3] = name
+        cells[7], cells[11], cells[12] = cost_actual, verausgabt, bewilligt
+        return cells
+
+    return [
+        line("Mitteldeutsches Revier:", "253.333", "9.203", "7.077"),
+        line("davon:"),
+        line("Kap. 1210, Titel 891 14", "9.203", "9.203"),
+        line("Kap. 6002, Titel 893 45", "244.130", None, "7.077"),
+    ]
+
+
+def test_inline_titel_entries_take_the_values_printed_beside_them():
+    entries = _extract_inline_titel_entries(_b0092_cells(), CMAP, _b0092_printed_lines())
+    assert [(e.label, e.cost_estimate_aktuell, e.verausgabt_bis, e.bewilligt) for e in entries] == [
+        ("Kap. 1210, Titel 891 14", 9203, 9203, None),
+        ("Kap. 6002, Titel 893 45", 244130, None, 7077),
+    ]
+
+
+def test_inline_titel_entries_without_printed_lines_pair_by_line_index():
+    """The fallback for a source that carries no coordinates (the OCR path).
+
+    It is wrong here, and that is the point: 7.077 funds Kap. 6002, but as the
+    only line of its cell it counts as the measure's own line and reaches no
+    Titel at all. Only the printed lines can tell the two apart.
+    """
+    entries = _extract_inline_titel_entries(_b0092_cells(), CMAP)
+    assert [(e.label, e.cost_estimate_aktuell, e.verausgabt_bis, e.bewilligt) for e in entries] == [
+        ("Kap. 1210, Titel 891 14", 9203, 9203, None),
+        ("Kap. 6002, Titel 893 45", 244130, None, None),
+    ]
+
+
+def test_nachrichtlich_entries_take_the_values_printed_beside_them():
+    cells = [None] * 16
+    cells[3] = "nachrichtlich: Beteiligung Dritter\nnachrichtlich: Eigenmittel EIU"
+    cells[12] = "3.479"          # printed only on the second of the two lines
+
+    def line(name, bewilligt=None):
+        row = [None] * 16
+        row[3], row[12] = name, bewilligt
+        return row
+
+    lines = [
+        line("nachrichtlich: Beteiligung Dritter"),
+        line("nachrichtlich: Eigenmittel EIU", "3.479"),
+    ]
+    entries = _extract_nachrichtlich_entries(cells, CMAP, lines)
+    assert [(e.label, e.bewilligt) for e in entries] == [
+        ("nachrichtlich: Beteiligung Dritter", None),
+        ("nachrichtlich: Eigenmittel EIU", 3479),
+    ]
