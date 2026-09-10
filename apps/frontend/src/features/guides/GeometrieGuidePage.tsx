@@ -18,7 +18,7 @@ const DEF: GuideDef = {
 - **Projektdetailseite** → Button **„Geometrie verwalten"** öffnet den Editor als Vollbild-Dialog (Speichern mit **„Übernehmen"**).
 - **Assistent „Projekt anlegen"** → Schritt **„Geometrie"** (Speichern mit **„Geometrie speichern"**; der Editor bleibt danach offen, damit du weitere Geometrien ergänzen kannst) — siehe [Anleitung: Projekt anlegen](/admin/anleitungen/projekt-anlegen).
 
-Der Editor besteht aus einem linken Bedienfeld mit den vier Erfassungswegen und einer Kartenvorschau rechts, die **bestehende und neue Geometrie gemeinsam** anzeigt.`,
+Der Editor besteht aus einem linken Bedienfeld mit den vier Erfassungswegen und einer Kartenvorschau rechts, die **bestehende und neue Geometrie gemeinsam** anzeigt. Im Kartenhintergrund liegt das Schienennetz (OpenRailwayMap) — daran prüfst du, ob ein Verlauf tatsächlich auf der gemeinten Strecke liegt.`,
             exampleKey: "geometrie-panel",
         },
         {

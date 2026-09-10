@@ -7,6 +7,7 @@ Copy `.env.example` to `.env` and fill in values. Required variables:
 | `DATABASE_URL` | Backend | `postgresql+psycopg2://user:pw@host:port/db` |
 | `SESSION_SECRET_KEY` | Backend | Required. 32-byte hex string for HMAC-signing session cookies. Generate with `python -c "import secrets; print(secrets.token_hex(32))"` |
 | `REACT_APP_TILE_LAYER_URL` | Frontend | Raster tile URL for map background |
+| `REACT_APP_RAILWAY_TILE_LAYER_URL` | Frontend | Optional — tile URL of the railway overlay ("Strecken"). Unset/empty → public OpenRailwayMap tiles, `off` → overlay disabled |
 | `VITE_API_BASE_URL` | Frontend | Defaults to `http://localhost:8000` |
 | `ROUTING_BASE_URL` | Backend | GraphHopper instance URL |
 | `CELERY_BROKER_URL` | Backend | Dev: `redis://:devpassword@localhost:6379/0` (password set in `docker-compose.dev.yml`) |

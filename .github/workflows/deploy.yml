@@ -16,6 +16,9 @@
 #                    Omit if the GHCR packages are made public — then no server login is needed.
 # Optional repo variable:
 #   TILE_LAYER_URL   raster tile URL baked into the frontend bundle at build time.
+#   RAILWAY_TILE_LAYER_URL
+#                    tile URL of the railway overlay. Unset → OpenRailwayMap defaults,
+#                    "off" → overlay disabled.
 
 name: deploy
 
@@ -97,6 +100,7 @@ jobs:
             build_args: |
               VITE_API_BASE_URL=
               REACT_APP_TILE_LAYER_URL=${{ vars.TILE_LAYER_URL }}
+              REACT_APP_RAILWAY_TILE_LAYER_URL=${{ vars.RAILWAY_TILE_LAYER_URL }}
           - service: db
             context: docker/db
             build_args: ""
