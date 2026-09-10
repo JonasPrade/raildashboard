@@ -10,6 +10,7 @@ import {
     Text,
     Title,
 } from "@mantine/core";
+import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { type VibEntryForProject, type VibEntrySchema, useProjectVibEntries } from "../../../shared/api/queries";
@@ -186,7 +187,7 @@ function VibTabContent({
                     </Group>
                     <Collapse in={pfaExpanded}>
                         <div style={{ overflow: "auto", background: "var(--bg)", border: "1px solid var(--rule)", borderRadius: 0 }}>
-                            <Table withTableBorder withColumnBorders fz="xs" style={{ fontSize: 11 }}>
+                            <ResponsiveTable minWidth={720} withTableBorder withColumnBorders fz="xs" style={{ fontSize: 11 }}>
                                 <Table.Thead>
                                     <Table.Tr>
                                         <Table.Th>Nr.</Table.Th>
@@ -212,7 +213,7 @@ function VibTabContent({
                                         </Table.Tr>
                                     ))}
                                 </Table.Tbody>
-                            </Table>
+                            </ResponsiveTable>
                         </div>
                     </Collapse>
                 </div>

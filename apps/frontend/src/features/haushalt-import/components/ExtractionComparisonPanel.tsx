@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Alert, Badge, Box, Button, Group, Stack, Table, Text } from "@mantine/core";
+import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
 import type { HaushaltsExtractionComparison } from "../../../shared/api/queries";
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -83,7 +84,7 @@ export function ExtractionComparisonPanel({
 
             {open && comparison.value_differences.length > 0 && (
                 <Box style={{ overflowX: "auto" }}>
-                    <Table striped withTableBorder fz="xs">
+                    <ResponsiveTable minWidth={640} striped withTableBorder fz="xs">
                         <Table.Thead>
                             <Table.Tr>
                                 <Table.Th>Zeile</Table.Th>
@@ -102,7 +103,7 @@ export function ExtractionComparisonPanel({
                                 </Table.Tr>
                             ))}
                         </Table.Tbody>
-                    </Table>
+                    </ResponsiveTable>
                     {comparison.value_differences_total > comparison.value_differences.length && (
                         <Text size="xs" c="dimmed" mt={4}>
                             … und{" "}

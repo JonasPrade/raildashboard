@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Alert, Badge, Box, Button, Collapse, Group, Stack, Table, Text } from "@mantine/core";
+import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
 import type {
     HaushaltsColumnMapping,
     HaushaltsTableSection,
@@ -107,7 +108,7 @@ export function ColumnMappingPanel({
 
             <Collapse in={open}>
                 <Box style={{ overflowX: "auto" }}>
-                    <Table striped highlightOnHover withTableBorder fz="xs">
+                    <ResponsiveTable minWidth={640} striped highlightOnHover withTableBorder fz="xs">
                         <Table.Thead>
                             <Table.Tr>
                                 <Table.Th>Zielfeld</Table.Th>
@@ -134,7 +135,7 @@ export function ColumnMappingPanel({
                                 </Table.Tr>
                             ))}
                         </Table.Tbody>
-                    </Table>
+                    </ResponsiveTable>
                 </Box>
             </Collapse>
         </Stack>

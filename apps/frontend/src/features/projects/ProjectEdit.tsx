@@ -7,6 +7,7 @@ import {
     Group,
     ScrollArea,
 } from "@mantine/core";
+import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 
 import type { Project, ProjectUpdatePayload } from "../../shared/api/queries";
 import { ProjectEditFields } from "./ProjectEditFields";
@@ -83,6 +84,7 @@ export function ProjectEdit({
     isSubmitting = false,
     errorMessage,
 }: ProjectEditProps) {
+    const isMobile = useIsMobile();
     const [values, setValues] = useState<ProjectEditFormValues>(() => createInitialValues(project));
 
     const initialValues = useMemo(() => createInitialValues(project), [project]);
@@ -111,7 +113,7 @@ export function ProjectEdit({
             title="Projekt bearbeiten"
             overlayProps={{ opacity: 0.4, blur: 4 }}
             position="right"
-            size="xl"
+            size={isMobile ? "100%" : "xl"}
             styles={{ body: { display: "flex", flexDirection: "column", height: "100%", padding: 0 } }}
         >
             <ScrollArea style={{ flex: 1 }} p="md">

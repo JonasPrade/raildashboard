@@ -12,6 +12,7 @@ import {
     Title,
     Tooltip,
 } from "@mantine/core";
+import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
 import { useState } from "react";
 import type { HaushaltsParseRow, Project, ProjectOption } from "../../../shared/api/queries";
 import { filterProjectOption } from "../../../lib/filterProjectOption";
@@ -330,7 +331,7 @@ function DataRow({
                                         <Text size="xs" fw={600} c="dimmed">
                                             Mittelverteilung Haushaltstiteln (T€)
                                         </Text>
-                                        <Table withColumnBorders fz="xs" style={{ tableLayout: "auto" }}>
+                                        <ResponsiveTable minWidth={560} withColumnBorders fz="xs" style={{ tableLayout: "auto" }}>
                                             <Table.Thead>
                                                 <Table.Tr>
                                                     <Table.Th>Kapitel / Titel</Table.Th>
@@ -363,7 +364,7 @@ function DataRow({
                                                     </Table.Tr>
                                                 ))}
                                             </Table.Tbody>
-                                        </Table>
+                                        </ResponsiveTable>
                                     </Stack>
                                 )}
 
@@ -372,7 +373,7 @@ function DataRow({
                                         <Text size="xs" fw={600} c="dimmed">
                                             Nachrichtlich: EVU / Dritte (T€)
                                         </Text>
-                                        <Table withColumnBorders fz="xs" style={{ tableLayout: "auto" }}>
+                                        <ResponsiveTable minWidth={560} withColumnBorders fz="xs" style={{ tableLayout: "auto" }}>
                                             <Table.Thead>
                                                 <Table.Tr>
                                                     <Table.Th>Bezeichnung</Table.Th>
@@ -401,7 +402,7 @@ function DataRow({
                                                     </Table.Tr>
                                                 ))}
                                             </Table.Tbody>
-                                        </Table>
+                                        </ResponsiveTable>
                                     </Stack>
                                 )}
                             </Box>
@@ -448,7 +449,7 @@ function RowGroup({
         <Stack gap="xs">
             <Title order={5}>{title} ({rows.length})</Title>
             <Box style={{ overflowX: "auto" }}>
-                <Table
+                <ResponsiveTable minWidth={900}
                     withTableBorder
                     withColumnBorders
                     fz="xs"
@@ -497,7 +498,7 @@ function RowGroup({
                             />
                         ))}
                     </Table.Tbody>
-                </Table>
+                </ResponsiveTable>
             </Box>
         </Stack>
     );

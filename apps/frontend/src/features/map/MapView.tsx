@@ -152,7 +152,11 @@ type Props = {
     projects: MapViewProject[];
     lineWidth?: number;
     pointSize?: number;
-    height?: number;
+    /**
+     * Any CSS length. Defaults to the `--map-height` token, which shrinks to
+     * the visible viewport on phones (docs/features/feature-mobile-usability.md).
+     */
+    height?: number | string;
     /** Klick-Interaktion (Popup + Navigation) aktivieren. Standard: true */
     clickable?: boolean;
     /** Initial map center [longitude, latitude]. Overrides the default Germany center. */
@@ -177,7 +181,7 @@ export default function MapView({
     projects,
     lineWidth = 4,
     pointSize = 5,
-    height = 800,
+    height = "var(--map-height, 800px)",
     clickable = true,
     initialCenter,
     showRailwayLines = true,
@@ -667,7 +671,7 @@ export default function MapView({
         return (
             <div
                 style={{
-                    height: "800px",
+                    height: typeof height === "number" ? `${height}px` : height,
                     backgroundColor: "#f2f2f2",
                     borderRadius: "8px",
                     display: "flex",
@@ -687,7 +691,7 @@ export default function MapView({
     }
 
     return (
-        <div style={{ height: `${height}px`, position: "relative" }}>
+        <div style={{ height: typeof height === "number" ? `${height}px` : height, position: "relative" }}>
             <div ref={mapContainerRef} style={{ height: "100%" }} />
             {selectedProject && (
                 <div
@@ -697,8 +701,9 @@ export default function MapView({
                         left: selectedProject.x,
                         top: selectedProject.y,
                         transform: "translate(-50%, calc(-100% - 12px))",
-                        minWidth: "260px",
-                        maxWidth: "340px",
+                        // Never wider than the screen it has to fit on.
+                        minWidth: "min(260px, calc(100vw - 32px))",
+                        maxWidth: "min(340px, calc(100vw - 32px))",
                         zIndex: 10,
                         background: "rgba(251, 249, 248, 0.92)",
                         backdropFilter: "blur(20px)",

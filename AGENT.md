@@ -79,7 +79,7 @@ Konventionen für den Agenten:
 Before writing any code:
 1. **Read the relevant existing layer** (endpoint, CRUD function, component) — understand the pattern before adding to it.
 2. **New API route checklist:** router endpoint + Pydantic schema + CRUD function + test + `make gen-api` to sync the frontend client.
-3. **New frontend feature checklist:** component in `src/features/<name>/` + query/mutation hook in `queries.ts` + route in `router.tsx` if it's a page.
+3. **New frontend feature checklist:** component in `src/features/<name>/` + query/mutation hook in `queries.ts` + route in `router.tsx` if it's a page + it works at a 360 px viewport (shared breakpoints, layout tokens, `ResponsiveTable` — see `docs/features/feature-mobile-usability.md`).
 4. **Never add a dependency** without first checking whether an existing library already covers the need.
 
 ## Where to find more information

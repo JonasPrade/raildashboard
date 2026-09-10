@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button, Drawer, Group, ScrollArea, Stack, Text } from "@mantine/core";
+import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { notifications } from "@mantine/notifications";
 import {
     useUpdateVibEntry,
@@ -33,6 +34,7 @@ function toProposed(entry: VibEntrySchema): VibEntryProposed {
 }
 
 export default function VibEntryEditDrawer({ entry, opened, onClose }: Props) {
+    const isMobile = useIsMobile();
     const { data: projects } = useProjectOptions();
     const updateEntry = useUpdateVibEntry();
 
@@ -83,7 +85,7 @@ export default function VibEntryEditDrawer({ entry, opened, onClose }: Props) {
                 </Stack>
             }
             position="right"
-            size="xl"
+            size={isMobile ? "100%" : "xl"}
             scrollAreaComponent={ScrollArea.Autosize}
         >
             {activeDraft && (

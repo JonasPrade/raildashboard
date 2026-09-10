@@ -43,7 +43,9 @@ const GeometrieGuidePage = lazyWithRetry(() => import("./features/guides/Geometr
 
 function Layout() {
     return (
-        <AppShell header={{ height: 60 }} padding="md">
+        // Padding follows --page-pad so the shell tightens on phones
+        // (docs/features/feature-mobile-usability.md).
+        <AppShell header={{ height: 60 }} padding="var(--page-pad)">
             <AppShell.Header>
                 <Header />
             </AppShell.Header>
