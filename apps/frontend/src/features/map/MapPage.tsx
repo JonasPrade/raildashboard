@@ -28,7 +28,6 @@ import { ProjectCard } from "../projects/ProjectCard";
 import ConstituencyPanel from "../abgeordnete/ConstituencyPanel";
 import MapControls from "./MapControls";
 import MapView, { type MapViewProject } from "./MapView";
-import { hasRailwayTiles } from "../../shared/map/railwayTiles";
 import {
     useAppSettings,
     useConstituencyGeojson,
@@ -62,9 +61,6 @@ export default function MapPage() {
     // Layer state lives in the URL like the other map settings, so a link
     // carries the view someone was looking at.
     const showConstituencies = searchParams.get("wahlkreise") === "1";
-    // The railway network is context every project is read against, so it is on
-    // unless the link says otherwise.
-    const showRailwayLines = hasRailwayTiles && searchParams.get("strecken") !== "0";
 
     // --- Search state: local for immediate input, debounced to URL ---
     const [localSearch, setLocalSearch] = useState(() => searchParams.get("search") ?? "");
@@ -87,14 +83,6 @@ export default function MapPage() {
         setSearchParams((prev) => {
             if (checked) prev.set("wahlkreise", "1");
             else prev.delete("wahlkreise");
-            return prev;
-        });
-    };
-
-    const handleShowRailwayLinesChange = (checked: boolean) => {
-        setSearchParams((prev) => {
-            if (checked) prev.delete("strecken");
-            else prev.set("strecken", "0");
             return prev;
         });
     };
@@ -235,10 +223,6 @@ export default function MapPage() {
                             <List.Item>
                                 <Text size="sm" span fw={500}>Projektgruppen</Text>
                                 <Text size="sm"> — Klicke auf „Projektgruppen", um nach Themengruppen zu filtern. Auf der Karte kannst du mehrere Gruppen gleichzeitig auswählen.</Text>
-                            </List.Item>
-                            <List.Item>
-                                <Text size="sm" span fw={500}>Kartenebenen</Text>
-                                <Text size="sm"> — „Strecken" legt das Schienennetz hinter die Projekte, „Wahlkreise" blendet die Wahlkreisgrenzen ein.</Text>
                             </List.Item>
                             <List.Item>
                                 <Text size="sm" span fw={500}>Nur Hauptprojekte</Text>
@@ -490,7 +474,6 @@ export default function MapPage() {
                         projects={filteredMapProjects}
                         lineWidth={lineWidth}
                         pointSize={pointSize}
-                        showRailwayLines={showRailwayLines}
                         constituencies={
                             showConstituencies ? constituencyGeojson.data ?? null : null
                         }
@@ -579,10 +562,6 @@ export default function MapPage() {
                         onSearchChange={setLocalSearch}
                         totalProjects={selectedProjects.length}
                         filteredCount={filteredMapProjects.length}
-                        showRailwayLines={hasRailwayTiles ? showRailwayLines : undefined}
-                        onShowRailwayLinesChange={
-                            hasRailwayTiles ? handleShowRailwayLinesChange : undefined
-                        }
                         showConstituencies={showConstituencies}
                         onShowConstituenciesChange={handleShowConstituenciesChange}
                     />

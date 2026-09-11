@@ -46,7 +46,6 @@ cp .env.example .env
 | `GRAPH_VERSION` | `1` | Hochzählen nach neuem OSM-Extrakt (busted Route-Cache) |
 | `GH_OSM_URL` | `https://download.geofabrik.de/…` | OSM PBF URL; GraphHopper lädt die Datei beim ersten Start automatisch herunter |
 | `REACT_APP_TILE_LAYER_URL` | — | Raster-Kachel-URL für die Kartenansicht |
-| `REACT_APP_RAILWAY_TILE_LAYER_URL` | OpenRailwayMap | Kachel-URL des Strecken-Overlays. Leer → öffentliche OpenRailwayMap-Kacheln, `off` → Overlay aus |
 | `CELERY_BROKER_URL` | `redis://redis:6379/0` | Redis im Docker-Netzwerk (kein Passwort nötig, da nicht nach außen exponiert) |
 | `CELERY_RESULT_BACKEND` | `redis://redis:6379/0` | Wie `CELERY_BROKER_URL` |
 
@@ -106,7 +105,6 @@ Nur als GitHub-Secrets hinterlegen, **niemals** ins Repo committen:
 | `GHCR_TOKEN` *(optional)* | PAT mit `read:packages`, damit der Server private Images ziehen kann. Entfällt, wenn die GHCR-Packages öffentlich sind. |
 | `GITHUB_TOKEN` *(automatisch)* | Wird im Build-Job mit `packages: write` zum Pushen nach GHCR genutzt — kein manuelles Secret. |
 | `TILE_LAYER_URL` *(Repo-Variable, optional)* | Raster-Kachel-URL, die zur Build-Zeit ins Frontend-Bundle gebacken wird. |
-| `RAILWAY_TILE_LAYER_URL` *(Repo-Variable, optional)* | Kachel-URL des Strecken-Overlays, ebenfalls zur Build-Zeit gebacken. Nicht gesetzt → OpenRailwayMap; `off` → Overlay aus. |
 
 Deploy-Ziel ist das GitHub-Environment `production`. Über einen **Required Reviewer** an diesem Environment lässt sich jeder Deploy zu einem manuellen Freigabe-Gate machen.
 
