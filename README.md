@@ -111,6 +111,10 @@ npm run dev
 
 The dev server runs on `http://localhost:5173`. The app expects the backend at `http://localhost:8000` (override with `VITE_API_BASE_URL`).
 
+The interface is responsive: every route is laid out for screens from 360 px up (phone) to desktop.
+New UI has to keep that — see `apps/frontend/README.md` → *Responsive layout* and
+`docs/features/feature-mobile-usability.md`.
+
 See `apps/frontend/README.md` for the full frontend reference (project structure, API code generation, quality checks).
 
 ## Database migrations

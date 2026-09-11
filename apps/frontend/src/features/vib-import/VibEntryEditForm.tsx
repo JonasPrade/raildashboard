@@ -14,6 +14,7 @@ import {
     TextInput,
     Tooltip,
 } from "@mantine/core";
+import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
@@ -264,7 +265,7 @@ export default function VibEntryEditForm({
                     </Group>
                     {entry.pfa_entries.length > 0 ? (
                         <ChronicleCard style={{ overflow: "auto", padding: 0 }}>
-                            <Table withTableBorder withColumnBorders fz="xs" style={{ fontSize: 11 }}>
+                            <ResponsiveTable minWidth={720} withTableBorder withColumnBorders fz="xs" style={{ fontSize: 11 }}>
                                 <Table.Thead>
                                     <Table.Tr>
                                         <Table.Th>Nr.</Table.Th>
@@ -324,7 +325,7 @@ export default function VibEntryEditForm({
                                         </Table.Tr>
                                     ))}
                                 </Table.Tbody>
-                            </Table>
+                            </ResponsiveTable>
                         </ChronicleCard>
                     ) : (
                         <Text size="xs" c="dimmed">Keine PFA-Einträge.</Text>

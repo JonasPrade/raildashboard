@@ -50,7 +50,13 @@ src/
      )}
    />
    ```
-5. **Protect quality:** Before committing, run `npm run build && npm run lint && npm run test` locally and document the results.
+5. **Build for phones, too:** Every view must work at a 360 px viewport — the page itself never
+   scrolls sideways. Use the shared breakpoints (`useIsMobile` / `useIsCompact` from
+   `shared/hooks/useBreakpoint.ts`) or Mantine's responsive props, the layout tokens
+   (`--page-pad`, `--card-pad`, `--map-height`) instead of fixed pixels, and
+   `shared/ui/ResponsiveTable` instead of a bare `<Table>`. Rules:
+   `docs/features/feature-mobile-usability.md`.
+6. **Protect quality:** Before committing, run `npm run build && npm run lint && npm run test` locally and document the results.
 
 ## Git workflow
 - **Branches:** `feature/<summary>`, `fix/<bug-id>`, `docs/<topic>`, `refactor/<area>`.

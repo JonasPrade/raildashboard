@@ -1,4 +1,5 @@
 import { Button, Group, Table, Text } from "@mantine/core";
+import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
 import { ChronicleDataChip } from "../../../components/chronicle";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
@@ -48,7 +49,7 @@ export function ParseResultList({ results }: Props) {
     }
 
     return (
-        <Table striped highlightOnHover withTableBorder>
+        <ResponsiveTable minWidth={720} striped highlightOnHover withTableBorder>
             <Table.Thead>
                 <Table.Tr>
                     <Table.Th>Jahr</Table.Th>
@@ -111,6 +112,6 @@ export function ParseResultList({ results }: Props) {
                     </Table.Tr>
                 ))}
             </Table.Tbody>
-        </Table>
+        </ResponsiveTable>
     );
 }

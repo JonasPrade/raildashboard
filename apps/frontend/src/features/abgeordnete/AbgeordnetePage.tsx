@@ -20,6 +20,7 @@ import {
     Text,
     TextInput,
 } from "@mantine/core";
+import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { IconSearch } from "@tabler/icons-react";
 import { Link, useSearchParams } from "react-router-dom";
 
@@ -54,7 +55,7 @@ function PoliticianProjects({ mandateId }: { mandateId: number }) {
     }
 
     return (
-        <Table highlightOnHover>
+        <ResponsiveTable minWidth={640} highlightOnHover>
             <Table.Thead>
                 <Table.Tr>
                     <Table.Th>Projekt</Table.Th>
@@ -81,7 +82,7 @@ function PoliticianProjects({ mandateId }: { mandateId: number }) {
                     </Table.Tr>
                 ))}
             </Table.Tbody>
-        </Table>
+        </ResponsiveTable>
     );
 }
 
@@ -170,7 +171,7 @@ export default function AbgeordnetePage() {
     const importedAt = status.data?.last_politician_import?.finished_at;
 
     return (
-        <Stack gap="lg" p="xl" maw={1100} mx="auto">
+        <Stack gap="lg" p={{ base: "xs", sm: "xl" }} maw={1100} mx="auto">
             <Stack gap="xs">
                 <ChronicleHeadline as="h1">Abgeordnete</ChronicleHeadline>
                 <Text c="dimmed">
@@ -230,7 +231,7 @@ export default function AbgeordnetePage() {
                 </Group>
             </ChronicleCard>
 
-            <Group justify="space-between" align="baseline">
+            <Group justify="space-between" align="baseline" wrap="wrap" gap="xs">
                 <Text size="sm" c="dimmed">
                     {isLoading ? "lädt …" : `${data?.length ?? 0} Abgeordnete`}
                     {committee ? ` im ${COMMITTEE_LABELS[committee] ?? committee}` : ""}

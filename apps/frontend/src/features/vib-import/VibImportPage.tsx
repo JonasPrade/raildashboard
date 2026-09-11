@@ -12,6 +12,7 @@ import {
     Table,
     Text,
 } from "@mantine/core";
+import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { ChronicleHeadline, ChronicleCard } from "../../components/chronicle";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
@@ -197,7 +198,7 @@ function VibImportPageContent() {
                             {draftsLoading ? (
                                 <Group justify="center"><Loader /></Group>
                             ) : (
-                                <Table striped highlightOnHover withTableBorder>
+                                <ResponsiveTable minWidth={720} striped highlightOnHover withTableBorder>
                                     <Table.Thead>
                                         <Table.Tr>
                                             <Table.Th>Jahr</Table.Th>
@@ -255,7 +256,7 @@ function VibImportPageContent() {
                                             </Table.Tr>
                                         ))}
                                     </Table.Tbody>
-                                </Table>
+                                </ResponsiveTable>
                             )}
                         </Stack>
                     </ChronicleCard>
@@ -270,7 +271,7 @@ function VibImportPageContent() {
                                 <Loader />
                             </Group>
                         ) : reports && reports.length > 0 ? (
-                            <Table striped highlightOnHover withTableBorder>
+                            <ResponsiveTable minWidth={720} striped highlightOnHover withTableBorder>
                                 <Table.Thead>
                                     <Table.Tr>
                                         <Table.Th>Jahr</Table.Th>
@@ -304,7 +305,7 @@ function VibImportPageContent() {
                                         </Table.Tr>
                                     ))}
                                 </Table.Tbody>
-                            </Table>
+                            </ResponsiveTable>
                         ) : (
                             <Text size="sm" c="dimmed">
                                 Noch keine VIB-Berichte importiert.

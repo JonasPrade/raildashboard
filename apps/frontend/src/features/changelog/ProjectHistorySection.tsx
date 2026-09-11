@@ -9,6 +9,7 @@ import {
     Table,
     Text,
 } from "@mantine/core";
+import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { ChronicleDataChip } from "../../components/chronicle";
 import { notifications } from "@mantine/notifications";
 
@@ -158,7 +159,7 @@ function ChangeLogItem({ log, canEdit, revertingEntryId, onRevert }: ChangeLogIt
         <Accordion.Item value={`project-${log.id}`}>
             <Accordion.Control>{summary}</Accordion.Control>
             <Accordion.Panel>
-                <Table striped withTableBorder fz="sm">
+                <ResponsiveTable minWidth={640} striped withTableBorder fz="sm">
                     <Table.Thead>
                         <Table.Tr>
                             <Table.Th>Feld</Table.Th>
@@ -193,7 +194,7 @@ function ChangeLogItem({ log, canEdit, revertingEntryId, onRevert }: ChangeLogIt
                             </Table.Tr>
                         ))}
                     </Table.Tbody>
-                </Table>
+                </ResponsiveTable>
             </Accordion.Panel>
         </Accordion.Item>
     );
@@ -236,7 +237,7 @@ function TextChangeLogItem({ log }: TextChangeLogItemProps) {
             <Accordion.Control>{summary}</Accordion.Control>
             <Accordion.Panel>
                 {log.entries.length > 0 ? (
-                    <Table striped withTableBorder fz="sm">
+                    <ResponsiveTable minWidth={640} striped withTableBorder fz="sm">
                         <Table.Thead>
                             <Table.Tr>
                                 <Table.Th>Feld</Table.Th>
@@ -253,7 +254,7 @@ function TextChangeLogItem({ log }: TextChangeLogItemProps) {
                                 </Table.Tr>
                             ))}
                         </Table.Tbody>
-                    </Table>
+                    </ResponsiveTable>
                 ) : (
                     <Text size="sm" c="dimmed">
                         Keine Felddetails verfügbar.

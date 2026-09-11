@@ -13,6 +13,17 @@ section as part of the release commit, immediately before tagging.
 ## [Unreleased]
 
 ### Added
+- **The whole application is now usable on a smartphone.** Every route is laid out for screens from
+  360 px up: the page itself never scrolls sideways, data tables scroll inside their own card (new
+  `ResponsiveTable`), and dialogs and drawers take the full width on a phone. The map fills the
+  visible viewport with the search as a slim strip on top; project groups, layer switches and the
+  line/point sliders moved into a bottom sheet ("Karte einstellen"). The constituency panel becomes
+  a bottom sheet, the project detail page puts its secondary actions into a ⋮ menu and stacks
+  label/value rows, and the geometry editor places its control panel above the map instead of
+  beside it. Two shared breakpoints (`useIsMobile` < 48em, `useIsCompact` < 62em) and new layout
+  tokens (`--page-pad`, `--card-pad`, `--map-height`) steer this centrally; the main navigation now
+  collapses into the burger at 62em instead of 100em. See
+  `docs/features/feature-mobile-usability.md`.
 - The map now draws the **railway network as a background layer** (OpenRailwayMap tiles) beneath
   the project geometries, so a project is read against the network it runs on. A "Strecken" switch
   in the map controls toggles it, `?strecken=0` carries the off state in a shared link, and the

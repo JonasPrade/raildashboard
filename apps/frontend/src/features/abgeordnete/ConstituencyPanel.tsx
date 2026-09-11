@@ -6,6 +6,7 @@ import { Anchor, CloseButton, Group, Loader, ScrollArea, Stack, Text } from "@ma
 import { Link } from "react-router-dom";
 
 import { ChronicleDataChip } from "../../components/chronicle";
+import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { useConstituency } from "../../shared/api/queries";
 import { MandateGroup, formatWeight } from "./mandateDisplay";
 
@@ -17,16 +18,19 @@ export default function ConstituencyPanel({
     onClose: () => void;
 }) {
     const { data, isLoading } = useConstituency(constituencyId);
+    // On a phone the panel is a bottom sheet across the full width — a 340px
+    // box pinned to the top-left would cover the constituency it describes.
+    const isMobile = useIsMobile();
 
     return (
         <div
             style={{
                 position: "absolute",
-                top: 12,
-                left: 12,
+                ...(isMobile
+                    ? { left: 0, right: 0, bottom: 0, maxHeight: "60%" }
+                    : { top: 12, left: 12, width: 340, maxHeight: "calc(100% - 24px)" }),
                 zIndex: 10,
-                width: 340,
-                maxHeight: "calc(100% - 24px)",
+                overflowY: "auto",
                 background: "rgba(255, 255, 255, 0.95)",
                 backdropFilter: "blur(20px)",
                 WebkitBackdropFilter: "blur(20px)",
@@ -55,7 +59,7 @@ export default function ConstituencyPanel({
                         <CloseButton onClick={onClose} aria-label="Wahlkreis schließen" />
                     </Group>
 
-                    <ScrollArea.Autosize mah={420}>
+                    <ScrollArea.Autosize mah={isMobile ? 260 : 420}>
                         <Stack gap="md" pr="xs">
                             <Stack gap={4}>
                                 <Group gap="xs" align="baseline">

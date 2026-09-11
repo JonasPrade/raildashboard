@@ -23,6 +23,7 @@ import { useDisclosure } from "@mantine/hooks";
 import { IconHelp, IconSearch, IconX } from "@tabler/icons-react";
 import { useSearchParams } from "react-router-dom";
 
+import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import GroupFilterDrawer, { type ProjectGroupOption } from "../projects/GroupFilterDrawer";
 import { ProjectCard } from "../projects/ProjectCard";
 import ConstituencyPanel from "../abgeordnete/ConstituencyPanel";
@@ -48,6 +49,7 @@ const DEFAULT_LINE_WIDTH = 4;
 const DEFAULT_POINT_SIZE = 5;
 
 export default function MapPage() {
+    const isMobile = useIsMobile();
     const [opened, { open, close }] = useDisclosure(false);
     const { data, isLoading, isError, error } = useProjectGroups();
     const { data: appSettings } = useAppSettings();
@@ -207,12 +209,13 @@ export default function MapPage() {
     };
 
     const viewToggle = (
-        <Group justify="center" pb="sm" gap="xs">
+        <Group justify="center" pb="sm" gap="xs" wrap="nowrap">
             <SegmentedControl
                 value={view}
                 onChange={handleViewChange}
                 size="md"
-                style={{ minWidth: 280 }}
+                fullWidth={isMobile}
+                style={isMobile ? { flex: 1, minWidth: 0 } : { minWidth: 280 }}
                 data={[
                     { value: "map", label: "Karte" },
                     { value: "list", label: "Liste" },
@@ -284,7 +287,7 @@ export default function MapPage() {
         }));
 
         return (
-            <Container size="xl" py="xl">
+            <Container size="xl" py={{ base: "md", sm: "xl" }} px={{ base: 0, sm: "md" }}>
                 <Stack gap="xl">
                     {viewToggle}
                     <Stack gap={6}>
@@ -307,7 +310,7 @@ export default function MapPage() {
                     </Stack>
 
                     <Stack gap="sm">
-                        <Group align="flex-end" gap="md">
+                        <Group align="flex-end" gap="md" wrap="wrap">
                             <Select
                                 label="Projektgruppe"
                                 placeholder="Projektgruppe wählen"
@@ -319,7 +322,7 @@ export default function MapPage() {
                                 nothingFoundMessage={isLoading ? "Lade…" : "Keine Projektgruppen gefunden"}
                                 searchable
                                 clearable
-                                style={{ flex: 1 }}
+                                style={{ flex: "1 1 220px", minWidth: 0 }}
                             />
                             <TextInput
                                 label="Suche"
@@ -334,7 +337,7 @@ export default function MapPage() {
                                 }
                                 value={localSearch}
                                 onChange={(e) => setLocalSearch(e.currentTarget.value)}
-                                style={{ flex: 1 }}
+                                style={{ flex: "1 1 220px", minWidth: 0 }}
                             />
                             <Switch
                                 label="Nur Hauptprojekte"
@@ -342,6 +345,7 @@ export default function MapPage() {
                                 onChange={(e) => handleOnlySuperiorChange(e.currentTarget.checked)}
                                 size="sm"
                                 pb={6}
+                                style={{ flex: "0 0 auto" }}
                             />
                         </Group>
                         {errorMessage && (
@@ -407,12 +411,13 @@ export default function MapPage() {
                             <Group
                                 justify="space-between"
                                 align="center"
-                                wrap="nowrap"
+                                wrap="wrap"
+                                gap="sm"
                                 style={{
                                     background: "var(--bg2)",
                                     border: "1px solid var(--rule)",
                                     borderLeft: "3px solid var(--info)",
-                                    padding: "16px 20px",
+                                    padding: "var(--card-pad)",
                                 }}
                             >
                                 <Group gap="md" align="center" wrap="nowrap">
@@ -483,7 +488,7 @@ export default function MapPage() {
     // --- Map view (default) ---
     return (
         <>
-            <Container size="xl">
+            <Container size="xl" px={{ base: 0, sm: "md" }}>
                 {viewToggle}
                 <Box style={{ position: "relative" }}>
                     <MapView

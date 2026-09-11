@@ -33,6 +33,9 @@ The map view expects a raster tile URL provided via `REACT_APP_TILE_LAYER_URL`, 
 │   ├── features/          # Domain-specific feature modules (map, projects, documentation …)
 │   ├── lib/               # Utilities and infrastructure
 │   ├── shared/            # Modules shared across features
+│   │   ├── api/           # Generated types + react-query hooks (queries.ts)
+│   │   ├── hooks/         # Cross-feature hooks (useBreakpoint: useIsMobile/useIsCompact)
+│   │   └── ui/            # Cross-feature UI primitives (ResponsiveTable)
 │   ├── theme.ts           # Mantine theme configuration
 │   └── router.tsx         # Route definitions
 ├── README.md              # This document
@@ -51,6 +54,29 @@ The map view expects a raster tile URL provided via `REACT_APP_TILE_LAYER_URL`, 
 | `maplibre-gl` | Map rendering for the map view and the geometry editor preview |
 | `terra-draw` + `terra-draw-maplibre-gl-adapter` | Interactive hand-drawing of lines/points in the geometry editor (`GeometryPreviewMap`) |
 | `axios` | HTTP client (configured in `shared/api/client.gen.ts`) — note: manual API calls use the custom `fetch`-based wrapper in `shared/api/client.ts` |
+
+## Responsive layout (smartphone support)
+
+Every route has to work on a 360 px screen. The rules — plan and per-surface behaviour in
+[`docs/features/feature-mobile-usability.md`](../../docs/features/feature-mobile-usability.md):
+
+- **Two breakpoints, no more.** `useIsMobile()` (< 48em, phone) and `useIsCompact()` (< 62em, phone
+  or small tablet) from `shared/hooks/useBreakpoint.ts`; the same two values are used in
+  `app.css` and `tokens.css`. Prefer Mantine's responsive props (`SimpleGrid cols={{ base, sm }}`,
+  `Grid.Col span={{ … }}`, `visibleFrom`/`hiddenFrom`) for pure layout and the hooks only when the
+  rendered tree itself differs (bottom sheet vs. floating panel).
+- **Layout tokens instead of pixels.** `--page-pad`, `--card-pad`, `--map-height` and
+  `--map-height-detail` (in `components/chronicle/tokens.css`) shrink on phones; read the token
+  rather than hard-coding a value.
+- **Data tables use `shared/ui/ResponsiveTable`**, never a bare `<Table>`: it wraps the table in a
+  `Table.ScrollContainer`, so a wide table scrolls inside its card instead of widening the page.
+  `Table.Thead`/`Tbody`/`Tr`/`Td` children stay unchanged.
+- **Drawers pass `size={isMobile ? "100%" : …}`**; modals become full-width through the mobile CSS
+  layer in `app.css` — no per-modal change needed.
+- **Filter rows wrap**, they never scroll: `Group … wrap="wrap"` with `flex="1 1 <basis>"` on the
+  inputs.
+- The mobile CSS layer in `src/app.css` also keeps form controls at 16 px (iOS zoom), guarantees
+  touch targets on coarse pointers, and hyphenates long German headings.
 
 ## Notable features and components
 

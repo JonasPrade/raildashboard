@@ -12,6 +12,7 @@ import {
     Switch,
     Text,
 } from "@mantine/core";
+import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
 
@@ -73,6 +74,7 @@ export default function GeometryEditor({
     height = "100%",
     subProjectCount = 0,
 }: Props) {
+    const isMobile = useIsMobile();
     const projectId = project.id as number;
 
     const [deleteExisting, setDeleteExisting] = useState(false);
@@ -340,15 +342,30 @@ export default function GeometryEditor({
     const isDeleteOnly = deleteExisting && !previewFeature && !uploadedGeojson && !hasPoints && !hasDrawn;
 
     return (
-        <Group align="stretch" gap={0} wrap="nowrap" style={{ width: "100%", height }}>
-            {/* ── Left panel: controls ────────────────────────────────── */}
+        <Group
+            align="stretch"
+            gap={0}
+            wrap="nowrap"
+            // Side by side needs ~700px — on a phone the controls sit above the map.
+            style={{ width: "100%", height, flexDirection: isMobile ? "column" : "row" }}
+        >
+            {/* ── Left panel (top on phones): controls ────────────────── */}
             <Box
                 style={{
-                    width: 380,
-                    minWidth: 320,
-                    borderRight: "1px solid var(--mantine-color-default-border)",
                     display: "flex",
                     flexDirection: "column",
+                    ...(isMobile
+                        ? {
+                              width: "100%",
+                              flex: "0 1 auto",
+                              maxHeight: "50%",
+                              borderBottom: "1px solid var(--mantine-color-default-border)",
+                          }
+                        : {
+                              width: 380,
+                              minWidth: 320,
+                              borderRight: "1px solid var(--mantine-color-default-border)",
+                          }),
                 }}
             >
                 <ScrollArea style={{ flex: 1 }} p="md">
@@ -616,8 +633,8 @@ export default function GeometryEditor({
                 </Box>
             </Box>
 
-            {/* ── Right panel: map ────────────────────────────────────── */}
-            <Box style={{ flex: 1, position: "relative", minWidth: 0 }}>
+            {/* ── Right panel (below on phones): map ──────────────────── */}
+            <Box style={{ flex: 1, position: "relative", minWidth: 0, minHeight: isMobile ? 240 : undefined }}>
                 <GeometryPreviewMap
                     existingGeojson={project.geojson_representation ?? null}
                     previewFeature={previewFeature ?? (uploadedGeojson ? buildUploadPreview(uploadedGeojson) : null)}
