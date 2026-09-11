@@ -13,12 +13,6 @@ section as part of the release commit, immediately before tagging.
 ## [Unreleased]
 
 ### Added
-- The map now draws the **railway network as a background layer** (OpenRailwayMap tiles) beneath
-  the project geometries, so a project is read against the network it runs on. A "Strecken" switch
-  in the map controls toggles it, `?strecken=0` carries the off state in a shared link, and the
-  geometry editor shows the network permanently. The tile source is configurable via
-  `REACT_APP_RAILWAY_TILE_LAYER_URL` (`off` disables the overlay); see
-  `docs/features/feature-strecken-hintergrund.md`.
 - The Haushalt import now reads **all five tables** of Annex VWIB Part B, not just the Bedarfsplan
   table: Lärmsanierung, ERTMS, Kleine und Mittlere Maßnahmen and the InvKG measures are imported as
   their own sections, each with its own column mapping, and shown as separate blocks in the review.

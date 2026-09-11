@@ -21,8 +21,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Project route geometries rendered from each project's `geojson_representation` field",
             "Hover interactions that highlight routes and show pointer feedback",
             "Route click popover with project title and direct navigation action",
-            "Railway network as a switchable background layer (OpenRailwayMap), on by default and shared via the `strecken` query parameter",
-            "Raster tiles configured via the REACT_APP_TILE_LAYER_URL and REACT_APP_RAILWAY_TILE_LAYER_URL environment variables"
+            "Raster tiles configured via the REACT_APP_TILE_LAYER_URL environment variable"
         ]
     },
     {

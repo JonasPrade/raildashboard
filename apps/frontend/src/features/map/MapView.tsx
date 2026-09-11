@@ -5,7 +5,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import type { ConstituencyFeatureCollection, Project } from "../../shared/api/queries";
 import ProjectSummaryCard from "../projects/ProjectSummaryCard";
 import { ChronicleButton } from "../../components/chronicle";
-import { railwayStyleParts, setRailwayVisibility } from "../../shared/map/railwayTiles";
 
 const tileLayerUrl = import.meta.env.REACT_APP_TILE_LAYER_URL as string | undefined;
 const tileAttribution =
@@ -157,8 +156,6 @@ type Props = {
     clickable?: boolean;
     /** Initial map center [longitude, latitude]. Overrides the default Germany center. */
     initialCenter?: [number, number] | null;
-    /** Railway network (OpenRailwayMap) as a switchable background layer. Standard: true */
-    showRailwayLines?: boolean;
     /** Constituency outlines as a switchable background layer (© GeoBasis-DE / BKG). */
     constituencies?: ConstituencyFeatureCollection | null;
     /** Called with the clicked constituency id, or null when the click missed. */
@@ -180,7 +177,6 @@ export default function MapView({
     height = 800,
     clickable = true,
     initialCenter,
-    showRailwayLines = true,
     constituencies = null,
     onConstituencySelect,
     selectedConstituencyId = null,
@@ -243,16 +239,10 @@ export default function MapView({
         };
     }, [projects]);
 
-    // The map is built once; the current switch state seeds the initial layer
-    // visibility without pulling the prop into the init effect's dependencies.
-    const showRailwayLinesRef = useRef(showRailwayLines);
-
     useEffect(() => {
         if (!tileLayerUrl || !mapContainerRef.current) {
             return undefined;
         }
-
-        const railway = railwayStyleParts(showRailwayLinesRef.current);
 
         const mapInstance = new maplibregl.Map({
             container: mapContainerRef.current,
@@ -265,7 +255,6 @@ export default function MapView({
                         tileSize: 256,
                         attribution: tileAttribution,
                     },
-                    ...railway.sources,
                     constituencies: {
                         type: "geojson",
                         data: { type: "FeatureCollection", features: [] },
@@ -285,9 +274,6 @@ export default function MapView({
                         type: "raster",
                         source: "basemap",
                     },
-                    // Directly above the basemap: the railway network is the
-                    // backdrop every other layer is read against.
-                    ...railway.layers,
                     // Below the project layers on purpose: the outlines are
                     // context, the projects are the subject.
                     {
@@ -496,15 +482,6 @@ export default function MapView({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (pointSource) pointSource.setData(pointFeatureCollection as any);
     }, [lineFeatureCollection, pointFeatureCollection, isMapReady]);
-
-    // Railway overlay: pure visibility toggle, the tiles come from the source.
-    useEffect(() => {
-        showRailwayLinesRef.current = showRailwayLines;
-        if (!isMapReady) return;
-        const mapInstance = mapInstanceRef.current;
-        if (!mapInstance) return;
-        setRailwayVisibility(mapInstance, showRailwayLines);
-    }, [showRailwayLines, isMapReady]);
 
     // Constituency layer: data, visibility and the selected outline.
     useEffect(() => {
