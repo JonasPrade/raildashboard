@@ -23,6 +23,7 @@ import {
     useVibDrafts,
     useDeleteVibDraft,
 } from "../../shared/api/queries";
+import { exceedsUploadLimit, tooLargeMessage, uploadErrorMessage } from "../../shared/api/uploads";
 import { TaskProgressIndicator, useImportTask } from "../import-review/shared";
 import { formatDateNumeric, formatDateTime } from "../../shared/format";
 
@@ -56,6 +57,10 @@ function VibImportPageContent() {
 
     const handleUpload = async () => {
         if (!file) return;
+        if (exceedsUploadLimit(file)) {
+            notifications.show({ color: "red", title: "Datei zu groß", message: tooLargeMessage(file) });
+            return;
+        }
         try {
             const { task_id } = await startImport.mutateAsync({
                 pdf: file,
@@ -65,8 +70,8 @@ function VibImportPageContent() {
                 stripHeadersFooters,
             });
             task.start(task_id);
-        } catch {
-            notifications.show({ color: "red", message: "Upload fehlgeschlagen." });
+        } catch (error) {
+            notifications.show({ color: "red", message: uploadErrorMessage(error) });
         }
     };
 

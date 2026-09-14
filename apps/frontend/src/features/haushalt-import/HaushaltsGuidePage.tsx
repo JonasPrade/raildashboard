@@ -25,7 +25,7 @@ Diese Anlage wird jährlich zusammen mit dem Bundeshaushaltsentwurf veröffentli
             title: "PDF hochladen und parsen",
             body: `Gehe zu [Haushalts-Import](/admin/haushalt-import).
 
-1. Klicke auf „PDF auswählen…" und wähle die heruntergeladene VWIB-Teil-B-Datei aus.
+1. Klicke auf „PDF auswählen…" und wähle die heruntergeladene VWIB-Teil-B-Datei aus. Pro Upload sind **50 MB** möglich; Teil B liegt bei wenigen Megabyte.
 2. Trage das **Haushaltsjahr** ein (z. B. 2027). Dieses Jahr wird für die Zuordnung der Sammel-FinVes genutzt und sollte dem Jahr des PDFs entsprechen.
 3. Klicke auf **„PDF parsen"**. Der Server extrahiert die Tabelle mit pdfplumber und analysiert alle Zeilen im Hintergrund.
 4. Während des Parsens wird ein Fortschrittsbalken angezeigt (Seite X / Gesamtseiten, Anzahl gefundener Zeilen). Bei großen PDFs kann das einige Sekunden dauern.
