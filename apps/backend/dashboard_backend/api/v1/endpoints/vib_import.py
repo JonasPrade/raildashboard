@@ -7,7 +7,11 @@ from fastapi import Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
 from sqlalchemy.orm import Session, joinedload, selectinload
 
-from dashboard_backend.api.deps import get_draft_or_404, get_parse_draft_or_404
+from dashboard_backend.api.deps import (
+    get_draft_or_404,
+    get_parse_draft_or_404,
+    read_upload_within_limit,
+)
 from dashboard_backend.celery_app import celery_app
 from dashboard_backend.core.config import settings
 from dashboard_backend.core.security import require_permission
@@ -113,7 +117,7 @@ async def start_vib_parse(
 
     Returns the Celery task_id for polling via GET /api/v1/tasks/{task_id}.
     """
-    pdf_bytes = await pdf.read()
+    pdf_bytes = await read_upload_within_limit(pdf)
     user_info = {"id": current_user.id, "username": current_user.username}
     result = parse_vib_pdf.delay(
         pdf_bytes, year, pdf.filename or "upload.pdf", user_info,

@@ -73,6 +73,11 @@ section as part of the release commit, immediately before tagging.
   the new capability `parliament.import`.
 
 ### Changed
+- The 50 MB upload ceiling is enforced in one place per side instead of per endpoint. The Haushalt,
+  VIB and Fulda parse endpoints previously read their PDF with no limit at all — only the text
+  attachment upload checked one — and now share `deps.read_upload_within_limit`; the frontend shares
+  `shared/api/uploads.ts` for the pre-flight check and the error text.
+
 - The Haushalt import keeps taking its numbers from pdfplumber. The comparison against the real OCR
   API has now been run (EP 12 Part B, 2027 draft, `mistral-ocr-latest`) and came back red: 141 rows
   from pdfplumber against 107 from the OCR stage, 79 differing values. The model omits the `YYY`
@@ -84,6 +89,17 @@ section as part of the release commit, immediately before tagging.
   Full evaluation in `docs/features/feature-pdf-import-unification.md`.
 
 ### Fixed
+- Uploading Annex VWIB Part B (3.6 MB) failed with `413 Request Entity Too Large` before the request
+  ever reached the application. The TLS proxy in front of the Docker stack carried no
+  `client_max_body_size`, so nginx applied its 1 MB default while the container nginx and the backend
+  both allowed 50 MB. The limit is now documented as one value across all three layers
+  (`docs/production_setup.md` → Deploy-Vertrag and both TLS options); the server-side configuration
+  is a manual step on the host, not part of the image.
+- The PDF importers reported every upload failure as a bare "Upload fehlgeschlagen.", which hid the
+  cause: a proxy answers `413` with an HTML page, so the status code was the only signal and it was
+  discarded. Haushalt, VIB and Fulda now name the size limit when the upload is rejected for it, and
+  check the file against the limit before sending it at all.
+
 - A measure's Mittelherkunft — which Haushaltstitel funds how much of it — no longer loses values.
   The report prints one line per Titel, but `extract_table` keeps only the non-empty lines of each
   column, so a column printed on the measure's line and on the last Titel's line arrived as a single

@@ -84,6 +84,7 @@ Build und Betrieb sind getrennte Welten: **GitHub Actions baut** unveränderlich
 | Release-Pin | `IMAGE_TAG` in `.env` (früher `APP_VERSION`); `deploy.sh` setzt ihn automatisch |
 | Health-URL (Erfolgskriterium) | Backend-Healthcheck auf `http://backend:8000/api/v1/health` (200 erst nach Alembic + uvicorn); extern `curl http://localhost/api/v1/health` |
 | Deploy-User | Eingeschränkter `deploy`-User, dem `/srv/raildashboard/` gehört; Docker-Rechte nötig |
+| Upload-Limit | 50 MB, in drei Schichten gleich: vorgelagerter TLS-Proxy (`client_max_body_size 50m`), Container-nginx (`apps/frontend/nginx.conf`), Backend (`MAX_FILE_SIZE`). Fehlt sie im Proxy, gilt dessen Default von 1 MB und Import-PDFs scheitern mit `413`. |
 
 ### Ablauf des Deploy-Schritts (in `deploy.sh`, identisch bei Pipeline und manuell)
 
@@ -164,6 +165,14 @@ gehashten Vite-Assets unter `/assets/` mit `Cache-Control: … immutable` aus
 startet uvicorn mit `--workers 2` (`apps/backend/Dockerfile`), damit synchrone
 Import-/Extraktions-Requests andere Anfragen nicht serialisieren. Ein
 vorgelagerter TLS-Proxy braucht daher selbst kein gzip/Caching zu übernehmen.
+
+**Upload-Limit — drei Stellen, ein Wert.** Der Container-nginx erlaubt
+`client_max_body_size 50m`, das Backend weist alles darüber mit `413` ab
+(`utils/file_storage.MAX_FILE_SIZE`). Ein vorgelagerter Proxy muss denselben Wert
+tragen, sonst greift *sein* Default: nginx lässt ohne die Direktive nur **1 MB**
+durch und beantwortet z. B. den Haushaltsbericht Teil B (≈ 3,6 MB) mit
+`413 Request Entity Too Large`, bevor der Request die Anwendung überhaupt
+erreicht. Caddy hat kein solches Default-Limit.
 
 ### Voraussetzungen
 
@@ -380,7 +389,9 @@ deine-domain.de {
 }
 ```
 
-Caddy bezieht und erneuert Let's Encrypt-Zertifikate automatisch.
+Caddy bezieht und erneuert Let's Encrypt-Zertifikate automatisch. Caddy begrenzt
+den Request-Body nicht von sich aus — ein eigenes `request_body max_size` also nur
+setzen, wenn es bewusst enger als 50 MB sein soll.
 
 **Option B – nginx + Certbot:**
 
@@ -389,6 +400,26 @@ Caddy bezieht und erneuert Let's Encrypt-Zertifikate automatisch.
 certbot --nginx -d deine-domain.de
 # Automatische Erneuerung via systemd-Timer ist nach certbot-Installation aktiv
 ```
+
+certbot schreibt nur die TLS-Zeilen in den Server-Block — das Upload-Limit muss
+von Hand nachgetragen werden, sonst bleibt es beim nginx-Default von 1 MB:
+
+```nginx
+server {
+    server_name deine-domain.de;
+    client_max_body_size 50m;   # deckungsgleich mit apps/frontend/nginx.conf
+
+    location / {
+        proxy_pass http://localhost:5000;
+        # …
+    }
+    # … listen/ssl_* von certbot …
+}
+```
+
+Danach `sudo nginx -t && sudo systemctl reload nginx`. Ob die *laufende*
+Konfiguration die Direktive trägt — nicht nur die Datei — zeigt
+`sudo nginx -T | grep client_max_body_size`.
 
 Danach `BACKEND_CORS_ORIGINS` in `.env` auf die HTTPS-URL aktualisieren und den Stack neu starten:
 
@@ -590,6 +621,10 @@ Beispielkonfiguration für nginx — Backend unter `/api/`, Frontend-Build als s
 server {
     listen 443 ssl;
     server_name deine-domain.de;
+
+    # Ohne diese Zeile greift der nginx-Default von 1 MB und große
+    # Import-PDFs scheitern mit 413.
+    client_max_body_size 50m;
 
     # Frontend (statische Dateien aus apps/frontend/dist)
     root /opt/raildashboard/apps/frontend/dist;

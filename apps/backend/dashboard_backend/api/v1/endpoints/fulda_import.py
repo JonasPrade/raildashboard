@@ -10,6 +10,7 @@ from __future__ import annotations
 from fastapi import Depends, File, Form, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
 
+from dashboard_backend.api.deps import read_upload_within_limit
 from dashboard_backend.core.security import require_permission
 from dashboard_backend.crud import fulda as fulda_crud
 from dashboard_backend.crud._importer_common import ProjectNotFoundError
@@ -41,7 +42,7 @@ async def parse_fulda(
     Returns the Celery task_id for polling via GET /api/v1/tasks/{task_id};
     the task result is the summary ``{ocr_status, created, source_label}``.
     """
-    pdf_bytes = await pdf.read()
+    pdf_bytes = await read_upload_within_limit(pdf)
     if not pdf_bytes:
         raise HTTPException(status_code=400, detail="Leere Datei")
     user_info = {"id": current_user.id, "username": current_user.username}

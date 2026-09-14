@@ -25,6 +25,7 @@ import {
     useParseFulda,
     queryKeys,
 } from "../../shared/api/queries";
+import { exceedsUploadLimit, tooLargeMessage, uploadErrorMessage } from "../../shared/api/uploads";
 import { useImportTask } from "../import-review/shared";
 
 export default function FuldaImportPage() {
@@ -63,15 +64,19 @@ export default function FuldaImportPage() {
 
     const handleParse = () => {
         if (!file) return;
+        if (exceedsUploadLimit(file)) {
+            notifications.show({ color: "red", title: "Datei zu groß", message: tooLargeMessage(file) });
+            return;
+        }
         parse.mutate(
             { file, year: importYear },
             {
                 onSuccess: (launch) => task.start(launch.task_id),
-                onError: () =>
+                onError: (error) =>
                     notifications.show({
                         color: "red",
                         title: "Auswertung fehlgeschlagen",
-                        message: "Das PDF konnte nicht hochgeladen werden.",
+                        message: uploadErrorMessage(error, "Das PDF konnte nicht hochgeladen werden."),
                     }),
             },
         );
