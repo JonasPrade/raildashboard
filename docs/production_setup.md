@@ -340,6 +340,29 @@ Der Backend-Container führt beim Start automatisch `alembic upgrade head` aus (
 make docker-migrate
 ```
 
+### Hängt ein Import? Worker prüfen
+
+Importe (Haushalt, VIB, Fulda, Bauportal) laufen als Celery-Aufträge. Läuft kein Worker, nimmt die
+Anwendung den Upload trotzdem an — Celery meldet dauerhaft `PENDING` und die Import-Seite wartet
+endlos. Die Oberfläche benennt diesen Fall selbst: Die Import-Seite zeigt nach ~15 s
+den Grund, und **Administration → Systemstatus** (`/admin/system`, Recht `settings.manage`) zeigt
+Broker, Worker und Warteschlange direkt an. Dieselbe Auskunft per API:
+
+```bash
+curl -u <user>:<pass> http://localhost/api/v1/tasks/workers
+```
+
+Auf dem Server nachsehen und neu starten:
+
+```bash
+docker compose --env-file .env ps worker
+docker compose --env-file .env logs --tail=50 worker
+docker compose --env-file .env up -d worker
+```
+
+Ein Auftrag, der während eines Worker-Neustarts hochgeladen wurde, ist verloren — die Datei danach
+einfach erneut hochladen.
+
 ### Tägliches Backup via Docker
 
 ```bash

@@ -49,6 +49,7 @@ export const queryKeys = {
     haushaltUnmatched: ["haushalt-unmatched"],
     haushaltUnmatchedFor: (resolved?: boolean) => ["haushalt-unmatched", resolved] as const,
     taskStatus: (taskId: string | null) => ["task-status", taskId] as const,
+    workerHealth: ["worker-health"],
     vibParseResult: (taskId: string | null) => ["vib-parse-result", taskId] as const,
     vibReports: ["vib-reports"],
     vibDrafts: ["vib-drafts"],
@@ -866,6 +867,29 @@ export type TaskProgressMeta = {
 };
 
 export type TaskStatusResponse = components["schemas"]["TaskStatusResponse"];
+export type WorkerHealth = components["schemas"]["WorkerHealthSchema"];
+
+/**
+ * Broker and Celery workers — the check behind „läuft im Hintergrund überhaupt
+ * jemand?". Polls slowly on its own so an open admin page stays current, and
+ * `refresh` forces a fresh probe past the backend's short-lived cache.
+ */
+export function useWorkerHealth(enabled = true, refetchMs: number | false = 15000) {
+    return useQuery({
+        queryKey: queryKeys.workerHealth,
+        queryFn: () => api<WorkerHealth>("/api/v1/tasks/workers"),
+        enabled,
+        refetchInterval: refetchMs,
+    });
+}
+
+export function useRecheckWorkerHealth() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: () => api<WorkerHealth>("/api/v1/tasks/workers?refresh=true"),
+        onSuccess: (data) => qc.setQueryData(queryKeys.workerHealth, data),
+    });
+}
 
 export function useParseResults() {
     return useQuery({

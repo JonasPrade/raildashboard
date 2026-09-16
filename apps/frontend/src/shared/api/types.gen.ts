@@ -804,6 +804,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tasks/workers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Worker Health
+         * @description Broker and Celery workers right now — the admin area's health check.
+         *
+         *     ``refresh=true`` bypasses the short-lived cache the status polling shares,
+         *     so the "Erneut prüfen" button really re-probes.
+         */
+        get: operations["get_worker_health_api_v1_tasks_workers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tasks/{task_id}": {
         parameters: {
             query?: never;
@@ -4708,6 +4731,8 @@ export interface components {
             result?: unknown;
             /** Error */
             error?: string | null;
+            /** Hint */
+            hint?: string | null;
         };
         /** TextAttachmentSchema */
         TextAttachmentSchema: {
@@ -5550,6 +5575,51 @@ export interface components {
             lat: number;
             /** Lon */
             lon: number;
+        };
+        /**
+         * WorkerHealthSchema
+         * @description Broker and workers at one moment — the answer to "läuft da überhaupt was?".
+         */
+        WorkerHealthSchema: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "no_workers" | "broker_unreachable";
+            /** Broker Reachable */
+            broker_reachable: boolean;
+            /** Broker Url */
+            broker_url: string;
+            /**
+             * Workers
+             * @default []
+             */
+            workers: components["schemas"]["WorkerSchema"][];
+            /** Queued Tasks */
+            queued_tasks?: number | null;
+            /** Message */
+            message: string;
+            /** Detail */
+            detail?: string | null;
+            /** Checked At */
+            checked_at: number;
+        };
+        /**
+         * WorkerSchema
+         * @description One Celery worker that answered the broadcast ping.
+         */
+        WorkerSchema: {
+            /** Name */
+            name: string;
+            /** Active Tasks */
+            active_tasks: number;
+            /**
+             * Active Task Names
+             * @default []
+             */
+            active_task_names: string[];
+            /** Concurrency */
+            concurrency?: number | null;
         };
     };
     responses: never;
@@ -7254,6 +7324,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_worker_health_api_v1_tasks_workers_get: {
+        parameters: {
+            query?: {
+                refresh?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkerHealthSchema"];
                 };
             };
             /** @description Validation Error */
