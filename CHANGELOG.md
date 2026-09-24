@@ -12,6 +12,8 @@ section as part of the release commit, immediately before tagging.
 
 ## [Unreleased]
 
+## [v0.0.13] - 2026-09-24
+
 ### Added
 - **Systemstatus der Hintergrund-Aufträge** unter `/admin/system` (Recht `settings.manage`, verlinkt
   von der Administrations-Übersicht mit Warn-Badge, sobald kein Worker läuft): Erreichbarkeit der
