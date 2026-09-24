@@ -138,8 +138,27 @@ After starting a task the API returns a `task_id`. The frontend polls:
 GET /api/v1/tasks/{task_id}
 ```
 
-Response: `{ task_id, status, result, error }` — `status` is one of `PENDING`, `STARTED`, `SUCCESS`, `FAILURE`.
+Response: `{ task_id, status, result, error, hint }` — `status` is one of `PENDING`, `STARTED`, `SUCCESS`, `FAILURE`.
 Both endpoints require a logged-in user.
+
+`hint` says what the status cannot: Celery answers `PENDING` both for "queued, starting in a
+moment" and for "no worker is running" — the second leaves an import spinning forever. While a job
+is pending the endpoint therefore consults the worker health (see below) and returns the reason plus
+the command to check it; on `FAILURE` it returns the exception class, its message and the file/line
+it was raised in, so the worker log can be searched straight away.
+
+### Worker health
+
+```
+GET /api/v1/tasks/workers[?refresh=true]     # capability: settings.manage
+```
+
+Broker reachability, every worker that answers a broadcast ping (with what it is working on and its
+concurrency), and the Redis queue length. Backed by `services/worker_health.py`: every probe carries
+a timeout and turns a failure into a value, so the check never hangs and never raises; the broker URL
+is returned without its credentials. Results are cached for 5 s (the task polling shares that cache);
+`refresh=true` forces a fresh probe. The admin UI renders it at `/admin/system` —
+see `docs/features/feature-worker-status.md`.
 
 ### Tests
 

@@ -6,7 +6,9 @@
  */
 
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
+    Alert,
     Anchor,
     Badge,
     Button,
@@ -191,6 +193,13 @@ export function UnconfirmedFilter({
 // Upload → Celery poll → navigate state machine
 // ---------------------------------------------------------------------------
 
+/**
+ * A job still unstarted after this long is not merely queued — most likely no
+ * worker is running. Long enough that a healthy stack never shows the warning,
+ * short enough that nobody stares at a dead spinner for minutes.
+ */
+const STUCK_AFTER_MS = 12_000;
+
 export function useImportTask({
     onSuccess,
     onFailure,
@@ -201,22 +210,28 @@ export function useImportTask({
     onFailure?: (error: string | null) => void;
 }) {
     const [taskId, setTaskId] = useState<string | null>(null);
+    const [startedAt, setStartedAt] = useState<number | null>(null);
     const taskStatus = useTaskStatus(taskId);
 
     useEffect(() => {
         if (!taskId || !taskStatus.data) return;
-        const { status, result } = taskStatus.data;
+        const { status, result, hint } = taskStatus.data;
         if (status === "SUCCESS") {
             onSuccess(result, taskId);
         } else if (status === "FAILURE") {
             const error = taskStatus.data.error ?? null;
             setTaskId(null);
+            setStartedAt(null);
             if (onFailure) {
                 onFailure(error);
             } else {
                 notifications.show({
                     color: "red",
-                    message: `Parser-Fehler: ${error ?? "Unbekannter Fehler"}`,
+                    title: "Parser-Fehler",
+                    // The backend names the exception and where it was raised;
+                    // the hint says where the full traceback is.
+                    message: [error ?? "Unbekannter Fehler", hint].filter(Boolean).join(" "),
+                    autoClose: false,
                 });
             }
         }
@@ -229,7 +244,29 @@ export function useImportTask({
             ? (taskStatus.data.result as TaskProgressMeta | null)
             : null;
 
-    return { taskId, start: setTaskId, reset: () => setTaskId(null), isRunning, progress };
+    // Why nothing is happening: the backend sets `hint` while a job waits
+    // without a worker. Shown only after the grace period, because a healthy
+    // worker needs a moment to pick the job up.
+    const stuckFor = startedAt !== null && Date.now() - startedAt > STUCK_AFTER_MS;
+    const warning =
+        taskStatus.data?.status === "PENDING" && stuckFor
+            ? taskStatus.data.hint ?? null
+            : null;
+
+    return {
+        taskId,
+        start: (id: string) => {
+            setTaskId(id);
+            setStartedAt(Date.now());
+        },
+        reset: () => {
+            setTaskId(null);
+            setStartedAt(null);
+        },
+        isRunning,
+        progress,
+        warning,
+    };
 }
 
 function defaultProgressLabel(progress: TaskProgressMeta | null): string {
@@ -244,12 +281,15 @@ export function TaskProgressIndicator({
     progress,
     label,
     animated,
+    warning,
 }: {
     progress: TaskProgressMeta | null;
     /** Override the default step/page label. */
     label?: string;
     /** Override the default "animate while indeterminate" behavior. */
     animated?: boolean;
+    /** Why the job has not started — from `useImportTask().warning`. */
+    warning?: string | null;
 }) {
     const value =
         progress?.current_page != null && progress?.total_pages != null
@@ -262,6 +302,16 @@ export function TaskProgressIndicator({
                 <Text size="sm">{label ?? defaultProgressLabel(progress)}</Text>
             </Group>
             <Progress value={value} animated={animated ?? !progress} size="sm" />
+            {warning && (
+                <Alert color="orange" variant="light" title="Der Auftrag wurde noch nicht gestartet">
+                    <Stack gap={4}>
+                        <Text size="sm">{warning}</Text>
+                        <Anchor component={Link} to="/admin/system" size="sm">
+                            Systemstatus öffnen →
+                        </Anchor>
+                    </Stack>
+                </Alert>
+            )}
         </Stack>
     );
 }

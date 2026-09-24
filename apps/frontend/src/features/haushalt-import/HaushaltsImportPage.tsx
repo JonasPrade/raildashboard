@@ -97,14 +97,9 @@ function HaushaltsImportPageContent() {
                         </Group>
 
                         {isParsing && (
-                            <TaskProgressIndicator
-                                progress={progress}
-                                label={
-                                    progress?.current_page != null
-                                        ? `Seite ${progress.current_page} / ${progress.total_pages} — ${progress.rows_found} Zeilen gefunden`
-                                        : undefined
-                                }
-                            />
+                            // Label and step come from the task itself — the page
+                            // no longer builds its own out of the page counter.
+                            <TaskProgressIndicator progress={progress} warning={task.warning} />
                         )}
                     </Stack>
                 </ChronicleCard>

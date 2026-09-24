@@ -175,6 +175,7 @@ function VibImportPageContent() {
                             <TaskProgressIndicator
                                 progress={progress}
                                 animated={!progress || progress.step === "ocr"}
+                                warning={task.warning}
                             />
                         )}
                     </Stack>

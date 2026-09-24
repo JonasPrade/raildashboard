@@ -13,6 +13,17 @@ section as part of the release commit, immediately before tagging.
 ## [Unreleased]
 
 ### Added
+- **Systemstatus der Hintergrund-Aufträge** unter `/admin/system` (Recht `settings.manage`, verlinkt
+  von der Administrations-Übersicht mit Warn-Badge, sobald kein Worker läuft): Erreichbarkeit der
+  Warteschlange, jeder laufende Celery-Worker mit seinen aktuellen Aufträgen, Länge der
+  Warteschlange und die Befehle für den Fall, dass etwas fehlt. Neuer Endpunkt
+  `GET /api/v1/tasks/workers` (`?refresh=true` erzwingt eine frische Prüfung); jede Sonde ist mit
+  einem Timeout begrenzt, gibt Fehler als Wert statt als Ausnahme zurück und liefert die Broker-URL
+  ohne Zugangsdaten. Siehe `docs/features/feature-worker-status.md`.
+- Ein Import, den kein Worker abholt, benennt seinen Grund jetzt selbst: `GET /api/v1/tasks/{id}`
+  liefert zusätzlich ein `hint`-Feld, und die Import-Seiten (Haushalt, VIB, Fulda) zeigen es nach
+  ~12 s unter dem Fortschrittsbalken samt Link auf den Systemstatus — bis dahin sah ein hängender
+  Auftrag genauso aus wie ein langsamer, weil Celery für beides `PENDING` meldet.
 - The Haushalt import now reads **all five tables** of Annex VWIB Part B, not just the Bedarfsplan
   table: Lärmsanierung, ERTMS, Kleine und Mittlere Maßnahmen and the InvKG measures are imported as
   their own sections, each with its own column mapping, and shown as separate blocks in the review.
@@ -89,6 +100,15 @@ section as part of the release commit, immediately before tagging.
   Full evaluation in `docs/features/feature-pdf-import-unification.md`.
 
 ### Fixed
+- Die Fortschrittsanzeige des Haushalts-Imports meldete während des gesamten Laufs „0 Zeilen
+  gefunden“ — der Wert war im Backend fest auf 0 verdrahtet. Sie zählt jetzt die tatsächlich
+  gelesenen Tabellenzeilen mit, und jede Stufe nach der Textgewinnung (Spaltenzuordnung, OCR,
+  Speichern) meldet eine eigene Beschriftung, statt auf der letzten Seitenzahl stehen zu bleiben.
+- Ein fehlgeschlagener Hintergrund-Auftrag meldete nur noch `Parser-Fehler: <str(exception)>`, bei
+  einer leeren Ausnahme also gar nichts. Die Meldung nennt jetzt Fehlerklasse, Text und die Datei
+  samt Zeile, in der die Ausnahme entstanden ist, dazu den Befehl für das vollständige Worker-Log;
+  sie schließt sich nicht mehr von selbst.
+
 - Uploading Annex VWIB Part B (3.6 MB) failed with `413 Request Entity Too Large` before the request
   ever reached the application. The TLS proxy in front of the Docker stack carried no
   `client_max_body_size`, so nginx applied its 1 MB default while the container nginx and the backend

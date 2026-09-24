@@ -359,7 +359,10 @@ Neue Titel in künftigen PDFs werden automatisch registriert.
 
 ## Frontend-Features
 
-- Upload-Flow mit Celery-Polling
+- Upload-Flow mit Celery-Polling; die Fortschrittsanzeige zeigt die Stufe, die der Task meldet
+  („Seite 12 / 42 gelesen — 318 Tabellenzeilen“, „Tabellen zuordnen…“, „141 Maßnahmen — Ergebnis
+  wird gespeichert…“). Startet der Auftrag nicht (kein Worker), benennt die Seite nach ~15 s den
+  Grund und verlinkt auf `/admin/system` — siehe `docs/features/feature-worker-status.md`
 - Review-Tabelle (neu / geändert / unmatched)
 - Projektzuordnung per MultiSelect (FinVe → mehrere Projekte)
 - Separate Sektion "Sammel-FinVes (Phase 2)" mit per-Projekt-Unterzeilen + Fuzzy-Vorschlägen

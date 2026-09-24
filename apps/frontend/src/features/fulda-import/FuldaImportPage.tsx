@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
     Alert,
+    Anchor,
     Badge,
     Button,
     Container,
@@ -129,6 +130,16 @@ export default function FuldaImportPage() {
                             OCR und KI-Auswertung laufen im Hintergrund — das kann bei großen
                             PDFs einige Minuten dauern. Die Seite bleibt benutzbar.
                         </Text>
+                    )}
+                    {task.warning && (
+                        <Alert color="orange" variant="light" mt="xs" title="Der Auftrag wurde noch nicht gestartet">
+                            <Stack gap={4}>
+                                <Text size="sm">{task.warning}</Text>
+                                <Anchor component={Link} to="/admin/system" size="sm">
+                                    Systemstatus öffnen →
+                                </Anchor>
+                            </Stack>
+                        </Alert>
                     )}
                 </Paper>
 
