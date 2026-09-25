@@ -377,6 +377,28 @@ and therefore needs their geometry — but only theirs. Both exclude drafts. Rea
 > Route order matters: `/options` and `/drafts` are declared before `/{project_id}` in
 > `api/v1/endpoints/projects.py`, otherwise FastAPI captures them as a project id.
 
+### Project groups: slim list + simplified geometries
+
+```
+GET /api/v1/project_groups/                         # groups + ProjectListItem[] (no geometry)
+GET /api/v1/project_groups/{group_id}               # one group, same shape
+GET /api/v1/project_groups/{group_id}/geometries?only_superior=true
+```
+
+The list embeds `ProjectListItem` (id, name, number, parent, description, length and
+`active_features` — the names of the boolean properties that are true); the CRUD query
+uses `load_only(..., raiseload=True)`, so geometry is never loaded on that path.
+`/geometries` returns `{project_id: FeatureCollection}` for the map overview: one
+MultiLineString (simplified, 0.0002° ≈ 20 m) and one MultiPoint per project,
+coordinates rounded to ~1 m (`services/geometry_simplify.py`, memoised per process by
+source hash). With `only_superior=true` subprojects are skipped — their geometry is
+already part of their parent's. The exact geometry stays on `GET /projects/{id}`.
+
+All three send a content-hash `ETag` with `Cache-Control: no-cache` and answer
+`If-None-Match` with `304` (`core/http_cache.py`). The app compresses responses ≥ 1 KB
+with `GZipMiddleware` (`main.py`) when the client sends `Accept-Encoding: gzip`.
+See `docs/features/feature-slim-project-groups.md`.
+
 ### BVWP assessment data
 
 ```

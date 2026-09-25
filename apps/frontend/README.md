@@ -93,7 +93,9 @@ Layout: Mantine `Tabs` with up to 11 groups — **Grunddaten** (NKV shown as `Ba
 
 ### Project search (`features/map/MapPage.tsx` + `MapControls.tsx`)
 
-Available on both the map and list view at `/`. A search `TextInput` (with magnifier icon and clear button) lets users find projects by name, project number, or description via case-insensitive substring matching. All filtering is client-side — no extra API calls are made, as all project data is already in memory from `useProjectGroups()`.
+Available on both the map and list view at `/`. A search `TextInput` (with magnifier icon and clear button) lets users find projects by name, project number, or description via case-insensitive substring matching. All filtering is client-side — no extra API calls are made, as all project metadata is already in memory from `useProjectGroups()`.
+
+The group list carries project metadata only (`ProjectListItem`, flags folded into `active_features` — expand with `withActiveFeatures()` for `ProjectCard` / `ProjectSummaryCard`). The map loads simplified geometries per selected group via `useProjectGroupGeometries(groupIds, onlySuperior)` (`GET /project_groups/{id}/geometries`) and draws them as they arrive; the list tab loads none. `MapView` accepts either a parsed `geometry` (overview) or the exact `geojson_representation` string (detail page).
 
 - **Map view:** Non-matching projects are removed from the MapLibre GeoJSON sources. The controls panel shows a "X von Y Projekten" count while a search is active. If no project matches, a centred overlay hint is displayed.
 - **List view:** Project cards are filtered in-place. The count label updates to "X von Y Projekten" and an empty-state alert is shown when nothing matches.

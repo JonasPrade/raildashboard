@@ -3,22 +3,30 @@ from sqlalchemy.orm import Session, selectinload
 
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.projects.project_group import ProjectGroup
+from dashboard_backend.schemas.projects.project_schema import (
+    PROJECT_FLAG_FIELDS,
+    PROJECT_LIST_ITEM_COLUMNS,
+)
 
 
 def _with_projects():
-    """Loader options for the read endpoints, which serialise the full project list.
+    """Loader options for the read endpoints, which serialise the slim project list.
 
-    Without these, ``ProjectGroupSchema`` triggers one lazy SELECT per group for
-    ``projects`` **and** one per project for ``ProjectSchema.project_groups`` —
-    the map page therefore paid ``1 + groups + groups*projects`` queries. Two
-    ``selectinload`` levels collapse that to three queries in total.
+    One ``selectinload`` keeps it at two queries in total (groups, then all their
+    projects) instead of one lazy SELECT per group. ``load_only`` restricts the
+    project SELECT to the columns ``ProjectListItem`` reads — above all it keeps
+    ``geojson_representation`` (the bulk of each row) out of the list path.
 
     Drafts are excluded in SQL (the schema validator drops them afterwards
     anyway), so draft rows are never loaded or serialised.
     """
+    columns = [
+        getattr(Project, name)
+        for name in (*PROJECT_LIST_ITEM_COLUMNS, *PROJECT_FLAG_FIELDS)
+    ]
     return (
         selectinload(ProjectGroup.projects.and_(Project.is_draft.is_(False)))
-        .selectinload(Project.project_groups),
+        .load_only(*columns, raiseload=True),
     )
 
 
@@ -41,6 +49,26 @@ def get_project_group_by_id(db: Session, group_id: int):
 
 def get_project_groups(db: Session):
     return db.query(ProjectGroup).options(*_with_projects()).all()
+
+def get_group_geometry_sources(db: Session, group_id: int, only_superior: bool):
+    """``(project_id, geojson_representation)`` rows of a group's non-draft projects.
+
+    Selects the two columns only. With *only_superior* the subprojects are
+    skipped: a parent's geometry already contains its children's.
+    """
+    query = (
+        db.query(Project.id, Project.geojson_representation)
+        .join(Project.project_groups)
+        .filter(
+            ProjectGroup.id == group_id,
+            Project.is_draft.is_(False),
+            Project.geojson_representation.isnot(None),
+        )
+    )
+    if only_superior:
+        query = query.filter(Project.superior_project_id.is_(None))
+    return query.order_by(Project.id).all()
+
 
 def get_project_group_by_short_name(db: Session, short_name: str):
     return db.query(ProjectGroup).filter(ProjectGroup.short_name == short_name).first()

@@ -1,9 +1,9 @@
 import { Link } from "react-router-dom";
 
-import { type Project } from "../../shared/api/queries";
+import { type ProjectOverview } from "../../shared/api/queries";
 import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 
-export function ProjectCard({ project }: { project: Project }) {
+export function ProjectCard({ project }: { project: ProjectOverview }) {
     const lengthValue = typeof project.length === "number" ? `${project.length.toLocaleString("de-DE")}` : null;
     const hasProjectId = typeof project.id === "number" && Number.isFinite(project.id);
 

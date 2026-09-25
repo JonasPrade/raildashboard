@@ -1,4 +1,6 @@
-from pydantic import BaseModel, ConfigDict, field_serializer, model_serializer
+import math
+
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, model_serializer, model_validator
 from typing import Optional, Any
 from ..utils import nan_to_none
 
@@ -194,3 +196,67 @@ class ProjectSchema(BaseModel):
         # post-process the whole dict to replace any NaN in floats/lists/dicts
         data = serializer(self)
         return nan_to_none(data)
+
+
+# Boolean project properties (train categories + infrastructure features).
+# Derived from ProjectSchema so a new flag column shows up in the slim list
+# automatically. ``is_draft`` and ``geojson_from_subprojects`` are state, not
+# properties of the measure.
+_NON_FEATURE_FLAGS = {"is_draft", "geojson_from_subprojects"}
+PROJECT_FLAG_FIELDS: tuple[str, ...] = tuple(
+    name
+    for name, field in ProjectSchema.model_fields.items()
+    if name not in _NON_FEATURE_FLAGS and field.annotation in (bool, Optional[bool])
+)
+
+# Scalar columns the slim list item reads from a Project row.
+PROJECT_LIST_ITEM_COLUMNS: tuple[str, ...] = (
+    "id",
+    "name",
+    "project_number",
+    "superior_project_id",
+    "description",
+    "length",
+    "is_draft",
+)
+
+
+class ProjectListItem(BaseModel):
+    """A project as the map/list overview needs it — without geometry.
+
+    ``ProjectSchema`` embeds ``geojson_representation`` (often hundreds of
+    kilobytes per project); nesting it in every group made the project-group
+    list ~8 MB. Geometry is fetched separately and simplified via
+    ``GET /project_groups/{id}/geometries``. The boolean properties are folded
+    into ``active_features`` (only the true ones) to keep each item small.
+    """
+
+    id: int
+    name: str
+    project_number: Optional[str] = None
+    superior_project_id: Optional[int] = None
+    description: Optional[str] = None
+    length: Optional[float] = None
+    # Only used to filter drafts server-side; never serialised.
+    is_draft: bool = Field(default=False, exclude=True)
+    active_features: list[str] = Field(
+        default_factory=list,
+        description="Names of the boolean project properties that are true (e.g. 'elektrification').",
+    )
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _from_project_row(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            return data
+        values = {name: getattr(data, name, None) for name in PROJECT_LIST_ITEM_COLUMNS}
+        values["is_draft"] = bool(values["is_draft"])
+        length = values["length"]
+        if isinstance(length, float) and math.isnan(length):
+            values["length"] = None
+        values["active_features"] = [
+            name for name in PROJECT_FLAG_FIELDS if getattr(data, name, None)
+        ]
+        return values

@@ -18,7 +18,7 @@ export const featureHighlights: FeatureHighlight[] = [
         details: [
             "Filter drawer for project groups including URL synchronisation",
             "Mantine components for buttons, panels, and layout",
-            "Project route geometries rendered from each project's `geojson_representation` field",
+            "Project list renders immediately from the slim group list; simplified route geometries are loaded per selected group afterwards (`/project_groups/{id}/geometries`)",
             "Hover interactions that highlight routes and show pointer feedback",
             "Route click popover with project title and direct navigation action",
             "Raster tiles configured via the REACT_APP_TILE_LAYER_URL environment variable"

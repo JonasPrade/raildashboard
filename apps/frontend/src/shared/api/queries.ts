@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "./client";
 import type { components } from "./types.gen";
@@ -28,6 +28,10 @@ export const queryKeys = {
     projectTexts: (projectId: number) => ["projectTexts", projectId] as const,
     projectDrafts: ["projectDrafts"],
     projectGroups: ["projectGroups"],
+    // Nested under `projectGroups`: invalidating the group list refreshes the
+    // map geometries as well.
+    projectGroupGeometries: (groupId: number, onlySuperior: boolean) =>
+        ["projectGroups", "geometries", groupId, onlySuperior] as const,
     appSettings: ["appSettings"],
     projectRoutes: (projectId: number) => ["projectRoutes", projectId] as const,
     progress: ["project-progress"],
@@ -143,6 +147,15 @@ function useOptimisticEntryPatch<TEntry extends { id: number }, TData, TPatch ex
 export type Project = components["schemas"]["ProjectSchema"];
 export type ProjectOption = components["schemas"]["ProjectOptionSchema"];
 export type ProjectGroup = components["schemas"]["ProjectGroupSchema"];
+/** A project as the group list delivers it: metadata only, no geometry. */
+export type ProjectListItem = components["schemas"]["ProjectListItem"];
+export type ProjectGroupGeometries = components["schemas"]["ProjectGroupGeometriesSchema"];
+/**
+ * What overview cards (list card, map popup) render: any subset of a project's
+ * fields. Full `Project`s fit, and so do list items expanded with
+ * `withActiveFeatures`.
+ */
+export type ProjectOverview = Partial<Omit<Project, "id" | "name">> & { id?: number | null; name: string };
 export type ProjectRoute = components["schemas"]["RouteOut"];
 export type User = components["schemas"]["UserRead"];
 export type Role = components["schemas"]["RoleRead"];
@@ -385,6 +398,42 @@ export function useProjectGroups() {
     return useQuery({
         queryKey: queryKeys.projectGroups,
         queryFn: () => api<ProjectGroup[]>("/api/v1/project_groups/"),
+    });
+}
+
+type GeometriesQueryResult = { data?: ProjectGroupGeometries; isPending: boolean; isError: boolean };
+
+// Module-level so react-query can memoise the combined result: an inline
+// function would build a new Map on every render and re-trigger the map update.
+function combineGeometries(results: GeometriesQueryResult[]) {
+    const geometries = new Map<number, unknown>();
+    for (const result of results) {
+        for (const [id, geometry] of Object.entries(result.data?.geometries ?? {})) {
+            geometries.set(Number(id), geometry);
+        }
+    }
+    return {
+        geometries,
+        isLoading: results.some((result) => result.isPending),
+        isError: results.some((result) => result.isError),
+    };
+}
+
+/**
+ * Simplified map geometries for the given groups, one request (and cache
+ * entry) per group so toggling a group only loads that group. Returns a
+ * merged `projectId → GeoJSON` map plus whether any group is still loading.
+ */
+export function useProjectGroupGeometries(groupIds: number[], onlySuperior: boolean) {
+    return useQueries({
+        queries: groupIds.map((groupId) => ({
+            queryKey: queryKeys.projectGroupGeometries(groupId, onlySuperior),
+            queryFn: () =>
+                api<ProjectGroupGeometries>(
+                    `/api/v1/project_groups/${groupId}/geometries?only_superior=${onlySuperior}`,
+                ),
+        })),
+        combine: combineGeometries,
     });
 }
 

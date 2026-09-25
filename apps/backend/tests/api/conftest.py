@@ -15,6 +15,9 @@ from dashboard_backend.models.app_settings import AppSettings
 from dashboard_backend.models.associations.project_to_constituency import (
     ProjectToConstituency,
 )
+from dashboard_backend.models.associations.project_to_project_group import (
+    ProjectToProjectGroup,
+)
 from dashboard_backend.models.guides import GuideSectionOverride
 from dashboard_backend.models.parliament import (
     Committee,
@@ -89,6 +92,7 @@ TABLES = [
     CommitteeMembership.__table__,
     ParliamentImportRun.__table__,
     ProjectToConstituency.__table__,  # FK to project (absent here) is unenforced in SQLite
+    ProjectToProjectGroup.__table__,  # must follow project + project_group (FK dependency)
 ]
 
 

@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Stack } from "@mantine/core";
 import maplibregl from "maplibre-gl";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import type { ConstituencyFeatureCollection, Project } from "../../shared/api/queries";
+import type { ConstituencyFeatureCollection, ProjectOverview } from "../../shared/api/queries";
 import ProjectSummaryCard from "../projects/ProjectSummaryCard";
 import { ChronicleButton } from "../../components/chronicle";
 
@@ -10,7 +10,16 @@ const tileLayerUrl = import.meta.env.REACT_APP_TILE_LAYER_URL as string | undefi
 const tileAttribution =
     'Kartenhintergrund: <a href="https://www.bkg.bund.de" target="_blank" rel="noopener noreferrer">Bundesamt für Kartographie und Geodäsie</a>';
 
-export type MapViewProject = Omit<Project, "id"> & { id: number; groupColor?: string };
+export type MapViewProject = ProjectOverview & {
+    id: number;
+    groupColor?: string;
+    /**
+     * Already-parsed GeoJSON (the overview map's simplified geometry). Takes
+     * precedence over `geojson_representation`, the exact stored text that
+     * full `Project`s (detail page) carry.
+     */
+    geometry?: unknown;
+};
 
 type GeoJSONGeometry = {
     type: string;
@@ -115,7 +124,7 @@ type ProjectFeatures = {
 
 /** Parse a project's GeoJSON once and build both map features from it. */
 const createProjectFeatures = (project: MapViewProject): ProjectFeatures => {
-    const geojson = parseProjectGeojson(project.geojson_representation);
+    const geojson = project.geometry ?? parseProjectGeojson(project.geojson_representation);
     if (!geojson) return { line: null, point: null };
     const lines = extractLineCoordinates(geojson);
     const points = extractPointCoordinates(geojson);
@@ -142,6 +151,7 @@ const createProjectFeatures = (project: MapViewProject): ProjectFeatures => {
 
 type FeatureCacheEntry = ProjectFeatures & {
     geojson: string | null | undefined;
+    geometry: unknown;
     groupColor: string | undefined;
 };
 
@@ -213,12 +223,14 @@ export default function MapView({
             if (
                 cached &&
                 cached.geojson === project.geojson_representation &&
+                cached.geometry === project.geometry &&
                 cached.groupColor === project.groupColor
             ) {
                 entry = cached;
             } else {
                 entry = {
                     geojson: project.geojson_representation,
+                    geometry: project.geometry,
                     groupColor: project.groupColor,
                     ...createProjectFeatures(project),
                 };
