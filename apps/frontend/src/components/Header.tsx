@@ -1,10 +1,11 @@
 import React from "react";
 import { Badge, Burger, Drawer, Group, Stack } from "@mantine/core";
-import { useDisclosure, useMediaQuery } from "@mantine/hooks";
+import { useDisclosure } from "@mantine/hooks";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { LoginModal } from "../features/auth/LoginModal";
 import { useUnassignedFinves, useUnassignedVibEntries } from "../shared/api/queries";
+import { useIsCompact } from "../shared/hooks/useBreakpoint";
 import { ChronicleButton } from "./chronicle";
 import { Wordmark, Signet } from "./tafel";
 
@@ -25,10 +26,15 @@ const navLinkActive: React.CSSProperties = {
     borderBottom: "2px solid var(--led)",
 };
 
+// Drawer entries are thumb targets, not pointer targets: full width, 48px tall.
 const drawerNavBase: React.CSSProperties = {
     ...navLinkBase,
-    display: "block",
-    padding: "10px 12px",
+    display: "flex",
+    alignItems: "center",
+    minHeight: 48,
+    fontSize: "13px",
+    padding: "12px",
+    borderBottom: "1px solid var(--rule)",
 };
 
 const drawerNavActive: React.CSSProperties = {
@@ -41,7 +47,9 @@ export function Header() {
     const { user, logout, can } = useAuth();
     const [loginOpened, { open: openLogin, close: closeLogin }] = useDisclosure(false);
     const [drawerOpened, { open: openDrawer, close: closeDrawer }] = useDisclosure(false);
-    const isMobile = useMediaQuery("(max-width: 100em)");
+    // Phones and small tablets navigate through the drawer; from 62em up the
+    // five entries plus the auth section fit into the bar.
+    const isCompact = useIsCompact();
 
     // The Admin entry is shown when the user holds any admin-area capability.
     const canAdmin =
@@ -60,67 +68,37 @@ export function Header() {
         ? (unassignedFinves?.length ?? 0) + (unassignedVibEntries?.length ?? 0)
         : 0;
 
-    const desktopNavLinks = (
-        <>
-            <NavLink to="/" end style={({ isActive }) => isActive ? navLinkActive : navLinkBase} onClick={closeDrawer}>
-                ▸ Projekte
-            </NavLink>
-            <NavLink to="/finves" style={({ isActive }) => isActive ? navLinkActive : navLinkBase} onClick={closeDrawer}>
-                ▸ Haushalt
-            </NavLink>
-            <NavLink to="/abgeordnete" style={({ isActive }) => isActive ? navLinkActive : navLinkBase} onClick={closeDrawer}>
-                ▸ Abgeordnete
-            </NavLink>
-            {user && (
-                <NavLink to="/tasks" style={({ isActive }) => isActive ? navLinkActive : navLinkBase} onClick={closeDrawer}>
-                    ▸ Aufgaben
-                </NavLink>
-            )}
-            {canAdmin && (
-                <NavLink to="/admin" style={({ isActive }) => isActive ? navLinkActive : navLinkBase} onClick={closeDrawer}>
-                    <Group gap={6} align="center" wrap="nowrap">
-                        <span>▸ Admin</span>
-                        {totalUnassigned > 0 && (
-                            <Badge color="gold.5" size="xs" variant="filled" circle styles={{ root: { color: "var(--ink)" } }}>
-                                {totalUnassigned}
-                            </Badge>
-                        )}
-                    </Group>
-                </NavLink>
-            )}
-        </>
-    );
+    // One source of truth for both the bar and the drawer — they only differ in
+    // the style they render with.
+    const navItems: Array<{ to: string; label: string; end?: boolean; visible: boolean; badge?: number }> = [
+        { to: "/", label: "Projekte", end: true, visible: true },
+        { to: "/finves", label: "Haushalt", visible: true },
+        { to: "/abgeordnete", label: "Abgeordnete", visible: true },
+        { to: "/tasks", label: "Aufgaben", visible: user !== null },
+        { to: "/admin", label: "Admin", visible: canAdmin, badge: totalUnassigned },
+    ];
 
-    const drawerNavLinks = (
-        <>
-            <NavLink to="/" end style={({ isActive }) => isActive ? drawerNavActive : drawerNavBase} onClick={closeDrawer}>
-                ▸ Projekte
-            </NavLink>
-            <NavLink to="/finves" style={({ isActive }) => isActive ? drawerNavActive : drawerNavBase} onClick={closeDrawer}>
-                ▸ Haushalt
-            </NavLink>
-            <NavLink to="/abgeordnete" style={({ isActive }) => isActive ? drawerNavActive : drawerNavBase} onClick={closeDrawer}>
-                ▸ Abgeordnete
-            </NavLink>
-            {user && (
-                <NavLink to="/tasks" style={({ isActive }) => isActive ? drawerNavActive : drawerNavBase} onClick={closeDrawer}>
-                    ▸ Aufgaben
-                </NavLink>
-            )}
-            {canAdmin && (
-                <NavLink to="/admin" style={({ isActive }) => isActive ? drawerNavActive : drawerNavBase} onClick={closeDrawer}>
+    const renderNavLinks = (base: React.CSSProperties, active: React.CSSProperties) =>
+        navItems
+            .filter((item) => item.visible)
+            .map((item) => (
+                <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.end}
+                    style={({ isActive }) => (isActive ? active : base)}
+                    onClick={closeDrawer}
+                >
                     <Group gap={6} align="center" wrap="nowrap">
-                        <span>▸ Admin</span>
-                        {totalUnassigned > 0 && (
+                        <span>▸ {item.label}</span>
+                        {item.badge !== undefined && item.badge > 0 && (
                             <Badge color="gold.5" size="xs" variant="filled" circle styles={{ root: { color: "var(--ink)" } }}>
-                                {totalUnassigned}
+                                {item.badge}
                             </Badge>
                         )}
                     </Group>
                 </NavLink>
-            )}
-        </>
-    );
+            ));
 
     const userBadge = user && (
         <span
@@ -150,25 +128,13 @@ export function Header() {
         </ChronicleButton>
     );
 
-    const drawerAuthSection = user ? (
-        <Group gap="xs">
-            {userBadge}
-            <ChronicleButton variant="ghost" size="sm" onClick={logout}>
-                Abmelden
-            </ChronicleButton>
-        </Group>
-    ) : (
-        <ChronicleButton variant="primary" size="sm" onClick={() => { closeDrawer(); openLogin(); }}>
-            Anmelden
-        </ChronicleButton>
-    );
-
     return (
         <>
             <Group
                 justify="space-between"
-                px="md"
+                px="var(--page-pad)"
                 py={6}
+                wrap="nowrap"
                 style={{
                     backgroundColor: "var(--bg)",
                     height: "100%",
@@ -179,21 +145,26 @@ export function Header() {
                 <NavLink
                     to="/"
                     className="header-title-link"
-                    style={{ display: "inline-flex", alignItems: "center", gap: 12 }}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 12, minWidth: 0 }}
                 >
                     <Signet size={36} title="Schienendashboard" />
-                    <Wordmark size="sm">Schienendashboard</Wordmark>
+                    {/* Below 30em the wordmark would push the burger off screen —
+                        the signet carries the brand there. */}
+                    <span className="header-wordmark">
+                        <Wordmark size="sm">Schienendashboard</Wordmark>
+                    </span>
                 </NavLink>
-                {isMobile ? (
+                {isCompact ? (
                     <Burger
                         opened={drawerOpened}
                         onClick={openDrawer}
                         aria-label="Navigation öffnen"
                         color="var(--ink)"
+                        size="md"
                     />
                 ) : (
-                    <Group gap="xs">
-                        {desktopNavLinks}
+                    <Group gap="xs" wrap="nowrap">
+                        {renderNavLinks(navLinkBase, navLinkActive)}
                         {authSection}
                     </Group>
                 )}
@@ -204,12 +175,12 @@ export function Header() {
                 onClose={closeDrawer}
                 title="Navigation"
                 position="right"
-                size="xs"
+                size={isCompact ? "80%" : "xs"}
             >
-                <Stack gap="xs">
-                    {drawerNavLinks}
-                    {drawerAuthSection}
+                <Stack gap={0}>
+                    {renderNavLinks(drawerNavBase, drawerNavActive)}
                 </Stack>
+                <Group pt="md">{authSection}</Group>
             </Drawer>
 
             <LoginModal opened={loginOpened} onClose={closeLogin} />

@@ -98,9 +98,9 @@ export default function TasksPage() {
     const visibleStatuses = includeDone ? STATUS_ORDER : STATUS_ORDER.filter((s) => s !== "DONE");
 
     return (
-        <Container size="xl" py="lg">
+        <Container size="xl" py={{ base: "md", sm: "lg" }} px={{ base: 0, sm: "md" }}>
             <Stack gap="lg">
-                <Group justify="space-between" align="center">
+                <Group justify="space-between" align="center" wrap="wrap" gap="sm">
                     <ChronicleHeadline as="h1">Aufgaben</ChronicleHeadline>
                     {canCreate && (
                         <Button leftSection={<IconPlus size={16} />} onClick={openCreate}>
@@ -136,7 +136,7 @@ export default function TasksPage() {
                         disabled={onlyMine}
                         clearable
                         searchable
-                        w={200}
+                        flex="1 1 180px"
                     />
                     <Select
                         label="Projekt"
@@ -149,7 +149,7 @@ export default function TasksPage() {
                         onChange={setProjectFilter}
                         clearable
                         searchable
-                        w={260}
+                        flex="1 1 220px"
                     />
                     <Checkbox
                         label="Nur meine Aufgaben"

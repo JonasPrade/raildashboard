@@ -10,6 +10,7 @@ import {
     Text,
     Title,
 } from "@mantine/core";
+import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { Link } from "react-router-dom";
 import { ChronicleButton, ChronicleDataChip } from "../../components/chronicle";
 import { SectionHead, FlapNumber, Eyebrow } from "../../components/tafel";
@@ -106,7 +107,7 @@ function UnassignedPageContent() {
                     </Group>
                     {finvesLoading && <Loader size="sm" />}
                     {!finvesLoading && (
-                        <Table withTableBorder withColumnBorders>
+                        <ResponsiveTable minWidth={720} withTableBorder withColumnBorders>
                             <Table.Thead>
                                 <Table.Tr>
                                     <Table.Th>ID</Table.Th>
@@ -159,7 +160,7 @@ function UnassignedPageContent() {
                                     </Table.Tr>
                                 ))}
                             </Table.Tbody>
-                        </Table>
+                        </ResponsiveTable>
                     )}
                 </Stack>
 
@@ -174,7 +175,7 @@ function UnassignedPageContent() {
                     </Group>
                     {vibLoading && <Loader size="sm" />}
                     {!vibLoading && (
-                        <Table withTableBorder withColumnBorders>
+                        <ResponsiveTable minWidth={720} withTableBorder withColumnBorders>
                             <Table.Thead>
                                 <Table.Tr>
                                     <Table.Th>ID</Table.Th>
@@ -233,7 +234,7 @@ function UnassignedPageContent() {
                                     </Table.Tr>
                                 ))}
                             </Table.Tbody>
-                        </Table>
+                        </ResponsiveTable>
                     )}
                 </Stack>
             </Stack>

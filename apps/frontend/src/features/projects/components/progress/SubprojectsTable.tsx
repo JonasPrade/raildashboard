@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Anchor, Badge, Group, Stack, Table, Text, TextInput } from "@mantine/core";
+import { ResponsiveTable } from "../../../../shared/ui/ResponsiveTable";
 import { IconSearch } from "@tabler/icons-react";
 import { Link } from "react-router-dom";
 
@@ -94,7 +95,7 @@ export default function SubprojectsTable({ children }: { children: ProgressChild
                 w={260}
             />
 
-            <Table striped withTableBorder highlightOnHover>
+            <ResponsiveTable minWidth={640} striped withTableBorder highlightOnHover>
                 <Table.Thead>
                     <Table.Tr>
                         <Table.Th>Projekt</Table.Th>
@@ -144,7 +145,7 @@ export default function SubprojectsTable({ children }: { children: ProgressChild
                         </Table.Tr>
                     )}
                 </Table.Tbody>
-            </Table>
+            </ResponsiveTable>
         </Stack>
     );
 }

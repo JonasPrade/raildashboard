@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Badge, Button, Collapse, Divider, Group, Stack, Table, Text } from "@mantine/core";
+import { ResponsiveTable } from "../../../../shared/ui/ResponsiveTable";
 import { IconChevronDown, IconChevronRight } from "@tabler/icons-react";
 
 import { useAuth } from "../../../../lib/auth";
@@ -76,7 +77,7 @@ export default function SourceBreakdown({ contributions, observations }: Props) 
             <Collapse in={open}>
                 <Stack gap="md">
                     {contributions.length > 0 ? (
-                        <Table striped withTableBorder>
+                        <ResponsiveTable minWidth={560} striped withTableBorder>
                             <Table.Thead>
                                 <Table.Tr>
                                     <Table.Th>Quelle</Table.Th>
@@ -100,7 +101,7 @@ export default function SourceBreakdown({ contributions, observations }: Props) 
                                     />
                                 ))}
                             </Table.Tbody>
-                        </Table>
+                        </ResponsiveTable>
                     ) : (
                         <Text size="sm" c="dimmed">
                             Noch keine Beobachtungen erfasst.
@@ -110,7 +111,7 @@ export default function SourceBreakdown({ contributions, observations }: Props) 
                     {manual.length > 0 && (
                         <>
                             <Divider label="Manuelle Beobachtungen" labelPosition="left" />
-                            <Table>
+                            <ResponsiveTable minWidth={560}>
                                 <Table.Thead>
                                     <Table.Tr>
                                         <Table.Th>Quelle</Table.Th>
@@ -151,7 +152,7 @@ export default function SourceBreakdown({ contributions, observations }: Props) 
                                         </Table.Tr>
                                     ))}
                                 </Table.Tbody>
-                            </Table>
+                            </ResponsiveTable>
                         </>
                     )}
                 </Stack>

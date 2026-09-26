@@ -6,9 +6,11 @@
  */
 
 import { Box, ColorSwatch, Group, Stack, Table, Tabs, Text, type MantineSpacing } from "@mantine/core";
+import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
 import { DonutChart, LineChart } from "@mantine/charts";
 
 import type { BudgetSummary, TitelEntry } from "../../../shared/api/queries";
+import { useIsMobile } from "../../../shared/hooks/useBreakpoint";
 import { chartNum, formatTEuro, formatTEuroWithZero } from "../../../shared/format";
 
 // Distinct CSS hex colors for up to 10 Titel series (must be plain CSS for DonutChart)
@@ -95,22 +97,18 @@ export function TitelTable({ entries, year }: { entries: TitelEntry[]; year: num
     return (
         <Stack gap="xs">
             {regular.length > 0 && (
-                <Box style={{ overflowX: "auto" }}>
-                    <Table withColumnBorders fz="xs" style={{ minWidth: 800 }}>
-                        {thead}
-                        <Table.Tbody>{renderRows(regular)}</Table.Tbody>
-                    </Table>
-                </Box>
+                <ResponsiveTable minWidth={800} withColumnBorders fz="xs">
+                    {thead}
+                    <Table.Tbody>{renderRows(regular)}</Table.Tbody>
+                </ResponsiveTable>
             )}
             {nachrichtlich.length > 0 && (
                 <Stack gap={4}>
                     <Text size="xs" fw={600} c="dimmed">Nachrichtlich: EVU / Dritte</Text>
-                    <Box style={{ overflowX: "auto" }}>
-                        <Table withColumnBorders fz="xs" style={{ minWidth: 800 }}>
-                            {thead}
-                            <Table.Tbody>{renderRows(nachrichtlich)}</Table.Tbody>
-                        </Table>
-                    </Box>
+                    <ResponsiveTable minWidth={800} withColumnBorders fz="xs">
+                        {thead}
+                        <Table.Tbody>{renderRows(nachrichtlich)}</Table.Tbody>
+                    </ResponsiveTable>
                 </Stack>
             )}
         </Stack>
@@ -136,6 +134,7 @@ export function FinveBudgetDetails({
     budgets: BudgetSummary[];
     tabsMt?: MantineSpacing;
 }) {
+    const isMobile = useIsMobile();
     const hasMultipleYears = budgets.length >= 2;
     const lastBudget = budgets.at(-1);
     const hasTitelEntries = hasTitelChartEntries(budgets);
@@ -178,7 +177,8 @@ export function FinveBudgetDetails({
                                 gridAxis="y"
                                 withDots
                                 valueFormatter={formatTEuroWithZero}
-                                yAxisProps={{ width: 130, domain: [0, yMax] }}
+                                // A 130px axis would leave almost no plot area on a phone.
+                                yAxisProps={{ width: isMobile ? 64 : 130, domain: [0, yMax] }}
                                 tooltipProps={CHART_TOOLTIP_PROPS}
                             />
                         </Box>
@@ -196,8 +196,8 @@ export function FinveBudgetDetails({
                         <Group justify="center">
                             <DonutChart
                                 data={pieData}
-                                size={220}
-                                thickness={36}
+                                size={isMobile ? 170 : 220}
+                                thickness={isMobile ? 28 : 36}
                                 withTooltip
                                 tooltipDataSource="segment"
                                 valueFormatter={formatTEuroWithZero}

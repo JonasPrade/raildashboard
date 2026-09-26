@@ -4,7 +4,7 @@ import { featureHighlights, qualityGates, techStack, workflows } from "./documen
 
 export default function DocumentationPage() {
     return (
-        <Stack gap="xl" p="xl" maw={960} mx="auto">
+        <Stack gap="xl" p={{ base: "xs", sm: "xl" }} maw={960} mx="auto">
             <Stack gap="xs">
                 <ChronicleHeadline as="h1">Railway dashboard – feature & developer documentation</ChronicleHeadline>
                 <Text c="dimmed">

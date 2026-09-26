@@ -9,6 +9,7 @@ import {
     Text,
     Title,
 } from "@mantine/core";
+import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { IconTrash } from "@tabler/icons-react";
 
 import {
@@ -173,7 +174,7 @@ export function PhaseTable({
                     Keine Projekte in dieser Phase.
                 </Text>
             ) : (
-                <Table striped highlightOnHover layout="fixed" w="100%" verticalSpacing="sm">
+                <ResponsiveTable minWidth={640} striped highlightOnHover layout="fixed" w="100%" verticalSpacing="sm">
                     <Table.Thead>
                         <Table.Tr>
                             <Table.Th style={{ width: "28%" }}>Projekt (Roh)</Table.Th>
@@ -187,7 +188,7 @@ export function PhaseTable({
                             <FuldaRow key={entry.id} entry={entry} projectOptions={projectOptions} />
                         ))}
                     </Table.Tbody>
-                </Table>
+                </ResponsiveTable>
             )}
         </Stack>
     );

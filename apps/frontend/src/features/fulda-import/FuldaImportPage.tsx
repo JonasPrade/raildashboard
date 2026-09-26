@@ -16,6 +16,7 @@ import {
     Title,
     NumberInput,
 } from "@mantine/core";
+import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { notifications } from "@mantine/notifications";
 import { IconChevronRight, IconUpload } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -155,7 +156,7 @@ export default function FuldaImportPage() {
                             Noch keine Fulda-Einträge. Lade oben eine Antwort der Bundesregierung hoch.
                         </Alert>
                     ) : (
-                        <Table striped highlightOnHover>
+                        <ResponsiveTable minWidth={640} striped highlightOnHover>
                             <Table.Thead>
                                 <Table.Tr>
                                     <Table.Th>Jahr</Table.Th>
@@ -217,7 +218,7 @@ export default function FuldaImportPage() {
                                     );
                                 })}
                             </Table.Tbody>
-                        </Table>
+                        </ResponsiveTable>
                     )}
                 </Stack>
             </Stack>

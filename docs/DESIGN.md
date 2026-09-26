@@ -136,6 +136,25 @@ Base unit **4 px**. Standard scale: **8 / 16 / 24 / 32 / 48 / 72 / 96 / 120**.
 - Section vertical padding ≥ 48 px, horizontal page gutter 40 px.
 - **Border-radius is `0`** for data containers, cards, buttons, inputs.
 
+### Responsive layout tokens
+
+The station-hall grid has to survive a 360 px screen. Four layout tokens in
+`tokens.css` carry that; components read the token instead of a pixel value, so
+one media query moves the whole system. Implementation and per-surface
+behaviour: `docs/features/feature-mobile-usability.md`.
+
+| Token                  | Desktop | ≤ 48em (phone) | Use                                   |
+|------------------------|---------|----------------|---------------------------------------|
+| `--page-pad`           | 16 px   | 10 px          | Page gutter (AppShell, Container).    |
+| `--card-pad`           | 24 px   | 16 px          | Card padding (`ChronicleCard`).       |
+| `--map-height`         | 800 px  | viewport-fill  | Map on the map page.                  |
+| `--map-height-detail`  | 500 px  | 300 px         | Map inside the project detail card.   |
+
+Breakpoints are Mantine's: **48em** (phone) and **62em** (phone or small
+tablet), mirrored in JS by `useIsMobile()` / `useIsCompact()`
+(`src/shared/hooks/useBreakpoint.ts`). Display headlines scale with `clamp()`
+rather than a fixed px size, so a long German compound still fits one line.
+
 ---
 
 ## 5. Components

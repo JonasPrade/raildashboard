@@ -25,6 +25,7 @@ import { IconRefresh } from "@tabler/icons-react";
 import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
 import RequirePermission from "../../components/RequirePermission";
 import { useRecheckWorkerHealth, useWorkerHealth, type WorkerHealth } from "../../shared/api/queries";
+import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 
 const STATUS_DISPLAY: Record<WorkerHealth["status"], { color: string; label: string }> = {
     ok: { color: "green", label: "Worker laufen" },
@@ -39,7 +40,7 @@ function formatCheckedAt(checkedAt: number): string {
 function WorkerTable({ health }: { health: WorkerHealth }) {
     if (health.workers.length === 0) return null;
     return (
-        <Table withTableBorder withColumnBorders>
+        <ResponsiveTable minWidth={520} withTableBorder withColumnBorders>
             <Table.Thead>
                 <Table.Tr>
                     <Table.Th>Worker</Table.Th>
@@ -60,7 +61,7 @@ function WorkerTable({ health }: { health: WorkerHealth }) {
                     </Table.Tr>
                 ))}
             </Table.Tbody>
-        </Table>
+        </ResponsiveTable>
     );
 }
 
@@ -124,7 +125,7 @@ function SystemStatusPageContent() {
 
                                 <WorkerTable health={health} />
 
-                                <Table variant="vertical" withTableBorder>
+                                <ResponsiveTable minWidth={480} variant="vertical" withTableBorder>
                                     <Table.Tbody>
                                         <Table.Tr>
                                             <Table.Th w={220}>Warteschlange (Broker)</Table.Th>
@@ -146,7 +147,7 @@ function SystemStatusPageContent() {
                                             </Table.Tr>
                                         )}
                                     </Table.Tbody>
-                                </Table>
+                                </ResponsiveTable>
                             </>
                         )}
                     </Stack>

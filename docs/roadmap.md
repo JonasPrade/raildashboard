@@ -11,6 +11,10 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
 ## Short-Term Features
 
 - [x] integrate the new design described in `docs/DESIGN.md`
+- [x] **Smartphone-Tauglichkeit** — die ganze Anwendung ist auf Bildschirmen ab 360 px bedienbar:
+  geteilte Breakpoints + Layout-Tokens, Burger-Navigation ab 62em, Karte im Vollbild mit
+  Bottom-Sheet für Filter/Ebenen, Tabellen scrollen in ihrer Karte statt die Seite zu verbreitern,
+  Dialoge und Seitenleisten in voller Breite. See: `docs/features/feature-mobile-usability.md`
 
 This tasks must be done by human:
 - [ ] Import of the Haushalt Berichte 2020 - 2025

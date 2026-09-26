@@ -1,4 +1,4 @@
-import { createTheme, type MantineColorsTuple } from "@mantine/core";
+import { Container, createTheme, type MantineColorsTuple } from "@mantine/core";
 
 const preussen: MantineColorsTuple = [
     "#e9edf4", "#c5d0e0", "#9eb1c9", "#7793b3", "#5a7ba1",
@@ -16,6 +16,13 @@ const ink: MantineColorsTuple = [
 ];
 
 export const theme = createTheme({
+    components: {
+        // Page gutters follow the --page-pad token, so every Container tightens
+        // on phones (docs/features/feature-mobile-usability.md).
+        Container: Container.extend({
+            defaultProps: { px: "var(--page-pad)" },
+        }),
+    },
     primaryColor: "preussen",
     primaryShade: 8,
     defaultRadius: 0,

@@ -14,6 +14,7 @@ import {
 } from "@mantine/core";
 import { ChronicleHeadline, ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import { useFinves, type FinveListItem } from "../../shared/api/queries";
+import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { FinveBudgetDetails } from "./shared/FinveBudgetDetails";
 import { formatTEuro } from "../../shared/format";
 
@@ -56,7 +57,7 @@ function FinveCard({ finve }: { finve: FinveListItem }) {
                         </Text>
                     </Stack>
 
-                    <Group gap="xl" align="flex-start">
+                    <Group gap="lg" align="flex-start" wrap="wrap">
                         {finve.starting_year != null && (
                             <Stack gap={2} align="flex-end">
                                 <Text size="xs" c="dimmed">Aufnahme</Text>
@@ -136,6 +137,7 @@ function FinveCard({ finve }: { finve: FinveListItem }) {
 // ---------------------------------------------------------------------------
 
 export default function FinveOverviewPage() {
+    const isMobile = useIsMobile();
     const [searchParams] = useSearchParams();
     const [search, setSearch] = useState(searchParams.get("q") ?? "");
     const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
@@ -157,16 +159,16 @@ export default function FinveOverviewPage() {
     }, [finves, search, typeFilter]);
 
     return (
-        <Container size="xl" py="xl">
+        <Container size="xl" py={{ base: "md", sm: "xl" }} px={{ base: 0, sm: "md" }}>
             <Stack gap="lg">
                 <ChronicleHeadline as="h1">Finanzierungsvereinbarungen</ChronicleHeadline>
 
-                <Group>
+                <Group wrap="wrap" gap="sm">
                     <TextInput
                         placeholder="Suche nach Bezeichnung oder FinVe-Nr."
                         value={search}
                         onChange={(e) => setSearch(e.currentTarget.value)}
-                        w={320}
+                        flex="1 1 260px"
                     />
                     <SegmentedControl
                         data={[
@@ -176,6 +178,8 @@ export default function FinveOverviewPage() {
                         ]}
                         value={typeFilter}
                         onChange={(v) => setTypeFilter(v as TypeFilter)}
+                        fullWidth={isMobile}
+                        style={isMobile ? { width: "100%" } : undefined}
                     />
                 </Group>
 

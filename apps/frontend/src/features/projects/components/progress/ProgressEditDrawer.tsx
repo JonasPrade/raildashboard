@@ -17,6 +17,8 @@ import {
     TextInput,
     Title,
 } from "@mantine/core";
+import { useIsMobile } from "../../../../shared/hooks/useBreakpoint";
+import { ResponsiveTable } from "../../../../shared/ui/ResponsiveTable";
 import { notifications } from "@mantine/notifications";
 import { IconPlus, IconRefresh, IconTrash } from "@tabler/icons-react";
 
@@ -297,6 +299,7 @@ type Props = {
 };
 
 export default function ProgressEditDrawer({ projectId, progress, opened, onClose }: Props) {
+    const isMobile = useIsMobile();
     const [draft, setDraft] = useState<Draft | null>(null);
     const [saving, setSaving] = useState(false);
 
@@ -364,7 +367,7 @@ export default function ProgressEditDrawer({ projectId, progress, opened, onClos
                 </Stack>
             }
             position="right"
-            size="xl"
+            size={isMobile ? "100%" : "xl"}
             scrollAreaComponent={ScrollArea.Autosize}
         >
             <Stack gap="xl">
@@ -622,7 +625,7 @@ export default function ProgressEditDrawer({ projectId, progress, opened, onClos
                         onAdd={(obs) => set({ newObservations: [...active.newObservations, obs] })}
                     />
                     {(visibleManual.length > 0 || active.newObservations.length > 0) && (
-                        <Table>
+                        <ResponsiveTable minWidth={560}>
                             <Table.Thead>
                                 <Table.Tr>
                                     <Table.Th>Quelle</Table.Th>
@@ -741,7 +744,7 @@ export default function ProgressEditDrawer({ projectId, progress, opened, onClos
                                     </Table.Tr>
                                 ))}
                             </Table.Tbody>
-                        </Table>
+                        </ResponsiveTable>
                     )}
                 </Stack>
 

@@ -2,6 +2,7 @@ import { lazy, Suspense, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../lib/auth";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
+    ActionIcon,
     Alert,
     Button,
     Collapse,
@@ -9,9 +10,11 @@ import {
     Grid,
     Group,
     Loader,
+    Menu,
     Stack,
     Text,
 } from "@mantine/core";
+import { IconDotsVertical } from "@tabler/icons-react";
 import { ChronicleCard, ChronicleDataChip, ChronicleHeadline } from "../../components/chronicle";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
@@ -27,6 +30,7 @@ import {
     queryKeys,
 } from "../../shared/api/queries";
 import ProjectEdit, { createUpdatePayload, type ProjectEditFormValues } from "./ProjectEdit";
+import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 
 // Lazy: pulls in terra-draw + the geometry editor only when the modal is opened.
 const GeometryManagementModal = lazy(() => import("../routing/GeometryManagementModal"));
@@ -128,6 +132,13 @@ export default function ProjectDetail() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const queryClient = useQueryClient();
+    const isMobile = useIsMobile();
+
+    // Keep the group filter when going back to the overview.
+    const groupParam = searchParams.get("group");
+    const groupSuffix = groupParam ? `&group=${groupParam}` : "";
+    const backToMapLink = `/?view=map${groupSuffix}`;
+    const backToListLink = `/?view=list${groupSuffix}`;
     const [editOpened, setEditOpened] = useState(false);
     const [geometryModalOpen, setGeometryModalOpen] = useState(false);
     const [subProjectsOpen, setSubProjectsOpen] = useState(false);
@@ -452,10 +463,10 @@ export default function ProjectDetail() {
     ];
 
     return (
-        <Container size="lg" py="xl">
+        <Container size="lg" py={{ base: "md", sm: "xl" }} px={{ base: 0, sm: "md" }}>
             <Stack gap="xl">
-                <Group justify="space-between" align="flex-start">
-                    <Stack gap={4}>
+                <Group justify="space-between" align="flex-start" wrap="wrap" gap="sm">
+                    <Stack gap={4} style={{ flex: "1 1 240px", minWidth: 0 }}>
                         <Group gap="sm" align="baseline">
                             <ChronicleHeadline as="h1" style={{ fontSize: "1.5rem" }}>{project.name}</ChronicleHeadline>
                             {project.project_number && (
@@ -466,32 +477,61 @@ export default function ProjectDetail() {
                             Projekt-ID: {project.id ?? "–"}
                         </Text>
                     </Stack>
-                    <Group gap="sm">
-                        <Button variant="default" component={Link} to={`/?view=map${searchParams.get("group") ? `&group=${searchParams.get("group")}` : ""}`}>
-                            Zur Karte
-                        </Button>
-                        <Button variant="default" component={Link} to={`/?view=list${searchParams.get("group") ? `&group=${searchParams.get("group")}` : ""}`}>
-                            Zur Projektübersicht
-                        </Button>
-                        {canEdit && (
-                            <>
-                                <Button variant="default" onClick={() => setGeometryModalOpen(true)}>
-                                    Geometrie verwalten
-                                </Button>
-                                <Button onClick={() => setEditOpened(true)}>Bearbeiten</Button>
-                            </>
-                        )}
-                        {canDelete && (
-                            <Button
-                                variant="outline"
-                                color="red"
-                                onClick={handleDelete}
-                                loading={deleteMutation.isPending}
-                            >
-                                Löschen
+                    {isMobile ? (
+                        // Five buttons do not fit next to a project title on a phone:
+                        // "Bearbeiten" stays visible, the rest moves into a menu.
+                        <Group gap="xs" wrap="nowrap">
+                            {canEdit && <Button onClick={() => setEditOpened(true)}>Bearbeiten</Button>}
+                            <Menu position="bottom-end" withinPortal>
+                                <Menu.Target>
+                                    <ActionIcon variant="default" size={42} aria-label="Weitere Aktionen">
+                                        <IconDotsVertical size={18} />
+                                    </ActionIcon>
+                                </Menu.Target>
+                                <Menu.Dropdown>
+                                    <Menu.Item component={Link} to={backToMapLink}>Zur Karte</Menu.Item>
+                                    <Menu.Item component={Link} to={backToListLink}>Zur Projektübersicht</Menu.Item>
+                                    {canEdit && (
+                                        <Menu.Item onClick={() => setGeometryModalOpen(true)}>
+                                            Geometrie verwalten
+                                        </Menu.Item>
+                                    )}
+                                    {canDelete && (
+                                        <Menu.Item color="red" onClick={handleDelete}>
+                                            Löschen
+                                        </Menu.Item>
+                                    )}
+                                </Menu.Dropdown>
+                            </Menu>
+                        </Group>
+                    ) : (
+                        <Group gap="sm">
+                            <Button variant="default" component={Link} to={backToMapLink}>
+                                Zur Karte
                             </Button>
-                        )}
-                    </Group>
+                            <Button variant="default" component={Link} to={backToListLink}>
+                                Zur Projektübersicht
+                            </Button>
+                            {canEdit && (
+                                <>
+                                    <Button variant="default" onClick={() => setGeometryModalOpen(true)}>
+                                        Geometrie verwalten
+                                    </Button>
+                                    <Button onClick={() => setEditOpened(true)}>Bearbeiten</Button>
+                                </>
+                            )}
+                            {canDelete && (
+                                <Button
+                                    variant="outline"
+                                    color="red"
+                                    onClick={handleDelete}
+                                    loading={deleteMutation.isPending}
+                                >
+                                    Löschen
+                                </Button>
+                            )}
+                        </Group>
+                    )}
                 </Group>
 
                 {/* Zweispaltiges Layout: Details/Beschreibung links, Karte rechts */}
@@ -561,10 +601,10 @@ export default function ProjectDetail() {
                                     <ChronicleHeadline as="h2">
                                         {subProjects.length > 0 ? "Karte – Unterprojekte" : "Karte"}
                                     </ChronicleHeadline>
-                                    <div style={{ flex: 1, minHeight: 400 }}>
+                                    <div style={{ flex: 1, minHeight: 0 }}>
                                         <MapView
                                             projects={mapProjects}
-                                            height={500}
+                                            height="var(--map-height-detail, 500px)"
                                             clickable={subProjects.length > 0}
                                             initialCenter={mapCenter}
                                         />
@@ -817,6 +857,22 @@ type DetailRowProps = {
 };
 
 function DetailRow({ label, value }: DetailRowProps) {
+    // A 200px label column leaves nothing for the value on a phone — stack instead.
+    const isMobile = useIsMobile();
+
+    if (isMobile) {
+        return (
+            <Stack gap={2}>
+                <Text fw={500} size="sm">
+                    {label}
+                </Text>
+                <Text size="sm" c="dimmed">
+                    {value}
+                </Text>
+            </Stack>
+        );
+    }
+
     return (
         <Group gap="md" align="flex-start">
             <Text fw={500} style={{ minWidth: 200 }}>

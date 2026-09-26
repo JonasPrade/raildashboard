@@ -4,7 +4,9 @@ import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import { ActionIcon, Anchor, Group, Loader, Modal, Stack, Text } from "@mantine/core";
+import { useViewportSize } from "@mantine/hooks";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
+import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 
 // Worker is bundled locally (no CDN dependency); this module is lazy-loaded,
 // so pdfjs and its worker only load when a PDF preview is opened.
@@ -19,6 +21,10 @@ type PdfPreviewModalProps = {
 };
 
 export default function PdfPreviewModal({ opened, onClose, attachmentUrl, filename }: PdfPreviewModalProps) {
+    const isMobile = useIsMobile();
+    const { width: viewportWidth } = useViewportSize();
+    // A 720px page would need pinch-zoom on a phone — render it at screen width.
+    const pageWidth = Math.min(720, Math.max(280, viewportWidth - 40));
     const [numPages, setNumPages] = useState(0);
     const [pageNumber, setPageNumber] = useState(1);
     const [loadError, setLoadError] = useState(false);
@@ -44,7 +50,14 @@ export default function PdfPreviewModal({ opened, onClose, attachmentUrl, filena
     const downloadUrl = attachmentUrl.replace("?inline=true", "");
 
     return (
-        <Modal opened={opened} onClose={handleClose} title={filename} size="xl" centered>
+        <Modal
+            opened={opened}
+            onClose={handleClose}
+            title={filename}
+            size="xl"
+            centered
+            fullScreen={isMobile}
+        >
             {opened && (
                 <Stack gap="sm" align="center">
                     <Document
@@ -63,7 +76,7 @@ export default function PdfPreviewModal({ opened, onClose, attachmentUrl, filena
                             ) : null
                         }
                     >
-                        <Page pageNumber={pageNumber} width={720} />
+                        <Page pageNumber={pageNumber} width={pageWidth} />
                     </Document>
                     {numPages > 1 && (
                         <Group gap="xs" align="center">

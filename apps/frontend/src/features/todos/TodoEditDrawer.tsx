@@ -9,6 +9,7 @@ import {
     Textarea,
     TextInput,
 } from "@mantine/core";
+import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { notifications } from "@mantine/notifications";
 import {
     useCreateTodo,
@@ -33,6 +34,7 @@ type Props = {
 };
 
 export default function TodoEditDrawer({ opened, onClose, todo, defaultProjectId = null, lockProject = false }: Props) {
+    const isMobile = useIsMobile();
     const isEdit = todo !== null;
     const createTodo = useCreateTodo();
     const updateTodo = useUpdateTodo();
@@ -127,7 +129,7 @@ export default function TodoEditDrawer({ opened, onClose, todo, defaultProjectId
             opened={opened}
             onClose={onClose}
             position="right"
-            size="lg"
+            size={isMobile ? "100%" : "lg"}
             title={isEdit ? "Aufgabe bearbeiten" : "Neue Aufgabe"}
         >
             <Stack gap="md">

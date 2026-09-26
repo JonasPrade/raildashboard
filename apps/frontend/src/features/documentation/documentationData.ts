@@ -11,6 +11,20 @@ export type WorkflowStep = {
 
 export const featureHighlights: FeatureHighlight[] = [
     {
+        title: "Smartphone-taugliche Oberfläche",
+        description:
+            "Alle Ansichten sind für Bildschirme ab 360 px ausgelegt: Die Seite selbst lässt sich nie seitwärts schieben," +
+            " Tabellen scrollen innerhalb ihrer Karte, Dialoge und Seitenleisten nutzen auf dem Telefon die volle Breite.",
+        details: [
+            "Breakpoints: < 768 px = Telefon (einspaltig, Bottom-Sheets), < 992 px = Telefon/kleines Tablet (Burger-Navigation, gestapelte Filter)",
+            "Karte füllt auf dem Telefon den sichtbaren Bereich; Suche liegt als schmaler Streifen darüber, alle weiteren Einstellungen im Bottom-Sheet („Karte einstellen“)",
+            "Wahlkreis-Panel erscheint auf dem Telefon als Bottom-Sheet statt als fixe Seitenleiste",
+            "Projektdetail: Aktionen im ⋮-Menü, Detailzeilen als Label/Wert untereinander, Karte in kompakter Höhe",
+            "Eingabefelder rendern auf dem Telefon mit 16 px, damit iOS Safari beim Fokus nicht in die Seite zoomt",
+            "Plan und Testfälle: docs/features/feature-mobile-usability.md"
+        ]
+    },
+    {
         title: "Interactive map view",
         description:
             "MapLibre-based map with Mantine overlays for controls such as filters." +
