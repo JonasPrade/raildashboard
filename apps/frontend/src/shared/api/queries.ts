@@ -1,4 +1,5 @@
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
+import { queryOptions, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "./client";
 import type { components } from "./types.gen";
@@ -383,8 +384,8 @@ export function useRecomputeProgress(projectId: number) {
     );
 }
 
-export function useProject(id: number) {
-    return useQuery({
+function projectQueryOptions(id: number) {
+    return queryOptions({
         queryKey: queryKeys.project(id),
         enabled: Number.isFinite(id),
         queryFn: () =>
@@ -392,6 +393,26 @@ export function useProject(id: number) {
                 params: { path: { project_id: id } },
             }),
     });
+}
+
+export function useProject(id: number) {
+    return useQuery(projectQueryOptions(id));
+}
+
+/**
+ * Returns a callback that warms the cache for a project detail page — wire it
+ * to hover/focus of links so the page opens without a loading spinner.
+ * prefetchQuery is a no-op while the cached entry is still fresh.
+ */
+export function usePrefetchProject() {
+    const queryClient = useQueryClient();
+    return useCallback(
+        (id: number) => {
+            if (!Number.isFinite(id)) return;
+            void queryClient.prefetchQuery(projectQueryOptions(id));
+        },
+        [queryClient],
+    );
 }
 
 export function useProjectGroups() {

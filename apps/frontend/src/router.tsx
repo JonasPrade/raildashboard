@@ -5,8 +5,8 @@ import { Header } from "./components/Header";
 import RouteErrorBoundary from "./components/RouteErrorBoundary";
 import { lazyWithRetry } from "./lib/lazyWithRetry";
 import MapPage from "./features/map/MapPage";
-import DocumentationPage from "./features/documentation/DocumentationPage";
 
+const DocumentationPage = lazyWithRetry(() => import("./features/documentation/DocumentationPage"));
 // Lazy like all other routes: ProjectDetail transitively pulls in recharts,
 // react-markdown and terra-draw, which would otherwise land in the entry chunk.
 const ProjectDetail = lazyWithRetry(() => import("./features/projects/ProjectDetail"));
@@ -49,7 +49,11 @@ function Layout() {
                 <Header />
             </AppShell.Header>
             <AppShell.Main>
-                <Outlet />
+                {/* One boundary for all lazy route chunks: the header stays
+                    visible while a page's chunk is loading. */}
+                <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                    <Outlet />
+                </Suspense>
             </AppShell.Main>
         </AppShell>
     );
@@ -66,267 +70,135 @@ export const router = createBrowserRouter([
             { path: "projects", element: <Navigate to="/?view=list" replace /> },
             {
                 path: "projects/:projectId",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <ProjectDetail />
-                    </Suspense>
-                ),
+                element: <ProjectDetail />,
             },
             {
                 path: "abgeordnete",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <AbgeordnetePage />
-                    </Suspense>
-                ),
+                element: <AbgeordnetePage />,
             },
             {
                 path: "tasks",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <TasksPage />
-                    </Suspense>
-                ),
+                element: <TasksPage />,
             },
             {
                 path: "admin",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <AdminOverviewPage />
-                    </Suspense>
-                ),
+                element: <AdminOverviewPage />,
             },
             {
                 path: "admin/users",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <UsersPage />
-                    </Suspense>
-                ),
+                element: <UsersPage />,
             },
             {
                 path: "admin/roles",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <RolesAdminPage />
-                    </Suspense>
-                ),
+                element: <RolesAdminPage />,
             },
             {
                 path: "admin/system",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <SystemStatusPage />
-                    </Suspense>
-                ),
+                element: <SystemStatusPage />,
             },
             {
                 path: "admin/project-groups",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <ProjectGroupsAdminPage />
-                    </Suspense>
-                ),
+                element: <ProjectGroupsAdminPage />,
             },
             {
                 path: "admin/haushalt-import",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <HaushaltsImportPage />
-                    </Suspense>
-                ),
+                element: <HaushaltsImportPage />,
             },
             {
                 path: "admin/haushalt-import/review/:parseResultId",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <HaushaltsReviewPage />
-                    </Suspense>
-                ),
+                element: <HaushaltsReviewPage />,
             },
             {
                 path: "admin/haushalt-import/guide",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <HaushaltsGuidePage />
-                    </Suspense>
-                ),
+                element: <HaushaltsGuidePage />,
             },
             {
                 path: "admin/haushalt-unmatched",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <HaushaltsUnmatchedPage />
-                    </Suspense>
-                ),
+                element: <HaushaltsUnmatchedPage />,
             },
             {
                 path: "finves",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <FinveOverviewPage />
-                    </Suspense>
-                ),
+                element: <FinveOverviewPage />,
             },
             {
                 path: "admin/finve-progress",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <FinveProgressAdminPage />
-                    </Suspense>
-                ),
+                element: <FinveProgressAdminPage />,
             },
             {
                 path: "admin/vib-import",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <VibImportPage />
-                    </Suspense>
-                ),
+                element: <VibImportPage />,
             },
             {
                 path: "admin/vib-import/review/:taskId",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <VibReviewPage />
-                    </Suspense>
-                ),
+                element: <VibReviewPage />,
             },
             {
                 path: "admin/vib-import/preview/:taskId",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <VibStructurePreviewPage />
-                    </Suspense>
-                ),
+                element: <VibStructurePreviewPage />,
             },
             {
                 path: "admin/bauportal-import",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <BauportalImportPage />
-                    </Suspense>
-                ),
+                element: <BauportalImportPage />,
             },
             {
                 path: "admin/media-import",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <MediaImportPage />
-                    </Suspense>
-                ),
+                element: <MediaImportPage />,
             },
             {
                 path: "admin/fulda-import",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <FuldaImportPage />
-                    </Suspense>
-                ),
+                element: <FuldaImportPage />,
             },
             {
                 path: "admin/fulda-import/year/:year",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <FuldaYearDetailPage />
-                    </Suspense>
-                ),
+                element: <FuldaYearDetailPage />,
             },
             {
                 path: "admin/unassigned",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <UnassignedPage />
-                    </Suspense>
-                ),
+                element: <UnassignedPage />,
             },
             {
                 path: "admin/projects/new",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <NewProjectPage />
-                    </Suspense>
-                ),
+                element: <NewProjectPage />,
             },
             {
                 path: "admin/projects/new/:projectId",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <NewProjectPage />
-                    </Suspense>
-                ),
+                element: <NewProjectPage />,
             },
             {
                 path: "admin/drafts",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <DraftsPage />
-                    </Suspense>
-                ),
+                element: <DraftsPage />,
             },
             {
                 path: "admin/anleitungen",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <AnleitungenPage />
-                    </Suspense>
-                ),
+                element: <AnleitungenPage />,
             },
             {
                 path: "admin/anleitungen/projektfortschritt",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <ProjektfortschrittGuidePage />
-                    </Suspense>
-                ),
+                element: <ProjektfortschrittGuidePage />,
             },
             {
                 path: "admin/anleitungen/fulda",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <FuldaGuidePage />
-                    </Suspense>
-                ),
+                element: <FuldaGuidePage />,
             },
             {
                 path: "admin/anleitungen/bauportal",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <BauportalGuidePage />
-                    </Suspense>
-                ),
+                element: <BauportalGuidePage />,
             },
             {
                 path: "admin/anleitungen/vib",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <VibGuidePage />
-                    </Suspense>
-                ),
+                element: <VibGuidePage />,
             },
             {
                 path: "admin/anleitungen/medien",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <MedienGuidePage />
-                    </Suspense>
-                ),
+                element: <MedienGuidePage />,
             },
             {
                 path: "admin/anleitungen/projekt-anlegen",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <ProjektAnlegenGuidePage />
-                    </Suspense>
-                ),
+                element: <ProjektAnlegenGuidePage />,
             },
             {
                 path: "admin/anleitungen/geometrie",
-                element: (
-                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                        <GeometrieGuidePage />
-                    </Suspense>
-                ),
+                element: <GeometrieGuidePage />,
             },
         ]
     }

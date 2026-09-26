@@ -7,6 +7,7 @@
 
 import { Box, ColorSwatch, Group, Stack, Table, Tabs, Text, type MantineSpacing } from "@mantine/core";
 import { DonutChart, LineChart } from "@mantine/charts";
+import "@mantine/charts/styles.css";
 
 import type { BudgetSummary, TitelEntry } from "../../../shared/api/queries";
 import { chartNum, formatTEuro, formatTEuroWithZero } from "../../../shared/format";

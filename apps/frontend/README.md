@@ -98,7 +98,8 @@ Available on both the map and list view at `/`. A search `TextInput` (with magni
 The group list carries project metadata only (`ProjectListItem`, flags folded into `active_features` — expand with `withActiveFeatures()` for `ProjectCard` / `ProjectSummaryCard`). The map loads simplified geometries per selected group via `useProjectGroupGeometries(groupIds, onlySuperior)` (`GET /project_groups/{id}/geometries`) and draws them as they arrive; the list tab loads none. `MapView` accepts either a parsed `geometry` (overview) or the exact `geojson_representation` string (detail page).
 
 - **Map view:** Non-matching projects are removed from the MapLibre GeoJSON sources. The controls panel shows a "X von Y Projekten" count while a search is active. If no project matches, a centred overlay hint is displayed.
-- **List view:** Project cards are filtered in-place. The count label updates to "X von Y Projekten" and an empty-state alert is shown when nothing matches.
+- **List view:** Project cards are filtered in-place (on the deferred search term, so typing stays responsive). The count label updates to "X von Y Projekten" and an empty-state alert is shown when nothing matches. Cards render in steps of 48 with a "Weitere … anzeigen" button; the step resets when group, search or "Nur Hauptprojekte" change.
+- **Prefetch:** Hovering/focusing a `ProjectCard` or selecting a project on the map preloads the detail page chunk and `GET /projects/{id}` (`usePrefetchProjectPage()`), so the detail page usually opens without a spinner.
 - **URL persistence:** The term is stored in `?search=<term>` (debounced, 200 ms, `replace: true`) so it survives map ↔ list tab switches and browser back/forward navigation.
 - **Dependency added:** `@tabler/icons-react` for the search and close icons.
 

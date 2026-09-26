@@ -21,6 +21,16 @@ section as part of the release commit, immediately before tagging.
   (≈ 20 m Toleranz, Koordinaten auf ≈ 1 m gerundet), Teilprojekte nur bei Bedarf.
   Die Detailansicht nutzt weiterhin die exakte Geometrie. Siehe
   `docs/features/feature-slim-project-groups.md`.
+- **Schnelleres Frontend:** Die Kartenbibliothek (maplibre, ≈ 264 kB gzip inkl. CSS) wird nur
+  noch geladen, wenn tatsächlich eine Karte angezeigt wird — Listenansicht, Projektdetail-Texte,
+  Dokumentation und Admin-Seiten starten ohne sie; auf der Karte lädt sie parallel zu den Daten.
+  Ursache war ein Build-Artefakt (Rollups CommonJS-Helfer im maplibre-Chunk). Diagramm-CSS und
+  Dokumentationsseite sind ebenfalls ausgelagert, Web-Fonts blockieren den ersten Seitenaufbau
+  nicht mehr.
+- Projekt-Detailseiten werden beim Überfahren einer Projektkarte bzw. beim Auswählen eines
+  Projekts auf der Karte vorgeladen und öffnen dadurch meist ohne Ladeanzeige.
+- Die Listenansicht zeigt große Projektgruppen in Schritten von 48 Karten („Weitere …
+  anzeigen"); die Suche bleibt dabei flüssig.
 - Liste, Einzelgruppe und Geometrien senden einen `ETag`; unveränderte Antworten kommen als
   `304` ohne Body.
 

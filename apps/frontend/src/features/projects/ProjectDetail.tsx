@@ -31,7 +31,7 @@ import ProjectEdit, { createUpdatePayload, type ProjectEditFormValues } from "./
 // Lazy: pulls in terra-draw + the geometry editor only when the modal is opened.
 const GeometryManagementModal = lazy(() => import("../routing/GeometryManagementModal"));
 import ProjectSummaryCard from "./ProjectSummaryCard";
-import MapView, { type MapViewProject } from "../map/MapView";
+import MapView, { type MapViewProject } from "../map/LazyMapView";
 import ProjectHistorySection from "../changelog/ProjectHistorySection";
 import ProjectTextsSection from "./ProjectTextsSection";
 import { ProjectTableOfContents, type TocSection } from "./ProjectTableOfContents";

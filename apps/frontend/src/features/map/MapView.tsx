@@ -1,8 +1,10 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Stack } from "@mantine/core";
 import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import type { ConstituencyFeatureCollection, ProjectOverview } from "../../shared/api/queries";
+import { usePrefetchProjectPage } from "../projects/usePrefetchProjectPage";
 import ProjectSummaryCard from "../projects/ProjectSummaryCard";
 import { ChronicleButton } from "../../components/chronicle";
 
@@ -201,6 +203,13 @@ export default function MapView({
     const projectsRef = useRef<MapViewProject[]>(projects);
     const [isMapReady, setIsMapReady] = useState(false);
     const [selectedProject, setSelectedProject] = useState<SelectedProject | null>(null);
+    const prefetchProjectPage = usePrefetchProjectPage();
+
+    // The popup's "Auswählen" is the next likely click: load the detail page
+    // (chunk + data) while the user is still reading the summary.
+    useEffect(() => {
+        if (selectedProject?.project.id != null) prefetchProjectPage(selectedProject.project.id);
+    }, [selectedProject, prefetchProjectPage]);
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
 

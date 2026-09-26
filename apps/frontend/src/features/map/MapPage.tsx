@@ -3,6 +3,7 @@ import {
     ActionIcon,
     Alert,
     Box,
+    Button,
     Container,
     Group,
     List,
@@ -27,7 +28,7 @@ import GroupFilterDrawer, { type ProjectGroupOption } from "../projects/GroupFil
 import { ProjectCard } from "../projects/ProjectCard";
 import ConstituencyPanel from "../abgeordnete/ConstituencyPanel";
 import MapControls from "./MapControls";
-import MapView, { type MapViewProject } from "./MapView";
+import MapView, { type MapViewProject } from "./LazyMapView";
 import { withActiveFeatures } from "../projects/projectFeatureConfig";
 import {
     useAppSettings,
@@ -42,6 +43,11 @@ const hasNumericId = (
     group: ProjectGroup,
 ): group is ProjectGroup & { id: number } => typeof group.id === "number";
 
+// Project cards rendered per step in the list view. Large groups hold hundreds
+// of projects; mounting them all at once made switching groups and typing in
+// the search box sluggish.
+const LIST_PAGE_SIZE = 48;
+
 const DEFAULT_LINE_WIDTH = 4;
 const DEFAULT_POINT_SIZE = 5;
 
@@ -54,6 +60,7 @@ export default function MapPage() {
     const [lineWidth, setLineWidth] = useState(DEFAULT_LINE_WIDTH);
     const [selectedConstituencyId, setSelectedConstituencyId] = useState<number | null>(null);
     const [pointSize, setPointSize] = useState(DEFAULT_POINT_SIZE);
+    const [listLimit, setListLimit] = useState(LIST_PAGE_SIZE);
 
     const view = searchParams.get("view") ?? "map";
     const onlySuperior = searchParams.get("only_superior") !== "false"; // default true
@@ -180,6 +187,14 @@ export default function MapPage() {
         return Number.isFinite(id) ? id : null;
     }, [searchParams]);
 
+    // Start from the first page again whenever the shown list changes.
+    const listKey = `${selectedGroupId}|${onlySuperior}|${deferredSearch}`;
+    const [prevListKey, setPrevListKey] = useState(listKey);
+    if (listKey !== prevListKey) {
+        setPrevListKey(listKey);
+        setListLimit(LIST_PAGE_SIZE);
+    }
+
     // Auto-select first group when on list tab and no valid group is selected
     useEffect(() => {
         if (view !== "list") return;
@@ -265,7 +280,7 @@ export default function MapPage() {
         const superiorFiltered = onlySuperior
             ? rawProjects.filter((p) => p.superior_project_id == null)
             : rawProjects;
-        const searchTerm = localSearch.trim().toLowerCase();
+        const searchTerm = deferredSearch.trim().toLowerCase();
         const projects = searchTerm
             ? superiorFiltered.filter(
                   (p) =>
@@ -459,11 +474,24 @@ export default function MapPage() {
                                         : "Diese Projektgruppe enthält aktuell keine Projekte."}
                                 </Alert>
                             ) : (
-                                <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="lg">
-                                    {projects.map((project) => (
-                                        <ProjectCard key={project.id ?? project.name} project={project} />
-                                    ))}
-                                </SimpleGrid>
+                                <Stack gap="lg">
+                                    <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="lg">
+                                        {projects.slice(0, listLimit).map((project) => (
+                                            <ProjectCard key={project.id ?? project.name} project={project} />
+                                        ))}
+                                    </SimpleGrid>
+                                    {projects.length > listLimit && (
+                                        <Group justify="center">
+                                            <Button
+                                                variant="default"
+                                                onClick={() => setListLimit((limit) => limit + LIST_PAGE_SIZE)}
+                                            >
+                                                Weitere {Math.min(LIST_PAGE_SIZE, projects.length - listLimit)} von{" "}
+                                                {projects.length - listLimit} Projekten anzeigen
+                                            </Button>
+                                        </Group>
+                                    )}
+                                </Stack>
                             )}
                         </Stack>
                     ) : groups.length > 0 ? (

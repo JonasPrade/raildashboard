@@ -230,7 +230,9 @@ src/
 ### Routing
 
 - Register new pages in `src/router.tsx` as children of the shared `Layout` component.
-- Use `React.lazy()` + `Suspense` for routes with heavy bundles.
+- Every page except the map start page (`MapPage`) is loaded via `lazyWithRetry()` (`src/lib/lazyWithRetry.ts`). A single `Suspense` boundary around the `Outlet` in `Layout` covers all of them — do not wrap routes individually.
+- Keep heavy libraries out of the entry chunk: `maplibre-gl` is only reached through `features/map/LazyMapView.tsx` (import `MapView` from there, never directly), `@mantine/charts` and its CSS only through `FinveBudgetDetails`. Library CSS is imported next to the component that uses it, not in `main.tsx`. After a build, `dist/index.html` must only modulepreload `vendor-react`.
+- Links to a project detail page should warm it on hover/focus via `usePrefetchProjectPage()` (route chunk + project data).
 
 ### State management
 
