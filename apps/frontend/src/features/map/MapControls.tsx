@@ -16,9 +16,6 @@ type Props = {
     onSearchChange: (value: string) => void;
     totalProjects: number;
     filteredCount: number;
-    /** Omitted when the deployment has no railway tile source — the switch is then hidden. */
-    showRailwayLines?: boolean;
-    onShowRailwayLinesChange?: (value: boolean) => void;
     showConstituencies: boolean;
     onShowConstituenciesChange: (value: boolean) => void;
 };
@@ -35,8 +32,6 @@ export default function MapControls({
     onSearchChange,
     totalProjects,
     filteredCount,
-    showRailwayLines,
-    onShowRailwayLinesChange,
     showConstituencies,
     onShowConstituenciesChange,
 }: Props) {
@@ -63,14 +58,6 @@ export default function MapControls({
 
     const layerSwitches = (
         <>
-            {showRailwayLines !== undefined && onShowRailwayLinesChange && (
-                <Switch
-                    label="Strecken"
-                    checked={showRailwayLines}
-                    onChange={(e) => onShowRailwayLinesChange(e.currentTarget.checked)}
-                    size={isMobile ? "md" : "sm"}
-                />
-            )}
             <Switch
                 label="Wahlkreise"
                 checked={showConstituencies}

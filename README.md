@@ -81,7 +81,6 @@ All runtime configuration is managed through a single `.env` file in the reposit
 | `USE_GEOMETRY` | Backend | Set to `0` to skip geometry creation on OSM import |
 | `VITE_API_BASE_URL` | Frontend | Backend API base URL (default: `http://localhost:8000`) |
 | `REACT_APP_TILE_LAYER_URL` | Frontend | Raster tile layer URL for the map view |
-| `REACT_APP_RAILWAY_TILE_LAYER_URL` | Frontend | Optional tile URL for the railway overlay ("Strecken"). Unset → public OpenRailwayMap tiles, `off` → overlay disabled |
 
 ## Backend
 

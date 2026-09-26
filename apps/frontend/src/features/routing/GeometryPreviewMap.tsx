@@ -8,7 +8,6 @@ import {
 } from "terra-draw";
 import { TerraDrawMapLibreGLAdapter } from "terra-draw-maplibre-gl-adapter";
 import type { OperationalPointRef, RoutePreviewFeature } from "../../shared/api/queries";
-import { railwayStyleParts } from "../../shared/map/railwayTiles";
 
 const tileLayerUrl = import.meta.env.REACT_APP_TILE_LAYER_URL as string | undefined;
 
@@ -178,15 +177,12 @@ export default function GeometryPreviewMap({ existingGeojson, previewFeature, sh
         const selectionLineColor: maplibregl.ExpressionSpecification = ["case", ["==", ["get", "__selected"], true], "#dc2626", "#2563eb"];
         const selectionCircleColor: maplibregl.ExpressionSpecification = ["case", ["==", ["get", "__selected"], true], "#dc2626", "#2563eb"];
 
-        const railway = railwayStyleParts(true);
-
         const map = new maplibregl.Map({
             container: containerRef.current,
             style: {
                 version: 8,
                 sources: {
                     basemap: { type: "raster", tiles: [tileLayerUrl], tileSize: 256 },
-                    ...railway.sources,
                     existing: { type: "geojson", data: { type: "FeatureCollection", features: [] } },
                     preview: { type: "geojson", data: { type: "FeatureCollection", features: [] } },
                     "existing-points": { type: "geojson", data: { type: "FeatureCollection", features: [] } },
@@ -194,8 +190,6 @@ export default function GeometryPreviewMap({ existingGeojson, previewFeature, sh
                 },
                 layers: [
                     { id: "basemap", type: "raster", source: "basemap" },
-                    // Always on here: a route is only reviewable against the network it runs on.
-                    ...railway.layers,
                     {
                         id: "existing-line",
                         type: "line",

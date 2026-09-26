@@ -321,7 +321,6 @@ Quelle: `docs/DESIGN.md` (am 2026-04-25 auf Richtung F neu geschrieben). Vollst�
 - [x] Karte/Liste als Tab-Toggle auf `/` (`?view=map` / `?view=list`); Gruppen-Persistenz als `?group=`-Param
 - [x] Toggle „Nur übergeordnete Projekte"; Kartenauswahl zeigt Projektnummer + Beschreibung
 - [x] Kartengeometrie: einstellbare Liniendicke/Punktgröße, `line-cap: round` für Lückenbehebung, separater Circle-Layer für GeoJSON-Punkte
-- [x] **Strecken im Kartenhintergrund** — Schienennetz als Rasterebene (OpenRailwayMap) unter den Projektgeometrien; Schalter „Strecken" (Default an, `?strecken=0`), im Geometrie-Editor fest aktiv; Kachelquelle über `REACT_APP_RAILWAY_TILE_LAYER_URL` konfigurierbar. See: `docs/features/feature-strecken-hintergrund.md`
 - [x] Projektdetail: Projekteigenschaften-Box, Kurzansicht-Komponente für Unter-/Oberprojekte, Zentrierung auf Projektmittelpunkt
 - [x] Datum-/Zeitanzeige auf Zeitzone Europe/Berlin; Login per Enter-Taste; Burger-Menü bei schmalen Fenstern
 - [x] SV-FinVes in Projektdetailseite als kompakter Tag dargestellt
@@ -378,3 +377,4 @@ Siehe: `docs/features/feature-haushalt-import.md`
 - [x] Backend-Auth: httpOnly-Cookie-Session (HMAC-signed); Rollen viewer/editor/admin
 - [x] Routing-Microservice (GraphHopper/pgRouting) Docker-Integration
 - [x] `docs/architecture.md` als zentrale Architekturdokumentation
+- [x] Performance Karte: schlanke Projektgruppen-Liste, vereinfachte Geometrien je Gruppe nachgeladen, gzip im Backend, ETag — See: docs/features/feature-slim-project-groups.md

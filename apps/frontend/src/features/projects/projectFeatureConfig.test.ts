@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { featureGroups, trainCategoryLabels, type FeatureItem } from "./projectFeatureConfig";
+import { featureGroups, trainCategoryLabels, withActiveFeatures, type FeatureItem } from "./projectFeatureConfig";
 // ---------------------------------------------------------------------------
 // featureGroups
 // ---------------------------------------------------------------------------
@@ -99,5 +99,42 @@ describe("trainCategoryLabels", () => {
         expect(keys).toContain("effects_passenger_long_rail");
         expect(keys).toContain("effects_passenger_local_rail");
         expect(keys).toContain("effects_cargo_rail");
+    });
+});
+
+// ---------------------------------------------------------------------------
+// withActiveFeatures
+// ---------------------------------------------------------------------------
+
+describe("withActiveFeatures", () => {
+    it("turns active_features into true boolean flags", () => {
+        const project = withActiveFeatures({
+            id: 7,
+            name: "ABS Hauptstrecke",
+            project_number: "1-001",
+            active_features: ["elektrification", "effects_cargo_rail"],
+        });
+        expect(project).toMatchObject({
+            id: 7,
+            name: "ABS Hauptstrecke",
+            project_number: "1-001",
+            elektrification: true,
+            effects_cargo_rail: true,
+        });
+        expect(project.second_track).toBeUndefined();
+        expect("active_features" in project).toBe(false);
+    });
+
+    it("covers every flag the cards render", () => {
+        const allKeys = [
+            ...featureGroups.flatMap((g) => g.features.map((f) => String(f.key))),
+            ...trainCategoryLabels.map((l) => String(l.key)),
+        ];
+        const project = withActiveFeatures({ id: 1, name: "x", active_features: allKeys }) as Record<string, unknown>;
+        for (const key of allKeys) expect(project[key]).toBe(true);
+    });
+
+    it("handles a missing active_features list", () => {
+        expect(withActiveFeatures({ id: 1, name: "x" })).toEqual({ id: 1, name: "x" });
     });
 });

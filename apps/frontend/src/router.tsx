@@ -13,6 +13,7 @@ const ProjectDetail = lazyWithRetry(() => import("./features/projects/ProjectDet
 const AdminOverviewPage = lazyWithRetry(() => import("./features/admin/AdminOverviewPage"));
 const UsersPage = lazyWithRetry(() => import("./features/admin/UsersPage"));
 const RolesAdminPage = lazyWithRetry(() => import("./features/admin/RolesAdminPage"));
+const SystemStatusPage = lazyWithRetry(() => import("./features/admin/SystemStatusPage"));
 const ProjectGroupsAdminPage = lazyWithRetry(() => import("./features/admin/ProjectGroupsAdminPage"));
 const HaushaltsImportPage = lazyWithRetry(() => import("./features/haushalt-import/HaushaltsImportPage"));
 const HaushaltsReviewPage = lazyWithRetry(() => import("./features/haushalt-import/HaushaltsReviewPage"));
@@ -110,6 +111,14 @@ export const router = createBrowserRouter([
                 element: (
                     <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
                         <RolesAdminPage />
+                    </Suspense>
+                ),
+            },
+            {
+                path: "admin/system",
+                element: (
+                    <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
+                        <SystemStatusPage />
                     </Suspense>
                 ),
             },

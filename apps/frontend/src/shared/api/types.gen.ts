@@ -466,7 +466,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Read Project Groups */
+        /**
+         * Read Project Groups
+         * @description All groups with their projects as slim items (no geometry).
+         *
+         *     Geometry comes from ``GET /{group_id}/geometries``. The response carries an
+         *     ETag; an unchanged list is answered with 304.
+         */
         get: operations["read_project_groups_api_v1_project_groups__get"];
         put?: never;
         /** Create Project Group Endpoint */
@@ -494,6 +500,30 @@ export interface paths {
         head?: never;
         /** Patch Project Group */
         patch: operations["patch_project_group_api_v1_project_groups__group_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/project_groups/{group_id}/geometries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Project Group Geometries
+         * @description Simplified overview-map geometries of a group's projects, keyed by project id.
+         *
+         *     Lines are simplified (~20 m tolerance) and coordinates rounded to ~1 m;
+         *     projects without geometry are omitted. The exact geometry stays on
+         *     ``GET /projects/{id}``. The response carries an ETag.
+         */
+        get: operations["read_project_group_geometries_api_v1_project_groups__group_id__geometries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/users/me": {
@@ -796,6 +826,29 @@ export interface paths {
          *     - X-Content-Type-Options: nosniff is set.
          */
         get: operations["download_attachment_api_v1_projects_texts__text_id__attachments__attachment_id__download_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tasks/workers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Worker Health
+         * @description Broker and Celery workers right now — the admin area's health check.
+         *
+         *     ``refresh=true`` bypasses the short-lived cache the status polling shares,
+         *     so the "Erneut prüfen" button really re-probes.
+         */
+        get: operations["get_worker_health_api_v1_tasks_workers_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3760,6 +3813,29 @@ export interface components {
              */
             is_default_selected: boolean;
         };
+        /**
+         * ProjectGroupGeometriesSchema
+         * @description Simplified map geometries of one group's projects, keyed by project id.
+         *
+         *     Each value is a GeoJSON FeatureCollection with at most one MultiLineString
+         *     and one MultiPoint feature. Lines are simplified for the overview map; the
+         *     exact geometry stays available on ``GET /projects/{id}``.
+         */
+        ProjectGroupGeometriesSchema: {
+            /** Group Id */
+            group_id: number;
+            /** Only Superior */
+            only_superior: boolean;
+            /**
+             * Tolerance
+             * @description Simplification tolerance in degrees
+             */
+            tolerance: number;
+            /** Geometries */
+            geometries: {
+                [key: string]: unknown;
+            };
+        };
         /** ProjectGroupRef */
         ProjectGroupRef: {
             /** Id */
@@ -3812,7 +3888,7 @@ export interface components {
              * Projects
              * @description List of projects associated with this project group
              */
-            projects?: components["schemas"]["ProjectSchema"][];
+            projects?: components["schemas"]["ProjectListItem"][];
         };
         /** ProjectGroupUpdate */
         ProjectGroupUpdate: {
@@ -3832,6 +3908,35 @@ export interface components {
             is_visible?: boolean | null;
             /** Is Default Selected */
             is_default_selected?: boolean | null;
+        };
+        /**
+         * ProjectListItem
+         * @description A project as the map/list overview needs it — without geometry.
+         *
+         *     ``ProjectSchema`` embeds ``geojson_representation`` (often hundreds of
+         *     kilobytes per project); nesting it in every group made the project-group
+         *     list ~8 MB. Geometry is fetched separately and simplified via
+         *     ``GET /project_groups/{id}/geometries``. The boolean properties are folded
+         *     into ``active_features`` (only the true ones) to keep each item small.
+         */
+        ProjectListItem: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Project Number */
+            project_number?: string | null;
+            /** Superior Project Id */
+            superior_project_id?: number | null;
+            /** Description */
+            description?: string | null;
+            /** Length */
+            length?: number | null;
+            /**
+             * Active Features
+             * @description Names of the boolean project properties that are true (e.g. 'elektrification').
+             */
+            active_features?: string[];
         };
         /**
          * ProjectOptionSchema
@@ -4708,6 +4813,8 @@ export interface components {
             result?: unknown;
             /** Error */
             error?: string | null;
+            /** Hint */
+            hint?: string | null;
         };
         /** TextAttachmentSchema */
         TextAttachmentSchema: {
@@ -5550,6 +5657,51 @@ export interface components {
             lat: number;
             /** Lon */
             lon: number;
+        };
+        /**
+         * WorkerHealthSchema
+         * @description Broker and workers at one moment — the answer to "läuft da überhaupt was?".
+         */
+        WorkerHealthSchema: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "no_workers" | "broker_unreachable";
+            /** Broker Reachable */
+            broker_reachable: boolean;
+            /** Broker Url */
+            broker_url: string;
+            /**
+             * Workers
+             * @default []
+             */
+            workers: components["schemas"]["WorkerSchema"][];
+            /** Queued Tasks */
+            queued_tasks?: number | null;
+            /** Message */
+            message: string;
+            /** Detail */
+            detail?: string | null;
+            /** Checked At */
+            checked_at: number;
+        };
+        /**
+         * WorkerSchema
+         * @description One Celery worker that answered the broadcast ping.
+         */
+        WorkerSchema: {
+            /** Name */
+            name: string;
+            /** Active Tasks */
+            active_tasks: number;
+            /**
+             * Active Task Names
+             * @default []
+             */
+            active_task_names: string[];
+            /** Concurrency */
+            concurrency?: number | null;
         };
     };
     responses: never;
@@ -6572,6 +6724,40 @@ export interface operations {
             };
         };
     };
+    read_project_group_geometries_api_v1_project_groups__group_id__geometries_get: {
+        parameters: {
+            query?: {
+                /** @description Skip subprojects — their geometry is already part of their parent's. */
+                only_superior?: boolean;
+            };
+            header?: never;
+            path: {
+                group_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectGroupGeometriesSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_current_user_info_api_v1_users_me_get: {
         parameters: {
             query?: never;
@@ -7254,6 +7440,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_worker_health_api_v1_tasks_workers_get: {
+        parameters: {
+            query?: {
+                refresh?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkerHealthSchema"];
                 };
             };
             /** @description Validation Error */

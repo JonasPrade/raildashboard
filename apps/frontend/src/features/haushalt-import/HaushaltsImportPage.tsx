@@ -18,6 +18,7 @@ import {
     useParseResults,
     useStartHaushaltsImport,
 } from "../../shared/api/queries";
+import { exceedsUploadLimit, tooLargeMessage, uploadErrorMessage } from "../../shared/api/uploads";
 import { TaskProgressIndicator, useImportTask } from "../import-review/shared";
 import { ParseResultList } from "./components/ParseResultList";
 
@@ -40,11 +41,15 @@ function HaushaltsImportPageContent() {
 
     const handleUpload = async () => {
         if (!file) return;
+        if (exceedsUploadLimit(file)) {
+            notifications.show({ color: "red", title: "Datei zu groß", message: tooLargeMessage(file) });
+            return;
+        }
         try {
             const { task_id } = await startImport.mutateAsync({ pdf: file, year });
             task.start(task_id);
-        } catch {
-            notifications.show({ color: "red", message: "Upload fehlgeschlagen." });
+        } catch (error) {
+            notifications.show({ color: "red", message: uploadErrorMessage(error) });
         }
     };
 
@@ -92,14 +97,9 @@ function HaushaltsImportPageContent() {
                         </Group>
 
                         {isParsing && (
-                            <TaskProgressIndicator
-                                progress={progress}
-                                label={
-                                    progress?.current_page != null
-                                        ? `Seite ${progress.current_page} / ${progress.total_pages} — ${progress.rows_found} Zeilen gefunden`
-                                        : undefined
-                                }
-                            />
+                            // Label and step come from the task itself — the page
+                            // no longer builds its own out of the page counter.
+                            <TaskProgressIndicator progress={progress} warning={task.warning} />
                         )}
                     </Stack>
                 </ChronicleCard>

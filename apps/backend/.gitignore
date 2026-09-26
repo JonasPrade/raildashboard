@@ -6,3 +6,4 @@ alembic/versions/*.pyc
 /.env.production
 /data/rinf_era/
 __pycache__
+test.db

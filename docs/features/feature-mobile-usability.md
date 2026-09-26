@@ -146,7 +146,7 @@ horizontally, it wraps.
 - [ ] Auf der Karte „Filter" tippen: Bottom-Sheet öffnet sich, Projektgruppen
       lassen sich auswählen, „Übernehmen" schließt das Sheet und die Karte zeigt
       die Auswahl.
-- [ ] „Strecken" und „Wahlkreise" im Sheet umschalten: Layer erscheinen bzw.
+- [ ] „Wahlkreise" und „Nur Hauptprojekte" im Sheet umschalten: Layer erscheinen bzw.
       verschwinden.
 - [ ] Wahlkreis auf der Karte antippen: Panel erscheint unten, ist scrollbar und
       lässt sich schließen.

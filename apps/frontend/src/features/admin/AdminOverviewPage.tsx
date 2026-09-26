@@ -10,7 +10,12 @@ import {
 } from "@mantine/core";
 import { ChronicleHeadline, ChronicleCard } from "../../components/chronicle";
 import { useAuth } from "../../lib/auth";
-import { useDraftProjects, useUnassignedFinves, useUnassignedVibEntries } from "../../shared/api/queries";
+import {
+    useDraftProjects,
+    useUnassignedFinves,
+    useUnassignedVibEntries,
+    useWorkerHealth,
+} from "../../shared/api/queries";
 
 export default function AdminOverviewPage() {
     const { can } = useAuth();
@@ -22,6 +27,7 @@ export default function AdminOverviewPage() {
     const canUsers = can("user.manage");
     const canRoles = can("role.manage");
     const canProgress = can("progress.edit");
+    const canSettings = can("settings.manage");
     const hasAnyAdmin =
         canAssignments ||
         canHaushalt ||
@@ -30,7 +36,8 @@ export default function AdminOverviewPage() {
         canProjectGroups ||
         canUsers ||
         canRoles ||
-        canProgress;
+        canProgress ||
+        canSettings;
 
     const { data: unassignedFinves } = useUnassignedFinves(canAssignments);
     const { data: unassignedVibEntries } = useUnassignedVibEntries(canAssignments);
@@ -39,6 +46,11 @@ export default function AdminOverviewPage() {
 
     const { data: drafts } = useDraftProjects(canCreateProject);
     const draftCount = drafts?.length ?? 0;
+
+    // Polled slowly: the badge is what tells an admin that imports are silently
+    // piling up because no worker is running.
+    const { data: workerHealth } = useWorkerHealth(canSettings, 60000);
+    const workersDown = workerHealth != null && workerHealth.status !== "ok";
 
     if (!hasAnyAdmin) {
         return (
@@ -174,6 +186,28 @@ export default function AdminOverviewPage() {
                                 <Stack gap={4}>
                                     <Text fw={500}>Projektgruppen</Text>
                                     <Text size="sm" c="dimmed">Standardauswahl auf der Karte konfigurieren</Text>
+                                </Stack>
+                            </Link>
+                        </ChronicleCard>
+                    )}
+                    {canSettings && (
+                        <ChronicleCard style={{ textDecoration: "none" }}>
+                            <Link to="/admin/system" style={{ textDecoration: "none", color: "inherit" }}>
+                                <Stack gap={4}>
+                                    <Group gap={6} align="center">
+                                        <Text fw={500}>Systemstatus</Text>
+                                        <Badge
+                                            color={workersDown ? "red" : "green"}
+                                            size="xs"
+                                            variant={workersDown ? "filled" : "light"}
+                                        >
+                                            {workersDown ? "Worker offline" : "Worker ok"}
+                                        </Badge>
+                                    </Group>
+                                    <Text size="sm" c="dimmed">
+                                        Laufen die Hintergrund-Aufträge? Worker, Warteschlange und
+                                        was bei einem hängenden Import zu tun ist
+                                    </Text>
                                 </Stack>
                             </Link>
                         </ChronicleCard>

@@ -138,8 +138,27 @@ After starting a task the API returns a `task_id`. The frontend polls:
 GET /api/v1/tasks/{task_id}
 ```
 
-Response: `{ task_id, status, result, error }` — `status` is one of `PENDING`, `STARTED`, `SUCCESS`, `FAILURE`.
+Response: `{ task_id, status, result, error, hint }` — `status` is one of `PENDING`, `STARTED`, `SUCCESS`, `FAILURE`.
 Both endpoints require a logged-in user.
+
+`hint` says what the status cannot: Celery answers `PENDING` both for "queued, starting in a
+moment" and for "no worker is running" — the second leaves an import spinning forever. While a job
+is pending the endpoint therefore consults the worker health (see below) and returns the reason plus
+the command to check it; on `FAILURE` it returns the exception class, its message and the file/line
+it was raised in, so the worker log can be searched straight away.
+
+### Worker health
+
+```
+GET /api/v1/tasks/workers[?refresh=true]     # capability: settings.manage
+```
+
+Broker reachability, every worker that answers a broadcast ping (with what it is working on and its
+concurrency), and the Redis queue length. Backed by `services/worker_health.py`: every probe carries
+a timeout and turns a failure into a value, so the check never hangs and never raises; the broker URL
+is returned without its credentials. Results are cached for 5 s (the task polling shares that cache);
+`refresh=true` forces a fresh probe. The admin UI renders it at `/admin/system` —
+see `docs/features/feature-worker-status.md`.
 
 ### Tests
 
@@ -357,6 +376,28 @@ and therefore needs their geometry — but only theirs. Both exclude drafts. Rea
 
 > Route order matters: `/options` and `/drafts` are declared before `/{project_id}` in
 > `api/v1/endpoints/projects.py`, otherwise FastAPI captures them as a project id.
+
+### Project groups: slim list + simplified geometries
+
+```
+GET /api/v1/project_groups/                         # groups + ProjectListItem[] (no geometry)
+GET /api/v1/project_groups/{group_id}               # one group, same shape
+GET /api/v1/project_groups/{group_id}/geometries?only_superior=true
+```
+
+The list embeds `ProjectListItem` (id, name, number, parent, description, length and
+`active_features` — the names of the boolean properties that are true); the CRUD query
+uses `load_only(..., raiseload=True)`, so geometry is never loaded on that path.
+`/geometries` returns `{project_id: FeatureCollection}` for the map overview: one
+MultiLineString (simplified, 0.0002° ≈ 20 m) and one MultiPoint per project,
+coordinates rounded to ~1 m (`services/geometry_simplify.py`, memoised per process by
+source hash). With `only_superior=true` subprojects are skipped — their geometry is
+already part of their parent's. The exact geometry stays on `GET /projects/{id}`.
+
+All three send a content-hash `ETag` with `Cache-Control: no-cache` and answer
+`If-None-Match` with `304` (`core/http_cache.py`). The app compresses responses ≥ 1 KB
+with `GZipMiddleware` (`main.py`) when the client sends `Accept-Encoding: gzip`.
+See `docs/features/feature-slim-project-groups.md`.
 
 ### BVWP assessment data
 

@@ -22,7 +22,7 @@ npm run dev
 
 The frontend talks to a backend at `http://localhost:8000` by default. Use `VITE_API_BASE_URL` (for example in a `.env` file at the project root) to override the API base URL.
 
-The map view expects a raster tile URL provided via `REACT_APP_TILE_LAYER_URL`, and draws the railway network on top of it from `REACT_APP_RAILWAY_TILE_LAYER_URL` (unset → public OpenRailwayMap tiles, `off` → no railway overlay). The Vite configuration accepts both `VITE_` and `REACT_APP_` prefixes, so either environment prefix can be used if you decide to migrate to `VITE_TILE_LAYER_URL` later. The map renders project routes from each project's `geojson_representation` payload, supports a click popover to navigate to `/projects/:projectId`, and syncs selected project groups via the `group` query parameter.
+The map view expects a raster tile URL provided via `REACT_APP_TILE_LAYER_URL`. The Vite configuration accepts both `VITE_` and `REACT_APP_` prefixes, so either environment prefix can be used if you decide to migrate to `VITE_TILE_LAYER_URL` later. The map renders project routes from each project's `geojson_representation` payload, supports a click popover to navigate to `/projects/:projectId`, and syncs selected project groups via the `group` query parameter.
 
 ## Projektstruktur
 
@@ -119,7 +119,9 @@ Layout: Mantine `Tabs` with up to 11 groups — **Grunddaten** (NKV shown as `Ba
 
 ### Project search (`features/map/MapPage.tsx` + `MapControls.tsx`)
 
-Available on both the map and list view at `/`. A search `TextInput` (with magnifier icon and clear button) lets users find projects by name, project number, or description via case-insensitive substring matching. All filtering is client-side — no extra API calls are made, as all project data is already in memory from `useProjectGroups()`.
+Available on both the map and list view at `/`. A search `TextInput` (with magnifier icon and clear button) lets users find projects by name, project number, or description via case-insensitive substring matching. All filtering is client-side — no extra API calls are made, as all project metadata is already in memory from `useProjectGroups()`.
+
+The group list carries project metadata only (`ProjectListItem`, flags folded into `active_features` — expand with `withActiveFeatures()` for `ProjectCard` / `ProjectSummaryCard`). The map loads simplified geometries per selected group via `useProjectGroupGeometries(groupIds, onlySuperior)` (`GET /project_groups/{id}/geometries`) and draws them as they arrive; the list tab loads none. `MapView` accepts either a parsed `geometry` (overview) or the exact `geojson_representation` string (detail page).
 
 - **Map view:** Non-matching projects are removed from the MapLibre GeoJSON sources. The controls panel shows a "X von Y Projekten" count while a search is active. If no project matches, a centred overlay hint is displayed.
 - **List view:** Project cards are filtered in-place. The count label updates to "X von Y Projekten" and an empty-state alert is shown when nothing matches.
@@ -215,6 +217,12 @@ needs no login. See `docs/features/feature-abgeordnete.md`.
 Multi-step import workflow for federal budget PDFs. The `ReviewTable` shows auto-suggested project assignments (marked with ✦) computed during the Celery parse task via fuzzy name matching. The Projektzuordnung column has a minimum width of 320 px.
 
 `HaushaltsGuidePage.tsx` (`/admin/haushalt-import/guide`) provides a step-by-step user guide (accordion format) with troubleshooting FAQ. Linked from both the import page and the review page.
+
+### Admin: Systemstatus (`features/admin/SystemStatusPage.tsx`)
+
+`/admin/system` (capability `settings.manage`) answers „läuft im Hintergrund überhaupt jemand?": broker reachability, every Celery worker with what it is working on, the queue length, and the commands to run when something is off — plus a badge on the admin overview when no worker is online. Data via `useWorkerHealth()` / `useRecheckWorkerHealth()` → `GET /api/v1/tasks/workers`.
+
+The same diagnosis reaches the import pages: `useImportTask()` returns a `warning` once a job has stayed pending for ~12 s, which `TaskProgressIndicator` renders under the progress bar with a link to this page. See `docs/features/feature-worker-status.md`.
 
 ### Aufgaben / To-Dos (`features/todos/`)
 

@@ -32,11 +32,10 @@ export const featureHighlights: FeatureHighlight[] = [
         details: [
             "Filter drawer for project groups including URL synchronisation",
             "Mantine components for buttons, panels, and layout",
-            "Project route geometries rendered from each project's `geojson_representation` field",
+            "Project list renders immediately from the slim group list; simplified route geometries are loaded per selected group afterwards (`/project_groups/{id}/geometries`)",
             "Hover interactions that highlight routes and show pointer feedback",
             "Route click popover with project title and direct navigation action",
-            "Railway network as a switchable background layer (OpenRailwayMap), on by default and shared via the `strecken` query parameter",
-            "Raster tiles configured via the REACT_APP_TILE_LAYER_URL and REACT_APP_RAILWAY_TILE_LAYER_URL environment variables"
+            "Raster tiles configured via the REACT_APP_TILE_LAYER_URL environment variable"
         ]
     },
     {
@@ -259,6 +258,20 @@ export const featureHighlights: FeatureHighlight[] = [
             "Route /admin/haushalt-import — visible for editor and admin roles only",
             "Route /admin/haushalt-import/review/:parseResultId — review a specific run",
             "Route /admin/haushalt-unmatched — manage open unmatched rows"
+        ]
+    },
+    {
+        title: "Systemstatus der Hintergrund-Aufträge",
+        description:
+            "Importe (Haushalt, VIB, Fulda, Bauportal) laufen als Hintergrund-Auftrag, den ein Celery-Worker abarbeitet. " +
+            "Läuft kein Worker, wird der Upload zwar angenommen, aber nie ausgeführt — die Seite wartet dann endlos. " +
+            "Der Systemstatus macht diesen Fall sichtbar und die Import-Seiten benennen ihn von selbst.",
+        details: [
+            "Route /admin/system (Recht settings.manage): Broker-Erreichbarkeit, alle laufenden Worker mit ihren aktuellen Aufträgen, Länge der Warteschlange, Schaltfläche „Erneut prüfen“",
+            "Administrations-Übersicht: Kachel „Systemstatus“ mit rotem Hinweis, sobald kein Worker online ist",
+            "Import-Seiten: Bleibt ein Auftrag ~15 s ohne Start, erscheint unter dem Fortschrittsbalken der Grund samt Link auf den Systemstatus",
+            "Fortschrittsanzeige benennt die laufende Stufe („Seite 12 / 42 gelesen — 318 Tabellenzeilen“, „Tabellen zuordnen…“, „141 Maßnahmen — Ergebnis wird gespeichert…“)",
+            "Fehlgeschlagene Aufträge melden Fehlerklasse, Meldung und die Stelle im Code sowie den Befehl für das vollständige Worker-Log"
         ]
     },
     {

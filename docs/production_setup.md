@@ -46,7 +46,6 @@ cp .env.example .env
 | `GRAPH_VERSION` | `1` | Hochzählen nach neuem OSM-Extrakt (busted Route-Cache) |
 | `GH_OSM_URL` | `https://download.geofabrik.de/…` | OSM PBF URL; GraphHopper lädt die Datei beim ersten Start automatisch herunter |
 | `REACT_APP_TILE_LAYER_URL` | — | Raster-Kachel-URL für die Kartenansicht |
-| `REACT_APP_RAILWAY_TILE_LAYER_URL` | OpenRailwayMap | Kachel-URL des Strecken-Overlays. Leer → öffentliche OpenRailwayMap-Kacheln, `off` → Overlay aus |
 | `CELERY_BROKER_URL` | `redis://redis:6379/0` | Redis im Docker-Netzwerk (kein Passwort nötig, da nicht nach außen exponiert) |
 | `CELERY_RESULT_BACKEND` | `redis://redis:6379/0` | Wie `CELERY_BROKER_URL` |
 
@@ -85,6 +84,7 @@ Build und Betrieb sind getrennte Welten: **GitHub Actions baut** unveränderlich
 | Release-Pin | `IMAGE_TAG` in `.env` (früher `APP_VERSION`); `deploy.sh` setzt ihn automatisch |
 | Health-URL (Erfolgskriterium) | Backend-Healthcheck auf `http://backend:8000/api/v1/health` (200 erst nach Alembic + uvicorn); extern `curl http://localhost/api/v1/health` |
 | Deploy-User | Eingeschränkter `deploy`-User, dem `/srv/raildashboard/` gehört; Docker-Rechte nötig |
+| Upload-Limit | 50 MB, in drei Schichten gleich: vorgelagerter TLS-Proxy (`client_max_body_size 50m`), Container-nginx (`apps/frontend/nginx.conf`), Backend (`MAX_FILE_SIZE`). Fehlt sie im Proxy, gilt dessen Default von 1 MB und Import-PDFs scheitern mit `413`. |
 
 ### Ablauf des Deploy-Schritts (in `deploy.sh`, identisch bei Pipeline und manuell)
 
@@ -106,7 +106,6 @@ Nur als GitHub-Secrets hinterlegen, **niemals** ins Repo committen:
 | `GHCR_TOKEN` *(optional)* | PAT mit `read:packages`, damit der Server private Images ziehen kann. Entfällt, wenn die GHCR-Packages öffentlich sind. |
 | `GITHUB_TOKEN` *(automatisch)* | Wird im Build-Job mit `packages: write` zum Pushen nach GHCR genutzt — kein manuelles Secret. |
 | `TILE_LAYER_URL` *(Repo-Variable, optional)* | Raster-Kachel-URL, die zur Build-Zeit ins Frontend-Bundle gebacken wird. |
-| `RAILWAY_TILE_LAYER_URL` *(Repo-Variable, optional)* | Kachel-URL des Strecken-Overlays, ebenfalls zur Build-Zeit gebacken. Nicht gesetzt → OpenRailwayMap; `off` → Overlay aus. |
 
 Deploy-Ziel ist das GitHub-Environment `production`. Über einen **Required Reviewer** an diesem Environment lässt sich jeder Deploy zu einem manuellen Freigabe-Gate machen.
 
@@ -166,6 +165,20 @@ gehashten Vite-Assets unter `/assets/` mit `Cache-Control: … immutable` aus
 startet uvicorn mit `--workers 2` (`apps/backend/Dockerfile`), damit synchrone
 Import-/Extraktions-Requests andere Anfragen nicht serialisieren. Ein
 vorgelagerter TLS-Proxy braucht daher selbst kein gzip/Caching zu übernehmen.
+Damit das auch hinter einem Proxy greift, der per HTTP/1.0 weiterleitet (nginx-Default
+ohne `proxy_http_version 1.1`), steht in der Container-Konfiguration
+`gzip_http_version 1.0`. Zusätzlich komprimiert das Backend selbst per
+`GZipMiddleware` (ab 1 KB, nicht für PDFs/Bilder) und sendet für
+`/api/v1/project_groups/…` einen `ETag` (unveränderte Antworten → `304`).
+Nichts davon erfordert eine Änderung am Host.
+
+**Upload-Limit — drei Stellen, ein Wert.** Der Container-nginx erlaubt
+`client_max_body_size 50m`, das Backend weist alles darüber mit `413` ab
+(`utils/file_storage.MAX_FILE_SIZE`). Ein vorgelagerter Proxy muss denselben Wert
+tragen, sonst greift *sein* Default: nginx lässt ohne die Direktive nur **1 MB**
+durch und beantwortet z. B. den Haushaltsbericht Teil B (≈ 3,6 MB) mit
+`413 Request Entity Too Large`, bevor der Request die Anwendung überhaupt
+erreicht. Caddy hat kein solches Default-Limit.
 
 ### Voraussetzungen
 
@@ -333,6 +346,29 @@ Der Backend-Container führt beim Start automatisch `alembic upgrade head` aus (
 make docker-migrate
 ```
 
+### Hängt ein Import? Worker prüfen
+
+Importe (Haushalt, VIB, Fulda, Bauportal) laufen als Celery-Aufträge. Läuft kein Worker, nimmt die
+Anwendung den Upload trotzdem an — Celery meldet dauerhaft `PENDING` und die Import-Seite wartet
+endlos. Die Oberfläche benennt diesen Fall selbst: Die Import-Seite zeigt nach ~15 s
+den Grund, und **Administration → Systemstatus** (`/admin/system`, Recht `settings.manage`) zeigt
+Broker, Worker und Warteschlange direkt an. Dieselbe Auskunft per API:
+
+```bash
+curl -u <user>:<pass> http://localhost/api/v1/tasks/workers
+```
+
+Auf dem Server nachsehen und neu starten:
+
+```bash
+docker compose --env-file .env ps worker
+docker compose --env-file .env logs --tail=50 worker
+docker compose --env-file .env up -d worker
+```
+
+Ein Auftrag, der während eines Worker-Neustarts hochgeladen wurde, ist verloren — die Datei danach
+einfach erneut hochladen.
+
 ### Tägliches Backup via Docker
 
 ```bash
@@ -382,7 +418,9 @@ deine-domain.de {
 }
 ```
 
-Caddy bezieht und erneuert Let's Encrypt-Zertifikate automatisch.
+Caddy bezieht und erneuert Let's Encrypt-Zertifikate automatisch. Caddy begrenzt
+den Request-Body nicht von sich aus — ein eigenes `request_body max_size` also nur
+setzen, wenn es bewusst enger als 50 MB sein soll.
 
 **Option B – nginx + Certbot:**
 
@@ -391,6 +429,26 @@ Caddy bezieht und erneuert Let's Encrypt-Zertifikate automatisch.
 certbot --nginx -d deine-domain.de
 # Automatische Erneuerung via systemd-Timer ist nach certbot-Installation aktiv
 ```
+
+certbot schreibt nur die TLS-Zeilen in den Server-Block — das Upload-Limit muss
+von Hand nachgetragen werden, sonst bleibt es beim nginx-Default von 1 MB:
+
+```nginx
+server {
+    server_name deine-domain.de;
+    client_max_body_size 50m;   # deckungsgleich mit apps/frontend/nginx.conf
+
+    location / {
+        proxy_pass http://localhost:5000;
+        # …
+    }
+    # … listen/ssl_* von certbot …
+}
+```
+
+Danach `sudo nginx -t && sudo systemctl reload nginx`. Ob die *laufende*
+Konfiguration die Direktive trägt — nicht nur die Datei — zeigt
+`sudo nginx -T | grep client_max_body_size`.
 
 Danach `BACKEND_CORS_ORIGINS` in `.env` auf die HTTPS-URL aktualisieren und den Stack neu starten:
 
@@ -592,6 +650,10 @@ Beispielkonfiguration für nginx — Backend unter `/api/`, Frontend-Build als s
 server {
     listen 443 ssl;
     server_name deine-domain.de;
+
+    # Ohne diese Zeile greift der nginx-Default von 1 MB und große
+    # Import-PDFs scheitern mit 413.
+    client_max_body_size 50m;
 
     # Frontend (statische Dateien aus apps/frontend/dist)
     root /opt/raildashboard/apps/frontend/dist;

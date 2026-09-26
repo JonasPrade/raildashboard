@@ -29,12 +29,12 @@ import { ProjectCard } from "../projects/ProjectCard";
 import ConstituencyPanel from "../abgeordnete/ConstituencyPanel";
 import MapControls from "./MapControls";
 import MapView, { type MapViewProject } from "./MapView";
-import { hasRailwayTiles } from "../../shared/map/railwayTiles";
+import { withActiveFeatures } from "../projects/projectFeatureConfig";
 import {
     useAppSettings,
     useConstituencyGeojson,
+    useProjectGroupGeometries,
     useProjectGroups,
-    type Project,
     type ProjectGroup,
 } from "../../shared/api/queries";
 
@@ -42,8 +42,6 @@ const DEFAULT_GROUP_COLOR = "#2563eb";
 const hasNumericId = (
     group: ProjectGroup,
 ): group is ProjectGroup & { id: number } => typeof group.id === "number";
-const hasNumericProjectId = (project: Project): project is Project & { id: number } =>
-    typeof project.id === "number";
 
 const DEFAULT_LINE_WIDTH = 4;
 const DEFAULT_POINT_SIZE = 5;
@@ -64,9 +62,6 @@ export default function MapPage() {
     // Layer state lives in the URL like the other map settings, so a link
     // carries the view someone was looking at.
     const showConstituencies = searchParams.get("wahlkreise") === "1";
-    // The railway network is context every project is read against, so it is on
-    // unless the link says otherwise.
-    const showRailwayLines = hasRailwayTiles && searchParams.get("strecken") !== "0";
 
     // --- Search state: local for immediate input, debounced to URL ---
     const [localSearch, setLocalSearch] = useState(() => searchParams.get("search") ?? "");
@@ -89,14 +84,6 @@ export default function MapPage() {
         setSearchParams((prev) => {
             if (checked) prev.set("wahlkreise", "1");
             else prev.delete("wahlkreise");
-            return prev;
-        });
-    };
-
-    const handleShowRailwayLinesChange = (checked: boolean) => {
-        setSearchParams((prev) => {
-            if (checked) prev.delete("strecken");
-            else prev.set("strecken", "0");
             return prev;
         });
     };
@@ -144,13 +131,26 @@ export default function MapPage() {
         return groups.filter((group) => selectedSet.has(group.id));
     }, [groups, selectedGroupIds, mapGroupMode]);
 
+    // The group list carries metadata only; the (simplified) geometries are
+    // loaded per selected group, so the page renders before they arrive.
+    const selectedGroupIdsForMap = useMemo(() => selectedGroups.map((g) => g.id), [selectedGroups]);
+    const {
+        geometries,
+        isLoading: geometriesLoading,
+        isError: geometriesError,
+    } = useProjectGroupGeometries(view === "map" ? selectedGroupIdsForMap : [], onlySuperior);
+
     const selectedProjects = useMemo(() => {
         const projectMap = new Map<number, MapViewProject>();
         selectedGroups.forEach((group) => {
             const groupColor = group.color?.trim().length ? group.color : DEFAULT_GROUP_COLOR;
-            group.projects?.filter(hasNumericProjectId).forEach((project) => {
+            group.projects?.forEach((project) => {
                 if (!projectMap.has(project.id)) {
-                    projectMap.set(project.id, { ...project, id: project.id, groupColor });
+                    projectMap.set(project.id, {
+                        ...withActiveFeatures(project),
+                        groupColor,
+                        geometry: geometries.get(project.id),
+                    });
                 }
             });
         });
@@ -158,7 +158,7 @@ export default function MapPage() {
         return onlySuperior
             ? allProjects.filter((p) => p.superior_project_id == null)
             : allProjects;
-    }, [selectedGroups, onlySuperior]);
+    }, [selectedGroups, onlySuperior, geometries]);
 
     // Defer the search term for the map filter: the text input stays snappy
     // while the (cheap, but setData-triggering) map update lags a beat behind.
@@ -240,10 +240,6 @@ export default function MapPage() {
                                 <Text size="sm"> — Klicke auf „Projektgruppen", um nach Themengruppen zu filtern. Auf der Karte kannst du mehrere Gruppen gleichzeitig auswählen.</Text>
                             </List.Item>
                             <List.Item>
-                                <Text size="sm" span fw={500}>Kartenebenen</Text>
-                                <Text size="sm"> — „Strecken" legt das Schienennetz hinter die Projekte, „Wahlkreise" blendet die Wahlkreisgrenzen ein.</Text>
-                            </List.Item>
-                            <List.Item>
                                 <Text size="sm" span fw={500}>Nur Hauptprojekte</Text>
                                 <Text size="sm"> — Aktiviere diesen Schalter, um Teilprojekte auszublenden.</Text>
                             </List.Item>
@@ -268,7 +264,7 @@ export default function MapPage() {
         const selectedGroup = selectedGroupId
             ? groups.find((group) => group.id === selectedGroupId)
             : undefined;
-        const rawProjects = (selectedGroup?.projects ?? []).filter(Boolean) as Project[];
+        const rawProjects = (selectedGroup?.projects ?? []).map(withActiveFeatures);
         const superiorFiltered = onlySuperior
             ? rawProjects.filter((p) => p.superior_project_id == null)
             : rawProjects;
@@ -495,7 +491,6 @@ export default function MapPage() {
                         projects={filteredMapProjects}
                         lineWidth={lineWidth}
                         pointSize={pointSize}
-                        showRailwayLines={showRailwayLines}
                         constituencies={
                             showConstituencies ? constituencyGeojson.data ?? null : null
                         }
@@ -547,6 +542,28 @@ export default function MapPage() {
                             <Text size="sm" c="dimmed">Projektgruppen werden geladen…</Text>
                         </Box>
                     )}
+                    {!isLoading && (geometriesLoading || geometriesError) && (
+                        <Text
+                            size="xs"
+                            c={geometriesError ? "red" : "dimmed"}
+                            role="status"
+                            style={{
+                                position: "absolute",
+                                top: 12,
+                                left: "50%",
+                                transform: "translateX(-50%)",
+                                zIndex: 5,
+                                background: "rgba(255,255,255,0.9)",
+                                padding: "4px 10px",
+                                borderRadius: 6,
+                                pointerEvents: "none",
+                            }}
+                        >
+                            {geometriesError
+                                ? "Einige Projektverläufe konnten nicht geladen werden"
+                                : "Projektverläufe werden geladen…"}
+                        </Text>
+                    )}
                     {localSearch.trim() && filteredMapProjects.length === 0 && (
                         <Box
                             style={{
@@ -584,10 +601,6 @@ export default function MapPage() {
                         onSearchChange={setLocalSearch}
                         totalProjects={selectedProjects.length}
                         filteredCount={filteredMapProjects.length}
-                        showRailwayLines={hasRailwayTiles ? showRailwayLines : undefined}
-                        onShowRailwayLinesChange={
-                            hasRailwayTiles ? handleShowRailwayLinesChange : undefined
-                        }
                         showConstituencies={showConstituencies}
                         onShowConstituenciesChange={handleShowConstituenciesChange}
                     />

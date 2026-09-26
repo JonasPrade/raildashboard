@@ -131,6 +131,10 @@ The backend uses **HTTP Basic Auth**. The `AuthRouter` class (`routing/auth_rout
 - **`selectinload` for collections, `joinedload` for many-to-one.** Chaining `joinedload`
   across two collections produces a row per element of the cross product with every parent
   column repeated; `selectinload` issues one flat query per level instead.
+- **Keep geometry out of list payloads.** `geojson_representation` dwarfs every other
+  column. List endpoints use a slim schema plus `load_only(..., raiseload=True)`
+  (`ProjectListItem`, `ProjectOptionSchema`); maps fetch geometry separately and
+  simplified (`GET /project_groups/{id}/geometries`).
 - **Filter in SQL, not in the schema.** Rows dropped by a Pydantic validator (e.g. drafts)
   were still fetched, hydrated and serialised.
 - **Index the other direction of an m:n table.** Postgres does not index foreign-key

@@ -24,12 +24,39 @@ section as part of the release commit, immediately before tagging.
   tokens (`--page-pad`, `--card-pad`, `--map-height`) steer this centrally; the main navigation now
   collapses into the burger at 62em instead of 100em. See
   `docs/features/feature-mobile-usability.md`.
-- The map now draws the **railway network as a background layer** (OpenRailwayMap tiles) beneath
-  the project geometries, so a project is read against the network it runs on. A "Strecken" switch
-  in the map controls toggles it, `?strecken=0` carries the off state in a shared link, and the
-  geometry editor shows the network permanently. The tile source is configurable via
-  `REACT_APP_RAILWAY_TILE_LAYER_URL` (`off` disables the overlay); see
-  `docs/features/feature-strecken-hintergrund.md`.
+
+### Changed
+- **Schnellere Startseite/Karte:** `GET /api/v1/project_groups/` liefert Projekte nur noch als
+  schlanke Einträge ohne Geometrie (`ProjectListItem`; boolesche Merkmale als
+  `active_features`) — im produktionsgroßen Testdatensatz 10,4 MB → 0,27 MB (gzip 7 KB).
+  Die Karte lädt die Verläufe danach je ausgewählter Gruppe über den neuen Endpunkt
+  `GET /api/v1/project_groups/{id}/geometries?only_superior=true|false` — vereinfacht
+  (≈ 20 m Toleranz, Koordinaten auf ≈ 1 m gerundet), Teilprojekte nur bei Bedarf.
+  Die Detailansicht nutzt weiterhin die exakte Geometrie. Siehe
+  `docs/features/feature-slim-project-groups.md`.
+- Liste, Einzelgruppe und Geometrien senden einen `ETag`; unveränderte Antworten kommen als
+  `304` ohne Body.
+
+### Fixed
+- API-Antworten werden jetzt im Backend gzip-komprimiert (`GZipMiddleware`, ab 1 KB) —
+  unabhängig vom Reverse Proxy. Der Container-nginx komprimiert zusätzlich auch hinter einem
+  Proxy, der per HTTP/1.0 weiterleitet (`gzip_http_version 1.0`); bisher kamen API und
+  JS-Assets dort unkomprimiert an. Keine Änderung am Server nötig.
+
+## [v0.0.13] - 2026-09-24
+
+### Added
+- **Systemstatus der Hintergrund-Aufträge** unter `/admin/system` (Recht `settings.manage`, verlinkt
+  von der Administrations-Übersicht mit Warn-Badge, sobald kein Worker läuft): Erreichbarkeit der
+  Warteschlange, jeder laufende Celery-Worker mit seinen aktuellen Aufträgen, Länge der
+  Warteschlange und die Befehle für den Fall, dass etwas fehlt. Neuer Endpunkt
+  `GET /api/v1/tasks/workers` (`?refresh=true` erzwingt eine frische Prüfung); jede Sonde ist mit
+  einem Timeout begrenzt, gibt Fehler als Wert statt als Ausnahme zurück und liefert die Broker-URL
+  ohne Zugangsdaten. Siehe `docs/features/feature-worker-status.md`.
+- Ein Import, den kein Worker abholt, benennt seinen Grund jetzt selbst: `GET /api/v1/tasks/{id}`
+  liefert zusätzlich ein `hint`-Feld, und die Import-Seiten (Haushalt, VIB, Fulda) zeigen es nach
+  ~12 s unter dem Fortschrittsbalken samt Link auf den Systemstatus — bis dahin sah ein hängender
+  Auftrag genauso aus wie ein langsamer, weil Celery für beides `PENDING` meldet.
 - The Haushalt import now reads **all five tables** of Annex VWIB Part B, not just the Bedarfsplan
   table: Lärmsanierung, ERTMS, Kleine und Mittlere Maßnahmen and the InvKG measures are imported as
   their own sections, each with its own column mapping, and shown as separate blocks in the review.
@@ -90,6 +117,11 @@ section as part of the release commit, immediately before tagging.
   the new capability `parliament.import`.
 
 ### Changed
+- The 50 MB upload ceiling is enforced in one place per side instead of per endpoint. The Haushalt,
+  VIB and Fulda parse endpoints previously read their PDF with no limit at all — only the text
+  attachment upload checked one — and now share `deps.read_upload_within_limit`; the frontend shares
+  `shared/api/uploads.ts` for the pre-flight check and the error text.
+
 - The Haushalt import keeps taking its numbers from pdfplumber. The comparison against the real OCR
   API has now been run (EP 12 Part B, 2027 draft, `mistral-ocr-latest`) and came back red: 141 rows
   from pdfplumber against 107 from the OCR stage, 79 differing values. The model omits the `YYY`
@@ -101,6 +133,26 @@ section as part of the release commit, immediately before tagging.
   Full evaluation in `docs/features/feature-pdf-import-unification.md`.
 
 ### Fixed
+- Die Fortschrittsanzeige des Haushalts-Imports meldete während des gesamten Laufs „0 Zeilen
+  gefunden“ — der Wert war im Backend fest auf 0 verdrahtet. Sie zählt jetzt die tatsächlich
+  gelesenen Tabellenzeilen mit, und jede Stufe nach der Textgewinnung (Spaltenzuordnung, OCR,
+  Speichern) meldet eine eigene Beschriftung, statt auf der letzten Seitenzahl stehen zu bleiben.
+- Ein fehlgeschlagener Hintergrund-Auftrag meldete nur noch `Parser-Fehler: <str(exception)>`, bei
+  einer leeren Ausnahme also gar nichts. Die Meldung nennt jetzt Fehlerklasse, Text und die Datei
+  samt Zeile, in der die Ausnahme entstanden ist, dazu den Befehl für das vollständige Worker-Log;
+  sie schließt sich nicht mehr von selbst.
+
+- Uploading Annex VWIB Part B (3.6 MB) failed with `413 Request Entity Too Large` before the request
+  ever reached the application. The TLS proxy in front of the Docker stack carried no
+  `client_max_body_size`, so nginx applied its 1 MB default while the container nginx and the backend
+  both allowed 50 MB. The limit is now documented as one value across all three layers
+  (`docs/production_setup.md` → Deploy-Vertrag and both TLS options); the server-side configuration
+  is a manual step on the host, not part of the image.
+- The PDF importers reported every upload failure as a bare "Upload fehlgeschlagen.", which hid the
+  cause: a proxy answers `413` with an HTML page, so the status code was the only signal and it was
+  discarded. Haushalt, VIB and Fulda now name the size limit when the upload is rejected for it, and
+  check the file against the limit before sending it at all.
+
 - A measure's Mittelherkunft — which Haushaltstitel funds how much of it — no longer loses values.
   The report prints one line per Titel, but `extract_table` keeps only the non-empty lines of each
   column, so a column printed on the measure's line and on the last Titel's line arrived as a single

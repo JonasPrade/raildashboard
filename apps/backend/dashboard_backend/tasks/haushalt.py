@@ -663,6 +663,18 @@ def _refresh_sv_suggestions(
         row.project_ids = sv_suggestions
 
 
+def report_step(task: Task | None, step: str, label: str) -> None:
+    """Tell the poller which stage runs now — the page counter alone cannot.
+
+    Extraction reports pages, but the stages after it (column mapping, row
+    transfer, OCR, persistence) have no page to count, and a progress display
+    frozen on the last page of stage 1 is what makes a running import look dead.
+    """
+    if task is None:
+        return
+    task.update_state(state="PROGRESS", meta={"step": step, "step_label": label})
+
+
 @dataclass
 class DocumentText:
     """The document text a parse run worked from, for persistence and review."""
@@ -892,24 +904,40 @@ def _page_table_rows(page) -> tuple[list[list], list[list[list]]]:
 
 
 def _extract_pages(pdf_bytes: bytes, task: Task | None = None) -> list[ExtractedPage]:
-    """Stage 1 for the Haushalt: pdfplumber text + table rows, page by page."""
+    """Stage 1 for the Haushalt: pdfplumber text + table rows, page by page.
+
+    The progress it reports counts the table rows read so far — the measures are
+    only known after stage 3, and a counter that stands still at zero for the
+    whole run reads like "nichts gefunden" when the extraction is in fact
+    working.
+    """
     import pdfplumber
 
     pages: list[ExtractedPage] = []
+    table_rows_found = 0
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
         total_pages = len(pdf.pages)
         for page_idx, page in enumerate(pdf.pages, start=1):
-            logger.info("Collecting page %d/%d", page_idx, total_pages)
+            rows, row_lines = _page_table_rows(page)
+            table_rows_found += len(rows)
+            logger.info(
+                "Collected page %d/%d (%d table rows so far)",
+                page_idx, total_pages, table_rows_found,
+            )
             if task is not None:
                 task.update_state(
                     state="PROGRESS",
                     meta={
+                        "step": "extract",
+                        "step_label": (
+                            f"Seite {page_idx} / {total_pages} gelesen — "
+                            f"{table_rows_found} Tabellenzeilen"
+                        ),
                         "current_page": page_idx,
                         "total_pages": total_pages,
-                        "rows_found": 0,
+                        "rows_found": table_rows_found,
                     },
                 )
-            rows, row_lines = _page_table_rows(page)
             pages.append(
                 ExtractedPage(
                     number=page_idx,
@@ -1053,8 +1081,13 @@ def _parse_pdf(
         )
 
     pdfplumber_pages = _extract_pages(pdf_bytes, task=task)
+    report_step(task, "parse", "Tabellen zuordnen und Zeilen auswerten…")
     pdfplumber_result = _parse(pdfplumber_pages)
     pdfplumber_text = "\n".join(page.text for page in pdfplumber_pages)
+    report_step(
+        task, "parsed",
+        f"{len(pdfplumber_result.rows)} Maßnahmen erkannt",
+    )
 
     if mode == "pdfplumber":
         pdfplumber_result.extraction_source = "pdfplumber"
@@ -1062,6 +1095,7 @@ def _parse_pdf(
             text=pdfplumber_text, model="pdfplumber", status="done"
         )
 
+    report_step(task, "ocr", "Texterkennung läuft (OCR) — das kann einige Minuten dauern…")
     ocr, ocr_error = _run_ocr_stage(pdf_bytes)
     if ocr is None or not ocr.pages:
         # No usable OCR output — the verified path carries the import, and the
@@ -1558,6 +1592,7 @@ def parse_haushalt_pdf(
     )
     db = Session()
     try:
+        report_step(self, "load", "Bekannte FinVes und Projekte laden…")
         # Load all known Finve IDs for match/new classification
         known_ids: set[int] = {row[0] for row in db.query(Finve.id).all()}
         logger.info("Loaded %d known Finve IDs from DB", len(known_ids))
@@ -1623,6 +1658,10 @@ def parse_haushalt_pdf(
 
         user_proxy = _UserProxy(user_info) if user_info else None
 
+        report_step(
+            self, "save",
+            f"{len(task_result.rows)} Maßnahmen — Ergebnis wird gespeichert…",
+        )
         record = save_parse_result(
             db=db,
             year=year,

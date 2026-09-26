@@ -6,7 +6,11 @@ from fastapi import Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from dashboard_backend.api.deps import get_project_or_404, get_text_or_404
+from dashboard_backend.api.deps import (
+    get_project_or_404,
+    get_text_or_404,
+    read_upload_within_limit,
+)
 from dashboard_backend.core.security import require_auth, require_permission
 from dashboard_backend.crud.changelog import (
     create_text_changelog_for_create,
@@ -44,7 +48,6 @@ from dashboard_backend.schemas.projects.project_text_schema import (
     TextAttachmentSchema,
 )
 from dashboard_backend.utils.file_storage import (
-    MAX_FILE_SIZE,
     delete_attachment_file,
     get_attachment_path,
     save_attachment,
@@ -182,9 +185,7 @@ async def upload_attachment(
     text_id = text.id
 
     # Read and enforce size limit
-    file_bytes = await file.read()
-    if len(file_bytes) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=413, detail="Datei zu groß. Maximal 50 MB erlaubt.")
+    file_bytes = await read_upload_within_limit(file)
 
     # Validate MIME via byte sniffing (not the attacker-controlled Content-Type header)
     try:

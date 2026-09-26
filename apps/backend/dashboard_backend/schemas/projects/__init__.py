@@ -1,3 +1,3 @@
-from .project_schema import ProjectSchema
-from .project_group_schema import ProjectGroupSchema, ProjectGroupCreate
+from .project_schema import ProjectSchema, ProjectListItem
+from .project_group_schema import ProjectGroupSchema, ProjectGroupCreate, ProjectGroupGeometriesSchema
 from .project_update_schema import ProjectUpdate

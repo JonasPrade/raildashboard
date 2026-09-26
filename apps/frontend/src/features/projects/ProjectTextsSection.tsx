@@ -34,6 +34,7 @@ import {
     useUpdateProjectText,
     useUploadTextAttachment,
 } from "../../shared/api/queries";
+import { exceedsUploadLimit, tooLargeMessage } from "../../shared/api/uploads";
 import { API_BASE } from "../../shared/api/client";
 
 // Lazy: pulls in react-pdf/pdfjs (~400 KB) only when a preview is opened.
@@ -64,8 +65,6 @@ const ACCEPTED_MIME = [
     "image/jpeg",
     "image/png",
 ].join(",");
-
-const MAX_FILE_BYTES = 50 * 1024 * 1024;
 
 // ── Create text type modal ────────────────────────────────────────────────────
 
@@ -181,8 +180,8 @@ function TextFormModal({ opened, onClose, onSubmit, isSubmitting, initialValues,
     function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
         const selected = Array.from(e.currentTarget.files ?? []);
         const valid = selected.filter((f) => {
-            if (f.size > MAX_FILE_BYTES) {
-                notifications.show({ color: "red", title: "Datei zu groß", message: `„${f.name}" überschreitet 50 MB.` });
+            if (exceedsUploadLimit(f)) {
+                notifications.show({ color: "red", title: "Datei zu groß", message: tooLargeMessage(f) });
                 return false;
             }
             return true;
@@ -437,11 +436,11 @@ function AttachmentUploadArea({ textId, projectId }: AttachmentUploadAreaProps) 
         if (!files || files.length === 0) return;
 
         Array.from(files).forEach((file) => {
-            if (file.size > MAX_FILE_BYTES) {
+            if (exceedsUploadLimit(file)) {
                 notifications.show({
                     color: "red",
                     title: "Datei zu groß",
-                    message: `„${file.name}" überschreitet das Limit von 50 MB.`,
+                    message: tooLargeMessage(file),
                 });
                 return;
             }
