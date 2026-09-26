@@ -373,3 +373,4 @@ Siehe: `docs/features/feature-haushalt-import.md`
 - [x] Backend-Auth: httpOnly-Cookie-Session (HMAC-signed); Rollen viewer/editor/admin
 - [x] Routing-Microservice (GraphHopper/pgRouting) Docker-Integration
 - [x] `docs/architecture.md` als zentrale Architekturdokumentation
+- [x] Performance Karte: schlanke Projektgruppen-Liste, vereinfachte Geometrien je Gruppe nachgeladen, gzip im Backend, ETag — See: docs/features/feature-slim-project-groups.md

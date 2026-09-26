@@ -165,6 +165,12 @@ gehashten Vite-Assets unter `/assets/` mit `Cache-Control: … immutable` aus
 startet uvicorn mit `--workers 2` (`apps/backend/Dockerfile`), damit synchrone
 Import-/Extraktions-Requests andere Anfragen nicht serialisieren. Ein
 vorgelagerter TLS-Proxy braucht daher selbst kein gzip/Caching zu übernehmen.
+Damit das auch hinter einem Proxy greift, der per HTTP/1.0 weiterleitet (nginx-Default
+ohne `proxy_http_version 1.1`), steht in der Container-Konfiguration
+`gzip_http_version 1.0`. Zusätzlich komprimiert das Backend selbst per
+`GZipMiddleware` (ab 1 KB, nicht für PDFs/Bilder) und sendet für
+`/api/v1/project_groups/…` einen `ETag` (unveränderte Antworten → `304`).
+Nichts davon erfordert eine Änderung am Host.
 
 **Upload-Limit — drei Stellen, ein Wert.** Der Container-nginx erlaubt
 `client_max_body_size 50m`, das Backend weist alles darüber mit `413` ab

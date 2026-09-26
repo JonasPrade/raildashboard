@@ -1,4 +1,4 @@
-import type { Project } from "../../shared/api/queries";
+import type { Project, ProjectListItem, ProjectOverview } from "../../shared/api/queries";
 
 export type TrainCategoryLabel = { key: keyof Project; label: string; color: string };
 
@@ -78,3 +78,13 @@ export const featureGroups: Array<{ groupLabel: string; features: FeatureItem[] 
         ],
     },
 ];
+
+/**
+ * Expand a slim list item into the boolean-flag shape the overview cards read
+ * (`project.elektrification`, …): every name in `active_features` becomes `true`.
+ */
+export function withActiveFeatures(item: ProjectListItem): ProjectOverview & { id: number } {
+    const { active_features: activeFeatures = [], ...rest } = item;
+    const flags = Object.fromEntries(activeFeatures.map((key) => [key, true])) as Partial<Project>;
+    return { ...flags, ...rest };
+}

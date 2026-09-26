@@ -1,11 +1,11 @@
 import { Group, Stack, Text } from "@mantine/core";
-import type { Project } from "../../shared/api/queries";
+import type { ProjectOverview } from "../../shared/api/queries";
 import { trainCategoryLabels, featureGroups } from "./projectFeatureConfig";
 import { ChronicleDataChip } from "../../components/chronicle";
 import ProgressMini from "./components/progress/ProgressMini";
 
 type Props = {
-    project: Project;
+    project: ProjectOverview;
 };
 
 /**

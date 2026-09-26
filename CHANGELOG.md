@@ -12,6 +12,24 @@ section as part of the release commit, immediately before tagging.
 
 ## [Unreleased]
 
+### Changed
+- **Schnellere Startseite/Karte:** `GET /api/v1/project_groups/` liefert Projekte nur noch als
+  schlanke Einträge ohne Geometrie (`ProjectListItem`; boolesche Merkmale als
+  `active_features`) — im produktionsgroßen Testdatensatz 10,4 MB → 0,27 MB (gzip 7 KB).
+  Die Karte lädt die Verläufe danach je ausgewählter Gruppe über den neuen Endpunkt
+  `GET /api/v1/project_groups/{id}/geometries?only_superior=true|false` — vereinfacht
+  (≈ 20 m Toleranz, Koordinaten auf ≈ 1 m gerundet), Teilprojekte nur bei Bedarf.
+  Die Detailansicht nutzt weiterhin die exakte Geometrie. Siehe
+  `docs/features/feature-slim-project-groups.md`.
+- Liste, Einzelgruppe und Geometrien senden einen `ETag`; unveränderte Antworten kommen als
+  `304` ohne Body.
+
+### Fixed
+- API-Antworten werden jetzt im Backend gzip-komprimiert (`GZipMiddleware`, ab 1 KB) —
+  unabhängig vom Reverse Proxy. Der Container-nginx komprimiert zusätzlich auch hinter einem
+  Proxy, der per HTTP/1.0 weiterleitet (`gzip_http_version 1.0`); bisher kamen API und
+  JS-Assets dort unkomprimiert an. Keine Änderung am Server nötig.
+
 ## [v0.0.13] - 2026-09-24
 
 ### Added
