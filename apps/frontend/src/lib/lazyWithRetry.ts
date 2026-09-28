@@ -14,8 +14,8 @@ import { lazy, type ComponentType } from "react";
  * loop if the failure is genuine (e.g. the chunk really has a syntax error) —
  * after one failed retry we rethrow so the router's errorElement can render.
  */
-export function lazyWithRetry<T extends ComponentType<unknown>>(
-    factory: () => Promise<{ default: T }>,
+export function lazyWithRetry<P extends object>(
+    factory: () => Promise<{ default: ComponentType<P> }>,
 ) {
     const RELOAD_FLAG = "chunk-reload-attempted";
 

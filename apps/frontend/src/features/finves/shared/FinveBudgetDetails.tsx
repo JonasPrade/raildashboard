@@ -8,6 +8,7 @@
 import { Box, ColorSwatch, Group, Stack, Table, Tabs, Text, type MantineSpacing } from "@mantine/core";
 import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
 import { DonutChart, LineChart } from "@mantine/charts";
+import "@mantine/charts/styles.css";
 
 import type { BudgetSummary, TitelEntry } from "../../../shared/api/queries";
 import { useIsMobile } from "../../../shared/hooks/useBreakpoint";

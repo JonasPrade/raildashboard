@@ -22,7 +22,14 @@ export default defineConfig({
                 // shipping it together with React. @mantine/charts is excluded:
                 // it drags recharts along and must stay in the lazy chunks of
                 // the pages that use it.
+                //
+                // Rollup's CommonJS interop helper is shared by every CJS
+                // package. Left unassigned it lands in whichever chunk claims
+                // it first — that was "maplibre", so vendor-react imported
+                // from the maplibre chunk and the 250 kB map library was
+                // preloaded on every page. Pin it next to React instead.
                 manualChunks(id: string) {
+                    if (id.includes("commonjsHelpers")) return "vendor-react";
                     if (!id.includes("node_modules")) return undefined;
                     if (id.includes("maplibre-gl")) return "maplibre";
                     if (id.includes("@mantine/charts")) return undefined;

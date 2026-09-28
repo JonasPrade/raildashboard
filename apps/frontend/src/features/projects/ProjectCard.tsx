@@ -2,10 +2,12 @@ import { Link } from "react-router-dom";
 
 import { type ProjectOverview } from "../../shared/api/queries";
 import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
+import { usePrefetchProjectPage } from "./usePrefetchProjectPage";
 
 export function ProjectCard({ project }: { project: ProjectOverview }) {
     const lengthValue = typeof project.length === "number" ? `${project.length.toLocaleString("de-DE")}` : null;
     const hasProjectId = typeof project.id === "number" && Number.isFinite(project.id);
+    const prefetchProjectPage = usePrefetchProjectPage();
 
     const cardContent = (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -80,8 +82,15 @@ export function ProjectCard({ project }: { project: ProjectOverview }) {
     );
 
     if (hasProjectId) {
+        const prefetch = () => prefetchProjectPage(project.id as number);
         return (
-            <Link to={`/projects/${project.id}`} style={{ textDecoration: "none", display: "block" }}>
+            <Link
+                to={`/projects/${project.id}`}
+                style={{ textDecoration: "none", display: "block" }}
+                onMouseEnter={prefetch}
+                onFocus={prefetch}
+                onTouchStart={prefetch}
+            >
                 <ChronicleCard accent>
                     {cardContent}
                 </ChronicleCard>
