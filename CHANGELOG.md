@@ -12,6 +12,8 @@ section as part of the release commit, immediately before tagging.
 
 ## [Unreleased]
 
+## [v0.0.14] - 2026-09-28
+
 ### Added
 - **The whole application is now usable on a smartphone.** Every route is laid out for screens from
   360 px up: the page itself never scrolls sideways, data tables scroll inside their own card (new
