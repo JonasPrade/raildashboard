@@ -2,6 +2,16 @@ import math
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, model_serializer, model_validator
 from typing import Optional, Any
+
+from sqlalchemy import inspect as sa_inspect
+from sqlalchemy.exc import NoInspectionAvailable
+
+from dashboard_backend.models.projects.progress_enums import LifecycleStatus
+from dashboard_backend.schemas.projects.progress_schema import (
+    LifecycleStatusLiteral,
+    MainPhaseLiteral,
+)
+from dashboard_backend.services.progress_derivation import stored_headline_phase
 from ..utils import nan_to_none
 
 
@@ -243,6 +253,18 @@ class ProjectListItem(BaseModel):
         default_factory=list,
         description="Names of the boolean project properties that are true (e.g. 'elektrification').",
     )
+    headline_phase: Optional[MainPhaseLiteral] = Field(
+        default=None,
+        description=(
+            "Headline planning phase from the stored project_progress row "
+            "(manual override, else the cached computed phase). Null when the "
+            "project has no progress row or its phase is unknown."
+        ),
+    )
+    lifecycle_status: Optional[LifecycleStatusLiteral] = Field(
+        default=None,
+        description="Lifecycle overlay from the stored project_progress row; null without a row.",
+    )
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -259,4 +281,37 @@ class ProjectListItem(BaseModel):
         values["active_features"] = [
             name for name in PROJECT_FLAG_FIELDS if getattr(data, name, None)
         ]
+        values.update(_progress_summary(data))
         return values
+
+
+_LIFECYCLE_VALUES = {status.value for status in LifecycleStatus}
+
+
+def _progress_summary(project: Any) -> dict[str, Any]:
+    """``headline_phase`` / ``lifecycle_status`` from an eager-loaded ``progress``.
+
+    Reads only what the query already loaded — never triggers a lazy load (one
+    SELECT per project) and never the derivation / lazy resync. If a caller did
+    not eager-load ``Project.progress``, both fields stay null.
+    """
+    try:
+        state = sa_inspect(project)
+    except NoInspectionAvailable:  # not an ORM instance (plain object in tests etc.)
+        progress = getattr(project, "progress", None)
+    else:
+        if "progress" in state.unloaded:
+            return {}
+        progress = state.dict.get("progress")
+    if progress is None:
+        return {}
+    phase = stored_headline_phase(
+        progress.manual_phase_override,
+        progress.computed_phase,
+        progress.computed_confidence,
+    )
+    lifecycle = progress.lifecycle_status
+    return {
+        "headline_phase": phase.value if phase is not None else None,
+        "lifecycle_status": lifecycle if lifecycle in _LIFECYCLE_VALUES else LifecycleStatus.AKTIV.value,
+    }

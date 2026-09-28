@@ -386,8 +386,12 @@ GET /api/v1/project_groups/{group_id}/geometries?only_superior=true
 ```
 
 The list embeds `ProjectListItem` (id, name, number, parent, description, length and
-`active_features` — the names of the boolean properties that are true); the CRUD query
-uses `load_only(..., raiseload=True)`, so geometry is never loaded on that path.
+`active_features` — the names of the boolean properties that are true — plus
+`headline_phase` / `lifecycle_status` from the stored `project_progress` row, `null`
+without a row or when the phase is unknown); the CRUD query
+uses `load_only(..., raiseload=True)`, so geometry is never loaded on that path. The
+progress rows come in with one bulk `selectinload(Project.progress)`; the list only reads
+the cached derivation output and never triggers the lazy resync.
 `/geometries` returns `{project_id: FeatureCollection}` for the map overview: one
 MultiLineString (simplified, 0.0002° ≈ 20 m) and one MultiPoint per project,
 coordinates rounded to ~1 m (`services/geometry_simplify.py`, memoised per process by

@@ -22,6 +22,7 @@ from dashboard_backend.services.progress_derivation import (
     derive_headline,
     effective_confidence,
     recency_decay,
+    stored_headline_phase,
 )
 
 TODAY = date(2026, 6, 18)
@@ -331,3 +332,38 @@ def test_aggregate_tree_all_unknown_children_is_unknown():
     )
     assert res.is_known is False
     assert res.span is None
+
+
+# --- stored_headline_phase (list views read the cached row) -------------------
+
+
+@pytest.mark.parametrize(
+    ("override", "computed", "confidence", "expected"),
+    [
+        ("BAU", "VORPLANUNG", 0.8, MainPhase.BAU),  # override wins
+        ("BAU", None, None, MainPhase.BAU),  # override without any derivation
+        (None, "VORPLANUNG", 0.8, MainPhase.VORPLANUNG),
+        (None, "NICHT_GESTARTET", 0.5, MainPhase.NICHT_GESTARTET),  # credible "not started"
+        (None, "NICHT_GESTARTET", 0.0, None),  # derivation fallback = unknown
+        (None, None, None, None),  # never derived
+        (None, "KAPUTT", 0.9, None),  # invalid stored value
+        ("KAPUTT", "BAU", 0.9, MainPhase.BAU),  # invalid override is ignored
+    ],
+)
+def test_stored_headline_phase(override, computed, confidence, expected):
+    assert stored_headline_phase(override, computed, confidence) is expected
+
+
+def test_stored_headline_phase_matches_derivation_for_unknown():
+    result = derive_headline(
+        [],
+        has_pf=False,
+        parl_relevant=False,
+        lifecycle=LifecycleStatus.AKTIV,
+        today=TODAY,
+    )
+    assert result.is_known is False
+    assert (
+        stored_headline_phase(None, result.computed_phase.value, result.computed_confidence)
+        is None
+    )

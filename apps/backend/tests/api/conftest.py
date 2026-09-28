@@ -29,6 +29,7 @@ from dashboard_backend.models.parliament import (
     Politician,
 )
 from dashboard_backend.models.projects.project import Project
+from dashboard_backend.models.projects.project_progress import ProjectProgress
 from dashboard_backend.models.projects.project_text import ProjectText
 from dashboard_backend.models.projects.project_text_type import ProjectTextType
 from dashboard_backend.models.roles import Role, RolePermission
@@ -93,6 +94,7 @@ TABLES = [
     ParliamentImportRun.__table__,
     ProjectToConstituency.__table__,  # FK to project (absent here) is unenforced in SQLite
     ProjectToProjectGroup.__table__,  # must follow project + project_group (FK dependency)
+    ProjectProgress.__table__,  # read by the slim group list (headline phase)
 ]
 
 

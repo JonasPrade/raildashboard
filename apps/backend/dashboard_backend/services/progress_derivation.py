@@ -283,6 +283,30 @@ def derive_headline(
     )
 
 
+def stored_headline_phase(
+    manual_phase_override: str | None,
+    computed_phase: str | None,
+    computed_confidence: float | None,
+) -> MainPhase | None:
+    """Headline phase from the *cached* ``project_progress`` columns, or None.
+
+    Used by list views, which must not run the derivation (or the lazy resync)
+    per project. Mirrors ``derive_headline``: the manual override wins; else the
+    cached ``computed_phase`` counts only when a credible MAIN observation
+    decided it. ``derive_headline`` stores ``NICHT_GESTARTET`` with confidence
+    ``0.0`` as a fallback when nothing is known — that is reported as ``None``
+    ("unknown", matching ``is_known=False``) rather than as "not started".
+    Values that are not a valid ``MainPhase`` are treated as unknown.
+    """
+
+    override = _safe_main_phase(manual_phase_override) if manual_phase_override else None
+    if override is not None:
+        return override
+    if not computed_phase or not computed_confidence or computed_confidence <= 0:
+        return None
+    return _safe_main_phase(computed_phase)
+
+
 def aggregate_span(phases: list[MainPhase]) -> tuple[MainPhase, MainPhase] | None:
     """Min/max span over child leaf phases for a superior project.
 
