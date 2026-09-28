@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     celery_result_backend: str = "redis://localhost:6379/0"
     session_secret_key: str  # Required: 32-byte hex string for HMAC-signing session tokens
     upload_dir: str = "/app/uploads/text-attachments"  # UPLOAD_DIR env var
+    # Uploaded import PDFs wait here until the Celery task has read them; the task
+    # receives only the file name, never the bytes. Must be on a volume shared by
+    # backend and worker. IMPORT_STAGING_DIR env var.
+    import_staging_dir: str = "/app/uploads/import-staging"
     # LLM settings for optional VIB semantic extraction (OpenAI-compatible)
     # llm_base_url empty = feature disabled
     llm_base_url: str = ""

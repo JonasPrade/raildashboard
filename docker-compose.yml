@@ -82,6 +82,10 @@ services:
       # (otherwise both containers may try the same CREATE TABLE and one crashes with
       #  psycopg2.errors.UniqueViolation on pg_class_relname_nsp_index).
       SKIP_MIGRATIONS: "1"
+    # Import PDFs are staged under /app/uploads/import-staging by the backend and
+    # read from there by the parse tasks, so the worker needs the same volume.
+    volumes:
+      - uploads:/app/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -128,7 +132,7 @@ services:
 
 volumes:
   pgdata:
-  uploads:    # text attachment files — back this up alongside the database!
+  uploads:    # text attachment files (+ transient import-staging/) — back this up alongside the database!
   ghdata:     # GraphHopper OSM extract + built graph cache
 
 networks:
