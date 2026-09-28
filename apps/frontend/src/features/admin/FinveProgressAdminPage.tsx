@@ -9,6 +9,7 @@ import {
     Table,
     Text,
 } from "@mantine/core";
+import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 
 import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
 import RequirePermission from "../../components/RequirePermission";
@@ -123,7 +124,7 @@ function FinveProgressAdminPageContent() {
                             <Loader size="sm" />
                         </Group>
                     ) : (
-                        <Table striped highlightOnHover>
+                        <ResponsiveTable minWidth={720} striped highlightOnHover>
                             <Table.Thead>
                                 <Table.Tr>
                                     <Table.Th>Sammel-FinVe</Table.Th>
@@ -138,7 +139,7 @@ function FinveProgressAdminPageContent() {
                                     <Row key={finve.finve_id} finve={finve} />
                                 ))}
                             </Table.Tbody>
-                        </Table>
+                        </ResponsiveTable>
                     )}
                 </ChronicleCard>
             </Stack>

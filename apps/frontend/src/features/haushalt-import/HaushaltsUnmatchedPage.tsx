@@ -11,6 +11,7 @@ import {
     Table,
     Text,
 } from "@mantine/core";
+import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { ChronicleHeadline, ChronicleDataChip } from "../../components/chronicle";
 import { notifications } from "@mantine/notifications";
 import RequirePermission from "../../components/RequirePermission";
@@ -55,7 +56,7 @@ function HaushaltsUnmatchedPageContent() {
                 )}
 
                 {!isLoading && !isError && (
-                    <Table withTableBorder withColumnBorders striped>
+                    <ResponsiveTable minWidth={720} withTableBorder withColumnBorders striped>
                         <Table.Thead>
                             <Table.Tr>
                                 <Table.Th>Jahr</Table.Th>
@@ -120,7 +121,7 @@ function HaushaltsUnmatchedPageContent() {
                                 </Table.Tr>
                             ))}
                         </Table.Tbody>
-                    </Table>
+                    </ResponsiveTable>
                 )}
             </Stack>
         </Container>

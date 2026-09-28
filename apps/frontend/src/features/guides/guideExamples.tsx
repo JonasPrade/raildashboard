@@ -22,6 +22,7 @@ import {
     TextInput,
     Title,
 } from "@mantine/core";
+import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { ChronicleDataChip } from "../../components/chronicle";
 import PhaseStepper from "../projects/components/progress/PhaseStepper";
 
@@ -69,7 +70,7 @@ function FuldaYearTableExample() {
                 <Badge variant="light" color="blue">2</Badge>
                 <Badge variant="light" color="green">1 aktiv</Badge>
             </Group>
-            <Table layout="fixed" w="100%" verticalSpacing="sm">
+            <ResponsiveTable minWidth={560} layout="fixed" w="100%" verticalSpacing="sm">
                 <Table.Thead>
                     <Table.Tr>
                         <Table.Th style={{ width: "28%" }}>Projekt (Roh)</Table.Th>
@@ -105,7 +106,7 @@ function FuldaYearTableExample() {
                         <Table.Td><Badge variant="light" color="gray">offen</Badge></Table.Td>
                     </Table.Tr>
                 </Table.Tbody>
-            </Table>
+            </ResponsiveTable>
         </Stack>
     );
 }
@@ -119,7 +120,7 @@ function BauportalTableExample() {
                 <Switch label="Nur offene (unbestätigt)" defaultChecked={false} />
                 <Text size="sm" c="dimmed">128 Einträge · 97 aktiv</Text>
             </Group>
-            <Table verticalSpacing="sm">
+            <ResponsiveTable minWidth={560} verticalSpacing="sm">
                 <Table.Thead>
                     <Table.Tr>
                         <Table.Th>Bauportal-Projekt</Table.Th>
@@ -164,7 +165,7 @@ function BauportalTableExample() {
                         <Table.Td><Badge variant="light" color="gray">offen</Badge></Table.Td>
                     </Table.Tr>
                 </Table.Tbody>
-            </Table>
+            </ResponsiveTable>
         </Stack>
     );
 }
@@ -173,7 +174,7 @@ function BauportalTableExample() {
 
 function HaushaltReviewExample() {
     return (
-        <Table verticalSpacing="sm">
+        <ResponsiveTable minWidth={560} verticalSpacing="sm">
             <Table.Thead>
                 <Table.Tr>
                     <Table.Th>FinVe</Table.Th>
@@ -207,7 +208,7 @@ function HaushaltReviewExample() {
                     </Table.Td>
                 </Table.Tr>
             </Table.Tbody>
-        </Table>
+        </ResponsiveTable>
     );
 }
 
@@ -302,7 +303,7 @@ function VibReviewEntryExample() {
             </Group>
             <Box>
                 <Text size="sm" fw={600} mb={4}>PFA-Tabelle (2 Einträge)</Text>
-                <Table withTableBorder withColumnBorders fz="xs">
+                <ResponsiveTable minWidth={560} withTableBorder withColumnBorders fz="xs">
                     <Table.Thead>
                         <Table.Tr>
                             <Table.Th>Nr.</Table.Th>
@@ -340,7 +341,7 @@ function VibReviewEntryExample() {
                             </Table.Td>
                         </Table.Tr>
                     </Table.Tbody>
-                </Table>
+                </ResponsiveTable>
             </Box>
             <Group justify="flex-end" gap="sm">
                 <Button variant="light" size="xs">Entwurf speichern</Button>

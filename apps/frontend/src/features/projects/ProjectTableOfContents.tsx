@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { ActionIcon, Stack, Text, Tooltip, UnstyledButton } from "@mantine/core";
+import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 
 export interface TocSection {
     id: string;
@@ -52,6 +53,9 @@ function IconTaskAdd() {
 }
 
 export function ProjectTableOfContents({ sections, onCreateTask }: Props) {
+    // Vertically centred, the fixed buttons would sit on top of the text on a
+    // phone — down in the corner they behave like a floating action button.
+    const isMobile = useIsMobile();
     const [open, setOpen] = useState(false);
     const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -102,11 +106,12 @@ export function ProjectTableOfContents({ sections, onCreateTask }: Props) {
             style={{
                 position: "fixed",
                 left: 0,
-                top: "50%",
-                transform: "translateY(-50%)",
                 zIndex: 200,
                 display: "flex",
-                alignItems: "flex-start",
+                alignItems: "flex-end",
+                ...(isMobile
+                    ? { bottom: "calc(12px + env(safe-area-inset-bottom, 0px))" }
+                    : { top: "50%", transform: "translateY(-50%)", alignItems: "flex-start" }),
             }}
         >
             {/* Left-edge icon column: TOC toggle + optional "create task" */}
@@ -146,6 +151,8 @@ export function ProjectTableOfContents({ sections, onCreateTask }: Props) {
             {open && (
                 <div style={{
                     minWidth: 200,
+                    // Never wider than the screen minus the icon column.
+                    maxWidth: "calc(100vw - 64px)",
                     background: "var(--bg)",
                     border: "1px solid var(--rule)",
                     boxShadow: "var(--shadow-float)",

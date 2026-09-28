@@ -8,6 +8,7 @@ import {
     Text,
     Title,
 } from "@mantine/core";
+import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
 import { type BvwpProjectData, useProjectBvwp } from "../../../shared/api/queries";
 import { ChronicleCard, ChronicleDataChip } from "../../../components/chronicle";
 import { formatTEuroWithZero } from "../../../shared/format";
@@ -307,7 +308,7 @@ function KapazitaetTab({ data }: { data: BvwpProjectData }) {
             {hasTable && (
                 <Stack gap="xs">
                     <Text size="sm" fw={600} c="dimmed" tt="uppercase" lts={0.5}>Streckenauslastung (überlastet)</Text>
-                    <Table withTableBorder withColumnBorders fz="sm">
+                    <ResponsiveTable minWidth={640} withTableBorder withColumnBorders fz="sm">
                         <Table.Thead>
                             <Table.Tr>
                                 <Table.Th>Zeitraum</Table.Th>
@@ -332,7 +333,7 @@ function KapazitaetTab({ data }: { data: BvwpProjectData }) {
                                 );
                             })}
                         </Table.Tbody>
-                    </Table>
+                    </ResponsiveTable>
                 </Stack>
             )}
             <FieldGrid

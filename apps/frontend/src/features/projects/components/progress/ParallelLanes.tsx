@@ -33,7 +33,7 @@ function Lane({
 
     return (
         <Stack gap={6}>
-            <Group gap="sm" align="center">
+            <Group gap="sm" align="center" wrap="wrap">
                 <Text size="sm" fw={600} style={{ minWidth: 190 }}>
                     {label}
                 </Text>

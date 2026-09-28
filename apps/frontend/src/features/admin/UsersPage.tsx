@@ -12,6 +12,7 @@ import {
     Table,
     Text,
 } from "@mantine/core";
+import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { IconChevronLeft, IconPencil } from "@tabler/icons-react";
 import { ChronicleHeadline, ChronicleButton } from "../../components/chronicle";
 import { useDisclosure } from "@mantine/hooks";
@@ -86,7 +87,7 @@ function UsersPageContent() {
             );
         }
         return (
-            <Table striped highlightOnHover withTableBorder>
+            <ResponsiveTable minWidth={720} striped highlightOnHover withTableBorder>
                 <Table.Thead>
                     <Table.Tr>
                         <Table.Th>Benutzername</Table.Th>
@@ -178,7 +179,7 @@ function UsersPageContent() {
                         );
                     })}
                 </Table.Tbody>
-            </Table>
+            </ResponsiveTable>
         );
     };
 

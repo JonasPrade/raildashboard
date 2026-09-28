@@ -1,5 +1,6 @@
 import { Alert, Drawer, Stack, Button, Group, Text, Loader, UnstyledButton } from "@mantine/core";
 import { ChronicleDataChip } from "../../components/chronicle";
+import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 
@@ -19,6 +20,7 @@ type Props = {
 };
 
 export default function GroupFilterDrawer({ opened, onClose, groups = [], loading = false, error }: Props) {
+    const isMobile = useIsMobile();
     const [params, setParams] = useSearchParams();
     const [pending, setPending] = useState<number[]>([]);
 
@@ -51,7 +53,13 @@ export default function GroupFilterDrawer({ opened, onClose, groups = [], loadin
     }
 
     return (
-        <Drawer opened={opened} onClose={apply} title="Projektgruppen" position="right" size="sm">
+        <Drawer
+            opened={opened}
+            onClose={apply}
+            title="Projektgruppen"
+            position="right"
+            size={isMobile ? "100%" : "sm"}
+        >
             <Stack gap="xs">
                 {error && (
                     <Alert color="red" variant="light" title="Projektgruppen konnten nicht geladen werden">

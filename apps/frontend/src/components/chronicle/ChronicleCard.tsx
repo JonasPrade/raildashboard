@@ -25,7 +25,8 @@ export default function ChronicleCard({
         color: isBoard ? "#f5f3ed" : "inherit",
         border: `1px solid ${isBoard ? "var(--boardRule)" : "var(--rule)"}`,
         borderRadius: 0,
-        padding: "24px",
+        // Token instead of a fixed value: cards get tighter on phones.
+        padding: "var(--card-pad, 24px)",
         display: "block",
         ...(accent
             ? { borderLeft: `3px solid ${isBoard ? "var(--ledHot)" : "var(--info)"}` }

@@ -13,6 +13,7 @@ import {
     Text,
     Tooltip,
 } from "@mantine/core";
+import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { ChronicleHeadline, ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -235,7 +236,7 @@ function VibStructurePreviewPageContent() {
                 </ChronicleCard>
 
                 <ChronicleCard style={{ padding: 0 }}>
-                    <Table withTableBorder>
+                    <ResponsiveTable minWidth={720} withTableBorder>
                         <Table.Thead>
                             <Table.Tr>
                                 <Table.Th style={{ width: 90 }}>Sektion</Table.Th>
@@ -284,7 +285,7 @@ function VibStructurePreviewPageContent() {
                                 </>
                             ))}
                         </Table.Tbody>
-                    </Table>
+                    </ResponsiveTable>
                 </ChronicleCard>
 
                 <Group justify="flex-end" gap="sm">

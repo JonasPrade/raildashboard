@@ -27,6 +27,7 @@ import {
 } from "../../shared/api/queries";
 import { filterProjectOption } from "../../lib/filterProjectOption";
 import CreateDraftProjectModal from "../projects/CreateDraftProjectModal";
+import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import {
     ConfirmBadge,
     MissingProjectAnchor,
@@ -257,29 +258,27 @@ export default function BauportalImportPage() {
                         zu laden.
                     </Alert>
                 ) : (
-                    <Table.ScrollContainer minWidth={900}>
-                        <Table striped highlightOnHover verticalSpacing="sm">
-                            <Table.Thead>
-                                <Table.Tr>
-                                    <Table.Th>Bauportal-Projekt</Table.Th>
-                                    <Table.Th>Phase</Table.Th>
-                                    <Table.Th>Bauzeitraum</Table.Th>
-                                    <Table.Th>Zuordnung</Table.Th>
-                                    <Table.Th>Übernehmen</Table.Th>
-                                </Table.Tr>
-                            </Table.Thead>
-                            <Table.Tbody>
-                                {entries.map((entry) => (
-                                    <MatchRow
-                                        key={entry.id}
-                                        entry={entry}
-                                        projectOptions={projectOptions}
-                                        onCreateDraft={setDraftFor}
-                                    />
-                                ))}
-                            </Table.Tbody>
-                        </Table>
-                    </Table.ScrollContainer>
+                    <ResponsiveTable minWidth={900} striped highlightOnHover verticalSpacing="sm">
+                        <Table.Thead>
+                            <Table.Tr>
+                                <Table.Th>Bauportal-Projekt</Table.Th>
+                                <Table.Th>Phase</Table.Th>
+                                <Table.Th>Bauzeitraum</Table.Th>
+                                <Table.Th>Zuordnung</Table.Th>
+                                <Table.Th>Übernehmen</Table.Th>
+                            </Table.Tr>
+                        </Table.Thead>
+                        <Table.Tbody>
+                            {entries.map((entry) => (
+                                <MatchRow
+                                    key={entry.id}
+                                    entry={entry}
+                                    projectOptions={projectOptions}
+                                    onCreateDraft={setDraftFor}
+                                />
+                            ))}
+                        </Table.Tbody>
+                    </ResponsiveTable>
                 )}
             </Stack>
 

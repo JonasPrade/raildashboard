@@ -24,6 +24,13 @@
     margin: 8px 0 4px;
 }
 
+/* Header: below 30em the wordmark would crowd out the burger — signet only. */
+@media (max-width: 30em) {
+    .header-wordmark {
+        display: none;
+    }
+}
+
 /* Header title link */
 .header-title-link {
     text-decoration: none;
@@ -47,6 +54,103 @@ body {
 }
 
 p { line-height: 1.65; }
+
+/* ── Mobile layer ────────────────────────────────────────────────────────────
+   Everything a single component cannot fix on its own. Breakpoints match
+   src/shared/hooks/useBreakpoint.ts (48em phone, 62em small tablet).
+   Plan: docs/features/feature-mobile-usability.md */
+
+html {
+    /* Keep the browser from inflating text after an orientation change. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+/* Nothing may push the page sideways: media and preformatted text stay inside
+   their container, long words break instead of stretching the layout. */
+img,
+svg,
+video,
+canvas {
+    max-width: 100%;
+}
+
+pre {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+@media (max-width: 48em) {
+    body {
+        /* A stray wide child must not turn into a sideways scroll of the page —
+           tables scroll inside their own container instead (ResponsiveTable). */
+        overflow-x: hidden;
+    }
+
+    /* Long German compounds ("Benutzerverwaltung") do not fit a phone line:
+       hyphenate them (the document is lang="de") and break only as a last
+       resort, so a heading never widens the page. */
+    h1, h2, h3, h4, .mantine-Title-root {
+        hyphens: auto;
+        overflow-wrap: anywhere;
+    }
+
+    /* Mantine list items keep their marker indent on top of the full text
+       width, which pushes nested lists past the screen. */
+    .mantine-List-itemWrapper,
+    .mantine-List-itemLabel {
+        max-width: 100%;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    /* Display headings are sized for a wide canvas — scale them down. */
+    .mantine-Title-root[data-order="1"] { font-size: 28px; }
+    .mantine-Title-root[data-order="2"] { font-size: 22px; }
+    .mantine-Title-root[data-order="3"] { font-size: 18px; }
+
+    /* iOS Safari zooms into any focused field whose font is below 16px. */
+    .mantine-InputBase-input,
+    .mantine-TextInput-input,
+    .mantine-Textarea-input,
+    .mantine-NumberInput-input,
+    .mantine-Select-input,
+    .mantine-PasswordInput-innerInput {
+        font-size: 16px;
+    }
+
+    /* Dialogs use the whole screen — a centred 600px modal is unusable at 360px. */
+    .mantine-Modal-inner {
+        padding: 0;
+    }
+    .mantine-Modal-content {
+        max-width: 100%;
+        width: 100%;
+        max-height: 100dvh;
+        border-radius: 0;
+    }
+
+    /* Drawers never exceed the viewport, whichever side they come from. */
+    .mantine-Drawer-content {
+        max-width: 100vw;
+    }
+}
+
+/* Comfortable touch targets on finger-operated devices. Compact icon buttons
+   (table row actions, input clear buttons) keep their size on purpose. */
+@media (pointer: coarse) {
+    .mantine-Button-root:not([data-size="compact-xs"]):not([data-size="compact-sm"]),
+    .mantine-InputBase-input,
+    .mantine-Select-input,
+    .mantine-NativeSelect-input {
+        min-height: 44px;
+    }
+
+    .mantine-ActionIcon-root:not([data-size="xs"]):not([data-size="sm"]) {
+        min-height: 40px;
+        min-width: 40px;
+    }
+}
 
 /* Self-hosted Inter as offline fallback for IBM Plex Sans
    (Archivo Narrow / IBM Plex Sans / IBM Plex Mono load from Google Fonts in index.html) */
