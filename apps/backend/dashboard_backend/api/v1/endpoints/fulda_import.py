@@ -10,7 +10,7 @@ from __future__ import annotations
 from fastapi import Depends, File, Form, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
 
-from dashboard_backend.api.deps import read_upload_within_limit
+from dashboard_backend.api.deps import launch_with_staged_pdf, read_upload_within_limit
 from dashboard_backend.core.security import require_permission
 from dashboard_backend.crud import fulda as fulda_crud
 from dashboard_backend.crud._importer_common import ProjectNotFoundError
@@ -46,7 +46,9 @@ async def parse_fulda(
     if not pdf_bytes:
         raise HTTPException(status_code=400, detail="Leere Datei")
     user_info = {"id": current_user.id, "username": current_user.username}
-    result = parse_fulda_pdf.delay(pdf_bytes, year, pdf.filename or "upload.pdf", user_info)
+    result = launch_with_staged_pdf(
+        parse_fulda_pdf, pdf_bytes, year, pdf.filename or "upload.pdf", user_info,
+    )
     return TaskLaunchResponse(task_id=result.id)
 
 

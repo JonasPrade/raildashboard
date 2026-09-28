@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 
-from dashboard_backend.api.deps import read_upload_within_limit
+from dashboard_backend.api.deps import launch_with_staged_pdf, read_upload_within_limit
 from dashboard_backend.core.security import require_permission
 from dashboard_backend.crud.haushalt_import import (
     delete_parse_result,
@@ -55,7 +55,9 @@ async def start_parse(
         raise HTTPException(status_code=400, detail="Only PDF files are accepted.")
     pdf_bytes = await read_upload_within_limit(pdf)
     user_info = {"id": current_user.id, "username": current_user.username}
-    result = parse_haushalt_pdf.delay(pdf_bytes, year, pdf.filename or "upload.pdf", user_info)
+    result = launch_with_staged_pdf(
+        parse_haushalt_pdf, pdf_bytes, year, pdf.filename or "upload.pdf", user_info,
+    )
     return TaskLaunchResponse(task_id=result.id)
 
 

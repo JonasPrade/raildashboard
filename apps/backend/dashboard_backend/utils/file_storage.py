@@ -1,4 +1,4 @@
-"""File storage utility for text attachments.
+"""File storage utility for text attachments and staged import PDFs.
 
 Security guarantees:
 - Path traversal: every resolved path is asserted to be under UPLOAD_DIR.
@@ -10,7 +10,10 @@ Security guarantees:
 
 from __future__ import annotations
 
+import time
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
 import magic
@@ -130,3 +133,72 @@ def delete_attachment_file(text_id: int, stored_filename: str) -> None:
 def get_attachment_path(text_id: int, stored_filename: str) -> Path:
     """Return the absolute path to a stored attachment (validated)."""
     return _safe_path(text_id, stored_filename)
+
+
+# ---------------------------------------------------------------------------
+# Import staging — PDFs handed from an upload endpoint to a Celery task
+# ---------------------------------------------------------------------------
+#
+# The endpoint writes the upload here and passes only the file name to the task,
+# so no file content ends up in a Redis task message. The task deletes the file
+# when it is done, successful or not. Files a task never picked up (broker
+# purged, worker lost) are swept on the next staging call.
+
+STAGED_IMPORT_MAX_AGE_SECONDS = 24 * 60 * 60
+
+
+def _staging_root() -> Path:
+    return Path(settings.import_staging_dir).resolve()
+
+
+def _staged_path(staged_name: str) -> Path:
+    """Resolve a staged file name inside the staging dir; reject anything else."""
+    root = _staging_root()
+    safe_name = Path(staged_name).name
+    if not safe_name or safe_name != staged_name:
+        raise ValueError(f"Invalid staged file name: {staged_name!r}")
+    candidate = (root / safe_name).resolve()
+    if candidate.parent != root:
+        raise ValueError(f"Path traversal attempt detected: {staged_name!r}")
+    return candidate
+
+
+def _sweep_stale_staged_imports(root: Path) -> None:
+    cutoff = time.time() - STAGED_IMPORT_MAX_AGE_SECONDS
+    for path in root.glob("*.pdf"):
+        try:
+            if path.stat().st_mtime < cutoff:
+                path.unlink(missing_ok=True)
+        except OSError:
+            pass  # a concurrent task removed it first
+
+
+def stage_import_pdf(file_bytes: bytes) -> str:
+    """Write an uploaded import PDF to the staging dir and return its file name."""
+    root = _staging_root()
+    root.mkdir(parents=True, exist_ok=True)
+    _sweep_stale_staged_imports(root)
+    staged_name = f"{uuid.uuid4().hex}.pdf"
+    _staged_path(staged_name).write_bytes(file_bytes)
+    return staged_name
+
+
+def delete_staged_import(staged_name: str) -> None:
+    """Remove a staged import PDF. Silently ignores missing files."""
+    try:
+        _staged_path(staged_name).unlink(missing_ok=True)
+    except (ValueError, OSError):
+        pass
+
+
+@contextmanager
+def consume_staged_import(staged_name: str) -> Iterator[bytes]:
+    """Yield the bytes of a staged import PDF and delete the file afterwards.
+
+    The file is removed even when reading or the caller's work fails, so a
+    crashed parse never leaves an orphan in the volume.
+    """
+    try:
+        yield _staged_path(staged_name).read_bytes()
+    finally:
+        delete_staged_import(staged_name)

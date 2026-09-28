@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 
 import dashboard_backend.api.v1.endpoints.fulda_import as fulda_route
+import dashboard_backend.utils.file_storage as file_storage
 from dashboard_backend.crud._importer_common import ProjectNotFoundError
 from dashboard_backend.schemas.users import UserRole
 from tests.api.conftest import basic_auth_header
@@ -63,8 +64,10 @@ def test_parse_starts_task(client, create_user, monkeypatch):
     class _FakeResult:
         id = "task-123"
 
-    def _delay(pdf_bytes, year, filename, user_info):
-        captured["len"] = len(pdf_bytes)
+    def _delay(staged_pdf, year, filename, user_info):
+        # The task gets a staged file name, not the bytes (#149).
+        captured["len"] = len(file_storage._staged_path(staged_pdf).read_bytes())
+        file_storage.delete_staged_import(staged_pdf)
         captured["year"] = year
         captured["filename"] = filename
         captured["username"] = user_info["username"]
