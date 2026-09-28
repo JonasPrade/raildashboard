@@ -12,6 +12,16 @@ section as part of the release commit, immediately before tagging.
 
 ## [Unreleased]
 
+### Changed
+- The project detail map now zooms to the project's geometry (or its subprojects')
+  instead of centring on `Project.centroid` at a fixed zoom (#136).
+
+### Removed
+- `Project.centroid` and its API field. It was written only by the old-database import
+  and never maintained since, so it was empty or stale for every project created or
+  edited afterwards. Migration `20260928001` drops the column (runs automatically on
+  deploy; the downgrade restores it empty) (#136).
+
 ## [v0.0.14] - 2026-09-28
 
 ### Added
