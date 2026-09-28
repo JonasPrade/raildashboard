@@ -1,8 +1,6 @@
 """Geometry mode of a superior project: aggregated from subprojects vs. self-maintained.
 
-Runs against an in-memory SQLite schema. ``project.centroid`` is a PostGIS geometry in
-production; the table is re-created here with TEXT in its place so plain SQLite can host
-it (none of the geometry-cascade code touches the column).
+Runs against an in-memory SQLite schema.
 """
 
 from __future__ import annotations
@@ -10,7 +8,7 @@ from __future__ import annotations
 import json
 
 import pytest
-from sqlalchemy import Column, MetaData, Table, Text, create_engine, event
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 from dashboard_backend.crud.projects.projects import (
@@ -24,15 +22,6 @@ from dashboard_backend.models.associations.project_to_constituency import (
 from dashboard_backend.models.projects.project import Project
 
 
-def _sqlite_project_table() -> Table:
-    """Clone project's table with the Geometry column replaced by TEXT."""
-    md = MetaData()
-    cols = []
-    for c in Project.__table__.columns:
-        cols.append(Column("centroid", Text) if c.name == "centroid" else c.copy())
-    return Table("project", md, *cols)
-
-
 @pytest.fixture()
 def db():
     engine = create_engine("sqlite:///:memory:")
@@ -42,7 +31,7 @@ def db():
         for name, nargs in (("GeomFromEWKT", 1), ("ST_AsEWKB", 1), ("AsEWKB", 1)):
             dbapi_conn.create_function(name, nargs, lambda x: x)
 
-    _sqlite_project_table().create(bind=engine)
+    Project.__table__.create(bind=engine)
     # The geometry cascade also refreshes the constituency links of every
     # project it touches, so the link table has to exist here.
     ProjectToConstituency.__table__.create(bind=engine)

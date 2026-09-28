@@ -4358,8 +4358,6 @@ export interface components {
              * @default true
              */
             geojson_from_subprojects: boolean;
-            /** Centroid */
-            centroid?: unknown | null;
             /**
              * Project Groups
              * @default []

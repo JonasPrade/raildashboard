@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 
 import pytest
-from sqlalchemy import Column, MetaData, Table, Text, create_engine, event
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 from dashboard_backend.crud import parliament as parliament_crud
@@ -88,16 +88,6 @@ def test_unusable_geometry_yields_nothing(value):
 # --- links ------------------------------------------------------------------
 
 
-def _sqlite_project_table() -> Table:
-    """Clone project's table with the PostGIS centroid replaced by TEXT."""
-    md = MetaData()
-    cols = [
-        Column("centroid", Text) if c.name == "centroid" else c.copy()
-        for c in Project.__table__.columns
-    ]
-    return Table("project", md, *cols)
-
-
 TABLES = [
     ParliamentPeriod.__table__,
     Politician.__table__,
@@ -120,7 +110,7 @@ def session():
         for name, nargs in (("GeomFromEWKT", 1), ("ST_AsEWKB", 1), ("AsEWKB", 1)):
             dbapi_conn.create_function(name, nargs, lambda x: x)
 
-    _sqlite_project_table().create(bind=engine)
+    Project.__table__.create(bind=engine)
     for table in TABLES:
         table.create(bind=engine)
     factory = sessionmaker(bind=engine, autocommit=False, autoflush=False)

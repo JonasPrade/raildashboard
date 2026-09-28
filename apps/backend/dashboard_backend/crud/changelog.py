@@ -11,7 +11,7 @@ from dashboard_backend.models.projects.project_text import ProjectText
 
 # Fields that should not be tracked in the changelog (large/computed/geometric values,
 # or relationship keys that are handled separately in the CRUD layer)
-_SKIP_FIELDS = {"centroid", "project_group_ids"}
+_SKIP_FIELDS = {"project_group_ids"}
 
 # Fields tracked for project texts (excludes internal timestamps)
 _TEXT_TRACKED_FIELDS = ("header", "text", "weblink", "logo_url", "type")
