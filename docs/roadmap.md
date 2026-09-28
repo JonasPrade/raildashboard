@@ -62,6 +62,13 @@ Themenschwerpunkt: die im v0.0.4-Rollout aufgedeckten Stabilitäts- und Tooling-
   > - **Fulda-Runde (#46):** Kleine Anfragen (PDF) → OCR+LLM (VIB-Pipeline wiederverwenden),
   >   Lph→Phase-Mapping wie Sammel-FinVe. Trust 0.7.
   > - **Medien/Presse (#48):** halb-automatisch — URL/Text → LLM-Extraktion → Mensch-im-Loop. Trust 0.4.
+  >
+  > **Listen-/Karten-Integration umgesetzt (#9/#10):** die schlanke Projektgruppen-Liste liefert
+  > pro Projekt `headline_phase` + `lifecycle_status` aus der gespeicherten `project_progress`-Zeile
+  > (gebündelt geladen, ohne Lazy-Resync); auf `/` gibt es für Karte und Liste den Filter
+  > „Planungsphase" (`?phase=BAU,…`, inkl. „Unbekannt") und in der Listenansicht einen
+  > Phasen-Badge je Projektkarte. Zurückgestellt: `ProjectGroup.default_phase_filter`.
+  > Details: `docs/features/feature-project-progress.md` → *Liste & Karte*.
 
   **Phase 1 — Foundation (Daten + API)**
   - [ ] Enum `ProjectProgressStatus` (`vorplanung`, `entwurfsplanung`, `genehmigungsplanung`, `ausfuehrungsplanung`, `bau`, `inbetriebnahme`, `abgeschlossen`) — als Python-Enum **und** Postgres-Check-Constraint, damit die Anzeige konsistent bleibt.
@@ -78,13 +85,13 @@ Themenschwerpunkt: die im v0.0.4-Rollout aufgedeckten Stabilitäts- und Tooling-
 
   **Phase 3 — Aktueller Phasen-Status auf Projekt-Ebene**
   - [ ] Helper `compute_current_phase(project_id)` (Backend-Side, in `crud/project_progress.py`) — gibt jüngsten Eintrag oder `None` zurück. Verwendung: in `ProjectListItemSchema` als optionales Feld `current_phase: ProjectProgressStatus | None` mitliefern.
-  - [ ] Performance: in der Listen-API per `joinedload` / Aggregat-Subquery laden, **nicht** N+1.
-  - [ ] Frontend: Phase-Badge in `ProjectCard` (Liste + Karten-Popup) und ProjectDetail-Header. Farbschema in `tokens.css`: Vorplanung=neutral, Bau=Gold (Direction-F-Akzent), Inbetriebnahme=Preußenblau, abgeschlossen=grün.
+  - [x] Performance: in der Listen-API gebündelt laden, **nicht** N+1 — umgesetzt als `selectinload` der gespeicherten `project_progress`-Zeile (#9).
+  - [x] Frontend: Phase-Badge in `ProjectCard` der Listenansicht (#10; Karten-Popup zeigt bereits `ProgressMini`, Palette aus `phaseMeta.ts` statt eigener Tokens). Ursprüngliche Skizze: Phase-Badge in `ProjectCard` (Liste + Karten-Popup) und ProjectDetail-Header. Farbschema in `tokens.css`: Vorplanung=neutral, Bau=Gold (Direction-F-Akzent), Inbetriebnahme=Preußenblau, abgeschlossen=grün.
   - [ ] Akzeptanzkriterium: Listenansicht mit 800+ Projekten lädt in <500 ms (kein N+1 in `pg_stat_statements` sichtbar).
 
   **Phase 4 — Filterung & Übersicht**
-  - [ ] Filter-Chip "Phase" auf `/` (Karten- und Listenansicht); URL-Param `?phase=bau`. Mehrfach-Auswahl möglich.
-  - [ ] In `ProjectGroup` neues Feld `default_phase_filter` (optional) — z. B. eine Gruppe "Im Bau" preselektiert `phase=bau`. Migration + Admin-UI.
+  - [x] Filter "Planungsphase" auf `/` (Karten- und Listenansicht); URL-Param `?phase=BAU,…` inkl. `UNBEKANNT`. Mehrfach-Auswahl möglich (#10).
+  - [ ] *(zurückgestellt)* In `ProjectGroup` neues Feld `default_phase_filter` (optional) — z. B. eine Gruppe "Im Bau" preselektiert `phase=bau`. Migration + Admin-UI.
   - [ ] Akzeptanzkriterium: `?phase=bau` zeigt nur Projekte mit `current_phase=bau`; Phase-Chip ist mit ProjectGroup-Wechsel kompatibel.
 
   **Phase 5 — Aggregation auf Parent-Projekte**

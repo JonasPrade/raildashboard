@@ -27,6 +27,14 @@ import { useSearchParams } from "react-router-dom";
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import GroupFilterDrawer, { type ProjectGroupOption } from "../projects/GroupFilterDrawer";
 import { ProjectCard } from "../projects/ProjectCard";
+import PhaseFilterSelect from "../projects/PhaseFilterSelect";
+import {
+    PHASE_PARAM,
+    filterProjectsByPhase,
+    parsePhaseParam,
+    serializePhaseParam,
+    type PhaseFilterValue,
+} from "../projects/phaseFilter";
 import ConstituencyPanel from "../abgeordnete/ConstituencyPanel";
 import MapControls from "./MapControls";
 import MapView, { type MapViewProject } from "./LazyMapView";
@@ -83,6 +91,21 @@ export default function MapPage() {
         }, 200);
         return () => clearTimeout(timer);
     }, [localSearch, setSearchParams]);
+
+    // --- Phase filter: ?phase=BAU,VORPLANUNG,UNBEKANNT (empty = all phases).
+    //     Applies to map and list alike and, being a URL param, survives
+    //     map↔list switches and shared links like the search does.
+    const phaseParam = searchParams.get(PHASE_PARAM);
+    const selectedPhases = useMemo(() => parsePhaseParam(phaseParam), [phaseParam]);
+
+    const handlePhaseFilterChange = (values: PhaseFilterValue[]) => {
+        const serialized = serializePhaseParam(values);
+        setSearchParams((prev) => {
+            if (serialized) prev.set(PHASE_PARAM, serialized);
+            else prev.delete(PHASE_PARAM);
+            return prev;
+        });
+    };
 
     const constituencyGeojson = useConstituencyGeojson(showConstituencies);
 
@@ -171,15 +194,20 @@ export default function MapPage() {
     // while the (cheap, but setData-triggering) map update lags a beat behind.
     const deferredSearch = useDeferredValue(localSearch);
     const filteredMapProjects = useMemo(() => {
+        const phaseFiltered = filterProjectsByPhase(selectedProjects, selectedPhases);
         const term = deferredSearch.trim().toLowerCase();
-        if (!term) return selectedProjects;
-        return selectedProjects.filter(
+        if (!term) return phaseFiltered;
+        return phaseFiltered.filter(
             (p) =>
                 p.name?.toLowerCase().includes(term) ||
                 p.project_number?.toLowerCase().includes(term) ||
                 p.description?.toLowerCase().includes(term),
         );
-    }, [selectedProjects, deferredSearch]);
+    }, [selectedProjects, selectedPhases, deferredSearch]);
+    const isFiltered = localSearch.trim().length > 0 || selectedPhases.length > 0;
+    const noMatchMessage = localSearch.trim()
+        ? `Keine Projekte für „${localSearch.trim()}"${selectedPhases.length > 0 ? " in den gewählten Phasen" : ""} gefunden`
+        : "Keine Projekte in den gewählten Phasen";
 
     // --- List tab: single-group selection (first entry in ?group) ---
     const selectedGroupId = useMemo(() => {
@@ -190,7 +218,7 @@ export default function MapPage() {
     }, [searchParams]);
 
     // Start from the first page again whenever the shown list changes.
-    const listKey = `${selectedGroupId}|${onlySuperior}|${deferredSearch}`;
+    const listKey = `${selectedGroupId}|${onlySuperior}|${deferredSearch}|${phaseParam ?? ""}`;
     const [prevListKey, setPrevListKey] = useState(listKey);
     if (listKey !== prevListKey) {
         setPrevListKey(listKey);
@@ -255,6 +283,10 @@ export default function MapPage() {
                                 <Text size="sm"> — Klicke auf „Projektgruppen", um nach Themengruppen zu filtern. Auf der Karte kannst du mehrere Gruppen gleichzeitig auswählen.</Text>
                             </List.Item>
                             <List.Item>
+                                <Text size="sm" span fw={500}>Planungsphase</Text>
+                                <Text size="sm"> — Zeigt nur Projekte in den gewählten Phasen (Mehrfachauswahl). „Unbekannt" umfasst Projekte ohne bekannten Planungsstand.</Text>
+                            </List.Item>
+                            <List.Item>
                                 <Text size="sm" span fw={500}>Nur Hauptprojekte</Text>
                                 <Text size="sm"> — Aktiviere diesen Schalter, um Teilprojekte auszublenden.</Text>
                             </List.Item>
@@ -283,15 +315,16 @@ export default function MapPage() {
         const superiorFiltered = onlySuperior
             ? rawProjects.filter((p) => p.superior_project_id == null)
             : rawProjects;
+        const phaseFiltered = filterProjectsByPhase(superiorFiltered, selectedPhases);
         const searchTerm = deferredSearch.trim().toLowerCase();
         const projects = searchTerm
-            ? superiorFiltered.filter(
+            ? phaseFiltered.filter(
                   (p) =>
                       p.name?.toLowerCase().includes(searchTerm) ||
                       p.project_number?.toLowerCase().includes(searchTerm) ||
                       p.description?.toLowerCase().includes(searchTerm),
               )
-            : superiorFiltered;
+            : phaseFiltered;
         const selectData = groups.map((group) => ({
             value: String(group.id),
             label: group.name,
@@ -348,6 +381,12 @@ export default function MapPage() {
                                 }
                                 value={localSearch}
                                 onChange={(e) => setLocalSearch(e.currentTarget.value)}
+                                style={{ flex: "1 1 220px", minWidth: 0 }}
+                            />
+                            <PhaseFilterSelect
+                                label="Planungsphase"
+                                value={selectedPhases}
+                                onChange={handlePhaseFilterChange}
                                 style={{ flex: "1 1 220px", minWidth: 0 }}
                             />
                             <Switch
@@ -464,7 +503,7 @@ export default function MapPage() {
                                         fontWeight: 700,
                                     }}
                                 >
-                                    {localSearch.trim()
+                                    {isFiltered
                                         ? `${projects.length} von ${superiorFiltered.length} Projekten`
                                         : projects.length === 1
                                           ? "1 Projekt"
@@ -474,8 +513,8 @@ export default function MapPage() {
 
                             {projects.length === 0 ? (
                                 <Alert color="blue" variant="light" title="Keine Projekte gefunden">
-                                    {localSearch.trim()
-                                        ? `Keine Projekte für „${localSearch.trim()}" gefunden.`
+                                    {isFiltered
+                                        ? `${noMatchMessage}.`
                                         : "Diese Projektgruppe enthält aktuell keine Projekte."}
                                 </Alert>
                             ) : (
@@ -592,7 +631,7 @@ export default function MapPage() {
                                 : "Projektverläufe werden geladen…"}
                         </Text>
                     )}
-                    {localSearch.trim() && filteredMapProjects.length === 0 && (
+                    {isFiltered && selectedProjects.length > 0 && filteredMapProjects.length === 0 && (
                         <Box
                             style={{
                                 position: "absolute",
@@ -613,7 +652,7 @@ export default function MapPage() {
                                     border: "1px solid #e0e0e0",
                                 }}
                             >
-                                Keine Projekte für „{localSearch.trim()}" gefunden
+                                {noMatchMessage}
                             </Text>
                         </Box>
                     )}
@@ -627,6 +666,8 @@ export default function MapPage() {
                         onOnlySuperiorChange={handleOnlySuperiorChange}
                         searchTerm={localSearch}
                         onSearchChange={setLocalSearch}
+                        phaseFilter={selectedPhases}
+                        onPhaseFilterChange={handlePhaseFilterChange}
                         totalProjects={selectedProjects.length}
                         filteredCount={filteredMapProjects.length}
                         showConstituencies={showConstituencies}

@@ -3937,6 +3937,16 @@ export interface components {
              * @description Names of the boolean project properties that are true (e.g. 'elektrification').
              */
             active_features?: string[];
+            /**
+             * Headline Phase
+             * @description Headline planning phase from the stored project_progress row (manual override, else the cached computed phase). Null when the project has no progress row or its phase is unknown.
+             */
+            headline_phase?: ("NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB") | null;
+            /**
+             * Lifecycle Status
+             * @description Lifecycle overlay from the stored project_progress row; null without a row.
+             */
+            lifecycle_status?: ("AKTIV" | "PAUSIERT" | "ABGEBROCHEN") | null;
         };
         /**
          * ProjectOptionSchema
