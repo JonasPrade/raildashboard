@@ -131,7 +131,8 @@ Die beiden Datenteile altern unterschiedlich schnell, deshalb zwei getrennte Lä
   (`scripts/import_constituencies.py`), nicht über die Oberfläche.
 - **Abgeordnetendaten** — Nachrücker und Ausschussumbesetzungen verschieben die
   Zuordnung laufend, ohne dass an den Geometrien etwas falsch würde. Anstoß **von Hand
-  im Adminbereich** („Abgeordnetenstand aktualisieren", Recht `parliament.import`),
+  im Adminbereich** (Seite `/admin/abgeordnete`, Button „Abgeordnetenstand
+  aktualisieren", Recht `parliament.import`),
   ausgeführt als Celery-Task. Empfehlung: monatlich, mindestens aber vor einer
   Kampagne. Der Abrufstand steht in der Oberfläche, damit man sieht, wann es zuletzt
   passiert ist; ist er älter als 60 Tage, wird er als veraltet markiert.
@@ -369,6 +370,9 @@ UI-Texte deutsch, Code und Commits englisch.
 4. **Oberfläche über die Person** — Seite `/abgeordnete`, Route, Header-Eintrag,
    Suche und Filter.
 5. **Oberfläche über den Wahlkreis** — Kartenlayer + Auswahl-Panel.
+5a. **Adminseite** — `/admin/abgeordnete` (`ParliamentAdminPage`): Abrufstand aller drei
+   Läufe, Kennzahlen, Buttons für `POST /parliament/import` und
+   `POST /parliament/recompute-links` (nachgeholt, war im ersten Wurf vergessen).
 6. **Dokumentation** — `docs/models.md`, `docs/roadmap.md`, READMEs,
    `DocumentationPage.tsx`, `CHANGELOG.md`.
 

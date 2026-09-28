@@ -22,6 +22,15 @@ section as part of the release commit, immediately before tagging.
   edited afterwards. Migration `20260928001` drops the column (runs automatically on
   deploy; the downgrade restores it empty) (#136).
 
+### Fixed
+- **The members-of-parliament import can now be started from the UI.** The backend endpoints
+  `POST /parliament/import` and `POST /parliament/recompute-links` existed, but no page called
+  them — the hint on `/abgeordnete` pointed to an admin entry that did not exist. New admin page
+  `/admin/abgeordnete` ("Abgeordnetenstand", capability `parliament.import`) shows the Abrufstand
+  of all three runs and key figures, and launches both Celery jobs with progress and a
+  stuck-worker warning. Linked from the admin overview and from the empty-state hint; the header's
+  Admin entry now also appears for users holding only `parliament.import`.
+
 ## [v0.0.14] - 2026-09-28
 
 ### Added

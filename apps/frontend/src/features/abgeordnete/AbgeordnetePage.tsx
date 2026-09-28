@@ -182,8 +182,11 @@ export default function AbgeordnetePage() {
 
             {status.data && !status.data.period && (
                 <Alert color="gray" variant="light">
-                    Es sind noch keine Abgeordnetendaten importiert. Ein Import lässt sich im
-                    Adminbereich anstoßen (Recht „Abgeordnetenstand aktualisieren“).
+                    Es sind noch keine Abgeordnetendaten importiert. Ein Import lässt sich unter{" "}
+                    <Anchor component={Link} to="/admin/abgeordnete">
+                        Admin → Abgeordnetenstand
+                    </Anchor>{" "}
+                    anstoßen (Recht „Abgeordnetenstand aktualisieren“).
                 </Alert>
             )}
 
