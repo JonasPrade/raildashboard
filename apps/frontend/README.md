@@ -124,10 +124,20 @@ Available on both the map and list view at `/`. A search `TextInput` (with magni
 The group list carries project metadata only (`ProjectListItem`, flags folded into `active_features` — expand with `withActiveFeatures()` for `ProjectCard` / `ProjectSummaryCard`). The map loads simplified geometries per selected group via `useProjectGroupGeometries(groupIds, onlySuperior)` (`GET /project_groups/{id}/geometries`) and draws them as they arrive; the list tab loads none. `MapView` accepts either a parsed `geometry` (overview) or the exact `geojson_representation` string (detail page).
 
 - **Map view:** Non-matching projects are removed from the MapLibre GeoJSON sources. The controls panel shows a "X von Y Projekten" count while a search is active. If no project matches, a centred overlay hint is displayed.
-- **List view:** Project cards are filtered in-place (on the deferred search term, so typing stays responsive). The count label updates to "X von Y Projekten" and an empty-state alert is shown when nothing matches. Cards render in steps of 48 with a "Weitere … anzeigen" button; the step resets when group, search or "Nur Hauptprojekte" change.
+- **List view:** Project cards are filtered in-place (on the deferred search term, so typing stays responsive). The count label updates to "X von Y Projekten" and an empty-state alert is shown when nothing matches. Cards render in steps of 48 with a "Weitere … anzeigen" button; the step resets when group, search, phase filter or "Nur Hauptprojekte" change.
 - **Prefetch:** Hovering/focusing a `ProjectCard` or selecting a project on the map preloads the detail page chunk and `GET /projects/{id}` (`usePrefetchProjectPage()`), so the detail page usually opens without a spinner.
 - **URL persistence:** The term is stored in `?search=<term>` (debounced, 200 ms, `replace: true`) so it survives map ↔ list tab switches and browser back/forward navigation.
 - **Dependency added:** `@tabler/icons-react` for the search and close icons.
+
+### Phase filter (`features/projects/phaseFilter.ts` + `PhaseFilterSelect.tsx`)
+
+Planning-phase filter on both the map and list view at `/` (#9/#10). Each `ProjectListItem` carries `headline_phase` (MainPhase or `null` = unknown) and `lifecycle_status` from the stored `project_progress` row, loaded in bulk by the group list endpoint — no per-project progress request.
+
+- **Control:** `PhaseFilterSelect` (Mantine `MultiSelect`, label "Planungsphase") with the five main phases (labels from `components/progress/phaseMeta.ts`) plus "Unbekannt" for projects without a phase. Desktop map: floating `MapControls` panel under the search; phone: the "Karte einstellen" bottom sheet (an active filter puts a dot on the settings button and shows the "X von Y Projekten" count); list view: the filter row next to group and search.
+- **URL persistence:** `?phase=BAU,VORPLANUNG,UNBEKANNT` (canonical order, invalid tokens dropped). ANDed with `?group` and `?search`, survives map ↔ list switches like the search. Several phases are ORed; no param = no filter.
+- **Paused/aborted projects** are filtered by their headline phase (the lifecycle is an overlay, it never changes the phase).
+- **Logic:** pure helpers `parsePhaseParam` / `serializePhaseParam` / `filterProjectsByPhase` / `phaseFilterOptions` in `phaseFilter.ts`, unit-tested in `phaseFilter.test.ts`.
+- **Badge:** `components/progress/PhaseBadge.tsx` on every `ProjectCard` in the list view (palette `MAIN_PHASE_COLOR`, same as `SubprojectsTable`; grey outline "Unbekannt"; extra grey "Pausiert"/"Abgebrochen" badge).
 
 ### Project edit form (`features/projects/ProjectEdit.tsx`)
 

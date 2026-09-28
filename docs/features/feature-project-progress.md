@@ -255,6 +255,63 @@ React-Query-Hooks in `shared/api/queries.ts`: `useProjectProgress`,
 `useLink/UnlinkTrackDocument`, `useRecomputeProgress` (Invalidate
 `["project-progress", projectId]`). Typen via `make gen-api` → `types.gen.ts`.
 
+### Liste & Karte: Phasen-Badge und Phasen-Filter (#9/#10)
+
+**Backend.** Die schlanke Projektgruppen-Liste (`GET /api/v1/project_groups/` und
+`GET /api/v1/project_groups/{id}`, siehe `feature-slim-project-groups.md`) — die einzige
+Datenquelle für Karten- **und** Listenansicht auf `/` — trägt pro Projekt zwei zusätzliche
+Felder in `ProjectListItem`:
+
+- `headline_phase: MainPhase | null` — aus der **gespeicherten** `project_progress`-Zeile:
+  `manual_phase_override`, sonst `computed_phase`
+  (`services/progress_derivation.py:stored_headline_phase`). `null`, wenn es keine Zeile gibt
+  **oder** der Stand unbekannt ist: die Ableitung speichert bei fehlender glaubwürdiger
+  MAIN-Beobachtung `NICHT_GESTARTET` mit Konfidenz `0.0` als Fallback — das wird wie
+  `is_known = false` als „unbekannt" gemeldet, nicht als „nicht gestartet".
+- `lifecycle_status: LifecycleStatus | null` — `null` ohne Zeile.
+
+Geladen wird **gebündelt**: ein zusätzliches `selectinload(Project.progress)` im Loader
+(`crud/projects/project_groups.py:_with_projects`) — ein `SELECT … WHERE project_id IN (…)`
+für alle Projekte aller Gruppen, beschränkt auf die vier gelesenen Spalten. `Project.progress`
+ist eine `viewonly`-Relation mit `lazy="raise"`; der Schema-Validator liest sie nur, wenn sie
+geladen wurde, und löst nie ein Lazy-Load aus. Die Liste liest nur den Cache: sie ruft weder
+die Ableitung noch den Lazy-Resync (`_ensure_fresh`) auf, legt keine Zeilen an und schreibt
+nichts. Veraltete Caches werden weiterhin beim Öffnen der Detailseite bzw. per „Neu
+berechnen" aufgefrischt. Die ETag-Revalidierung bleibt korrekt, weil der Hash über den
+Payload inklusive Phase gebildet wird. `PATCH /project_groups/{id}` liest die Gruppe nach
+dem Update über denselben Loader neu ein.
+
+*Einschränkung:* Übergeordnete Projekte liefern die Phase **ihrer eigenen** Zeile, nicht die
+auf der Detailseite gezeigte Spanne über die Unterprojekte (die bräuchte die rekursive
+Aggregation pro Request). Eine Phasen-Verteilung für Parent-Projekte war #11 und ist nicht
+Teil dieses Pakets.
+
+**Frontend.**
+
+- **Filter „Planungsphase"** auf `/` für Karte und Liste (`PhaseFilterSelect`, Mantine
+  `MultiSelect`, Mehrfachauswahl). Optionen: die fünf Hauptphasen (Labels aus `phaseMeta.ts`)
+  plus **„Unbekannt"** für Projekte ohne `headline_phase` — sie sind so gezielt auswählbar statt
+  stillschweigend herauszufallen. Mehrere Phasen werden ODER-verknüpft; leere Auswahl = kein
+  Filter.
+- **URL-Param** `?phase=BAU,VORPLANUNG,UNBEKANNT` (MainPhase-Werte + `UNBEKANNT`, kanonische
+  Reihenfolge, unbekannte Token werden verworfen). Er kombiniert sich (UND) mit `?group` und
+  `?search` und bleibt wie `?search` beim Wechsel Karte ↔ Liste und in geteilten Links erhalten.
+- **Pausierte/abgebrochene Projekte** (`lifecycle_status ≠ AKTIV`) werden nach ihrer
+  Headline-Phase gefiltert wie alle anderen: der Lebenszyklus ist ein Overlay und ändert den
+  Phasenwert nicht (gleiche Regel wie in der Ableitung). Auf der Projektkarte erscheint
+  zusätzlich ein grauer Lebenszyklus-Badge.
+- **Platzierung:** Desktop-Karte im schwebenden `MapControls`-Panel unter der Suche; Telefon im
+  Bottom-Sheet „Karte einstellen" (ein aktiver Phasenfilter markiert den Einstellungs-Button mit
+  einem Punkt, der Zähler „x von y Projekten" erscheint über der Karte); Listenansicht in der
+  Filterzeile neben Projektgruppe und Suche (bricht bei 360 px auf eine eigene Zeile um).
+- **Phasen-Badge** in der `ProjectCard` der Listenansicht (`PhaseBadge.tsx`): Palette
+  `MAIN_PHASE_COLOR` wie `SubprojectsTable`, „Unbekannt" als grauer Outline-Badge.
+- Filterlogik als reine, mit Vitest getestete Helfer in `features/projects/phaseFilter.ts`
+  (`parsePhaseParam`, `serializePhaseParam`, `filterProjectsByPhase`, `phaseFilterOptions`).
+
+**Nicht Teil dieses Pakets:** `ProjectGroup.default_phase_filter` (vorbelegter Filter je Gruppe,
+zurückgestellt) und die Phasen-Verteilung für Parent-Projekte (#11).
+
 ### Bearbeitung im Drawer (Ansicht/Edit getrennt)
 
 Die Inline-Bearbeitung war über `ProgressSection`/`SourceBreakdown`/`ParallelLanes`

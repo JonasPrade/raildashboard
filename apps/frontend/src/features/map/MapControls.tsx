@@ -1,8 +1,10 @@
-import { ActionIcon, Box, Drawer, Slider, Stack, Switch, Text, TextInput } from "@mantine/core";
+import { ActionIcon, Box, Drawer, Indicator, Slider, Stack, Switch, Text, TextInput } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconAdjustments, IconSearch, IconX } from "@tabler/icons-react";
 import { ChronicleButton } from "../../components/chronicle";
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
+import PhaseFilterSelect from "../projects/PhaseFilterSelect";
+import type { PhaseFilterValue } from "../projects/phaseFilter";
 
 type Props = {
     onOpenFilters: () => void;
@@ -14,6 +16,8 @@ type Props = {
     onOnlySuperiorChange: (value: boolean) => void;
     searchTerm: string;
     onSearchChange: (value: string) => void;
+    phaseFilter: PhaseFilterValue[];
+    onPhaseFilterChange: (value: PhaseFilterValue[]) => void;
     totalProjects: number;
     filteredCount: number;
     showConstituencies: boolean;
@@ -30,6 +34,8 @@ export default function MapControls({
     onOnlySuperiorChange,
     searchTerm,
     onSearchChange,
+    phaseFilter,
+    onPhaseFilterChange,
     totalProjects,
     filteredCount,
     showConstituencies,
@@ -53,6 +59,18 @@ export default function MapControls({
             onChange={(e) => onSearchChange(e.currentTarget.value)}
             size="sm"
             style={isMobile ? { flex: 1, minWidth: 0 } : { width: 180 }}
+        />
+    );
+
+    const isFiltered = Boolean(searchTerm) || phaseFilter.length > 0;
+
+    const phaseSelect = (
+        <PhaseFilterSelect
+            label="Planungsphase"
+            value={phaseFilter}
+            onChange={onPhaseFilterChange}
+            size={isMobile ? "md" : "sm"}
+            style={isMobile ? undefined : { width: 180 }}
         />
     );
 
@@ -135,20 +153,27 @@ export default function MapControls({
                     >
                         {searchField}
                     </Box>
-                    <ActionIcon
-                        onClick={openSheet}
-                        size={42}
-                        radius={0}
-                        variant="filled"
-                        color="preussen"
-                        aria-label="Karteneinstellungen öffnen"
-                        style={{ boxShadow: "var(--shadow-float)" }}
-                    >
-                        <IconAdjustments size={20} />
-                    </ActionIcon>
+                    {/* The phase filter lives in the sheet — flag an active one on its button. */}
+                    <Indicator disabled={phaseFilter.length === 0} color="orange" size={10} offset={3}>
+                        <ActionIcon
+                            onClick={openSheet}
+                            size={42}
+                            radius={0}
+                            variant="filled"
+                            color="preussen"
+                            aria-label={
+                                phaseFilter.length > 0
+                                    ? "Karteneinstellungen öffnen (Phasenfilter aktiv)"
+                                    : "Karteneinstellungen öffnen"
+                            }
+                            style={{ boxShadow: "var(--shadow-float)" }}
+                        >
+                            <IconAdjustments size={20} />
+                        </ActionIcon>
+                    </Indicator>
                 </Box>
 
-                {searchTerm && (
+                {isFiltered && (
                     <Box
                         style={{
                             position: "absolute",
@@ -175,6 +200,7 @@ export default function MapControls({
                     styles={{ content: { height: "auto", maxHeight: "85dvh" } }}
                 >
                     <Stack gap="md" pb="md">
+                        {phaseSelect}
                         <ChronicleButton
                             onClick={() => {
                                 // Both drawers at once would stack — hand over instead.
@@ -218,7 +244,8 @@ export default function MapControls({
             >
                 <Stack gap="sm">
                     {searchField}
-                    {searchTerm && (
+                    {phaseSelect}
+                    {isFiltered && (
                         <Text size="xs" c="dimmed">
                             {filteredCount} von {totalProjects} Projekten
                         </Text>

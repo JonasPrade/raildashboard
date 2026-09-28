@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { type ProjectOverview } from "../../shared/api/queries";
 import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import { usePrefetchProjectPage } from "./usePrefetchProjectPage";
+import PhaseBadge from "./components/progress/PhaseBadge";
 
 export function ProjectCard({ project }: { project: ProjectOverview }) {
     const lengthValue = typeof project.length === "number" ? `${project.length.toLocaleString("de-DE")}` : null;
@@ -12,6 +13,10 @@ export function ProjectCard({ project }: { project: ProjectOverview }) {
     const cardContent = (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {/* Only list items carry the stored headline phase (undefined elsewhere). */}
+                {project.headline_phase !== undefined && (
+                    <PhaseBadge phase={project.headline_phase} lifecycle={project.lifecycle_status} />
+                )}
                 <span
                     style={{
                         fontFamily: "var(--font-display)",
