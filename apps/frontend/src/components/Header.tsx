@@ -60,7 +60,8 @@ export function Header() {
         can("projectgroup.create") ||
         can("projectgroup.edit") ||
         can("user.manage") ||
-        can("role.manage");
+        can("role.manage") ||
+        can("parliament.import");
     const canAssignments = can("assignment.manage");
     const { data: unassignedFinves } = useUnassignedFinves(canAssignments);
     const { data: unassignedVibEntries } = useUnassignedVibEntries(canAssignments);

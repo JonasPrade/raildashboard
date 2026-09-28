@@ -28,8 +28,10 @@ export default function AdminOverviewPage() {
     const canRoles = can("role.manage");
     const canProgress = can("progress.edit");
     const canSettings = can("settings.manage");
+    const canParliament = can("parliament.import");
     const hasAnyAdmin =
         canAssignments ||
+        canParliament ||
         canHaushalt ||
         canVib ||
         canCreateProject ||
@@ -149,6 +151,16 @@ export default function AdminOverviewPage() {
                                 <Stack gap={4}>
                                     <Text fw={500}>Fulda-Runde</Text>
                                     <Text size="sm" c="dimmed">Kleine Anfrage (PDF) per OCR+KI nach Leistungsphase auswerten</Text>
+                                </Stack>
+                            </Link>
+                        </ChronicleCard>
+                    )}
+                    {canParliament && (
+                        <ChronicleCard style={{ textDecoration: "none" }}>
+                            <Link to="/admin/abgeordnete" style={{ textDecoration: "none", color: "inherit" }}>
+                                <Stack gap={4}>
+                                    <Text fw={500}>Abgeordnetenstand</Text>
+                                    <Text size="sm" c="dimmed">Abgeordnete aus abgeordnetenwatch aktualisieren, Wahlkreis-Zuordnung neu berechnen</Text>
                                 </Stack>
                             </Link>
                         </ChronicleCard>

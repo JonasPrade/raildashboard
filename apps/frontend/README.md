@@ -229,6 +229,10 @@ Multi-step import workflow for federal budget PDFs. The `ReviewTable` shows auto
 
 `HaushaltsGuidePage.tsx` (`/admin/haushalt-import/guide`) provides a step-by-step user guide (accordion format) with troubleshooting FAQ. Linked from both the import page and the review page.
 
+### Admin: Abgeordnetenstand (`features/admin/ParliamentAdminPage.tsx`)
+
+`/admin/abgeordnete` (capability `parliament.import`) shows the Abrufstand of the people import, the geometry import and the link rebuild plus key figures from `GET /api/v1/parliament/status`, and launches the two Celery jobs via `useStartParliamentImport()` (`POST /parliament/import`) and `useStartConstituencyLinkRebuild()` (`POST /parliament/recompute-links`), polled with `useImportTask`. The geometries themselves are imported by script (`scripts/import_constituencies.py`); without them the rebuild button is disabled.
+
 ### Admin: Systemstatus (`features/admin/SystemStatusPage.tsx`)
 
 `/admin/system` (capability `settings.manage`) answers „läuft im Hintergrund überhaupt jemand?": broker reachability, every Celery worker with what it is working on, the queue length, and the commands to run when something is off — plus a badge on the admin overview when no worker is online. Data via `useWorkerHealth()` / `useRecheckWorkerHealth()` → `GET /api/v1/tasks/workers`.

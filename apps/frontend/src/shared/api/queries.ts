@@ -1722,6 +1722,22 @@ export function useParliamentStatus() {
     });
 }
 
+/** Refresh people, mandates and committees from abgeordnetenwatch (Celery). */
+export function useStartParliamentImport() {
+    return useMutation({
+        mutationFn: () =>
+            api<TaskLaunchResponse>("/api/v1/parliament/import", { method: "POST" }),
+    });
+}
+
+/** Rebuild project ↔ constituency links for the whole portfolio (Celery). */
+export function useStartConstituencyLinkRebuild() {
+    return useMutation({
+        mutationFn: () =>
+            api<TaskLaunchResponse>("/api/v1/parliament/recompute-links", { method: "POST" }),
+    });
+}
+
 export function usePoliticians(params: {
     query?: string;
     committee?: string | null;
