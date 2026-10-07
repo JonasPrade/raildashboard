@@ -48,6 +48,7 @@ cp .env.example .env
 | `REACT_APP_TILE_LAYER_URL` | — | Raster-Kachel-URL für die Kartenansicht |
 | `CELERY_BROKER_URL` | `redis://redis:6379/0` | Redis im Docker-Netzwerk (kein Passwort nötig, da nicht nach außen exponiert) |
 | `CELERY_RESULT_BACKEND` | `redis://redis:6379/0` | Wie `CELERY_BROKER_URL` |
+| `IMPORT_STAGING_DIR` | `/app/uploads/import-staging` | Ablage hochgeladener Import-PDFs, bis der Celery-Task sie gelesen hat. Muss im von Backend **und** Worker gemounteten `uploads`-Volume liegen |
 
 ### Optionale RINF-API-Zugangsdaten
 
@@ -179,6 +180,17 @@ tragen, sonst greift *sein* Default: nginx lässt ohne die Direktive nur **1 MB*
 durch und beantwortet z. B. den Haushaltsbericht Teil B (≈ 3,6 MB) mit
 `413 Request Entity Too Large`, bevor der Request die Anwendung überhaupt
 erreicht. Caddy hat kein solches Default-Limit.
+
+**MCP-Endpunkt `/mcp`.** Das Backend stellt unter `/mcp` einen MCP-Server
+(Streamable HTTP) für KI-Assistenten bereit; Zugriff nur mit persönlichem API-Key
+(`Authorization: Bearer rdb_…`, angelegt unter *Administration → API-Keys & MCP*,
+vorerst nur für Admins). Der Container-nginx leitet `location = /mcp` mit
+`proxy_buffering off` und `proxy_read_timeout 300s` an `backend:8000` weiter. Ein
+vorgelagerter Proxy muss nichts Besonderes tun, solange er `/mcp` wie jeden anderen
+Pfad durchreicht (Caddy `reverse_proxy` und ein nginx-`location /` tun das); puffert
+er Antworten, kommen die JSON-Antworten trotzdem vollständig an. Abschalten:
+`MCP_ENABLED=false` in `.env`, dann ist die Route nicht gemountet. Die Tabelle
+`api_keys` legt die Migration `20261007001` beim Start automatisch an.
 
 ### Voraussetzungen
 
@@ -380,7 +392,9 @@ make docker-backup-db
 
 ### Uploads-Volume (Dateianhänge)
 
-Das Docker-Volume `raildashboard_uploads` (im Compose-Stack als `uploads` deklariert, gemountet unter `/app/uploads` im Backend-Container) enthält alle Dateianhänge von Projekttexten. Es wird seit v0.0.5 **automatisch** zusammen mit dem DB-Dump gesichert — sowohl von `make backup-db` (systemd-Timer-Pfad) als auch von `make docker-backup-db`.
+Das Docker-Volume `raildashboard_uploads` (im Compose-Stack als `uploads` deklariert, gemountet unter `/app/uploads` in Backend- **und** Worker-Container) enthält alle Dateianhänge von Projekttexten (`text-attachments/`).
+
+Seit #149 liegen dort außerdem unter `import-staging/` die gerade hochgeladenen Import-PDFs (Haushalt, VIB, Fulda): Der Backend-Endpunkt legt die Datei ab und übergibt dem Celery-Task nur den Dateinamen, damit keine PDF-Inhalte mehr durch Redis gehen. Der Task löscht die Datei nach dem Lauf, auch im Fehlerfall; was ein Task nie abgeholt hat, wird nach 24 h beim nächsten Upload aufgeräumt. Der Ordner ist also flüchtig. Landet er in einem Backup, schadet das nicht. Der Worker braucht deshalb dasselbe Volume wie das Backend (`docker-compose.yml`), sonst scheitert jeder PDF-Import mit `FileNotFoundError`. Es wird seit v0.0.5 **automatisch** zusammen mit dem DB-Dump gesichert — sowohl von `make backup-db` (systemd-Timer-Pfad) als auch von `make docker-backup-db`.
 
 **Warum das wichtig ist:** Ohne paariges Uploads-Tar zeigen nach einem Restore alle `text_attachment`-Zeilen auf nicht vorhandene Dateien.
 

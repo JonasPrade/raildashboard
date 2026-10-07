@@ -111,9 +111,11 @@ All changeable runtime data lives in `apps/backend/data/`.
 
 ### Authentication & authorisation
 
-The backend uses **HTTP Basic Auth**. The `AuthRouter` class (`routing/auth_router.py`) automatically enforces authentication on all non-GET endpoints. Use it instead of the standard `APIRouter` for any router that handles write operations.
+The backend accepts three credentials, checked in this order: a personal **API key** (`Authorization: Bearer rdb_…`, table `api_keys`, see `docs/features/feature-mcp-server.md`), the signed **session cookie**, and **HTTP Basic Auth**. A key acts as its owner narrowed to the key's `scopes` — without the admin bypass. The `AuthRouter` class (`routing/auth_router.py`) automatically enforces authentication on all non-GET endpoints. Use it instead of the standard `APIRouter` for any router that handles write operations.
 
 **Roles & permissions:** Authorisation is capability-based. The capability catalog lives in `core/permissions.py`; roles map to capability keys via the `roles` / `role_permissions` tables, and every user has exactly one role (`users.role_id`). Protect endpoints with `Depends(require_permission("project.edit"))` from `core/security.py` (admin is an implicit super-admin that bypasses the check). `viewer`/`editor`/`admin` are seeded as system roles reproducing the historic behaviour; admins can create further custom roles via `/admin/roles`. The frontend mirrors this with the `can(key)` helper (`lib/auth.ts`), fed by the effective permissions returned from `/users/me`. See `docs/features/feature-user-roles-permissions.md`.
+
+**MCP endpoint:** `dashboard_backend/mcp/` mounts an MCP server (official `mcp` SDK, Streamable HTTP, stateless, JSON responses) at `/mcp` next to `/api/v1`. It accepts only bearer API keys carrying `mcp.access`; its tools call the CRUD layer directly and check the key's capabilities before every write.
 
 **Visibility of sensitive data:** Version history (changelog) and any data containing usernames or internal change records must **only be visible to logged-in users**. Anonymous visitors (unauthenticated viewers) must not see this data. This rule applies everywhere change tracking is displayed, not only in `ProjectHistorySection`.
 

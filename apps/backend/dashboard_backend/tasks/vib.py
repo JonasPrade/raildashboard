@@ -10,6 +10,7 @@ from dashboard_backend.celery_app import celery_app
 from dashboard_backend.crud.vib import save_draft_report
 from dashboard_backend.services.document_ocr import extract_document_text
 from dashboard_backend.database import Session
+from dashboard_backend.utils.file_storage import consume_staged_import
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.schemas.vib import (
     VibEntryProposed,
@@ -823,6 +824,28 @@ def _parse_vib_pdf(
 @celery_app.task(bind=True)
 def parse_vib_pdf(
     self: Task,
+    staged_pdf: str,
+    year: int,
+    pdf_filename: str,
+    user_info: dict,
+    start_page: int | None = None,
+    end_page: int | None = None,
+    strip_headers_footers: bool = True,
+) -> dict:
+    """Parse a staged VIB PDF (see :func:`run_vib_parse`).
+
+    ``staged_pdf`` is the file name from ``stage_import_pdf``; the file is
+    deleted once the parse has finished or failed.
+    """
+    with consume_staged_import(staged_pdf) as pdf_bytes:
+        return run_vib_parse(
+            self, pdf_bytes, year, pdf_filename, user_info,
+            start_page, end_page, strip_headers_footers,
+        )
+
+
+def run_vib_parse(
+    task: Task,
     pdf_bytes: bytes,
     year: int,
     pdf_filename: str,
@@ -851,7 +874,7 @@ def parse_vib_pdf(
             pdf_bytes,
             year,
             all_projects=all_projects,
-            task=self,
+            task=task,
             start_page=start_page,
             end_page=end_page,
             strip_headers_footers=strip_headers_footers,
@@ -863,7 +886,7 @@ def parse_vib_pdf(
         import json as _json
         save_draft_report(
             db=db,
-            task_id=self.request.id,
+            task_id=task.request.id,
             year=year,
             raw_result_json=result.model_dump_json(),
             user=None,  # user object not available in worker context; id stored in user_info
@@ -873,7 +896,7 @@ def parse_vib_pdf(
             ocr_images_json=_json.dumps(ocr_images) if ocr_images else None,
         )
         db.commit()
-        logger.info("parse_vib_pdf: raw result saved to vib_draft_report (task_id=%s)", self.request.id)
+        logger.info("parse_vib_pdf: raw result saved to vib_draft_report (task_id=%s)", task.request.id)
 
         return result.model_dump()
 

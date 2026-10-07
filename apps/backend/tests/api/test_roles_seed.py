@@ -25,7 +25,14 @@ EDITOR_KEYS = {
     "todo.delete",
 }
 
-ADMIN_ONLY_KEYS = {"projectgroup.create", "projectgroup.edit", "user.manage", "role.manage", "settings.manage"}
+ADMIN_ONLY_KEYS = {
+    "projectgroup.create",
+    "projectgroup.edit",
+    "user.manage",
+    "role.manage",
+    "settings.manage",
+    "mcp.access",
+}
 
 
 def test_system_roles_are_seeded(db_session):

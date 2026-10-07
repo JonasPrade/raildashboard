@@ -12,14 +12,38 @@ section as part of the release commit, immediately before tagging.
 
 ## [Unreleased]
 
+### Added
+- **MCP server for AI assistants, with personal API keys.** Claude Code and other MCP clients
+  can now connect to `https://<host>/mcp` (Streamable HTTP) and search projects, read
+  financing, planning state, texts and tasks, and — with a write key — update projects, add
+  planning-state observations, upsert project texts and create/update tasks. Writes land in
+  the existing changelogs. Authentication uses new personal **API keys**
+  (`Authorization: Bearer rdb_…`), managed on the new admin page `/admin/api-keys`: the token
+  is shown once, keys expire after **90 days**, can be revoked anytime, and are either
+  read-only or carry the owner's rights. Keys work against the whole REST API too, narrowed to
+  their scopes without the admin bypass. For now only admins get access, via the new
+  capability `mcp.access`.
+
 ### Changed
+- New table `api_keys` (migration `20261007001`, applied automatically on start).
+- New Python dependency `mcp==2.3.0` (exactly pinned in `requirements.txt`).
+- Container nginx proxies `location = /mcp` to the backend with buffering off and a 300 s
+  read timeout. A host proxy in front only needs to pass `/mcp` through (the default
+  `location /` already does); new optional setting `MCP_ENABLED` (default `true`).
+- PDF imports (Haushalt, VIB, Fulda) no longer send the PDF through the Celery broker.
+  The upload endpoint stages the file in the `uploads` volume (`IMPORT_STAGING_DIR`,
+  default `/app/uploads/import-staging`) and passes only its name; the task deletes it
+  afterwards, also on failure, and files never picked up are swept after 24 h (#149).
+- The HTML shell declares German as the site language: German title and meta
+  description plus a `Content-Language: de` header from nginx. The English title
+  made browsers offer to translate the already German page (#128).
 - The project detail map now zooms to the project's geometry (or its subprojects')
   instead of centring on `Project.centroid` at a fixed zoom (#136).
 
 ### Removed
 - `Project.centroid` and its API field. It was written only by the old-database import
   and never maintained since, so it was empty or stale for every project created or
-  edited afterwards. Migration `20260928001` drops the column (runs automatically on
+  edited afterwards. Migration `20261007002` drops the column (runs automatically on
   deploy; the downgrade restores it empty) (#136).
 
 ### Fixed
@@ -30,6 +54,11 @@ section as part of the release commit, immediately before tagging.
   of all three runs and key figures, and launches both Celery jobs with progress and a
   stuck-worker warning. Linked from the admin overview and from the empty-state hint; the header's
   Admin entry now also appears for users holding only `parliament.import`.
+
+### Deploy
+- **The `worker` service now mounts the `uploads` volume** (`docker-compose.yml`). The
+  deploy picks it up automatically; without it every PDF import fails with
+  `FileNotFoundError`.
 
 ## [v0.0.14] - 2026-09-28
 

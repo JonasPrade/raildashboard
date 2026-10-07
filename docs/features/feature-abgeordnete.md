@@ -288,7 +288,7 @@ und in `update_project`, damit sie auch die Aggregation aus Teilprojekten mitnim
 > das ist die Stelle, die wirklich läuft. Der ungepflegte `centroid` ist ein eigener
 > Befund und gehört in ein eigenes Issue, nicht in dieses Feature.
 >
-> **Nachtrag (#136):** Die Spalte ist entfernt (Migration `20260928001`). Ihr einziger
+> **Nachtrag (#136):** Die Spalte ist entfernt (Migration `20261007002`). Ihr einziger
 > Leser, der Startausschnitt der Detailkarte, zoomt jetzt auf die Projektgeometrie.
 
 ### Endpunkte

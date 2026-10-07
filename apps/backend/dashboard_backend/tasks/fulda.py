@@ -12,6 +12,7 @@ import logging
 from dashboard_backend.celery_app import celery_app
 from dashboard_backend.crud import fulda as fulda_crud
 from dashboard_backend.database import Session
+from dashboard_backend.utils.file_storage import consume_staged_import
 
 logger = logging.getLogger(__name__)
 
@@ -27,15 +28,23 @@ class _UserProxy:
 @celery_app.task(bind=True)
 def parse_fulda_pdf(
     self,
-    pdf_bytes: bytes,
+    staged_pdf: str,
     year: int,
     pdf_filename: str,
     user_info: dict,
 ) -> dict:
-    """OCR + LLM extract a Fulda PDF into draft announcement rows.
+    """OCR + LLM extract a staged Fulda PDF into draft announcement rows.
 
+    ``staged_pdf`` is the file name from ``stage_import_pdf``; the file is
+    deleted once the parse has finished or failed.
     Returns the summary dict ``{ocr_status, created, source_label}``.
     """
+    with consume_staged_import(staged_pdf) as pdf_bytes:
+        return run_fulda_parse(pdf_bytes, year, pdf_filename, user_info)
+
+
+def run_fulda_parse(pdf_bytes: bytes, year: int, pdf_filename: str, user_info: dict) -> dict:
+    """Body of :func:`parse_fulda_pdf`, working on the PDF bytes."""
     logger.info(
         "parse_fulda_pdf started: file=%s year=%d user=%s",
         pdf_filename,
