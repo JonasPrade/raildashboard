@@ -13,3 +13,4 @@ from . import haushalt  # noqa: F401
 from . import vib  # noqa: F401
 from .app_settings import AppSettings  # noqa: F401
 from .guides import GuideSectionOverride  # noqa: F401
+from .api_keys import ApiKey  # noqa: F401

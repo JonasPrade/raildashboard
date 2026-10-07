@@ -171,6 +171,28 @@ Settings-Zugriff im Service statt vier Aufrufstellen mit identischen
 offenen Roadmap-Punkt *„VIB-Review: Original-PDF-Anzeige"* (Sprung zur
 richtigen Seite).
 
+### Übergabe an Celery: Dateiname statt Bytes (#149)
+
+Die drei Upload-Endpunkte (`haushalt_import.py`, `vib_import.py`,
+`fulda_import.py`) geben das PDF **nicht** als Task-Argument weiter. Früher lag
+jedes hochgeladene PDF base64-kodiert als Task-Message in Redis, die Anlage
+VWIB Teil B (3,64 MB) also mit rund 4,9 MB pro Task. Heute läuft es so:
+
+1. `api.deps.launch_with_staged_pdf(task, pdf_bytes, …)` schreibt die Datei über
+   `utils/file_storage.stage_import_pdf` nach `IMPORT_STAGING_DIR`
+   (Standard `/app/uploads/import-staging`, im `uploads`-Volume, das Backend und
+   Worker gemeinsam mounten) und ruft `task.delay(staged_name, …)` nur mit dem
+   Dateinamen auf. Scheitert das Einreihen, wird die Datei sofort wieder gelöscht.
+2. Der Celery-Task (`parse_haushalt_pdf`, `parse_vib_pdf`, `parse_fulda_pdf`)
+   liest die Datei über `consume_staged_import` und löscht sie danach, auch wenn
+   der Parse fehlschlägt. Die eigentliche Arbeit steckt in `run_haushalt_parse`,
+   `run_vib_parse` und `run_fulda_parse` und bleibt direkt mit Bytes testbar.
+3. Dateien, die kein Task abgeholt hat (Broker geleert, Worker weg), räumt
+   `stage_import_pdf` beim nächsten Upload auf, sobald sie älter als 24 h sind.
+
+Als Task-Argument ist nur ein nackter Dateiname zulässig; `_staged_path` weist
+alles mit Pfadanteilen ab.
+
 ### Gemeinsame OCR-Persistenz
 
 Die drei VIB-Spalten (`ocr_raw_text`, `ocr_status`, `ocr_model`) haben sich

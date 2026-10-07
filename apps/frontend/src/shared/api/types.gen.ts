@@ -2109,10 +2109,141 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/api-keys/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Own Api Keys
+         * @description The caller's own keys (metadata only), newest first.
+         */
+        get: operations["list_own_api_keys_api_v1_api_keys__get"];
+        put?: never;
+        /**
+         * Create Api Key
+         * @description Create a key that expires after 90 days. The token is returned only here.
+         */
+        post: operations["create_api_key_api_v1_api_keys__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/api-keys/all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List All Api Keys
+         * @description Every user's keys, for the admin overview.
+         */
+        get: operations["list_all_api_keys_api_v1_api_keys_all_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/api-keys/{key_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke Api Key
+         * @description Revoke a key immediately. Own keys always; other users' keys with ``user.manage``.
+         */
+        delete: operations["revoke_api_key_api_v1_api_keys__key_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ApiKeyCreate */
+        ApiKeyCreate: {
+            /** Name */
+            name: string;
+            /** Scopes */
+            scopes?: string[] | null;
+        };
+        /**
+         * ApiKeyCreated
+         * @description Creation response: the only place the clear-text token ever appears.
+         */
+        ApiKeyCreated: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Prefix */
+            prefix: string;
+            /** Scopes */
+            scopes: string[] | null;
+            /** User Id */
+            user_id: number;
+            /** Username */
+            username: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Last Used At */
+            last_used_at: string | null;
+            /** Expires At */
+            expires_at: string | null;
+            /** Revoked At */
+            revoked_at: string | null;
+            /** Token */
+            token: string;
+        };
+        /**
+         * ApiKeyRead
+         * @description Key metadata — never contains the token or its hash.
+         */
+        ApiKeyRead: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Prefix */
+            prefix: string;
+            /** Scopes */
+            scopes: string[] | null;
+            /** User Id */
+            user_id: number;
+            /** Username */
+            username: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Last Used At */
+            last_used_at: string | null;
+            /** Expires At */
+            expires_at: string | null;
+            /** Revoked At */
+            revoked_at: string | null;
+        };
         /** AppSettingsSchema */
         AppSettingsSchema: {
             /**
@@ -9787,6 +9918,134 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["TaskLaunchResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_own_api_keys_api_v1_api_keys__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiKeyRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_api_key_api_v1_api_keys__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApiKeyCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiKeyCreated"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_all_api_keys_api_v1_api_keys_all_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiKeyRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_api_key_api_v1_api_keys__key_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

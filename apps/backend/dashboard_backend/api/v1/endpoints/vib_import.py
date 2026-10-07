@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from dashboard_backend.api.deps import (
     get_draft_or_404,
     get_parse_draft_or_404,
+    launch_with_staged_pdf,
     read_upload_within_limit,
 )
 from dashboard_backend.celery_app import celery_app
@@ -119,8 +120,8 @@ async def start_vib_parse(
     """
     pdf_bytes = await read_upload_within_limit(pdf)
     user_info = {"id": current_user.id, "username": current_user.username}
-    result = parse_vib_pdf.delay(
-        pdf_bytes, year, pdf.filename or "upload.pdf", user_info,
+    result = launch_with_staged_pdf(
+        parse_vib_pdf, pdf_bytes, year, pdf.filename or "upload.pdf", user_info,
         start_page, end_page, strip_headers_footers,
     )
     return TaskLaunchResponse(task_id=result.id)
