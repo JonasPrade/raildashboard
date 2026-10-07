@@ -8,11 +8,12 @@ import time
 from collections.abc import Iterable
 
 from fastapi import Cookie, Depends, HTTPException, status
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBasic, HTTPBasicCredentials, HTTPBearer
 from typing import Optional
 from fastapi.params import Depends as DependsParam
 from sqlalchemy.orm import Session
 
+from dashboard_backend.crud import api_keys as api_keys_crud
 from dashboard_backend.crud import users as users_crud
 from dashboard_backend.database import get_db
 
@@ -100,13 +101,37 @@ def _authenticate(credentials: HTTPBasicCredentials, db: Session):
     return user
 
 
-def require_permission(*keys: str):
+def _authenticate_api_key(credentials: HTTPAuthorizationCredentials, db: Session):
+    api_key = api_keys_crud.authenticate_token(db, credentials.credentials)
+    if api_key is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired API key",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return api_key
+
+
+def _reject_api_key(bearer: Optional[HTTPAuthorizationCredentials]) -> None:
+    """Key management must not be reachable with a key (no self-escalation path)."""
+
+    if bearer is not None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="API keys cannot be used for this endpoint",
+        )
+
+
+def require_permission(*keys: str, allow_api_key: bool = True):
     """FastAPI dependency: require the authenticated user to hold every given
     capability key.
 
-    Accepts a session cookie or HTTP Basic credentials (like ``require_auth``).
-    The ``admin`` system role bypasses the check (see ``User.has_permission``).
+    Accepts a bearer API key, a session cookie or HTTP Basic credentials (in
+    that order). The ``admin`` system role bypasses the check (see
+    ``User.has_permission``) — except for API-key requests, whose capabilities
+    are the owner's set intersected with the key's scopes.
     Not authenticated → 401; authenticated but missing a capability → 403.
+    ``allow_api_key=False`` rejects key requests with 403.
     """
 
     required_keys = tuple(keys)
@@ -114,8 +139,21 @@ def require_permission(*keys: str):
     def dependency(
         session: Optional[str] = Cookie(default=None, alias=_SESSION_COOKIE),
         credentials: Optional[HTTPBasicCredentials] = Depends(_optional_security),
+        bearer: Optional[HTTPAuthorizationCredentials] = Depends(_optional_bearer),
         db: Session = Depends(get_db),
     ):
+        if bearer is not None:
+            if not allow_api_key:
+                _reject_api_key(bearer)
+            api_key = _authenticate_api_key(bearer, db)
+            granted = api_keys_crud.effective_key_permissions(api_key)
+            if any(key not in granted for key in required_keys):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Not enough privileges",
+                )
+            return api_key.user
+
         user = None
         if session:
             user_id = verify_session_token(session)
@@ -206,15 +244,22 @@ def require_session():
 
 
 _optional_security = HTTPBasic(auto_error=False)
+_optional_bearer = HTTPBearer(auto_error=False)
 
 
-def require_auth():
-    """FastAPI dependency: accepts either session cookie or HTTP Basic Auth."""
+def require_auth(allow_api_key: bool = True):
+    """FastAPI dependency: accepts a bearer API key, a session cookie or HTTP
+    Basic Auth. ``allow_api_key=False`` rejects key requests with 403."""
     def dependency(
         session: Optional[str] = Cookie(default=None, alias=_SESSION_COOKIE),
         credentials: Optional[HTTPBasicCredentials] = Depends(_optional_security),
+        bearer: Optional[HTTPAuthorizationCredentials] = Depends(_optional_bearer),
         db: Session = Depends(get_db),
     ):
+        if bearer is not None:
+            if not allow_api_key:
+                _reject_api_key(bearer)
+            return _authenticate_api_key(bearer, db).user
         if session:
             user_id = verify_session_token(session)
             if user_id is not None:
