@@ -48,6 +48,7 @@ cp .env.example .env
 | `REACT_APP_TILE_LAYER_URL` | — | Raster-Kachel-URL für die Kartenansicht |
 | `CELERY_BROKER_URL` | `redis://redis:6379/0` | Redis im Docker-Netzwerk (kein Passwort nötig, da nicht nach außen exponiert) |
 | `CELERY_RESULT_BACKEND` | `redis://redis:6379/0` | Wie `CELERY_BROKER_URL` |
+| `IMPORT_STAGING_DIR` | `/app/uploads/import-staging` | Ablage hochgeladener Import-PDFs, bis der Celery-Task sie gelesen hat. Muss im von Backend **und** Worker gemounteten `uploads`-Volume liegen |
 
 ### Optionale RINF-API-Zugangsdaten
 
@@ -391,7 +392,9 @@ make docker-backup-db
 
 ### Uploads-Volume (Dateianhänge)
 
-Das Docker-Volume `raildashboard_uploads` (im Compose-Stack als `uploads` deklariert, gemountet unter `/app/uploads` im Backend-Container) enthält alle Dateianhänge von Projekttexten. Es wird seit v0.0.5 **automatisch** zusammen mit dem DB-Dump gesichert — sowohl von `make backup-db` (systemd-Timer-Pfad) als auch von `make docker-backup-db`.
+Das Docker-Volume `raildashboard_uploads` (im Compose-Stack als `uploads` deklariert, gemountet unter `/app/uploads` in Backend- **und** Worker-Container) enthält alle Dateianhänge von Projekttexten (`text-attachments/`).
+
+Seit #149 liegen dort außerdem unter `import-staging/` die gerade hochgeladenen Import-PDFs (Haushalt, VIB, Fulda): Der Backend-Endpunkt legt die Datei ab und übergibt dem Celery-Task nur den Dateinamen, damit keine PDF-Inhalte mehr durch Redis gehen. Der Task löscht die Datei nach dem Lauf, auch im Fehlerfall; was ein Task nie abgeholt hat, wird nach 24 h beim nächsten Upload aufgeräumt. Der Ordner ist also flüchtig. Landet er in einem Backup, schadet das nicht. Der Worker braucht deshalb dasselbe Volume wie das Backend (`docker-compose.yml`), sonst scheitert jeder PDF-Import mit `FileNotFoundError`. Es wird seit v0.0.5 **automatisch** zusammen mit dem DB-Dump gesichert — sowohl von `make backup-db` (systemd-Timer-Pfad) als auch von `make docker-backup-db`.
 
 **Warum das wichtig ist:** Ohne paariges Uploads-Tar zeigen nach einem Restore alle `text_attachment`-Zeilen auf nicht vorhandene Dateien.
 

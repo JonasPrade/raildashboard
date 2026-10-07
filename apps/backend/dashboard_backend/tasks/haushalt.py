@@ -33,6 +33,7 @@ from dashboard_backend.crud.haushalt_import import (
     save_parse_result,
 )
 from dashboard_backend.database import Session
+from dashboard_backend.utils.file_storage import consume_staged_import
 from dashboard_backend.models.associations.finve_to_project import FinveToProject
 from dashboard_backend.models.projects.finve import Finve
 from dashboard_backend.models.projects.project import Project
@@ -1575,15 +1576,29 @@ def _parse_section(
 @celery_app.task(bind=True)
 def parse_haushalt_pdf(
     self: Task,
+    staged_pdf: str,
+    year: int,
+    pdf_filename: str,
+    user_info: dict,
+) -> dict:
+    """Parse a staged Haushalt PDF and persist the result.
+
+    ``staged_pdf`` is the file name from ``stage_import_pdf``; the file is
+    deleted once the parse has finished or failed.
+    Returns {"parse_result_id": int}.
+    """
+    with consume_staged_import(staged_pdf) as pdf_bytes:
+        return run_haushalt_parse(self, pdf_bytes, year, pdf_filename, user_info)
+
+
+def run_haushalt_parse(
+    task: Task,
     pdf_bytes: bytes,
     year: int,
     pdf_filename: str,
     user_info: dict,
 ) -> dict:
-    """Parse a Haushalt PDF and persist the result.
-
-    Returns {"parse_result_id": int}.
-    """
+    """Body of :func:`parse_haushalt_pdf`, working on the PDF bytes."""
     logger.info(
         "parse_haushalt_pdf started: file=%s year=%d user=%s",
         pdf_filename,
@@ -1592,7 +1607,7 @@ def parse_haushalt_pdf(
     )
     db = Session()
     try:
-        report_step(self, "load", "Bekannte FinVes und Projekte laden…")
+        report_step(task, "load", "Bekannte FinVes und Projekte laden…")
         # Load all known Finve IDs for match/new classification
         known_ids: set[int] = {row[0] for row in db.query(Finve.id).all()}
         logger.info("Loaded %d known Finve IDs from DB", len(known_ids))
@@ -1646,7 +1661,7 @@ def parse_haushalt_pdf(
             pdf_bytes, year, known_ids,
             finve_projects=finve_projects,
             all_projects=all_projects,
-            task=self,
+            task=task,
             known_finve_keys=known_keys,
         )
 
@@ -1659,7 +1674,7 @@ def parse_haushalt_pdf(
         user_proxy = _UserProxy(user_info) if user_info else None
 
         report_step(
-            self, "save",
+            task, "save",
             f"{len(task_result.rows)} Maßnahmen — Ergebnis wird gespeichert…",
         )
         record = save_parse_result(

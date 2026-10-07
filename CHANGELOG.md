@@ -30,6 +30,13 @@ section as part of the release commit, immediately before tagging.
 - Container nginx proxies `location = /mcp` to the backend with buffering off and a 300 s
   read timeout. A host proxy in front only needs to pass `/mcp` through (the default
   `location /` already does); new optional setting `MCP_ENABLED` (default `true`).
+- PDF imports (Haushalt, VIB, Fulda) no longer send the PDF through the Celery broker.
+  The upload endpoint stages the file in the `uploads` volume (`IMPORT_STAGING_DIR`,
+  default `/app/uploads/import-staging`) and passes only its name; the task deletes it
+  afterwards, also on failure, and files never picked up are swept after 24 h (#149).
+- The HTML shell declares German as the site language: German title and meta
+  description plus a `Content-Language: de` header from nginx. The English title
+  made browsers offer to translate the already German page (#128).
 
 ### Fixed
 - **The members-of-parliament import can now be started from the UI.** The backend endpoints
@@ -39,6 +46,11 @@ section as part of the release commit, immediately before tagging.
   of all three runs and key figures, and launches both Celery jobs with progress and a
   stuck-worker warning. Linked from the admin overview and from the empty-state hint; the header's
   Admin entry now also appears for users holding only `parliament.import`.
+
+### Deploy
+- **The `worker` service now mounts the `uploads` volume** (`docker-compose.yml`). The
+  deploy picks it up automatically; without it every PDF import fails with
+  `FileNotFoundError`.
 
 ## [v0.0.14] - 2026-09-28
 

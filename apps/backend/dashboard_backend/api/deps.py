@@ -5,11 +5,16 @@ instead of repeating the fetch → ``if not`` → ``HTTPException(404)`` block.
 The detail texts below are the single source of truth for the "not found"
 messages of these resources, and the dependencies are the central hook for
 future visibility rules. ``read_upload_within_limit`` is the same idea for
-the file uploads: one place that decides how large a request body may get.
+the file uploads: one place that decides how large a request body may get,
+and ``launch_with_staged_pdf`` the one way an import PDF reaches a Celery task.
 """
 
 from __future__ import annotations
 
+from typing import Any
+
+from celery import Task
+from celery.result import AsyncResult
 from fastapi import Depends, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
@@ -19,7 +24,11 @@ from dashboard_backend.database import get_db
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.projects.project_text import ProjectText
 from dashboard_backend.models.vib.vib_draft_report import VibDraftReport
-from dashboard_backend.utils.file_storage import MAX_FILE_SIZE
+from dashboard_backend.utils.file_storage import (
+    MAX_FILE_SIZE,
+    delete_staged_import,
+    stage_import_pdf,
+)
 
 PROJECT_NOT_FOUND = "Project not found"
 TEXT_NOT_FOUND = "Text not found"
@@ -71,3 +80,18 @@ async def read_upload_within_limit(file: UploadFile) -> bytes:
     if len(file_bytes) > MAX_FILE_SIZE:
         raise HTTPException(status_code=413, detail=UPLOAD_TOO_LARGE)
     return file_bytes
+
+
+def launch_with_staged_pdf(task: Task, pdf_bytes: bytes, *args: Any) -> AsyncResult:
+    """Stage an import PDF in the uploads volume and start ``task`` on it.
+
+    The task receives the staged file name as its first argument instead of the
+    bytes, so the PDF never travels through the Redis broker. The task deletes
+    the file when it finishes; if dispatching fails, it is removed here.
+    """
+    staged_name = stage_import_pdf(pdf_bytes)
+    try:
+        return task.delay(staged_name, *args)
+    except Exception:
+        delete_staged_import(staged_name)
+        raise
