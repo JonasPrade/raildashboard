@@ -181,6 +181,17 @@ durch und beantwortet z. B. den Haushaltsbericht Teil B (≈ 3,6 MB) mit
 `413 Request Entity Too Large`, bevor der Request die Anwendung überhaupt
 erreicht. Caddy hat kein solches Default-Limit.
 
+**MCP-Endpunkt `/mcp`.** Das Backend stellt unter `/mcp` einen MCP-Server
+(Streamable HTTP) für KI-Assistenten bereit; Zugriff nur mit persönlichem API-Key
+(`Authorization: Bearer rdb_…`, angelegt unter *Administration → API-Keys & MCP*,
+vorerst nur für Admins). Der Container-nginx leitet `location = /mcp` mit
+`proxy_buffering off` und `proxy_read_timeout 300s` an `backend:8000` weiter. Ein
+vorgelagerter Proxy muss nichts Besonderes tun, solange er `/mcp` wie jeden anderen
+Pfad durchreicht (Caddy `reverse_proxy` und ein nginx-`location /` tun das); puffert
+er Antworten, kommen die JSON-Antworten trotzdem vollständig an. Abschalten:
+`MCP_ENABLED=false` in `.env`, dann ist die Route nicht gemountet. Die Tabelle
+`api_keys` legt die Migration `20261007001` beim Start automatisch an.
+
 ### Voraussetzungen
 
 - Docker Engine ≥ 24 und Docker Compose V2 (`docker compose`, nicht `docker-compose`)

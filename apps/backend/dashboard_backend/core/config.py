@@ -67,6 +67,10 @@ class Settings(BaseSettings):
     #                  fallback (step 6 — only after a compare run came back clean)
     haushalt_extraction: str = "pdfplumber"
 
+    # MCP endpoint (/mcp, Streamable HTTP) for AI assistants, authenticated with
+    # personal API keys. False = the route is not mounted at all.
+    mcp_enabled: bool = True
+
     model_config = SettingsConfigDict(
         env_file=_find_env_file(),
         case_sensitive=False,

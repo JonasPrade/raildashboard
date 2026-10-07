@@ -1,6 +1,8 @@
 # Feature: MCP-Server mit API-Key-Authentifizierung
 
-**Status: geplant (2026-09-09)** — Konzept abgestimmt, noch nicht implementiert.
+**Status: umgesetzt (2026-10-07)** — Phase 1 (API-Keys) und Phase 2 (MCP-Server)
+sind implementiert. Abweichungen und Präzisierungen gegenüber dem Konzept stehen
+unter [Umsetzungsstand](#umsetzungsstand-2026-10-07).
 
 ## Ziel
 
@@ -45,7 +47,7 @@ Rechtemodell — ein Key kann nie mehr als der Nutzer, dem er gehört.
 - **API-Oberfläche**: `apps/backend/dashboard_backend/api/v1/` mit ~25 Routern,
   gemountet unter `/api/v1` (`main.py`), nginx leitet `/api/` an
   `backend:8000` weiter (`apps/frontend/nginx.conf`).
-- **MCP existiert im Repo bisher nicht.**
+- **MCP existierte im Repo bis zur Umsetzung (2026-10-07) nicht.**
 
 ## Abgrenzung zu Authentik/OAuth
 
@@ -217,7 +219,7 @@ des Clients landet.
   dazukommen, muss es in `apps/backend/tests/conftest.py` einen
   `os.environ.setdefault(...)` bekommen**, sonst bricht der CI-Test-Gate auf
   einem sauberen Checkout ohne `.env`.
-- `apps/frontend/nginx.conf`: `location /mcp/` analog zu `/api/`, zusätzlich
+- `apps/frontend/nginx.conf`: `location = /mcp` analog zu `/api/`, zusätzlich
   `proxy_buffering off;` und ein erhöhtes `proxy_read_timeout` — Streamable HTTP
   hält langlebige Verbindungen, die nginx sonst puffert oder abschneidet.
 - Kein neuer Compose-Service, keine Änderung an den GHCR-Images außer der neuen
@@ -272,34 +274,72 @@ Client-seitig (Claude Code, `.mcp.json`):
 
 **Phase 1 — API-Keys als Auth-Weg**
 
-- [ ] Tabelle `api_keys` + Migration; `make migrate` läuft sauber durch.
-- [ ] `Authorization: Bearer …` authentifiziert gegen die gesamte REST-API.
-- [ ] `scopes` schränken die Rechte ein, auch bei einem Admin-Nutzer.
-- [ ] Widerrufener oder abgelaufener Key → `401`.
-- [ ] Key-Endpunkte inkl. einmaliger Token-Anzeige; Key-Auth dort abgewiesen.
-- [ ] Admin-UI zum Anlegen, Ansehen und Widerrufen; `make gen-api` gelaufen.
-- [ ] Cookie- und Basic-Auth verhalten sich unverändert.
+- [x] Tabelle `api_keys` + Migration (`20261007001`); `make migrate` gegen
+      eine echte DB steht als manueller Test aus.
+- [x] `Authorization: Bearer …` authentifiziert gegen die gesamte REST-API.
+- [x] `scopes` schränken die Rechte ein, auch bei einem Admin-Nutzer.
+- [x] Widerrufener oder abgelaufener Key → `401`.
+- [x] Key-Endpunkte inkl. einmaliger Token-Anzeige; Key-Auth dort abgewiesen.
+- [x] Admin-UI zum Anlegen, Ansehen und Widerrufen; `make gen-api` gelaufen.
+- [x] Cookie- und Basic-Auth verhalten sich unverändert.
 
 **Phase 2 — MCP-Server**
 
-- [ ] `/mcp` antwortet über Streamable HTTP und listet die Tools aus dem
+- [x] `/mcp` antwortet über Streamable HTTP und listet die Tools aus dem
       Katalog.
 - [ ] Claude Code verbindet sich mit einem Key aus `.mcp.json` und ruft
-      erfolgreich ein Lese-Tool auf.
-- [ ] Schreib-Tools respektieren Capability *und* Key-Scopes.
-- [ ] Schreibende Tools erzeugen `change_log`-Einträge.
-- [ ] nginx-Regel für `/mcp/` steht; `docs/production_setup.md` und
+      erfolgreich ein Lese-Tool auf. *(manueller Test gegen die laufende
+      Instanz; automatisiert per JSON-RPC in `tests/api/test_mcp_server.py`)*
+- [x] Schreib-Tools respektieren Capability *und* Key-Scopes.
+- [x] Schreibende Tools erzeugen `change_log`-Einträge.
+- [x] nginx-Regel für `/mcp` steht; `docs/production_setup.md` und
       `CHANGELOG.md` nachgezogen.
-- [ ] `mcp` exakt gepinnt; Backend-Tests grün.
+- [x] `mcp` exakt gepinnt; Backend-Tests grün.
 
-## Offene Punkte
+## Offene Punkte (geklärt)
 
-- Ablaufzeit-Voreinstellung für neue Keys (kein Ablauf vs. 90 Tage) — beim
-  Umsetzen von Phase 1 mit dem Nutzer klären.
-- Ob `scopes` als freie Capability-Liste oder als zwei Presets
-  („read-only" / „wie mein Nutzer") in der UI angeboten werden.
-- Genauer Zuschnitt der Filter von `list_projects` — sinnvollerweise an dem
-  ausrichten, was die Projektliste im Frontend heute kann.
+- **Ablaufzeit**: jeder neue Key läuft nach **90 Tagen** ab (mit dem Nutzer
+  entschieden, 2026-10-07). Es gibt keine Auswahl — wer länger braucht, legt
+  einen neuen Key an.
+- **Scopes in der UI**: zwei Presets — „Nur lesen" (Default, `scopes =
+  ["mcp.access"]`) und „Wie mein Nutzer" (`scopes = NULL`). Die API nimmt
+  weiterhin eine freie Liste gültiger Capability-Keys an.
+- **Filter von `list_projects`**: Freitext (Name/Projektnummer), Projektgruppe
+  (Kurzname oder id), Planungsphase, übergeordnetes Projekt, Paginierung.
+
+## Umsetzungsstand (2026-10-07)
+
+- **Nur Admins (vorerst)**: Neue Capability **`mcp.access`** („API-Keys &
+  MCP-Zugriff", Gruppe Administration). Sie ist keiner Systemrolle zugewiesen,
+  also hält sie nur der Super-Admin `admin`; später lässt sie sich über eine
+  eigene Rolle in `/admin/roles` vergeben. Sie gatet zwei Dinge: das **Anlegen**
+  von Keys (`POST /api-keys`) und den Zugang zu **`/mcp`** (der Key selbst muss
+  `mcp.access` tragen — ein Key mit `scopes` ohne `mcp.access` kommt nicht an
+  MCP heran). Eigene Keys auflisten und widerrufen geht mit jedem Login, damit
+  ein Key auch nach Entzug der Capability widerrufbar bleibt.
+- **Key-Verwaltung** zusätzlich `GET /api-keys/all` (alle Keys, `user.manage`).
+  Fremde Keys widerrufen nur mit `user.manage`, sonst `404`. Key-Requests an die
+  Key-Verwaltung → `403`.
+- **REST**: `require_permission()` und `require_auth()` akzeptieren Bearer-Keys
+  vor Cookie und Basic; Rechte = Nutzer-Rechte ∩ `scopes`, ohne Admin-Bypass.
+- **MCP-Endpunkt**: SDK `mcp==2.3.0` (`MCPServer`), Streamable HTTP unter
+  `/mcp`, `stateless_http` + `json_response`. Eine eigene ASGI-Middleware
+  (`mcp/auth.py`) prüft den Bearer-Key (nur Bearer — kein Cookie, kein Basic)
+  und legt den Principal in den Request-Scope; die Tools lesen ihn über den
+  SDK-`Context`. Weil der SDK-Session-Manager nur einmal pro Instanz startbar
+  ist, baut `McpEndpoint` den Server in jedem App-Lifespan neu. Der
+  DNS-Rebinding-Schutz des SDK ist aus, weil ohne Cookies nichts zu holen ist
+  (er würde sonst jeden Nicht-localhost-Host ablehnen).
+- **Tool-Katalog** wie oben plus `list_text_types` (nötig, um für
+  `upsert_project_text` die `text_type_id` zu finden). Lese-Tools tragen
+  `readOnlyHint`. `update_project` sperrt `geojson_representation` und
+  `is_draft`. Changelog-Einträge entstehen wie bei den REST-Endpunkten: für
+  Projektfelder und Projekttexte; Beobachtungen tragen den Nutzernamen,
+  Aufgaben `created_by`.
+- **Frontend**: Seite `/admin/api-keys` („API-Keys & MCP", gated mit
+  `mcp.access`) mit Anlege-Dialog, einmaliger Token-Anzeige samt fertiger
+  `.mcp.json`-Konfiguration, Widerruf und — mit `user.manage` — der Liste aller
+  Keys.
 
 ## Umsetzung
 

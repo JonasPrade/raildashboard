@@ -11,7 +11,9 @@ from dashboard_backend.core.security import hash_password
 from dashboard_backend.crud import roles as roles_crud
 from dashboard_backend.database import get_db
 from dashboard_backend.dependencies.routes import get_route_service
+from dashboard_backend.models.api_keys import ApiKey
 from dashboard_backend.models.app_settings import AppSettings
+from dashboard_backend.models.change_tracking import ChangeLog, ChangeLogEntry
 from dashboard_backend.models.associations.project_to_constituency import (
     ProjectToConstituency,
 )
@@ -28,7 +30,9 @@ from dashboard_backend.models.parliament import (
     ParliamentPeriod,
     Politician,
 )
+from dashboard_backend.models.projects.bvwp_project_data import BvwpProjectData
 from dashboard_backend.models.projects.project import Project
+from dashboard_backend.models.projects.project_progress import ProjectProgress
 from dashboard_backend.models.projects.project_text import ProjectText
 from dashboard_backend.models.projects.project_text_type import ProjectTextType
 from dashboard_backend.models.roles import Role, RolePermission
@@ -76,6 +80,7 @@ TABLES = [
     Role.__table__,  # must precede User (FK dependency)
     RolePermission.__table__,
     User.__table__,
+    ApiKey.__table__,  # must follow User (FK dependency)
     ProjectGroup.__table__,
     Route.__table__,
     AppSettings.__table__,
@@ -93,6 +98,10 @@ TABLES = [
     ParliamentImportRun.__table__,
     ProjectToConstituency.__table__,  # FK to project (absent here) is unenforced in SQLite
     ProjectToProjectGroup.__table__,  # must follow project + project_group (FK dependency)
+    ProjectProgress.__table__,  # FK to project; read by the MCP list_projects phase filter
+    BvwpProjectData.__table__,  # FK to project; read by the MCP get_project tool
+    ChangeLog.__table__,  # FK to project + users; written by the MCP update_project tool
+    ChangeLogEntry.__table__,  # must follow ChangeLog (FK dependency)
 ]
 
 

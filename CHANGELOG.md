@@ -12,7 +12,24 @@ section as part of the release commit, immediately before tagging.
 
 ## [Unreleased]
 
+### Added
+- **MCP server for AI assistants, with personal API keys.** Claude Code and other MCP clients
+  can now connect to `https://<host>/mcp` (Streamable HTTP) and search projects, read
+  financing, planning state, texts and tasks, and — with a write key — update projects, add
+  planning-state observations, upsert project texts and create/update tasks. Writes land in
+  the existing changelogs. Authentication uses new personal **API keys**
+  (`Authorization: Bearer rdb_…`), managed on the new admin page `/admin/api-keys`: the token
+  is shown once, keys expire after **90 days**, can be revoked anytime, and are either
+  read-only or carry the owner's rights. Keys work against the whole REST API too, narrowed to
+  their scopes without the admin bypass. For now only admins get access, via the new
+  capability `mcp.access`.
+
 ### Changed
+- New table `api_keys` (migration `20261007001`, applied automatically on start).
+- New Python dependency `mcp==2.3.0` (exactly pinned in `requirements.txt`).
+- Container nginx proxies `location = /mcp` to the backend with buffering off and a 300 s
+  read timeout. A host proxy in front only needs to pass `/mcp` through (the default
+  `location /` already does); new optional setting `MCP_ENABLED` (default `true`).
 - PDF imports (Haushalt, VIB, Fulda) no longer send the PDF through the Celery broker.
   The upload endpoint stages the file in the `uploads` volume (`IMPORT_STAGING_DIR`,
   default `/app/uploads/import-staging`) and passes only its name; the task deletes it
