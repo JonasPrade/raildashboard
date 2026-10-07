@@ -12,6 +12,8 @@ section as part of the release commit, immediately before tagging.
 
 ## [Unreleased]
 
+## [v0.0.15] - 2026-10-07
+
 ### Added
 - **MCP server for AI assistants, with personal API keys.** Claude Code and other MCP clients
   can now connect to `https://<host>/mcp` (Streamable HTTP) and search projects, read
