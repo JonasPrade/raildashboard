@@ -7,6 +7,7 @@ import type { ConstituencyFeatureCollection, ProjectOverview } from "../../share
 import { usePrefetchProjectPage } from "../projects/usePrefetchProjectPage";
 import ProjectSummaryCard from "../projects/ProjectSummaryCard";
 import { ChronicleButton } from "../../components/chronicle";
+import { featureBounds } from "./featureBounds";
 
 const tileLayerUrl = import.meta.env.REACT_APP_TILE_LAYER_URL as string | undefined;
 const tileAttribution =
@@ -170,8 +171,11 @@ type Props = {
     height?: number | string;
     /** Klick-Interaktion (Popup + Navigation) aktivieren. Standard: true */
     clickable?: boolean;
-    /** Initial map center [longitude, latitude]. Overrides the default Germany center. */
-    initialCenter?: [number, number] | null;
+    /**
+     * Zoom to the projects' geometry once it has loaded (detail page). Without it,
+     * or without any geometry, the map starts on the whole of Germany.
+     */
+    fitToProjects?: boolean;
     /** Constituency outlines as a switchable background layer (© GeoBasis-DE / BKG). */
     constituencies?: ConstituencyFeatureCollection | null;
     /** Called with the clicked constituency id, or null when the click missed. */
@@ -192,7 +196,7 @@ export default function MapView({
     pointSize = 5,
     height = "var(--map-height, 800px)",
     clickable = true,
-    initialCenter,
+    fitToProjects = false,
     constituencies = null,
     onConstituencySelect,
     selectedConstituencyId = null,
@@ -206,6 +210,7 @@ export default function MapView({
     // the current project list without needing it as a dependency.
     const projectsRef = useRef<MapViewProject[]>(projects);
     const [isMapReady, setIsMapReady] = useState(false);
+    const hasFittedRef = useRef(false);
     const [selectedProject, setSelectedProject] = useState<SelectedProject | null>(null);
     const prefetchProjectPage = usePrefetchProjectPage();
 
@@ -366,8 +371,8 @@ export default function MapView({
                     },
                 ],
             },
-            center: initialCenter ?? [10.0, 51.0],
-            zoom: initialCenter ? 6 : 5,
+            center: [10.0, 51.0],
+            zoom: 5,
         });
 
         mapInstanceRef.current = mapInstance;
@@ -506,7 +511,17 @@ export default function MapView({
         if (lineSource) lineSource.setData(lineFeatureCollection as any);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (pointSource) pointSource.setData(pointFeatureCollection as any);
-    }, [lineFeatureCollection, pointFeatureCollection, isMapReady]);
+
+        // Fit once, on the first data that has coordinates; later updates (e.g. a
+        // refetch) must not yank the view away from where the user has panned.
+        if (fitToProjects && !hasFittedRef.current) {
+            const bounds = featureBounds([lineFeatureCollection, pointFeatureCollection]);
+            if (bounds) {
+                mapInstance.fitBounds(bounds, { padding: 40, maxZoom: 13, duration: 0 });
+                hasFittedRef.current = true;
+            }
+        }
+    }, [lineFeatureCollection, pointFeatureCollection, isMapReady, fitToProjects]);
 
     // Constituency layer: data, visibility and the selected outline.
     useEffect(() => {

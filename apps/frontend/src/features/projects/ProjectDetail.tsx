@@ -284,23 +284,6 @@ export default function ProjectDetail() {
         });
     };
 
-    // Extract centroid [lon, lat] from the project's GeoJSON centroid field
-    const mapCenter = useMemo((): [number, number] | null => {
-        const c = project?.centroid;
-        if (
-            c &&
-            typeof c === "object" &&
-            (c as Record<string, unknown>).type === "Point" &&
-            Array.isArray((c as Record<string, unknown>).coordinates)
-        ) {
-            const coords = (c as { coordinates: unknown[] }).coordinates;
-            if (typeof coords[0] === "number" && typeof coords[1] === "number") {
-                return [coords[0], coords[1]];
-            }
-        }
-        return null;
-    }, [project]);
-
     // Projekte für die Detailkarte: Unterprojekte wenn vorhanden, sonst das Projekt selbst
     const MAP_COLOR = "#2563eb";
     const mapProjects = useMemo((): MapViewProject[] => {
@@ -606,7 +589,7 @@ export default function ProjectDetail() {
                                             projects={mapProjects}
                                             height="var(--map-height-detail, 500px)"
                                             clickable={subProjects.length > 0}
-                                            initialCenter={mapCenter}
+                                            fitToProjects
                                         />
                                     </div>
                                 </Stack>

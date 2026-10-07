@@ -302,7 +302,6 @@ def import_project_content_old_db(filepath_csv: str, clear_db: bool = False):
         df[col] = df[col].where(pd.notnull(df[col]), None)
 
     df['geojson_representation'] = df['geojson_representation'].where(pd.notnull(df['geojson_representation']), None)
-    df['centroid'] = df['centroid'].where(pd.notnull(df['centroid']), None)
 
     # start import into the database
     session = Session()

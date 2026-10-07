@@ -37,6 +37,14 @@ section as part of the release commit, immediately before tagging.
 - The HTML shell declares German as the site language: German title and meta
   description plus a `Content-Language: de` header from nginx. The English title
   made browsers offer to translate the already German page (#128).
+- The project detail map now zooms to the project's geometry (or its subprojects')
+  instead of centring on `Project.centroid` at a fixed zoom (#136).
+
+### Removed
+- `Project.centroid` and its API field. It was written only by the old-database import
+  and never maintained since, so it was empty or stale for every project created or
+  edited afterwards. Migration `20260928001` drops the column (runs automatically on
+  deploy; the downgrade restores it empty) (#136).
 
 ### Fixed
 - **The members-of-parliament import can now be started from the UI.** The backend endpoints

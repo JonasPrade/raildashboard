@@ -1,6 +1,6 @@
 import math
 
-from pydantic import BaseModel, ConfigDict, Field, field_serializer, model_serializer, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 from typing import Optional, Any
 from ..utils import nan_to_none
 
@@ -178,18 +178,9 @@ class ProjectSchema(BaseModel):
     # True: geometry is aggregated from the subprojects, False: maintained on the project
     # itself (only relevant for projects that have subprojects).
     geojson_from_subprojects: bool = True
-    centroid: Optional[Any]  = None # Für Geo-Daten, ggf. anpassen
     project_groups: list[ProjectGroupRef] = []
 
     model_config = ConfigDict(from_attributes=True)
-
-    @field_serializer("centroid")
-    def serialize_centroid(self, v):
-        if v is None:
-            return None
-        from geoalchemy2.shape import to_shape
-        from shapely.geometry import mapping
-        return nan_to_none(mapping(to_shape(v)))  # sanitize coords
 
     @model_serializer(mode="wrap")
     def ser(self, serializer):

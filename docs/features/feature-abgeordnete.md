@@ -287,6 +287,9 @@ und in `update_project`, damit sie auch die Aggregation aus Teilprojekten mitnim
 > Geojson-Kaskade. Die Verschneidung hängt sich deshalb **an die Geojson-Kaskade** —
 > das ist die Stelle, die wirklich läuft. Der ungepflegte `centroid` ist ein eigener
 > Befund und gehört in ein eigenes Issue, nicht in dieses Feature.
+>
+> **Nachtrag (#136):** Die Spalte ist entfernt (Migration `20260928001`). Ihr einziger
+> Leser, der Startausschnitt der Detailkarte, zoomt jetzt auf die Projektgeometrie.
 
 ### Endpunkte
 

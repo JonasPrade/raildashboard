@@ -1,7 +1,7 @@
 """Slim project-group list, simplified geometry endpoint, ETag and gzip.
 
 Runs the real CRUD against the SQLite test DB (project + association tables
-exist there; the PostGIS centroid column is a TEXT stand-in and never read).
+exist there).
 """
 
 import json
