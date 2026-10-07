@@ -93,10 +93,11 @@ Initialer Katalog (aus den heutigen Gates abgeleitet):
 | `user.manage` | Nutzer verwalten | admin |
 | `role.manage` | Rollen & Rechte verwalten | admin |
 | `settings.manage` | App-Einstellungen | admin |
+| `mcp.access` | API-Keys & MCP-Zugriff | admin (keiner Systemrolle zugewiesen; per eigener Rolle vergebbar) |
 
 UI-Gruppierung der Capabilities: **Projekte** (project.*), **Projektgruppen**
 (projectgroup.*), **Finanzierung** (haushalt.import, vib.import, finve.edit),
-**Administration** (user.manage, role.manage, settings.manage),
+**Administration** (user.manage, role.manage, settings.manage, mcp.access),
 **Inhalte** (projecttext.edit, assignment.manage).
 
 ### Seed (abwärtskompatibel)

@@ -50,6 +50,9 @@ PERMISSIONS: tuple[Permission, ...] = (
     Permission("user.manage", "Nutzer verwalten", GROUP_ADMINISTRATION),
     Permission("role.manage", "Rollen & Rechte verwalten", GROUP_ADMINISTRATION),
     Permission("settings.manage", "App-Einstellungen", GROUP_ADMINISTRATION),
+    # Personal API keys + the MCP endpoint. Seeded for no system role, so only
+    # the admin super-admin holds it until a custom role is granted it.
+    Permission("mcp.access", "API-Keys & MCP-Zugriff", GROUP_ADMINISTRATION),
 )
 
 _PERMISSIONS_BY_KEY: dict[str, Permission] = {p.key: p for p in PERMISSIONS}

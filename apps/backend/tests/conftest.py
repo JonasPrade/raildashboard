@@ -1,5 +1,6 @@
 import os
 import sys
+import tempfile
 
 
 os.environ.setdefault("DATABASE_URL", "sqlite:///./test.db")
@@ -19,6 +20,11 @@ os.environ.setdefault("LLM_MODEL", "test-model")
 # and does not depend on a developer's local .env (CI has none). setdefault keeps any
 # real value from the environment/.env when present.
 os.environ.setdefault("SESSION_SECRET_KEY", "test-session-secret-not-real")
+# The default points into the Docker volume (/app/uploads), which a test run cannot write.
+os.environ.setdefault(
+    "IMPORT_STAGING_DIR",
+    os.path.join(tempfile.gettempdir(), "raildashboard-test-import-staging"),
+)
 
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))

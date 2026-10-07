@@ -49,6 +49,9 @@ export const queryKeys = {
     userOptions: ["user-options"],
     roles: ["roles"],
     permissions: ["permissions"],
+    // Nested under `apiKeys`: invalidating the own list refreshes the admin overview too.
+    apiKeys: ["api-keys"],
+    allApiKeys: ["api-keys", "all"],
     haushaltParseResults: ["haushalt-parse-results"],
     haushaltParseResult: (id: number) => ["haushalt-parse-result", id] as const,
     haushaltUnmatched: ["haushalt-unmatched"],
@@ -162,6 +165,8 @@ export type ProjectRoute = components["schemas"]["RouteOut"];
 export type User = components["schemas"]["UserRead"];
 export type Role = components["schemas"]["RoleRead"];
 export type Permission = components["schemas"]["PermissionSchema"];
+export type ApiKey = components["schemas"]["ApiKeyRead"];
+export type ApiKeyCreated = components["schemas"]["ApiKeyCreated"];
 
 export type ProjectUpdatePayload = components["schemas"]["ProjectUpdate"];
 
@@ -774,6 +779,45 @@ export function useDeleteRole() {
         (roleId: number) =>
             api<void>(`/api/v1/roles/${roleId}`, { method: "DELETE" }),
         [queryKeys.roles],
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Personal API keys (Bearer auth for the MCP endpoint)
+// ---------------------------------------------------------------------------
+
+export function useApiKeys() {
+    return useQuery({
+        queryKey: queryKeys.apiKeys,
+        queryFn: () => api<ApiKey[]>("/api/v1/api-keys/"),
+    });
+}
+
+/** Every user's keys — needs `user.manage`; pass `enabled: false` otherwise. */
+export function useAllApiKeys(enabled: boolean) {
+    return useQuery({
+        queryKey: queryKeys.allApiKeys,
+        queryFn: () => api<ApiKey[]>("/api/v1/api-keys/all"),
+        enabled,
+    });
+}
+
+/** `scopes: null` = all rights of the user; `["mcp.access"]` = read-only key. */
+export function useCreateApiKey() {
+    return useInvalidatingMutation(
+        (payload: { name: string; scopes: string[] | null }) =>
+            api<ApiKeyCreated>("/api/v1/api-keys/", {
+                method: "POST",
+                json: payload,
+            }),
+        [queryKeys.apiKeys],
+    );
+}
+
+export function useRevokeApiKey() {
+    return useInvalidatingMutation(
+        (keyId: number) => api<void>(`/api/v1/api-keys/${keyId}`, { method: "DELETE" }),
+        [queryKeys.apiKeys],
     );
 }
 

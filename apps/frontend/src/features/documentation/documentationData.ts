@@ -323,6 +323,22 @@ export const featureHighlights: FeatureHighlight[] = [
             "The Abrufstand of the last people import is visible in the UI and flagged as stale after 60 days",
             "Admin page /admin/abgeordnete (parliament.import): refresh the people from abgeordnetenwatch and rebuild the project-constituency links"
         ]
+    },
+    {
+        title: "API-Keys & MCP-Zugriff für KI-Assistenten",
+        description:
+            "AI assistants such as Claude Code connect to the dashboard through the Model Context Protocol (MCP) at /mcp, " +
+            "authenticated with a personal API key. A key never has more rights than its owner; access is admin-only for now " +
+            "(capability mcp.access).",
+        details: [
+            "Route /admin/api-keys — create, list and revoke your own keys; with user.manage also every user's keys",
+            "The token (rdb_…) is shown exactly once, together with a ready-made .mcp.json snippet; only its hash is stored",
+            "Presets: \"Nur lesen\" (default) or \"Wie mein Nutzer\" (adds write tools); every key expires after 90 days",
+            "Read tools: projects (search/filter), project detail incl. BVWP, planning state, FinVes with budgets, texts, tasks",
+            "Write tools: update project fields, add planning-state observations, create/update texts and tasks — all in the changelog",
+            "Keys also work against the REST API (Authorization: Bearer …), narrowed to their scopes without the admin bypass",
+            "Details: docs/features/feature-mcp-server.md"
+        ]
     }
 ];
 

@@ -4,7 +4,7 @@ import json
 
 from fastapi import Depends, HTTPException
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session
 
 from dashboard_backend.api.deps import get_project_or_404
 from dashboard_backend.core.security import require_auth, require_permission
@@ -15,6 +15,7 @@ from dashboard_backend.crud.changelog import (
     get_project_changelog,
 )
 from dashboard_backend.crud import parliament as parliament_crud
+from dashboard_backend.crud.finves import get_project_finves_with_budgets
 from dashboard_backend.crud.projects.bvwp import get_bvwp_data
 from dashboard_backend.crud.projects.projects import (
     ProjectHierarchyError,
@@ -43,14 +44,9 @@ from dashboard_backend.schemas.parliament import (
 )
 from dashboard_backend.schemas.projects import ProjectSchema
 from dashboard_backend.schemas.projects.project_schema import (
-    BudgetSummarySchema,
     FinveWithBudgetsSchema,
     ProjectOptionSchema,
-    TitelEntrySchema,
 )
-from dashboard_backend.models.projects.finve import Finve
-from dashboard_backend.models.projects.budget import Budget
-from dashboard_backend.models.haushalt.budget_titel_entry import BudgetTitelEntry
 from dashboard_backend.schemas.projects.bvwp_schema import BvwpProjectDataSchema
 from dashboard_backend.schemas.projects.link_finves_schema import LinkFinvesInput
 from dashboard_backend.schemas.projects.project_create_schema import ProjectCreate
@@ -281,60 +277,7 @@ def get_project_finves(
 ):
     """Return all FinVes linked to a project, each with their full budget history
     including per-Haushaltstiteln breakdown."""
-    finve_ids = [f.id for f in project.finve]
-    if not finve_ids:
-        return []
-
-    # Eager-load budgets → titel_entries → titel. selectinload (not joinedload)
-    # for the two collection hops: a joined load multiplies the rows
-    # (finves × budgets × titel_entries) and repeats every parent column in each
-    # one, while selectinload issues one flat query per level.
-    finves = (
-        db.query(Finve)
-        .filter(Finve.id.in_(finve_ids))
-        .options(
-            selectinload(Finve.budgets)
-            .selectinload(Budget.titel_entries)
-            .joinedload(BudgetTitelEntry.titel)
-        )
-        .all()
-    )
-
-    result = []
-    for finve in finves:
-        budgets_sorted = sorted(finve.budgets, key=lambda b: b.budget_year)
-        budget_schemas = []
-        for b in budgets_sorted:
-            titel_schemas = [TitelEntrySchema.from_entry(e) for e in b.titel_entries]
-            budget_schemas.append(
-                BudgetSummarySchema(
-                    budget_year=b.budget_year,
-                    lfd_nr=b.lfd_nr,
-                    bedarfsplan_number=b.bedarfsplan_number,
-                    cost_estimate_original=b.cost_estimate_original,
-                    cost_estimate_last_year=b.cost_estimate_last_year,
-                    cost_estimate_actual=b.cost_estimate_actual,
-                    delta_previous_year=b.delta_previous_year,
-                    delta_previous_year_relativ=b.delta_previous_year_relativ,
-                    spent_two_years_previous=b.spent_two_years_previous,
-                    allowed_previous_year=b.allowed_previous_year,
-                    spending_residues=b.spending_residues,
-                    year_planned=b.year_planned,
-                    next_years=b.next_years,
-                    titel_entries=titel_schemas,
-                )
-            )
-        result.append(
-            FinveWithBudgetsSchema(
-                id=finve.id,
-                name=finve.name,
-                starting_year=finve.starting_year,
-                cost_estimate_original=finve.cost_estimate_original,
-                is_sammel_finve=finve.is_sammel_finve,
-                budgets=budget_schemas,
-            )
-        )
-    return result
+    return get_project_finves_with_budgets(db, project)
 
 
 @router.post("/{project_id}/finves", status_code=204)

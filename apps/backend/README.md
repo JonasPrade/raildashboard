@@ -101,6 +101,42 @@ Session-based login using a signed `httpOnly` cookie (no credentials stored on t
 
 The cookie is `httpOnly` (JS-inaccessible), `SameSite=Strict` (CSRF-safe), and `Secure` when `ENVIRONMENT=production`. Token signing uses HMAC-SHA256 with `SESSION_SECRET_KEY`. Implementation lives in `core/security.py` (`create_session_token`, `verify_session_token`, `require_session`, `require_auth`) and `api/v1/endpoints/auth.py`.
 
+### Personal API keys (Bearer)
+
+Scripts and AI assistants authenticate with `Authorization: Bearer rdb_<prefix>_<secret>`.
+`require_auth()` / `require_permission()` check a bearer key first, then the cookie, then
+Basic. A key acts as its owner, narrowed to the key's `scopes` — **without** the admin
+bypass, so a read-only admin key really is read-only. Only the SHA-256 hash of the secret is
+stored (table `api_keys`, migration `20261007001`); every key expires after 90 days.
+`last_used_at` is written at most once a minute. Token logic: `core/api_keys.py`, DB access:
+`crud/api_keys.py`.
+
+| Endpoint | Auth | Description |
+|---|---|---|
+| `GET /api/v1/api-keys/` | Cookie or Basic | Own keys (metadata only) |
+| `POST /api/v1/api-keys/` | Cookie or Basic + `mcp.access` | Create `{ name, scopes }` → token returned **once** |
+| `DELETE /api/v1/api-keys/{id}` | Cookie or Basic | Revoke own key (others' with `user.manage`) |
+| `GET /api/v1/api-keys/all` | Cookie or Basic + `user.manage` | Every user's keys |
+
+A bearer key on these endpoints gets `403` — a key cannot mint or revoke keys.
+
+### MCP endpoint (`/mcp`)
+
+`dashboard_backend/mcp/` mounts an MCP server (SDK `mcp`, `MCPServer`) at `/mcp` —
+Streamable HTTP, stateless, JSON responses, disabled with `MCP_ENABLED=false`. Only bearer
+keys holding `mcp.access` get in (admin-only for now); tools call the CRUD layer directly
+and check the key's capabilities before writing. Tools: `list_projects`, `get_project`,
+`get_project_progress`, `list_project_finves`, `get_project_texts`, `list_text_types`,
+`list_todos` (read) and `update_project`, `add_progress_observation`,
+`upsert_project_text`, `create_todo`, `update_todo` (write). Claude Code config:
+
+```json
+{ "mcpServers": { "raildashboard": { "type": "http", "url": "https://<host>/mcp",
+  "headers": { "Authorization": "Bearer rdb_..." } } } }
+```
+
+See `docs/features/feature-mcp-server.md`.
+
 ## Celery Worker
 
 Long-running tasks (PDF parsing, route computation) run asynchronously via Celery with Redis as broker and result backend.
