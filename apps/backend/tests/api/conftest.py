@@ -4,7 +4,7 @@ import base64
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import Column, MetaData, Table, Text, create_engine, event
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 from dashboard_backend.core.security import hash_password
@@ -58,25 +58,12 @@ def _register_spatial_stubs(dbapi_conn, _record):
         dbapi_conn.create_function(name, nargs, lambda value: value)
 
 
-def _sqlite_project_table() -> Table:
-    """Clone project's table with the PostGIS centroid replaced by TEXT.
-
-    Endpoints that join project rows (e.g. the constituency links) need the
-    table to exist; the column itself is never read in these tests.
-    """
-    metadata = MetaData()
-    columns = [
-        Column("centroid", Text) if column.name == "centroid" else column.copy()
-        for column in Project.__table__.columns
-    ]
-    return Table("project", metadata, *columns)
-
-
-PROJECT_TABLE = _sqlite_project_table()
+# Endpoints that join project rows (e.g. the constituency links) need the table.
+PROJECT_TABLE = Project.__table__
 
 
 TABLES = [
-    PROJECT_TABLE,  # clone with a SQLite-compatible centroid column
+    PROJECT_TABLE,
     Role.__table__,  # must precede User (FK dependency)
     RolePermission.__table__,
     User.__table__,

@@ -1,6 +1,5 @@
 from sqlalchemy import Column, Integer, Index, String, Float, Boolean, ForeignKey, Text
 from sqlalchemy.orm import relationship
-from geoalchemy2 import Geometry
 
 from dashboard_backend.models.base import Base
 
@@ -78,7 +77,7 @@ class Project(Base):
     simultaneous_train_entries = Column(Boolean, default=False)  # gleichzeitige Zugeinfahrten
     tilting = Column(Boolean, default=False)
 
-    # some additionale fields for Geojson and centroid to avoid anoying calculations
+    # The project geometry, stored as GeoJSON text
     geojson_representation = Column(Text)  # storing the GeoJSON as a text field
 
     # How a project with subprojects gets its geometry: True (default) = aggregated from
@@ -87,7 +86,6 @@ class Project(Base):
     geojson_from_subprojects = Column(
         Boolean, nullable=False, default=True, server_default="true"
     )
-    centroid = Column(Geometry('POINT'))  # storing the centroid as a point geometry
 
     # Relationships
     bvwp_data = relationship(

@@ -1,8 +1,6 @@
 """Batched superior aggregation (#89): golden semantics + sublinear queries.
 
-Runs against an in-memory SQLite schema. ``project.centroid`` is a PostGIS
-geometry in production; the table is re-created here with TEXT in its place so
-plain SQLite can host it (the aggregation never touches the column).
+Runs against an in-memory SQLite schema.
 """
 
 from __future__ import annotations
@@ -10,7 +8,7 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta
 
 import pytest
-from sqlalchemy import Column, MetaData, Table, Text, create_engine, event
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 from dashboard_backend.crud.projects import progress as progress_crud
@@ -33,18 +31,6 @@ from dashboard_backend.models.vib.vib_entry import VibEntry, vib_entry_project
 from dashboard_backend.models.vib.vib_pfa_entry import VibPfaEntry
 from dashboard_backend.models.vib.vib_report import VibReport
 from dashboard_backend.services.progress_derivation import aggregate_tree
-
-
-def _sqlite_project_table() -> Table:
-    """Clone project's table with the Geometry column replaced by TEXT."""
-    md = MetaData()
-    cols = []
-    for c in Project.__table__.columns:
-        if c.name == "centroid":
-            cols.append(Column("centroid", Text))
-        else:
-            cols.append(c.copy())
-    return Table("project", md, *cols)
 
 
 _TABLES_BEFORE = [
@@ -76,7 +62,7 @@ def engine():
         for name, nargs in (("GeomFromEWKT", 1), ("ST_AsEWKB", 1), ("AsEWKB", 1)):
             dbapi_conn.create_function(name, nargs, lambda x: x)
 
-    _sqlite_project_table().create(bind=engine)
+    Project.__table__.create(bind=engine)
     for t in _TABLES_BEFORE:
         t.create(bind=engine)
     yield engine
