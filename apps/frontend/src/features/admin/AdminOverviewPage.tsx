@@ -29,6 +29,7 @@ export default function AdminOverviewPage() {
     const canProgress = can("progress.edit");
     const canSettings = can("settings.manage");
     const canParliament = can("parliament.import");
+    const canMcp = can("mcp.access");
     const hasAnyAdmin =
         canAssignments ||
         canParliament ||
@@ -39,7 +40,8 @@ export default function AdminOverviewPage() {
         canUsers ||
         canRoles ||
         canProgress ||
-        canSettings;
+        canSettings ||
+        canMcp;
 
     const { data: unassignedFinves } = useUnassignedFinves(canAssignments);
     const { data: unassignedVibEntries } = useUnassignedVibEntries(canAssignments);
@@ -230,6 +232,16 @@ export default function AdminOverviewPage() {
                                 <Stack gap={4}>
                                     <Text fw={500}>Benutzerverwaltung</Text>
                                     <Text size="sm" c="dimmed">Nutzer anlegen, Rollen ändern, Passwörter setzen</Text>
+                                </Stack>
+                            </Link>
+                        </ChronicleCard>
+                    )}
+                    {canMcp && (
+                        <ChronicleCard style={{ textDecoration: "none" }}>
+                            <Link to="/admin/api-keys" style={{ textDecoration: "none", color: "inherit" }}>
+                                <Stack gap={4}>
+                                    <Text fw={500}>API-Keys & MCP</Text>
+                                    <Text size="sm" c="dimmed">Persönliche Keys für KI-Assistenten (Claude Code) anlegen und widerrufen</Text>
                                 </Stack>
                             </Link>
                         </ChronicleCard>

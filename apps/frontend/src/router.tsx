@@ -13,6 +13,7 @@ const ProjectDetail = lazyWithRetry(() => import("./features/projects/ProjectDet
 const AdminOverviewPage = lazyWithRetry(() => import("./features/admin/AdminOverviewPage"));
 const UsersPage = lazyWithRetry(() => import("./features/admin/UsersPage"));
 const RolesAdminPage = lazyWithRetry(() => import("./features/admin/RolesAdminPage"));
+const ApiKeysAdminPage = lazyWithRetry(() => import("./features/admin/ApiKeysAdminPage"));
 const SystemStatusPage = lazyWithRetry(() => import("./features/admin/SystemStatusPage"));
 const ProjectGroupsAdminPage = lazyWithRetry(() => import("./features/admin/ProjectGroupsAdminPage"));
 const HaushaltsImportPage = lazyWithRetry(() => import("./features/haushalt-import/HaushaltsImportPage"));
@@ -94,6 +95,10 @@ export const router = createBrowserRouter([
             {
                 path: "admin/roles",
                 element: <RolesAdminPage />,
+            },
+            {
+                path: "admin/api-keys",
+                element: <ApiKeysAdminPage />,
             },
             {
                 path: "admin/system",

@@ -8,6 +8,7 @@ from dashboard_backend.models.projects.project import Project
 from dashboard_backend.schemas.projects.project_schema import (
     BudgetSummarySchema,
     FinveListItemSchema,
+    FinveWithBudgetsSchema,
     ProjectRefSchema,
     TitelEntrySchema,
 )
@@ -162,3 +163,62 @@ def set_finve_progress_phase(db: Session, finve_id: int, phase: str | None):
     db.commit()
     db.refresh(finve)
     return finve
+
+
+def get_project_finves_with_budgets(db: Session, project: Project) -> list[FinveWithBudgetsSchema]:
+    """FinVes linked to a project, each with its full budget history including
+    the per-Haushaltstitel breakdown (budgets sorted by year)."""
+    finve_ids = [f.id for f in project.finve]
+    if not finve_ids:
+        return []
+
+    # Eager-load budgets → titel_entries → titel. selectinload (not joinedload)
+    # for the two collection hops: a joined load multiplies the rows
+    # (finves × budgets × titel_entries) and repeats every parent column in each
+    # one, while selectinload issues one flat query per level.
+    finves = (
+        db.query(Finve)
+        .filter(Finve.id.in_(finve_ids))
+        .options(
+            selectinload(Finve.budgets)
+            .selectinload(Budget.titel_entries)
+            .joinedload(BudgetTitelEntry.titel)
+        )
+        .all()
+    )
+
+    result = []
+    for finve in finves:
+        budgets_sorted = sorted(finve.budgets, key=lambda b: b.budget_year)
+        budget_schemas = []
+        for b in budgets_sorted:
+            titel_schemas = [TitelEntrySchema.from_entry(e) for e in b.titel_entries]
+            budget_schemas.append(
+                BudgetSummarySchema(
+                    budget_year=b.budget_year,
+                    lfd_nr=b.lfd_nr,
+                    bedarfsplan_number=b.bedarfsplan_number,
+                    cost_estimate_original=b.cost_estimate_original,
+                    cost_estimate_last_year=b.cost_estimate_last_year,
+                    cost_estimate_actual=b.cost_estimate_actual,
+                    delta_previous_year=b.delta_previous_year,
+                    delta_previous_year_relativ=b.delta_previous_year_relativ,
+                    spent_two_years_previous=b.spent_two_years_previous,
+                    allowed_previous_year=b.allowed_previous_year,
+                    spending_residues=b.spending_residues,
+                    year_planned=b.year_planned,
+                    next_years=b.next_years,
+                    titel_entries=titel_schemas,
+                )
+            )
+        result.append(
+            FinveWithBudgetsSchema(
+                id=finve.id,
+                name=finve.name,
+                starting_year=finve.starting_year,
+                cost_estimate_original=finve.cost_estimate_original,
+                is_sammel_finve=finve.is_sammel_finve,
+                budgets=budget_schemas,
+            )
+        )
+    return result

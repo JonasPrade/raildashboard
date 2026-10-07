@@ -61,7 +61,8 @@ export function Header() {
         can("projectgroup.edit") ||
         can("user.manage") ||
         can("role.manage") ||
-        can("parliament.import");
+        can("parliament.import") ||
+        can("mcp.access");
     const canAssignments = can("assignment.manage");
     const { data: unassignedFinves } = useUnassignedFinves(canAssignments);
     const { data: unassignedVibEntries } = useUnassignedVibEntries(canAssignments);

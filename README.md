@@ -98,6 +98,8 @@ Interactive API docs: `http://localhost:8000/docs`
 
 See `apps/backend/README.md` for the full backend reference (project structure, routing API, data imports, testing).
 
+AI assistants such as Claude Code can connect through the MCP endpoint `/mcp` with a personal API key (created under *Administration → API-Keys & MCP*, admin-only for now) — see `docs/features/feature-mcp-server.md`.
+
 ## Frontend
 
 The frontend is a React/Vite application that visualises rail infrastructure projects on a map and provides a project management interface.
