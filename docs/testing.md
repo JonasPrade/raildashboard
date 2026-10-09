@@ -1,5 +1,5 @@
 ## Testing
-- [ ] `make test-backend` / `make test-frontend`
+- [ ] `make test` (full check, identical to CI) — `make test-local` for the quick loop
 - [ ] Manual smoke test
 - [ ] `make gen-api` run if OpenAPI schema changed
 - [ ] Documentation updated (README + in-app docs if applicable)

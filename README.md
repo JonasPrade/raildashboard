@@ -163,26 +163,24 @@ make dev                  # run backend + frontend as usual
 make docker-dev-down      # stop DB (data volume is preserved)
 ```
 
-**Production — tag-based CI/CD (GitHub Actions → GHCR → SSH deploy):**
+**Production — dispatch per commit SHA (GitHub Actions → GHCR → SSH):**
 
 Production images are built in CI and pulled on the server — the server never builds.
-A release is cut by tagging a commit; the pipeline (`.github/workflows/deploy.yml`) handles
-build, GHCR push, DB backup, deploy, health-wait, and rollback:
+Every push to `master` runs `make test` and pushes the images tagged with the commit SHA
+(`release.yml`). Deploying is a deliberate click: *Actions → deploy → Run workflow*, SHA
+empty = current `master`, rollback = an earlier SHA. Version tags still name releases
+(`make release-check`, `CHANGELOG.md`) but no longer deploy.
 
 ```bash
-make release-check MILESTONE=v1.3.0     # release gate must be green
-# move CHANGELOG.md [Unreleased] → ## [v1.3.0] - YYYY-MM-DD, commit
-git tag v1.3.0 && git push origin v1.3.0
+make test        # the full check, identical to CI (docker)
+make test-local  # quick pytest + Vitest against the local venv
 ```
 
-Manual deploy/rollback on the server (any already-pushed tag):
-
-```bash
-ssh contabo "cd /srv/raildashboard && ./deploy.sh v1.3.0"
-```
-
-Locally you can still build and run the whole stack via `docker-compose.override.yml`
+Locally you can still build and run the whole stack via `compose.override.yaml`
 (`docker compose build && docker compose up -d`).
+
+Deploy contract: [`DEPLOY.md`](DEPLOY.md); reasoning and repo-specific exceptions:
+[`docs/workflow.md`](docs/workflow.md).
 
 See [`docs/production_setup.md`](docs/production_setup.md) for the full deployment guide
 including the deploy contract, required secrets, data migration, and backup procedures.

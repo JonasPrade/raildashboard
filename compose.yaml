@@ -1,0 +1,162 @@
+# compose.yaml – the production stack on the Contabo host (vmd92747), /srv/raildashboard.
+#
+# Prod pulls, prod never builds: every service references a GHCR image tagged with
+# the 40-character commit SHA in IMAGE_TAG (.env on the server). deploy/prod.sh
+# maintains IMAGE_TAG, and the previous value is the way back (DEPLOY.md).
+# Local builds come from compose.override.yaml, which must never be on the server.
+#
+# Docker Compose reads .env from the working directory for variable substitution;
+# backend and worker also get it as their environment (env_file).
+
+# Fixed, so volumes (raildashboard_pgdata, …) and networks keep their names no
+# matter which directory the file sits in.
+name: raildashboard
+
+services:
+  db:
+    image: ghcr.io/jonasprade/raildashboard-db:${IMAGE_TAG:?IMAGE_TAG missing in .env}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       raildashboard
+      POSTGRES_USER:     ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d raildashboard"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - raildashboard-net
+
+  # One-shot: database dump before the migration. The backend runs
+  # `alembic upgrade head` in its entrypoint and only starts once this exited 0 –
+  # no backup, no update. Note: compose has already replaced the backend container
+  # by then, so a failed backup means prod.sh rolls back (without a new dump). Here rather than in prod.sh, so it also applies when the
+  # stack is brought up by hand; in the db image, so pg_dump matches the server.
+  backup:
+    image: ghcr.io/jonasprade/raildashboard-db:${IMAGE_TAG:?IMAGE_TAG missing in .env}
+    entrypoint: ["backup-before-migrate"]
+    restart: "no"
+    environment:
+      DB_USER:     ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      IMAGE_TAG:   ${IMAGE_TAG}
+      BACKUP_KEEP: ${BACKUP_KEEP:-10}
+      # Set by prod.sh for its rollback `up` only (docker/db/backup.sh).
+      BACKUP_SKIP: ${BACKUP_SKIP:-0}
+    volumes:
+      - ./backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - raildashboard-net
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - raildashboard-net
+
+  backend:
+    image: ghcr.io/jonasprade/raildashboard-backend:${IMAGE_TAG:?IMAGE_TAG missing in .env}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Assembled from DB_USER / DB_PASSWORD so the password only needs to be set once.
+      DATABASE_URL: "postgresql+psycopg2://${DB_USER}:${DB_PASSWORD}@db:5432/raildashboard"
+      UPLOAD_DIR: /app/uploads/text-attachments
+    volumes:
+      - uploads:/app/uploads
+    # /healthz is the deploy gate: DB reachable, schema matches the code, mandatory
+    # config set, upload dirs writable. prod.sh waits on this and rolls back otherwise.
+    # start_period covers Alembic migrations in the entrypoint.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/healthz', timeout=3).status == 200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    depends_on:
+      db:
+        condition: service_healthy
+      backup:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+    networks:
+      - raildashboard-net
+
+  worker:
+    image: ghcr.io/jonasprade/raildashboard-backend:${IMAGE_TAG:?IMAGE_TAG missing in .env}
+    command: celery -A dashboard_backend.celery_app worker --loglevel=info
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: "postgresql+psycopg2://${DB_USER}:${DB_PASSWORD}@db:5432/raildashboard"
+      # Backend runs `alembic upgrade head`; worker must NOT race on the same migrations
+      # (otherwise both containers may try the same CREATE TABLE and one crashes with
+      #  psycopg2.errors.UniqueViolation on pg_class_relname_nsp_index).
+      SKIP_MIGRATIONS: "1"
+    # Import PDFs are staged under /app/uploads/import-staging by the backend and
+    # read from there by the parse tasks, so the worker needs the same volume.
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      # Wait until backend reports healthy, which means alembic has finished and
+      # the schema is in place before the worker imports task modules.
+      backend:
+        condition: service_healthy
+    networks:
+      - raildashboard-net
+
+  graphhopper:
+    image: ghcr.io/jonasprade/raildashboard-graphhopper:${IMAGE_TAG:?IMAGE_TAG missing in .env}
+    restart: unless-stopped
+    environment:
+      # URL to an OSM PBF extract. Downloaded automatically on first start if the
+      # graph cache volume is empty. Example: https://download.geofabrik.de/europe/germany-latest.osm.pbf
+      GH_OSM_URL: ${GH_OSM_URL:-}
+    volumes:
+      # Named volume: OSM PBF + built graph cache persist across restarts.
+      - ghdata:/data
+    # No `ports:`. Only the backend talks to GraphHopper, over this network
+    # (ROUTING_BASE_URL=http://graphhopper:8989). The former 0.0.0.0:8989 opened
+    # the routing service to the internet without anyone using it.
+    networks:
+      - raildashboard-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8989/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 300s   # graph build can take several minutes on first run
+
+  frontend:
+    image: ghcr.io/jonasprade/raildashboard-frontend:${IMAGE_TAG:?IMAGE_TAG missing in .env}
+    restart: unless-stopped
+    # Loopback only. The host nginx (systemd, not a container) terminates TLS for
+    # dashboard.schienengruen.de and proxies to localhost:5000; it cannot reach a
+    # container by name over a Docker network, so a host port stays. Bound to
+    # 127.0.0.1 there is no way in past the proxy. The former 0.0.0.0:5000 was one
+    # (docs/workflow.md, Ausnahmen).
+    ports:
+      - "127.0.0.1:5000:80"
+    depends_on:
+      - backend
+    networks:
+      - raildashboard-net
+
+volumes:
+  pgdata:
+  uploads:    # text attachment files (+ transient import-staging/) — back this up alongside the database!
+  ghdata:     # GraphHopper OSM extract + built graph cache
+
+networks:
+  raildashboard-net:

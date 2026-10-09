@@ -14,7 +14,7 @@ ALEMBIC      := .venv/bin/alembic
 .PHONY: help install install-backend install-frontend \
         dev dev-backend dev-frontend \
         build build-frontend \
-        test test-backend test-frontend \
+        test test-local test-backend test-frontend \
         lint lint-frontend \
         migrate migrate-create \
         backup-db restore-db list-backups \
@@ -50,7 +50,8 @@ help:
 	@echo "    build              Build the frontend for production"
 	@echo ""
 	@echo "  Testing & quality"
-	@echo "    test               Run all tests (backend + frontend)"
+	@echo "    test               Full check as in CI (docker: tests, lint, image builds)"
+	@echo "    test-local         Quick local run: pytest + Vitest against the venv"
 	@echo "    test-backend       Run pytest"
 	@echo "    test-frontend      Run Vitest"
 	@echo "    lint               Run all linters"
@@ -91,7 +92,7 @@ help:
 	@echo "  Celery"
 	@echo "    celery-worker      Start Celery worker (requires Redis running)"
 	@echo ""
-	@echo "  Docker – production stack (local build via docker-compose.override.yml)"
+	@echo "  Docker – production stack (local build via compose.override.yaml)"
 	@echo "    docker-prod-build  Build all images locally (dev only; prod uses GHCR + CI)"
 	@echo "    docker-prod-pull   Pull the GHCR images for the IMAGE_TAG in .env"
 	@echo "    docker-prod-up     Start the production stack in the background"
@@ -153,7 +154,21 @@ build-frontend:
 # Testing & quality
 # ---------------------------------------------------------------------------
 
-test: test-backend test-frontend
+# The full check – the same command CI runs, with no steps of its own (ci.yml,
+# release.yml). Runs inside the Dockerfiles' test/check stages, so it needs only
+# docker and bash: same Python, Node and pinned dependencies as the images, and
+# the runtime images must build from the repo alone. GraphHopper is built only
+# in release.yml (docs/workflow.md, Ausnahmen).
+test:
+	bash deploy/test_prod.sh
+	docker build --target test -t raildashboard-backend:pruefung $(BACKEND_DIR)
+	docker build --target check -t raildashboard-frontend:pruefung $(FRONTEND_DIR)
+	docker build --target runtime -t raildashboard-backend:runtime $(BACKEND_DIR)
+	docker build --target runtime -t raildashboard-frontend:runtime $(FRONTEND_DIR)
+	docker build -t raildashboard-db:pruefung docker/db
+
+# Fast local loop against the project venv / node_modules (not what CI runs).
+test-local: test-backend test-frontend
 
 test-backend:
 	cd $(BACKEND_DIR) && ENVIRONMENT=test $(PYTEST)
@@ -311,14 +326,14 @@ docker-dev-down:
 # ---------------------------------------------------------------------------
 
 # Local build of the full stack for testing the production images on a dev machine.
-# docker-compose.override.yml supplies the build contexts; production servers never build
-# (they only have docker-compose.yml + .env and pull GHCR images via scripts/deploy.sh).
+# compose.override.yaml supplies the build contexts; production servers never build
+# (they only have compose.yaml, prod.sh and .env and pull GHCR images, DEPLOY.md).
 docker-prod-build:
 	docker compose --env-file .env build
 
 # Pull the GHCR images pinned by IMAGE_TAG in .env (mirrors what the server does).
 docker-prod-pull:
-	docker compose -f docker-compose.yml --env-file .env pull
+	docker compose -f compose.yaml --env-file .env pull
 
 docker-prod-up:
 	docker compose --env-file .env up -d

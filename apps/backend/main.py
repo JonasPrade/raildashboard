@@ -9,6 +9,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from starlette.routing import Route
 
 from dashboard_backend.api.v1.api import api_router
+from dashboard_backend.api.v1.endpoints.health import readiness_router
 from dashboard_backend.core.config import settings
 from dashboard_backend.database import get_db
 from dashboard_backend.mcp.server import MCP_PATH, McpEndpoint
@@ -54,6 +55,8 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix="/api/v1")
+# Deploy gate at the root, reached through nginx as /healthz (DEPLOY.md).
+app.include_router(readiness_router)
 
 if mcp_endpoint is not None:
     # Plain ASGI route (not an APIRoute): stays out of the OpenAPI schema and
