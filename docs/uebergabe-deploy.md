@@ -37,8 +37,8 @@ Gegenprobe bestanden hat.
 | Routing | `ROUTING_BASE_URL=http://graphhopper:8989` — über das Compose-Netz, die Freigabe 8989 braucht niemand |
 | Backups | `pre-deploy_v0.0.14_20260928_112121.dump`, `pre-deploy_v0.0.13_…`, `manual_pre_cicd_20260707_114308.dump` |
 | Alte Images | v0.0.5 … v0.0.14 je Dienst, dazu `raildashboard-*:latest` von vor fünf Monaten |
-| Nächtliches Backup | `/root/create_backup.sh` (root-Crontab `5 4 * * *`), Borg: `pg_dump` aus `raildashboard-db-1` nach `/srv/db_dumps/`, dann alle Container gestoppt, Archiv von `/root /srv /home /etc` + Volume `raildashboard_pgdata`, Container wieder gestartet. **Ohne** `raildashboard_uploads`. |
-| Überwachung | `/root/check_containers.sh` stündlich gegen `/root/expected_containers.txt` (frontend, backend, worker, db, redis — ohne graphhopper); `/root/monitored_software.yaml` fragt `raildashboard-redis-1` ab |
+| Nächtliches Backup | `/root/create_backup.sh` (root-Crontab `5 4 * * *`), Borg: `pg_dump` aus `raildashboard-db-1` nach `/srv/db_dumps/`, dann alle Container gestoppt, Archiv von `/root /srv /home /etc` + Volume `raildashboard_pgdata`, Container wieder gestartet. Seit 10.10.2026 auch `raildashboard_uploads` (vorher fehlte es). |
+| Überwachung | `/root/check_containers.sh` stündlich gegen `/root/expected_containers.txt` (frontend, backend, worker, db, redis; graphhopper seit 10.10.2026); `/root/monitored_software.yaml` fragt `raildashboard-redis-1` ab |
 
 ---
 
@@ -189,19 +189,19 @@ Der Knopf erscheint **erst nach dem Merge**.
 
 ## Was dabei aufgefallen ist und nicht in diesem PR steckt
 
-- **Das `uploads`-Volume wird nirgends gesichert.** Das nächtliche Borg-Backup
-  (`/root/create_backup.sh`, 04:05) nimmt `/srv` und `raildashboard_pgdata` mit, aber nicht
-  `/var/lib/docker/volumes/raildashboard_uploads` — die hochgeladenen Textanhänge haben also
-  kein Backup. Vorschlag: den Pfad in die `borg create`-Liste aufnehmen (die Container sind
-  in dem Moment ohnehin gestoppt). Root-Skript, deshalb nicht Teil dieses PR.
+- **Erledigt am 10.10.2026, außerhalb des Repos:**
+  - `/var/lib/docker/volumes/raildashboard_uploads` steht jetzt in der `borg create`-Liste
+    von `/root/create_backup.sh` (Sicherung: `create_backup.sh.bak-2026-10-10`). Vorher
+    hatten die Textanhänge kein Backup; das Volume war zu dem Zeitpunkt noch leer.
+  - `raildashboard-graphhopper-1` steht jetzt in `/root/expected_containers.txt`
+    (Sicherung: `expected_containers.txt.bak-2026-10-10`); `check_containers.sh` lief
+    danach mit Rückgabewert 0.
+  - Offen: im Borg-Log nach dem nächsten Lauf (04:05) prüfen, dass er ohne Fehler durchlief.
 - **Der letzte Borg-Lauf endete mit `Error: failed to start containers: rm-auth`.** Der
   Fallback per `docker compose up -d` hat den Container danach gestartet; betrifft den
   remarkable-mcp-Stack, nicht raildashboard. Sollte trotzdem jemand ansehen, weil ein
   gescheiterter Neustart nach dem nächtlichen Stopp sonst einen Dienst bis zum Morgen
   unten lässt.
-- **GraphHopper wird nicht überwacht.** `raildashboard-graphhopper-1` fehlt in
-  `/root/expected_containers.txt`; fällt er aus, scheitert nur die Routenberechnung,
-  ohne dass es jemand merkt.
 - **`docs/production_setup.md` beschrieb einen systemd-Backup-Timer** unter
   `/opt/raildashboard`, den es auf vmd92747 nicht gibt; ersetzt durch den echten
   Borg-Ablauf.

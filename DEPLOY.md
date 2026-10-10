@@ -170,18 +170,17 @@ unset GHCR_PAT
    - vorher `docker exec raildashboard-db-1 pg_dump … | gzip` nach
      `/srv/db_dumps/raildashboard.sql.gz`,
    - dann stoppt es **alle** laufenden Container, archiviert `/root`, `/srv`, `/home`,
-     `/etc`, `/var/lib/docker/volumes/raildashboard_pgdata` (und `streckeninfo_daten`)
-     und startet die zuvor laufenden Container wieder.
+     `/etc`, `/var/lib/docker/volumes/raildashboard_pgdata`,
+     `/var/lib/docker/volumes/raildashboard_uploads` (und `streckeninfo_daten`) und
+     startet die zuvor laufenden Container wieder.
 
    `/srv` enthält `/srv/raildashboard/backups/`, die `pre-migrate_*`-Dumps landen also
-   mit im Archiv. **Das `uploads`-Volume (`raildashboard_uploads`, Textanhänge) ist
-   nicht darunter** — weder im Pre-Migrate-Dump noch im Borg-Lauf
-   (`docs/uebergabe-deploy.md`, „Aufgefallen"). Von Hand: `make docker-backup-db`
-   (Dump + Tar des Volumes).
+   mit im Archiv. Das `uploads`-Volume (Textanhänge) steckt nicht im Pre-Migrate-Dump,
+   wohl aber seit dem 10.10.2026 im Borg-Lauf (vorher fehlte es dort).
 
    **Daran hängen die Container-Namen.** Backup-Skript (`raildashboard-db-1`),
    `/root/check_containers.sh` mit `/root/expected_containers.txt` (frontend, backend,
-   worker, db, redis) und `/root/monitored_software.yaml` (`raildashboard-redis-1`)
+   worker, db, redis, graphhopper) und `/root/monitored_software.yaml` (`raildashboard-redis-1`)
    sprechen die Container mit Namen an. `compose.yaml` setzt deshalb
    `name: raildashboard`; Projektname oder Dienstnamen nicht ändern, ohne diese drei
    Stellen mitzuziehen. Der One-shot `raildashboard-backup-1` steht nach jedem Lauf auf

@@ -382,7 +382,7 @@ make docker-backup-db
 
 Das Docker-Volume `raildashboard_uploads` (im Compose-Stack als `uploads` deklariert, gemountet unter `/app/uploads` in Backend- **und** Worker-Container) enthält alle Dateianhänge von Projekttexten (`text-attachments/`).
 
-Seit #149 liegen dort außerdem unter `import-staging/` die gerade hochgeladenen Import-PDFs (Haushalt, VIB, Fulda): Der Backend-Endpunkt legt die Datei ab und übergibt dem Celery-Task nur den Dateinamen, damit keine PDF-Inhalte mehr durch Redis gehen. Der Task löscht die Datei nach dem Lauf, auch im Fehlerfall; was ein Task nie abgeholt hat, wird nach 24 h beim nächsten Upload aufgeräumt. Der Ordner ist also flüchtig. Landet er in einem Backup, schadet das nicht. Der Worker braucht deshalb dasselbe Volume wie das Backend (`compose.yaml`), sonst scheitert jeder PDF-Import mit `FileNotFoundError`. `make backup-db` und `make docker-backup-db` sichern das Volume zusammen mit dem DB-Dump — aber nur, wenn sie jemand aufruft. **Das nächtliche Borg-Backup auf vmd92747 nimmt das Volume derzeit nicht mit** (siehe *Nächtliches Backup auf vmd92747*).
+Seit #149 liegen dort außerdem unter `import-staging/` die gerade hochgeladenen Import-PDFs (Haushalt, VIB, Fulda): Der Backend-Endpunkt legt die Datei ab und übergibt dem Celery-Task nur den Dateinamen, damit keine PDF-Inhalte mehr durch Redis gehen. Der Task löscht die Datei nach dem Lauf, auch im Fehlerfall; was ein Task nie abgeholt hat, wird nach 24 h beim nächsten Upload aufgeräumt. Der Ordner ist also flüchtig. Landet er in einem Backup, schadet das nicht. Der Worker braucht deshalb dasselbe Volume wie das Backend (`compose.yaml`), sonst scheitert jeder PDF-Import mit `FileNotFoundError`. `make backup-db` und `make docker-backup-db` sichern das Volume zusammen mit dem DB-Dump — aber nur, wenn sie jemand aufruft. Zusätzlich nimmt das nächtliche Borg-Backup auf vmd92747 das Volume mit (siehe *Nächtliches Backup auf vmd92747*).
 
 **Warum das wichtig ist:** Ohne paariges Uploads-Tar zeigen nach einem Restore alle `text_attachment`-Zeilen auf nicht vorhandene Dateien.
 
@@ -559,14 +559,13 @@ ganzen Host nach Borg; Log unter `/var/log/borg/backup.log`. Für raildashboard 
    `/srv/db_dumps/raildashboard.sql.gz` (konsistenter Dump im laufenden Betrieb).
 2. Alle laufenden Container werden gestoppt.
 3. `borg create` über `/root`, `/srv`, `/home`, `/etc`,
-   `/var/lib/docker/volumes/raildashboard_pgdata` (u. a.). `/srv` enthält auch
+   `/var/lib/docker/volumes/raildashboard_pgdata` und `…/raildashboard_uploads` (u. a.). `/srv` enthält auch
    `/srv/raildashboard/backups/` mit den Pre-Migrate-Dumps des Deploys.
 4. Die zuvor laufenden Container werden wieder gestartet.
 
-**Nicht gesichert wird das Volume `raildashboard_uploads`** (Textanhänge). Bis es in die
-`borg create`-Liste aufgenommen ist, bleibt `make docker-backup-db` der einzige Weg, es zu
-sichern. Weil das Skript Container mit Namen anspricht (`raildashboard-db-1`), bleibt der
-Compose-Projektname fest `raildashboard` (DEPLOY.md, „Backup & Restore").
+Das Volume `raildashboard_uploads` (Textanhänge) ist seit dem 10.10.2026 in der Liste;
+vorher fehlte es. Weil das Skript Container mit Namen anspricht (`raildashboard-db-1`),
+bleibt der Compose-Projektname fest `raildashboard` (DEPLOY.md, „Backup & Restore").
 
 Der früher hier beschriebene systemd-Timer (`/opt/raildashboard`, Benutzer `raildashboard`)
 stammt aus der Zeit ohne Docker und ist auf vmd92747 nicht eingerichtet.
