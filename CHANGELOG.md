@@ -12,8 +12,6 @@ section as part of the release commit, immediately before tagging.
 
 ## [Unreleased]
 
-## [v0.0.15] - 2026-10-07
-
 ### Added
 - **Planning-phase filter on the map and list view (#9/#10).** The slim project-group list
   (`GET /api/v1/project_groups/`, `GET /api/v1/project_groups/{id}`) now carries `headline_phase`
@@ -26,6 +24,10 @@ section as part of the release commit, immediately before tagging.
   combines with the group and search filters and survives map ↔ list switches. Paused/aborted
   projects are filtered by their headline phase. Project cards in the list view show a phase badge.
   No migration.
+
+## [v0.0.15] - 2026-10-07
+
+### Added
 - **MCP server for AI assistants, with personal API keys.** Claude Code and other MCP clients
   can now connect to `https://<host>/mcp` (Streamable HTTP) and search projects, read
   financing, planning state, texts and tasks, and — with a write key — update projects, add
