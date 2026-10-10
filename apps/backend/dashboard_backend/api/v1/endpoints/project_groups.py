@@ -122,7 +122,11 @@ def patch_project_group(
     group = update_project_group(db, group_id, updates)
     if not group:
         raise HTTPException(status_code=404, detail="ProjectGroup not found")
-    return group
+    # Re-read through the list loader so the response carries the same slim
+    # items (incl. the bulk-loaded progress summary) as GET, instead of
+    # lazy-loading full project rows.
+    db.expire_all()
+    return get_project_group_by_id(db, group_id)
 
 
 @router.delete("/{group_id}", status_code=204)

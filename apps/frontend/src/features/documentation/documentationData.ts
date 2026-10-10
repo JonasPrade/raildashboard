@@ -158,7 +158,10 @@ export const featureHighlights: FeatureHighlight[] = [
             "Erwartete Termine: eine manuelle Beobachtung kann als „erwarteter Termin\" markiert werden (Schalter im Beobachtungsformular). Sie speist nur die Prognose (z. B. erwartete Inbetriebnahme), zieht die aktuelle Phase nicht hoch und übersteuert dort alle automatischen Quellen (VIB-PFA/BVWP/Fulda)",
             "Kurzansicht (Karten-Popup, Unter-/Übergeordnet-Abschnitte): kompakte Leistungsphasen-Leiste mit aktuellem Stand; erreichte Phasen grün, „In Betrieb\" grün (= abgeschlossen), Spanne bei übergeordneten Projekten",
             "Tabelle „Quellen & Beobachtungen\": Spalte „Bereich\" (Planungsphasen/Planfeststellung/parl. Befassung); Vertrauen und „entscheidend\" sind nur für eingeloggte Nutzer sichtbar, ebenso die Vertrauensangabe in der Kopfzeile",
-            "Beim Anlegen eines neuen Projekts (Wizard, Schritt „Eigenschaften\") lässt sich die aktuelle Planungsphase direkt setzen (manueller Override, optional)"
+            "Beim Anlegen eines neuen Projekts (Wizard, Schritt „Eigenschaften\") lässt sich die aktuelle Planungsphase direkt setzen (manueller Override, optional)",
+            "Filter „Planungsphase\" auf der Startseite (Karte und Liste, Mehrfachauswahl): zeigt nur Projekte in den gewählten Phasen; „Unbekannt\" wählt Projekte ohne bekannten Planungsstand. Die Auswahl steht in der URL (?phase=BAU,VORPLANUNG), kombiniert sich mit Projektgruppe und Suche und bleibt beim Wechsel Karte ↔ Liste erhalten. Auf dem Telefon liegt der Filter im Bottom-Sheet „Karte einstellen\"",
+            "Pausierte und abgebrochene Projekte werden nach ihrer zuletzt bekannten Phase gefiltert (der Lebenszyklus ändert die Phase nicht); die Projektkarte zeigt zusätzlich „Pausiert\"/„Abgebrochen\"",
+            "Listenansicht: jede Projektkarte trägt einen Phasen-Badge (gleiche Farben wie die Unterprojekt-Tabelle). Grundlage ist der zuletzt berechnete Planungsstand; übergeordnete Projekte zeigen dort ihre eigene Phase, nicht die Spanne der Unterprojekte"
         ]
     },
     {

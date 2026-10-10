@@ -12,6 +12,19 @@ section as part of the release commit, immediately before tagging.
 
 ## [Unreleased]
 
+### Added
+- **Planning-phase filter on the map and list view (#9/#10).** The slim project-group list
+  (`GET /api/v1/project_groups/`, `GET /api/v1/project_groups/{id}`) now carries `headline_phase`
+  (manual override, else the cached computed phase; `null` without a progress row or when the phase
+  is unknown) and `lifecycle_status` per project. Both come from the stored `project_progress` row,
+  loaded with one bulk `selectinload` for all projects — list requests never run the derivation or
+  the lazy resync. On `/` a multi-select "Planungsphase" filter (map panel, the phone bottom sheet
+  "Karte einstellen" and the list filter row) narrows map and list to the chosen phases, including
+  an "Unbekannt" option for projects without a phase; the selection is kept in `?phase=BAU,…`,
+  combines with the group and search filters and survives map ↔ list switches. Paused/aborted
+  projects are filtered by their headline phase. Project cards in the list view show a phase badge.
+  No migration.
+
 ## [v0.0.15] - 2026-10-07
 
 ### Added

@@ -157,9 +157,10 @@ export type ProjectGroupGeometries = components["schemas"]["ProjectGroupGeometri
 /**
  * What overview cards (list card, map popup) render: any subset of a project's
  * fields. Full `Project`s fit, and so do list items expanded with
- * `withActiveFeatures`.
+ * `withActiveFeatures` (which also carry the stored headline phase).
  */
-export type ProjectOverview = Partial<Omit<Project, "id" | "name">> & { id?: number | null; name: string };
+export type ProjectOverview = Partial<Omit<Project, "id" | "name">> &
+    Partial<Pick<ProjectListItem, "headline_phase" | "lifecycle_status">> & { id?: number | null; name: string };
 export type ProjectRoute = components["schemas"]["RouteOut"];
 export type User = components["schemas"]["UserRead"];
 export type Role = components["schemas"]["RoleRead"];
