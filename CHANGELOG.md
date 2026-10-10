@@ -12,6 +12,8 @@ section as part of the release commit, immediately before tagging.
 
 ## [Unreleased]
 
+## [v0.0.15] - 2026-10-07
+
 ### Added
 - **Planning-phase filter on the map and list view (#9/#10).** The slim project-group list
   (`GET /api/v1/project_groups/`, `GET /api/v1/project_groups/{id}`) now carries `headline_phase`
