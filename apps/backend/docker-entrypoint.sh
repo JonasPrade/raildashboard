@@ -3,6 +3,11 @@
 # Waits for the database, optionally runs Alembic migrations, then exec()s the
 # command passed by docker (Dockerfile CMD or compose `command:`).
 #
+# The database backup before the migration is NOT taken here: the backend image
+# has no pg_dump matching the server. The one-shot `backup` service in
+# compose.yaml dumps the database with the db image's own pg_dump, and the
+# backend only starts once that backup completed successfully (DEPLOY.md).
+#
 # SKIP_MIGRATIONS=1 disables the Alembic step — used by the worker container so
 # only the backend service runs `alembic upgrade head`. Without this, both
 # containers race on the same migration and one crashes with
@@ -33,6 +38,11 @@ EOF
 
 if [ "${SKIP_MIGRATIONS:-0}" = "1" ]; then
     echo "[entrypoint] SKIP_MIGRATIONS=1 — Alembic step übersprungen."
+elif python scripts/db_ahead.py; then
+    # The database is on a revision this code does not know: a rollback after a
+    # migration. Start without touching the schema, otherwise `upgrade head`
+    # aborts and the rollback never comes up (scripts/db_ahead.py, DEPLOY.md).
+    :
 else
     echo "[entrypoint] Running Alembic migrations..."
     alembic upgrade head

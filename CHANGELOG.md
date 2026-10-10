@@ -5,12 +5,48 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-Each production release is cut by tagging a commit `vX.Y.Z` (see AGENT.md → Release &
-docs/production_setup.md → Deploy-Vertrag). Pushing the tag triggers the CI/CD pipeline
-(`.github/workflows/deploy.yml`). Move entries from **[Unreleased]** into a dated version
-section as part of the release commit, immediately before tagging.
+A version tag `vX.Y.Z` names a state; it no longer deploys anything. Production is
+updated by pressing *Actions → deploy → Run workflow* for a commit SHA (DEPLOY.md). Move
+entries from **[Unreleased]** into a dated version section when cutting a version tag.
 
 ## [Unreleased]
+
+### Changed
+- **Deploys are dispatched by hand per commit SHA, no longer triggered by a tag.** Three
+  workflows replace the tag pipeline: `ci.yml` runs `make test` on every pull request (job
+  `Prüfung`), `release.yml` runs it again on every push to `master` and then pushes the four
+  images tagged with the commit SHA (+ `latest`), `deploy.yml` (*Run workflow*, empty SHA =
+  current `master`, rollback = an earlier SHA) checks that all images exist, calls
+  `/srv/raildashboard/prod.sh <sha>` over SSH and then checks
+  `https://dashboard.schienengruen.de/healthz` from outside. Contract: `DEPLOY.md`,
+  reasoning: `docs/workflow.md`, manual setup: `docs/uebergabe-deploy.md`.
+- **`make test` is the one full check**, identical locally and in CI: stub tests for
+  `prod.sh`, then backend pytest and frontend `tsc`/`eslint`/Vitest inside new `test`/`check`
+  stages of the Dockerfiles, then the runtime image builds. The former `make test` is now
+  `make test-local`.
+- **`/healthz` is the deploy gate.** New endpoint (outside `/api/v1`, proxied by the
+  container nginx) that returns 200 only when the database is reachable, a full `Project`
+  row loads (catches schema/code drift that `SELECT 1` misses), `SESSION_SECRET_KEY` is no
+  placeholder and the upload directories are writable; otherwise 503 with a problem list.
+  The backend container healthcheck now uses it. `/api/v1/health` stays.
+- **Pre-migration backup moved into the stack.** A one-shot `backup` service (db image,
+  `docker/db/backup.sh`) dumps the database to `backups/pre-migrate_<time>_<sha>.dump`
+  before the backend starts and migrates; retention `BACKUP_KEEP` (default 10).
+- **Rollback after a migration comes up.** The backend entrypoint skips
+  `alembic upgrade head` when the database is on a revision the code does not know
+  (`apps/backend/scripts/db_ahead.py`).
+
+### Deploy
+- `docker-compose.yml` → `compose.yaml` (with `name: raildashboard`, so volumes keep
+  their names), `docker-compose.override.yml` → `compose.override.yaml`.
+- **Ports:** `frontend` is published on `127.0.0.1:5000` only (the host nginx still
+  reaches it); `graphhopper` is no longer published at all. Both were open on `0.0.0.0`.
+- `scripts/deploy.sh` is replaced by `deploy/prod.sh`, which reads `SSH_ORIGINAL_COMMAND`
+  itself, accepts only a full commit SHA (exit 2 otherwise), pulls before switching
+  `IMAGE_TAG`, includes `up -d` in the rollback condition and rolls back without a new
+  dump. The deploy key gets a forced command without interpolation. New environment
+  secrets `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`; the server logs in to GHCR
+  itself with a classic `read:packages` token. Steps: `docs/uebergabe-deploy.md`.
 
 ## [v0.0.15] - 2026-10-07
 

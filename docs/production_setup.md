@@ -71,63 +71,50 @@ Leer lassen deaktiviert die Funktion vollständig.
 
 ---
 
-## Deploy-Vertrag (tag-basierte CI/CD)
+## Deploy-Vertrag (Dispatch per Commit-SHA)
 
-Build und Betrieb sind getrennte Welten: **GitHub Actions baut** unveränderliche Images und pusht sie nach GHCR, der **Produktivserver zieht** sie nur noch und startet sie. Der Server baut nie selbst.
+Der vollständige Vertrag steht in [`DEPLOY.md`](../DEPLOY.md), die Begründungen und die
+Ausnahmen dieses Repos in [`docs/workflow.md`](workflow.md), die Handschritte für Server und
+GitHub in [`docs/uebergabe-deploy.md`](uebergabe-deploy.md). Kurzfassung:
 
 | Punkt | Wert |
 |-------|------|
-| Pipeline | `.github/workflows/deploy.yml`, Trigger `on: push: tags: ['v*']` |
-| Reihenfolge | Quality-Gates (`pytest`, `tsc`, `eslint`) → Image-Build → GHCR-Push (`:vX.Y.Z` + `:latest`) → SSH-Deploy |
-| Registry / Images | `ghcr.io/jonasprade/raildashboard-backend`, `-frontend`, `-db` (jeweils `:${IMAGE_TAG}`) |
-| Compose-Datei auf dem Server | `/srv/raildashboard/docker-compose.yml` (nur `image:`-Referenzen, kein `build:`) |
-| Deploy-Skript | `/srv/raildashboard/deploy.sh` — von der Pipeline per SSH aufgerufen, `./deploy.sh <tag>` |
-| Release-Pin | `IMAGE_TAG` in `.env` (früher `APP_VERSION`); `deploy.sh` setzt ihn automatisch |
-| Health-URL (Erfolgskriterium) | Backend-Healthcheck auf `http://backend:8000/api/v1/health` (200 erst nach Alembic + uvicorn); extern `curl http://localhost/api/v1/health` |
-| Deploy-User | Eingeschränkter `deploy`-User, dem `/srv/raildashboard/` gehört; Docker-Rechte nötig |
-| Upload-Limit | 50 MB, in drei Schichten gleich: vorgelagerter TLS-Proxy (`client_max_body_size 50m`), Container-nginx (`apps/frontend/nginx.conf`), Backend (`MAX_FILE_SIZE`). Fehlt sie im Proxy, gilt dessen Default von 1 MB und Import-PDFs scheitern mit `413`. |
+| Prüfung | `make test` — in `ci.yml` (`pull_request`, Job `Prüfung`) und `release.yml` (`push [master]`), ohne eigene Schritte |
+| Images | `ghcr.io/jonasprade/raildashboard-{backend,frontend,db,graphhopper}:<commit-sha>` (+ `:latest`), gebaut von `release.yml` nach grüner Prüfung |
+| Auslieferung | `deploy.yml`, von Hand: *Actions → deploy → Run workflow*; SHA leer = `master`, Rollback = frühere SHA |
+| Host | Contabo `vmd92747`, `/srv/raildashboard`, Benutzer `deploy` (Gruppe `docker`, kein sudo). Auf dem Host laufen weitere Dienste — nur `/srv/raildashboard` anfassen. |
+| Server-Dateien | `compose.yaml`, `prod.sh`, `.env` — von Hand gepflegt, nicht mehr per Pipeline hochgeladen |
+| Release-Pin | `IMAGE_TAG=<40-stellige SHA>` in `.env`, gepflegt von `prod.sh` |
+| Deploy-Schlüssel | `command="/srv/raildashboard/prod.sh",no-pty,…` in `authorized_keys`, ohne Interpolation |
+| Backup vor der Migration | One-shot-Dienst `backup` → `backups/pre-migrate_<zeit>_<sha12>.dump`; ohne Backup startet das Backend nicht |
+| Erfolgskriterium | Backend-Healthcheck auf `/healthz` (DB, Schema passt zum Code, Pflicht-Config, Upload-Verzeichnisse), danach `https://dashboard.schienengruen.de/healthz` von außen |
+| Weg hinein | Host-nginx (TLS, Certbot) → `127.0.0.1:5000` (Container-nginx) → `backend:8000`. Kein Port auf `0.0.0.0`. |
+| Upload-Limit | 50 MB, in drei Schichten gleich: Host-nginx (`client_max_body_size 50m`), Container-nginx (`apps/frontend/nginx.conf`), Backend (`MAX_FILE_SIZE`). Fehlt sie im Proxy, gilt dessen Default von 1 MB und Import-PDFs scheitern mit `413`. |
 
-### Ablauf des Deploy-Schritts (in `deploy.sh`, identisch bei Pipeline und manuell)
-
-1. Aktuell laufendes `IMAGE_TAG` als Rollback-Anker merken.
-2. **DB-Backup vor der Migration** (`pg_dump -Fc` → `backups/pre-deploy_<tag>_<ts>.dump`). Schlägt das Backup fehl oder ist der Dump leer, **bricht der Deploy ab** — kein Backup, kein Update. Migrationen laufen danach automatisch im Backend-Entrypoint; ein Image-Rollback macht eine Migration **nicht** rückgängig, daher ist der Pre-Deploy-Dump der einzige Rückweg (Restore: siehe *Backup-System* → `make restore-db`).
-3. `IMAGE_TAG` in `.env` auf das neue Tag setzen, `docker compose pull`, `docker compose up -d`.
-4. Auf `healthy` des Backend-Containers warten (Timeout 180 s).
-5. Bei fehlender Health: `IMAGE_TAG` auf den vorherigen Wert zurücksetzen und erneut `up -d` (Rollback auf das unveränderliche `:vX`-Image).
-
-### Benötigte Secrets (GitHub → Repo oder Environment `production`)
-
-Nur als GitHub-Secrets hinterlegen, **niemals** ins Repo committen:
+### Benötigte Secrets (GitHub → Environment `production`)
 
 | Secret / Variable | Zweck |
 |-------------------|-------|
-| `SSH_PRIVATE_KEY` | Privater Schlüssel des `deploy`-Users |
-| `SSH_HOST` | Server-Hostname/IP |
-| `SSH_USER` | Name des `deploy`-Users |
-| `GHCR_TOKEN` *(optional)* | PAT mit `read:packages`, damit der Server private Images ziehen kann. Entfällt, wenn die GHCR-Packages öffentlich sind. |
-| `GITHUB_TOKEN` *(automatisch)* | Wird im Build-Job mit `packages: write` zum Pushen nach GHCR genutzt — kein manuelles Secret. |
-| `TILE_LAYER_URL` *(Repo-Variable, optional)* | Raster-Kachel-URL, die zur Build-Zeit ins Frontend-Bundle gebacken wird. |
+| `DEPLOY_HOST` | Server-Hostname/IP |
+| `DEPLOY_USER` | `deploy` |
+| `DEPLOY_SSH_KEY` | Privater Schlüssel, dessen öffentlicher Teil mit erzwungenem Kommando in `authorized_keys` steht |
+| `DEPLOY_PORT` *(optional)* | SSH-Port, Default 22 |
+| `GITHUB_TOKEN` *(automatisch)* | Push nach GHCR in `release.yml`, `manifest inspect` in `deploy.yml` |
+| `TILE_LAYER_URL` *(Repo-Variable)* | Raster-Kachel-URL, die zur Build-Zeit ins Frontend-Bundle gebacken wird (TopPlus). Die Server-`.env` beeinflusst die Kacheln nicht. |
 
-Deploy-Ziel ist das GitHub-Environment `production`. Über einen **Required Reviewer** an diesem Environment lässt sich jeder Deploy zu einem manuellen Freigabe-Gate machen.
+Der Server meldet sich selbst bei GHCR an (classic Token, nur `read:packages`, als `deploy`);
+die Pipeline reicht keinen Token mehr durch. **Der Token läuft ab** — daran ist der Release
+v0.0.15 am 07.10.2026 gescheitert. Das Environment `production` ist Ablage, kein Tor
+(Required Reviewers gibt es für private Repos ohne bezahlten Plan nicht); das Tor ist der
+Dispatch.
 
-### Eingeschränkter Deploy-User (Härtung)
+### Server-Zugang
 
-Empfohlen ist ein dedizierter `deploy`-User auf dem Server, dem nur `/srv/raildashboard/` gehört und der Mitglied der `docker`-Gruppe ist. Der von der Pipeline ausgeführte Befehl ist ausschließlich:
-
-```bash
-cd /srv/raildashboard && ./deploy.sh <tag>
-```
-
-Optional lässt sich der Schlüssel in `~/.ssh/authorized_keys` per `command="…"`-Forced-Command noch enger auf genau diesen Aufruf einschränken; dann müssen `docker-compose.yml`/`deploy.sh` allerdings auf anderem Weg aktualisiert werden (die Pipeline lädt sie sonst per `scp` hoch).
-
-### Aktueller Live-Stand (eingerichtet 2026-07-07, erste Release v0.0.5)
-
-Die Pipeline ist scharf. Der Contabo-Host (`vmd92747`) betreibt neben Raildashboard weitere Dienste — bei Server-Arbeiten **nur** `/srv/raildashboard` anfassen.
-
-- **Deploy-User:** `deploy` (in Gruppe `docker`, kein sudo), Eigentümer von `/srv/raildashboard`. CI-SSH-Key unter `/home/deploy/.ssh/ci_deploy`.
-- **SSH-Whitelist:** `sshd_config` nutzt `AllowUsers` — `deploy` wurde ergänzt (aktuell `AllowUsers gasteladmin deploy`). Backup der Config unter `/etc/ssh/sshd_config.bak.*`. Nach Änderungen `sudo sshd -t` + `systemctl reload ssh`.
-- **GitHub-Secrets** (Repo): `SSH_HOST`, `SSH_USER`, `SSH_PRIVATE_KEY`, `GHCR_TOKEN` (classic PAT, `read:packages` — GHCR-Packages sind privat). Variable `TILE_LAYER_URL` = TopPlus-Kachel-URL (wird zur Build-Zeit ins Frontend gebacken; die Server-`.env` beeinflusst die Kacheln **nicht** mehr). Environment `production` ohne Required Reviewer (jeder Tag deployt automatisch).
-- **Umstieg war datenneutral:** Volumes `raildashboard_pgdata`/`raildashboard_uploads` unverändert, Frontend-Port `5000:80` beibehalten (Reverse-Proxy bleibt).
+- **SSH-Whitelist:** `sshd_config` nutzt `AllowUsers` (aktuell `AllowUsers gasteladmin deploy`).
+  Backup der Config unter `/etc/ssh/sshd_config.bak.*`. Nach Änderungen `sudo sshd -t` +
+  `systemctl reload ssh`.
+- **Volumes** `raildashboard_pgdata`, `raildashboard_uploads`, `raildashboard_ghdata`;
+  `compose.yaml` setzt `name: raildashboard`, damit die Namen fest bleiben.
 
 ---
 
@@ -198,31 +185,32 @@ er Antworten, kommen die JSON-Antworten trotzdem vollständig an. Abschalten:
 
 ### Erstmalige Einrichtung
 
-Der Server benötigt **nur** `docker-compose.yml`, `scripts/deploy.sh` und eine `.env` — kein Source-Checkout und **kein lokaler Build**. Der Server **zieht fertige Images aus der GitHub Container Registry (GHCR)**; gebaut wird ausschließlich in GitHub Actions (siehe *Deploy-Vertrag* unten).
+Der Server benötigt **nur** `compose.yaml`, `prod.sh` und eine `.env` — kein Source-Checkout
+und **kein lokaler Build**. Er **zieht fertige Images aus GHCR**; gebaut wird ausschließlich in
+GitHub Actions. Die Schritte für einen bestehenden Server stehen in
+[`docs/uebergabe-deploy.md`](uebergabe-deploy.md); für einen neuen Host sinngemäß:
 
 ```bash
-# 1. Compose-Datei + Deploy-Skript auf den Server übertragen
-ssh contabo "mkdir -p /srv/raildashboard"
-scp docker-compose.yml contabo:/srv/raildashboard/
-scp scripts/deploy.sh   contabo:/srv/raildashboard/   # landet als /srv/raildashboard/deploy.sh
+# Als deploy in /srv/raildashboard (Dateien per Einfüge-Block, nicht per scp):
+#   compose.yaml  ← compose.yaml aus dem Repo
+#   prod.sh       ← deploy/prod.sh aus dem Repo, chmod +x
+#   .env          ← .env.prod.example, alle Werte ausfüllen; IMAGE_TAG=<40-stellige SHA>
+mkdir -p backups
 
-# 2. Produktions-Umgebungsvariablen anlegen (Vorlage: .env.prod.example)
-cp .env.prod.example .env
-# .env öffnen und alle Werte ausfüllen:
-#   - IMAGE_TAG=v1.2.0  ← gewünschtes Release-Tag (GHCR-Image-Tag)
-#   - DB_PASSWORD, BACKEND_CORS_ORIGINS, etc.
-scp .env contabo:/srv/raildashboard/
+# Einmalig bei GHCR anmelden (classic Token, nur read:packages)
+read -rs -p "Token: " GHCR_PAT; echo
+printf '%s' "$GHCR_PAT" | docker login ghcr.io -u <github-user> --password-stdin
+unset GHCR_PAT
 
-# 3. Bei privaten GHCR-Packages einmalig am Registry anmelden (sonst schlägt `pull` fehl)
-ssh contabo "docker login ghcr.io -u <github-user>"
-#   → alternativ die Packages in GitHub auf "public" stellen, dann entfällt der Login.
+# Erst-Deploy: über den Knopf (Actions → deploy) oder von Hand
+./prod.sh <40-stellige-sha>
 
-# 4. Erst-Deploy des gewünschten Tags (zieht Images, startet Stack, wartet auf Health)
-ssh contabo "cd /srv/raildashboard && ./deploy.sh v1.2.0"
-
-# 5. Ersten Admin-User anlegen
-ssh contabo "cd /srv/raildashboard && docker compose exec backend python scripts/create_initial_user.py --username admin --role admin"
+# Ersten Admin-User anlegen
+docker compose exec backend python scripts/create_initial_user.py --username admin --role admin
 ```
+
+Bei einer frischen Datenbank kann der allererste Lauf am Backup scheitern, weil Postgres
+während `initdb` kurz bereit meldet und dann neu startet; ein zweiter Lauf geht durch.
 
 Alembic-Migrationen laufen automatisch beim Start des Backend-Containers (via `docker-entrypoint.sh`).
 
@@ -394,7 +382,7 @@ make docker-backup-db
 
 Das Docker-Volume `raildashboard_uploads` (im Compose-Stack als `uploads` deklariert, gemountet unter `/app/uploads` in Backend- **und** Worker-Container) enthält alle Dateianhänge von Projekttexten (`text-attachments/`).
 
-Seit #149 liegen dort außerdem unter `import-staging/` die gerade hochgeladenen Import-PDFs (Haushalt, VIB, Fulda): Der Backend-Endpunkt legt die Datei ab und übergibt dem Celery-Task nur den Dateinamen, damit keine PDF-Inhalte mehr durch Redis gehen. Der Task löscht die Datei nach dem Lauf, auch im Fehlerfall; was ein Task nie abgeholt hat, wird nach 24 h beim nächsten Upload aufgeräumt. Der Ordner ist also flüchtig. Landet er in einem Backup, schadet das nicht. Der Worker braucht deshalb dasselbe Volume wie das Backend (`docker-compose.yml`), sonst scheitert jeder PDF-Import mit `FileNotFoundError`. Es wird seit v0.0.5 **automatisch** zusammen mit dem DB-Dump gesichert — sowohl von `make backup-db` (systemd-Timer-Pfad) als auch von `make docker-backup-db`.
+Seit #149 liegen dort außerdem unter `import-staging/` die gerade hochgeladenen Import-PDFs (Haushalt, VIB, Fulda): Der Backend-Endpunkt legt die Datei ab und übergibt dem Celery-Task nur den Dateinamen, damit keine PDF-Inhalte mehr durch Redis gehen. Der Task löscht die Datei nach dem Lauf, auch im Fehlerfall; was ein Task nie abgeholt hat, wird nach 24 h beim nächsten Upload aufgeräumt. Der Ordner ist also flüchtig. Landet er in einem Backup, schadet das nicht. Der Worker braucht deshalb dasselbe Volume wie das Backend (`compose.yaml`), sonst scheitert jeder PDF-Import mit `FileNotFoundError`. `make backup-db` und `make docker-backup-db` sichern das Volume zusammen mit dem DB-Dump — aber nur, wenn sie jemand aufruft. Zusätzlich nimmt das nächtliche Borg-Backup auf vmd92747 das Volume mit (siehe *Nächtliches Backup auf vmd92747*).
 
 **Warum das wichtig ist:** Ohne paariges Uploads-Tar zeigen nach einem Restore alle `text_attachment`-Zeilen auf nicht vorhandene Dateien.
 
@@ -421,14 +409,14 @@ docker run --rm \
 
 ### HTTPS / TLS (empfohlen für Produktion)
 
-Das Docker-Setup hört auf Port 80. Für HTTPS empfiehlt sich ein vorgelagerter Reverse Proxy mit automatischer Zertifikatsverwaltung (z. B. Caddy oder Certbot/nginx):
+Das Docker-Setup gibt das Frontend nur auf `127.0.0.1:5000` frei. Für HTTPS braucht es einen vorgelagerten Reverse Proxy auf demselben Host (auf vmd92747: nginx + Certbot, Option B) mit automatischer Zertifikatsverwaltung (z. B. Caddy oder Certbot/nginx):
 
 **Option A – Caddy (einfachste Variante):**
 
 ```
 # /etc/caddy/Caddyfile
 deine-domain.de {
-    reverse_proxy localhost:80
+    reverse_proxy localhost:5000
 }
 ```
 
@@ -470,28 +458,21 @@ Danach `BACKEND_CORS_ORIGINS` in `.env` auf die HTTPS-URL aktualisieren und den 
 make docker-prod-down && make docker-prod-up
 ```
 
-### Updates einspielen (Regelfall: automatisch per Tag)
+### Updates einspielen
 
-Ein Produktions-Update wird **nicht** mehr von Hand auf dem Server gebaut. Es genügt, im Repo einen Release-Tag zu setzen — die Pipeline `.github/workflows/deploy.yml` baut, pusht nach GHCR und deployt per SSH:
+Jeder Merge nach `master` baut nach grünem `make test` die Images zu seinem Commit. Ausgerollt
+wird per Knopf: *Actions → deploy → Run workflow*, SHA leer = aktueller Stand von `master`.
+`prod.sh` zieht die Images, schaltet `IMAGE_TAG` um, startet den Stack (Backup → Migration →
+App), wartet auf `/healthz` und rollt sonst automatisch auf den vorherigen SHA zurück.
 
-```bash
-# Im Repo, auf dem Release-Commit:
-make release-check MILESTONE=v1.3.0     # muss exit 0 liefern (Release-Gate)
-# CHANGELOG.md: [Unreleased] → ## [v1.3.0] - YYYY-MM-DD verschieben, committen
-git tag v1.3.0 && git push origin v1.3.0
-```
-
-Der Rest läuft automatisiert: Quality-Gates → Image-Build → GHCR-Push (`:v1.3.0` + `:latest`) → SSH-Deploy mit **DB-Backup vor der Migration** (bricht bei Fehler ab), `docker compose pull`, `up -d`, Health-Wait und **automatischem Rollback** auf das vorherige `:vX`-Image bei fehlender Health.
-
-> **Voraussetzung beim Tag-Cut (im Repo, vor `git tag`):** `make release-check` muss exit 0 liefern — sonst hängen noch offene manuelle Verifikationen. Details: `AGENT.md` → Release Gate & Release & Deploy.
-
-**Manuelles Deploy / Rollback** (falls die Pipeline nicht genutzt wird oder ein schneller Rollback nötig ist) — direkt auf dem Server das schon vorhandene Deploy-Skript aufrufen:
+**Rollback:** derselbe Knopf mit einer früheren SHA. Von Hand auf dem Server (als `deploy`):
 
 ```bash
-ssh contabo "cd /srv/raildashboard && ./deploy.sh v1.2.0"   # beliebiges bereits gepushtes Tag
+cd /srv/raildashboard && ./prod.sh <40-stellige-sha>
 ```
 
-`deploy.sh` macht dabei exakt dieselben Schritte wie die Pipeline (Backup → Tag setzen → pull → up -d → Health-Wait → Rollback). Ein Rollback ist damit einfach das erneute Deployen des vorherigen unveränderlichen Tags.
+Ein Version-Tag (`make release-check MILESTONE=vX.Y.Z`, `CHANGELOG.md`, `git tag`) benennt
+einen Stand, rollt aber nichts aus.
 
 ### Entwicklung: nur DB in Docker
 
@@ -569,53 +550,25 @@ Das Backup-Skript:
 - löscht Backups die älter als 14 Tage sind — DB-Dumps und Uploads-Tars separat (lokale Rotation)
 - überspringt den Uploads-Teil mit Hinweis, wenn Docker fehlt oder das Volume nicht existiert
 
-### Automatisierung via systemd-Timer
+### Nächtliches Backup auf vmd92747 (Borg)
 
-Einmalig auf dem Produktionsserver einrichten — danach läuft das Backup täglich automatisch.
+Auf dem Produktionshost sichert `/root/create_backup.sh` (root-Crontab, täglich 04:05) den
+ganzen Host nach Borg; Log unter `/var/log/borg/backup.log`. Für raildashboard heißt das:
 
-**Service-Datei** `/etc/systemd/system/raildashboard-backup.service`:
-```ini
-[Unit]
-Description=Raildashboard Datenbank-Backup
-After=network.target
+1. `docker exec raildashboard-db-1 pg_dump -U raildashboard raildashboard | gzip` →
+   `/srv/db_dumps/raildashboard.sql.gz` (konsistenter Dump im laufenden Betrieb).
+2. Alle laufenden Container werden gestoppt.
+3. `borg create` über `/root`, `/srv`, `/home`, `/etc`,
+   `/var/lib/docker/volumes/raildashboard_pgdata` und `…/raildashboard_uploads` (u. a.). `/srv` enthält auch
+   `/srv/raildashboard/backups/` mit den Pre-Migrate-Dumps des Deploys.
+4. Die zuvor laufenden Container werden wieder gestartet.
 
-[Service]
-Type=oneshot
-User=raildashboard
-WorkingDirectory=/opt/raildashboard
-EnvironmentFile=/opt/raildashboard/.env
-ExecStart=/opt/raildashboard/scripts/backup_db.sh
-StandardOutput=journal
-StandardError=journal
-```
+Das Volume `raildashboard_uploads` (Textanhänge) ist seit dem 10.10.2026 in der Liste;
+vorher fehlte es. Weil das Skript Container mit Namen anspricht (`raildashboard-db-1`),
+bleibt der Compose-Projektname fest `raildashboard` (DEPLOY.md, „Backup & Restore").
 
-**Timer-Datei** `/etc/systemd/system/raildashboard-backup.timer`:
-```ini
-[Unit]
-Description=Tägliches Raildashboard Backup
-
-[Timer]
-OnCalendar=*-*-* 02:00:00
-Persistent=true
-
-[Install]
-WantedBy=timers.target
-```
-
-> `Persistent=true` stellt sicher, dass ein verpasster Lauf (z. B. wegen Serverausfall) beim nächsten Start nachgeholt wird.
-
-**Aktivieren:**
-```bash
-systemctl daemon-reload
-systemctl enable --now raildashboard-backup.timer
-
-# Status prüfen
-systemctl list-timers raildashboard-backup.timer
-
-# Einmalig manuell testen
-systemctl start raildashboard-backup.service
-journalctl -u raildashboard-backup.service -n 50
-```
+Der früher hier beschriebene systemd-Timer (`/opt/raildashboard`, Benutzer `raildashboard`)
+stammt aus der Zeit ohne Docker und ist auf vmd92747 nicht eingerichtet.
 
 ### Optionaler Remote-Upload via rclone
 

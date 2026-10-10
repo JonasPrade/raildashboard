@@ -85,7 +85,7 @@ The backend ships with a multi-stage `Dockerfile` (`apps/backend/Dockerfile`):
 - **Builder stage** — installs Python dependencies into `/venv` using `python:3.12-slim`.
 - **Runtime stage** — copies only the venv and application source; runs as a non-root user.
 
-On container start, `docker-entrypoint.sh` waits for the database to be ready, optionally runs `alembic upgrade head`, then `exec`s the command (Dockerfile `CMD` = uvicorn by default, or whatever the compose `command:` overrides it with). Set `SKIP_MIGRATIONS=1` to skip the Alembic step — the production `worker` service uses this so only `backend` migrates the DB (otherwise both race on the same migration and one crashes with `psycopg2.errors.UniqueViolation` on `pg_class_relname_nsp_index`). All environment variables are passed via `docker-compose.yml` / `.env` — no `.env` file is baked into the image.
+On container start, `docker-entrypoint.sh` waits for the database to be ready, optionally runs `alembic upgrade head`, then `exec`s the command (Dockerfile `CMD` = uvicorn by default, or whatever the compose `command:` overrides it with). Set `SKIP_MIGRATIONS=1` to skip the Alembic step — the production `worker` service uses this so only `backend` migrates the DB (otherwise both race on the same migration and one crashes with `psycopg2.errors.UniqueViolation` on `pg_class_relname_nsp_index`). All environment variables are passed via `compose.yaml` / `.env` — no `.env` file is baked into the image. If the database is already on a revision this code does not know (a rollback after a migration), `scripts/db_ahead.py` makes the entrypoint skip the migration instead of failing. The pre-migration database dump is taken by the one-shot `backup` service in `compose.yaml` before the backend starts; the deploy gate is `GET /healthz` (see `DEPLOY.md`).
 
 Use `make docker-prod-up` / `make docker-prod-down` from the repository root to manage the production stack. See [`docs/production_setup.md`](../../docs/production_setup.md) for the full deployment guide.
 
@@ -159,7 +159,7 @@ make celery-worker   # starts worker in the foreground
 
 ### Prod — worker container
 
-The production `docker-compose.yml` includes a dedicated `worker` service that reuses the backend image but overrides the default `CMD` with the Celery command (`command: celery -A dashboard_backend.celery_app worker --loglevel=info`). The entrypoint sees `SKIP_MIGRATIONS=1` and skips `alembic upgrade head`, then `exec`s the celery process. `depends_on.backend.condition: service_started` keeps the worker out of the migration race window. It starts automatically with `make docker-prod-up`.
+The production `compose.yaml` includes a dedicated `worker` service that reuses the backend image but overrides the default `CMD` with the Celery command (`command: celery -A dashboard_backend.celery_app worker --loglevel=info`). The entrypoint sees `SKIP_MIGRATIONS=1` and skips `alembic upgrade head`, then `exec`s the celery process. `depends_on.backend.condition: service_started` keeps the worker out of the migration race window. It starts automatically with `make docker-prod-up`.
 
 View worker logs:
 ```bash
