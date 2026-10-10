@@ -165,9 +165,29 @@ unset GHCR_PAT
    vorherigen Stand unten. Mit echtem Docker durchgespielt (PR-Beschreibung).
    Bei einer **frischen** Datenbank kann der allererste Lauf scheitern, weil Postgres
    während `initdb` kurz bereit meldet und dann neu startet; ein zweites `up` geht durch.
-2. **Das `uploads`-Volume** (Textanhänge) steckt **nicht** im Pre-Migrate-Dump. Dafür
-   gibt es `make docker-backup-db` (Dump + Tar des Volumes). Ob auf vmd92747 ein
-   nächtliches Backup läuft, ist offen (`docs/uebergabe-deploy.md`, „Aufgefallen").
+2. **Nächtlich um 04:05** sichert `/root/create_backup.sh` (root-Crontab) den Host nach
+   **Borg** (Log `/var/log/borg/backup.log`):
+   - vorher `docker exec raildashboard-db-1 pg_dump … | gzip` nach
+     `/srv/db_dumps/raildashboard.sql.gz`,
+   - dann stoppt es **alle** laufenden Container, archiviert `/root`, `/srv`, `/home`,
+     `/etc`, `/var/lib/docker/volumes/raildashboard_pgdata` (und `streckeninfo_daten`)
+     und startet die zuvor laufenden Container wieder.
+
+   `/srv` enthält `/srv/raildashboard/backups/`, die `pre-migrate_*`-Dumps landen also
+   mit im Archiv. **Das `uploads`-Volume (`raildashboard_uploads`, Textanhänge) ist
+   nicht darunter** — weder im Pre-Migrate-Dump noch im Borg-Lauf
+   (`docs/uebergabe-deploy.md`, „Aufgefallen"). Von Hand: `make docker-backup-db`
+   (Dump + Tar des Volumes).
+
+   **Daran hängen die Container-Namen.** Backup-Skript (`raildashboard-db-1`),
+   `/root/check_containers.sh` mit `/root/expected_containers.txt` (frontend, backend,
+   worker, db, redis) und `/root/monitored_software.yaml` (`raildashboard-redis-1`)
+   sprechen die Container mit Namen an. `compose.yaml` setzt deshalb
+   `name: raildashboard`; Projektname oder Dienstnamen nicht ändern, ohne diese drei
+   Stellen mitzuziehen. Der One-shot `raildashboard-backup-1` steht nach jedem Lauf auf
+   `exited`; er ist dort nicht eingetragen und darf es auch nicht werden.
+
+   **Nicht gegen 04:05 ausrollen**: in diesem Fenster sind alle Container gestoppt.
 
 **Restore** (als `deploy`, nach jeder Änderung am Backup-Mechanismus erneut testen):
 

@@ -382,7 +382,7 @@ make docker-backup-db
 
 Das Docker-Volume `raildashboard_uploads` (im Compose-Stack als `uploads` deklariert, gemountet unter `/app/uploads` in Backend- **und** Worker-Container) enthält alle Dateianhänge von Projekttexten (`text-attachments/`).
 
-Seit #149 liegen dort außerdem unter `import-staging/` die gerade hochgeladenen Import-PDFs (Haushalt, VIB, Fulda): Der Backend-Endpunkt legt die Datei ab und übergibt dem Celery-Task nur den Dateinamen, damit keine PDF-Inhalte mehr durch Redis gehen. Der Task löscht die Datei nach dem Lauf, auch im Fehlerfall; was ein Task nie abgeholt hat, wird nach 24 h beim nächsten Upload aufgeräumt. Der Ordner ist also flüchtig. Landet er in einem Backup, schadet das nicht. Der Worker braucht deshalb dasselbe Volume wie das Backend (`compose.yaml`), sonst scheitert jeder PDF-Import mit `FileNotFoundError`. Es wird seit v0.0.5 **automatisch** zusammen mit dem DB-Dump gesichert — sowohl von `make backup-db` (systemd-Timer-Pfad) als auch von `make docker-backup-db`.
+Seit #149 liegen dort außerdem unter `import-staging/` die gerade hochgeladenen Import-PDFs (Haushalt, VIB, Fulda): Der Backend-Endpunkt legt die Datei ab und übergibt dem Celery-Task nur den Dateinamen, damit keine PDF-Inhalte mehr durch Redis gehen. Der Task löscht die Datei nach dem Lauf, auch im Fehlerfall; was ein Task nie abgeholt hat, wird nach 24 h beim nächsten Upload aufgeräumt. Der Ordner ist also flüchtig. Landet er in einem Backup, schadet das nicht. Der Worker braucht deshalb dasselbe Volume wie das Backend (`compose.yaml`), sonst scheitert jeder PDF-Import mit `FileNotFoundError`. `make backup-db` und `make docker-backup-db` sichern das Volume zusammen mit dem DB-Dump — aber nur, wenn sie jemand aufruft. **Das nächtliche Borg-Backup auf vmd92747 nimmt das Volume derzeit nicht mit** (siehe *Nächtliches Backup auf vmd92747*).
 
 **Warum das wichtig ist:** Ohne paariges Uploads-Tar zeigen nach einem Restore alle `text_attachment`-Zeilen auf nicht vorhandene Dateien.
 
@@ -550,53 +550,26 @@ Das Backup-Skript:
 - löscht Backups die älter als 14 Tage sind — DB-Dumps und Uploads-Tars separat (lokale Rotation)
 - überspringt den Uploads-Teil mit Hinweis, wenn Docker fehlt oder das Volume nicht existiert
 
-### Automatisierung via systemd-Timer
+### Nächtliches Backup auf vmd92747 (Borg)
 
-Einmalig auf dem Produktionsserver einrichten — danach läuft das Backup täglich automatisch.
+Auf dem Produktionshost sichert `/root/create_backup.sh` (root-Crontab, täglich 04:05) den
+ganzen Host nach Borg; Log unter `/var/log/borg/backup.log`. Für raildashboard heißt das:
 
-**Service-Datei** `/etc/systemd/system/raildashboard-backup.service`:
-```ini
-[Unit]
-Description=Raildashboard Datenbank-Backup
-After=network.target
+1. `docker exec raildashboard-db-1 pg_dump -U raildashboard raildashboard | gzip` →
+   `/srv/db_dumps/raildashboard.sql.gz` (konsistenter Dump im laufenden Betrieb).
+2. Alle laufenden Container werden gestoppt.
+3. `borg create` über `/root`, `/srv`, `/home`, `/etc`,
+   `/var/lib/docker/volumes/raildashboard_pgdata` (u. a.). `/srv` enthält auch
+   `/srv/raildashboard/backups/` mit den Pre-Migrate-Dumps des Deploys.
+4. Die zuvor laufenden Container werden wieder gestartet.
 
-[Service]
-Type=oneshot
-User=raildashboard
-WorkingDirectory=/opt/raildashboard
-EnvironmentFile=/opt/raildashboard/.env
-ExecStart=/opt/raildashboard/scripts/backup_db.sh
-StandardOutput=journal
-StandardError=journal
-```
+**Nicht gesichert wird das Volume `raildashboard_uploads`** (Textanhänge). Bis es in die
+`borg create`-Liste aufgenommen ist, bleibt `make docker-backup-db` der einzige Weg, es zu
+sichern. Weil das Skript Container mit Namen anspricht (`raildashboard-db-1`), bleibt der
+Compose-Projektname fest `raildashboard` (DEPLOY.md, „Backup & Restore").
 
-**Timer-Datei** `/etc/systemd/system/raildashboard-backup.timer`:
-```ini
-[Unit]
-Description=Tägliches Raildashboard Backup
-
-[Timer]
-OnCalendar=*-*-* 02:00:00
-Persistent=true
-
-[Install]
-WantedBy=timers.target
-```
-
-> `Persistent=true` stellt sicher, dass ein verpasster Lauf (z. B. wegen Serverausfall) beim nächsten Start nachgeholt wird.
-
-**Aktivieren:**
-```bash
-systemctl daemon-reload
-systemctl enable --now raildashboard-backup.timer
-
-# Status prüfen
-systemctl list-timers raildashboard-backup.timer
-
-# Einmalig manuell testen
-systemctl start raildashboard-backup.service
-journalctl -u raildashboard-backup.service -n 50
-```
+Der früher hier beschriebene systemd-Timer (`/opt/raildashboard`, Benutzer `raildashboard`)
+stammt aus der Zeit ohne Docker und ist auf vmd92747 nicht eingerichtet.
 
 ### Optionaler Remote-Upload via rclone
 
