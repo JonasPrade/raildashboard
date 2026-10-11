@@ -82,7 +82,9 @@ Standard „Caddy über Netz `web`": `docs/workflow.md`, Ausnahmen.
   Pro und Team nur für öffentliche Repositories; in einem privaten Repo legt GitHub
   die Umgebung stillschweigend ohne Regeln an. Das Tor ist der Dispatch.
 - **Secrets** (im Environment `production`): `DEPLOY_HOST`, `DEPLOY_USER` (`deploy`),
-  `DEPLOY_SSH_KEY`, optional `DEPLOY_PORT`. Die alten `SSH_HOST`, `SSH_USER`,
+  `DEPLOY_SSH_KEY`, `DEPLOY_FINGERPRINT` (Host-Schlüssel des Servers, `SHA256:…` aus
+  `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`; leer = keine Prüfung), optional
+  `DEPLOY_PORT`. Die alten `SSH_HOST`, `SSH_USER`,
   `SSH_PRIVATE_KEY`, `GHCR_TOKEN` braucht nichts mehr.
 - **Repo-Variable** `TILE_LAYER_URL`: wird in `release.yml` ins Frontend-Bundle gebacken.
 - **Branch Protection: nicht verfügbar.** GitHub setzt Branch Protection und Rulesets

@@ -17,6 +17,13 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   text attachments nor (since v0.0.15) import PDFs; `/healthz` reports this as
   `upload_dir`. New volumes now start with the right owner; the production volume was fixed
   by hand on 11.10.2026 (DEPLOY.md, "Backup & Restore").
+- **`.env.prod.example` sets `ENVIRONMENT=production`.** Production ran without it, i.e. as
+  `development`, so the session cookie lacked the `Secure` flag. Set on the server on
+  11.10.2026.
+
+### Changed
+- `deploy.yml` can pin the server's SSH host key via the new environment secret
+  `DEPLOY_FINGERPRINT` (empty = no check, as before).
 
 ### Changed
 - **Deploys are dispatched by hand per commit SHA, no longer triggered by a tag.** Three
