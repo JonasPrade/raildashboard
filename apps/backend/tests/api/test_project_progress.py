@@ -91,7 +91,7 @@ def test_patch_override_wins(client, create_user, monkeypatch):
     monkeypatch.setattr(api_deps, "get_project_by_id", _project_exists)
     captured = {}
 
-    def _update(db, pid, payload):
+    def _update(db, pid, payload, user):
         captured.update(payload)
         return object()  # truthy → not 404
 
@@ -118,7 +118,7 @@ def test_patch_planfeststellung_details(client, create_user, monkeypatch):
     monkeypatch.setattr(api_deps, "get_project_by_id", _project_exists)
     captured = {}
 
-    def _update(db, pid, payload):
+    def _update(db, pid, payload, user):
         captured.update(payload)
         return object()  # truthy → not 404
 
@@ -175,7 +175,7 @@ def test_delete_derived_observation_rejected(client, create_user, monkeypatch):
     create_user("editor3", "pass123", UserRole.editor)
     monkeypatch.setattr(api_deps, "get_project_by_id", _project_exists)
 
-    def _delete(db, pid, oid):
+    def _delete(db, pid, oid, user):
         raise DerivedObservationDeleteError("derived")
 
     monkeypatch.setattr(progress_route.progress_crud, "delete_observation", _delete)
@@ -189,7 +189,7 @@ def test_delete_derived_observation_rejected(client, create_user, monkeypatch):
 def test_delete_manual_observation_ok(client, create_user, monkeypatch):
     create_user("editor4", "pass123", UserRole.editor)
     monkeypatch.setattr(api_deps, "get_project_by_id", _project_exists)
-    monkeypatch.setattr(progress_route.progress_crud, "delete_observation", lambda db, pid, oid: True)
+    monkeypatch.setattr(progress_route.progress_crud, "delete_observation", lambda db, pid, oid, user: True)
     monkeypatch.setattr(progress_route.progress_crud, "get_progress_view", lambda db, pid: _make_view(pid))
     resp = client.delete(
         "/api/v1/projects/1/progress/observations/5",
@@ -216,7 +216,7 @@ def test_link_document_pf(client, create_user, monkeypatch):
     create_user("editor6", "pass123", UserRole.editor)
     monkeypatch.setattr(api_deps, "get_project_by_id", _project_exists)
     monkeypatch.setattr(
-        progress_route.progress_crud, "link_track_document", lambda db, pid, track, did: object()
+        progress_route.progress_crud, "link_track_document", lambda db, pid, track, did, user: object()
     )
     monkeypatch.setattr(progress_route.progress_crud, "get_progress_view", lambda db, pid: _make_view(pid))
     resp = client.post(

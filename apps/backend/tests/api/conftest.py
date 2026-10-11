@@ -96,6 +96,7 @@ TABLES = [
     BvwpProjectData.__table__,  # FK to project; read by the MCP get_project tool
     ChangeLog.__table__,  # FK to project + users; written by the MCP update_project tool
     ChangeLogEntry.__table__,  # must follow ChangeLog (FK dependency)
+    ProgressObservation.__table__,  # FKs to imported sources unenforced; MCP observation tools
 ]
 
 

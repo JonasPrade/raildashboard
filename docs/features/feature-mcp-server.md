@@ -195,14 +195,20 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 
 | Tool | Wirkung | benötigte Capability |
 |---|---|---|
-| `list_projects` | Projekte suchen/filtern (Text, Projektgruppe, Phase) | — (eingeloggt) |
+| `list_project_groups` | Projektgruppen mit Projektanzahl, optional per Freitext | — (eingeloggt) |
+| `list_projects` | Projekte suchen/filtern (Text, Projektgruppe(n), Phase) | — (eingeloggt) |
 | `get_project` | Projektdetail inkl. BVWP-Daten und Unterprojekten | — |
 | `get_project_progress` | Planungsstand inkl. Beobachtungen und Prognose | — |
 | `list_project_finves` | Finanzierungsvereinbarungen und Budgets eines Projekts | — |
 | `get_project_texts` | Projekttexte nach Typ | — |
 | `list_todos` | Aufgaben, gefiltert | — |
+| `create_project` | Projekt/Unterprojekt anlegen (final, ohne Geometrie) | `project.create` |
+| `compute_project_length` | Länge aus der Geometrie berechnen, optional übernehmen | — / `project.edit` mit `apply` |
 | `update_project` | Projektfelder ändern | `project.edit` |
+| `set_project_groups` | Projekt Gruppen hinzufügen/entfernen (id, Kurzname, Name) | `project.edit` |
 | `add_progress_observation` | Planungsstand-Beobachtung ergänzen | `progress.edit` |
+| `delete_progress_observation` | manuelle Beobachtung löschen (abgeleitete nicht) | `progress.edit` |
+| `set_phase_override` | manuellen Phasen-Override setzen (mit Begründung) oder aufheben | `progress.edit` |
 | `upsert_project_text` | Projekttext anlegen/ändern | `projecttext.edit` |
 | `create_todo` | Aufgabe anlegen | `todo.create` |
 | `update_todo` | Aufgabe ändern | `todo.edit` |
@@ -305,7 +311,39 @@ Client-seitig (Claude Code, `.mcp.json`):
   ["mcp.access"]`) und „Wie mein Nutzer" (`scopes = NULL`). Die API nimmt
   weiterhin eine freie Liste gültiger Capability-Keys an.
 - **Filter von `list_projects`**: Freitext (Name/Projektnummer), Projektgruppe
-  (Kurzname oder id), Planungsphase, übergeordnetes Projekt, Paginierung.
+  (id, Kurzname oder Name, ohne Groß-/Kleinschreibung; eine Liste verlangt alle
+  Gruppen), Planungsphase, übergeordnetes Projekt, Paginierung. Die Gruppen selbst
+  findet `list_project_groups`.
+- **Planungsstand korrigieren** (2026-10-11): `set_phase_override` setzt den
+  manuellen Phasen-Override wie das Formular im Planungsstand-Panel — nur mit
+  Begründung (`note` → `manual_override_note`), `phase = null` hebt ihn auf.
+  `delete_progress_observation` löscht manuelle Beobachtungen; abgeleitete
+  (`is_derived`, aus den Importen) bleiben wie in der REST-API geschützt.
+- **Projektgruppen** (2026-10-11): `set_project_groups(add, remove)` löst Gruppen
+  wie `list_projects` auf und lässt übrige Zuordnungen stehen; `update_project`
+  lehnt `project_group_ids` ab und verweist darauf. Gruppenwechsel landen — auch über
+  REST/Oberfläche — als Feld `project_group_ids` (sortierte id-Liste) im
+  `change_log` und sind über den bestehenden Revert rücknehmbar; die Historie zeigt
+  die Kurznamen.
+- **Projekte anlegen** (2026-10-11): `create_project` legt ein Projekt direkt final
+  an (kein Entwurf), typischerweise als Etappe mit `superior_project_id`; Gruppen per
+  id/Kurzname/Name, weitere Felder über `fields` wie bei `update_project`. Geometrie
+  und Entwurfs-Flag sind gesperrt. Die Anlage steht als `CREATE`-Eintrag (ein Feld je
+  gesetztem Wert, Gruppen als id-Liste) im `change_log`; die Historie bietet dafür
+  kein „Zurücksetzen“ an.
+- **Länge aus Geometrie** (2026-10-11): `compute_project_length` rechnet wie der
+  Knopf „Länge aus Geometrie berechnen“ (Python-Port von `shared/geo/length.ts` in
+  `services/geo_length.py`, Haversine, 0,01 km) und liefert berechnete und
+  gespeicherte Länge; die Geometrie selbst bleibt außen vor. `apply=true` schreibt
+  den Wert über den `change_log` ins Feld `length`.
+- **Planungsstand im `change_log`** (2026-10-11): Jede Planungsstand-Änderung —
+  Flags, Overrides, PF-/Parlaments-Angaben, Beobachtung angelegt/gelöscht,
+  Dokument verknüpft/gelöst — schreibt die CRUD-Schicht (`crud/projects/progress.py`)
+  in den Projekt-`change_log`, egal ob über REST/Oberfläche oder MCP. Feldnamen
+  tragen das Präfix `progress.` (z. B. `progress.manual_phase_override`,
+  `progress.observation` mit einer lesbaren Zeile zur Beobachtung); die Historie
+  zeigt sie als „Planungsstand“. Sie sind reine Historie: Der Revert-Endpunkt
+  akzeptiert nur Projektfelder, die Oberfläche blendet „Zurücksetzen“ dort aus.
 
 ## Umsetzungsstand (2026-10-07)
 

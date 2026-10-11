@@ -125,10 +125,13 @@ A bearer key on these endpoints gets `403` — a key cannot mint or revoke keys.
 `dashboard_backend/mcp/` mounts an MCP server (SDK `mcp`, `MCPServer`) at `/mcp` —
 Streamable HTTP, stateless, JSON responses, disabled with `MCP_ENABLED=false`. Only bearer
 keys holding `mcp.access` get in (admin-only for now); tools call the CRUD layer directly
-and check the key's capabilities before writing. Tools: `list_projects`, `get_project`,
-`get_project_progress`, `list_project_finves`, `get_project_texts`, `list_text_types`,
-`list_todos` (read) and `update_project`, `add_progress_observation`,
-`upsert_project_text`, `create_todo`, `update_todo` (write). Claude Code config:
+and check the key's capabilities before writing. Tools: `list_project_groups`, `list_projects`,
+`get_project`, `get_project_progress`, `list_project_finves`, `get_project_texts`,
+`list_text_types`, `list_todos` (read) and `create_project`, `compute_project_length`,
+`update_project`, `set_project_groups`,
+`add_progress_observation`,
+`delete_progress_observation`, `set_phase_override`, `upsert_project_text`, `create_todo`,
+`update_todo` (write). Claude Code config:
 
 ```json
 { "mcpServers": { "raildashboard": { "type": "http", "url": "https://<host>/mcp",

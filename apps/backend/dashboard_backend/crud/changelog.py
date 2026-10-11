@@ -9,8 +9,8 @@ from dashboard_backend.models.change_tracking import ChangeLog, ChangeLogEntry, 
 from dashboard_backend.models.projects import Project
 from dashboard_backend.models.projects.project_text import ProjectText
 
-# Fields that should not be tracked in the changelog (large/computed/geometric values,
-# or relationship keys that are handled separately in the CRUD layer)
+# Fields that should not be tracked by the generic attribute diff (relationship
+# keys that are handled separately below)
 _SKIP_FIELDS = {"project_group_ids"}
 
 # Fields tracked for project texts (excludes internal timestamps)
@@ -71,6 +71,20 @@ def create_changelog_for_patch(
     The caller is responsible for committing the session.
     """
     entries = diff_to_entries(ChangeLogEntry, project, update_data, skip_fields=_SKIP_FIELDS)
+    group_ids = update_data.get("project_group_ids")
+    if group_ids is not None:
+        # The many-to-many has no attribute to diff; compare id sets. The stored
+        # list is what the revert endpoint passes back as ``project_group_ids``.
+        old_ids = sorted(g.id for g in project.project_groups)
+        new_ids = sorted(set(group_ids))
+        if old_ids != new_ids:
+            entries.append(
+                ChangeLogEntry(
+                    field_name="project_group_ids",
+                    old_value=json.dumps(old_ids),
+                    new_value=json.dumps(new_ids),
+                )
+            )
     if not entries:
         return None
 
@@ -80,6 +94,42 @@ def create_changelog_for_patch(
         username_snapshot=username_snapshot,
         timestamp=datetime.utcnow(),
         action=action,
+        entries=entries,
+    )
+    db.add(changelog)
+    return changelog
+
+
+def create_changelog_for_create(
+    db: Session,
+    project: Project,
+    data: dict,
+    user_id: int | None,
+    username_snapshot: str | None,
+) -> ChangeLog | None:
+    """Record a newly created project: one entry per field set at creation
+    (old value None), groups as a sorted id list. The caller commits."""
+    entries = diff_to_entries(
+        ChangeLogEntry,
+        None,
+        {k: v for k, v in data.items() if v is not None},
+        skip_fields=_SKIP_FIELDS,
+    )
+    group_ids = sorted(g.id for g in project.project_groups)
+    if group_ids:
+        entries.append(
+            ChangeLogEntry(
+                field_name="project_group_ids", old_value=None, new_value=json.dumps(group_ids)
+            )
+        )
+    if not entries:
+        return None
+    changelog = ChangeLog(
+        project_id=project.id,
+        user_id=user_id,
+        username_snapshot=username_snapshot,
+        timestamp=datetime.utcnow(),
+        action="CREATE",
         entries=entries,
     )
     db.add(changelog)
