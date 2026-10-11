@@ -13,6 +13,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from dashboard_backend.core.security import hash_password
+from dashboard_backend.crud.projects import progress as progress_crud
 from dashboard_backend.crud import api_keys as api_keys_crud
 from dashboard_backend.models.change_tracking import ChangeLog
 from dashboard_backend.models.projects.project import Project
@@ -137,6 +138,7 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
     tools = _post(mcp_client, admin_token, "tools/list").json()["result"]["tools"]
     names = {tool["name"] for tool in tools}
     assert names == {
+        "list_project_groups",
         "list_projects",
         "get_project",
         "get_project_progress",
@@ -145,6 +147,8 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
         "list_text_types",
         "update_project",
         "add_progress_observation",
+        "delete_progress_observation",
+        "set_phase_override",
         "upsert_project_text",
         "list_todos",
         "create_todo",
@@ -153,6 +157,7 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
     by_name = {tool["name"]: tool for tool in tools}
     assert by_name["list_projects"]["annotations"]["readOnlyHint"] is True
     assert by_name["update_project"]["annotations"]["readOnlyHint"] is False
+    assert by_name["delete_progress_observation"]["annotations"]["destructiveHint"] is True
     # The SDK context parameter must not leak into the client-facing schema.
     assert "ctx" not in by_name["list_projects"]["inputSchema"]["properties"]
 
@@ -195,6 +200,43 @@ def test_list_projects_filters(mcp_client, admin_token, db_session):
     page = _payload(_call(mcp_client, admin_token, "list_projects", {"limit": 1, "offset": 1}))
     assert page["total"] == 2
     assert [p["id"] for p in page["projects"]] == [beta.id]
+
+
+def test_list_projects_by_group_name_and_several_groups(mcp_client, admin_token, db_session):
+    alpha, beta = _seed_projects(db_session)
+    dt = ProjectGroup(name="Deutschlandtakt", short_name="DT", color="#000000")
+    alpha.project_groups.append(dt)
+    beta.project_groups = [dt]
+    db_session.add(dt)
+    db_session.commit()
+
+    by_name = _payload(
+        _call(mcp_client, admin_token, "list_projects", {"project_group": "bedarfsplan"})
+    )
+    assert [p["id"] for p in by_name["projects"]] == [alpha.id]
+
+    by_id = _payload(_call(mcp_client, admin_token, "list_projects", {"project_group": str(dt.id)}))
+    assert [p["id"] for p in by_id["projects"]] == [alpha.id, beta.id]
+
+    both = _payload(
+        _call(mcp_client, admin_token, "list_projects", {"project_group": ["bp", "DT"]})
+    )
+    assert [p["id"] for p in both["projects"]] == [alpha.id]
+
+
+def test_list_project_groups(mcp_client, admin_token, db_session):
+    _seed_projects(db_session)
+    db_session.add(ProjectGroup(name="Leer", short_name="L", color="#000000"))
+    db_session.commit()
+
+    groups = _payload(_call(mcp_client, admin_token, "list_project_groups"))["groups"]
+    by_short = {g["short_name"]: g for g in groups}
+    assert by_short["BP"]["name"] == "Bedarfsplan"
+    assert by_short["BP"]["project_count"] == 1  # draft not counted
+    assert by_short["L"]["project_count"] == 0
+
+    found = _payload(_call(mcp_client, admin_token, "list_project_groups", {"search": "bedarf"}))
+    assert [g["short_name"] for g in found["groups"]] == ["BP"]
 
 
 def test_get_project_without_geometry(mcp_client, admin_token, db_session):
@@ -292,3 +334,145 @@ def test_update_project_rejects_unknown_field(mcp_client, admin_token, db_sessio
     )
     assert result["isError"] is True
     assert "foo" in result["content"][0]["text"]
+
+
+
+# The SQLite test schema has no observation tables, so the progress view and the
+# observation delete are stubbed (same convention as test_project_progress.py).
+
+
+def _stub_view(db, project_id, today=None):
+    progress = db.query(ProjectProgress).filter_by(project_id=project_id).first()
+    override = progress.manual_phase_override if progress else None
+    return {
+        "project_id": project_id,
+        "effective_phase": override or "NICHT_GESTARTET",
+        "computed_phase": "NICHT_GESTARTET",
+        "computed_confidence": 0.12,
+        "is_overridden": override is not None,
+        "manual_override_note": progress.manual_override_note if progress else None,
+        "computed_at": None,
+        "has_planfeststellung": False,
+        "parl_befassung_relevant": False,
+        "parl_befassung_relevant_override": None,
+        "lifecycle_status": "AKTIV",
+        "pf_state": "OFFEN",
+        "parl_state": "OFFEN",
+        "observations": [],
+        "contributions": [],
+        "pf_documents": [],
+        "parl_documents": [],
+        "is_superior": False,
+        "span_min_phase": None,
+        "span_max_phase": None,
+        "children": [],
+    }
+
+
+def test_set_and_clear_phase_override(mcp_client, admin_token, db_session, monkeypatch):
+    monkeypatch.setattr(progress_crud, "get_progress_view", _stub_view)
+    alpha, _ = _seed_projects(db_session)
+
+    missing_note = _call(
+        mcp_client, admin_token, "set_phase_override", {"project_id": alpha.id, "phase": "IN_BETRIEB"}
+    )
+    assert missing_note["isError"] is True
+    assert "note" in missing_note["content"][0]["text"]
+
+    view = _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "set_phase_override",
+            {"project_id": alpha.id, "phase": "IN_BETRIEB", "note": "Medien, 15.12.2024"},
+        )
+    )
+    assert view["effective_phase"] == "IN_BETRIEB"
+    assert view["is_overridden"] is True
+    progress = db_session.query(ProjectProgress).filter_by(project_id=alpha.id).one()
+    assert progress.manual_phase_override == "IN_BETRIEB"
+    assert progress.manual_override_note == "Medien, 15.12.2024"
+
+    cleared = _payload(
+        _call(mcp_client, admin_token, "set_phase_override", {"project_id": alpha.id})
+    )
+    assert cleared["is_overridden"] is False
+    db_session.refresh(progress)
+    assert progress.manual_phase_override is None
+    assert progress.manual_override_note is None
+
+
+def test_phase_override_needs_capability(mcp_client, db_session):
+    alpha, _ = _seed_projects(db_session)
+    user = _role_user(db_session, "reader", ["mcp.access"])
+    token = _key_for(db_session, user)
+    result = _call(
+        mcp_client,
+        token,
+        "set_phase_override",
+        {"project_id": alpha.id, "phase": "BAU", "note": "x"},
+    )
+    assert result["isError"] is True
+    assert "progress.edit" in result["content"][0]["text"]
+    assert db_session.query(ProjectProgress).filter_by(project_id=alpha.id).count() == 0
+
+
+def test_delete_progress_observation(mcp_client, admin_token, db_session, monkeypatch):
+    monkeypatch.setattr(progress_crud, "get_progress_view", _stub_view)
+    alpha, _ = _seed_projects(db_session)
+    calls = []
+
+    def fake_delete(db, project_id, observation_id):
+        calls.append((project_id, observation_id))
+        if observation_id == 7:
+            return True
+        if observation_id == 8:
+            raise progress_crud.DerivedObservationDeleteError("derived")
+        return None
+
+    monkeypatch.setattr(progress_crud, "delete_observation", fake_delete)
+
+    ok = _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "delete_progress_observation",
+            {"project_id": alpha.id, "observation_id": 7},
+        )
+    )
+    assert ok["project_id"] == alpha.id
+
+    derived = _call(
+        mcp_client,
+        admin_token,
+        "delete_progress_observation",
+        {"project_id": alpha.id, "observation_id": 8},
+    )
+    assert derived["isError"] is True
+    assert "Abgeleitete" in derived["content"][0]["text"]
+
+    missing = _call(
+        mcp_client,
+        admin_token,
+        "delete_progress_observation",
+        {"project_id": alpha.id, "observation_id": 9},
+    )
+    assert missing["isError"] is True
+    assert calls == [(alpha.id, 7), (alpha.id, 8), (alpha.id, 9)]
+
+
+def test_delete_observation_needs_capability(mcp_client, db_session, monkeypatch):
+    called = []
+    monkeypatch.setattr(progress_crud, "delete_observation", lambda *a: called.append(a))
+    alpha, _ = _seed_projects(db_session)
+    user = _role_user(db_session, "reader", ["mcp.access"])
+    token = _key_for(db_session, user)
+    result = _call(
+        mcp_client,
+        token,
+        "delete_progress_observation",
+        {"project_id": alpha.id, "observation_id": 1},
+    )
+    assert result["isError"] is True
+    assert "progress.edit" in result["content"][0]["text"]
+    assert called == []

@@ -11,6 +11,13 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 
 ## [Unreleased]
 
+### Added
+- **MCP: project groups and planning-state corrections.** New tools `list_project_groups`
+  (groups with project counts), `set_phase_override` (pin or clear the main phase, with a
+  required note) and `delete_progress_observation` (manual observations only).
+  `list_projects` now matches a project group by id, short name or name (case-insensitive)
+  and accepts a list of groups.
+
 ### Fixed
 - **The backend image creates `/app/uploads` owned by `appuser`.** A named volume created
   before the directory existed in the image was root-owned, so the app could write neither

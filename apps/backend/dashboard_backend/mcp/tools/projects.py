@@ -14,7 +14,7 @@ from mcp.server.mcpserver import Context, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
 from pydantic import ValidationError
-from sqlalchemy import func, or_
+from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session, selectinload
 
 from dashboard_backend.crud.changelog import (
@@ -60,6 +60,7 @@ MAX_LIMIT = 200
 
 READ_ONLY = ToolAnnotations(read_only_hint=True, open_world_hint=False)
 WRITE = ToolAnnotations(read_only_hint=False, destructive_hint=False, open_world_hint=False)
+DESTRUCTIVE = ToolAnnotations(read_only_hint=False, destructive_hint=True, open_world_hint=False)
 
 # Never sent to the client: geometry blobs are huge and useless as text.
 _GEOMETRY_FIELDS = {"geojson_representation", "centroid"}
@@ -97,9 +98,55 @@ def _text_dict(text: ProjectText) -> dict[str, Any]:
     return data
 
 
+def _group_filter(project_group: str):
+    """Match a project group by id, short name or name (case-insensitive)."""
+    value = project_group.strip()
+    lowered = value.lower()
+    clauses = [
+        func.lower(ProjectGroup.short_name) == lowered,
+        func.lower(ProjectGroup.name) == lowered,
+    ]
+    if value.isdigit():
+        clauses.append(ProjectGroup.id == int(value))
+    return or_(*clauses)
+
+
+def list_project_groups(search: str | None = None, *, ctx: Context) -> dict[str, Any]:
+    """Project groups (e.g. Bedarfsplan, Deutschlandtakt) with id, short name,
+    name and the number of (non-draft) projects. ``search`` is a case-insensitive
+    substring of short name or name. Use the short name or id as ``project_group``
+    in list_projects."""
+    get_principal(ctx)
+    project_count = func.count(Project.id)
+    with tool_session(ctx) as db:
+        query = (
+            db.query(ProjectGroup, project_count)
+            .outerjoin(ProjectGroup.projects.and_(Project.is_draft.is_(False)))
+            .group_by(ProjectGroup.id)
+        )
+        if search:
+            pattern = f"%{search.strip()}%"
+            query = query.filter(
+                or_(ProjectGroup.short_name.ilike(pattern), ProjectGroup.name.ilike(pattern))
+            )
+        rows = query.order_by(ProjectGroup.name, ProjectGroup.id).all()
+        return {
+            "groups": [
+                {
+                    "id": group.id,
+                    "short_name": group.short_name,
+                    "name": group.name,
+                    "description": group.description,
+                    "project_count": count,
+                }
+                for group, count in rows
+            ]
+        }
+
+
 def list_projects(
     search: str | None = None,
-    project_group: str | None = None,
+    project_group: str | list[str] | None = None,
     phase: MainPhaseLiteral | None = None,
     superior_project_id: int | None = None,
     limit: int = 50,
@@ -110,7 +157,8 @@ def list_projects(
     """Search projects (drafts excluded), sorted by name.
 
     - search: case-insensitive substring of name or project number
-    - project_group: short name or id of a project group
+    - project_group: id, short name or name of a project group (case-insensitive,
+      see list_project_groups); a list matches projects in all of the groups
     - phase: planning phase (cached headline; manual override wins)
     - superior_project_id: only direct subprojects of this project
     Returns ``total`` plus one page of compact entries; use get_project for details.
@@ -132,11 +180,12 @@ def list_projects(
             query = query.filter(
                 or_(Project.name.ilike(pattern), Project.project_number.ilike(pattern))
             )
-        if project_group:
-            group_filter = ProjectGroup.short_name == project_group
-            if project_group.isdigit():
-                group_filter = or_(group_filter, ProjectGroup.id == int(project_group))
-            query = query.filter(Project.project_groups.any(group_filter))
+        groups = [project_group] if isinstance(project_group, str) else project_group or []
+        groups = [g for g in groups if g.strip()]
+        if groups:
+            query = query.filter(
+                and_(*(Project.project_groups.any(_group_filter(g)) for g in groups))
+            )
         if phase:
             query = query.filter(effective_phase == phase)
         if superior_project_id is not None:
@@ -291,6 +340,62 @@ def add_progress_observation(
         return ProjectProgressSchema.model_validate(view).model_dump(mode="json")
 
 
+def delete_progress_observation(
+    project_id: int, observation_id: int, *, ctx: Context
+) -> dict[str, Any]:
+    """Delete a manual planning-state observation (requires ``progress.edit``),
+    e.g. a duplicate or a wrong entry. Observation ids are listed by
+    get_project_progress. Derived observations (``is_derived``, from the
+    imports) cannot be deleted. Returns the recomputed planning state."""
+    principal = get_principal(ctx)
+    require(principal, "progress.edit")
+    with tool_session(ctx) as db:
+        _project_or_error(db, project_id)
+        try:
+            deleted = progress_crud.delete_observation(db, project_id, observation_id)
+        except progress_crud.DerivedObservationDeleteError as exc:
+            raise ToolError(
+                "Abgeleitete Beobachtungen stammen aus den Importen und lassen sich "
+                "nicht löschen."
+            ) from exc
+        if deleted is None:
+            raise ToolError(f"Beobachtung {observation_id} gehört nicht zu Projekt {project_id}.")
+        view = progress_crud.get_progress_view(db, project_id)
+        return ProjectProgressSchema.model_validate(view).model_dump(mode="json")
+
+
+def set_phase_override(
+    project_id: int,
+    phase: MainPhaseLiteral | None = None,
+    note: str | None = None,
+    *,
+    ctx: Context,
+) -> dict[str, Any]:
+    """Set or clear the manual phase override of a project (requires
+    ``progress.edit``). The override wins over the phase computed from the
+    observations; the observations stay untouched as evidence.
+
+    - phase: the phase to pin; ``null`` clears the override (the computed phase
+      applies again)
+    - note: why the override is set (required when setting, e.g. the source)
+    An override on a superior project pins its whole subtree.
+    Returns the recomputed planning state."""
+    principal = get_principal(ctx)
+    require(principal, "progress.edit")
+    if phase is not None and not (note and note.strip()):
+        raise ToolError("Zum Setzen eines Overrides ist eine Begründung (note) nötig.")
+    payload: dict[str, Any] = (
+        {"manual_phase_override": phase, "manual_override_note": note.strip()}
+        if phase is not None
+        else {"clear_phase_override": True}
+    )
+    with tool_session(ctx) as db:
+        _project_or_error(db, project_id)
+        progress_crud.update_progress(db, project_id, payload)
+        view = progress_crud.get_progress_view(db, project_id)
+        return ProjectProgressSchema.model_validate(view).model_dump(mode="json")
+
+
 def upsert_project_text(
     project_id: int,
     header: str | None = None,
@@ -353,6 +458,7 @@ def upsert_project_text(
 
 def register(server: MCPServer) -> None:
     for fn in (
+        list_project_groups,
         list_projects,
         get_project,
         get_project_progress,
@@ -361,5 +467,6 @@ def register(server: MCPServer) -> None:
         list_text_types,
     ):
         server.add_tool(fn, annotations=READ_ONLY)
-    for fn in (update_project, add_progress_observation, upsert_project_text):
+    for fn in (update_project, add_progress_observation, set_phase_override, upsert_project_text):
         server.add_tool(fn, annotations=WRITE)
+    server.add_tool(delete_progress_observation, annotations=DESTRUCTIVE)
