@@ -88,7 +88,7 @@ Long-running operations (PDF parsing, route computation) run as Celery tasks so 
 | `GET /api/v1/tasks/{task_id}` | Polls task status — returns `PENDING`, `STARTED`, `SUCCESS`, or `FAILURE` |
 
 **Dev:** Redis runs in Docker (`make docker-dev-up`); worker starts locally with `make celery-worker`.
-**Prod:** A dedicated `worker` container uses the same backend image with the Celery command as entrypoint (see `docker-compose.yml`).
+**Prod:** A dedicated `worker` container uses the same backend image with the Celery command as entrypoint (see `compose.yaml`).
 **Tests:** `CELERY_BROKER_URL=memory://` and `CELERY_RESULT_BACKEND=cache+memory://` are set in `tests/conftest.py`; `task_always_eager=True` runs tasks in-process without a broker.
 
 Both the status endpoint and task-launch endpoints require a logged-in user (any role).
