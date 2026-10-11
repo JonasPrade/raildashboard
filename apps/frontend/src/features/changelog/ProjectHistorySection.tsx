@@ -184,6 +184,11 @@ function actionLabel(action: string): string {
     }
 }
 
+// Planning-state entries are history only; a creation has no earlier value to restore.
+function isRevertible(log: ChangeLog, entry: ChangeLogEntry): boolean {
+    return log.action !== "CREATE" && !isProgressField(entry.field_name);
+}
+
 // ── Project field changelog item ──────────────────────────────────────────────
 
 type ChangeLogItemProps = {
@@ -235,8 +240,8 @@ function ChangeLogItem({ log, canEdit, revertingEntryId, onRevert, groupNames }:
                                     {formatEntryValue(entry, entry.old_value, groupNames)}
                                 </Table.Td>
                                 <Table.Td>{formatEntryValue(entry, entry.new_value, groupNames)}</Table.Td>
-                                {canEdit && isProgressField(entry.field_name) && <Table.Td />}
-                                {canEdit && !isProgressField(entry.field_name) && (
+                                {canEdit && !isRevertible(log, entry) && <Table.Td />}
+                                {canEdit && isRevertible(log, entry) && (
                                     <Table.Td>
                                         <Button
                                             size="xs"

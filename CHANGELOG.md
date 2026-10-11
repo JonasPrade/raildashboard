@@ -18,6 +18,10 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   `list_projects` now matches a project group by id, short name or name (case-insensitive)
   and accepts a list of groups. `set_project_groups` adds a project to or removes it from
   groups by id, short name or name.
+- **MCP: create projects and compute lengths.** `create_project` creates a (sub)project,
+  recorded as a `CREATE` entry in the project change log. `compute_project_length` returns
+  the length computed from the geometry (same calculation as the UI button) and can write
+  it to the length field.
 
 ### Changed
 - **Planning-state changes are written to the project change log** — from the UI and from

@@ -100,6 +100,42 @@ def create_changelog_for_patch(
     return changelog
 
 
+def create_changelog_for_create(
+    db: Session,
+    project: Project,
+    data: dict,
+    user_id: int | None,
+    username_snapshot: str | None,
+) -> ChangeLog | None:
+    """Record a newly created project: one entry per field set at creation
+    (old value None), groups as a sorted id list. The caller commits."""
+    entries = diff_to_entries(
+        ChangeLogEntry,
+        None,
+        {k: v for k, v in data.items() if v is not None},
+        skip_fields=_SKIP_FIELDS,
+    )
+    group_ids = sorted(g.id for g in project.project_groups)
+    if group_ids:
+        entries.append(
+            ChangeLogEntry(
+                field_name="project_group_ids", old_value=None, new_value=json.dumps(group_ids)
+            )
+        )
+    if not entries:
+        return None
+    changelog = ChangeLog(
+        project_id=project.id,
+        user_id=user_id,
+        username_snapshot=username_snapshot,
+        timestamp=datetime.utcnow(),
+        action="CREATE",
+        entries=entries,
+    )
+    db.add(changelog)
+    return changelog
+
+
 def get_project_changelog(db: Session, project_id: int) -> list[ChangeLog]:
     """Return all ChangeLog records for a project, newest first."""
     return (

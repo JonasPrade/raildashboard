@@ -202,6 +202,8 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `list_project_finves` | Finanzierungsvereinbarungen und Budgets eines Projekts | — |
 | `get_project_texts` | Projekttexte nach Typ | — |
 | `list_todos` | Aufgaben, gefiltert | — |
+| `create_project` | Projekt/Unterprojekt anlegen (final, ohne Geometrie) | `project.create` |
+| `compute_project_length` | Länge aus der Geometrie berechnen, optional übernehmen | — / `project.edit` mit `apply` |
 | `update_project` | Projektfelder ändern | `project.edit` |
 | `set_project_groups` | Projekt Gruppen hinzufügen/entfernen (id, Kurzname, Name) | `project.edit` |
 | `add_progress_observation` | Planungsstand-Beobachtung ergänzen | `progress.edit` |
@@ -323,6 +325,17 @@ Client-seitig (Claude Code, `.mcp.json`):
   REST/Oberfläche — als Feld `project_group_ids` (sortierte id-Liste) im
   `change_log` und sind über den bestehenden Revert rücknehmbar; die Historie zeigt
   die Kurznamen.
+- **Projekte anlegen** (2026-10-11): `create_project` legt ein Projekt direkt final
+  an (kein Entwurf), typischerweise als Etappe mit `superior_project_id`; Gruppen per
+  id/Kurzname/Name, weitere Felder über `fields` wie bei `update_project`. Geometrie
+  und Entwurfs-Flag sind gesperrt. Die Anlage steht als `CREATE`-Eintrag (ein Feld je
+  gesetztem Wert, Gruppen als id-Liste) im `change_log`; die Historie bietet dafür
+  kein „Zurücksetzen“ an.
+- **Länge aus Geometrie** (2026-10-11): `compute_project_length` rechnet wie der
+  Knopf „Länge aus Geometrie berechnen“ (Python-Port von `shared/geo/length.ts` in
+  `services/geo_length.py`, Haversine, 0,01 km) und liefert berechnete und
+  gespeicherte Länge; die Geometrie selbst bleibt außen vor. `apply=true` schreibt
+  den Wert über den `change_log` ins Feld `length`.
 - **Planungsstand im `change_log`** (2026-10-11): Jede Planungsstand-Änderung —
   Flags, Overrides, PF-/Parlaments-Angaben, Beobachtung angelegt/gelöscht,
   Dokument verknüpft/gelöst — schreibt die CRUD-Schicht (`crud/projects/progress.py`)

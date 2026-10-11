@@ -18,6 +18,7 @@ from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session, selectinload
 
 from dashboard_backend.crud.changelog import (
+    create_changelog_for_create,
     create_changelog_for_patch,
     create_text_changelog_for_create,
     create_text_changelog_for_patch,
@@ -27,6 +28,7 @@ from dashboard_backend.crud.projects import progress as progress_crud
 from dashboard_backend.crud.projects.bvwp import get_bvwp_data
 from dashboard_backend.crud.projects.projects import (
     ProjectHierarchyError,
+    create_project as create_project_crud,
     get_project_by_id,
     get_subprojects,
     update_project as update_project_crud,
@@ -53,8 +55,10 @@ from dashboard_backend.schemas.projects.progress_schema import (
     SourceTypeLiteral,
     TrackLiteral,
 )
+from dashboard_backend.schemas.projects.project_create_schema import ProjectCreate
 from dashboard_backend.schemas.projects.project_text_schema import ProjectTextSchema
 from dashboard_backend.schemas.projects.project_update_schema import ProjectUpdate
+from dashboard_backend.services.geo_length import compute_geojson_length_km
 
 MAX_LIMIT = 200
 
@@ -111,6 +115,16 @@ def _group_filter(project_group: str):
     if value.isdigit():
         clauses.append(ProjectGroup.id == int(value))
     return or_(*clauses)
+
+
+def _resolve_group_ids(db: Session, values: list[str]) -> set[int]:
+    ids = set()
+    for value in values:
+        group = db.query(ProjectGroup).filter(_group_filter(value)).first()
+        if group is None:
+            raise ToolError(f"Projektgruppe '{value}' nicht gefunden.")
+        ids.add(group.id)
+    return ids
 
 
 def list_project_groups(search: str | None = None, *, ctx: Context) -> dict[str, Any]:
@@ -268,6 +282,109 @@ def list_text_types(*, ctx: Context) -> list[dict[str, Any]]:
         return [{"id": t.id, "name": t.name} for t in get_text_types(db)]
 
 
+def create_project(
+    name: str,
+    superior_project_id: int | None = None,
+    project_number: str | None = None,
+    description: str | None = None,
+    project_groups: list[str] | None = None,
+    fields: dict[str, Any] | None = None,
+    *,
+    ctx: Context,
+) -> dict[str, Any]:
+    """Create a project, e.g. a subproject (stage) of an existing one (requires
+    ``project.create``). The project is created final, not as a draft.
+
+    - superior_project_id: the parent project (see get_project for subprojects)
+    - project_groups: ids, short names or names (see list_project_groups)
+    - fields: further project fields as in update_project, e.g. {"length": 12.5}
+    Geometry cannot be set here. The creation is written to the project
+    changelog. Returns the new project."""
+    principal = get_principal(ctx)
+    require(principal, "project.create")
+    extra = dict(fields or {})
+    blocked = sorted(set(extra) & (_READONLY_UPDATE_FIELDS | {_GROUP_FIELD}))
+    if blocked:
+        raise ToolError(f"Diese Felder sind hier nicht setzbar: {', '.join(blocked)}")
+    unknown = sorted(set(extra) - set(ProjectCreate.model_fields))
+    if unknown:
+        raise ToolError(f"Unbekannte Felder: {', '.join(unknown)}")
+    extra.update(
+        {
+            key: value
+            for key, value in {
+                "name": name,
+                "superior_project_id": superior_project_id,
+                "project_number": project_number,
+                "description": description,
+            }.items()
+            if value is not None
+        }
+    )
+    try:
+        data = ProjectCreate.model_validate(extra).model_dump(exclude_unset=True)
+    except ValidationError as exc:
+        raise ToolError(f"Ungültige Werte: {exc}") from exc
+    data["is_draft"] = False
+
+    with tool_session(ctx) as db:
+        if "superior_project_id" in data:
+            try:
+                validate_superior_project(db, None, data["superior_project_id"])
+            except ProjectHierarchyError as exc:
+                raise ToolError(str(exc)) from exc
+        groups = [g for g in project_groups or [] if g.strip()]
+        if groups:
+            data[_GROUP_FIELD] = sorted(_resolve_group_ids(db, groups))
+        user = load_user(db, principal)
+        project = create_project_crud(db, data)
+        create_changelog_for_create(
+            db,
+            project,
+            {k: v for k, v in data.items() if k not in {"is_draft", _GROUP_FIELD}},
+            user.id,
+            user.username,
+        )
+        db.commit()
+        db.refresh(project)
+        return _project_dict(project)
+
+
+def compute_project_length(
+    project_id: int, apply: bool = False, *, ctx: Context
+) -> dict[str, Any]:
+    """Length in km computed from the project geometry — the same calculation as
+    "Länge aus Geometrie berechnen" in the UI (geodesic sum over all lines).
+    Returns the computed and the stored length. With ``apply=true`` the computed
+    value is written to the ``length`` field (requires ``project.edit``; recorded
+    in the changelog)."""
+    principal = get_principal(ctx)
+    if apply:
+        require(principal, "project.edit")
+    with tool_session(ctx) as db:
+        project = _project_or_error(db, project_id)
+        computed = compute_geojson_length_km(project.geojson_representation)
+        result = {
+            "project_id": project.id,
+            "has_geometry": bool(project.geojson_representation),
+            "geometry_from_subprojects": bool(project.geojson_from_subprojects),
+            "computed_length_km": computed,
+            "stored_length_km": project.length,
+            "applied": False,
+        }
+        if not apply:
+            return result
+        if computed is None:
+            raise ToolError("Aus der Projektgeometrie lässt sich keine Länge berechnen.")
+        if project.length != computed:
+            update_data = {"length": computed}
+            user = load_user(db, principal)
+            create_changelog_for_patch(db, project, update_data, user.id, user.username)
+            project = update_project_crud(db, project.id, update_data, project=project)
+        result.update(stored_length_km=project.length, applied=True)
+        return result
+
+
 def update_project(project_id: int, changes: dict[str, Any], *, ctx: Context) -> dict[str, Any]:
     """Change project fields (requires ``project.edit``). ``changes`` maps field
     names to new values, e.g. {"description": "…", "nbs": true}; see get_project
@@ -325,17 +442,7 @@ def set_project_groups(
 
     with tool_session(ctx) as db:
         project = _project_or_error(db, project_id)
-
-        def resolve(values: list[str]) -> set[int]:
-            ids = set()
-            for value in values:
-                group = db.query(ProjectGroup).filter(_group_filter(value)).first()
-                if group is None:
-                    raise ToolError(f"Projektgruppe '{value}' nicht gefunden.")
-                ids.add(group.id)
-            return ids
-
-        add_ids, remove_ids = resolve(add), resolve(remove)
+        add_ids, remove_ids = _resolve_group_ids(db, add), _resolve_group_ids(db, remove)
         if add_ids & remove_ids:
             raise ToolError("Eine Gruppe steht sowohl in add als auch in remove.")
         current = {g.id for g in project.project_groups}
@@ -524,6 +631,8 @@ def register(server: MCPServer) -> None:
     ):
         server.add_tool(fn, annotations=READ_ONLY)
     for fn in (
+        create_project,
+        compute_project_length,
         update_project,
         set_project_groups,
         add_progress_observation,

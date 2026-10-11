@@ -146,6 +146,8 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
         "list_project_finves",
         "get_project_texts",
         "list_text_types",
+        "create_project",
+        "compute_project_length",
         "update_project",
         "set_project_groups",
         "add_progress_observation",
@@ -597,6 +599,117 @@ def test_set_project_groups_needs_capability(mcp_client, create_user, db_session
     alpha, _ = _seed_projects(db_session)
     result = _call(
         mcp_client, token, "set_project_groups", {"project_id": alpha.id, "remove": ["BP"]}
+    )
+    assert result["isError"] is True
+    assert "project.edit" in result["content"][0]["text"]
+
+
+LINE_1_DEGREE = json.dumps({"type": "LineString", "coordinates": [[0, 0], [1, 0]]})
+
+
+def test_create_subproject_writes_changelog(mcp_client, admin_token, db_session):
+    alpha, _ = _seed_projects(db_session)
+    created = _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "create_project",
+            {
+                "name": "ABS Alpha – Etappe 1",
+                "superior_project_id": alpha.id,
+                "project_groups": ["bp"],
+                "fields": {"length": 12.5},
+            },
+        )
+    )
+    assert created["superior_project_id"] == alpha.id
+    assert created["is_draft"] is False
+    assert created["length"] == 12.5
+    assert "geojson_representation" not in created
+
+    project = db_session.query(Project).filter_by(id=created["id"]).one()
+    assert [g.short_name for g in project.project_groups] == ["BP"]
+    listed = _payload(
+        _call(mcp_client, admin_token, "list_projects", {"superior_project_id": alpha.id})
+    )
+    assert [p["id"] for p in listed["projects"]] == [project.id]
+
+    changelog = db_session.query(ChangeLog).filter_by(project_id=project.id).one()
+    assert changelog.action == "CREATE"
+    assert changelog.username_snapshot == "admin"
+    entries = {e.field_name: (e.old_value, e.new_value) for e in changelog.entries}
+    assert entries["name"] == (None, '"ABS Alpha \\u2013 Etappe 1"')
+    assert entries["superior_project_id"] == (None, str(alpha.id))
+    assert entries["length"] == (None, "12.5")
+    assert entries["project_group_ids"] == (None, json.dumps([project.project_groups[0].id]))
+    assert "is_draft" not in entries
+
+
+def test_create_project_rejections(mcp_client, admin_token, db_session):
+    _seed_projects(db_session)
+    for arguments, needle in (
+        ({"name": "X", "superior_project_id": 999999}, ""),
+        ({"name": "X", "fields": {"geojson_representation": "{}"}}, "geojson_representation"),
+        ({"name": "X", "fields": {"foo": 1}}, "foo"),
+        ({"name": "X", "project_groups": ["XYZ"]}, "XYZ"),
+    ):
+        result = _call(mcp_client, admin_token, "create_project", arguments)
+        assert result["isError"] is True, arguments
+        assert needle in result["content"][0]["text"]
+    assert db_session.query(Project).filter_by(name="X").count() == 0
+
+
+def test_create_project_needs_capability(mcp_client, create_user, db_session):
+    admin = create_user("admin", "adminpass", UserRole.admin)
+    token = _key_for(db_session, admin, scopes=["mcp.access"])
+    result = _call(mcp_client, token, "create_project", {"name": "Nope"})
+    assert result["isError"] is True
+    assert "project.create" in result["content"][0]["text"]
+
+
+def test_compute_project_length(mcp_client, admin_token, db_session):
+    alpha, beta = _seed_projects(db_session)
+    alpha.geojson_representation = LINE_1_DEGREE
+    alpha.length = 70.0
+    db_session.commit()
+
+    preview = _payload(
+        _call(mcp_client, admin_token, "compute_project_length", {"project_id": alpha.id})
+    )
+    assert preview["has_geometry"] is True
+    assert 110 < preview["computed_length_km"] < 112
+    assert preview["stored_length_km"] == 70.0
+    assert preview["applied"] is False
+    assert db_session.query(ChangeLog).filter_by(project_id=alpha.id).count() == 0
+
+    applied = _payload(
+        _call(
+            mcp_client, admin_token, "compute_project_length", {"project_id": alpha.id, "apply": True}
+        )
+    )
+    assert applied["applied"] is True
+    assert applied["stored_length_km"] == preview["computed_length_km"]
+    [entry] = db_session.query(ChangeLog).filter_by(project_id=alpha.id).one().entries
+    assert entry.field_name == "length"
+    assert entry.old_value == "70.0"
+
+    no_geometry = _call(
+        mcp_client, admin_token, "compute_project_length", {"project_id": beta.id, "apply": True}
+    )
+    assert no_geometry["isError"] is True
+
+
+def test_compute_length_apply_needs_capability(mcp_client, create_user, db_session):
+    admin = create_user("admin", "adminpass", UserRole.admin)
+    token = _key_for(db_session, admin, scopes=["mcp.access"])
+    alpha, _ = _seed_projects(db_session)
+    alpha.geojson_representation = LINE_1_DEGREE
+    db_session.commit()
+    assert _call(mcp_client, token, "compute_project_length", {"project_id": alpha.id})[
+        "isError"
+    ] is False
+    result = _call(
+        mcp_client, token, "compute_project_length", {"project_id": alpha.id, "apply": True}
     )
     assert result["isError"] is True
     assert "project.edit" in result["content"][0]["text"]

@@ -334,7 +334,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "The token (rdb_…) is shown exactly once, together with a ready-made .mcp.json snippet; only its hash is stored",
             "Presets: \"Nur lesen\" (default) or \"Wie mein Nutzer\" (adds write tools); every key expires after 90 days",
             "Read tools: project groups, projects (search/filter by text, group, phase), project detail incl. BVWP, planning state, FinVes with budgets, texts, tasks",
-            "Write tools: update project fields and group assignment, add/delete planning-state observations, set/clear the phase override, create/update texts and tasks — all in the changelog",
+            "Write tools: create (sub)projects, compute the length from the geometry, update project fields and group assignment, add/delete planning-state observations, set/clear the phase override, create/update texts and tasks — all in the changelog",
             "Keys also work against the REST API (Authorization: Bearer …), narrowed to their scopes without the admin bypass",
             "Details: docs/features/feature-mcp-server.md"
         ]
