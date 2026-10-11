@@ -15,6 +15,7 @@ import { notifications } from "@mantine/notifications";
 
 import {
     useProjectChangelog,
+    useProjectGroups,
     useProjectTextChangelog,
     useRevertProjectField,
     type ChangeLog,
@@ -83,6 +84,7 @@ const PROJECT_FIELD_LABELS: Record<string, string> = {
     tilting: "Neigetechnik",
     geojson_representation: "GeoJSON-Geometrie",
     geojson_from_subprojects: "Geometrie aus Unterprojekten",
+    project_group_ids: "Projektgruppen",
 };
 
 // Planning-state changes share the project changelog under a "progress." prefix.
@@ -144,6 +146,29 @@ function formatValue(value: string | null | undefined): string {
 }
 
 
+// Group memberships are logged as id lists (so they stay revertible); show short names.
+function formatGroupIds(value: string | null | undefined, groupNames: Map<number, string>): string {
+    if (value == null) return "–";
+    try {
+        const ids = JSON.parse(value);
+        if (!Array.isArray(ids)) return formatValue(value);
+        if (ids.length === 0) return "–";
+        return ids.map((id: number) => groupNames.get(id) ?? `#${id}`).join(", ");
+    } catch {
+        return value;
+    }
+}
+
+function formatEntryValue(
+    entry: ChangeLogEntry,
+    value: string | null | undefined,
+    groupNames: Map<number, string>,
+): string {
+    return entry.field_name === "project_group_ids"
+        ? formatGroupIds(value, groupNames)
+        : formatValue(value);
+}
+
 function actionLabel(action: string): string {
     switch (action) {
         case "REVERT":
@@ -166,9 +191,10 @@ type ChangeLogItemProps = {
     canEdit: boolean;
     revertingEntryId: number | null;
     onRevert: (entryId: number) => void;
+    groupNames: Map<number, string>;
 };
 
-function ChangeLogItem({ log, canEdit, revertingEntryId, onRevert }: ChangeLogItemProps) {
+function ChangeLogItem({ log, canEdit, revertingEntryId, onRevert, groupNames }: ChangeLogItemProps) {
     const date = formatDateTimeShort(log.timestamp);
     const isProgressLog = log.entries.length > 0 && log.entries.every((e) => isProgressField(e.field_name));
 
@@ -205,8 +231,10 @@ function ChangeLogItem({ log, canEdit, revertingEntryId, onRevert }: ChangeLogIt
                         {log.entries.map((entry: ChangeLogEntry) => (
                             <Table.Tr key={entry.id}>
                                 <Table.Td fw={500}>{fieldLabel(entry.field_name, "project")}</Table.Td>
-                                <Table.Td c="dimmed">{formatValue(entry.old_value)}</Table.Td>
-                                <Table.Td>{formatValue(entry.new_value)}</Table.Td>
+                                <Table.Td c="dimmed">
+                                    {formatEntryValue(entry, entry.old_value, groupNames)}
+                                </Table.Td>
+                                <Table.Td>{formatEntryValue(entry, entry.new_value, groupNames)}</Table.Td>
                                 {canEdit && isProgressField(entry.field_name) && <Table.Td />}
                                 {canEdit && !isProgressField(entry.field_name) && (
                                     <Table.Td>
@@ -316,6 +344,16 @@ export default function ProjectHistorySection({ projectId, canEdit }: ProjectHis
     const { data: projectLogs, isLoading: projectLoading, isError: projectError } = useProjectChangelog(projectId);
     const { data: textLogs, isLoading: textLoading, isError: textError } = useProjectTextChangelog(projectId);
     const revertMutation = useRevertProjectField(projectId);
+    const { data: projectGroups } = useProjectGroups();
+    const groupNames = useMemo(
+        () =>
+            new Map<number, string>(
+                (projectGroups ?? [])
+                    .filter((g) => g.id != null)
+                    .map((g) => [g.id as number, g.short_name ?? g.name ?? `#${g.id}`]),
+            ),
+        [projectGroups],
+    );
     const [revertingEntryId, setRevertingEntryId] = useState<number | null>(null);
 
     const isLoading = projectLoading || textLoading;
@@ -386,6 +424,7 @@ export default function ProjectHistorySection({ projectId, canEdit }: ProjectHis
                             canEdit={canEdit}
                             revertingEntryId={revertingEntryId}
                             onRevert={handleRevert}
+                            groupNames={groupNames}
                         />
                     ) : (
                         <TextChangeLogItem key={`text-${entry.log.id}`} log={entry.log} />

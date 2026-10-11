@@ -67,6 +67,8 @@ _GEOMETRY_FIELDS = {"geojson_representation", "centroid"}
 # Fields update_project may not touch: geometry (no meaningful text edit) and the
 # draft flag (finalizing is a separate workflow in the UI).
 _READONLY_UPDATE_FIELDS = {"geojson_representation", "is_draft"}
+# Changed through set_project_groups, which resolves names and keeps other groups.
+_GROUP_FIELD = "project_group_ids"
 
 
 def _project_or_error(db: Session, project_id: int) -> Project:
@@ -269,10 +271,13 @@ def list_text_types(*, ctx: Context) -> list[dict[str, Any]]:
 def update_project(project_id: int, changes: dict[str, Any], *, ctx: Context) -> dict[str, Any]:
     """Change project fields (requires ``project.edit``). ``changes`` maps field
     names to new values, e.g. {"description": "…", "nbs": true}; see get_project
-    for the field names. Geometry and the draft flag cannot be changed here.
+    for the field names. Geometry and the draft flag cannot be changed here;
+    use set_project_groups for the group assignment.
     Every change is written to the project changelog and can be reverted in the UI."""
     principal = get_principal(ctx)
     require(principal, "project.edit")
+    if _GROUP_FIELD in changes:
+        raise ToolError("Projektgruppen bitte mit set_project_groups ändern.")
     blocked = sorted(set(changes) & _READONLY_UPDATE_FIELDS)
     if blocked:
         raise ToolError(f"Diese Felder sind über MCP nicht änderbar: {', '.join(blocked)}")
@@ -297,6 +302,56 @@ def update_project(project_id: int, changes: dict[str, Any], *, ctx: Context) ->
         create_changelog_for_patch(db, project, update_data, user.id, user.username)
         updated = update_project_crud(db, project.id, update_data, project=project)
         return _project_dict(updated)
+
+
+def set_project_groups(
+    project_id: int,
+    add: list[str] | None = None,
+    remove: list[str] | None = None,
+    *,
+    ctx: Context,
+) -> dict[str, Any]:
+    """Add the project to and/or remove it from project groups (requires
+    ``project.edit``). Groups are given by id, short name or name
+    (case-insensitive, see list_project_groups); other memberships stay.
+    The change is written to the project changelog and can be reverted in the UI.
+    Returns the project's groups afterwards."""
+    principal = get_principal(ctx)
+    require(principal, "project.edit")
+    add = [g for g in add or [] if g.strip()]
+    remove = [g for g in remove or [] if g.strip()]
+    if not add and not remove:
+        raise ToolError("Keine Gruppen übergeben (add oder remove).")
+
+    with tool_session(ctx) as db:
+        project = _project_or_error(db, project_id)
+
+        def resolve(values: list[str]) -> set[int]:
+            ids = set()
+            for value in values:
+                group = db.query(ProjectGroup).filter(_group_filter(value)).first()
+                if group is None:
+                    raise ToolError(f"Projektgruppe '{value}' nicht gefunden.")
+                ids.add(group.id)
+            return ids
+
+        add_ids, remove_ids = resolve(add), resolve(remove)
+        if add_ids & remove_ids:
+            raise ToolError("Eine Gruppe steht sowohl in add als auch in remove.")
+        current = {g.id for g in project.project_groups}
+        new_ids = sorted((current | add_ids) - remove_ids)
+        if set(new_ids) != current:
+            update_data = {_GROUP_FIELD: new_ids}
+            user = load_user(db, principal)
+            create_changelog_for_patch(db, project, update_data, user.id, user.username)
+            project = update_project_crud(db, project.id, update_data, project=project)
+        return {
+            "project_id": project.id,
+            "project_groups": [
+                {"id": g.id, "short_name": g.short_name, "name": g.name}
+                for g in sorted(project.project_groups, key=lambda g: g.id)
+            ],
+        }
 
 
 def add_progress_observation(
@@ -468,6 +523,12 @@ def register(server: MCPServer) -> None:
         list_text_types,
     ):
         server.add_tool(fn, annotations=READ_ONLY)
-    for fn in (update_project, add_progress_observation, set_phase_override, upsert_project_text):
+    for fn in (
+        update_project,
+        set_project_groups,
+        add_progress_observation,
+        set_phase_override,
+        upsert_project_text,
+    ):
         server.add_tool(fn, annotations=WRITE)
     server.add_tool(delete_progress_observation, annotations=DESTRUCTIVE)

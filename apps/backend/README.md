@@ -127,7 +127,8 @@ Streamable HTTP, stateless, JSON responses, disabled with `MCP_ENABLED=false`. O
 keys holding `mcp.access` get in (admin-only for now); tools call the CRUD layer directly
 and check the key's capabilities before writing. Tools: `list_project_groups`, `list_projects`,
 `get_project`, `get_project_progress`, `list_project_finves`, `get_project_texts`,
-`list_text_types`, `list_todos` (read) and `update_project`, `add_progress_observation`,
+`list_text_types`, `list_todos` (read) and `update_project`, `set_project_groups`,
+`add_progress_observation`,
 `delete_progress_observation`, `set_phase_override`, `upsert_project_text`, `create_todo`,
 `update_todo` (write). Claude Code config:
 

@@ -203,6 +203,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `get_project_texts` | Projekttexte nach Typ | — |
 | `list_todos` | Aufgaben, gefiltert | — |
 | `update_project` | Projektfelder ändern | `project.edit` |
+| `set_project_groups` | Projekt Gruppen hinzufügen/entfernen (id, Kurzname, Name) | `project.edit` |
 | `add_progress_observation` | Planungsstand-Beobachtung ergänzen | `progress.edit` |
 | `delete_progress_observation` | manuelle Beobachtung löschen (abgeleitete nicht) | `progress.edit` |
 | `set_phase_override` | manuellen Phasen-Override setzen (mit Begründung) oder aufheben | `progress.edit` |
@@ -316,6 +317,12 @@ Client-seitig (Claude Code, `.mcp.json`):
   Begründung (`note` → `manual_override_note`), `phase = null` hebt ihn auf.
   `delete_progress_observation` löscht manuelle Beobachtungen; abgeleitete
   (`is_derived`, aus den Importen) bleiben wie in der REST-API geschützt.
+- **Projektgruppen** (2026-10-11): `set_project_groups(add, remove)` löst Gruppen
+  wie `list_projects` auf und lässt übrige Zuordnungen stehen; `update_project`
+  lehnt `project_group_ids` ab und verweist darauf. Gruppenwechsel landen — auch über
+  REST/Oberfläche — als Feld `project_group_ids` (sortierte id-Liste) im
+  `change_log` und sind über den bestehenden Revert rücknehmbar; die Historie zeigt
+  die Kurznamen.
 - **Planungsstand im `change_log`** (2026-10-11): Jede Planungsstand-Änderung —
   Flags, Overrides, PF-/Parlaments-Angaben, Beobachtung angelegt/gelöscht,
   Dokument verknüpft/gelöst — schreibt die CRUD-Schicht (`crud/projects/progress.py`)

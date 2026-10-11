@@ -147,6 +147,7 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
         "get_project_texts",
         "list_text_types",
         "update_project",
+        "set_project_groups",
         "add_progress_observation",
         "delete_progress_observation",
         "set_phase_override",
@@ -525,3 +526,77 @@ def test_delete_observation_needs_capability(mcp_client, db_session, monkeypatch
     assert result["isError"] is True
     assert "progress.edit" in result["content"][0]["text"]
     assert called == []
+
+
+def test_set_project_groups_logs_and_reverts(mcp_client, admin_token, db_session):
+    alpha, _ = _seed_projects(db_session)  # alpha is in BP
+    dt = ProjectGroup(name="Deutschlandtakt", short_name="DT", color="#000000")
+    db_session.add(dt)
+    db_session.commit()
+    bp_id = alpha.project_groups[0].id
+
+    result = _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "set_project_groups",
+            {"project_id": alpha.id, "add": ["deutschlandtakt"], "remove": ["BP"]},
+        )
+    )
+    assert [g["short_name"] for g in result["project_groups"]] == ["DT"]
+    db_session.refresh(alpha)
+    assert [g.id for g in alpha.project_groups] == [dt.id]
+
+    changelog = db_session.query(ChangeLog).filter(ChangeLog.project_id == alpha.id).one()
+    assert changelog.username_snapshot == "admin"
+    [entry] = changelog.entries
+    assert entry.field_name == "project_group_ids"
+    assert json.loads(entry.old_value) == [bp_id]
+    assert json.loads(entry.new_value) == [dt.id]
+
+    # The entry is revertible like any project field.
+    reverted = mcp_client.post(
+        f"/api/v1/projects/{alpha.id}/changelog/revert",
+        json={"changelog_entry_id": entry.id},
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert reverted.status_code == 200, reverted.text
+    db_session.refresh(alpha)
+    assert [g.id for g in alpha.project_groups] == [bp_id]
+    assert db_session.query(ChangeLog).filter_by(project_id=alpha.id, action="REVERT").count() == 1
+
+
+def test_set_project_groups_errors(mcp_client, admin_token, db_session):
+    alpha, _ = _seed_projects(db_session)
+    unknown = _call(
+        mcp_client, admin_token, "set_project_groups", {"project_id": alpha.id, "add": ["XYZ"]}
+    )
+    assert unknown["isError"] is True
+    assert "XYZ" in unknown["content"][0]["text"]
+
+    via_update = _call(
+        mcp_client,
+        admin_token,
+        "update_project",
+        {"project_id": alpha.id, "changes": {"project_group_ids": []}},
+    )
+    assert via_update["isError"] is True
+    assert "set_project_groups" in via_update["content"][0]["text"]
+
+    # Already a member: nothing changes, nothing is logged.
+    same = _payload(
+        _call(mcp_client, admin_token, "set_project_groups", {"project_id": alpha.id, "add": ["BP"]})
+    )
+    assert [g["short_name"] for g in same["project_groups"]] == ["BP"]
+    assert db_session.query(ChangeLog).filter_by(project_id=alpha.id).count() == 0
+
+
+def test_set_project_groups_needs_capability(mcp_client, create_user, db_session):
+    admin = create_user("admin", "adminpass", UserRole.admin)
+    token = _key_for(db_session, admin, scopes=["mcp.access"])
+    alpha, _ = _seed_projects(db_session)
+    result = _call(
+        mcp_client, token, "set_project_groups", {"project_id": alpha.id, "remove": ["BP"]}
+    )
+    assert result["isError"] is True
+    assert "project.edit" in result["content"][0]["text"]

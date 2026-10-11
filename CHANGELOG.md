@@ -16,13 +16,16 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   (groups with project counts), `set_phase_override` (pin or clear the main phase, with a
   required note) and `delete_progress_observation` (manual observations only).
   `list_projects` now matches a project group by id, short name or name (case-insensitive)
-  and accepts a list of groups.
+  and accepts a list of groups. `set_project_groups` adds a project to or removes it from
+  groups by id, short name or name.
 
 ### Changed
 - **Planning-state changes are written to the project change log** — from the UI and from
   MCP alike: flags, overrides, PF/parliament details, observations added or deleted and
   linked documents. They show up as "Planungsstand" entries in the project history
   (history only, no revert).
+- **Project group changes are written to the project change log** (as an id list, shown
+  with short names) and can be reverted like any other project field.
 
 ### Fixed
 - **The backend image creates `/app/uploads` owned by `appuser`.** A named volume created
