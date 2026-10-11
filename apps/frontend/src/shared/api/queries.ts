@@ -33,6 +33,8 @@ export const queryKeys = {
     // map geometries as well.
     projectGroupGeometries: (groupId: number, onlySuperior: boolean) =>
         ["projectGroups", "geometries", groupId, onlySuperior] as const,
+    projectGroupTimeline: (groupId: number, onlySuperior: boolean) =>
+        ["projectGroups", "timeline", groupId, onlySuperior] as const,
     appSettings: ["appSettings"],
     projectRoutes: (projectId: number) => ["projectRoutes", projectId] as const,
     progress: ["project-progress"],
@@ -460,6 +462,23 @@ export function useProjectGroupGeometries(groupIds: number[], onlySuperior: bool
                 ),
         })),
         combine: combineGeometries,
+    });
+}
+
+export type ProjectGroupTimeline = components["schemas"]["ProjectGroupTimelineSchema"];
+export type ProjectTimeline = components["schemas"]["ProjectTimelineSchema"];
+export type TimelineMilestone = components["schemas"]["TimelineMilestoneSchema"];
+
+/** Dated milestones of a group's projects for the timeline view; only
+ * projects with concrete dates are included. Disabled while ``groupId`` is null. */
+export function useProjectGroupTimeline(groupId: number | null, onlySuperior: boolean) {
+    return useQuery({
+        queryKey: queryKeys.projectGroupTimeline(groupId ?? -1, onlySuperior),
+        enabled: groupId !== null,
+        queryFn: () =>
+            api<ProjectGroupTimeline>(
+                `/api/v1/project_groups/${groupId}/timeline?only_superior=${onlySuperior}`,
+            ),
     });
 }
 

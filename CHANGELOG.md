@@ -12,6 +12,10 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **Zeitstrahl view.** Next to Karte and Liste, `/?view=timeline` shows the projects of a
+  group with credible dates (VIB-PFA, Fulda-Runde, expected manual entries, Planfeststellung,
+  parliamentary involvement — never BVWP estimates) on a shared year axis. New public
+  endpoint `GET /api/v1/project_groups/{id}/timeline`.
 - **MCP: project groups and planning-state corrections.** New tools `list_project_groups`
   (groups with project counts), `set_phase_override` (pin or clear the main phase, with a
   required note) and `delete_progress_observation` (manual observations only).

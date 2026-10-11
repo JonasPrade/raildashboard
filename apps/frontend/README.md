@@ -119,7 +119,7 @@ Layout: Mantine `Tabs` with up to 11 groups — **Grunddaten** (NKV shown as `Ba
 
 ### Project search (`features/map/MapPage.tsx` + `MapControls.tsx`)
 
-Available on both the map and list view at `/`. A search `TextInput` (with magnifier icon and clear button) lets users find projects by name, project number, or description via case-insensitive substring matching. All filtering is client-side — no extra API calls are made, as all project metadata is already in memory from `useProjectGroups()`.
+Available on the map, list and timeline view at `/`. A search `TextInput` (with magnifier icon and clear button) lets users find projects by name, project number, or description via case-insensitive substring matching. All filtering is client-side — no extra API calls are made, as all project metadata is already in memory from `useProjectGroups()`.
 
 The group list carries project metadata only (`ProjectListItem`, flags folded into `active_features` — expand with `withActiveFeatures()` for `ProjectCard` / `ProjectSummaryCard`). The map loads simplified geometries per selected group via `useProjectGroupGeometries(groupIds, onlySuperior)` (`GET /project_groups/{id}/geometries`) and draws them as they arrive; the list tab loads none. `MapView` accepts either a parsed `geometry` (overview) or the exact `geojson_representation` string (detail page).
 
@@ -128,6 +128,10 @@ The group list carries project metadata only (`ProjectListItem`, flags folded in
 - **Prefetch:** Hovering/focusing a `ProjectCard` or selecting a project on the map preloads the detail page chunk and `GET /projects/{id}` (`usePrefetchProjectPage()`), so the detail page usually opens without a spinner.
 - **URL persistence:** The term is stored in `?search=<term>` (debounced, 200 ms, `replace: true`) so it survives map ↔ list tab switches and browser back/forward navigation.
 - **Dependency added:** `@tabler/icons-react` for the search and close icons.
+
+### Zeitstrahl (`features/timeline/`)
+
+Third view on `/` next to Karte and Liste (`?view=timeline`). It reuses the list's controls (one group, search, "Nur Hauptprojekte") and draws one row per project with credible dates on a shared year axis: phase bars in `MAIN_PHASE_COLOR` (the part after today hatched as planned), opening as a green dot, Planfeststellung / parliamentary involvement as diamonds, evidence ("spätestens seit") as hollow dots, plus a "heute" line. Sorting (Inbetriebnahme, Baubeginn, Name) lives in `?sort=`. Data via `useProjectGroupTimeline(groupId, onlySuperior)` → `GET /project_groups/{id}/timeline`; the pure layout (segments, range, ticks, sorting, labels) is in `timelineLayout.ts` with Vitest tests. Rows stack name-over-bar, so 360 px needs no horizontal scrolling. See `docs/features/feature-project-timeline.md`.
 
 ### Project edit form (`features/projects/ProjectEdit.tsx`)
 

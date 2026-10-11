@@ -76,27 +76,31 @@ def _humanize_remaining(end: date, today: date) -> str:
     return f"noch ca. {round(years)} Jahre in der aktuellen Phase"
 
 
-def build_forecast(
+def concrete_milestone_dates(
     *,
-    effective_phase: MainPhase,
-    today: date,
-    pfas: list[PfaForecastInput] | None = None,
-    bvwp: BvwpDurations | None = None,
-    fulda: list[tuple[MainPhase, date]] | None = None,
-    manual_expected: list[tuple[MainPhase, date]] | None = None,
-) -> ForecastResult:
-    pfas = pfas or []
-    fulda = fulda or []
-    manual_expected = manual_expected or []
+    pfas: list[PfaForecastInput],
+    fulda: list[tuple[MainPhase, date]],
+    manual_expected: list[tuple[MainPhase, date]],
+    pfb_as_genehmigung: bool = True,
+) -> dict[MainPhase, tuple[date, str]]:
+    """Concrete (non-estimated) milestone date per phase, with its source label.
 
-    # --- Concrete milestone dates per phase ---------------------------------
+    Shared by the forecast and the multi-project timeline so both apply the same
+    precedence: VIB-PFA dates as the base, Fulda-Runde announcements override
+    only if earlier / fill gaps, manual expected dates always win.
+
+    ``pfb_as_genehmigung`` maps the PFA ``datum_pfb`` onto GENEHMIGUNGSPLANUNG
+    (the forecast's reading); the timeline shows the PFB as its own milestone
+    and passes False.
+    """
+
     # Aggregate across PFA sections: earliest construction start (first section
     # breaks ground), latest in-service (last section opens), earliest PFB.
     concrete: dict[MainPhase, tuple[date, str]] = {}
     baubeginn_dates = [p.baubeginn for p in pfas if p.baubeginn]
     inbetrieb_dates = [p.inbetriebnahme for p in pfas if p.inbetriebnahme]
     pfb_dates = [p.datum_pfb for p in pfas if p.datum_pfb]
-    if pfb_dates:
+    if pfb_as_genehmigung and pfb_dates:
         concrete[MainPhase.GENEHMIGUNGSPLANUNG] = (min(pfb_dates), "VIB-PFA")
     if baubeginn_dates:
         concrete[MainPhase.BAU] = (min(baubeginn_dates), "VIB-PFA")  # first section starts
@@ -112,6 +116,26 @@ def build_forecast(
     # Manual expected dates are editorial — they always win over derived sources.
     for phase, dt in manual_expected:
         concrete[phase] = (dt, "Manuell")
+
+    return concrete
+
+
+def build_forecast(
+    *,
+    effective_phase: MainPhase,
+    today: date,
+    pfas: list[PfaForecastInput] | None = None,
+    bvwp: BvwpDurations | None = None,
+    fulda: list[tuple[MainPhase, date]] | None = None,
+    manual_expected: list[tuple[MainPhase, date]] | None = None,
+) -> ForecastResult:
+    pfas = pfas or []
+    fulda = fulda or []
+    manual_expected = manual_expected or []
+
+    concrete = concrete_milestone_dates(
+        pfas=pfas, fulda=fulda, manual_expected=manual_expected
+    )
 
     has_concrete = bool(concrete)
     has_bvwp = bvwp is not None and (

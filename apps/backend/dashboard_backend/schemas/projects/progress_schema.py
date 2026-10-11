@@ -245,3 +245,33 @@ class ProjectProgressSchema(BaseModel):
 
     # Forecast (Phase 3): remaining duration of the current phase + next steps.
     forecast: Optional[ProgressForecastSchema] = None
+
+
+# --- Multi-project timeline ("Zeitstrahl") -----------------------------------
+
+
+class TimelineMilestoneSchema(BaseModel):
+    # PHASE = start of ``phase``; PFB = Planfeststellung; PARL = parl. involvement.
+    kind: Literal["PHASE", "PFB", "PARL"]
+    phase: Optional[MainPhaseLiteral] = None
+    date: date
+    source: str  # "VIB-PFA" | "Fulda-Runde" | "Manuell" | source label for evidence
+    # CONCRETE = dated milestone; EVIDENCE = "spätestens seit" from an observation.
+    certainty: Literal["CONCRETE", "EVIDENCE"]
+
+
+class ProjectTimelineSchema(BaseModel):
+    project_id: int
+    name: str
+    project_number: Optional[str] = None
+    superior_project_id: Optional[int] = None
+    lifecycle_status: LifecycleStatusLiteral
+    milestones: list[TimelineMilestoneSchema] = []
+
+
+class ProjectGroupTimelineSchema(BaseModel):
+    group_id: int
+    # Only projects with at least one concrete milestone.
+    items: list[ProjectTimelineSchema] = []
+    # Projects of the group left out for lack of credible dates.
+    without_dates_count: int = 0
