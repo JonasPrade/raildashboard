@@ -336,6 +336,10 @@ Client-seitig (Claude Code, `.mcp.json`):
   `services/geo_length.py`, Haversine, 0,01 km) und liefert berechnete und
   gespeicherte Länge; die Geometrie selbst bleibt außen vor. `apply=true` schreibt
   den Wert über den `change_log` ins Feld `length`.
+  **Konvention** (mit dem Nutzer entschieden, 2026-10-11): `length` kommt aus der
+  Geometrie, nicht aus veröffentlichten DB-Angaben (die anders messen). Server-
+  Instructions sowie die Beschreibungen von `compute_project_length` und
+  `update_project` sagen das dem Client.
 - **Planungsstand im `change_log`** (2026-10-11): Jede Planungsstand-Änderung —
   Flags, Overrides, PF-/Parlaments-Angaben, Beobachtung angelegt/gelöscht,
   Dokument verknüpft/gelöst — schreibt die CRUD-Schicht (`crud/projects/progress.py`)
