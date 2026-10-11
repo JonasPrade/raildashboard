@@ -1,7 +1,7 @@
 """Bearer-key authentication in front of the MCP transport.
 
-Only ``Authorization: Bearer rdb_…`` is accepted here — no session cookie and no
-HTTP Basic, so a browser can never be tricked into driving the MCP endpoint
+Only ``Authorization: Bearer rdb_…`` (or the bare ``rdb_…`` key) is accepted
+here — no session cookie and no HTTP Basic, so a browser can never be tricked into driving the MCP endpoint
 (which is also why the SDK's DNS-rebinding check can stay off). The key must
 carry ``mcp.access``; without a valid key → 401 with ``WWW-Authenticate:
 Bearer`` (where an OAuth ``resource_metadata`` hint goes later), without the
@@ -14,7 +14,7 @@ import anyio
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from dashboard_backend.core.api_keys import MCP_PERMISSION
+from dashboard_backend.core.api_keys import MCP_PERMISSION, TOKEN_PREFIX as API_KEY_TOKEN_PREFIX
 from dashboard_backend.crud import api_keys as api_keys_crud
 from dashboard_backend.mcp.context import (
     PRINCIPAL_STATE_KEY,
@@ -27,7 +27,12 @@ from dashboard_backend.mcp.context import (
 def _bearer_token(scope: Scope) -> str | None:
     for name, value in scope.get("headers", []):
         if name == b"authorization":
-            scheme, _, token = value.decode("latin-1").partition(" ")
+            raw = value.decode("latin-1").strip()
+            # Connector UIs ask for the header value and people paste the bare
+            # key; an rdb_ token without scheme is unambiguous, so accept it.
+            if raw.startswith(API_KEY_TOKEN_PREFIX):
+                return raw
+            scheme, _, token = raw.partition(" ")
             if scheme.lower() == "bearer" and token.strip():
                 return token.strip()
             return None

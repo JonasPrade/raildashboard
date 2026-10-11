@@ -242,6 +242,12 @@ Client-seitig (Claude Code, `.mcp.json`):
 }
 ```
 
+Als Connector in claude.ai (ohne OAuth): Authentifizierung „Keine Anmeldung“,
+unter *Request-Header* Name `Authorization`, Wert `Bearer rdb_…`. Die Admin-Seite
+zeigt den Key genau in dieser Form an. `/mcp` nimmt zusätzlich den nackten Key
+ohne `Bearer`-Präfix an, weil er beim Einfügen in solche Dialoge leicht verloren
+geht.
+
 ## Sicherheit
 
 - Token nur über HTTPS; der Key steht beim Client im Klartext in einer

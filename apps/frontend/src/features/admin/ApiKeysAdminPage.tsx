@@ -52,6 +52,11 @@ function mcpUrl(): string {
     return `${base.replace(/\/$/, "")}/mcp`;
 }
 
+/** Value of the Authorization header — what connector dialogs ask for. */
+function authHeaderValue(token: string): string {
+    return `Bearer ${token}`;
+}
+
 function mcpConfigSnippet(token: string): string {
     return JSON.stringify(
         {
@@ -59,7 +64,7 @@ function mcpConfigSnippet(token: string): string {
                 raildashboard: {
                     type: "http",
                     url: mcpUrl(),
-                    headers: { Authorization: `Bearer ${token}` },
+                    headers: { Authorization: authHeaderValue(token) },
                 },
             },
         },
@@ -119,6 +124,7 @@ function CreateApiKeyModal({
     };
 
     if (created) {
+        const headerValue = authHeaderValue(created.token);
         const snippet = mcpConfigSnippet(created.token);
         return (
             <Modal opened={opened} onClose={handleClose} title="API-Key erstellt" size="lg">
@@ -128,13 +134,17 @@ function CreateApiKeyModal({
                         gespeichert. Kopieren Sie ihn jetzt. Geht er verloren, widerrufen Sie ihn
                         und legen einen neuen an.
                     </Alert>
+                    <Text size="sm">
+                        Für einen Connector in claude.ai (Authentifizierung „Keine Anmeldung“, unter
+                        Request-Header): Name <Code>Authorization</Code>, Wert:
+                    </Text>
                     <Code block style={{ wordBreak: "break-all", whiteSpace: "pre-wrap" }}>
-                        {created.token}
+                        {headerValue}
                     </Code>
-                    <CopyButton value={created.token}>
+                    <CopyButton value={headerValue}>
                         {({ copied, copy }) => (
                             <Button size="xs" variant="light" color={copied ? "green" : undefined} onClick={copy}>
-                                {copied ? "Kopiert" : "Key kopieren"}
+                                {copied ? "Kopiert" : "Header-Wert kopieren"}
                             </Button>
                         )}
                     </CopyButton>

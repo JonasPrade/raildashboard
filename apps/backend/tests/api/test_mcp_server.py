@@ -117,6 +117,16 @@ def test_admin_key_scoped_without_mcp_access_is_403(mcp_client, create_user, db_
     assert _post(mcp_client, token, "tools/list").status_code == 403
 
 
+def test_bare_key_without_bearer_scheme_is_accepted(mcp_client, admin_token):
+    # Connector UIs ask for the header value; a pasted key without "Bearer " still works.
+    response = mcp_client.post(
+        "/mcp",
+        headers={**HEADERS, "Authorization": admin_token},
+        json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+    )
+    assert response.status_code == 200, response.text
+
+
 # --- Protocol ----------------------------------------------------------------
 
 

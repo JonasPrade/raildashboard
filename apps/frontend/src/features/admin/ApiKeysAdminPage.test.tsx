@@ -91,7 +91,7 @@ describe("ApiKeysAdminPage", () => {
         await user.click(screen.getByRole("button", { name: "Key erstellen" }));
 
         expect(createKey).toHaveBeenCalledWith({ name: "Claude", scopes: ["mcp.access"] });
-        expect(await screen.findByText("rdb_zzzzzzzzzzzz_secret-value")).toBeInTheDocument();
+        expect(await screen.findByText("Bearer rdb_zzzzzzzzzzzz_secret-value")).toBeInTheDocument();
         expect(screen.getByText("Nur jetzt sichtbar")).toBeInTheDocument();
     });
 });

@@ -12,6 +12,10 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Fixed
+- **MCP connectors in claude.ai work with an API key.** The admin page now shows the ready
+  header value `Bearer rdb_…` (with the claude.ai setup: "Keine Anmeldung", request header
+  `Authorization`) instead of the bare key, and `/mcp` also accepts a bare `rdb_…` key
+  without the `Bearer` scheme.
 - **The backend image creates `/app/uploads` owned by `appuser`.** A named volume created
   before the directory existed in the image was root-owned, so the app could write neither
   text attachments nor (since v0.0.15) import PDFs; `/healthz` reports this as
