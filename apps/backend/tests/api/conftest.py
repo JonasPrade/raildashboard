@@ -32,6 +32,7 @@ from dashboard_backend.models.parliament import (
 )
 from dashboard_backend.models.projects.bvwp_project_data import BvwpProjectData
 from dashboard_backend.models.projects.project import Project
+from dashboard_backend.models.projects.progress_observation import ProgressObservation
 from dashboard_backend.models.projects.project_progress import ProjectProgress
 from dashboard_backend.models.projects.project_text import ProjectText
 from dashboard_backend.models.projects.project_text_type import ProjectTextType
@@ -89,6 +90,7 @@ TABLES = [
     BvwpProjectData.__table__,  # FK to project; read by the MCP get_project tool
     ChangeLog.__table__,  # FK to project + users; written by the MCP update_project tool
     ChangeLogEntry.__table__,  # must follow ChangeLog (FK dependency)
+    ProgressObservation.__table__,  # FKs to imported sources unenforced; MCP observation tools
 ]
 
 

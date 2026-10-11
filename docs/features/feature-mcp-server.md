@@ -315,9 +315,15 @@ Client-seitig (Claude Code, `.mcp.json`):
   manuellen Phasen-Override wie das Formular im Planungsstand-Panel — nur mit
   Begründung (`note` → `manual_override_note`), `phase = null` hebt ihn auf.
   `delete_progress_observation` löscht manuelle Beobachtungen; abgeleitete
-  (`is_derived`, aus den Importen) bleiben wie in der REST-API geschützt. Beide
-  schreiben wie der REST-PATCH bzw. -DELETE keinen `change_log`-Eintrag (der
-  `change_log` kennt nur Projektfelder); die Override-Begründung bleibt sichtbar.
+  (`is_derived`, aus den Importen) bleiben wie in der REST-API geschützt.
+- **Planungsstand im `change_log`** (2026-10-11): Jede Planungsstand-Änderung —
+  Flags, Overrides, PF-/Parlaments-Angaben, Beobachtung angelegt/gelöscht,
+  Dokument verknüpft/gelöst — schreibt die CRUD-Schicht (`crud/projects/progress.py`)
+  in den Projekt-`change_log`, egal ob über REST/Oberfläche oder MCP. Feldnamen
+  tragen das Präfix `progress.` (z. B. `progress.manual_phase_override`,
+  `progress.observation` mit einer lesbaren Zeile zur Beobachtung); die Historie
+  zeigt sie als „Planungsstand“. Sie sind reine Historie: Der Revert-Endpunkt
+  akzeptiert nur Projektfelder, die Oberfläche blendet „Zurücksetzen“ dort aus.
 
 ## Umsetzungsstand (2026-10-07)
 

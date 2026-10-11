@@ -174,6 +174,11 @@ VIB/FinVe = materialisiert mit `is_derived=True` + Provenienz-FKs):
 - `is_derived: bool`, `created_at`, `created_by_user_id`, `username_snapshot`
   (Provenienz-Muster aus `change_log.py`)
 
+**Änderungsprotokoll:** Alle nutzergetriebenen Planungsstand-Änderungen (PATCH,
+Beobachtung anlegen/löschen, Dokument verknüpfen/lösen) landen im Projekt-`change_log`
+mit Feldpräfix `progress.` — als Historie ohne Revert. Materialisierte Beobachtungen
+aus den Importen (`sync_derived_observations`) werden nicht protokolliert.
+
 **`progress_track_document`** (neue Association — Dokumente hinter PF/parl. Befassung):
 - `project_id` (FK, CASCADE), `track` (`ObservationTrack`, hier PF/PARL),
   `document_id` (FK→`document.id`, CASCADE), UniqueConstraint über die drei Felder.

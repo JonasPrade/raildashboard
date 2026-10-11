@@ -351,8 +351,9 @@ def delete_progress_observation(
     require(principal, "progress.edit")
     with tool_session(ctx) as db:
         _project_or_error(db, project_id)
+        user = load_user(db, principal)
         try:
-            deleted = progress_crud.delete_observation(db, project_id, observation_id)
+            deleted = progress_crud.delete_observation(db, project_id, observation_id, user)
         except progress_crud.DerivedObservationDeleteError as exc:
             raise ToolError(
                 "Abgeleitete Beobachtungen stammen aus den Importen und lassen sich "
@@ -391,7 +392,7 @@ def set_phase_override(
     )
     with tool_session(ctx) as db:
         _project_or_error(db, project_id)
-        progress_crud.update_progress(db, project_id, payload)
+        progress_crud.update_progress(db, project_id, payload, load_user(db, principal))
         view = progress_crud.get_progress_view(db, project_id)
         return ProjectProgressSchema.model_validate(view).model_dump(mode="json")
 

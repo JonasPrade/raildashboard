@@ -85,6 +85,33 @@ const PROJECT_FIELD_LABELS: Record<string, string> = {
     geojson_from_subprojects: "Geometrie aus Unterprojekten",
 };
 
+// Planning-state changes share the project changelog under a "progress." prefix.
+// They are history only: the revert endpoint accepts project fields alone.
+const PROGRESS_PREFIX = "progress.";
+
+const PROGRESS_FIELD_LABELS: Record<string, string> = {
+    observation: "Beobachtung",
+    has_planfeststellung: "Planfeststellung relevant",
+    parl_befassung_relevant: "Parl. Befassung relevant",
+    lifecycle_status: "Status",
+    manual_phase_override: "Phase (manuell)",
+    manual_override_note: "Begründung Override",
+    pf_state_override: "Planfeststellung (manuell)",
+    parl_state_override: "Parl. Befassung (manuell)",
+    parl_befassung_text: "Parl. Befassung – Text",
+    parl_drucksache_url: "Parl. Befassung – Drucksache",
+    parl_befassung_date: "Parl. Befassung – Datum",
+    pf_text: "Planfeststellung – Text",
+    pf_date: "Planfeststellung – Datum",
+    pf_links: "Planfeststellung – Links",
+    pf_document: "Planfeststellung – Dokument",
+    parl_document: "Parl. Befassung – Dokument",
+};
+
+function isProgressField(fieldName: string): boolean {
+    return fieldName.startsWith(PROGRESS_PREFIX);
+}
+
 const TEXT_FIELD_LABELS: Record<string, string> = {
     header: "Überschrift",
     text: "Textinhalt",
@@ -94,6 +121,10 @@ const TEXT_FIELD_LABELS: Record<string, string> = {
 };
 
 function fieldLabel(fieldName: string, source: "project" | "text"): string {
+    if (source === "project" && isProgressField(fieldName)) {
+        const key = fieldName.slice(PROGRESS_PREFIX.length);
+        return `Planungsstand: ${PROGRESS_FIELD_LABELS[key] ?? key}`;
+    }
     const labels = source === "project" ? PROJECT_FIELD_LABELS : TEXT_FIELD_LABELS;
     return labels[fieldName] ?? fieldName;
 }
@@ -105,6 +136,7 @@ function formatValue(value: string | null | undefined): string {
         if (parsed === null) return "–";
         if (typeof parsed === "boolean") return parsed ? "Ja" : "Nein";
         if (typeof parsed === "string") return parsed || "–";
+        if (typeof parsed === "object") return JSON.stringify(parsed);
         return String(parsed);
     } catch {
         return value;
@@ -138,13 +170,14 @@ type ChangeLogItemProps = {
 
 function ChangeLogItem({ log, canEdit, revertingEntryId, onRevert }: ChangeLogItemProps) {
     const date = formatDateTimeShort(log.timestamp);
+    const isProgressLog = log.entries.length > 0 && log.entries.every((e) => isProgressField(e.field_name));
 
     const summary = (
         <Group gap="sm" wrap="nowrap">
             <Text size="sm" fw={500} style={{ minWidth: 130 }}>
                 {date}
             </Text>
-            <ChronicleDataChip>Projekt</ChronicleDataChip>
+            <ChronicleDataChip>{isProgressLog ? "Planungsstand" : "Projekt"}</ChronicleDataChip>
             <ChronicleDataChip>{actionLabel(log.action)}</ChronicleDataChip>
             <Text size="sm" c="dimmed">
                 {log.username_snapshot ?? "–"}
@@ -174,7 +207,8 @@ function ChangeLogItem({ log, canEdit, revertingEntryId, onRevert }: ChangeLogIt
                                 <Table.Td fw={500}>{fieldLabel(entry.field_name, "project")}</Table.Td>
                                 <Table.Td c="dimmed">{formatValue(entry.old_value)}</Table.Td>
                                 <Table.Td>{formatValue(entry.new_value)}</Table.Td>
-                                {canEdit && (
+                                {canEdit && isProgressField(entry.field_name) && <Table.Td />}
+                                {canEdit && !isProgressField(entry.field_name) && (
                                     <Table.Td>
                                         <Button
                                             size="xs"

@@ -18,6 +18,12 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   `list_projects` now matches a project group by id, short name or name (case-insensitive)
   and accepts a list of groups.
 
+### Changed
+- **Planning-state changes are written to the project change log** — from the UI and from
+  MCP alike: flags, overrides, PF/parliament details, observations added or deleted and
+  linked documents. They show up as "Planungsstand" entries in the project history
+  (history only, no revert).
+
 ### Fixed
 - **The backend image creates `/app/uploads` owned by `appuser`.** A named volume created
   before the directory existed in the image was root-owned, so the app could write neither

@@ -196,6 +196,7 @@ export const featureHighlights: FeatureHighlight[] = [
         details: [
             "Timeline in ProjectDetail — date, user, old → new value per field (login-gated)",
             "\"Zurücksetzen\" button per entry reverts the field to its previous value (editor/admin only)",
+            "Planning-state changes (flags, overrides, PF/parliament details, observations added or deleted, linked documents) appear as \"Planungsstand\" entries — from the UI and from MCP alike; they are history only, without revert",
             "Implemented in `features/changelog/ProjectHistorySection.tsx` + `useRevertProjectField` hook"
         ]
     },
@@ -331,8 +332,8 @@ export const featureHighlights: FeatureHighlight[] = [
             "Route /admin/api-keys — create, list and revoke your own keys; with user.manage also every user's keys",
             "The token (rdb_…) is shown exactly once, together with a ready-made .mcp.json snippet; only its hash is stored",
             "Presets: \"Nur lesen\" (default) or \"Wie mein Nutzer\" (adds write tools); every key expires after 90 days",
-            "Read tools: projects (search/filter), project detail incl. BVWP, planning state, FinVes with budgets, texts, tasks",
-            "Write tools: update project fields, add planning-state observations, create/update texts and tasks — all in the changelog",
+            "Read tools: project groups, projects (search/filter by text, group, phase), project detail incl. BVWP, planning state, FinVes with budgets, texts, tasks",
+            "Write tools: update project fields, add/delete planning-state observations, set/clear the phase override, create/update texts and tasks — all in the changelog",
             "Keys also work against the REST API (Authorization: Bearer …), narrowed to their scopes without the admin bypass",
             "Details: docs/features/feature-mcp-server.md"
         ]

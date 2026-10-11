@@ -16,6 +16,7 @@ from dashboard_backend.core.security import hash_password
 from dashboard_backend.crud.projects import progress as progress_crud
 from dashboard_backend.crud import api_keys as api_keys_crud
 from dashboard_backend.models.change_tracking import ChangeLog
+from dashboard_backend.models.projects.progress_observation import ProgressObservation
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.projects.project_group import ProjectGroup
 from dashboard_backend.models.projects.project_progress import ProjectProgress
@@ -392,6 +393,12 @@ def test_set_and_clear_phase_override(mcp_client, admin_token, db_session, monke
     progress = db_session.query(ProjectProgress).filter_by(project_id=alpha.id).one()
     assert progress.manual_phase_override == "IN_BETRIEB"
     assert progress.manual_override_note == "Medien, 15.12.2024"
+    set_log = db_session.query(ChangeLog).filter(ChangeLog.project_id == alpha.id).one()
+    assert set_log.username_snapshot == "admin"
+    assert {e.field_name: e.new_value for e in set_log.entries} == {
+        "progress.manual_phase_override": '"IN_BETRIEB"',
+        "progress.manual_override_note": '"Medien, 15.12.2024"',
+    }
 
     cleared = _payload(
         _call(mcp_client, admin_token, "set_phase_override", {"project_id": alpha.id})
@@ -400,6 +407,17 @@ def test_set_and_clear_phase_override(mcp_client, admin_token, db_session, monke
     db_session.refresh(progress)
     assert progress.manual_phase_override is None
     assert progress.manual_override_note is None
+    logs = (
+        db_session.query(ChangeLog)
+        .filter(ChangeLog.project_id == alpha.id)
+        .order_by(ChangeLog.id)
+        .all()
+    )
+    assert len(logs) == 2
+    assert {e.field_name: e.new_value for e in logs[1].entries} == {
+        "progress.manual_phase_override": None,
+        "progress.manual_override_note": None,
+    }
 
 
 def test_phase_override_needs_capability(mcp_client, db_session):
@@ -417,48 +435,79 @@ def test_phase_override_needs_capability(mcp_client, db_session):
     assert db_session.query(ProjectProgress).filter_by(project_id=alpha.id).count() == 0
 
 
-def test_delete_progress_observation(mcp_client, admin_token, db_session, monkeypatch):
+def test_add_and_delete_observation_write_changelog(
+    mcp_client, admin_token, db_session, monkeypatch
+):
     monkeypatch.setattr(progress_crud, "get_progress_view", _stub_view)
-    alpha, _ = _seed_projects(db_session)
-    calls = []
+    alpha, beta = _seed_projects(db_session)
 
-    def fake_delete(db, project_id, observation_id):
-        calls.append((project_id, observation_id))
-        if observation_id == 7:
-            return True
-        if observation_id == 8:
-            raise progress_crud.DerivedObservationDeleteError("derived")
-        return None
+    _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "add_progress_observation",
+            {
+                "project_id": alpha.id,
+                "track": "MAIN",
+                "asserted_state": "IN_BETRIEB",
+                "observed_date": "2024-12-15",
+                "source_type": "MEDIEN",
+                "note": "Wiederinbetriebnahme",
+            },
+        )
+    )
+    observation = db_session.query(ProgressObservation).filter_by(project_id=alpha.id).one()
+    created = db_session.query(ChangeLog).filter_by(project_id=alpha.id, action="CREATE").one()
+    assert created.username_snapshot == "admin"
+    [entry] = created.entries
+    assert entry.field_name == "progress.observation"
+    assert entry.old_value is None
+    assert entry.new_value == (
+        f'"#{observation.id} Hauptpfad: IN_BETRIEB · 15.12.2024 · MEDIEN · Wiederinbetriebnahme"'
+    )
 
-    monkeypatch.setattr(progress_crud, "delete_observation", fake_delete)
+    wrong_project = _call(
+        mcp_client,
+        admin_token,
+        "delete_progress_observation",
+        {"project_id": beta.id, "observation_id": observation.id},
+    )
+    assert wrong_project["isError"] is True
 
-    ok = _payload(
+    _payload(
         _call(
             mcp_client,
             admin_token,
             "delete_progress_observation",
-            {"project_id": alpha.id, "observation_id": 7},
+            {"project_id": alpha.id, "observation_id": observation.id},
         )
     )
-    assert ok["project_id"] == alpha.id
+    assert db_session.query(ProgressObservation).filter_by(project_id=alpha.id).count() == 0
+    deleted = db_session.query(ChangeLog).filter_by(project_id=alpha.id, action="DELETE").one()
+    [entry] = deleted.entries
+    assert entry.field_name == "progress.observation"
+    assert entry.new_value is None
+    assert f"#{observation.id} Hauptpfad: IN_BETRIEB" in entry.old_value
 
-    derived = _call(
+
+def test_derived_observation_cannot_be_deleted(mcp_client, admin_token, db_session, monkeypatch):
+    monkeypatch.setattr(progress_crud, "get_progress_view", _stub_view)
+    alpha, _ = _seed_projects(db_session)
+    derived = ProgressObservation(
+        project_id=alpha.id, source_type="VIB", track="MAIN", asserted_state="BAU", is_derived=True
+    )
+    db_session.add(derived)
+    db_session.commit()
+    result = _call(
         mcp_client,
         admin_token,
         "delete_progress_observation",
-        {"project_id": alpha.id, "observation_id": 8},
+        {"project_id": alpha.id, "observation_id": derived.id},
     )
-    assert derived["isError"] is True
-    assert "Abgeleitete" in derived["content"][0]["text"]
-
-    missing = _call(
-        mcp_client,
-        admin_token,
-        "delete_progress_observation",
-        {"project_id": alpha.id, "observation_id": 9},
-    )
-    assert missing["isError"] is True
-    assert calls == [(alpha.id, 7), (alpha.id, 8), (alpha.id, 9)]
+    assert result["isError"] is True
+    assert "Abgeleitete" in result["content"][0]["text"]
+    assert db_session.query(ProgressObservation).filter_by(id=derived.id).count() == 1
+    assert db_session.query(ChangeLog).filter_by(project_id=alpha.id).count() == 0
 
 
 def test_delete_observation_needs_capability(mcp_client, db_session, monkeypatch):
