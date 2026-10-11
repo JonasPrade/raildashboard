@@ -82,9 +82,12 @@ Standard „Caddy über Netz `web`": `docs/workflow.md`, Ausnahmen.
   Pro und Team nur für öffentliche Repositories; in einem privaten Repo legt GitHub
   die Umgebung stillschweigend ohne Regeln an. Das Tor ist der Dispatch.
 - **Secrets** (im Environment `production`): `DEPLOY_HOST`, `DEPLOY_USER` (`deploy`),
-  `DEPLOY_SSH_KEY`, `DEPLOY_FINGERPRINT` (Host-Schlüssel des Servers, `SHA256:…` aus
-  `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`; leer = keine Prüfung), optional
-  `DEPLOY_PORT`. Die alten `SSH_HOST`, `SSH_USER`,
+  `DEPLOY_SSH_KEY`, `DEPLOY_FINGERPRINT` (Host-Schlüssel des Servers als `SHA256:…`;
+  leer = keine Prüfung), optional `DEPLOY_PORT`. Für den Fingerabdruck zählt der
+  Schlüsseltyp, den die Action aushandelt: Die SSH-Bibliothek von Go bevorzugt ECDSA vor
+  ED25519, auf vmd92747 also `ssh-keygen -lf /etc/ssh/ssh_host_ecdsa_key.pub`. Passt der
+  Wert nicht, scheitert der Schritt „Ausrollen" schon beim Verbindungsaufbau — bevor
+  `prod.sh` läuft, auf dem Server ändert sich nichts. Die alten `SSH_HOST`, `SSH_USER`,
   `SSH_PRIVATE_KEY`, `GHCR_TOKEN` braucht nichts mehr.
 - **Repo-Variable** `TILE_LAYER_URL`: wird in `release.yml` ins Frontend-Bundle gebacken.
 - **Branch Protection: nicht verfügbar.** GitHub setzt Branch Protection und Rulesets

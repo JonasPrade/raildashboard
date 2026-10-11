@@ -84,9 +84,10 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          # Pins the server's host key (`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`,
-          # second field, "SHA256:…"). Without it the action trusts whatever answers
-          # on DEPLOY_HOST. An empty secret disables the check (DEPLOY.md).
+          # Pins the server's host key: "SHA256:…" of the key type the action
+          # negotiates. Go's SSH client prefers ECDSA over ED25519, so on vmd92747 it
+          # is /etc/ssh/ssh_host_ecdsa_key.pub. Without it the action trusts whatever
+          # answers on DEPLOY_HOST. An empty secret disables the check (DEPLOY.md).
           fingerprint: ${{ secrets.DEPLOY_FINGERPRINT }}
           # The key carries a forced command in authorized_keys; what is written
           # here arrives as SSH_ORIGINAL_COMMAND at prod.sh, which extracts the
