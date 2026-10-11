@@ -215,7 +215,7 @@ Erledigt (außerhalb des Repos, auf vmd92747):
 
 - **Textanhänge ohne Backup** (10.10.2026): `raildashboard_uploads` steht jetzt in der
   `borg create`-Liste von `/root/create_backup.sh` (Sicherung
-  `create_backup.sh.bak-2026-10-10`); der Lauf am 11.10. lief damit fehlerfrei.
+  `create_backup.sh.bak-2026-10-10`); der Lauf am 11.10. sicherte es ohne Fehler.
 - **GraphHopper unüberwacht** (10.10.2026): `raildashboard-graphhopper-1` steht jetzt in
   `/root/expected_containers.txt` (Sicherung `expected_containers.txt.bak-2026-10-10`).
 - **`ENVIRONMENT` fehlte** (11.10.2026): die App lief als `development`, das
