@@ -328,7 +328,7 @@ export function useUpdateProjectProgress(projectId: number) {
                 method: "PATCH",
                 json: payload,
             }),
-        [queryKeys.progressFor(projectId)],
+        [queryKeys.progressFor(projectId), queryKeys.projectChangelog(projectId)],
     );
 }
 
@@ -339,7 +339,7 @@ export function useAddProgressObservation(projectId: number) {
                 method: "POST",
                 json: payload,
             }),
-        [queryKeys.progressFor(projectId)],
+        [queryKeys.progressFor(projectId), queryKeys.projectChangelog(projectId)],
     );
 }
 
@@ -350,7 +350,7 @@ export function useDeleteProgressObservation(projectId: number) {
                 `/api/v1/projects/${projectId}/progress/observations/${observationId}`,
                 { method: "DELETE" },
             ),
-        [queryKeys.progressFor(projectId)],
+        [queryKeys.progressFor(projectId), queryKeys.projectChangelog(projectId)],
     );
 }
 

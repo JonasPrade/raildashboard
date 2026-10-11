@@ -11,6 +11,26 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 
 ## [Unreleased]
 
+### Added
+- **MCP: project groups and planning-state corrections.** New tools `list_project_groups`
+  (groups with project counts), `set_phase_override` (pin or clear the main phase, with a
+  required note) and `delete_progress_observation` (manual observations only).
+  `list_projects` now matches a project group by id, short name or name (case-insensitive)
+  and accepts a list of groups. `set_project_groups` adds a project to or removes it from
+  groups by id, short name or name.
+- **MCP: create projects and compute lengths.** `create_project` creates a (sub)project,
+  recorded as a `CREATE` entry in the project change log. `compute_project_length` returns
+  the length computed from the geometry (same calculation as the UI button) and can write
+  it to the length field.
+
+### Changed
+- **Planning-state changes are written to the project change log** — from the UI and from
+  MCP alike: flags, overrides, PF/parliament details, observations added or deleted and
+  linked documents. They show up as "Planungsstand" entries in the project history
+  (history only, no revert).
+- **Project group changes are written to the project change log** (as an id list, shown
+  with short names) and can be reverted like any other project field.
+
 ### Fixed
 - **The backend image creates `/app/uploads` owned by `appuser`.** A named volume created
   before the directory existed in the image was root-owned, so the app could write neither

@@ -9,13 +9,16 @@ resync; the seams (``STALENESS_WINDOW``, ``is_derived`` guard) already exist.
 
 from __future__ import annotations
 
+import json
 from datetime import date, datetime
+from enum import Enum
 
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from dashboard_backend.models.associations.progress_track_document import (
     ProgressTrackDocument,
 )
+from dashboard_backend.models.change_tracking import ChangeLog, ChangeLogEntry
 from dashboard_backend.models.projects.document import Document
 from dashboard_backend.models.projects.progress_enums import (
     LifecycleStatus,
@@ -73,6 +76,100 @@ BEDARFSPLAN_GROUP_SHORT_NAME_PREFIX = "BSWAG"
 
 class DerivedObservationDeleteError(Exception):
     """Raised when a caller tries to delete a derived (materialised) observation."""
+
+
+# --- Change tracking ---------------------------------------------------------
+#
+# Every user-triggered planning-state change lands in the project ``change_log``
+# (REST and MCP alike). Field names carry the ``progress.`` prefix: they are not
+# Project columns, so the revert endpoint rejects them — the entries are history.
+
+CHANGELOG_PREFIX = "progress."
+
+_TRACKED_PROGRESS_FIELDS = (
+    "has_planfeststellung",
+    "parl_befassung_relevant",
+    "lifecycle_status",
+    "manual_phase_override",
+    "manual_override_note",
+    "pf_state_override",
+    "parl_state_override",
+    "parl_befassung_text",
+    "parl_drucksache_url",
+    "parl_befassung_date",
+    "pf_text",
+    "pf_date",
+    "pf_links",
+)
+
+_TRACK_LABELS = {"MAIN": "Hauptpfad", "PF": "Planfeststellung", "PARL": "Parlament"}
+
+
+def _changelog_value(value) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, Enum):
+        value = value.value
+    if isinstance(value, (date, datetime)):
+        value = value.isoformat()
+    return json.dumps(value, default=str, ensure_ascii=False)
+
+
+def _snapshot(progress: ProjectProgress) -> dict:
+    return {field: getattr(progress, field) for field in _TRACKED_PROGRESS_FIELDS}
+
+
+def _log_progress_change(
+    db: Session,
+    project_id: int,
+    user: User | None,
+    action: str,
+    changes: list[tuple[str, object, object]],
+) -> ChangeLog | None:
+    """Add a ChangeLog for the given ``(field, old, new)`` triples; unchanged
+    fields are skipped. The caller commits."""
+    entries = [
+        ChangeLogEntry(
+            field_name=CHANGELOG_PREFIX + field,
+            old_value=_changelog_value(old),
+            new_value=_changelog_value(new),
+        )
+        for field, old, new in changes
+        if _changelog_value(old) != _changelog_value(new)
+    ]
+    if not entries:
+        return None
+    changelog = ChangeLog(
+        project_id=project_id,
+        user_id=user.id if user else None,
+        username_snapshot=user.username if user else None,
+        timestamp=datetime.utcnow(),
+        action=action,
+        entries=entries,
+    )
+    db.add(changelog)
+    return changelog
+
+
+def _snapshot_diff(before: dict, after: dict) -> list[tuple[str, object, object]]:
+    return [(field, before[field], after[field]) for field in _TRACKED_PROGRESS_FIELDS]
+
+
+def observation_summary(observation: ProgressObservation) -> str:
+    """One readable line per observation for the change log."""
+    parts = [
+        f"#{observation.id} {_TRACK_LABELS.get(observation.track, observation.track)}: "
+        f"{observation.asserted_state}"
+    ]
+    if observation.observed_date:
+        date_text = observation.observed_date.strftime("%d.%m.%Y")
+        parts.append(f"{date_text} (erwartet)" if observation.is_expected else date_text)
+    parts.append(observation.source_type)
+    if observation.confidence is not None:
+        parts.append(f"Konfidenz {observation.confidence:g}")
+    if observation.note:
+        parts.append(observation.note)
+    return " · ".join(parts)
 
 
 # --- Internal helpers --------------------------------------------------------
@@ -823,11 +920,14 @@ def _track_documents(db: Session, project_id: int, track: ObservationTrack) -> l
 # --- Mutations ---------------------------------------------------------------
 
 
-def update_progress(db: Session, project_id: int, payload: dict) -> ProjectProgress | None:
+def update_progress(
+    db: Session, project_id: int, payload: dict, user: User | None
+) -> ProjectProgress | None:
     project = db.query(Project).filter(Project.id == project_id).first()
     if project is None:
         return None
     progress = get_or_create_progress(db, project_id)
+    before = _snapshot(progress)
 
     simple_fields = {
         "has_planfeststellung",
@@ -870,6 +970,7 @@ def update_progress(db: Session, project_id: int, payload: dict) -> ProjectProgr
     if pf_signal and "has_planfeststellung" not in payload:
         progress.has_planfeststellung = True
 
+    _log_progress_change(db, project_id, user, "PATCH", _snapshot_diff(before, _snapshot(progress)))
     db.commit()
     db.refresh(progress)
     return progress
@@ -885,6 +986,7 @@ def create_observation(
     if project is None:
         return None
     progress = get_or_create_progress(db, project_id)
+    before = _snapshot(progress)
 
     observation = ProgressObservation(
         project_id=project_id,
@@ -910,12 +1012,23 @@ def create_observation(
     elif data["track"] == ObservationTrack.PARL.value and progress.parl_befassung_relevant is None:
         progress.parl_befassung_relevant = True
 
+    db.flush()  # assigns the id shown in the change log
+    _log_progress_change(
+        db,
+        project_id,
+        user,
+        "CREATE",
+        [("observation", None, observation_summary(observation))]
+        + _snapshot_diff(before, _snapshot(progress)),
+    )
     db.commit()
     db.refresh(observation)
     return observation
 
 
-def delete_observation(db: Session, project_id: int, observation_id: int) -> bool | None:
+def delete_observation(
+    db: Session, project_id: int, observation_id: int, user: User | None
+) -> bool | None:
     """Delete a manual observation.
 
     Returns ``True`` on success, ``None`` if not found, and raises
@@ -937,13 +1050,20 @@ def delete_observation(db: Session, project_id: int, observation_id: int) -> boo
         raise DerivedObservationDeleteError(
             "Derived observations are materialised from imports and cannot be deleted manually."
         )
+    _log_progress_change(
+        db, project_id, user, "DELETE", [("observation", observation_summary(observation), None)]
+    )
     db.delete(observation)
     db.commit()
     return True
 
 
+def _document_label(document: Document | None, document_id: int) -> str:
+    return f"#{document_id} {document.title}" if document is not None else f"#{document_id}"
+
+
 def link_track_document(
-    db: Session, project_id: int, track: str, document_id: int
+    db: Session, project_id: int, track: str, document_id: int, user: User | None
 ) -> ProgressTrackDocument | None:
     """Link a document behind the PF / PARL track. Returns None if project or
     document is missing; returns the existing link if already present."""
@@ -969,13 +1089,20 @@ def link_track_document(
         project_id=project_id, track=track, document_id=document_id
     )
     db.add(link)
+    _log_progress_change(
+        db,
+        project_id,
+        user,
+        "CREATE",
+        [(f"{track.lower()}_document", None, _document_label(document, document_id))],
+    )
     db.commit()
     db.refresh(link)
     return link
 
 
 def unlink_track_document(
-    db: Session, project_id: int, track: str, document_id: int
+    db: Session, project_id: int, track: str, document_id: int, user: User | None
 ) -> bool:
     link = (
         db.query(ProgressTrackDocument)
@@ -988,6 +1115,14 @@ def unlink_track_document(
     )
     if link is None:
         return False
+    document = db.query(Document).filter(Document.id == document_id).first()
+    _log_progress_change(
+        db,
+        project_id,
+        user,
+        "DELETE",
+        [(f"{track.lower()}_document", _document_label(document, document_id), None)],
+    )
     db.delete(link)
     db.commit()
     return True

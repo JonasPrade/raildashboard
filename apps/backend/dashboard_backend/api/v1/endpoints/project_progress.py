@@ -51,7 +51,9 @@ def patch_progress(
     db: Session = Depends(get_db),
 ):
     """Update flags, lifecycle and manual overrides."""
-    progress_crud.update_progress(db, project.id, body.model_dump(exclude_unset=True))
+    progress_crud.update_progress(
+        db, project.id, body.model_dump(exclude_unset=True), current_user
+    )
     return _view(db, project.id)
 
 
@@ -85,7 +87,7 @@ def remove_observation(
 ):
     """Delete a manual observation. Derived observations are protected (409)."""
     try:
-        result = progress_crud.delete_observation(db, project.id, observation_id)
+        result = progress_crud.delete_observation(db, project.id, observation_id, current_user)
     except progress_crud.DerivedObservationDeleteError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
     if result is None:
@@ -109,7 +111,9 @@ def link_document(
     track = track.upper()
     if track not in _DOCUMENT_TRACKS:
         raise HTTPException(status_code=400, detail="Documents may only be linked to PF or PARL")
-    link = progress_crud.link_track_document(db, project.id, track, body.document_id)
+    link = progress_crud.link_track_document(
+        db, project.id, track, body.document_id, current_user
+    )
     if link is None:
         raise HTTPException(status_code=404, detail="Project or document not found")
     return _view(db, project.id)
@@ -130,7 +134,9 @@ def unlink_document(
     track = track.upper()
     if track not in _DOCUMENT_TRACKS:
         raise HTTPException(status_code=400, detail="Documents may only be linked to PF or PARL")
-    removed = progress_crud.unlink_track_document(db, project.id, track, document_id)
+    removed = progress_crud.unlink_track_document(
+        db, project.id, track, document_id, current_user
+    )
     if not removed:
         raise HTTPException(status_code=404, detail="Document link not found")
     return _view(db, project.id)
