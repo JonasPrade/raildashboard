@@ -11,7 +11,10 @@ am 08.10.2026; deren Lehren sind hier eingearbeitet.
 neues `prod.sh` (eine Pull-Zeile je Image, Backend lag schon lokal), Backup
 `pre-migrate_20261011_120926_76345cd182d4.dump` vor der Migration, Migrationen
 `20261007001` und `20260928001` gelaufen, nur `127.0.0.1:5000` offen, `/healthz` von außen 200.
-Schritte 2–7 erledigt; offen ist Schritt 8 (Nacharbeiten nach dem zweiten Deploy).
+Zweiter Deploy: `6b421c5` (#161: `uploads`-Besitz im Image, `ENVIRONMENT=production` im
+Beispiel, Host-Schlüssel geprüft über `DEPLOY_FINGERPRINT`),
+[Lauf 38140814289](https://github.com/JonasPrade/raildashboard/actions/runs/38140814289).
+Alle Schritte einschließlich 8 erledigt; die Umstellung ist abgeschlossen.
 GHCR-Token für `deploy` läuft am **09.01.2027** ab, Erinnerung in Todoist zum 02.01.2027.
 
 **Beim ersten Lauf aufgefallen und behoben:**
@@ -189,44 +192,50 @@ geklappt haben.
 
 Der Knopf erscheint **erst nach dem Merge**.
 
-## 8. Nacharbeiten (nach zwei erfolgreichen Deploys)
+## 8. Nacharbeiten — erledigt am 11.10.2026
 
-- `docker-compose.yml.alt`, `deploy.sh.alt`, `.env.bak-2026-10-11`,
-  `authorized_keys.bak-2026-10-11` und den privaten Schlüssel `ci_deploy` löschen — die Dateien gehören
-  `deploy`, also `sudo -u deploy rm …`.
-- Alte Images entfernen bis auf den laufenden Stand und den Rückweg; dazu die
-  `raildashboard-*:latest` von vor fünf Monaten.
-- `/etc/nginx/sites-available/dashboard.schienengruen.de.bak-20260914` (nicht verlinkt).
-- Alte Repo-Secrets (Schritt 2).
-- In `DEPLOY.md` → „Rollback" die erste über den Knopf erreichbare SHA eintragen.
+- Gelöscht: `docker-compose.yml.alt`, `deploy.sh.alt`, beide `.env`-Sicherungen,
+  `authorized_keys.bak-2026-10-11`, der private Schlüssel `ci_deploy` samt `.pub`
+  (als `sudo -u deploy rm …` mit absoluten Pfaden — `~` zeigt in der Shell von
+  `gasteladmin` auf dessen eigenes Verzeichnis).
+- Alte Images entfernt: alle `v0.0.*`, die lokalen `2e85d73…`-Tags und die
+  `raildashboard-*:latest` von vor fünf Monaten. Übrig: laufender Stand `6b421c5` und
+  Rückweg `76345cd`, je vier Dienste (rund 6 GB frei).
+- `/etc/nginx/sites-available/dashboard.schienengruen.de.bak-20260914` gelöscht.
+- Repo-Secrets `SSH_HOST`, `SSH_USER`, `SSH_PRIVATE_KEY`, `GHCR_TOKEN` gelöscht. Im
+  Environment `production`: `DEPLOY_FINGERPRINT`, `DEPLOY_HOST`, `DEPLOY_SSH_KEY`,
+  `DEPLOY_USER`.
+- Erste über den Knopf erreichbare SHA in `DEPLOY.md` eingetragen (`76345cd`).
 
 ---
 
-## Was dabei aufgefallen ist und nicht in diesem PR steckt
+## Was dabei aufgefallen ist
 
-- **Erledigt am 10.10.2026, außerhalb des Repos:**
-  - `/var/lib/docker/volumes/raildashboard_uploads` steht jetzt in der `borg create`-Liste
-    von `/root/create_backup.sh` (Sicherung: `create_backup.sh.bak-2026-10-10`). Vorher
-    hatten die Textanhänge kein Backup; das Volume war zu dem Zeitpunkt noch leer.
-  - `raildashboard-graphhopper-1` steht jetzt in `/root/expected_containers.txt`
-    (Sicherung: `expected_containers.txt.bak-2026-10-10`); `check_containers.sh` lief
-    danach mit Rückgabewert 0.
-  - Offen: im Borg-Log nach dem nächsten Lauf (04:05) prüfen, dass er ohne Fehler durchlief.
-- **Der nächtliche Borg-Lauf meldet `Error: failed to start containers: rm-auth`.** Ursache:
-  `rm-auth` hängt am Netz-Namensraum von `remarkable-mcp` (`cannot join network namespace
-  of a non running container`) und wird beim gemeinsamen `docker start` vor ihm gestartet.
-  Der Fallback per `docker compose up -d` im Skript fängt das ab; betrifft nur den
-  remarkable-mcp-Stack.
-- **Der private CI-Schlüssel liegt auf dem Server** (`/home/deploy/.ssh/ci_deploy`). Er
-  gehört nur ins GitHub-Secret `DEPLOY_SSH_KEY`; nach dem zweiten Deploy löschen (Schritt 8).
-- **Der Host-Schlüssel des Servers wird nicht geprüft.** `appleboy/ssh-action` vertraut wie
-  vorher `ssh-keyscan` beim ersten Kontakt; mit einem Secret `DEPLOY_FINGERPRINT` und
-  `fingerprint:` im Workflow ließe er sich festnageln. Kleiner Folge-PR.
-- **`docs/production_setup.md` beschrieb einen systemd-Backup-Timer** unter
-  `/opt/raildashboard`, den es auf vmd92747 nicht gibt; ersetzt durch den echten
-  Borg-Ablauf.
-- **`ENVIRONMENT` ist in der Server-`.env` nicht gesetzt**, die App läuft damit als
-  `development`. Zu prüfen, ob das irgendwo Verhalten ändert.
+Erledigt (außerhalb des Repos, auf vmd92747):
+
+- **Textanhänge ohne Backup** (10.10.2026): `raildashboard_uploads` steht jetzt in der
+  `borg create`-Liste von `/root/create_backup.sh` (Sicherung
+  `create_backup.sh.bak-2026-10-10`); der Lauf am 11.10. lief damit fehlerfrei.
+- **GraphHopper unüberwacht** (10.10.2026): `raildashboard-graphhopper-1` steht jetzt in
+  `/root/expected_containers.txt` (Sicherung `expected_containers.txt.bak-2026-10-10`).
+- **`ENVIRONMENT` fehlte** (11.10.2026): die App lief als `development`, das
+  Session-Cookie damit ohne `Secure`-Flag. `ENVIRONMENT=production` steht jetzt in der
+  Server-`.env` (Sicherung `.env.bak-2026-10-11-env`, inzwischen gelöscht) und in
+  `.env.prod.example`; im Browser geprüft.
+- **Host-Schlüssel ungeprüft** (11.10.2026): `deploy.yml` prüft ihn über das Secret
+  `DEPLOY_FINGERPRINT` (ECDSA, `SHA256:ab5J2hLz…`); der zweite Deploy lief damit durch.
+- **`rm-auth` scheiterte beim nächtlichen Neustart** (11.10.2026): `rm-auth` teilt den
+  Netz-Namensraum von `remarkable-mcp` und kam beim gemeinsamen `docker start` zuerst dran.
+  `/root/create_backup.sh` startet jetzt erst Container mit eigenem Netz, dann die mit
+  `network_mode: container:` (Sicherung `create_backup.sh.bak-2026-10-11-start`). Der
+  Fallback per `docker compose up -d` bleibt. Nach dem nächsten Lauf im Borg-Log prüfen,
+  dass `failed to start containers: rm-auth` fehlt.
+
+Offen, bewusst nicht angefasst:
+
+- **Pre-Migrate-Dumps gehören `root`** (der `backup`-Container läuft als root). Harmlos —
+  `deploy` kann sie löschen, weil ihm das Verzeichnis gehört.
 - **`BACKEND_CORS_ORIGINS` fehlt in der Server-`.env`** (Default `http://localhost:5173`).
   Unkritisch, solange das Frontend same-origin spricht.
-- **Backend-Tests laufen nicht gegen die echte Datenbank** (`docs/workflow.md`, Ausnahmen).
+- **Backend-Tests laufen nicht gegen die echte Datenbank** (`docs/workflow.md`, Ausnahmen);
+  ein Test-Stack mit dem db-Image wäre ein eigenes Arbeitspaket.
