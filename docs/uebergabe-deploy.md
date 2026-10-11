@@ -5,10 +5,24 @@ eingerichtet wird" aus [`docs/workflow.md`](workflow.md), ausgefüllt für diese
 den Contabo-Host `vmd92747`. Vorlage war die Umstellung von `JonasPrade/dtakt_mitglied`
 am 08.10.2026; deren Lehren sind hier eingearbeitet.
 
-**Stand 09.10.2026:** Bestandsaufnahme erledigt (siehe unten), Repo umgebaut, Schritte 2–7
-offen. Produktion läuft auf **v0.0.14** (`2e85d73`); der Release v0.0.15 ist am 07.10.2026
-an einem abgelaufenen GHCR-Token gescheitert (`denied: denied`) und wird mit dem ersten
-Deploy über den Knopf nachgeholt.
+**Stand 11.10.2026:** Umstellung durchgelaufen. Erster Deploy über den Knopf:
+`76345cd` (= Merge der Umstellung, enthält v0.0.15),
+[Lauf 38138141196](https://github.com/JonasPrade/raildashboard/actions/runs/38138141196):
+neues `prod.sh` (eine Pull-Zeile je Image, Backend lag schon lokal), Backup
+`pre-migrate_20261011_120926_76345cd182d4.dump` vor der Migration, Migrationen
+`20261007001` und `20260928001` gelaufen, nur `127.0.0.1:5000` offen, `/healthz` von außen 200.
+Schritte 2–7 erledigt; offen ist Schritt 8 (Nacharbeiten nach dem zweiten Deploy).
+GHCR-Token für `deploy` läuft am **09.01.2027** ab, Erinnerung in Todoist zum 02.01.2027.
+
+**Beim ersten Lauf aufgefallen und behoben:**
+- **GHCR-Token abgelaufen** (`denied`), wie schon beim gescheiterten Release v0.0.15 am
+  07.10.2026. Neuer classic Token, nur `read:packages`, eigener Token für diesen Host.
+- **`uploads`-Volume gehörte `root`.** Die Vorprüfung für `/healthz` (Schritt 5) schlug fehl:
+  `appuser` konnte unter `/app/uploads` nichts anlegen. Textanhänge wären schon vorher
+  gescheitert (es gab noch keine), und ab v0.0.15 jeder PDF-Import, weil die Importe dort
+  zwischenlagern. Behoben per `chown 1000:1000` am Volume (DEPLOY.md, „Backup & Restore"),
+  dauerhaft durch das Backend-Image, das `/app/uploads` mit `appuser` als Besitzer anlegt.
+  Ohne die Vorprüfung wäre der erste Deploy an `/healthz` gescheitert und zurückgerollt.
 
 Reihenfolge einhalten: **Schritt 5 (Server) vor dem ersten Ausrollen**, und die
 `authorized_keys`-Zeile (Schritt 3) erst, wenn `prod.sh` auf dem Server liegt und die
@@ -177,7 +191,8 @@ Der Knopf erscheint **erst nach dem Merge**.
 
 ## 8. Nacharbeiten (nach zwei erfolgreichen Deploys)
 
-- `docker-compose.yml.alt`, `deploy.sh.alt`, `.env`-Sicherung löschen — die Dateien gehören
+- `docker-compose.yml.alt`, `deploy.sh.alt`, `.env.bak-2026-10-11`,
+  `authorized_keys.bak-2026-10-11` und den privaten Schlüssel `ci_deploy` löschen — die Dateien gehören
   `deploy`, also `sudo -u deploy rm …`.
 - Alte Images entfernen bis auf den laufenden Stand und den Rückweg; dazu die
   `raildashboard-*:latest` von vor fünf Monaten.
@@ -197,11 +212,16 @@ Der Knopf erscheint **erst nach dem Merge**.
     (Sicherung: `expected_containers.txt.bak-2026-10-10`); `check_containers.sh` lief
     danach mit Rückgabewert 0.
   - Offen: im Borg-Log nach dem nächsten Lauf (04:05) prüfen, dass er ohne Fehler durchlief.
-- **Der letzte Borg-Lauf endete mit `Error: failed to start containers: rm-auth`.** Der
-  Fallback per `docker compose up -d` hat den Container danach gestartet; betrifft den
-  remarkable-mcp-Stack, nicht raildashboard. Sollte trotzdem jemand ansehen, weil ein
-  gescheiterter Neustart nach dem nächtlichen Stopp sonst einen Dienst bis zum Morgen
-  unten lässt.
+- **Der nächtliche Borg-Lauf meldet `Error: failed to start containers: rm-auth`.** Ursache:
+  `rm-auth` hängt am Netz-Namensraum von `remarkable-mcp` (`cannot join network namespace
+  of a non running container`) und wird beim gemeinsamen `docker start` vor ihm gestartet.
+  Der Fallback per `docker compose up -d` im Skript fängt das ab; betrifft nur den
+  remarkable-mcp-Stack.
+- **Der private CI-Schlüssel liegt auf dem Server** (`/home/deploy/.ssh/ci_deploy`). Er
+  gehört nur ins GitHub-Secret `DEPLOY_SSH_KEY`; nach dem zweiten Deploy löschen (Schritt 8).
+- **Der Host-Schlüssel des Servers wird nicht geprüft.** `appleboy/ssh-action` vertraut wie
+  vorher `ssh-keyscan` beim ersten Kontakt; mit einem Secret `DEPLOY_FINGERPRINT` und
+  `fingerprint:` im Workflow ließe er sich festnageln. Kleiner Folge-PR.
 - **`docs/production_setup.md` beschrieb einen systemd-Backup-Timer** unter
   `/opt/raildashboard`, den es auf vmd92747 nicht gibt; ersetzt durch den echten
   Borg-Ablauf.

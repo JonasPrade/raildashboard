@@ -188,6 +188,18 @@ unset GHCR_PAT
 
    **Nicht gegen 04:05 ausrollen**: in diesem Fenster sind alle Container gestoppt.
 
+**Besitz des `uploads`-Volumes.** Das Backend läuft als `appuser` (UID 1000) und braucht
+Schreibrecht auf `/app/uploads`. Ein Volume, das angelegt wurde, bevor das Image das
+Verzeichnis mitbrachte, gehört `root` — so war es auf vmd92747 bis zum 11.10.2026, und
+weder Textanhänge noch (ab v0.0.15) PDF-Importe hätten funktioniert. Seitdem bringt das
+Image `/app/uploads` mit `appuser` als Besitzer mit; ein bestehendes Volume behält aber
+seinen Besitz. Korrektur von Hand (als `deploy`, ohne sudo):
+
+```bash
+docker run --rm --user 0 --entrypoint chown -v raildashboard_uploads:/app/uploads \
+    ghcr.io/jonasprade/raildashboard-backend:<sha> 1000:1000 /app/uploads
+```
+
 **Restore** (als `deploy`, nach jeder Änderung am Backup-Mechanismus erneut testen):
 
 ```bash
@@ -216,8 +228,9 @@ mappt, macht dessen `/healthz` rot (`schema`) — dann hilft nur der Restore.
 Actions → deploy → Run workflow, frühere SHA eintragen. Jeder Commit auf `master` liegt
 unveränderlich in GHCR. Deshalb nie über `latest` ausrollen — der SHA ist der Rückweg.
 
-Der älteste SHA, der so erreichbar ist, ist der Merge-Commit dieser Umstellung (wird
-nach dem ersten Lauf hier eingetragen). Für ältere Stände gibt es in GHCR nur
+Der älteste SHA, der so erreichbar ist, ist
+`76345cd182d430eae235769b75cb6eb520b74c9f` (Merge der Umstellung, erster Deploy über den
+Knopf am 11.10.2026, [Lauf 38138141196](https://github.com/JonasPrade/raildashboard/actions/runs/38138141196)). Für ältere Stände gibt es in GHCR nur
 Version-Tags (`v0.0.14` …), und `deploy.yml` lässt nur SHAs durch. Auf dem Server ist
 v0.0.14 zusätzlich lokal auf seine Commit-SHA `2e85d736181b5559d7a0f2b87581b2bf98d04fce`
 getaggt; erreichbar ist das nur von Hand mit `./prod.sh 2e85d73…`, nicht über den Knopf.
