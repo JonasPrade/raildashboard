@@ -444,6 +444,13 @@ mit Permission `progress.edit`.
 „erwartet". `ProgressObservationCreate`/`ProgressObservationSchema` um `is_expected`
 erweitern → `make gen-api`.
 
+## Zeitstrahl über mehrere Projekte
+
+Die Gantt-artige Übersicht über eine ganze Projektgruppe ist ein eigenes Feature:
+`docs/features/feature-project-timeline.md`. Sie nutzt dieselbe Vorrangregel für konkrete
+Termine wie die Prognose (`progress_forecast.concrete_milestone_dates`) und zeigt keine
+BVWP-Schätzungen.
+
 ## Offene Punkte / Risiken / Edge Cases
 
 - **`parl_befassung_relevant`-Default**: `project_group` hat kein stabiles Typ-Flag →

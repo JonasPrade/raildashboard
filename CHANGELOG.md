@@ -11,6 +11,12 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 
 ## [Unreleased]
 
+### Added
+- **Zeitstrahl view.** Next to Karte and Liste, `/?view=timeline` shows the projects of a
+  group with credible dates (VIB-PFA, Fulda-Runde, expected manual entries, Planfeststellung,
+  parliamentary involvement — never BVWP estimates) on a shared year axis. New public
+  endpoint `GET /api/v1/project_groups/{id}/timeline`.
+
 ### Fixed
 - **The backend image creates `/app/uploads` owned by `appuser`.** A named volume created
   before the directory existed in the image was root-owned, so the app could write neither

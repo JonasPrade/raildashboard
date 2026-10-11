@@ -32,12 +32,15 @@ from dashboard_backend.models.parliament import (
 )
 from dashboard_backend.models.projects.bvwp_project_data import BvwpProjectData
 from dashboard_backend.models.projects.project import Project
+from dashboard_backend.models.projects.progress_observation import ProgressObservation
 from dashboard_backend.models.projects.project_progress import ProjectProgress
 from dashboard_backend.models.projects.project_text import ProjectText
 from dashboard_backend.models.projects.project_text_type import ProjectTextType
 from dashboard_backend.models.roles import Role, RolePermission
 from dashboard_backend.models.todos.todo import Todo, TodoAssignee
 from dashboard_backend.models.users import User
+from dashboard_backend.models.vib.vib_entry import VibEntry, vib_entry_project
+from dashboard_backend.models.vib.vib_pfa_entry import VibPfaEntry
 from dashboard_backend.models.routes import Route
 from dashboard_backend.models.projects.project_group import ProjectGroup
 from dashboard_backend.schemas.users import UserRole
@@ -86,6 +89,10 @@ TABLES = [
     ProjectToConstituency.__table__,  # FK to project (absent here) is unenforced in SQLite
     ProjectToProjectGroup.__table__,  # must follow project + project_group (FK dependency)
     ProjectProgress.__table__,  # FK to project; read by the MCP list_projects phase filter
+    ProgressObservation.__table__,  # read by the group timeline
+    VibEntry.__table__,  # FK to vib_report (absent here) is unenforced in SQLite
+    vib_entry_project,  # must follow project + vib_entry (FK dependency)
+    VibPfaEntry.__table__,  # must follow vib_entry (FK dependency)
     BvwpProjectData.__table__,  # FK to project; read by the MCP get_project tool
     ChangeLog.__table__,  # FK to project + users; written by the MCP update_project tool
     ChangeLogEntry.__table__,  # must follow ChangeLog (FK dependency)

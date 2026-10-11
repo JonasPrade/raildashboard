@@ -39,6 +39,20 @@ export const featureHighlights: FeatureHighlight[] = [
         ]
     },
     {
+        title: "Zeitstrahl",
+        description:
+            "Dritte Ansicht neben Karte und Liste: Die Projekte einer Projektgruppe mit belastbaren Terminen" +
+            " erscheinen als Zeilen auf einer gemeinsamen Jahresachse.",
+        details: [
+            "Termine aus VIB-PFA (Baubeginn, Inbetriebnahme, Planfeststellungsbeschluss), Fulda-Runde, erwarteten manuellen Einträgen sowie den Daten von Planfeststellung und parlamentarischer Befassung",
+            "Keine BVWP-Schätzungen; Projekte ohne konkrete Termine werden gezählt, aber nicht gezeichnet",
+            "Phasenbalken in den Phasenfarben, der Teil nach heute schraffiert (geplant); hohle Punkte markieren „spätestens seit“-Belege aus glaubwürdigen Beobachtungen",
+            "Übergeordnete Projekte bündeln die Termine ihrer Unterprojekte (frühester Beginn, späteste Inbetriebnahme)",
+            "Sortierung nach Inbetriebnahme, Baubeginn oder Name; Gruppe, Suche, Sortierung und „Nur Hauptprojekte“ stehen in der URL",
+            "Details: docs/features/feature-project-timeline.md"
+        ]
+    },
+    {
         title: "Project search",
         description:
             "Client-side full-text search across all loaded projects in both the map and the list view." +

@@ -419,6 +419,7 @@ and therefore needs their geometry — but only theirs. Both exclude drafts. Rea
 GET /api/v1/project_groups/                         # groups + ProjectListItem[] (no geometry)
 GET /api/v1/project_groups/{group_id}               # one group, same shape
 GET /api/v1/project_groups/{group_id}/geometries?only_superior=true
+GET /api/v1/project_groups/{group_id}/timeline?only_superior=true
 ```
 
 The list embeds `ProjectListItem` (id, name, number, parent, description, length and
@@ -430,7 +431,15 @@ coordinates rounded to ~1 m (`services/geometry_simplify.py`, memoised per proce
 source hash). With `only_superior=true` subprojects are skipped — their geometry is
 already part of their parent's. The exact geometry stays on `GET /projects/{id}`.
 
-All three send a content-hash `ETag` with `Cache-Control: no-cache` and answer
+`/timeline` feeds the "Zeitstrahl" view: per project the dated milestones (phase starts,
+Planfeststellung, parliamentary involvement) with source and certainty (`CONCRETE` or
+`EVIDENCE` = "spätestens seit"). Only projects with at least one concrete date are listed
+(`without_dates_count` counts the rest); BVWP estimates are never used. A superior pools its
+subtree. Inputs are bulk-loaded (`crud/projects/progress_timeline.py`), the assembly is the
+pure `services/progress_timeline.py`; concrete dates share the forecast's precedence via
+`progress_forecast.concrete_milestone_dates`. See `docs/features/feature-project-timeline.md`.
+
+All four send a content-hash `ETag` with `Cache-Control: no-cache` and answer
 `If-None-Match` with `304` (`core/http_cache.py`). The app compresses responses ≥ 1 KB
 with `GZipMiddleware` (`main.py`) when the client sends `Accept-Encoding: gzip`.
 See `docs/features/feature-slim-project-groups.md`.
