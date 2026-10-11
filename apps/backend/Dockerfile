@@ -55,6 +55,13 @@ COPY --from=builder /venv /venv
 # Copy application source
 COPY . .
 
+# Mount point of the `uploads` volume (text attachments, import staging). It must
+# exist in the image and belong to appuser: Docker initialises an empty named
+# volume from the image directory, otherwise the volume root is root-owned and
+# the app cannot write to it (/healthz reports upload_dir). An already existing
+# volume keeps its ownership – see docs/uebergabe-deploy.md.
+RUN mkdir -p /app/uploads && chown appuser:appuser /app/uploads
+
 # Entrypoint script (runs migrations, then starts uvicorn)
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
