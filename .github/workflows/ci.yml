@@ -1,0 +1,22 @@
+# The check on every pull request. The job name `Prüfung` is what a required
+# status check would reference – not the command name. Branch Protection is not
+# enforced on this private repo without a paid plan, so this reports but does
+# not block (docs/workflow.md, Ausnahmen).
+#
+# The job runs `make test` and nothing else: no install steps, no test call of
+# its own, no matrix. What runs here is bit-identical to what runs locally. A
+# second path would be a second system (docs/workflow.md).
+name: ci
+
+on:
+  pull_request:
+
+jobs:
+  pruefung:
+    name: Prüfung
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: make test
+        run: make test

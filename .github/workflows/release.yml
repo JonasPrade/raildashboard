@@ -1,0 +1,79 @@
+# Every commit on master gets its images. Nothing is shipped here – that is
+# deploy.yml, started by hand (DEPLOY.md, docs/workflow.md).
+name: release
+
+on:
+  push:
+    branches: [master]
+
+env:
+  # Fixed and lowercase, NOT derived from github.repository: that reads
+  # "JonasPrade/raildashboard" with capitals, and OCI registries require
+  # lowercase. A single capital letter would fail the first run.
+  IMAGE_PREFIX: ghcr.io/jonasprade/raildashboard
+
+jobs:
+  pruefung:
+    name: Prüfung
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      # The same suite once more: the PR run checked a tree that carries a
+      # different SHA after the merge.
+      - name: make test
+        run: make test
+
+  build:
+    name: Image ${{ matrix.service }} bauen und nach GHCR schieben
+    runs-on: ubuntu-latest
+    needs: pruefung
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - service: backend
+            context: apps/backend
+            target: runtime
+            build_args: ""
+          - service: frontend
+            context: apps/frontend
+            target: runtime
+            build_args: |
+              VITE_API_BASE_URL=
+              REACT_APP_TILE_LAYER_URL=${{ vars.TILE_LAYER_URL }}
+          - service: db
+            context: docker/db
+            target: ""
+            build_args: ""
+          - service: graphhopper
+            context: docker/graphhopper
+            target: ""
+            build_args: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          target: ${{ matrix.target }}
+          build-args: ${{ matrix.build_args }}
+          push: true
+          # The commit SHA is the only immutable anchor; `latest` additionally
+          # points at the newest state of master. Deploys always go by SHA, never
+          # by latest – otherwise there is no way back.
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:${{ github.sha }}
+            ${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:latest
+          # Cache in the registry rather than the Actions cache: it survives
+          # when the Actions cache is evicted.
+          cache-from: type=registry,ref=${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:buildcache
+          cache-to: type=registry,ref=${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:buildcache,mode=max

@@ -28,6 +28,15 @@ COPY . .
 RUN npm run build
 
 # ---------------------------------------------------------------------------
+# Stage: check – the frontend part of `make test` (not shipped)
+# Type-check, lint (errors block, warnings pass) and unit tests against the
+# exact sources and lockfile the runtime bundle is built from.
+# ---------------------------------------------------------------------------
+FROM builder AS check
+
+RUN npx tsc --noEmit && npm run lint && npm run test
+
+# ---------------------------------------------------------------------------
 # Stage 2: runtime – nginx serves the built static files
 # ---------------------------------------------------------------------------
 FROM nginx:alpine AS runtime

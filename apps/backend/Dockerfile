@@ -22,6 +22,19 @@ RUN /venv/bin/pip install --upgrade pip && \
     /venv/bin/pip install --no-cache-dir -r requirements.txt
 
 # ---------------------------------------------------------------------------
+# Stage: test – the backend part of `make test` (not shipped)
+# Same interpreter and pinned dependencies as the runtime image. A failing test
+# fails the build. tests/db_related_tests need a live PostGIS(+pgRouting) and
+# stay out (docs/workflow.md, Ausnahmen).
+# ---------------------------------------------------------------------------
+FROM builder AS test
+
+WORKDIR /app
+COPY . .
+ENV PATH="/venv/bin:$PATH" ENVIRONMENT=test
+RUN python -m pytest --ignore=tests/db_related_tests -q -p no:warnings
+
+# ---------------------------------------------------------------------------
 # Stage 2: runtime – lean image that only contains the app and the venv
 # ---------------------------------------------------------------------------
 FROM python:3.13-slim AS runtime
@@ -41,6 +54,13 @@ COPY --from=builder /venv /venv
 
 # Copy application source
 COPY . .
+
+# Mount point of the `uploads` volume (text attachments, import staging). It must
+# exist in the image and belong to appuser: Docker initialises an empty named
+# volume from the image directory, otherwise the volume root is root-owned and
+# the app cannot write to it (/healthz reports upload_dir). An already existing
+# volume keeps its ownership – see docs/uebergabe-deploy.md.
+RUN mkdir -p /app/uploads && chown appuser:appuser /app/uploads
 
 # Entrypoint script (runs migrations, then starts uvicorn)
 COPY docker-entrypoint.sh /docker-entrypoint.sh
