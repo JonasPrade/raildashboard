@@ -357,7 +357,8 @@ def compute_project_length(
     "Länge aus Geometrie berechnen" in the UI (geodesic sum over all lines).
     Returns the computed and the stored length. With ``apply=true`` the computed
     value is written to the ``length`` field (requires ``project.edit``; recorded
-    in the changelog)."""
+    in the changelog). This is the source for ``length``: use it instead of
+    published lengths (e.g. from DB press releases), which measure differently."""
     principal = get_principal(ctx)
     if apply:
         require(principal, "project.edit")
@@ -389,7 +390,8 @@ def update_project(project_id: int, changes: dict[str, Any], *, ctx: Context) ->
     """Change project fields (requires ``project.edit``). ``changes`` maps field
     names to new values, e.g. {"description": "…", "nbs": true}; see get_project
     for the field names. Geometry and the draft flag cannot be changed here;
-    use set_project_groups for the group assignment.
+    use set_project_groups for the group assignment. ``length`` comes from the
+    geometry: set it with compute_project_length, not from published figures.
     Every change is written to the project changelog and can be reverted in the UI."""
     principal = get_principal(ctx)
     require(principal, "project.edit")

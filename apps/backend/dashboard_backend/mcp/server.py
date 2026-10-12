@@ -29,7 +29,9 @@ INSTRUCTIONS = (
     "Schienendashboard: Eisenbahn-Infrastrukturprojekte in Deutschland mit "
     "Finanzierung (FinVe, Haushalt), Planungsstand und Aufgaben. Projekte zuerst "
     "mit list_projects suchen, dann per id mit den get_*-Tools vertiefen. "
-    "Schreibende Tools wirken sofort und stehen im Änderungsprotokoll."
+    "Schreibende Tools wirken sofort und stehen im Änderungsprotokoll. "
+    "Projektlängen kommen aus der Geometrie (compute_project_length mit apply), "
+    "nicht aus veröffentlichten Angaben."
 )
 
 
