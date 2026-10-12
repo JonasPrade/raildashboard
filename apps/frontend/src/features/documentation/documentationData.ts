@@ -338,7 +338,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Station projects have no kilometres — they are weighted by their share of the project's points and labelled \"Lage im Wahlkreis\"",
             "Sources: Die Bundeswahlleiterin (© GeoBasis-DE / BKG) for the outlines, abgeordnetenwatch API v2 (CC0) for the people",
             "The Abrufstand of the last people import is visible in the UI and flagged as stale after 60 days",
-            "Admin page /admin/abgeordnete (parliament.import): refresh the people from abgeordnetenwatch and rebuild the project-constituency links"
+            "Admin page /admin/abgeordnete (parliament.import): refresh the people from abgeordnetenwatch, upload the constituency outlines as GeoJSON (once per election) and rebuild the project-constituency links"
         ]
     },
     {

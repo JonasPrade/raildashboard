@@ -136,7 +136,7 @@ def get_attachment_path(text_id: int, stored_filename: str) -> Path:
 
 
 # ---------------------------------------------------------------------------
-# Import staging — PDFs handed from an upload endpoint to a Celery task
+# Import staging — files handed from an upload endpoint to a Celery task
 # ---------------------------------------------------------------------------
 #
 # The endpoint writes the upload here and passes only the file name to the task,
@@ -145,6 +145,8 @@ def get_attachment_path(text_id: int, stored_filename: str) -> Path:
 # purged, worker lost) are swept on the next staging call.
 
 STAGED_IMPORT_MAX_AGE_SECONDS = 24 * 60 * 60
+# PDFs for the document importers, GeoJSON for the constituency outlines.
+STAGED_IMPORT_SUFFIXES = (".pdf", ".geojson")
 
 
 def _staging_root() -> Path:
@@ -165,7 +167,9 @@ def _staged_path(staged_name: str) -> Path:
 
 def _sweep_stale_staged_imports(root: Path) -> None:
     cutoff = time.time() - STAGED_IMPORT_MAX_AGE_SECONDS
-    for path in root.glob("*.pdf"):
+    for path in root.iterdir():
+        if path.suffix not in STAGED_IMPORT_SUFFIXES:
+            continue
         try:
             if path.stat().st_mtime < cutoff:
                 path.unlink(missing_ok=True)
@@ -175,16 +179,23 @@ def _sweep_stale_staged_imports(root: Path) -> None:
 
 def stage_import_pdf(file_bytes: bytes) -> str:
     """Write an uploaded import PDF to the staging dir and return its file name."""
+    return stage_import_file(file_bytes, ".pdf")
+
+
+def stage_import_file(file_bytes: bytes, suffix: str) -> str:
+    """Write an uploaded import file to the staging dir and return its file name."""
+    if suffix not in STAGED_IMPORT_SUFFIXES:
+        raise ValueError(f"Unsupported staged import suffix: {suffix!r}")
     root = _staging_root()
     root.mkdir(parents=True, exist_ok=True)
     _sweep_stale_staged_imports(root)
-    staged_name = f"{uuid.uuid4().hex}.pdf"
+    staged_name = f"{uuid.uuid4().hex}{suffix}"
     _staged_path(staged_name).write_bytes(file_bytes)
     return staged_name
 
 
 def delete_staged_import(staged_name: str) -> None:
-    """Remove a staged import PDF. Silently ignores missing files."""
+    """Remove a staged import file. Silently ignores missing files."""
     try:
         _staged_path(staged_name).unlink(missing_ok=True)
     except (ValueError, OSError):
@@ -193,7 +204,7 @@ def delete_staged_import(staged_name: str) -> None:
 
 @contextmanager
 def consume_staged_import(staged_name: str) -> Iterator[bytes]:
-    """Yield the bytes of a staged import PDF and delete the file afterwards.
+    """Yield the bytes of a staged import file and delete the file afterwards.
 
     The file is removed even when reading or the caller's work fails, so a
     crashed parse never leaves an orphan in the volume.

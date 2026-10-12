@@ -7,6 +7,8 @@ only in a label, faction labels carry soft hyphens, and only
 
 from __future__ import annotations
 
+import json
+
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -26,12 +28,14 @@ from dashboard_backend.models.parliament.import_run import (
     ParliamentImportRun,
 )
 from dashboard_backend.services.parliament_import import (
+    ConstituencyFileError,
     clean_fraction_label,
     constituency_number_from_label,
     constituency_properties,
     current_fraction_label,
     import_politicians,
     land_name,
+    parse_constituency_geojson,
     split_name,
 )
 
@@ -278,3 +282,43 @@ def test_missing_committee_fails_the_run(session):
     run = session.query(ParliamentImportRun).order_by(ParliamentImportRun.id.desc()).first()
     assert run.status == "error"
     assert "haushalt" in (run.error or "")
+
+
+# --- constituency upload check -------------------------------------------------
+
+
+def _outline(x=9.9, y=53.5, **properties):
+    return {
+        "type": "Feature",
+        "properties": {"wkr_id": 1, "name": "Flensburg – Schleswig", **properties},
+        "geometry": {
+            "type": "MultiPolygon",
+            "coordinates": [[[[x, y], [x + 0.1, y], [x, y + 0.1], [x, y]]]],
+        },
+    }
+
+
+def test_constituency_geojson_accepts_a_wgs84_feature_collection():
+    raw = json.dumps({"type": "FeatureCollection", "features": [_outline()]}).encode()
+    assert len(parse_constituency_geojson(raw)) == 1
+
+
+@pytest.mark.parametrize(
+    "raw, message",
+    [
+        (b"not json", "kein gültiges JSON"),
+        (b'{"type": "FeatureCollection", "features": []}', "keine GeoJSON-FeatureCollection"),
+        (
+            json.dumps({"features": [{"properties": {"name": "x"}, "geometry": None}]}).encode(),
+            "Wahlkreisnummer",
+        ),
+        # UTM 32 metres, as in the Bundeswahlleiterin's shapefile export.
+        (
+            json.dumps({"features": [_outline(x=532000.0, y=6070000.0)]}).encode(),
+            "UTM 32",
+        ),
+    ],
+)
+def test_constituency_geojson_rejects_unusable_files(raw, message):
+    with pytest.raises(ConstituencyFileError, match=message):
+        parse_constituency_geojson(raw)

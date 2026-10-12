@@ -27,6 +27,7 @@ from dashboard_backend.models.vib.vib_draft_report import VibDraftReport
 from dashboard_backend.utils.file_storage import (
     MAX_FILE_SIZE,
     delete_staged_import,
+    stage_import_file,
     stage_import_pdf,
 )
 
@@ -89,9 +90,19 @@ def launch_with_staged_pdf(task: Task, pdf_bytes: bytes, *args: Any) -> AsyncRes
     bytes, so the PDF never travels through the Redis broker. The task deletes
     the file when it finishes; if dispatching fails, it is removed here.
     """
-    staged_name = stage_import_pdf(pdf_bytes)
+    return _launch_staged(task, stage_import_pdf(pdf_bytes), *args)
+
+
+def launch_with_staged_file(
+    task: Task, file_bytes: bytes, suffix: str, *args: Any, **kwargs: Any
+) -> AsyncResult:
+    """Like :func:`launch_with_staged_pdf` for any staged import type (e.g. GeoJSON)."""
+    return _launch_staged(task, stage_import_file(file_bytes, suffix), *args, **kwargs)
+
+
+def _launch_staged(task: Task, staged_name: str, *args: Any, **kwargs: Any) -> AsyncResult:
     try:
-        return task.delay(staged_name, *args)
+        return task.delay(staged_name, *args, **kwargs)
     except Exception:
         delete_staged_import(staged_name)
         raise

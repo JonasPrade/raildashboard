@@ -16,6 +16,7 @@ import dashboard_backend.api.deps as deps
 import dashboard_backend.utils.file_storage as fs
 from dashboard_backend.tasks import fulda as fulda_task
 from dashboard_backend.tasks import haushalt as haushalt_task
+from dashboard_backend.tasks import parliament as parliament_task
 from dashboard_backend.tasks import vib as vib_task
 
 PDF = b"%PDF-1.4 staged import"
@@ -131,4 +132,55 @@ def test_parse_tasks_read_the_staged_file_and_clean_up(
         assert result.get() == {"ok": True}
 
     assert seen == [PDF]
+    assert not (staging_dir / name).exists()
+
+
+def test_geojson_is_staged_and_swept_like_a_pdf(staging_dir):
+    stale = staging_dir / "stale.geojson"
+    stale.write_bytes(b"{}")
+    old = time.time() - fs.STAGED_IMPORT_MAX_AGE_SECONDS - 60
+    os.utime(stale, (old, old))
+
+    name = fs.stage_import_file(b'{"type": "FeatureCollection"}', ".geojson")
+
+    assert name.endswith(".geojson")
+    assert (staging_dir / name).exists()
+    assert not stale.exists()
+
+
+def test_staging_rejects_unknown_suffixes(staging_dir):
+    with pytest.raises(ValueError):
+        fs.stage_import_file(b"x", ".exe")
+
+
+def test_constituency_task_imports_rebuilds_links_and_cleans_up(staging_dir, monkeypatch):
+    geojson = (
+        b'{"features": [{"properties": {"wkr_id": 1},'
+        b' "geometry": {"type": "Polygon", "coordinates": [[[9.4, 54.7], [9.5, 54.7], [9.4, 54.7]]]}}]}'
+    )
+    calls = []
+
+    class _Run:
+        id = 7
+        status = "success"
+        stats = {"constituencies": 1}
+
+    def _import(db, features, **kwargs):
+        calls.append(("import", len(features), kwargs["period_external_id"]))
+        return _Run()
+
+    def _links(db, user_id):
+        calls.append(("links", user_id))
+        return _Run()
+
+    monkeypatch.setattr(parliament_task, "Session", lambda: type("DB", (), {"close": lambda self: None})())
+    monkeypatch.setattr(parliament_task, "import_constituency_geometries", _import)
+    monkeypatch.setattr(parliament_task, "_run_link_rebuild", _links)
+    name = fs.stage_import_file(geojson, ".geojson")
+
+    parliament_task.import_constituency_file.apply(
+        args=(name, 161, 2025, "BWL"), kwargs={"user_id": 3}, throw=True
+    )
+
+    assert calls == [("import", 1, 161), ("links", 3)]
     assert not (staging_dir / name).exists()

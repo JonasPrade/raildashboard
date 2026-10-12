@@ -467,7 +467,17 @@ the decisions behind it: `docs/features/feature-abgeordnete.md`.
 
 Two imports, because the two halves age at very different speeds.
 
-**Constituency outlines** — once per election, as a script:
+**Constituency outlines** — once per election. Normally uploaded on the admin page
+`/admin/abgeordnete` („Wahlkreisgeometrien importieren"): `POST
+/api/v1/parliament/constituencies/import` (multipart: `geojson`, `election_year`, optional
+`period_external_id`; capability `parliament.import`). The endpoint checks the file at once
+(valid JSON, a FeatureCollection, features with a number and a geometry, coordinates in
+degrees — a UTM-32 shapefile export is rejected with a hint to reproject), stages it in
+`IMPORT_STAGING_DIR` and starts the Celery task `import_constituency_file`, which writes
+the outlines into the current period (or the one given) and rebuilds
+`project_to_constituency` right after. Upload limit 50 MB, the 2025 file is 2.5 MB.
+
+The same import as a server-side script:
 
 ```bash
 cd apps/backend
@@ -478,7 +488,7 @@ PYTHONPATH=. .venv/bin/python scripts/import_constituencies.py wkr2025.geojson \
 The file comes from Die Bundeswahlleiterin (© GeoBasis-DE / BKG); if the original is
 unreachable there is an open mirror at
 `github.com/ZeitOnline/bundestagswahl-historische-wahlkreis-daten`
-(`shapes_2025/wkr2025.geojson`). The script accepts both that file's `wkr_id`/`name`/`bl`
+(`shapes_2025/wkr2025.geojson`). Upload and script accept both that file's `wkr_id`/`name`/`bl`
 fields and the shapefile export's `WKR_NR`/`WKR_NAME`/`LAND_NAME`. It rebuilds
 `project_to_constituency` afterwards unless `--skip-recompute` is given. Needs PostGIS.
 
