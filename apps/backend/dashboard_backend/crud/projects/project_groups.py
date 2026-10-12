@@ -1,8 +1,9 @@
 # python
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, load_only, selectinload
 
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.projects.project_group import ProjectGroup
+from dashboard_backend.models.projects.project_progress import ProjectProgress
 from dashboard_backend.schemas.projects.project_schema import (
     PROJECT_FLAG_FIELDS,
     PROJECT_LIST_ITEM_COLUMNS,
@@ -19,14 +20,31 @@ def _with_projects():
 
     Drafts are excluded in SQL (the schema validator drops them afterwards
     anyway), so draft rows are never loaded or serialised.
+
+    The stored ``project_progress`` rows (headline phase + lifecycle for the
+    phase filter) come in with one more ``selectinload`` — a single
+    ``WHERE project_id IN (...)`` for all projects of all groups, restricted to
+    the four columns the list reads. This reads the cached derivation output
+    only; it never runs the derivation or the lazy resync
+    (``crud.projects.progress._ensure_fresh``), so a list request stays cheap
+    and side-effect free. Projects without a row get ``None``.
     """
     columns = [
         getattr(Project, name)
         for name in (*PROJECT_LIST_ITEM_COLUMNS, *PROJECT_FLAG_FIELDS)
     ]
     return (
-        selectinload(ProjectGroup.projects.and_(Project.is_draft.is_(False)))
-        .load_only(*columns, raiseload=True),
+        selectinload(ProjectGroup.projects.and_(Project.is_draft.is_(False))).options(
+            load_only(*columns, raiseload=True),
+            selectinload(Project.progress).load_only(
+                ProjectProgress.project_id,
+                ProjectProgress.manual_phase_override,
+                ProjectProgress.computed_phase,
+                ProjectProgress.computed_confidence,
+                ProjectProgress.lifecycle_status,
+                raiseload=True,
+            ),
+        ),
     )
 
 

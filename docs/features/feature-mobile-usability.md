@@ -80,8 +80,10 @@ change is a one-line swap per table.
 - `MapControls` splits by breakpoint:
   - **Desktop** — unchanged floating panel top-right.
   - **Phone** — a slim search field pinned to the top of the map plus a
-    "Filter" button that opens a **bottom sheet** holding project groups,
-    layer switches and the line/point sliders. The sheet closes on apply.
+    "Filter" button that opens a **bottom sheet** holding the planning-phase
+    filter (#10), project groups, layer switches and the line/point sliders.
+    The sheet closes on apply. An active phase filter marks the button with a
+    dot and shows the "X von Y Projekten" count over the map.
 - The click popup is capped to `min(340px, 100vw − 32px)` so it can never leave
   the screen.
 - `ConstituencyPanel` becomes a bottom sheet on phones (full width, max 55 % of

@@ -33,7 +33,10 @@ scripts use the ORM directly.
    `name`, `project_number`, `superior_project_id`, `description`, `length` and
    `active_features` (names of the boolean properties that are true). The CRUD
    query uses `load_only(..., raiseload=True)` so geometry is never loaded on
-   this path. Same shape for `GET /project_groups/{id}`.
+   this path. Same shape for `GET /project_groups/{id}`. Since #9 each item also
+   carries `headline_phase` and `lifecycle_status` from the stored
+   `project_progress` row (one bulk `selectinload`, no resync) — see
+   `feature-project-progress.md` → *Liste & Karte*.
 2. **Geometry endpoint.** `GET /api/v1/project_groups/{id}/geometries?only_superior=true|false`
    returns `{group_id, only_superior, tolerance, geometries: {project_id: FeatureCollection}}`.
    Per project: one MultiLineString (simplified, topology-preserving, tolerance

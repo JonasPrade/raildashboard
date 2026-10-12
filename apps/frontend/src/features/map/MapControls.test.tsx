@@ -4,6 +4,7 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 
 import MapControls from "./MapControls";
 import { MOBILE_QUERY } from "../../shared/hooks/useBreakpoint";
+import type { PhaseFilterValue } from "../projects/phaseFilter";
 
 const originalMatchMedia = window.matchMedia;
 
@@ -27,7 +28,7 @@ afterEach(() => {
     Object.defineProperty(window, "matchMedia", { writable: true, value: originalMatchMedia });
 });
 
-function renderControls() {
+function renderControls({ phaseFilter = [] }: { phaseFilter?: PhaseFilterValue[] } = {}) {
     return render(
         <MantineProvider>
             <MapControls
@@ -40,6 +41,8 @@ function renderControls() {
                 onOnlySuperiorChange={vi.fn()}
                 searchTerm=""
                 onSearchChange={vi.fn()}
+                phaseFilter={phaseFilter}
+                onPhaseFilterChange={vi.fn()}
                 totalProjects={42}
                 filteredCount={42}
                 showConstituencies={false}
@@ -57,6 +60,24 @@ describe("MapControls", () => {
         expect(screen.getByPlaceholderText("Projekt suchen…")).toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Projektgruppen" })).toBeInTheDocument();
         expect(screen.getByLabelText("Wahlkreise")).toBeInTheDocument();
+        expect(screen.getByRole("textbox", { name: "Planungsphase" })).toBeInTheDocument();
+    });
+
+    it("shows the filtered count when only the phase filter is active", () => {
+        mockViewport({ mobile: false });
+        renderControls({ phaseFilter: ["BAU"] });
+
+        expect(screen.getByText("42 von 42 Projekten")).toBeInTheDocument();
+        expect(screen.getByText("Bau")).toBeInTheDocument();
+    });
+
+    it("flags an active phase filter on the settings button on a phone", () => {
+        mockViewport({ mobile: true });
+        renderControls({ phaseFilter: ["BAU", "UNBEKANNT"] });
+
+        expect(screen.getByLabelText("Karteneinstellungen öffnen (Phasenfilter aktiv)")).toBeInTheDocument();
+        // The select itself sits in the closed sheet.
+        expect(screen.queryByRole("textbox", { name: "Planungsphase" })).not.toBeInTheDocument();
     });
 
     it("keeps only the search field on the map and moves the settings into a sheet on a phone", () => {

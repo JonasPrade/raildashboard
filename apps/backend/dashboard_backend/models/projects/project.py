@@ -127,6 +127,18 @@ class Project(Base):
 
     superior_project = relationship('Project', remote_side='Project.id')
 
+    # Stored planning-state row (1:1, may be absent). Read-only and never
+    # lazy-loaded: list endpoints eager-load it in bulk (see
+    # crud.projects.project_groups._with_projects); everything else goes
+    # through crud.projects.progress, which also handles the lazy resync.
+    progress = relationship(
+        'ProjectProgress',
+        primaryjoin='Project.id == foreign(ProjectProgress.project_id)',
+        uselist=False,
+        viewonly=True,
+        lazy='raise',
+    )
+
     # indexes
     superior_project_id_index = Index('superior_project_content_id_index',
                                                          superior_project_id)
