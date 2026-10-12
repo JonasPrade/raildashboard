@@ -12,6 +12,12 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **Constituency outlines via the admin page.** `/admin/abgeordnete` gets a GeoJSON upload
+  („Wahlkreisgeometrien importieren"): `POST /api/v1/parliament/constituencies/import`
+  (capability `parliament.import`) checks the file at once, stages it in the uploads volume
+  and the worker imports the outlines and rebuilds the project–constituency links. No shell
+  access to the server needed any more; `scripts/import_constituencies.py` stays as the
+  alternative.
 - **Skipped planning phases per project group (#164).** A project group can skip
   Vorplanung and/or Genehmigungsplanung (e.g. corridor renewals without Planfeststellung).
   The forecast and the phase bar leave such phases out when all of a project's groups

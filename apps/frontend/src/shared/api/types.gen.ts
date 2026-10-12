@@ -2133,6 +2133,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/parliament/constituencies/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Constituency Import
+         * @description Upload the constituency outlines and rebuild the project links afterwards.
+         *
+         *     The file is checked here (JSON, features, coordinates in degrees) so a wrong
+         *     file fails at once; the import itself and the ``ST_Intersection`` rebuild
+         *     run in the worker. Without an explicit period the outlines go to the current
+         *     one — after a new election, refresh the members of parliament first.
+         */
+        post: operations["start_constituency_import_api_v1_parliament_constituencies_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/api-keys/": {
         parameters: {
             query?: never;
@@ -2368,6 +2393,21 @@ export interface components {
             pdf: string;
             /** Year */
             year: number;
+        };
+        /** Body_start_constituency_import_api_v1_parliament_constituencies_import_post */
+        Body_start_constituency_import_api_v1_parliament_constituencies_import_post: {
+            /**
+             * Geojson
+             * @description Wahlkreisgeometrien als GeoJSON (WGS 84)
+             */
+            geojson: string;
+            /** Election Year */
+            election_year: number;
+            /**
+             * Period External Id
+             * @description abgeordnetenwatch-Wahlperiode; leer = aktuelle
+             */
+            period_external_id?: number | null;
         };
         /** Body_start_parse_api_v1_import_haushalt_parse_post */
         Body_start_parse_api_v1_import_haushalt_parse_post: {
@@ -10039,6 +10079,41 @@ export interface operations {
             };
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskLaunchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_constituency_import_api_v1_parliament_constituencies_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_start_constituency_import_api_v1_parliament_constituencies_import_post"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             202: {

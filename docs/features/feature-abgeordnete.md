@@ -127,8 +127,11 @@ nichts.
 
 Die beiden Datenteile altern unterschiedlich schnell, deshalb zwei getrennte Läufe:
 
-- **Wahlkreisgeometrien** — einmal je Bundestagswahl. Lauf per Skript
-  (`scripts/import_constituencies.py`), nicht über die Oberfläche.
+- **Wahlkreisgeometrien** — einmal je Bundestagswahl. Upload der GeoJSON-Datei im
+  Adminbereich (`/admin/abgeordnete`, „Wahlkreisgeometrien importieren",
+  `POST /parliament/constituencies/import`); die Projekt-Zuordnung wird danach
+  automatisch neu berechnet. Alternativ per Skript (`scripts/import_constituencies.py`)
+  auf dem Server.
 - **Abgeordnetendaten** — Nachrücker und Ausschussumbesetzungen verschieben die
   Zuordnung laufend, ohne dass an den Geometrien etwas falsch würde. Anstoß **von Hand
   im Adminbereich** (Seite `/admin/abgeordnete`, Button „Abgeordnetenstand
@@ -247,8 +250,12 @@ Einstiege:
 
 - **Celery-Task** `import_parliament_data` (`tasks/parliament.py`) — von der Oberfläche
   angestoßen, schreibt `parliament_import_run`.
-- **Skript** `scripts/import_constituencies.py` — liest die GeoJSON-Datei der
-  Wahlkreisgeometrien (Pfad als Argument) und schreibt `constituency`.
+- **Celery-Task** `import_constituency_file` — nimmt die im Adminbereich hochgeladene
+  GeoJSON-Datei (Staging im Upload-Volume wie bei den PDF-Importen), schreibt
+  `constituency` und baut danach `project_to_constituency` neu auf. Der Endpunkt prüft
+  die Datei vorab (JSON, Features mit Nummer und Geometrie, Koordinaten in Grad).
+- **Skript** `scripts/import_constituencies.py` — dieselbe Logik für eine Datei auf dem
+  Server (Pfad als Argument).
 
 Der Import ist **idempotent**: Upsert über `external_id` bzw.
 `(parliament_period_id, number)`, keine Löschung von Projekten oder Geometrien. Mandate,
@@ -373,13 +380,17 @@ UI-Texte deutsch, Code und Commits englisch.
 5a. **Adminseite** — `/admin/abgeordnete` (`ParliamentAdminPage`): Abrufstand aller drei
    Läufe, Kennzahlen, Buttons für `POST /parliament/import` und
    `POST /parliament/recompute-links` (nachgeholt, war im ersten Wurf vergessen).
+5b. **Geometrie-Upload** — GeoJSON-Upload auf derselben Seite
+   (`POST /parliament/constituencies/import`, Task `import_constituency_file`), damit der
+   Import keinen Shell-Zugang zum Server mehr braucht.
 6. **Dokumentation** — `docs/models.md`, `docs/roadmap.md`, READMEs,
    `DocumentationPage.tsx`, `CHANGELOG.md`.
 
 ## Offene Punkte
 
 - **Wahlkreisgeometrien beschaffen** ist ein Vorgang außerhalb des Codes (Download der
-  Bundeswahlleiterin bzw. des Spiegels). Ohne die Datei bleibt `constituency` leer und
+  Bundeswahlleiterin bzw. des Spiegels); das Einspielen geht danach per Upload im
+  Adminbereich. Ohne die Datei bleibt `constituency` leer und
   das Feature zeigt überall „keine Daten" — das ist der erwartete Zustand vor dem
   ersten Import, kein Fehler.
 - **Laufzeit messen**: der vollständige Neuaufbau über den echten Bestand ist hier nicht

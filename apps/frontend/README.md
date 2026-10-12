@@ -225,7 +225,7 @@ Multi-step import workflow for federal budget PDFs. The `ReviewTable` shows auto
 
 ### Admin: Abgeordnetenstand (`features/admin/ParliamentAdminPage.tsx`)
 
-`/admin/abgeordnete` (capability `parliament.import`) shows the Abrufstand of the people import, the geometry import and the link rebuild plus key figures from `GET /api/v1/parliament/status`, and launches the two Celery jobs via `useStartParliamentImport()` (`POST /parliament/import`) and `useStartConstituencyLinkRebuild()` (`POST /parliament/recompute-links`), polled with `useImportTask`. The geometries themselves are imported by script (`scripts/import_constituencies.py`); without them the rebuild button is disabled.
+`/admin/abgeordnete` (capability `parliament.import`) shows the Abrufstand of the people import, the geometry import and the link rebuild plus key figures from `GET /api/v1/parliament/status`, and launches the three Celery jobs via `useStartParliamentImport()` (`POST /parliament/import`), `useStartConstituencyImport()` (GeoJSON upload, `POST /parliament/constituencies/import`, rebuilds the links afterwards) and `useStartConstituencyLinkRebuild()` (`POST /parliament/recompute-links`), polled with `useImportTask`. Without geometries the rebuild button is disabled.
 
 ### Admin: Systemstatus (`features/admin/SystemStatusPage.tsx`)
 

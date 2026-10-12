@@ -1,7 +1,8 @@
 """Import the Bundestag constituency outlines from a GeoJSON file.
 
-The outlines change once per election, so this is a script and not a button:
-downloading the file is a manual step anyway.
+The outlines change once per election. The usual way is the upload on the
+admin page "Abgeordnetenstand" (``POST /api/v1/parliament/constituencies/import``);
+this script is the server-side alternative for the same file.
 
 Source: Die Bundeswahlleiterin, © GeoBasis-DE / BKG. If the original is
 unreachable there is an open mirror:
@@ -19,12 +20,15 @@ safe: constituencies are matched on ``(parliament_period, number)``.
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 
 from dashboard_backend.database import Session
 from dashboard_backend.services.constituency_matching import recompute_all_links
-from dashboard_backend.services.parliament_import import import_constituency_geometries
+from dashboard_backend.services.parliament_import import (
+    ConstituencyFileError,
+    import_constituency_geometries,
+    parse_constituency_geojson,
+)
 
 DEFAULT_SOURCE = "Die Bundeswahlleiterin, © GeoBasis-DE / BKG"
 # abgeordnetenwatch parliament-period id of "Bundestag 2025 - 2029".
@@ -52,11 +56,12 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    with open(args.geojson, encoding="utf-8") as handle:
-        payload = json.load(handle)
-    features = payload.get("features") if isinstance(payload, dict) else None
-    if not features:
-        print("No features found in the GeoJSON file.", file=sys.stderr)
+    with open(args.geojson, "rb") as handle:
+        raw = handle.read()
+    try:
+        features = parse_constituency_geojson(raw)
+    except ConstituencyFileError as exc:
+        print(exc, file=sys.stderr)
         return 1
 
     db = Session()
