@@ -1,7 +1,7 @@
 // Pure layout helpers for the multi-project timeline ("Zeitstrahl").
 // See docs/features/feature-project-timeline.md.
 
-import type { ProjectTimeline, TimelineMilestone } from "../../shared/api/queries";
+import type { ProjectTimeline, TimelineMilestone, TimelinePeriod } from "../../shared/api/queries";
 import { MAIN_PHASE_LABEL, mainPhaseIndex, type MainPhase } from "../projects/components/progress/phaseMeta";
 
 export type TimelineSort = "betrieb" | "bau" | "name";
@@ -30,6 +30,9 @@ export type Segment = {
     end: number;
     // Part of the segment after today: drawn as "geplant".
     planned: boolean;
+    // Pause between two construction stages of a superior ("zwischen
+    // Bauetappen"): inside the BAU span, but no subproject is being built.
+    gap?: boolean;
 };
 
 function phaseMilestones(milestones: TimelineMilestone[]): TimelineMilestone[] {
@@ -38,14 +41,59 @@ function phaseMilestones(milestones: TimelineMilestone[]): TimelineMilestone[] {
         .sort((a, b) => mainPhaseIndex(a.phase as MainPhase) - mainPhaseIndex(b.phase as MainPhase));
 }
 
+function pushSplitAtToday(segments: Segment[], phase: MainPhase, start: number, end: number, today: number) {
+    if (end <= today) {
+        segments.push({ phase, start, end, planned: false });
+    } else if (start >= today) {
+        segments.push({ phase, start, end, planned: true });
+    } else {
+        segments.push({ phase, start, end: today, planned: false });
+        segments.push({ phase, start: today, end, planned: true });
+    }
+}
+
+/**
+ * BAU span of a superior whose subprojects build in separate stages: one bar
+ * per construction period (clipped to the span), the pauses in between as
+ * gap segments. Returns false when the periods don't split the span, so the
+ * caller draws the plain bar.
+ */
+function pushConstructionStages(
+    segments: Segment[],
+    start: number,
+    end: number,
+    periods: TimelinePeriod[],
+    today: number,
+): boolean {
+    const pieces = periods
+        .map((p) => ({ start: Math.max(toTime(p.start), start), end: Math.min(toTime(p.end), end) }))
+        .filter((p) => p.end > p.start)
+        .sort((a, b) => a.start - b.start);
+    if (pieces.length < 2) return false;
+    pieces.forEach((piece, idx) => {
+        const prev = pieces[idx - 1];
+        if (prev && piece.start > prev.end) {
+            segments.push({ phase: "BAU", start: prev.end, end: piece.start, planned: prev.end >= today, gap: true });
+        }
+        pushSplitAtToday(segments, "BAU", piece.start, piece.end, today);
+    });
+    return true;
+}
+
 /**
  * Phase bars of one row: each dated phase runs until the next dated phase
  * starts. The last phase before "In Betrieb" runs until today when it started
  * in the past (ongoing); "In Betrieb" itself is a marker, not a bar. Every bar
  * is split at today into a done and a planned part. Contradicting dates
- * (a later phase dated earlier) produce no bar.
+ * (a later phase dated earlier) produce no bar. ``constructionPeriods`` (a
+ * superior with separate construction stages) split the BAU bar into its
+ * stages with gap segments in between.
  */
-export function buildSegments(milestones: TimelineMilestone[], today: number): Segment[] {
+export function buildSegments(
+    milestones: TimelineMilestone[],
+    today: number,
+    constructionPeriods: TimelinePeriod[] = [],
+): Segment[] {
     const phases = phaseMilestones(milestones);
     const segments: Segment[] = [];
     phases.forEach((m, idx) => {
@@ -55,14 +103,8 @@ export function buildSegments(milestones: TimelineMilestone[], today: number): S
         const next = phases[idx + 1];
         const end = next ? toTime(next.date) : start < today ? today : null;
         if (end === null || end <= start) return;
-        if (end <= today) {
-            segments.push({ phase, start, end, planned: false });
-        } else if (start >= today) {
-            segments.push({ phase, start, end, planned: true });
-        } else {
-            segments.push({ phase, start, end: today, planned: false });
-            segments.push({ phase, start: today, end, planned: true });
-        }
+        if (phase === "BAU" && pushConstructionStages(segments, start, end, constructionPeriods, today)) return;
+        pushSplitAtToday(segments, phase, start, end, today);
     });
     return segments;
 }

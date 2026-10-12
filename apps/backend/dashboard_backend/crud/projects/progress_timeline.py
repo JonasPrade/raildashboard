@@ -27,7 +27,7 @@ from dashboard_backend.models.vib.vib_entry import VibEntry, vib_entry_project
 from dashboard_backend.models.vib.vib_pfa_entry import VibPfaEntry
 from dashboard_backend.services.progress_dates import parse_flexible_date
 from dashboard_backend.services.progress_forecast import PfaForecastInput
-from dashboard_backend.services.progress_timeline import build_timeline
+from dashboard_backend.services.progress_timeline import ConstructionUnitInput, build_timeline
 
 
 def _subtrees(db: Session, root_ids: list[int]) -> dict[int, set[int]]:
@@ -85,6 +85,8 @@ def get_group_timeline(
 
     # --- PFA milestone dates: via the VIB entry link and direct assignment ---
     pfas_by_project: dict[int, dict[int, PfaForecastInput]] = {}
+    # PFA id → subproject it is assigned to (VibPfaEntry.project_id), if any.
+    pfa_owner: dict[int, int | None] = {}
     if all_ids:
         linked = (
             db.query(VibPfaEntry, vib_entry_project.c.project_id)
@@ -99,6 +101,7 @@ def get_group_timeline(
             .all()
         )
         for pfa, project_id in [*linked, *assigned]:
+            pfa_owner[pfa.id] = pfa.project_id
             pfas_by_project.setdefault(project_id, {})[pfa.id] = PfaForecastInput(
                 datum_pfb=parse_flexible_date(pfa.datum_pfb),
                 baubeginn=parse_flexible_date(pfa.baubeginn),
@@ -144,6 +147,7 @@ def get_group_timeline(
         evidence: list[ProgressObservation] = []
         pf_dates: list[date] = []
         parl_dates: list[date] = []
+        units: list[ConstructionUnitInput] = []
         for member in members:
             pfas.update(pfas_by_project.get(member, {}))
             fulda.extend(fulda_by_project.get(member, []))
@@ -155,6 +159,21 @@ def get_group_timeline(
                     pf_dates.append(progress.pf_date)
                 if progress.parl_befassung_date is not None:
                     parl_dates.append(progress.parl_befassung_date)
+            # The member's own construction interval: a PFA assigned to another
+            # member of the subtree belongs to that member only (otherwise the
+            # superior's VIB link would add the whole span as one interval).
+            own_pfas = [
+                pfa
+                for pfa_id, pfa in pfas_by_project.get(member, {}).items()
+                if pfa_owner.get(pfa_id) == member or pfa_owner.get(pfa_id) not in members
+            ]
+            units.append(
+                ConstructionUnitInput(
+                    pfas=own_pfas,
+                    fulda=_phase_date_pairs(fulda_by_project.get(member, [])),
+                    manual_expected=_phase_date_pairs(expected_by_project.get(member, [])),
+                )
+            )
 
         result = build_timeline(
             today=today,
@@ -164,6 +183,7 @@ def get_group_timeline(
             observations=_to_inputs(evidence),
             pf_dates=pf_dates,
             parl_dates=parl_dates,
+            construction_units=units,
         )
         if not result.has_credible_dates:
             continue
@@ -187,6 +207,9 @@ def get_group_timeline(
                         "certainty": m.certainty,
                     }
                     for m in result.milestones
+                ],
+                "construction_periods": [
+                    {"start": start, "end": end} for start, end in result.construction_periods
                 ],
             }
         )

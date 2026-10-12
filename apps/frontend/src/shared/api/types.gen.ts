@@ -4681,6 +4681,11 @@ export interface components {
              * @default []
              */
             milestones: components["schemas"]["TimelineMilestoneSchema"][];
+            /**
+             * Construction Periods
+             * @default []
+             */
+            construction_periods: components["schemas"]["TimelinePeriodSchema"][];
         };
         /**
          * ProjectUpdate
@@ -5148,6 +5153,19 @@ export interface components {
              * @enum {string}
              */
             certainty: "CONCRETE" | "EVIDENCE";
+        };
+        /** TimelinePeriodSchema */
+        TimelinePeriodSchema: {
+            /**
+             * Start
+             * Format: date
+             */
+            start: string;
+            /**
+             * End
+             * Format: date
+             */
+            end: string;
         };
         /**
          * TitelEntryProposed

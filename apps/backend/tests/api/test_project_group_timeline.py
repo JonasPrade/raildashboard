@@ -111,3 +111,78 @@ def test_timeline_etag(client, seeded):
 
 def test_timeline_unknown_group(client):
     assert client.get("/api/v1/project_groups/999999/timeline").status_code == 404
+
+
+def _expected(project_id, phase, when):
+    return ProgressObservation(
+        project_id=project_id,
+        source_type="MANUELL",
+        track="MAIN",
+        asserted_state=phase,
+        observed_date=when,
+        is_expected=True,
+    )
+
+
+def test_timeline_separate_construction_stages(client, db_session):
+    """HLK 11 case: the superior row keeps first BAU / last IB but lists the
+    two stages as separate construction periods."""
+
+    group = ProjectGroup(name="Korridorsanierung", short_name="HLK")
+    parent = Project(name="HLK 11")
+    db_session.add(parent)
+    db_session.flush()
+    stage1 = Project(name="HLK 11-1", superior_project_id=parent.id)
+    stage2 = Project(name="HLK 11-2", superior_project_id=parent.id)
+    db_session.add_all([stage1, stage2])
+    db_session.flush()
+    group.projects = [parent, stage1, stage2]
+    db_session.add(group)
+    db_session.add_all(
+        [
+            _expected(stage1.id, "BAU", date(2028, 1, 1)),
+            _expected(stage1.id, "IN_BETRIEB", date(2028, 7, 1)),
+            _expected(stage2.id, "BAU", date(2031, 1, 1)),
+            _expected(stage2.id, "IN_BETRIEB", date(2031, 7, 1)),
+        ]
+    )
+    db_session.commit()
+
+    body = client.get(f"/api/v1/project_groups/{group.id}/timeline").json()
+    (row,) = body["items"]
+    by_phase = {m["phase"]: m["date"] for m in row["milestones"] if m["kind"] == "PHASE"}
+    assert by_phase == {"BAU": "2028-01-01", "IN_BETRIEB": "2031-07-01"}
+    assert row["construction_periods"] == [
+        {"start": "2028-01-01", "end": "2028-07-01"},
+        {"start": "2031-01-01", "end": "2031-07-01"},
+    ]
+
+
+def test_timeline_stages_from_pfas_on_the_superior_vib_entry(client, db_session):
+    """The superior's VIB link reaches every section; each section counts only
+    for the subproject it is assigned to, so the stages stay separate."""
+
+    group = ProjectGroup(name="Ausbau", short_name="AB")
+    parent = Project(name="ABS West")
+    db_session.add(parent)
+    db_session.flush()
+    stage1 = Project(name="ABS West PFA 1", superior_project_id=parent.id)
+    stage2 = Project(name="ABS West PFA 2", superior_project_id=parent.id)
+    db_session.add_all([stage1, stage2])
+    db_session.flush()
+    group.projects = [parent, stage1, stage2]
+    db_session.add(group)
+    entry = VibEntry(vib_report_id=1, vib_section="A", vib_name_raw="ABS West", projects=[parent])
+    db_session.add(entry)
+    db_session.flush()
+    db_session.add_all(
+        [
+            VibPfaEntry(vib_entry_id=entry.id, project_id=stage1.id, baubeginn="01/2027", inbetriebnahme="12/2027"),
+            VibPfaEntry(vib_entry_id=entry.id, project_id=stage2.id, baubeginn="01/2030", inbetriebnahme="12/2030"),
+        ]
+    )
+    db_session.commit()
+
+    body = client.get(f"/api/v1/project_groups/{group.id}/timeline").json()
+    (row,) = body["items"]
+    assert len(row["construction_periods"]) == 2

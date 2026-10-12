@@ -66,6 +66,13 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   with short names) and can be reverted like any other project field.
 
 ### Fixed
+- **Timeline: separate construction stages of a superior.** A superior whose subprojects
+  build in separate stages (e.g. HLK 11 München-Ost – Rosenheim, 2028 and 2031) no longer shows
+  one continuous BAU bar across the gap. The timeline items carry `construction_periods`
+  (union of each subtree member's own Baubeginn–Inbetriebnahme interval, overlapping/touching
+  intervals merged, only reported with a real gap); the bar draws one BAU segment per stage and
+  the pause as a dashed "zwischen Bauetappen" line. Milestones and the "IB" headline are
+  unchanged. No migration.
 - **The backend image creates `/app/uploads` owned by `appuser`.** A named volume created
   before the directory existed in the image was root-owned, so the app could write neither
   text attachments nor (since v0.0.15) import PDFs; `/healthz` reports this as

@@ -40,6 +40,13 @@ function todayUtc(): number {
     return Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
 }
 
+// Pause between construction stages: a thin dashed line in the BAU colour on
+// the neutral track — clearly not construction, but still one project.
+function gapFill(color: string): string {
+    return `repeating-linear-gradient(90deg, ${color} 0 4px, transparent 4px 8px)`;
+}
+const GAP_LABEL = "zwischen Bauetappen";
+
 function plannedFill(color: string): string {
     return `repeating-linear-gradient(135deg, ${color} 0 4px, color-mix(in srgb, ${color} 35%, transparent) 4px 8px)`;
 }
@@ -96,7 +103,10 @@ function TimelineRow({
     ticks: number[];
     today: number;
 }) {
-    const segments = useMemo(() => buildSegments(row.milestones, today), [row.milestones, today]);
+    const segments = useMemo(
+        () => buildSegments(row.milestones, today, row.construction_periods),
+        [row.milestones, row.construction_periods, today],
+    );
     const lifecycle = row.lifecycle_status as LifecycleStatus;
     const opening = row.milestones.find((m) => m.kind === "PHASE" && m.phase === "IN_BETRIEB");
     const summary = row.milestones.map(milestoneLabel).join("; ");
@@ -140,19 +150,35 @@ function TimelineRow({
                         }}
                     />
                 ))}
-                {segments.map((seg) => (
-                    <Box
-                        key={`${seg.phase}-${seg.planned}`}
-                        style={{
-                            position: "absolute",
-                            left: `${percent(seg.start, range)}%`,
-                            width: `${percent(seg.end, range) - percent(seg.start, range)}%`,
-                            top: 3,
-                            bottom: 3,
-                            background: seg.planned ? plannedFill(phaseColor(seg.phase)) : phaseColor(seg.phase),
-                        }}
-                    />
-                ))}
+                {segments.map((seg, idx) =>
+                    seg.gap ? (
+                        <Tooltip key={idx} label={GAP_LABEL} withArrow>
+                            <Box
+                                style={{
+                                    position: "absolute",
+                                    left: `${percent(seg.start, range)}%`,
+                                    width: `${percent(seg.end, range) - percent(seg.start, range)}%`,
+                                    top: "50%",
+                                    height: 2,
+                                    translate: "0 -50%",
+                                    background: gapFill(phaseColor(seg.phase)),
+                                }}
+                            />
+                        </Tooltip>
+                    ) : (
+                        <Box
+                            key={idx}
+                            style={{
+                                position: "absolute",
+                                left: `${percent(seg.start, range)}%`,
+                                width: `${percent(seg.end, range) - percent(seg.start, range)}%`,
+                                top: 3,
+                                bottom: 3,
+                                background: seg.planned ? plannedFill(phaseColor(seg.phase)) : phaseColor(seg.phase),
+                            }}
+                        />
+                    ),
+                )}
                 <Box
                     style={{
                         position: "absolute",
@@ -173,7 +199,7 @@ function TimelineRow({
     );
 }
 
-function Legend() {
+function Legend({ showGap }: { showGap: boolean }) {
     const swatch = (background: string, extra?: CSSProperties) => (
         <Box style={{ width: 14, height: 10, background, flexShrink: 0, ...extra }} />
     );
@@ -191,6 +217,12 @@ function Legend() {
                 {swatch(plannedFill("var(--ink3)"))}
                 <Text size="xs">geplant</Text>
             </Group>
+            {showGap && (
+                <Group gap={6} wrap="nowrap">
+                    {swatch(gapFill(phaseColor("BAU")), { height: 2 })}
+                    <Text size="xs">{GAP_LABEL}</Text>
+                </Group>
+            )}
             <Group gap={6} wrap="nowrap">
                 {swatch("var(--info)", { width: 9, height: 9, transform: "rotate(45deg)" })}
                 <Text size="xs">Planfeststellung</Text>
@@ -289,7 +321,7 @@ export default function TimelineView({
                     w={180}
                 />
             </Group>
-            <Legend />
+            <Legend showGap={rows.some((row) => row.construction_periods.length > 1)} />
 
             {rows.length === 0 ? (
                 <Alert color="blue" variant="light" title="Keine Projekte mit Terminen">
