@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Boolean, Text
+from sqlalchemy import JSON, Column, String, Integer, Boolean, Text
 from sqlalchemy.orm import relationship
 from dashboard_backend.models.base import Base
 
@@ -18,6 +18,9 @@ class ProjectGroup(Base):
         comment='if false, this group is hidden from the map entirely')
     is_default_selected = Column(Boolean, default=False,
         comment='if true, this group is pre-selected on the map when no ?group= URL param is present')
+    skipped_phases = Column(JSON, nullable=False, default=list, server_default='[]',
+        comment='MainPhase values (VORPLANUNG/GENEHMIGUNGSPLANUNG) its projects usually skip, '
+                'e.g. corridor renewals without Planfeststellung')
     id_old = Column(Integer, unique=True, nullable=True,
         comment='old id from the old database, used for migration purposes')
 

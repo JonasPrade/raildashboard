@@ -3967,6 +3967,8 @@ export interface components {
              * @default false
              */
             is_default_selected: boolean;
+            /** Skipped Phases */
+            skipped_phases?: ("VORPLANUNG" | "GENEHMIGUNGSPLANUNG")[];
         };
         /**
          * ProjectGroupGeometriesSchema
@@ -4037,6 +4039,11 @@ export interface components {
              * @default false
              */
             is_default_selected: boolean;
+            /**
+             * Skipped Phases
+             * @description Planning phases this group's projects usually skip; hidden in the progress view and forecast when all of a project's groups skip them
+             */
+            skipped_phases?: ("VORPLANUNG" | "GENEHMIGUNGSPLANUNG")[];
             /** Id Old */
             id_old?: number | null;
             /**
@@ -4078,6 +4085,8 @@ export interface components {
             is_visible?: boolean | null;
             /** Is Default Selected */
             is_default_selected?: boolean | null;
+            /** Skipped Phases */
+            skipped_phases?: ("VORPLANUNG" | "GENEHMIGUNGSPLANUNG")[] | null;
         };
         /**
          * ProjectListItem
@@ -4221,6 +4230,11 @@ export interface components {
              * @default []
              */
             children: components["schemas"]["ProgressChildSchema"][];
+            /**
+             * Hidden Phases
+             * @default []
+             */
+            hidden_phases: ("VORPLANUNG" | "GENEHMIGUNGSPLANUNG")[];
             forecast?: components["schemas"]["ProgressForecastSchema"] | null;
         };
         /** ProjectProgressUpdate */

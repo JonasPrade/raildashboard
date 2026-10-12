@@ -203,6 +203,31 @@ def resolve_parl_relevant(progress: ProjectProgress, project: Project) -> bool:
     )
 
 
+def resolve_skipped_phases(project: Project) -> set[MainPhase]:
+    """Planning phases the project skips by group default (#164).
+
+    A phase counts as skipped only when *every* group of the project skips it,
+    so membership in one renewal group doesn't strip phases from a project that
+    another group plans in full. No groups → nothing skipped.
+    """
+
+    groups = list(project.project_groups)
+    if not groups:
+        return set()
+    per_group = [
+        {phase for phase in (_enum_or_none(MainPhase, v) for v in (g.skipped_phases or [])) if phase}
+        for g in groups
+    ]
+    return set.intersection(*per_group)
+
+
+def resolve_hidden_phases(skipped: set[MainPhase], in_use: set[MainPhase]) -> list[str]:
+    """Skipped phases the progress view hides: data wins, so a phase still shows
+    when the project (or a subproject, or a dated forecast step) sits in it."""
+
+    return [p.value for p in MainPhase if p in skipped and p not in in_use]
+
+
 def _to_inputs(observations: list[ProgressObservation]) -> list[ObservationInput]:
     inputs: list[ObservationInput] = []
     for obs in observations:
@@ -562,7 +587,11 @@ def _ensure_fresh(
 
 
 def _build_forecast_for_project(
-    db: Session, project_id: int, effective_phase: MainPhase, today: date
+    db: Session,
+    project_id: int,
+    effective_phase: MainPhase,
+    today: date,
+    skipped_phases: set[MainPhase] | None = None,
 ) -> dict:
     """Gather forecast inputs (PFA dates, BVWP durations, Fulda announcements)
     and run the pure forecast. Returns a dict matching ProgressForecastSchema."""
@@ -631,6 +660,7 @@ def _build_forecast_for_project(
         bvwp=bvwp,
         fulda=fulda,
         manual_expected=manual_expected,
+        skipped_phases=skipped_phases or set(),
     )
     return {
         "current_phase": result.current_phase.value,
@@ -853,6 +883,21 @@ def get_progress_view(db: Session, project_id: int, today: date | None = None) -
                 }
             )
 
+    skipped_phases = resolve_skipped_phases(project)
+    forecast = _build_forecast_for_project(
+        db, project_id, result.effective_phase, today, skipped_phases
+    )
+    in_use = {effective_phase}
+    for value in (
+        span_min,
+        span_max,
+        *(c[k] for c in child_payloads for k in ("effective_phase", "span_min_phase", "span_max_phase")),
+        *(step["phase"] for step in forecast["next_steps"]),
+    ):
+        phase = _enum_or_none(MainPhase, value)
+        if phase is not None:
+            in_use.add(phase)
+
     return {
         "project_id": project_id,
         "effective_phase": effective_phase.value,
@@ -895,9 +940,8 @@ def get_progress_view(db: Session, project_id: int, today: date | None = None) -
         "span_min_phase": span_min,
         "span_max_phase": span_max,
         "children": child_payloads,
-        "forecast": _build_forecast_for_project(
-            db, project_id, result.effective_phase, today
-        ),
+        "hidden_phases": resolve_hidden_phases(skipped_phases, in_use),
+        "forecast": forecast,
     }
 
 

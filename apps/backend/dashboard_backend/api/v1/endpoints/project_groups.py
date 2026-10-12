@@ -19,7 +19,10 @@ from dashboard_backend.schemas.projects import (
     ProjectGroupCreate,
     ProjectGroupGeometriesSchema,
 )
-from dashboard_backend.schemas.projects.progress_schema import ProjectGroupTimelineSchema
+from dashboard_backend.schemas.projects.progress_schema import (
+    ProjectGroupTimelineSchema,
+    SkippablePhaseLiteral,
+)
 from dashboard_backend.core.http_cache import etag_json_response
 from dashboard_backend.services.geometry_simplify import TOLERANCE_DEG, simplify_geojson_text
 from dashboard_backend.routing.auth_router import AuthRouter
@@ -42,6 +45,7 @@ class ProjectGroupUpdate(BaseModel):
     plot_only_superior_projects: Optional[bool] = None
     is_visible: Optional[bool] = None
     is_default_selected: Optional[bool] = None
+    skipped_phases: Optional[list[SkippablePhaseLiteral]] = None
 
 
 @router.get("/", response_model=list[ProjectGroupSchema])

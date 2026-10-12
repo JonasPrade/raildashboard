@@ -5,6 +5,7 @@ import {
     ColorInput,
     Group,
     Modal,
+    MultiSelect,
     Stack,
     Switch,
     Textarea,
@@ -16,6 +17,14 @@ import {
     useUpdateProjectGroup,
     type ProjectGroup,
 } from "../../shared/api/queries";
+import {
+    MAIN_PHASE_LABEL,
+    SKIPPABLE_PHASES,
+} from "../projects/components/progress/phaseMeta";
+
+type SkippablePhase = NonNullable<ProjectGroup["skipped_phases"]>[number];
+
+const SKIPPABLE_PHASE_OPTIONS = SKIPPABLE_PHASES.map((p) => ({ value: p, label: MAIN_PHASE_LABEL[p] }));
 
 type Props = {
     opened: boolean;
@@ -35,6 +44,7 @@ type FormState = {
     plot_only_superior_projects: boolean;
     is_visible: boolean;
     is_default_selected: boolean;
+    skipped_phases: SkippablePhase[];
 };
 
 function initialState(group: ProjectGroup | null): FormState {
@@ -47,6 +57,7 @@ function initialState(group: ProjectGroup | null): FormState {
         plot_only_superior_projects: group?.plot_only_superior_projects ?? true,
         is_visible: group?.is_visible ?? true,
         is_default_selected: group?.is_default_selected ?? false,
+        skipped_phases: group?.skipped_phases ?? [],
     };
 }
 
@@ -87,6 +98,7 @@ export function ProjectGroupFormModal({ opened, onClose, group }: Props) {
             plot_only_superior_projects: form.plot_only_superior_projects,
             is_visible: form.is_visible,
             is_default_selected: form.is_default_selected,
+            skipped_phases: form.skipped_phases,
         };
 
         try {
@@ -181,6 +193,20 @@ export function ProjectGroupFormModal({ opened, onClose, group }: Props) {
                         label="Standardmäßig vorausgewählt"
                         checked={form.is_default_selected}
                         onChange={(e) => set("is_default_selected", e.currentTarget.checked)}
+                    />
+                    <MultiSelect
+                        label="Übersprungene Planungsphasen"
+                        description="Für Projekte dieser Gruppe ausblenden – etwa bei Sanierungen ohne Planfeststellung. Gilt nur, wenn alle Gruppen eines Projekts die Phase überspringen; liegen Daten zu der Phase vor, bleibt sie sichtbar."
+                        placeholder={form.skipped_phases.length ? undefined : "Keine"}
+                        data={SKIPPABLE_PHASE_OPTIONS}
+                        value={form.skipped_phases}
+                        onChange={(value) =>
+                            set(
+                                "skipped_phases",
+                                SKIPPABLE_PHASES.filter((p) => value.includes(p)) as SkippablePhase[],
+                            )
+                        }
+                        clearable
                     />
                     <Group justify="flex-end" mt="sm">
                         <Button variant="default" onClick={onClose} disabled={isPending}>

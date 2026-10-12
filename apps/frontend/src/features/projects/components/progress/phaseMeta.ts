@@ -27,6 +27,16 @@ export const MAIN_PHASES: MainPhase[] = [
     "IN_BETRIEB",
 ];
 
+// Planning phases a project group may skip (#164), e.g. corridor renewals
+// without Planfeststellung. Mirrors SkippablePhaseLiteral in the backend.
+export const SKIPPABLE_PHASES: MainPhase[] = ["VORPLANUNG", "GENEHMIGUNGSPLANUNG"];
+
+/** Main phases minus the ones the progress view hides for this project. */
+export function visiblePhases(hidden?: readonly string[] | null): MainPhase[] {
+    if (!hidden || hidden.length === 0) return MAIN_PHASES;
+    return MAIN_PHASES.filter((p) => !hidden.includes(p));
+}
+
 // Shown when a project carries no phase information at all (is_known === false).
 export const UNKNOWN_LABEL = "Unbekannt";
 

@@ -7,7 +7,10 @@ Combines three input kinds into a "remaining duration + next steps" forecast:
 - **BVWP planning/build durations** (years) as a fallback when no concrete date
   exists for an upcoming phase.
 
-Concrete dates always win over BVWP estimates. The function is deterministic in
+Concrete dates always win over BVWP estimates. Phases a project's groups skip
+(``skipped_phases``, e.g. Vorplanung/Genehmigungsplanung for corridor renewals
+without Planfeststellung) are left out of the next steps unless a concrete date
+exists for them — data wins over the group default. The function is deterministic in
 ``today`` (passed in) so it stays unit-testable.
 """
 
@@ -128,6 +131,7 @@ def build_forecast(
     bvwp: BvwpDurations | None = None,
     fulda: list[tuple[MainPhase, date]] | None = None,
     manual_expected: list[tuple[MainPhase, date]] | None = None,
+    skipped_phases: frozenset[MainPhase] | set[MainPhase] = frozenset(),
 ) -> ForecastResult:
     pfas = pfas or []
     fulda = fulda or []
@@ -143,7 +147,11 @@ def build_forecast(
     )
 
     # --- Build next steps for phases after the current one ------------------
-    upcoming = [p for p in _FORECASTABLE if p.order > effective_phase.order]
+    upcoming = [
+        p
+        for p in _FORECASTABLE
+        if p.order > effective_phase.order and (p not in skipped_phases or p in concrete)
+    ]
     next_steps: list[ForecastStep] = []
 
     # BVWP anchor: when no concrete BAU date, estimate it from today + planning.
