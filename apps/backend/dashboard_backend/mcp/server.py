@@ -20,7 +20,7 @@ from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from dashboard_backend.mcp.auth import McpAuthMiddleware
-from dashboard_backend.mcp.context import SessionProvider
+from dashboard_backend.mcp.context import RouteServiceProvider, SessionProvider
 from dashboard_backend.mcp.tools import register_all
 
 MCP_PATH = "/mcp"
@@ -31,7 +31,11 @@ INSTRUCTIONS = (
     "mit list_projects suchen, dann per id mit den get_*-Tools vertiefen. "
     "Schreibende Tools wirken sofort und stehen im Änderungsprotokoll. "
     "Projektlängen kommen aus der Geometrie (compute_project_length mit apply), "
-    "nicht aus veröffentlichten Angaben."
+    "nicht aus veröffentlichten Angaben. Geometrie: Bahnstrecken mit "
+    "route_project_geometry über das Schienennetz routen (Betriebsstellen mit "
+    "search_operational_points finden, erst ohne apply prüfen); Neubaustrecken, "
+    "Punkte und Korrekturen mit edit_project_geometry; Bestand mit "
+    "get_project_geometry ansehen."
 )
 
 
@@ -44,8 +48,13 @@ def build_server() -> MCPServer:
 class McpEndpoint:
     """ASGI app for ``/mcp``: bearer auth in front of the SDK transport."""
 
-    def __init__(self, session_provider: SessionProvider) -> None:
+    def __init__(
+        self,
+        session_provider: SessionProvider,
+        route_service_provider: RouteServiceProvider | None = None,
+    ) -> None:
         self._session_provider = session_provider
+        self._route_service_provider = route_service_provider
         self._app: ASGIApp | None = None
 
     @asynccontextmanager
@@ -60,7 +69,9 @@ class McpEndpoint:
             transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
         )
         async with server.session_manager.run():
-            self._app = McpAuthMiddleware(transport, self._session_provider)
+            self._app = McpAuthMiddleware(
+                transport, self._session_provider, self._route_service_provider
+            )
             try:
                 yield
             finally:

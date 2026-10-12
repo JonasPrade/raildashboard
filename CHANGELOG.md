@@ -38,6 +38,13 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   recorded as a `CREATE` entry in the project change log. `compute_project_length` returns
   the length computed from the geometry (same calculation as the UI button) and can write
   it to the length field.
+- **MCP: project geometry and routing.** `search_operational_points` finds Betriebsstellen,
+  `get_project_geometry` summarizes a project's geometry per feature (full GeoJSON on
+  request), `route_project_geometry` routes over the rail network via GraphHopper between
+  operational points or coordinates (preview first, then `apply`; append or replace, stations
+  as points) and `edit_project_geometry` draws lines and points from coordinates, adds
+  operational points and deletes single features. Writes go through the project change log
+  and are revertible; projects aggregating their subprojects' geometry stay protected.
 
 ### Changed
 - **Planning-state changes are written to the project change log** — from the UI and from

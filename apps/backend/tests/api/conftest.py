@@ -41,6 +41,7 @@ from dashboard_backend.models.todos.todo import Todo, TodoAssignee
 from dashboard_backend.models.users import User
 from dashboard_backend.models.vib.vib_entry import VibEntry, vib_entry_project
 from dashboard_backend.models.vib.vib_pfa_entry import VibPfaEntry
+from dashboard_backend.models.railway_infrastructure.operational_point import OperationalPoint
 from dashboard_backend.models.routes import Route
 from dashboard_backend.models.projects.project_group import ProjectGroup
 from dashboard_backend.schemas.users import UserRole
@@ -73,6 +74,7 @@ TABLES = [
     ApiKey.__table__,  # must follow User (FK dependency)
     ProjectGroup.__table__,
     Route.__table__,
+    OperationalPoint.__table__,  # MCP geometry tools (waypoints, station points)
     AppSettings.__table__,
     ProjectTextType.__table__,  # must precede ProjectText (FK dependency)
     ProjectText.__table__,

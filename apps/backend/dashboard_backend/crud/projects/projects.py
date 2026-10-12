@@ -72,7 +72,7 @@ def get_project_by_id(db: Session, project_id: int):
     return db.query(Project).filter(Project.id == project_id).first()
 
 
-def _extract_features(geojson_str: Optional[str]) -> List[Any]:
+def extract_features(geojson_str: Optional[str]) -> List[Any]:
     """Parse a geojson_representation string and return a flat list of GeoJSON Features."""
     if not geojson_str:
         return []
@@ -136,7 +136,7 @@ def recompute_geojson_for_parent(db: Session, parent_id: Optional[int]) -> None:
 
         features: List[Any] = []
         for child in children:
-            features.extend(_extract_features(child.geojson_representation))
+            features.extend(extract_features(child.geojson_representation))
 
         if features:
             parent.geojson_representation = json.dumps(
