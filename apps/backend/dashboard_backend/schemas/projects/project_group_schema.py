@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import Any, Optional, List
 from dashboard_backend.schemas.projects.project_schema import ProjectListItem
+from dashboard_backend.schemas.projects.progress_schema import SkippablePhaseLiteral
 
 class ProjectGroupSchema(BaseModel):
     id: Optional[int] = None
@@ -12,6 +13,11 @@ class ProjectGroupSchema(BaseModel):
     plot_only_superior_projects: bool = True
     is_visible: bool = True
     is_default_selected: bool = False
+    skipped_phases: List[SkippablePhaseLiteral] = Field(
+        default_factory=list,
+        description="Planning phases this group's projects usually skip; hidden in the "
+        "progress view and forecast when all of a project's groups skip them",
+    )
     id_old: Optional[int] = None
 
     # relationships
@@ -37,6 +43,7 @@ class ProjectGroupCreate(BaseModel):
     plot_only_superior_projects: bool = True
     is_visible: bool = True
     is_default_selected: bool = False
+    skipped_phases: List[SkippablePhaseLiteral] = Field(default_factory=list)
 
 
 class ProjectGroupGeometriesSchema(BaseModel):

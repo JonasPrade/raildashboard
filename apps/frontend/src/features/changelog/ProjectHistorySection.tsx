@@ -15,6 +15,7 @@ import { notifications } from "@mantine/notifications";
 
 import {
     useProjectChangelog,
+    useProjectGroups,
     useProjectTextChangelog,
     useRevertProjectField,
     type ChangeLog,
@@ -83,7 +84,35 @@ const PROJECT_FIELD_LABELS: Record<string, string> = {
     tilting: "Neigetechnik",
     geojson_representation: "GeoJSON-Geometrie",
     geojson_from_subprojects: "Geometrie aus Unterprojekten",
+    project_group_ids: "Projektgruppen",
 };
+
+// Planning-state changes share the project changelog under a "progress." prefix.
+// They are history only: the revert endpoint accepts project fields alone.
+const PROGRESS_PREFIX = "progress.";
+
+const PROGRESS_FIELD_LABELS: Record<string, string> = {
+    observation: "Beobachtung",
+    has_planfeststellung: "Planfeststellung relevant",
+    parl_befassung_relevant: "Parl. Befassung relevant",
+    lifecycle_status: "Status",
+    manual_phase_override: "Phase (manuell)",
+    manual_override_note: "Begründung Override",
+    pf_state_override: "Planfeststellung (manuell)",
+    parl_state_override: "Parl. Befassung (manuell)",
+    parl_befassung_text: "Parl. Befassung – Text",
+    parl_drucksache_url: "Parl. Befassung – Drucksache",
+    parl_befassung_date: "Parl. Befassung – Datum",
+    pf_text: "Planfeststellung – Text",
+    pf_date: "Planfeststellung – Datum",
+    pf_links: "Planfeststellung – Links",
+    pf_document: "Planfeststellung – Dokument",
+    parl_document: "Parl. Befassung – Dokument",
+};
+
+function isProgressField(fieldName: string): boolean {
+    return fieldName.startsWith(PROGRESS_PREFIX);
+}
 
 const TEXT_FIELD_LABELS: Record<string, string> = {
     header: "Überschrift",
@@ -94,6 +123,10 @@ const TEXT_FIELD_LABELS: Record<string, string> = {
 };
 
 function fieldLabel(fieldName: string, source: "project" | "text"): string {
+    if (source === "project" && isProgressField(fieldName)) {
+        const key = fieldName.slice(PROGRESS_PREFIX.length);
+        return `Planungsstand: ${PROGRESS_FIELD_LABELS[key] ?? key}`;
+    }
     const labels = source === "project" ? PROJECT_FIELD_LABELS : TEXT_FIELD_LABELS;
     return labels[fieldName] ?? fieldName;
 }
@@ -105,12 +138,36 @@ function formatValue(value: string | null | undefined): string {
         if (parsed === null) return "–";
         if (typeof parsed === "boolean") return parsed ? "Ja" : "Nein";
         if (typeof parsed === "string") return parsed || "–";
+        if (typeof parsed === "object") return JSON.stringify(parsed);
         return String(parsed);
     } catch {
         return value;
     }
 }
 
+
+// Group memberships are logged as id lists (so they stay revertible); show short names.
+function formatGroupIds(value: string | null | undefined, groupNames: Map<number, string>): string {
+    if (value == null) return "–";
+    try {
+        const ids = JSON.parse(value);
+        if (!Array.isArray(ids)) return formatValue(value);
+        if (ids.length === 0) return "–";
+        return ids.map((id: number) => groupNames.get(id) ?? `#${id}`).join(", ");
+    } catch {
+        return value;
+    }
+}
+
+function formatEntryValue(
+    entry: ChangeLogEntry,
+    value: string | null | undefined,
+    groupNames: Map<number, string>,
+): string {
+    return entry.field_name === "project_group_ids"
+        ? formatGroupIds(value, groupNames)
+        : formatValue(value);
+}
 
 function actionLabel(action: string): string {
     switch (action) {
@@ -127,6 +184,11 @@ function actionLabel(action: string): string {
     }
 }
 
+// Planning-state entries are history only; a creation has no earlier value to restore.
+function isRevertible(log: ChangeLog, entry: ChangeLogEntry): boolean {
+    return log.action !== "CREATE" && !isProgressField(entry.field_name);
+}
+
 // ── Project field changelog item ──────────────────────────────────────────────
 
 type ChangeLogItemProps = {
@@ -134,17 +196,19 @@ type ChangeLogItemProps = {
     canEdit: boolean;
     revertingEntryId: number | null;
     onRevert: (entryId: number) => void;
+    groupNames: Map<number, string>;
 };
 
-function ChangeLogItem({ log, canEdit, revertingEntryId, onRevert }: ChangeLogItemProps) {
+function ChangeLogItem({ log, canEdit, revertingEntryId, onRevert, groupNames }: ChangeLogItemProps) {
     const date = formatDateTimeShort(log.timestamp);
+    const isProgressLog = log.entries.length > 0 && log.entries.every((e) => isProgressField(e.field_name));
 
     const summary = (
         <Group gap="sm" wrap="nowrap">
             <Text size="sm" fw={500} style={{ minWidth: 130 }}>
                 {date}
             </Text>
-            <ChronicleDataChip>Projekt</ChronicleDataChip>
+            <ChronicleDataChip>{isProgressLog ? "Planungsstand" : "Projekt"}</ChronicleDataChip>
             <ChronicleDataChip>{actionLabel(log.action)}</ChronicleDataChip>
             <Text size="sm" c="dimmed">
                 {log.username_snapshot ?? "–"}
@@ -172,9 +236,12 @@ function ChangeLogItem({ log, canEdit, revertingEntryId, onRevert }: ChangeLogIt
                         {log.entries.map((entry: ChangeLogEntry) => (
                             <Table.Tr key={entry.id}>
                                 <Table.Td fw={500}>{fieldLabel(entry.field_name, "project")}</Table.Td>
-                                <Table.Td c="dimmed">{formatValue(entry.old_value)}</Table.Td>
-                                <Table.Td>{formatValue(entry.new_value)}</Table.Td>
-                                {canEdit && (
+                                <Table.Td c="dimmed">
+                                    {formatEntryValue(entry, entry.old_value, groupNames)}
+                                </Table.Td>
+                                <Table.Td>{formatEntryValue(entry, entry.new_value, groupNames)}</Table.Td>
+                                {canEdit && !isRevertible(log, entry) && <Table.Td />}
+                                {canEdit && isRevertible(log, entry) && (
                                     <Table.Td>
                                         <Button
                                             size="xs"
@@ -282,6 +349,16 @@ export default function ProjectHistorySection({ projectId, canEdit }: ProjectHis
     const { data: projectLogs, isLoading: projectLoading, isError: projectError } = useProjectChangelog(projectId);
     const { data: textLogs, isLoading: textLoading, isError: textError } = useProjectTextChangelog(projectId);
     const revertMutation = useRevertProjectField(projectId);
+    const { data: projectGroups } = useProjectGroups();
+    const groupNames = useMemo(
+        () =>
+            new Map<number, string>(
+                (projectGroups ?? [])
+                    .filter((g) => g.id != null)
+                    .map((g) => [g.id as number, g.short_name ?? g.name ?? `#${g.id}`]),
+            ),
+        [projectGroups],
+    );
     const [revertingEntryId, setRevertingEntryId] = useState<number | null>(null);
 
     const isLoading = projectLoading || textLoading;
@@ -352,6 +429,7 @@ export default function ProjectHistorySection({ projectId, canEdit }: ProjectHis
                             canEdit={canEdit}
                             revertingEntryId={revertingEntryId}
                             onRevert={handleRevert}
+                            groupNames={groupNames}
                         />
                     ) : (
                         <TextChangeLogItem key={`text-${entry.log.id}`} log={entry.log} />

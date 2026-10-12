@@ -37,6 +37,7 @@ import {
 } from "../projects/phaseFilter";
 import ConstituencyPanel from "../abgeordnete/ConstituencyPanel";
 import MapControls from "./MapControls";
+import TimelineView from "../timeline/TimelineView";
 import MapView, { type MapViewProject } from "./LazyMapView";
 import { withActiveFeatures } from "../projects/projectFeatureConfig";
 import {
@@ -227,7 +228,7 @@ export default function MapPage() {
 
     // Auto-select first group when on list tab and no valid group is selected
     useEffect(() => {
-        if (view !== "list") return;
+        if (view !== "list" && view !== "timeline") return;
         if (groups.length === 0) return;
         if (selectedGroupId !== null && groups.some((g) => g.id === selectedGroupId)) return;
         setSearchParams((prev) => {
@@ -258,10 +259,11 @@ export default function MapPage() {
                 onChange={handleViewChange}
                 size="md"
                 fullWidth={isMobile}
-                style={isMobile ? { flex: 1, minWidth: 0 } : { minWidth: 280 }}
+                style={isMobile ? { flex: 1, minWidth: 0 } : { minWidth: 360 }}
                 data={[
                     { value: "map", label: "Karte" },
                     { value: "list", label: "Liste" },
+                    { value: "timeline", label: "Zeitstrahl" },
                 ]}
             />
             <Popover width={300} position="bottom" withArrow shadow="md">
@@ -276,7 +278,7 @@ export default function MapPage() {
                         <List size="sm" spacing={6}>
                             <List.Item>
                                 <Text size="sm" span fw={500}>Suche</Text>
-                                <Text size="sm"> — Tippe einen Namen oder eine Nummer ein. Die Karte bzw. Liste aktualisiert sich sofort.</Text>
+                                <Text size="sm"> — Tippe einen Namen oder eine Nummer ein. Karte, Liste und Zeitstrahl aktualisieren sich sofort.</Text>
                             </List.Item>
                             <List.Item>
                                 <Text size="sm" span fw={500}>Projektgruppen</Text>
@@ -289,6 +291,10 @@ export default function MapPage() {
                             <List.Item>
                                 <Text size="sm" span fw={500}>Nur Hauptprojekte</Text>
                                 <Text size="sm"> — Aktiviere diesen Schalter, um Teilprojekte auszublenden.</Text>
+                            </List.Item>
+                            <List.Item>
+                                <Text size="sm" span fw={500}>Zeitstrahl</Text>
+                                <Text size="sm"> — Zeigt die Projekte einer Gruppe mit belastbaren Terminen (Baubeginn, Inbetriebnahme, Planfeststellung) auf einer Jahresachse.</Text>
                             </List.Item>
                             <List.Item>
                                 <Text size="sm" c="dimmed">Tipp: Die aktuelle Ansicht lässt sich als Link teilen – einfach die URL kopieren.</Text>
@@ -306,8 +312,9 @@ export default function MapPage() {
             : "Unbekannter Fehler beim Laden der Projektgruppen"
         : undefined;
 
-    // --- List view ---
-    if (view === "list") {
+    // --- List and timeline view (same group / search / superior controls) ---
+    if (view === "list" || view === "timeline") {
+        const isTimeline = view === "timeline";
         const selectedGroup = selectedGroupId
             ? groups.find((group) => group.id === selectedGroupId)
             : undefined;
@@ -335,7 +342,7 @@ export default function MapPage() {
                 <Stack gap="xl">
                     {viewToggle}
                     <Stack gap={6}>
-                        <Eyebrow>Schienenprojekte · Liste</Eyebrow>
+                        <Eyebrow>Schienenprojekte · {isTimeline ? "Zeitstrahl" : "Liste"}</Eyebrow>
                         <Title
                             order={2}
                             style={{
@@ -349,7 +356,9 @@ export default function MapPage() {
                             Projekte nach <em style={{ fontStyle: "normal", color: "var(--led)" }}>Projektgruppen</em>
                         </Title>
                         <Text size="sm" c="dimmed" style={{ maxWidth: 540 }}>
-                            Wähle eine Projektgruppe aus, um alle zugehörigen Projekte zu sehen.
+                            {isTimeline
+                                ? "Wähle eine Projektgruppe aus, um ihre Projekte mit belastbaren Terminen auf einer Zeitachse zu sehen."
+                                : "Wähle eine Projektgruppe aus, um alle zugehörigen Projekte zu sehen."}
                         </Text>
                     </Stack>
 
@@ -456,6 +465,15 @@ export default function MapPage() {
                         <Group justify="center" py="xl">
                             <Loader />
                         </Group>
+                    ) : selectedGroup && isTimeline ? (
+                        <TimelineView
+                            // Remount per group so the row paging starts over.
+                            key={selectedGroup.id}
+                            groupId={selectedGroup.id}
+                            onlySuperior={onlySuperior}
+                            visibleProjectIds={new Set(projects.map((p) => p.id))}
+                            searchActive={searchTerm.length > 0}
+                        />
                     ) : selectedGroup ? (
                         <Stack gap="md">
                             <Group

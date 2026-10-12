@@ -118,7 +118,8 @@ Themenschwerpunkt: die im v0.0.4-Rollout aufgedeckten Stabilitäts- und Tooling-
 - BVWP-Datenimport (zu groß)
 - VIB-OCR-Bilder im Review (eigener Long-Term-Block)
 - Passwort-Reset per E-Mail (eigener Block)
-- ProjectProgress: Gantt-Übersicht über mehrere Projekte (Long-Term)
+- ~~ProjectProgress: Gantt-Übersicht über mehrere Projekte (Long-Term)~~ — umgesetzt als
+  Zeitstrahl-Ansicht, siehe `docs/features/feature-project-timeline.md`
   - *Hinweis: die automatischen Quellen-Importer (Fulda-Runde/Bauportal/Medien) wurden am
     2026-06-27 in den v0.0.5-Scope nachgezogen — siehe oben.*
 

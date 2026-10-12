@@ -12,11 +12,16 @@ from dashboard_backend.crud.projects.project_groups import (
     update_project_group,
     delete_project_group,
 )
+from dashboard_backend.crud.projects.progress_timeline import get_group_timeline
 from dashboard_backend.database import get_db
 from dashboard_backend.schemas.projects import (
     ProjectGroupSchema,
     ProjectGroupCreate,
     ProjectGroupGeometriesSchema,
+)
+from dashboard_backend.schemas.projects.progress_schema import (
+    ProjectGroupTimelineSchema,
+    SkippablePhaseLiteral,
 )
 from dashboard_backend.core.http_cache import etag_json_response
 from dashboard_backend.services.geometry_simplify import TOLERANCE_DEG, simplify_geojson_text
@@ -28,6 +33,7 @@ router = AuthRouter()
 _group_list_adapter = TypeAdapter(list[ProjectGroupSchema])
 _group_adapter = TypeAdapter(ProjectGroupSchema)
 _geometries_adapter = TypeAdapter(ProjectGroupGeometriesSchema)
+_timeline_adapter = TypeAdapter(ProjectGroupTimelineSchema)
 
 
 class ProjectGroupUpdate(BaseModel):
@@ -39,6 +45,7 @@ class ProjectGroupUpdate(BaseModel):
     plot_only_superior_projects: Optional[bool] = None
     is_visible: Optional[bool] = None
     is_default_selected: Optional[bool] = None
+    skipped_phases: Optional[list[SkippablePhaseLiteral]] = None
 
 
 @router.get("/", response_model=list[ProjectGroupSchema])
@@ -91,6 +98,28 @@ def read_project_group_geometries(
         geometries=geometries,
     )
     return etag_json_response(request, payload, _geometries_adapter)
+
+
+@router.get("/{group_id}/timeline", response_model=ProjectGroupTimelineSchema)
+def read_project_group_timeline(
+    group_id: int,
+    request: Request,
+    only_superior: bool = Query(
+        True,
+        description="Skip subprojects — a parent already pools its subtree's dates.",
+    ),
+    db: Session = Depends(get_db),
+):
+    """Public: dated milestones of a group's projects for the timeline view.
+
+    Only projects with at least one concrete date (VIB-PFA, Fulda-Runde, manual
+    expected entry, Planfeststellung or parliamentary date) are listed; BVWP
+    estimates are never used. The response carries an ETag.
+    """
+    if not get_project_group_ref(db, group_id):
+        raise HTTPException(status_code=404, detail="ProjectGroup not found")
+    payload = get_group_timeline(db, group_id, only_superior=only_superior)
+    return etag_json_response(request, payload, _timeline_adapter)
 
 
 @router.post("/", response_model=ProjectGroupSchema, status_code=201)

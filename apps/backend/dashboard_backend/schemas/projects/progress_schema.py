@@ -16,6 +16,9 @@ from pydantic import BaseModel, ConfigDict
 MainPhaseLiteral = Literal[
     "NICHT_GESTARTET", "VORPLANUNG", "GENEHMIGUNGSPLANUNG", "BAU", "IN_BETRIEB"
 ]
+# Only the planning phases may be skipped per project group (#164) — start,
+# construction and operation are always part of a project's life.
+SkippablePhaseLiteral = Literal["VORPLANUNG", "GENEHMIGUNGSPLANUNG"]
 ParallelStateLiteral = Literal["OFFEN", "LAEUFT", "ABGESCHLOSSEN"]
 LifecycleStatusLiteral = Literal["AKTIV", "PAUSIERT", "ABGEBROCHEN"]
 SourceTypeLiteral = Literal[
@@ -243,5 +246,40 @@ class ProjectProgressSchema(BaseModel):
     span_max_phase: Optional[MainPhaseLiteral] = None
     children: list[ProgressChildSchema] = []
 
+    # Planning phases the project's groups skip (#164) and the view hides — all
+    # groups must skip a phase, and it still shows while data places the project
+    # (or a subproject / dated forecast step) in it.
+    hidden_phases: list[SkippablePhaseLiteral] = []
+
     # Forecast (Phase 3): remaining duration of the current phase + next steps.
     forecast: Optional[ProgressForecastSchema] = None
+
+
+# --- Multi-project timeline ("Zeitstrahl") -----------------------------------
+
+
+class TimelineMilestoneSchema(BaseModel):
+    # PHASE = start of ``phase``; PFB = Planfeststellung; PARL = parl. involvement.
+    kind: Literal["PHASE", "PFB", "PARL"]
+    phase: Optional[MainPhaseLiteral] = None
+    date: date
+    source: str  # "VIB-PFA" | "Fulda-Runde" | "Manuell" | source label for evidence
+    # CONCRETE = dated milestone; EVIDENCE = "spätestens seit" from an observation.
+    certainty: Literal["CONCRETE", "EVIDENCE"]
+
+
+class ProjectTimelineSchema(BaseModel):
+    project_id: int
+    name: str
+    project_number: Optional[str] = None
+    superior_project_id: Optional[int] = None
+    lifecycle_status: LifecycleStatusLiteral
+    milestones: list[TimelineMilestoneSchema] = []
+
+
+class ProjectGroupTimelineSchema(BaseModel):
+    group_id: int
+    # Only projects with at least one concrete milestone.
+    items: list[ProjectTimelineSchema] = []
+    # Projects of the group left out for lack of credible dates.
+    without_dates_count: int = 0

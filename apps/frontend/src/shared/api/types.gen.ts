@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * Health
-         * @description Liveness + DB-readiness probe — used by the docker-compose healthcheck.
+         * @description Liveness + DB reachability. Kept for manual checks; the deploy gate is /healthz.
          */
         get: operations["health_api_v1_health_get"];
         put?: never;
@@ -518,6 +518,30 @@ export interface paths {
          *     ``GET /projects/{id}``. The response carries an ETag.
          */
         get: operations["read_project_group_geometries_api_v1_project_groups__group_id__geometries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/project_groups/{group_id}/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Project Group Timeline
+         * @description Public: dated milestones of a group's projects for the timeline view.
+         *
+         *     Only projects with at least one concrete date (VIB-PFA, Fulda-Runde, manual
+         *     expected entry, Planfeststellung or parliamentary date) are listed; BVWP
+         *     estimates are never used. The response carries an ETag.
+         */
+        get: operations["read_project_group_timeline_api_v1_project_groups__group_id__timeline_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3943,6 +3967,8 @@ export interface components {
              * @default false
              */
             is_default_selected: boolean;
+            /** Skipped Phases */
+            skipped_phases?: ("VORPLANUNG" | "GENEHMIGUNGSPLANUNG")[];
         };
         /**
          * ProjectGroupGeometriesSchema
@@ -4013,6 +4039,11 @@ export interface components {
              * @default false
              */
             is_default_selected: boolean;
+            /**
+             * Skipped Phases
+             * @description Planning phases this group's projects usually skip; hidden in the progress view and forecast when all of a project's groups skip them
+             */
+            skipped_phases?: ("VORPLANUNG" | "GENEHMIGUNGSPLANUNG")[];
             /** Id Old */
             id_old?: number | null;
             /**
@@ -4020,6 +4051,21 @@ export interface components {
              * @description List of projects associated with this project group
              */
             projects?: components["schemas"]["ProjectListItem"][];
+        };
+        /** ProjectGroupTimelineSchema */
+        ProjectGroupTimelineSchema: {
+            /** Group Id */
+            group_id: number;
+            /**
+             * Items
+             * @default []
+             */
+            items: components["schemas"]["ProjectTimelineSchema"][];
+            /**
+             * Without Dates Count
+             * @default 0
+             */
+            without_dates_count: number;
         };
         /** ProjectGroupUpdate */
         ProjectGroupUpdate: {
@@ -4039,6 +4085,8 @@ export interface components {
             is_visible?: boolean | null;
             /** Is Default Selected */
             is_default_selected?: boolean | null;
+            /** Skipped Phases */
+            skipped_phases?: ("VORPLANUNG" | "GENEHMIGUNGSPLANUNG")[] | null;
         };
         /**
          * ProjectListItem
@@ -4192,6 +4240,11 @@ export interface components {
              * @default []
              */
             children: components["schemas"]["ProgressChildSchema"][];
+            /**
+             * Hidden Phases
+             * @default []
+             */
+            hidden_phases: ("VORPLANUNG" | "GENEHMIGUNGSPLANUNG")[];
             forecast?: components["schemas"]["ProgressForecastSchema"] | null;
         };
         /** ProjectProgressUpdate */
@@ -4567,6 +4620,27 @@ export interface components {
             type?: number | null;
             /** Logo Url */
             logo_url?: string | null;
+        };
+        /** ProjectTimelineSchema */
+        ProjectTimelineSchema: {
+            /** Project Id */
+            project_id: number;
+            /** Name */
+            name: string;
+            /** Project Number */
+            project_number?: string | null;
+            /** Superior Project Id */
+            superior_project_id?: number | null;
+            /**
+             * Lifecycle Status
+             * @enum {string}
+             */
+            lifecycle_status: "AKTIV" | "PAUSIERT" | "ABGEBROCHEN";
+            /**
+             * Milestones
+             * @default []
+             */
+            milestones: components["schemas"]["TimelineMilestoneSchema"][];
         };
         /**
          * ProjectUpdate
@@ -5012,6 +5086,28 @@ export interface components {
              * @default []
              */
             entries: components["schemas"]["TextChangeLogEntryRead"][];
+        };
+        /** TimelineMilestoneSchema */
+        TimelineMilestoneSchema: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "PHASE" | "PFB" | "PARL";
+            /** Phase */
+            phase?: ("NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB") | null;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Source */
+            source: string;
+            /**
+             * Certainty
+             * @enum {string}
+             */
+            certainty: "CONCRETE" | "EVIDENCE";
         };
         /**
          * TitelEntryProposed
@@ -6884,6 +6980,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectGroupGeometriesSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_project_group_timeline_api_v1_project_groups__group_id__timeline_get: {
+        parameters: {
+            query?: {
+                /** @description Skip subprojects — a parent already pools its subtree's dates. */
+                only_superior?: boolean;
+            };
+            header?: never;
+            path: {
+                group_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectGroupTimelineSchema"];
                 };
             };
             /** @description Validation Error */

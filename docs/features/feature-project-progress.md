@@ -174,6 +174,11 @@ VIB/FinVe = materialisiert mit `is_derived=True` + Provenienz-FKs):
 - `is_derived: bool`, `created_at`, `created_by_user_id`, `username_snapshot`
   (Provenienz-Muster aus `change_log.py`)
 
+**Änderungsprotokoll:** Alle nutzergetriebenen Planungsstand-Änderungen (PATCH,
+Beobachtung anlegen/löschen, Dokument verknüpfen/lösen) landen im Projekt-`change_log`
+mit Feldpräfix `progress.` — als Historie ohne Revert. Materialisierte Beobachtungen
+aus den Importen (`sync_derived_observations`) werden nicht protokolliert.
+
 **`progress_track_document`** (neue Association — Dokumente hinter PF/parl. Befassung):
 - `project_id` (FK, CASCADE), `track` (`ObservationTrack`, hier PF/PARL),
   `document_id` (FK→`document.id`, CASCADE), UniqueConstraint über die drei Felder.
@@ -500,6 +505,46 @@ mit Permission `progress.edit`.
 „erreicht". In der Beobachtungstabelle (Drawer) und im `SourceBreakdown` ein Badge
 „erwartet". `ProgressObservationCreate`/`ProgressObservationSchema` um `is_expected`
 erweitern → `make gen-api`.
+
+## Übersprungene Planungsphasen je Projektgruppe (#164)
+
+**Problem:** Das lineare Phasenmodell unterstellt jedem Projekt Vorplanung und
+Genehmigungsplanung. Korridorsanierungen (HLK) kommen meist ohne Planfeststellung aus
+und durchlaufen diese Phasen nicht — die Prognose zeigte trotzdem „Vorplanung" und
+„Genehmigung / PFB" als nächste Schritte vor dem Bau.
+
+**Datenmodell:** `project_group.skipped_phases` (JSON-Liste, `server_default '[]'`,
+rückwärtskompatibel). Erlaubt sind nur die Planungsphasen `VORPLANUNG` und
+`GENEHMIGUNGSPLANUNG` (`SkippablePhaseLiteral`); Start, Bau und Betrieb gehören immer
+zum Projekt. Gepflegt im Admin-Formular der Projektgruppe („Übersprungene
+Planungsphasen").
+
+**Regeln:**
+- **Mehrere Gruppen:** Eine Phase gilt für ein Projekt nur als übersprungen, wenn
+  **alle** seine Gruppen sie überspringen (`resolve_skipped_phases`, Schnittmenge).
+  Projekte ohne Gruppe überspringen nichts.
+- **Daten gewinnen:** Die Gruppe setzt nur einen Default. Liegt das Projekt laut
+  Ableitung/Override in einer übersprungenen Phase, liegt ein Unterprojekt darin oder
+  gibt es einen konkreten Termin dafür (VIB-PFA, Fulda-Runde, erwarteter Termin), bleibt
+  die Phase sichtbar (`resolve_hidden_phases`).
+- Die Ableitung der Headline-Phase bleibt unverändert — ausgeblendet wird nur in
+  Prognose und Darstellung.
+
+**Prognose:** `build_forecast(skipped_phases=…)` lässt übersprungene Phasen ohne
+konkreten Termin aus den nächsten Schritten weg; ein HLK-Projekt springt so von „Nicht
+gestartet" direkt zu „Baubeginn" (BVWP-Planungsdauer ergibt weiterhin das Bau-Datum).
+
+**API / Frontend:** `ProjectProgressSchema.hidden_phases` listet die ausgeblendeten
+Phasen. `PhaseStepper` und `ProgressMini` lassen sie **ganz weg** (Leiste z. B.
+Start → Bau → Betrieb, Nummerierung fortlaufend); Meilenstein-Rauten (Parl., PFB) rücken
+auf die Verbindung, die ihre Phasengrenze überspannt.
+
+## Zeitstrahl über mehrere Projekte
+
+Die Gantt-artige Übersicht über eine ganze Projektgruppe ist ein eigenes Feature:
+`docs/features/feature-project-timeline.md`. Sie nutzt dieselbe Vorrangregel für konkrete
+Termine wie die Prognose (`progress_forecast.concrete_milestone_dates`) und zeigt keine
+BVWP-Schätzungen.
 
 ## Offene Punkte / Risiken / Edge Cases
 

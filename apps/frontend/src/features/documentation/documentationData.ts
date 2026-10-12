@@ -39,6 +39,20 @@ export const featureHighlights: FeatureHighlight[] = [
         ]
     },
     {
+        title: "Zeitstrahl",
+        description:
+            "Dritte Ansicht neben Karte und Liste: Die Projekte einer Projektgruppe mit belastbaren Terminen" +
+            " erscheinen als Zeilen auf einer gemeinsamen Jahresachse.",
+        details: [
+            "Termine aus VIB-PFA (Baubeginn, Inbetriebnahme, Planfeststellungsbeschluss), Fulda-Runde, erwarteten manuellen Einträgen sowie den Daten von Planfeststellung und parlamentarischer Befassung",
+            "Keine BVWP-Schätzungen; Projekte ohne konkrete Termine werden gezählt, aber nicht gezeichnet",
+            "Phasenbalken in den Phasenfarben, der Teil nach heute schraffiert (geplant); hohle Punkte markieren „spätestens seit“-Belege aus glaubwürdigen Beobachtungen",
+            "Übergeordnete Projekte bündeln die Termine ihrer Unterprojekte (frühester Beginn, späteste Inbetriebnahme)",
+            "Sortierung nach Inbetriebnahme, Baubeginn oder Name; Gruppe, Suche, Sortierung und „Nur Hauptprojekte“ stehen in der URL",
+            "Details: docs/features/feature-project-timeline.md"
+        ]
+    },
+    {
         title: "Project search",
         description:
             "Client-side full-text search across all loaded projects in both the map and the list view." +
@@ -154,6 +168,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Sammel-FinVe: Phase aus der Leistungsphase im Namen (Lph 1/2 → Vorplanung, Lph 3/4 → Genehmigungsplanung); ohne erkennbare Lph (z. B. EKrG) manuell zuordenbar unter Admin → „Sammel-FinVe Phasen“",
             "Lazy-Resync der abgeleiteten Beobachtungen bei stalem Cache (24h); „Neu berechnen\" erzwingt den Sync",
             "Prognose-Panel: Restdauer der aktuellen Phase + nächste Schritte aus BVWP-Dauern, VIB-PFA-Terminen, Fulda-Runde- und manuellen Erwartet-Beobachtungen",
+            "Übersprungene Planungsphasen: Projektgruppen können Vorplanung und/oder Genehmigungsplanung überspringen (z. B. Korridorsanierungen ohne Planfeststellung, Admin → Projektgruppe bearbeiten). Die Phasen verschwinden dann aus Phasenleiste und Prognose – aber nur, wenn alle Gruppen eines Projekts sie überspringen und keine Daten das Projekt in diese Phase setzen",
             "Manuelle Beobachtungen erfassen nur Leistungsphasen (Quellentyp MANUELL/FULDA_RUNDE/BAUPORTAL/MEDIEN + optionaler Vertrauens-Override); Planfeststellung & parl. Befassung werden separat im Schaltmenü „Verfahren\" gepflegt",
             "Erwartete Termine: eine manuelle Beobachtung kann als „erwarteter Termin\" markiert werden (Schalter im Beobachtungsformular). Sie speist nur die Prognose (z. B. erwartete Inbetriebnahme), zieht die aktuelle Phase nicht hoch und übersteuert dort alle automatischen Quellen (VIB-PFA/BVWP/Fulda)",
             "Kurzansicht (Karten-Popup, Unter-/Übergeordnet-Abschnitte): kompakte Leistungsphasen-Leiste mit aktuellem Stand; erreichte Phasen grün, „In Betrieb\" grün (= abgeschlossen), Spanne bei übergeordneten Projekten",
@@ -199,6 +214,8 @@ export const featureHighlights: FeatureHighlight[] = [
         details: [
             "Timeline in ProjectDetail — date, user, old → new value per field (login-gated)",
             "\"Zurücksetzen\" button per entry reverts the field to its previous value (editor/admin only)",
+            "Project group changes are logged too (shown with short names) and can be reverted",
+            "Planning-state changes (flags, overrides, PF/parliament details, observations added or deleted, linked documents) appear as \"Planungsstand\" entries — from the UI and from MCP alike; they are history only, without revert",
             "Implemented in `features/changelog/ProjectHistorySection.tsx` + `useRevertProjectField` hook"
         ]
     },
@@ -334,8 +351,8 @@ export const featureHighlights: FeatureHighlight[] = [
             "Route /admin/api-keys — create, list and revoke your own keys; with user.manage also every user's keys",
             "The token (rdb_…) is shown exactly once, together with a ready-made .mcp.json snippet; only its hash is stored",
             "Presets: \"Nur lesen\" (default) or \"Wie mein Nutzer\" (adds write tools); every key expires after 90 days",
-            "Read tools: projects (search/filter), project detail incl. BVWP, planning state, FinVes with budgets, texts, tasks",
-            "Write tools: update project fields, add planning-state observations, create/update texts and tasks — all in the changelog",
+            "Read tools: project groups, projects (search/filter by text, group, phase), project detail incl. BVWP, planning state, FinVes with budgets, texts, tasks",
+            "Write tools: create (sub)projects, compute the length from the geometry, update project fields and group assignment, add/delete planning-state observations, set/clear the phase override, create/update texts and tasks — all in the changelog",
             "Keys also work against the REST API (Authorization: Bearer …), narrowed to their scopes without the admin bypass",
             "Details: docs/features/feature-mcp-server.md"
         ]

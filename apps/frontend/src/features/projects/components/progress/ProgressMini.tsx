@@ -3,12 +3,12 @@ import { Box, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { useProjectProgress } from "../../../../shared/api/queries";
 import {
     LIFECYCLE_LABEL,
-    MAIN_PHASES,
     MAIN_PHASE_LABEL,
     UNKNOWN_LABEL,
     mainPhaseIndex,
     type LifecycleStatus,
     type MainPhase,
+    visiblePhases,
 } from "./phaseMeta";
 
 const ACTIVE = "var(--info)";
@@ -18,7 +18,8 @@ const IDLE = "var(--rule)";
 /**
  * Kompakte Leistungsphasen-Darstellung für die Kurzansicht eines Projekts
  * (Karten-Popup, Unter-/Übergeordnet-Abschnitte). Zeigt eine schlanke
- * Segment-Leiste über die fünf Hauptphasen plus eine Beschriftung des
+ * Segment-Leiste über die Hauptphasen (ohne die von der Projektgruppe
+ * ausgeblendeten) plus eine Beschriftung des
  * aktuellen Stands. Spiegelt die Logik des großen ``PhaseStepper`` wider,
  * ohne Meilensteine/Parallelspuren.
  */
@@ -65,7 +66,8 @@ export default function ProgressMini({ projectId }: { projectId: number }) {
     return (
         <Stack gap={4}>
             <Group gap={3} wrap="nowrap" style={{ opacity: dimmed ? 0.45 : 1 }}>
-                {MAIN_PHASES.map((phase, idx) => {
+                {visiblePhases(progress.hidden_phases).map((phase) => {
+                    const idx = mainPhaseIndex(phase);
                     const inSpan = !isUnknownLeaf && idx >= minIdx && idx <= maxIdx;
                     const isDone = !isUnknownLeaf && !noCompleted && idx < minIdx;
                     // "In Betrieb" is the terminal phase — reaching it means the
