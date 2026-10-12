@@ -328,7 +328,8 @@ export const featureHighlights: FeatureHighlight[] = [
         description:
             "Project geometries are intersected with the 299 Bundestag constituencies, and the members of parliament " +
             "responsible for those constituencies are attached to the result — the answer to \"what connects this " +
-            "member of parliament with this project?\". Reading is public; importing requires the parliament.import capability.",
+            "member of parliament with this project?\". Reading requires a login (any role) — anonymous visitors see neither the " +
+            "block, the /abgeordnete page nor the constituency layer; importing requires the parliament.import capability.",
         details: [
             "Project detail: block \"Wahlkreise und Abgeordnete\", constituencies in descending order of kilometres",
             "Direct mandates are shown separately from \"über Liste, hier angetreten\" (the candidacy, not a maintained Betreuungswahlkreis)",

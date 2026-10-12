@@ -165,10 +165,13 @@ bestätigen — Eintrag in `docs/manual-tests-backlog.md`.
 
 ### Sichtbarkeit
 
-**Lesen ist öffentlich**, wie alle anderen `GET`-Endpunkte des Dashboards (der
-`AuthRouter` gated nur Nicht-GET-Methoden). Die Zuordnung ist öffentliche Information
-über Amtsträger aus einer CC0-Quelle; im bestehenden Berechtigungsmodell gibt es keinen
-Grund, sie hinter `editor` zu verschieben. **Geschrieben** wird nur über den Import, und
+**Lesen erfordert eine Anmeldung** (beliebige Rolle). Anders als die übrigen
+`GET`-Endpunkte (der `AuthRouter` gated nur Nicht-GET-Methoden) tragen alle lesenden
+Routen unter `/parliament` sowie `GET /projects/{id}/constituencies` ausdrücklich
+`require_auth()` und antworten anonym mit 401. Im Frontend sind für nicht angemeldete
+Besucher der Menüpunkt „Abgeordnete", der Block „Wahlkreise und Abgeordnete" im
+Projektdetail und der Kartenschalter „Wahlkreise" ausgeblendet; `/abgeordnete` zeigt
+einen Hinweis. Eine besondere Rolle ist nicht nötig. **Geschrieben** wird nur über den Import, und
 der bekommt ein eigenes Recht `parliament.import` (Gruppe „Inhalte") — nicht wegen der
 Daten, sondern weil ein Importlauf externe Abrufe auslöst und Bestandsdaten
 überschreibt.
@@ -301,7 +304,7 @@ und in `update_project`, damit sie auch die Aggregation aus Teilprojekten mitnim
 ### Endpunkte
 
 Neuer Router `api/v1/endpoints/parliament.py`, Prefix `/api/v1/parliament`, plus eine
-Route am bestehenden Projekt-Router. Alle `GET` öffentlich, alle Schreiboperationen mit
+Route am bestehenden Projekt-Router. Alle `GET` nur angemeldet, alle Schreiboperationen mit
 `parliament.import`.
 
 | Methode | Pfad | Zweck |

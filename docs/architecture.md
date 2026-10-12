@@ -97,7 +97,7 @@ Both the status endpoint and task-launch endpoints require a logged-in user (any
 
 Project geometries are intersected with the 299 Bundestag constituencies, and the members of parliament responsible for those constituencies are attached to the result. The intersection is materialised in `project_to_constituency` (kilometres, share, overlap kind) and refreshed from the existing geojson cascade in `crud/projects/projects.py`, including the aggregation from subprojects — never on page load.
 
-The people come from the abgeordnetenwatch API v2 (CC0) via an idempotent Celery task; the constituency outlines (Die Bundeswahlleiterin, © GeoBasis-DE / BKG) are uploaded as GeoJSON on the admin page (Celery task `import_constituency_file`; `scripts/import_constituencies.py` is the server-side alternative). Both record an Abrufstand in `parliament_import_run`. Reading is public, importing needs the `parliament.import` capability. See `docs/features/feature-abgeordnete.md`.
+The people come from the abgeordnetenwatch API v2 (CC0) via an idempotent Celery task; the constituency outlines (Die Bundeswahlleiterin, © GeoBasis-DE / BKG) are uploaded as GeoJSON on the admin page (Celery task `import_constituency_file`; `scripts/import_constituencies.py` is the server-side alternative). Both record an Abrufstand in `parliament_import_run`. Reading requires a login (any role), importing needs the `parliament.import` capability. See `docs/features/feature-abgeordnete.md`.
 
 The intersection is PostGIS-only; on a non-PostgreSQL bind (the SQLite test suite) `compute_links_for_project` is a documented no-op so that saving a project keeps working.
 

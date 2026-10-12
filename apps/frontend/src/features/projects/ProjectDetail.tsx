@@ -386,7 +386,7 @@ export default function ProjectDetail() {
             id: "constituencies",
             label: "Wahlkreise und Abgeordnete",
             ref: constituenciesRef,
-            visible: true,
+            visible: user !== null,
         },
         { id: "texts", label: "Texte", ref: textsRef, visible: true },
         {
@@ -661,9 +661,11 @@ export default function ProjectDetail() {
                 </div>
 
                 {/* Wahlkreise und Abgeordnete */}
-                <div ref={constituenciesRef}>
-                    <ProjectConstituencySection projectId={projectId} />
-                </div>
+                {user !== null && (
+                    <div ref={constituenciesRef}>
+                        <ProjectConstituencySection projectId={projectId} />
+                    </div>
+                )}
 
                 {/* Texte */}
                 <div ref={textsRef}>

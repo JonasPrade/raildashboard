@@ -23,6 +23,7 @@ import { FlapNumber, Eyebrow } from "../../components/tafel";
 import { useDisclosure } from "@mantine/hooks";
 import { IconHelp, IconSearch, IconX } from "@tabler/icons-react";
 import { useSearchParams } from "react-router-dom";
+import { useAuth } from "../../lib/auth";
 
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import GroupFilterDrawer, { type ProjectGroupOption } from "../projects/GroupFilterDrawer";
@@ -76,8 +77,11 @@ export default function MapPage() {
     const view = searchParams.get("view") ?? "map";
     const onlySuperior = searchParams.get("only_superior") !== "false"; // default true
     // Layer state lives in the URL like the other map settings, so a link
-    // carries the view someone was looking at.
-    const showConstituencies = searchParams.get("wahlkreise") === "1";
+    // carries the view someone was looking at. The layer leads to the members
+    // of parliament, which only signed-in users may see.
+    const { user } = useAuth();
+    const canShowConstituencies = user !== null;
+    const showConstituencies = canShowConstituencies && searchParams.get("wahlkreise") === "1";
 
     // --- Search state: local for immediate input, debounced to URL ---
     const [localSearch, setLocalSearch] = useState(() => searchParams.get("search") ?? "");
@@ -689,7 +693,9 @@ export default function MapPage() {
                         totalProjects={selectedProjects.length}
                         filteredCount={filteredMapProjects.length}
                         showConstituencies={showConstituencies}
-                        onShowConstituenciesChange={handleShowConstituenciesChange}
+                        onShowConstituenciesChange={
+                            canShowConstituencies ? handleShowConstituenciesChange : undefined
+                        }
                     />
                 </Box>
             </Container>

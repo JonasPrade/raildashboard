@@ -75,7 +75,7 @@ export function Header() {
     const navItems: Array<{ to: string; label: string; end?: boolean; visible: boolean; badge?: number }> = [
         { to: "/", label: "Projekte", end: true, visible: true },
         { to: "/finves", label: "Haushalt", visible: true },
-        { to: "/abgeordnete", label: "Abgeordnete", visible: true },
+        { to: "/abgeordnete", label: "Abgeordnete", visible: user !== null },
         { to: "/tasks", label: "Aufgaben", visible: user !== null },
         { to: "/admin", label: "Admin", visible: canAdmin, badge: totalUnassigned },
     ];
