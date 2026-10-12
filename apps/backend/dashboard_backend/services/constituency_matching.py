@@ -23,6 +23,7 @@ from datetime import datetime
 from typing import Any, Iterable, Sequence
 
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from dashboard_backend.models.associations.project_to_constituency import (
@@ -45,12 +46,16 @@ _POINT_TYPES = {"Point", "MultiPoint"}
 # ``ST_UnaryUnion`` collapses lines that appear twice in an aggregated
 # FeatureCollection (a parent project holds the union of its subprojects, and the
 # same section may be stored on two of them) so they are not counted twice.
+#
+# ``ST_Force2D`` because imported lines carry a height (``[lon, lat, z]``) while
+# points usually do not — ``ST_Collect`` refuses to mix dimensionalities, and the
+# constituency outlines are 2D anyway, so the height has nothing to contribute.
 _INTERSECT_SQL = text(
     """
     WITH proj AS (
         SELECT
-            ST_UnaryUnion(ST_SetSRID(ST_GeomFromGeoJSON(:lines), 4326)) AS lines,
-            ST_SetSRID(ST_GeomFromGeoJSON(:points), 4326) AS points
+            ST_UnaryUnion(ST_Force2D(ST_SetSRID(ST_GeomFromGeoJSON(:lines), 4326))) AS lines,
+            ST_Force2D(ST_SetSRID(ST_GeomFromGeoJSON(:points), 4326)) AS points
     ),
     totals AS (
         SELECT
@@ -159,10 +164,20 @@ def compute_links_for_project(db: Session, project: Project) -> int:
         )
         return 0
 
-    rows = db.execute(
-        _INTERSECT_SQL,
-        {"lines": _geometry_collection(lines), "points": _geometry_collection(points)},
-    ).mappings().all()
+    # A savepoint per project: one geometry PostGIS cannot digest must neither
+    # abort the full rebuild over the portfolio nor turn saving a project into an
+    # error — that project simply ends up without links, and the log says why.
+    try:
+        with db.begin_nested():
+            rows = db.execute(
+                _INTERSECT_SQL,
+                {"lines": _geometry_collection(lines), "points": _geometry_collection(points)},
+            ).mappings().all()
+    except SQLAlchemyError:
+        logger.warning(
+            "constituency matching failed for project %s", project.id, exc_info=True
+        )
+        return 0
 
     now = datetime.utcnow()
     written = 0

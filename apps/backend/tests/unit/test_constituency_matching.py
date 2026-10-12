@@ -29,6 +29,7 @@ from dashboard_backend.models.parliament import (
     Politician,
 )
 from dashboard_backend.models.projects.project import Project
+from dashboard_backend.services import constituency_matching
 from dashboard_backend.services.constituency_matching import (
     compute_links_for_project,
     coverage,
@@ -166,6 +167,28 @@ def test_recompute_without_postgis_clears_but_writes_nothing(session, seeded):
     session.commit()
     assert written == 0
     assert parliament_crud.links_for_project(session, seeded["project"].id) == []
+
+
+def test_failing_intersection_skips_the_project_and_keeps_the_session_usable(
+    session, seeded, monkeypatch
+):
+    # One geometry PostGIS rejects (e.g. mixed 2D/3D) must not abort the full
+    # rebuild: the project ends up without links, the transaction stays usable.
+    # SQLite has no ST_* functions, so the real statement fails here as well.
+    monkeypatch.setattr(constituency_matching, "is_spatial_backend", lambda db: True)
+    assert compute_links_for_project(session, seeded["project"]) == 0
+    session.add(Project(name="Danach"))
+    session.commit()
+    assert parliament_crud.links_for_project(session, seeded["project"].id) == []
+    assert session.query(Project).count() == 2
+
+
+def test_heights_are_dropped_before_lines_and_points_are_collected():
+    # Imported lines carry a height, points usually not — ST_Collect refuses
+    # to mix the two, which once left the whole portfolio unmatched.
+    sql = str(constituency_matching._INTERSECT_SQL)
+    assert "ST_Force2D(ST_SetSRID(ST_GeomFromGeoJSON(:lines)" in sql
+    assert "ST_Force2D(ST_SetSRID(ST_GeomFromGeoJSON(:points)" in sql
 
 
 def test_project_without_geometry_produces_no_links(session, seeded):
