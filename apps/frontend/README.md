@@ -224,8 +224,9 @@ parliament with this project?
 Shared presentation (mandate row, committee badges, "51 km" vs. "Lage im Wahlkreis") lives
 in `mandateDisplay.tsx`. Data via `useProjectConstituencies()`, `usePoliticians()`,
 `usePolitician()`, `useConstituency()`, `useConstituencyGeojson()` and
-`useParliamentStatus()` in `shared/api/queries.ts`. Everything here is public — reading
-needs no login. See `docs/features/feature-abgeordnete.md`.
+`useParliamentStatus()` in `shared/api/queries.ts`. Everything here needs a login: for
+anonymous visitors the nav entry, the project-detail block and the map's "Wahlkreise"
+switch are hidden, and `/abgeordnete` shows a hint instead of the list. See `docs/features/feature-abgeordnete.md`.
 
 ### Haushalt PDF import (`features/haushalt-import/`)
 

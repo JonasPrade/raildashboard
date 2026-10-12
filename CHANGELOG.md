@@ -58,6 +58,11 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   and are revertible; projects aggregating their subprojects' geometry stay protected.
 
 ### Changed
+- **Members of parliament are only shown to signed-in users.** All read routes under
+  `/api/v1/parliament` and `GET /api/v1/projects/{id}/constituencies` now require a login
+  (any role) and answer 401 otherwise. The frontend hides the "Abgeordnete" nav entry, the
+  "Wahlkreise und Abgeordnete" block in the project detail and the map's "Wahlkreise" switch
+  for anonymous visitors; `/abgeordnete` shows a hint instead.
 - **Planning-state changes are written to the project change log** — from the UI and from
   MCP alike: flags, overrides, PF/parliament details, observations added or deleted and
   linked documents. They show up as "Planungsstand" entries in the project history

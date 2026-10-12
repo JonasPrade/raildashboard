@@ -182,14 +182,19 @@ def read_subprojects(
     return get_subprojects(db, project.id)
 
 
-@router.get("/{project_id}/constituencies", response_model=ProjectConstituenciesSchema)
+@router.get(
+    "/{project_id}/constituencies",
+    response_model=ProjectConstituenciesSchema,
+    dependencies=[Depends(require_auth())],
+)
 def read_project_constituencies(
     project: Project = Depends(get_project_or_404),
     db: Session = Depends(get_db),
 ):
     """Constituencies this project touches, heaviest first, with their MPs.
 
-    Public, like the other project reads. A project without a geometry returns an
+    Requires a login (any role): members of parliament are only shown to
+    signed-in users, unlike the other project reads. A project without a geometry returns an
     empty list plus ``has_geometry = false`` — the UI says *why* there is nothing
     to show instead of rendering an empty block.
     """

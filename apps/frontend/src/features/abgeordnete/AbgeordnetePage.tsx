@@ -10,6 +10,7 @@ import { useMemo, useState } from "react";
 import {
     Accordion,
     Alert,
+    Container,
     Anchor,
     Badge,
     Group,
@@ -25,6 +26,7 @@ import { IconSearch } from "@tabler/icons-react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { ChronicleCard, ChronicleDataChip, ChronicleHeadline } from "../../components/chronicle";
+import { useAuth } from "../../lib/auth";
 import {
     type PoliticianListItem,
     usePoliticians,
@@ -146,6 +148,22 @@ function PoliticianRow({ politician }: { politician: PoliticianListItem }) {
 }
 
 export default function AbgeordnetePage() {
+    const { user } = useAuth();
+
+    // The members of parliament are only shown to signed-in users; the API
+    // answers 401 otherwise.
+    if (user === null) {
+        return (
+            <Container size="md" py="xl">
+                <Alert color="gray">Abgeordnete sind nur für angemeldete Nutzer sichtbar.</Alert>
+            </Container>
+        );
+    }
+
+    return <PoliticianWorkingList />;
+}
+
+function PoliticianWorkingList() {
     const [searchParams, setSearchParams] = useSearchParams();
     const [open, setOpen] = useState<string | null>(null);
 
