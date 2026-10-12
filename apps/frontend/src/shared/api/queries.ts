@@ -1800,6 +1800,21 @@ export function useStartConstituencyLinkRebuild() {
     });
 }
 
+/** Upload the constituency outlines (GeoJSON); the worker imports them and rebuilds the links. */
+export function useStartConstituencyImport() {
+    return useMutation({
+        mutationFn: ({ file, electionYear }: { file: File; electionYear: number }) => {
+            const form = new FormData();
+            form.append("geojson", file);
+            form.append("election_year", String(electionYear));
+            return api<TaskLaunchResponse>("/api/v1/parliament/constituencies/import", {
+                method: "POST",
+                body: form,
+            });
+        },
+    });
+}
+
 export function usePoliticians(params: {
     query?: string;
     committee?: string | null;

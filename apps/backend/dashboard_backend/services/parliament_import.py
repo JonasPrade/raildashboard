@@ -3,7 +3,9 @@
 Two data sources, two very different rates of change:
 
 * **Constituency outlines** — Bundeswahlleiterin (© GeoBasis-DE / BKG), once per
-  election. Imported from a GeoJSON file by ``scripts/import_constituencies.py``.
+  election. Imported from a GeoJSON file — uploaded on the admin page
+  (``POST /parliament/constituencies/import``) or by
+  ``scripts/import_constituencies.py``.
 * **Members of parliament** — abgeordnetenwatch API v2 (CC0). Substitutes moving
   up and committee reshuffles change this constantly, so a rerun has to be cheap:
   four paged endpoints, then an upsert over a few thousand rows.
@@ -509,6 +511,66 @@ def import_politicians(
         db.commit()
         raise
     return run
+
+
+class ConstituencyFileError(ValueError):
+    """The uploaded outline file cannot be imported; the message is shown to the user."""
+
+
+def _first_position(coordinates: Any) -> list[Any] | None:
+    """The first ``[x, y]`` pair of a (Multi)Polygon coordinate array."""
+    while isinstance(coordinates, list) and coordinates:
+        if not isinstance(coordinates[0], list):
+            return coordinates
+        coordinates = coordinates[0]
+    return None
+
+
+def parse_constituency_geojson(raw: bytes | str) -> list[dict[str, Any]]:
+    """Decode and sanity-check a constituency GeoJSON before anything is written.
+
+    Runs in the upload request so a wrong file fails at once with a message
+    instead of minutes later in the worker. Checks: valid JSON, a
+    FeatureCollection with features, at least one feature carrying a number
+    and a geometry, and coordinates in degrees — the Bundeswahlleiterin's own
+    shapefile export is in UTM 32 (metres) and must be reprojected first.
+    """
+    try:
+        payload = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ConstituencyFileError("Die Datei ist kein gültiges JSON.") from exc
+    features = payload.get("features") if isinstance(payload, dict) else None
+    if not isinstance(features, list) or not features:
+        raise ConstituencyFileError(
+            "Die Datei enthält keine GeoJSON-FeatureCollection mit Features."
+        )
+
+    usable = [
+        feature
+        for feature in features
+        if isinstance(feature, dict)
+        and feature.get("geometry")
+        and constituency_properties(feature.get("properties") or {})[0] is not None
+    ]
+    if not usable:
+        raise ConstituencyFileError(
+            "Kein Feature hat eine Wahlkreisnummer (wkr_id oder WKR_NR) und eine Geometrie."
+        )
+
+    position = _first_position((usable[0].get("geometry") or {}).get("coordinates"))
+    if position is None or len(position) < 2:
+        raise ConstituencyFileError("Die Geometrie des ersten Wahlkreises ist leer.")
+    try:
+        x, y = float(position[0]), float(position[1])
+    except (TypeError, ValueError) as exc:
+        raise ConstituencyFileError("Die Koordinaten sind keine Zahlen.") from exc
+    if not (-180 <= x <= 180 and -90 <= y <= 90):
+        raise ConstituencyFileError(
+            "Die Koordinaten liegen nicht in WGS 84 (Längen-/Breitengrad). Der "
+            "Shapefile-Export der Bundeswahlleiterin ist in UTM 32 (EPSG:25832) und "
+            "muss vorher nach EPSG:4326 umprojiziert werden."
+        )
+    return features
 
 
 def import_constituency_geometries(

@@ -12,9 +12,10 @@ from __future__ import annotations
 
 import json
 
-from fastapi import Depends, HTTPException, Query
+from fastapi import Depends, File, Form, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session, selectinload
 
+from dashboard_backend.api.deps import launch_with_staged_file, read_upload_within_limit
 from dashboard_backend.core.security import require_permission
 from dashboard_backend.crud import parliament as parliament_crud
 from dashboard_backend.database import get_db
@@ -41,6 +42,10 @@ from dashboard_backend.schemas.parliament import (
     PoliticianListItemSchema,
 )
 from dashboard_backend.schemas.tasks import TaskLaunchResponse
+from dashboard_backend.services.parliament_import import (
+    ConstituencyFileError,
+    parse_constituency_geojson,
+)
 
 router = AuthRouter()
 
@@ -50,6 +55,10 @@ VALID_COMMITTEE_KEYS = {COMMITTEE_KEY_TRANSPORT, COMMITTEE_KEY_BUDGET}
 GEOMETRY_ATTRIBUTION = (
     "Wahlkreisgeometrien: Die Bundeswahlleiterin, © GeoBasis-DE / BKG"
 )
+GEOMETRY_SOURCE = "Die Bundeswahlleiterin, © GeoBasis-DE / BKG"
+# abgeordnetenwatch parliament-period id of "Bundestag 2025 - 2029" — used when
+# no period has been imported yet.
+DEFAULT_PERIOD_EXTERNAL_ID = 161
 
 
 @router.get("/status", response_model=ParliamentStatusSchema)
@@ -288,4 +297,45 @@ def start_recompute_links(
     from dashboard_backend.tasks.parliament import rebuild_constituency_links
 
     task = rebuild_constituency_links.delay(user_id=current_user.id)
+    return TaskLaunchResponse(task_id=task.id)
+
+
+@router.post("/constituencies/import", response_model=TaskLaunchResponse, status_code=202)
+async def start_constituency_import(
+    geojson: UploadFile = File(..., description="Wahlkreisgeometrien als GeoJSON (WGS 84)"),
+    election_year: int = Form(..., ge=1949, le=2100),
+    period_external_id: int | None = Form(
+        default=None, description="abgeordnetenwatch-Wahlperiode; leer = aktuelle"
+    ),
+    current_user: User = Depends(require_permission("parliament.import")),
+    db: Session = Depends(get_db),
+):
+    """Upload the constituency outlines and rebuild the project links afterwards.
+
+    The file is checked here (JSON, features, coordinates in degrees) so a wrong
+    file fails at once; the import itself and the ``ST_Intersection`` rebuild
+    run in the worker. Without an explicit period the outlines go to the current
+    one — after a new election, refresh the members of parliament first.
+    """
+    raw = await read_upload_within_limit(geojson)
+    try:
+        parse_constituency_geojson(raw)
+    except ConstituencyFileError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if period_external_id is None:
+        period = parliament_crud.current_period(db)
+        period_external_id = period.external_id if period else DEFAULT_PERIOD_EXTERNAL_ID
+
+    from dashboard_backend.tasks.parliament import import_constituency_file
+
+    task = launch_with_staged_file(
+        import_constituency_file,
+        raw,
+        ".geojson",
+        period_external_id=period_external_id,
+        election_year=election_year,
+        source=GEOMETRY_SOURCE,
+        user_id=current_user.id,
+    )
     return TaskLaunchResponse(task_id=task.id)

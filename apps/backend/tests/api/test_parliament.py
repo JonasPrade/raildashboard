@@ -393,3 +393,67 @@ def test_recompute_links_is_gated_too(client, create_user):
         "/api/v1/parliament/recompute-links", headers=basic_auth_header("leser", "pw")
     )
     assert resp.status_code == 403
+
+
+GEOJSON = (
+    b'{"type": "FeatureCollection", "features": [{"type": "Feature",'
+    b' "properties": {"wkr_id": 1, "name": "Flensburg"},'
+    b' "geometry": {"type": "Polygon", "coordinates": [[[9.4, 54.7], [9.5, 54.7], [9.4, 54.8], [9.4, 54.7]]]}}]}'
+)
+
+
+def _upload(client, content=GEOJSON, headers=None, **form):
+    return client.post(
+        "/api/v1/parliament/constituencies/import",
+        files={"geojson": ("wkr.geojson", content, "application/geo+json")},
+        data={"election_year": "2025", **form},
+        headers=headers or {},
+    )
+
+
+def test_constituency_upload_is_gated(client, create_user):
+    create_user("leserin", "pw", UserRole.viewer)
+    assert _upload(client).status_code == 401
+    assert _upload(client, headers=basic_auth_header("leserin", "pw")).status_code == 403
+
+
+def test_constituency_upload_rejects_a_bad_file_before_queueing(client, create_user, monkeypatch):
+    create_user("verwalterin", "pw", UserRole.admin)
+    import dashboard_backend.tasks.parliament as parliament_tasks
+
+    monkeypatch.setattr(
+        parliament_tasks.import_constituency_file,
+        "delay",
+        lambda *args, **kwargs: pytest.fail("must not queue an unusable file"),
+    )
+    resp = _upload(client, content=b"no json", headers=basic_auth_header("verwalterin", "pw"))
+    assert resp.status_code == 400
+    assert "JSON" in resp.json()["detail"]
+
+
+def test_constituency_upload_stages_the_file_for_the_current_period(
+    client, create_user, parliament_data, monkeypatch, tmp_path
+):
+    create_user("verwalterin", "pw", UserRole.admin)
+    import dashboard_backend.tasks.parliament as parliament_tasks
+    import dashboard_backend.utils.file_storage as fs
+
+    monkeypatch.setattr(fs, "_staging_root", lambda: tmp_path.resolve())
+    calls = []
+
+    class FakeTask:
+        id = "task-geo"
+
+    def fake_delay(*args, **kwargs):
+        calls.append((args, kwargs))
+        return FakeTask()
+
+    monkeypatch.setattr(parliament_tasks.import_constituency_file, "delay", fake_delay)
+    resp = _upload(client, headers=basic_auth_header("verwalterin", "pw"))
+
+    assert resp.status_code == 202
+    assert resp.json() == {"task_id": "task-geo"}
+    (staged_name,), kwargs = calls[0]
+    assert (tmp_path / staged_name).read_bytes() == GEOJSON
+    assert kwargs["period_external_id"] == 161
+    assert kwargs["election_year"] == 2025
