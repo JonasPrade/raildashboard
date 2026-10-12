@@ -35,7 +35,9 @@ INSTRUCTIONS = (
     "route_project_geometry über das Schienennetz routen (Betriebsstellen mit "
     "search_operational_points finden, erst ohne apply prüfen); Neubaustrecken, "
     "Punkte und Korrekturen mit edit_project_geometry; Bestand mit "
-    "get_project_geometry ansehen."
+    "get_project_geometry ansehen. Datenpflege über viele Projekte: "
+    "list_data_gaps (fehlende Daten) und check_geometry (auffällige Geometrien) "
+    "statt jedes Projekt einzeln abzurufen."
 )
 
 

@@ -12,6 +12,16 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **MCP: data maintenance across many projects (#175, stage A).** `list_data_gaps` lists
+  projects with missing or outdated data in one call — no geometry, geometry without a saved
+  route, no length, unknown planning state, no description, no project number, newest
+  observation older than N years — with the gaps per project and counts per gap.
+  `check_geometry` checks one project or a whole group: straight two-point chords instead of a
+  routed line, gaps between line parts, start/end far from the operational points named in the
+  project name, stored vs. computed length. `list_projects` gets the filters `is_known`,
+  `has_geometry`, `has_length`, `lifecycle_status`, `parl_befassung_relevant` and
+  `updated_since`, sorting (`order_by` name/id/length/last_change, `descending`) and reports
+  `is_known` per project. All read-only, no migration.
 - **Planning-phase filter on the map and list view (#9/#10).** The slim project-group list
   (`GET /api/v1/project_groups/`, `GET /api/v1/project_groups/{id}`) now carries `headline_phase`
   (manual override, else the cached computed phase; `null` without a progress row or when the phase
