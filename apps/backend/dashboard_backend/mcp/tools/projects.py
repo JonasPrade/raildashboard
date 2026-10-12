@@ -298,7 +298,8 @@ def create_project(
     - superior_project_id: the parent project (see get_project for subprojects)
     - project_groups: ids, short names or names (see list_project_groups)
     - fields: further project fields as in update_project, e.g. {"length": 12.5}
-    Geometry cannot be set here. The creation is written to the project
+    Geometry cannot be set here: add it afterwards with route_project_geometry or
+    edit_project_geometry. The creation is written to the project
     changelog. Returns the new project."""
     principal = get_principal(ctx)
     require(principal, "project.create")
@@ -389,8 +390,9 @@ def compute_project_length(
 def update_project(project_id: int, changes: dict[str, Any], *, ctx: Context) -> dict[str, Any]:
     """Change project fields (requires ``project.edit``). ``changes`` maps field
     names to new values, e.g. {"description": "…", "nbs": true}; see get_project
-    for the field names. Geometry and the draft flag cannot be changed here;
-    use set_project_groups for the group assignment. ``length`` comes from the
+    for the field names. Geometry and the draft flag cannot be changed here
+    (geometry: route_project_geometry / edit_project_geometry); use
+    set_project_groups for the group assignment. ``length`` comes from the
     geometry: set it with compute_project_length, not from published figures.
     Every change is written to the project changelog and can be reverted in the UI."""
     principal = get_principal(ctx)

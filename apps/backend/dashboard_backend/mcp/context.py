@@ -1,7 +1,7 @@
 """Per-request principal and database access for MCP tools.
 
 The ASGI auth middleware (``mcp/auth.py``) resolves the bearer key and stores a
-:class:`McpPrincipal` plus the session provider in the request scope; tools read
+:class:`McpPrincipal` plus the session and route-service providers in the request scope; tools read
 both back through the SDK ``Context``.
 """
 
@@ -17,11 +17,14 @@ from sqlalchemy.orm import Session
 
 from dashboard_backend.crud import users as users_crud
 from dashboard_backend.models.users import User
+from dashboard_backend.services.route_service import RouteService
 
 SessionProvider = Callable[[], AbstractContextManager[Session]]
+RouteServiceProvider = Callable[[], RouteService]
 
 PRINCIPAL_STATE_KEY = "mcp_principal"
 SESSION_PROVIDER_STATE_KEY = "mcp_session_provider"
+ROUTE_SERVICE_STATE_KEY = "mcp_route_service_provider"
 
 
 @dataclass(frozen=True)
@@ -63,6 +66,13 @@ def tool_session(ctx: Context) -> Iterator[Session]:
         raise ToolError("Keine Datenbankverbindung verfügbar.")
     with provider() as db:
         yield db
+
+
+def route_service(ctx: Context) -> RouteService:
+    provider: RouteServiceProvider | None = _scope_state(ctx).get(ROUTE_SERVICE_STATE_KEY)
+    if provider is None:
+        raise ToolError("Kein Routing-Dienst konfiguriert.")
+    return provider()
 
 
 def load_user(db: Session, principal: McpPrincipal) -> User:

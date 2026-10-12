@@ -210,7 +210,7 @@ Siehe: `docs/features/feature-new-project-wizard.md`
 
 - [x] **API-Keys als Auth-Weg** — persönliche Bearer-Tokens neben Session-Cookie und HTTP Basic, mit Widerruf, Ablauf und optionaler Rechte-Einschränkung pro Key. Eigenständig nützlich, Voraussetzung für den MCP-Server.
 
-- [x] **MCP-Server** — Streamable-HTTP-Endpunkt `/mcp` im Backend, der Projekte, Finanzierung und Planungsstand als MCP-Tools für KI-Assistenten bereitstellt. Rechte kommen aus dem bestehenden Capability-Katalog; Importe bleiben außen vor. OAuth folgt erst mit dem Authentik-Umzug, die Key-Auth bleibt danach bestehen. Zugriff vorerst nur für Admins (`mcp.access`), Keys laufen nach 90 Tagen ab.
+- [x] **MCP-Server** — Streamable-HTTP-Endpunkt `/mcp` im Backend, der Projekte, Finanzierung und Planungsstand als MCP-Tools für KI-Assistenten bereitstellt. Rechte kommen aus dem bestehenden Capability-Katalog; Importe bleiben außen vor. OAuth folgt erst mit dem Authentik-Umzug, die Key-Auth bleibt danach bestehen. Zugriff vorerst nur für Admins (`mcp.access`), Keys laufen nach 90 Tagen ab. Geometrie-Tools inkl. GraphHopper-Routing und Zeichnen aus Koordinaten ergänzt.
   Siehe: `docs/features/feature-mcp-server.md`
 
 ### Sonstiges

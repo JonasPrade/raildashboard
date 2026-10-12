@@ -18,8 +18,10 @@ from dashboard_backend.core.api_keys import MCP_PERMISSION
 from dashboard_backend.crud import api_keys as api_keys_crud
 from dashboard_backend.mcp.context import (
     PRINCIPAL_STATE_KEY,
+    ROUTE_SERVICE_STATE_KEY,
     SESSION_PROVIDER_STATE_KEY,
     McpPrincipal,
+    RouteServiceProvider,
     SessionProvider,
 )
 
@@ -40,9 +42,15 @@ def _error(status_code: int, detail: str) -> JSONResponse:
 
 
 class McpAuthMiddleware:
-    def __init__(self, app: ASGIApp, session_provider: SessionProvider) -> None:
+    def __init__(
+        self,
+        app: ASGIApp,
+        session_provider: SessionProvider,
+        route_service_provider: RouteServiceProvider | None = None,
+    ) -> None:
         self.app = app
         self.session_provider = session_provider
+        self.route_service_provider = route_service_provider
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -66,6 +74,7 @@ class McpAuthMiddleware:
         state = scope.setdefault("state", {})
         state[PRINCIPAL_STATE_KEY] = principal
         state[SESSION_PROVIDER_STATE_KEY] = self.session_provider
+        state[ROUTE_SERVICE_STATE_KEY] = self.route_service_provider
         await self.app(scope, receive, send)
 
     def _resolve(self, token: str) -> McpPrincipal | None:

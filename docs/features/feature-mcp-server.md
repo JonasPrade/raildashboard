@@ -85,7 +85,8 @@ konfigurierbaren Headern (Claude Code) funktionieren schon vorher.
 
 - OAuth / Authentik-Anbindung (eigenes Thema, siehe oben).
 - Import-Pipelines als MCP-Tools (VIB, Haushalt, Bauportal, Fulda, Medien).
-- Löschen von Projekten oder anderen Stammdaten über MCP.
+- Löschen von Projekten oder anderen Stammdaten über MCP (einzelne Geometrie-Features
+  schon, siehe `edit_project_geometry`).
 - MCP-*Resources* und *Prompts* — die erste Ausbaustufe bietet nur *Tools*.
 - Pro-Key-Ratelimits (nur `last_used_at`-Tracking, siehe Sicherheit).
 
@@ -210,12 +211,17 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `delete_progress_observation` | manuelle Beobachtung löschen (abgeleitete nicht) | `progress.edit` |
 | `set_phase_override` | manuellen Phasen-Override setzen (mit Begründung) oder aufheben | `progress.edit` |
 | `upsert_project_text` | Projekttext anlegen/ändern | `projecttext.edit` |
+| `search_operational_points` | Betriebsstellen nach Name/op_id suchen (Wegpunkte, Stationen) | — |
+| `get_project_geometry` | Geometrie-Übersicht je Feature (Index, Typ, Länge, Station), GeoJSON auf Wunsch | — |
+| `route_project_geometry` | Route über GraphHopper berechnen (Vorschau), mit `apply` anhängen/ersetzen | `project.edit` |
+| `edit_project_geometry` | Linien/Punkte aus Koordinaten, Betriebsstellen als Punkte, Features löschen | `project.edit` |
 | `create_todo` | Aufgabe anlegen | `todo.create` |
 | `update_todo` | Aufgabe ändern | `todo.edit` |
 
 Bewusst schmal gehalten: ein Tool je Absicht, keine generischen
 „führe-beliebige-Abfrage-aus"-Tools. Ausgaben sind kompakt zu halten (Listen
-paginiert, keine Geometrien im Volltext), weil jede Antwort im Kontextfenster
+paginiert, Geometrien nur zusammengefasst — Volltext nur auf ausdrücklichen
+Wunsch per `get_project_geometry`), weil jede Antwort im Kontextfenster
 des Clients landet.
 
 ## Konfiguration & Deployment
@@ -348,6 +354,31 @@ Client-seitig (Claude Code, `.mcp.json`):
   `progress.observation` mit einer lesbaren Zeile zur Beobachtung); die Historie
   zeigt sie als „Planungsstand“. Sie sind reine Historie: Der Revert-Endpunkt
   akzeptiert nur Projektfelder, die Oberfläche blendet „Zurücksetzen“ dort aus.
+
+- **Geometrie und Routing** (2026-10-12): Das MCP bekommt dieselben Werkzeuge wie der
+  `GeometryEditor` (`mcp/tools/geometry.py`):
+  - `search_operational_points` (Name/op_id, exakte Treffer zuerst) liefert die Wegpunkte.
+  - `route_project_geometry(waypoints, mode, add_stations, apply)`: Wegpunkte sind
+    Betriebsstellen (id, op_id oder exakter Name; mehrdeutige Namen → Fehler mit
+    Kandidaten) oder freie Koordinaten `{lat, lon}`; Zwischenpunkte erzwingen den Korridor.
+    Ohne `apply` nur Vorschau (Distanz, Dauer, aufgelöste Wegpunkte, Ergebnis-Geometrie);
+    mit `apply` wird die Linie angehängt (`append`) oder ersetzt (`replace`), die
+    Betriebsstellen kommen wie im UI als Punkte dazu (ohne Dublette per `op_id`), und die
+    Route wird wie bei „Übernehmen“ in `routes` gespeichert. Der `RouteService` wird pro
+    Request wie die DB-Session in den Scope gelegt (in Tests: der Routing-Stub).
+  - `edit_project_geometry`: `replace` (allein: Geometrie leeren) oder
+    `remove_feature_indices` (Indizes aus `get_project_geometry`), dann `add_features`
+    (Feature, Geometrie oder FeatureCollection; Point/MultiPoint/LineString/
+    MultiLineString, `[lon, lat]`) und `add_operational_points`. Koordinaten außerhalb
+    Deutschlands ergeben eine Warnung („lon/lat vertauscht?“), ungültige einen Fehler.
+  - `get_project_geometry`: Zusammenfassung je Feature und gespeicherte Routen; das volle
+    GeoJSON (auf ~1 m gerundet) nur mit `include_geojson`, weil lange Routen groß sind.
+  - Geschrieben wird über `update_project` mit `change_log`-Eintrag
+    (`geojson_representation`), also im UI rücknehmbar; Elternprojekte werden wie bisher
+    neu aggregiert. Projekte, deren Geometrie aus den Unterprojekten entsteht, lehnen beide
+    Schreib-Tools ab (wie die REST-Prüfung); abschalten über
+    `update_project {"geojson_from_subprojects": false}`. Die Länge bleibt ein eigener
+    Schritt (`compute_project_length`), das Ergebnis enthält dafür einen Hinweis.
 
 ## Umsetzungsstand (2026-10-07)
 

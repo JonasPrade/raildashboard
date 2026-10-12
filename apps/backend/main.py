@@ -12,6 +12,7 @@ from dashboard_backend.api.v1.api import api_router
 from dashboard_backend.api.v1.endpoints.health import readiness_router
 from dashboard_backend.core.config import settings
 from dashboard_backend.database import get_db
+from dashboard_backend.dependencies.routes import get_route_service
 from dashboard_backend.mcp.server import MCP_PATH, McpEndpoint
 
 
@@ -21,7 +22,12 @@ def _mcp_session() -> Iterator[Session]:
     yield from app.dependency_overrides.get(get_db, get_db)()
 
 
-mcp_endpoint = McpEndpoint(_mcp_session) if settings.mcp_enabled else None
+def _mcp_route_service():
+    # Same per-call resolution as above, so tests can stub the routing service.
+    return app.dependency_overrides.get(get_route_service, get_route_service)()
+
+
+mcp_endpoint = McpEndpoint(_mcp_session, _mcp_route_service) if settings.mcp_enabled else None
 
 
 @asynccontextmanager

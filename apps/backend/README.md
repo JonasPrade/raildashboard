@@ -127,11 +127,14 @@ Streamable HTTP, stateless, JSON responses, disabled with `MCP_ENABLED=false`. O
 keys holding `mcp.access` get in (admin-only for now); tools call the CRUD layer directly
 and check the key's capabilities before writing. Tools: `list_project_groups`, `list_projects`,
 `get_project`, `get_project_progress`, `list_project_finves`, `get_project_texts`,
-`list_text_types`, `list_todos` (read) and `create_project`, `compute_project_length`,
-`update_project`, `set_project_groups`,
+`list_text_types`, `list_todos`, `search_operational_points`, `get_project_geometry` (read)
+and `create_project`, `compute_project_length`, `update_project`, `set_project_groups`,
 `add_progress_observation`,
 `delete_progress_observation`, `set_phase_override`, `upsert_project_text`, `create_todo`,
-`update_todo` (write). Claude Code config:
+`update_todo`, `route_project_geometry` (GraphHopper route, preview or apply),
+`edit_project_geometry` (draw lines/points, add operational points, delete features) (write).
+The routing tool uses the same `RouteService` as `/routes/calculate`, injected per request
+like the DB session. Claude Code config:
 
 ```json
 { "mcpServers": { "raildashboard": { "type": "http", "url": "https://<host>/mcp",
