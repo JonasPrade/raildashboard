@@ -449,6 +449,39 @@ mit Permission `progress.edit`.
 „erwartet". `ProgressObservationCreate`/`ProgressObservationSchema` um `is_expected`
 erweitern → `make gen-api`.
 
+## Übersprungene Planungsphasen je Projektgruppe (#164)
+
+**Problem:** Das lineare Phasenmodell unterstellt jedem Projekt Vorplanung und
+Genehmigungsplanung. Korridorsanierungen (HLK) kommen meist ohne Planfeststellung aus
+und durchlaufen diese Phasen nicht — die Prognose zeigte trotzdem „Vorplanung" und
+„Genehmigung / PFB" als nächste Schritte vor dem Bau.
+
+**Datenmodell:** `project_group.skipped_phases` (JSON-Liste, `server_default '[]'`,
+rückwärtskompatibel). Erlaubt sind nur die Planungsphasen `VORPLANUNG` und
+`GENEHMIGUNGSPLANUNG` (`SkippablePhaseLiteral`); Start, Bau und Betrieb gehören immer
+zum Projekt. Gepflegt im Admin-Formular der Projektgruppe („Übersprungene
+Planungsphasen").
+
+**Regeln:**
+- **Mehrere Gruppen:** Eine Phase gilt für ein Projekt nur als übersprungen, wenn
+  **alle** seine Gruppen sie überspringen (`resolve_skipped_phases`, Schnittmenge).
+  Projekte ohne Gruppe überspringen nichts.
+- **Daten gewinnen:** Die Gruppe setzt nur einen Default. Liegt das Projekt laut
+  Ableitung/Override in einer übersprungenen Phase, liegt ein Unterprojekt darin oder
+  gibt es einen konkreten Termin dafür (VIB-PFA, Fulda-Runde, erwarteter Termin), bleibt
+  die Phase sichtbar (`resolve_hidden_phases`).
+- Die Ableitung der Headline-Phase bleibt unverändert — ausgeblendet wird nur in
+  Prognose und Darstellung.
+
+**Prognose:** `build_forecast(skipped_phases=…)` lässt übersprungene Phasen ohne
+konkreten Termin aus den nächsten Schritten weg; ein HLK-Projekt springt so von „Nicht
+gestartet" direkt zu „Baubeginn" (BVWP-Planungsdauer ergibt weiterhin das Bau-Datum).
+
+**API / Frontend:** `ProjectProgressSchema.hidden_phases` listet die ausgeblendeten
+Phasen. `PhaseStepper` und `ProgressMini` lassen sie **ganz weg** (Leiste z. B.
+Start → Bau → Betrieb, Nummerierung fortlaufend); Meilenstein-Rauten (Parl., PFB) rücken
+auf die Verbindung, die ihre Phasengrenze überspannt.
+
 ## Zeitstrahl über mehrere Projekte
 
 Die Gantt-artige Übersicht über eine ganze Projektgruppe ist ein eigenes Feature:

@@ -12,6 +12,12 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **Skipped planning phases per project group (#164).** A project group can skip
+  Vorplanung and/or Genehmigungsplanung (e.g. corridor renewals without Planfeststellung).
+  The forecast and the phase bar leave such phases out when all of a project's groups
+  skip them and no data places the project in them. New column
+  `project_group.skipped_phases` (additive, defaults to `[]`), new field
+  `hidden_phases` on the progress view.
 - **Zeitstrahl view.** Next to Karte and Liste, `/?view=timeline` shows the projects of a
   group with credible dates (VIB-PFA, Fulda-Runde, expected manual entries, Planfeststellung,
   parliamentary involvement — never BVWP estimates) on a shared year axis. New public

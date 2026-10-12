@@ -2,7 +2,6 @@ import { Box, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { IconChevronRight } from "@tabler/icons-react";
 
 import {
-    MAIN_PHASES,
     MAIN_PHASE_LABEL,
     MAIN_PHASE_SHORT,
     PARALLEL_STATE_LABEL,
@@ -10,6 +9,7 @@ import {
     type MainPhase,
     type ParallelState,
     mainPhaseIndex,
+    visiblePhases,
 } from "./phaseMeta";
 import { formatDateShort } from "../../../../shared/format";
 
@@ -47,6 +47,8 @@ type Props = {
     parlState?: ParallelState | null;
     /** parl. Befassung date (ISO), shown under the marker when present. */
     parlDate?: string | null;
+    /** Planning phases left out entirely (skipped by the project's groups). */
+    hiddenPhases?: readonly string[] | null;
 };
 
 const ACTIVE = "var(--info)";
@@ -122,16 +124,21 @@ export default function PhaseStepper({
     parlRelevant,
     parlState,
     parlDate,
+    hiddenPhases,
 }: Props) {
+    const phases = visiblePhases(hiddenPhases);
     const isSpan = spanMin != null && spanMax != null;
     const currentIdx = mainPhaseIndex(current);
     const minIdx = unknown ? -1 : isSpan ? mainPhaseIndex(spanMin as MainPhase) : currentIdx;
     const maxIdx = unknown ? -1 : isSpan ? mainPhaseIndex(spanMax as MainPhase) : currentIdx;
     // Gate milestones sit on connectors leaving a phase: the parliamentary
     // involvement after Vorplanung (→ Genehmigungsplanung), the PFB after
-    // Genehmigungsplanung (→ Bau).
+    // Genehmigungsplanung (→ Bau). With hidden phases a gate moves onto the
+    // connector that spans its boundary.
     const parlBoundaryIdx = mainPhaseIndex("VORPLANUNG");
     const pfBoundaryIdx = mainPhaseIndex("GENEHMIGUNGSPLANUNG");
+    const spansBoundary = (fromIdx: number, toIdx: number, boundaryIdx: number) =>
+        fromIdx <= boundaryIdx && boundaryIdx < toIdx;
 
     return (
         <Group
@@ -140,7 +147,9 @@ export default function PhaseStepper({
             align="flex-start"
             style={{ opacity: dimmed ? 0.45 : 1, overflowX: "auto" }}
         >
-            {MAIN_PHASES.map((phase, idx) => {
+            {phases.map((phase, pos) => {
+                const idx = mainPhaseIndex(phase);
+                const nextIdx = pos < phases.length - 1 ? mainPhaseIndex(phases[pos + 1]) : null;
                 const inSpan = !unknown && idx >= minIdx && idx <= maxIdx;
                 const isCurrent = !unknown && (isSpan ? idx === minIdx || idx === maxIdx : idx === currentIdx);
                 const isDone = !unknown && !noCompleted && idx < minIdx;
@@ -191,7 +200,7 @@ export default function PhaseStepper({
                                         fontWeight: 700,
                                     }}
                                 >
-                                    {idx + 1}
+                                    {pos + 1}
                                     {phaseChildren.length > 0 && (
                                         <Box
                                             style={{
@@ -224,7 +233,7 @@ export default function PhaseStepper({
                                 </Text>
                             </Stack>
                         </Tooltip>
-                        {idx < MAIN_PHASES.length - 1 && (
+                        {nextIdx !== null && (
                             <Stack gap={4} align="center" style={{ flexShrink: 0 }}>
                                 {/* Arrow stays on the main timeline row, vertically centred
                                     with the phase circles (28px band). */}
@@ -234,7 +243,7 @@ export default function PhaseStepper({
                                         style={{ color: !unknown && idx < maxIdx ? ACTIVE : IDLE }}
                                     />
                                 </Box>
-                                {idx === parlBoundaryIdx && parlRelevant && (
+                                {spansBoundary(idx, nextIdx, parlBoundaryIdx) && parlRelevant && (
                                     <Milestone
                                         label="Parl."
                                         tooltipPrefix="Parlamentarische Befassung"
@@ -242,7 +251,7 @@ export default function PhaseStepper({
                                         date={parlDate ?? null}
                                     />
                                 )}
-                                {idx === pfBoundaryIdx && pfRelevant && (
+                                {spansBoundary(idx, nextIdx, pfBoundaryIdx) && pfRelevant && (
                                     <Milestone
                                         label="PFB"
                                         tooltipPrefix="Planfeststellung"

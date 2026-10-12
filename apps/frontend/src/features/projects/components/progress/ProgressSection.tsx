@@ -148,6 +148,7 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
                     parlRelevant={!progress.is_superior && progress.parl_befassung_relevant}
                     parlState={progress.parl_state as ParallelState | null}
                     parlDate={progress.parl_befassung_date}
+                    hiddenPhases={progress.hidden_phases}
                 />
 
                 {progress.is_superior && progress.children.length > 0 && (

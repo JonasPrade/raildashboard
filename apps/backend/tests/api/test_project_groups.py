@@ -25,6 +25,7 @@ def _to_schema(grp: object) -> ProjectGroupSchema:
         plot_only_superior_projects=grp.plot_only_superior_projects,
         is_visible=grp.is_visible,
         is_default_selected=grp.is_default_selected,
+        skipped_phases=grp.skipped_phases or [],
         id_old=grp.id_old,
         projects=[],
     )
@@ -207,11 +208,13 @@ def test_patch_project_group_all_fields(client, create_user):
             "plot_only_superior_projects": False,
             "is_visible": False,
             "is_default_selected": True,
+            "skipped_phases": ["VORPLANUNG", "GENEHMIGUNGSPLANUNG"],
         },
         headers=headers,
     )
     assert resp.status_code == 200
     body = resp.json()
+    assert body["skipped_phases"] == ["VORPLANUNG", "GENEHMIGUNGSPLANUNG"]
     assert body["name"] == "Neu"
     assert body["short_name"] == "NEU"
     assert body["description"] == "Neue Beschreibung"
@@ -220,6 +223,25 @@ def test_patch_project_group_all_fields(client, create_user):
     assert body["plot_only_superior_projects"] is False
     assert body["is_visible"] is False
     assert body["is_default_selected"] is True
+
+
+def test_patch_project_group_rejects_non_planning_phase(client, create_user):
+    create_user("admin", "adminpass", UserRole.admin)
+    headers = basic_auth_header("admin", "adminpass")
+    created = client.post(
+        "/api/v1/project_groups/",
+        json={"name": "HLK", "short_name": "HLK"},
+        headers=headers,
+    ).json()
+    assert created["skipped_phases"] == []
+
+    # Only Vorplanung/Genehmigungsplanung can be skipped — never Bau.
+    resp = client.patch(
+        f"/api/v1/project_groups/{created['id']}",
+        json={"skipped_phases": ["BAU"]},
+        headers=headers,
+    )
+    assert resp.status_code == 422
 
 
 def test_patch_project_group_duplicate_short_name(client, create_user):

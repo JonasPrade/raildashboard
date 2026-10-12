@@ -120,3 +120,45 @@ def test_remaining_text_handles_past_date():
         effective_phase=MainPhase.GENEHMIGUNGSPLANUNG, today=TODAY, pfas=pfas
     )
     assert "überschritten" in r.remaining_text
+
+
+# --- Skipped planning phases per project group (#164) ------------------------
+
+_RENEWAL_SKIPS = frozenset({MainPhase.VORPLANUNG, MainPhase.GENEHMIGUNGSPLANUNG})
+
+
+def test_skipped_phases_jump_straight_to_construction():
+    r = build_forecast(
+        effective_phase=MainPhase.NICHT_GESTARTET,
+        today=TODAY,
+        skipped_phases=_RENEWAL_SKIPS,
+    )
+    assert [s.phase for s in r.next_steps] == [MainPhase.BAU, MainPhase.IN_BETRIEB]
+
+
+def test_skipped_phase_with_concrete_date_stays():
+    # Data wins: a dated milestone keeps the phase in the forecast.
+    r = build_forecast(
+        effective_phase=MainPhase.NICHT_GESTARTET,
+        today=TODAY,
+        manual_expected=[(MainPhase.GENEHMIGUNGSPLANUNG, date(2027, 1, 1))],
+        skipped_phases=_RENEWAL_SKIPS,
+    )
+    assert [s.phase for s in r.next_steps] == [
+        MainPhase.GENEHMIGUNGSPLANUNG,
+        MainPhase.BAU,
+        MainPhase.IN_BETRIEB,
+    ]
+    assert r.estimated_phase_end == date(2027, 1, 1)
+
+
+def test_skipped_phases_use_bvwp_construction_date_as_phase_end():
+    bvwp = BvwpDurations(outstanding_planning=2.0, build=3.0)
+    r = build_forecast(
+        effective_phase=MainPhase.NICHT_GESTARTET,
+        today=TODAY,
+        bvwp=bvwp,
+        skipped_phases=_RENEWAL_SKIPS,
+    )
+    assert r.next_steps[0].phase is MainPhase.BAU
+    assert r.estimated_phase_end.year == 2028
