@@ -7,14 +7,14 @@ window, so lists are paginated and geometries (``geojson_representation``,
 
 from __future__ import annotations
 
-from datetime import date
-from typing import Any
+from datetime import date, datetime, time
+from typing import Any, Literal
 
 from mcp.server.mcpserver import Context, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
 from pydantic import ValidationError
-from sqlalchemy import and_, func, or_
+from sqlalchemy import and_, exists, func, not_, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from dashboard_backend.crud.changelog import (
@@ -40,7 +40,10 @@ from dashboard_backend.crud.projects.texts import (
     get_texts_for_project,
     update_project_text,
 )
+from dashboard_backend.crud.projects.progress import BEDARFSPLAN_GROUP_SHORT_NAME_PREFIX
 from dashboard_backend.mcp.context import get_principal, load_user, require, tool_session
+from dashboard_backend.models.associations.project_to_project_group import ProjectToProjectGroup
+from dashboard_backend.models.change_tracking import ChangeLog
 from dashboard_backend.models.associations.text_to_project import TextToProject
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.projects.project_group import ProjectGroup
@@ -49,6 +52,7 @@ from dashboard_backend.models.projects.project_text import ProjectText
 from dashboard_backend.schemas.projects import ProjectSchema
 from dashboard_backend.schemas.projects.bvwp_schema import BvwpProjectDataSchema
 from dashboard_backend.schemas.projects.progress_schema import (
+    LifecycleStatusLiteral,
     MainPhaseLiteral,
     ProgressObservationCreate,
     ProjectProgressSchema,
@@ -86,8 +90,10 @@ def _project_dict(project: Project) -> dict[str, Any]:
     return ProjectSchema.model_validate(project).model_dump(mode="json", exclude=_GEOMETRY_FIELDS)
 
 
-def _project_summary(project: Project, phase: str | None) -> dict[str, Any]:
-    return {
+def _project_summary(
+    project: Project, phase: str | None, is_known: bool | None = None
+) -> dict[str, Any]:
+    summary = {
         "id": project.id,
         "name": project.name,
         "project_number": project.project_number,
@@ -95,6 +101,65 @@ def _project_summary(project: Project, phase: str | None) -> dict[str, Any]:
         "project_groups": [g.short_name for g in project.project_groups],
         "phase": phase,
     }
+    if is_known is not None:
+        summary["is_known"] = is_known
+    return summary
+
+
+# --- SQL expressions over Project (outer-joined to ProjectProgress) ----------
+# Shared by list_projects and the data-quality tools (mcp/tools/data_quality.py).
+
+
+def effective_phase_expr():
+    return func.coalesce(ProjectProgress.manual_phase_override, ProjectProgress.computed_phase)
+
+
+def is_known_expr():
+    """SQL twin of ``stored_headline_phase(...) is not None``: an override, or a
+    computed phase that a credible observation decided (confidence > 0). The
+    ``NICHT_GESTARTET``/0.0 fallback and a missing progress row are unknown."""
+    return or_(
+        ProjectProgress.manual_phase_override.isnot(None),
+        and_(ProjectProgress.computed_phase.isnot(None), ProjectProgress.computed_confidence > 0),
+    )
+
+
+def has_geometry_expr():
+    # An empty FeatureCollection carries no "coordinates" key.
+    return and_(
+        Project.geojson_representation.isnot(None),
+        Project.geojson_representation.contains('"coordinates"'),
+    )
+
+
+def has_length_expr():
+    return and_(Project.length.isnot(None), Project.length > 0)
+
+
+def _bswag_member_expr():
+    return exists().where(
+        ProjectToProjectGroup.project_id == Project.id,
+        ProjectToProjectGroup.project_group_id == ProjectGroup.id,
+        func.upper(ProjectGroup.short_name).like(f"{BEDARFSPLAN_GROUP_SHORT_NAME_PREFIX}%"),
+    )
+
+
+def parl_relevant_expr(relevant: bool):
+    """SQL twin of ``resolve_parl_relevant``: the override wins, else BSWAG* groups."""
+    override = ProjectProgress.parl_befassung_relevant
+    member = _bswag_member_expr()
+    if relevant:
+        return or_(override.is_(True), and_(override.is_(None), member))
+    return or_(override.is_(False), and_(override.is_(None), not_(member)))
+
+
+def last_change_expr():
+    return (
+        select(func.max(ChangeLog.timestamp))
+        .where(ChangeLog.project_id == Project.id)
+        .correlate(Project)
+        .scalar_subquery()
+    )
 
 
 def _text_dict(text: ProjectText) -> dict[str, Any]:
@@ -160,34 +225,53 @@ def list_project_groups(search: str | None = None, *, ctx: Context) -> dict[str,
         }
 
 
+ProjectOrder = Literal["name", "id", "length", "last_change"]
+
+
 def list_projects(
     search: str | None = None,
     project_group: str | list[str] | None = None,
     phase: MainPhaseLiteral | None = None,
     superior_project_id: int | None = None,
+    is_known: bool | None = None,
+    has_geometry: bool | None = None,
+    has_length: bool | None = None,
+    lifecycle_status: LifecycleStatusLiteral | None = None,
+    parl_befassung_relevant: bool | None = None,
+    updated_since: date | None = None,
+    order_by: ProjectOrder = "name",
+    descending: bool = False,
     limit: int = 50,
     offset: int = 0,
     *,
     ctx: Context,
 ) -> dict[str, Any]:
-    """Search projects (drafts excluded), sorted by name.
+    """Search projects (drafts excluded), sorted by name unless ``order_by`` says otherwise.
 
     - search: case-insensitive substring of name or project number
     - project_group: id, short name or name of a project group (case-insensitive,
       see list_project_groups); a list matches projects in all of the groups
     - phase: planning phase (cached headline; manual override wins)
     - superior_project_id: only direct subprojects of this project
+    - is_known: true = the planning state is backed by an observation or an
+      override; false = unknown (``phase`` then shows the NICHT_GESTARTET fallback)
+    - has_geometry / has_length: whether a line/point geometry or a length is stored
+    - lifecycle_status: AKTIV (also projects without planning state), PAUSIERT, ABGEBROCHEN
+    - parl_befassung_relevant: parliamentary involvement relevant (override, else
+      membership in a BSWAG* group)
+    - updated_since: only projects with a changelog entry on or after this date
+    - order_by: name, id, length or last_change (newest change; projects never
+      changed come last); descending reverses the order
     Returns ``total`` plus one page of compact entries; use get_project for details.
     """
     get_principal(ctx)
     limit = max(1, min(limit, MAX_LIMIT))
     offset = max(0, offset)
-    effective_phase = func.coalesce(
-        ProjectProgress.manual_phase_override, ProjectProgress.computed_phase
-    )
+    effective_phase = effective_phase_expr()
+    known = is_known_expr()
     with tool_session(ctx) as db:
         query = (
-            db.query(Project, effective_phase)
+            db.query(Project, effective_phase, known)
             .outerjoin(ProjectProgress, ProjectProgress.project_id == Project.id)
             .filter(Project.is_draft.is_(False))
         )
@@ -206,10 +290,40 @@ def list_projects(
             query = query.filter(effective_phase == phase)
         if superior_project_id is not None:
             query = query.filter(Project.superior_project_id == superior_project_id)
+        if is_known is not None:
+            query = query.filter(known if is_known else not_(known))
+        if has_geometry is not None:
+            query = query.filter(has_geometry_expr() if has_geometry else not_(has_geometry_expr()))
+        if has_length is not None:
+            query = query.filter(has_length_expr() if has_length else not_(has_length_expr()))
+        if lifecycle_status:
+            query = query.filter(
+                func.coalesce(ProjectProgress.lifecycle_status, "AKTIV") == lifecycle_status
+            )
+        if parl_befassung_relevant is not None:
+            query = query.filter(parl_relevant_expr(parl_befassung_relevant))
+        if updated_since is not None:
+            query = query.filter(
+                exists().where(
+                    ChangeLog.project_id == Project.id,
+                    ChangeLog.timestamp >= datetime.combine(updated_since, time.min),
+                )
+            )
         total = query.count()
+
+        sort_key = {
+            "name": Project.name,
+            "id": Project.id,
+            "length": Project.length,
+            "last_change": last_change_expr(),
+        }[order_by]
+        primary = sort_key.desc() if descending else sort_key.asc()
+        if order_by in {"length", "last_change"}:
+            # Projects without a length / without changes go last in both directions.
+            primary = primary.nulls_last()
         rows = (
             query.options(selectinload(Project.project_groups))
-            .order_by(Project.name, Project.id)
+            .order_by(primary, Project.name, Project.id)
             .offset(offset)
             .limit(limit)
             .all()
@@ -218,7 +332,10 @@ def list_projects(
             "total": total,
             "offset": offset,
             "limit": limit,
-            "projects": [_project_summary(project, row_phase) for project, row_phase in rows],
+            "projects": [
+                _project_summary(project, row_phase, bool(row_known))
+                for project, row_phase, row_known in rows
+            ],
         }
 
 

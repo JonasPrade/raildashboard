@@ -197,7 +197,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | Tool | Wirkung | benötigte Capability |
 |---|---|---|
 | `list_project_groups` | Projektgruppen mit Projektanzahl, optional per Freitext | — (eingeloggt) |
-| `list_projects` | Projekte suchen/filtern (Text, Projektgruppe(n), Phase) | — (eingeloggt) |
+| `list_projects` | Projekte suchen/filtern (Text, Projektgruppe(n), Phase, Planungsstand bekannt, Geometrie, Länge, Lebenszyklus, Parl. Befassung, geändert seit), sortieren | — (eingeloggt) |
 | `get_project` | Projektdetail inkl. BVWP-Daten und Unterprojekten | — |
 | `get_project_progress` | Planungsstand inkl. Beobachtungen und Prognose | — |
 | `list_project_finves` | Finanzierungsvereinbarungen und Budgets eines Projekts | — |
@@ -215,6 +215,8 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `get_project_geometry` | Geometrie-Übersicht je Feature (Index, Typ, Länge, Station), GeoJSON auf Wunsch | — |
 | `route_project_geometry` | Route über GraphHopper berechnen (Vorschau), mit `apply` anhängen/ersetzen | `project.edit` |
 | `edit_project_geometry` | Linien/Punkte aus Koordinaten, Betriebsstellen als Punkte, Features löschen | `project.edit` |
+| `list_data_gaps` | Projekte mit fehlenden/veralteten Daten, Lücken je Projekt und Zählung (siehe *Datenpflege*) | — |
+| `check_geometry` | Geometrie-Plausibilität für ein Projekt oder eine Gruppe (siehe *Datenpflege*) | — |
 | `create_todo` | Aufgabe anlegen | `todo.create` |
 | `update_todo` | Aufgabe ändern | `todo.edit` |
 
@@ -413,6 +415,53 @@ Client-seitig (Claude Code, `.mcp.json`):
   `mcp.access`) mit Anlege-Dialog, einmaliger Token-Anzeige samt fertiger
   `.mcp.json`-Konfiguration, Widerruf und — mit `user.manage` — der Liste aller
   Keys.
+
+## Datenpflege über viele Projekte (#175, Stufe A)
+
+Ohne diese Werkzeuge müsste das LLM für eine Lückenanalyse jedes Projekt einzeln abrufen.
+Beide sind lesend; behoben wird mit den bestehenden Schreib-Werkzeugen. Code:
+`mcp/tools/data_quality.py`, die Prüflogik in `services/geometry_check.py`.
+
+**`list_data_gaps(project_group?, gaps[], stale_years=3, limit, offset)`** — Entwürfe
+ausgenommen; ein Projekt erscheint, wenn mindestens eine der gewählten Lücken zutrifft
+(Standard: alle). Antwort: `counts` je Lücke über alle Treffer, eine Seite Projekte mit `gaps`.
+
+| Lücke | Bedeutung |
+|---|---|
+| `no_geometry` | keine Linie und kein Punkt gespeichert (auch leere FeatureCollection) |
+| `no_route` | Geometrie vorhanden, aber keine gespeicherte GraphHopper-Route (skizziert oder von Hand gezeichnet); Oberprojekte, deren Geometrie aus den Unterprojekten kommt, zählen nicht |
+| `no_length` | `length` leer oder 0 |
+| `unknown_phase` | Planungsstand unbekannt: kein Override und keine glaubwürdige Beobachtung (Semantik von `stored_headline_phase`, auch ohne `project_progress`-Zeile) |
+| `no_description` / `no_project_number` | Feld leer oder nur Leerzeichen |
+| `stale_observation` | jüngste Beobachtung (`observed_date`, ohne erwartete Termine) älter als `stale_years`; Projekte ganz ohne Beobachtung fallen unter `unknown_phase` |
+
+**`check_geometry(project_id | project_group, only_findings=true, gap_tolerance_km=0.05,
+max_station_distance_km=3, limit, offset)`** — genau eines von `project_id` und
+`project_group`. Jede Prüfung liefert einen Befund, kein Urteil (ein Programm aus
+Einzelstationen zerfällt zu Recht in viele Teile):
+
+| Befund | Regel |
+|---|---|
+| `chords` | Linienteile mit genau zwei Punkten und ≥ 0,2 km machen ≥ 50 % der Linienlänge aus (geroutete Linien haben alle paar Dutzend Meter einen Punkt). Beispiel #1907 HLK Stuttgart – Ulm: 58 von 59 Segmenten |
+| `gaps` | Linienteile, deren Enden sich nicht bis auf `gap_tolerance_km` nähern, bilden getrennte Komponenten; die Lücken sind die Kanten eines minimalen Spannbaums zwischen den Komponenten (größte zuerst, mit Koordinaten) |
+| `far_from_start` / `far_from_end` | Erster/letzter Ort im Projektnamen (Trenner: Gedankenstrich, oder Bindestrich mit Leerzeichen; Klammern entfallen; längster passender Wortausschnitt zuerst) wird über exakten Namen, sonst „<Name> Hbf“, zur Betriebsstelle aufgelöst; Befund, wenn kein Linienpunkt näher als `max_station_distance_km` liegt. Nicht auflösbare Orte stehen unter `unresolved_places` |
+| `length_mismatch` / `length_missing` | gespeicherte vs. aus der Geometrie berechnete Länge (gleiche Rechnung wie `compute_project_length`); Abweichung > max(0,5 km, 2 %) |
+| `no_geometry` / `no_line` | keine Geometrie bzw. nur Punkte |
+
+Für eine Gruppe listet `only_findings` nur Projekte mit Befund; `checked` zählt alle
+geprüften, `counts` die Befunde je Art.
+
+**`list_projects`** bekommt dafür die Filter `is_known`, `has_geometry`, `has_length`,
+`lifecycle_status` (ohne `project_progress`-Zeile gilt `AKTIV`), `parl_befassung_relevant`
+(Override, sonst BSWAG*-Gruppe — wie `resolve_parl_relevant`), `updated_since` (Eintrag im
+Projekt-Changelog ab diesem Datum) sowie `order_by` (`name`, `id`, `length`, `last_change`)
+und `descending`; Projekte ohne Länge bzw. ohne Änderung stehen immer am Ende. Jeder Eintrag
+trägt `is_known`. Das Feld `phase` bleibt wie bisher (bei unbekanntem Stand der
+`NICHT_GESTARTET`-Rückfallwert) — das zu ändern ist Teil von #172.
+
+**Stufe B und C** (Gruppen-Zusammenfassung, erwartete Meilensteine, Ortssuche,
+Volltextsuche, Änderungs- und Beobachtungsverlauf, Sammel-Längenberechnung) sind noch nicht
+umgesetzt; was davon kommt, wird in eigenen Issues entschieden.
 
 ## Umsetzung
 
