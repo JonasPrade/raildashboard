@@ -240,6 +240,9 @@ Siehe: `docs/features/feature-new-project-wizard.md`
 
 - [ ] **PDF-Import vereinheitlichen** — Die OCR-Stufe der VIB-Pipeline (PDF → Markdown, dann Zuordnung aufs Zielformat) als gemeinsamen Service für alle PDF-Quellen bereitstellen; Haushalt-Spaltenlayout per LLM auf das kanonische Schema mappen statt pro Jahrgang neue Heuristiken. Evaluation und empfohlene Reihenfolge: `docs/features/feature-pdf-import-unification.md`. Umgesetzt: Schritt 1 (`services/document_ocr.py` mit `OcrResult`), Schritt 2 (OCR-Persistenz-Mixin), Schritt 4 (OCR-Pfad des Haushalts parallel über `HAUSHALT_EXTRACTION=compare` inkl. Vergleichsskript) und Schritt 5 (Spaltenzuordnung). Offen: Schritt 3 (Medien-PDF-Upload) und Schritt 6 — die Umschaltung auf `ocr` setzt einen Vergleichslauf gegen die echte OCR-API voraus (`docs/manual-tests-backlog.md`).
 
+- [ ] **Infraplan-Import** — Jährlicher Import des Infraplans (BMV, Fünfjahresplan Schiene): Realisierungsstand, parlamentarische Befassung, geplante Inbetriebnahme und GWU/Gesamtkosten je Maßnahme aus den Tabellen von Kapitel 2.3 (Bedarfsplan Teil A–D, GVFG, InvKG). Deterministischer pdfplumber-Parser ohne LLM, neue Fortschrittsquelle `INFRAPLAN`, Kosten- und Terminverlauf je Jahrgang, MCP-Lese-Tool + Skill für die Nacharbeit. Stufen: Infraplan – Stufe 1 (Parser + Datenmodell), Stufe 2 (Review + Übernahme), Stufe 3 (Fortschritt + Projektdetail), Stufe 4 (MCP + Skill).
+  Siehe: `docs/features/feature-infraplan-import.md`
+
 - [ ] **Netzzustandsbericht** — PDF-Import, Extraktion relevanter Kennzahlen in die Datenbank
 
 - [ ] **Beschleunigungskommission Schiene** — Datentransfer aus öffentlichen Quellen + automatische Updates
