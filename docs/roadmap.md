@@ -220,6 +220,14 @@ Siehe: `docs/features/feature-new-project-wizard.md`
 - [x] **MCP-Server** — Streamable-HTTP-Endpunkt `/mcp` im Backend, der Projekte, Finanzierung und Planungsstand als MCP-Tools für KI-Assistenten bereitstellt. Rechte kommen aus dem bestehenden Capability-Katalog; Importe bleiben außen vor. OAuth folgt erst mit dem Authentik-Umzug, die Key-Auth bleibt danach bestehen. Zugriff vorerst nur für Admins (`mcp.access`), Keys laufen nach 90 Tagen ab. Geometrie-Tools inkl. GraphHopper-Routing und Zeichnen aus Koordinaten ergänzt.
   Siehe: `docs/features/feature-mcp-server.md`
 
+- [x] **Projekte zusammenführen** — MCP-Tool `merge_projects` und `POST /projects/merge`: Dublette in das bleibende Projekt überführen (Verknüpfungen, Historie, Unterprojekte), alte id leitet um. Vorstufe zur GVFG-Datenpflege.
+  Siehe: `docs/features/feature-project-merge.md`
+
+### GVFG-Bundesprogramm *(Backend + Frontend)*
+
+- [ ] **GVFG-Import und -Anzeige** — Ausgaben des GVFG-Bundesprogramms importieren (PDF, Review), Förderung auf der Projektseite, Menü „Finanzen“ mit „Bedarfsplan Schiene“ und „GVFG“, Vergleich der Ausgaben, MCP-Lese-Tools. Vorher Dubletten im GVFG-Bestand bereinigen.
+  Siehe: `docs/features/feature-gvfg-import.md`
+
 ### Sonstiges
 
 - [ ] **BVWP-Datenimport** — Übernahme der BVWP-Daten aus der Legacy-Datenbank. Voraussetzung für die Anzeige der BVWP-Bewertung (Display-Feature bereits implementiert).

@@ -154,6 +154,7 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
         "delete_progress_observation",
         "set_phase_override",
         "upsert_project_text",
+        "merge_projects",
         "list_todos",
         "create_todo",
         "update_todo",
@@ -168,6 +169,7 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
     assert by_name["list_projects"]["annotations"]["readOnlyHint"] is True
     assert by_name["update_project"]["annotations"]["readOnlyHint"] is False
     assert by_name["delete_progress_observation"]["annotations"]["destructiveHint"] is True
+    assert by_name["merge_projects"]["annotations"]["destructiveHint"] is True
     # The SDK context parameter must not leak into the client-facing schema.
     assert "ctx" not in by_name["list_projects"]["inputSchema"]["properties"]
 

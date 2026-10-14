@@ -12,6 +12,16 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **Merge duplicate projects (prerequisite for the GVFG import).** MCP tool `merge_projects`
+  and `POST /api/v1/projects/merge` merge a duplicate into the project that stays: its empty
+  fields are filled, property flags OR-ed, every link to the duplicate (groups, texts, FinVe/VIB/
+  Fulda/Bauportal/media links, todos, observations, changelog, subprojects, …) is moved — found
+  generically through the foreign keys, duplicates dropped — and the geometry comes from one side
+  (`geometry_from`). Preview by default, `apply=true` deletes the duplicate and records a `MERGE`
+  changelog entry. Its old id keeps working: `GET /api/v1/projects/{old id}` returns the project
+  it went into and the detail page replaces the URL. New capability `project.merge` (seeded for
+  no system role, i.e. admins only). **Migration** `20261014001` adds the table
+  `project_redirect` (additive). See `docs/features/feature-project-merge.md`.
 - **MCP: data maintenance across many projects (#175, stage A).** `list_data_gaps` lists
   projects with missing or outdated data in one call — no geometry, geometry without a saved
   route, no length, unknown planning state, no description, no project number, newest

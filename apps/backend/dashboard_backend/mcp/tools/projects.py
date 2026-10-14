@@ -26,6 +26,8 @@ from dashboard_backend.crud.changelog import (
 from dashboard_backend.crud.finves import get_project_finves_with_budgets
 from dashboard_backend.crud.projects import progress as progress_crud
 from dashboard_backend.crud.projects.bvwp import get_bvwp_data
+from dashboard_backend.crud.projects.merge import MergeError, resolve_redirect
+from dashboard_backend.crud.projects.merge import merge_projects as merge_projects_crud
 from dashboard_backend.crud.projects.projects import (
     ProjectHierarchyError,
     create_project as create_project_crud,
@@ -82,6 +84,12 @@ _GROUP_FIELD = "project_group_ids"
 def _project_or_error(db: Session, project_id: int) -> Project:
     project = get_project_by_id(db, project_id)
     if project is None:
+        target = resolve_redirect(db, project_id)
+        if target is not None:
+            raise ToolError(
+                f"Projekt {project_id} wurde mit Projekt {target} zusammengeführt — "
+                f"bitte Projekt {target} verwenden."
+            )
         raise ToolError(f"Projekt {project_id} nicht gefunden.")
     return project
 
@@ -340,11 +348,20 @@ def list_projects(
 
 
 def get_project(project_id: int, *, ctx: Context) -> dict[str, Any]:
-    """Project detail: all fields, project groups, direct subprojects and BVWP data."""
+    """Project detail: all fields, project groups, direct subprojects and BVWP data.
+    The id of a merged project resolves to the project it was merged into
+    (``redirected_from`` then names the old id)."""
     get_principal(ctx)
     with tool_session(ctx) as db:
+        redirected_from = None
+        if get_project_by_id(db, project_id) is None:
+            target = resolve_redirect(db, project_id)
+            if target is not None:
+                redirected_from, project_id = project_id, target
         project = _project_or_error(db, project_id)
         data = _project_dict(project)
+        if redirected_from is not None:
+            data["redirected_from"] = redirected_from
         data["subprojects"] = [
             {"id": sub.id, "name": sub.name, "project_number": sub.project_number}
             for sub in get_subprojects(db, project.id)
@@ -740,6 +757,46 @@ def upsert_project_text(
         return _text_dict(update_project_text(db, text_id, update_data))
 
 
+def merge_projects(
+    survivor_id: int,
+    merged_id: int,
+    geometry_from: Literal["survivor", "merged"] = "survivor",
+    apply: bool = False,
+    *,
+    ctx: Context,
+) -> dict[str, Any]:
+    """Merge a duplicate into another project (requires ``project.merge``).
+    ``survivor_id`` stays, ``merged_id`` is deleted; its old id redirects to the
+    survivor. Without ``apply`` (default) nothing is written — the answer is the
+    plan: field changes, links moved/dropped per table, moved subprojects and
+    warnings. Check it, then call again with ``apply=true``.
+
+    - Fields: the survivor wins, its empty fields are filled, flags are OR-ed.
+    - geometry_from: whose geometry (with length, operational points and routes)
+      is kept; ``survivor`` by default, automatically ``merged`` when the
+      survivor has none.
+    - All links (groups, texts, FinVe/VIB/…, todos, observations, changelog,
+      subprojects) move to the survivor; duplicates are dropped.
+    - Rejected when one project is an ancestor of the other.
+    One pair per call."""
+    principal = get_principal(ctx)
+    require(principal, "project.merge")
+    with tool_session(ctx) as db:
+        user = load_user(db, principal) if apply else None
+        try:
+            return merge_projects_crud(
+                db,
+                survivor_id,
+                merged_id,
+                geometry_from=geometry_from,
+                apply=apply,
+                user_id=user.id if user else None,
+                username=user.username if user else None,
+            )
+        except MergeError as exc:
+            raise ToolError(str(exc)) from exc
+
+
 def register(server: MCPServer) -> None:
     for fn in (
         list_project_groups,
@@ -762,3 +819,4 @@ def register(server: MCPServer) -> None:
     ):
         server.add_tool(fn, annotations=WRITE)
     server.add_tool(delete_progress_observation, annotations=DESTRUCTIVE)
+    server.add_tool(merge_projects, annotations=DESTRUCTIVE)

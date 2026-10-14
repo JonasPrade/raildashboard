@@ -8,6 +8,7 @@ from .media_report import MediaReport
 from .project import Project
 from .project_group import ProjectGroup
 from .project_progress import ProjectProgress
+from .project_redirect import ProjectRedirect
 from .progress_observation import ProgressObservation
 from .project_text import ProjectText
 from .project_text_type import ProjectTextType
