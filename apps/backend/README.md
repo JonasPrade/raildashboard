@@ -133,7 +133,10 @@ and `create_project`, `compute_project_length`, `update_project`, `set_project_g
 `add_progress_observation`,
 `delete_progress_observation`, `set_phase_override`, `upsert_project_text`, `create_todo`,
 `update_todo`, `route_project_geometry` (GraphHopper route, preview or apply),
-`edit_project_geometry` (draw lines/points, add operational points, delete features) (write).
+`edit_project_geometry` (draw lines/points, add operational points, delete features) (write),
+and `merge_projects` (destructive, needs `project.merge`: merge a duplicate into another
+project, preview by default, `apply=true` deletes the duplicate and leaves a `project_redirect`;
+same logic as `POST /api/v1/projects/merge`, see `docs/features/feature-project-merge.md`).
 The routing tool uses the same `RouteService` as `/routes/calculate`, injected per request
 like the DB session. Claude Code config:
 

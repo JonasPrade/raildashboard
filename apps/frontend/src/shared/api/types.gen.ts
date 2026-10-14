@@ -165,7 +165,9 @@ export interface paths {
         };
         /**
          * Read Project
-         * @description Retrieve a single project by ID.
+         * @description Retrieve a single project by ID. The id of a merged project resolves to
+         *     the project it was merged into — the response then carries the new id, and
+         *     the frontend replaces the URL.
          */
         get: operations["read_project_api_v1_projects__project_id__get"];
         put?: never;
@@ -184,6 +186,28 @@ export interface paths {
          * @description Update project fields. All changed fields are recorded in the changelog.
          */
         patch: operations["patch_project_api_v1_projects__project_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/projects/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Merge Projects Endpoint
+         * @description Merge a duplicate project into another one (feature-project-merge.md).
+         *     ``apply=false`` returns the plan only; ``apply=true`` deletes the merged
+         *     project and leaves a redirect from its id to the survivor.
+         */
+        post: operations["merge_projects_endpoint_api_v1_projects_merge_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/projects/{project_id}/subprojects": {
@@ -217,7 +241,8 @@ export interface paths {
          * Read Project Constituencies
          * @description Constituencies this project touches, heaviest first, with their MPs.
          *
-         *     Public, like the other project reads. A project without a geometry returns an
+         *     Requires a login (any role): members of parliament are only shown to
+         *     signed-in users, unlike the other project reads. A project without a geometry returns an
          *     empty list plus ``has_geometry = false`` — the UI says *why* there is nothing
          *     to show instead of rendering an empty block.
          */
@@ -4167,6 +4192,73 @@ export interface components {
              */
             lifecycle_status?: ("AKTIV" | "PAUSIERT" | "ABGEBROCHEN") | null;
         };
+        /** ProjectMergeLinkCount */
+        ProjectMergeLinkCount: {
+            /** Moved */
+            moved: number;
+            /** Dropped */
+            dropped: number;
+        };
+        /**
+         * ProjectMergeRequest
+         * @description Merge ``merged_id`` into ``survivor_id`` (see feature-project-merge.md).
+         */
+        ProjectMergeRequest: {
+            /** Survivor Id */
+            survivor_id: number;
+            /** Merged Id */
+            merged_id: number;
+            /**
+             * Geometry From
+             * @default survivor
+             * @enum {string}
+             */
+            geometry_from: "survivor" | "merged";
+            /**
+             * Apply
+             * @default false
+             */
+            apply: boolean;
+        };
+        /** ProjectMergeResult */
+        ProjectMergeResult: {
+            survivor: components["schemas"]["ProjectMergeSide"];
+            merged: components["schemas"]["ProjectMergeSide"];
+            /**
+             * Geometry From
+             * @enum {string}
+             */
+            geometry_from: "survivor" | "merged";
+            /** Field Changes */
+            field_changes: {
+                [key: string]: {
+                    [key: string]: unknown;
+                };
+            };
+            /** Geometry Changed */
+            geometry_changed: boolean;
+            /** Progress Changes */
+            progress_changes: string[];
+            /** Links */
+            links: {
+                [key: string]: components["schemas"]["ProjectMergeLinkCount"];
+            };
+            /** Subprojects Moved */
+            subprojects_moved: number[];
+            /** Warnings */
+            warnings: string[];
+            /** Applied */
+            applied: boolean;
+        };
+        /** ProjectMergeSide */
+        ProjectMergeSide: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Project Number */
+            project_number?: string | null;
+        };
         /**
          * ProjectOptionSchema
          * @description Minimal project reference for pickers, dropdowns and parent/child labels.
@@ -6340,6 +6432,41 @@ export interface operations {
             };
         };
     };
+    merge_projects_endpoint_api_v1_projects_merge_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectMergeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectMergeResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     read_subprojects_api_v1_projects__project_id__subprojects_get: {
         parameters: {
             query?: never;
@@ -6378,7 +6505,9 @@ export interface operations {
             path: {
                 project_id: number;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -9884,7 +10013,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -9895,6 +10026,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ParliamentStatusSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -9910,7 +10050,9 @@ export interface operations {
             };
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -9941,7 +10083,9 @@ export interface operations {
             path: {
                 mandate_id: number;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -9970,7 +10114,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -9983,6 +10129,15 @@ export interface operations {
                     "application/json": components["schemas"]["ConstituencyListItemSchema"][];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     read_constituencies_geojson_api_v1_parliament_constituencies_geojson_get: {
@@ -9993,7 +10148,9 @@ export interface operations {
             };
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -10024,7 +10181,9 @@ export interface operations {
             path: {
                 constituency_id: number;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
