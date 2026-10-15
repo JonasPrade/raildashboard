@@ -227,6 +227,10 @@ Reihenfolge je Zeile:
    `tasks/vib_matching.py` (VDE-Nummer, `_score`). Präfixe wie `PB 07:` werden vorher
    entfernt. **Teilprojekte werden bevorzugt**: passt ein Teilprojekt, schlägt der
    Matcher es statt des übergeordneten Projekts vor. Ab Konfidenz 0.85 vorausgewählt.
+   **GVFG-Zeilen** werden zuerst über den normalisierten GVFG-Schlüssel gegen
+   `Project.project_number` abgeglichen — GVFG-Projekte tragen dort ihren Schlüssel
+   (`feature-gvfg-import.md` → „Zuordnung zu Projekten“, gleicher Normalisierer, im
+   Code gemeinsam nutzen). Ein exakter Treffer zählt wie ein Projektnummer-Treffer.
 3. **Kein Treffer** → im Review leer; nach der Bestätigung in `/admin/unassigned`
    (Sektion „Infraplan“) mit „Projektentwurf anlegen“.
 
@@ -430,6 +434,29 @@ claude.ai-Skills dieses Projekts, mit kurzer `skills/README.md` zum Hochladen):
 - MCP: Rechteprüfung, `confirm` verweigert bei Warnungen, KPI-Werte landen `UNGEPRUEFT`.
 
 ---
+
+## Abgleich mit `feature-gvfg-import.md`
+
+Der GVFG-Import (eigenes Feature, Quelle: GVFG-Bundesprogramm) überschneidet sich bei
+den GVFG-Zeilen des Infraplans (Kat. A/C, 77 Zeilen):
+
+- **Synergie:** Zuordnung über den GVFG-Schlüssel in `project_number` (siehe oben).
+- **Offene Entscheidung G1 — GVFG im Projektfortschritt:** `feature-gvfg-import.md`
+  legt fest „Lph und Inbetriebnahme nur am GVFG-Eintrag, nicht im
+  Projekt/Planungsstand“. Dieses Dokument lässt die GVFG-Zeilen des Infraplans mit
+  Vertrauen 0.75 in Phase und Prognose einfließen. Beide Quellen tragen dieselben
+  Länderangaben. Vorschlag: einheitlich — GVFG-Zeilen des Infraplans **nicht** in
+  Fortschritt/Prognose (nur speichern und im Abschnitt anzeigen), wie beim GVFG-Import.
+- **Offene Entscheidung G2 — Kosten bei GVFG-Elternprojekten:**
+  `feature-gvfg-import.md` zeigt bei Elternprojekten **keine Summen**, nur den Hinweis
+  „GVFG-Förderung in Teilprojekten“. Dieses Dokument summiert die
+  Gesamtkostenprognose über Teilprojekte. Vorschlag: Summe nur aus
+  Bedarfsplan-/InvKG-Zeilen; reine GVFG-Elternprojekte bekommen den Hinweis statt
+  einer Summe.
+- **Menü:** Der GVFG-Plan benennt „Haushalt“ in „Finanzen“ um. Die öffentliche Seite
+  `/infraplan` bleibt ein eigener Menüpunkt (Kennzahlen sind keine Finanzdaten).
+
+G1 und G2 betreffen erst Stufe 3 (#181) und müssen vor deren Beginn entschieden sein.
 
 ## Ausbaustufen
 
