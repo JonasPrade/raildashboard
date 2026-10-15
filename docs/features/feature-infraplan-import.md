@@ -49,6 +49,8 @@ Vergleiche (Infraplan 2026 vs. 2027 vs. …) dauerhaft möglich bleiben.
 | 19 | Autonomie MCP | Agent darf alles bis einschließlich Bestätigen und Kennzahlen eintragen — Halt nur bei Parser-Warnungen |
 | 20 | KI-Kennzahlen | Status „ungeprüft“, öffentlich erst nach Freigabe |
 | 21 | Skills | Ordner `skills/` im Repo (`skills/infraplan-import/SKILL.md`); Upload nach claude.ai von Hand |
+| 22 | GVFG: Infraplan vs. GVFG-Bundesprogramm | Es gilt der **jüngere Stand** (Stand-Datum der GVFG-Ausgabe vs. Veröffentlichungsdatum des Infraplans) — für Lph, Inbetriebnahme und Kosten |
+| 23 | Summen in der Projekthierarchie | **Grundsatz für alle Projekte:** Elternprojekte bilden Summen über ihre Teilprojekte (auch reine GVFG-Elternprojekte) — siehe `docs/architecture.md` → „Grundsätze“ |
 
 ---
 
@@ -252,7 +254,9 @@ Hand zugeordnet werden können.
 Neue Mapper-Funktion `infraplan_entry_to_specs` in `services/progress_materialization.py`;
 die Rows sind `is_derived=True` und werden über `sync_derived_observations` idempotent
 neu erzeugt. Es zählt der **neueste** Jahrgang je Projekt. `SOURCE_TYPE_DEFAULT_TRUST`:
-`INFRAPLAN = 0.85`; GVFG-Zeilen bekommen explizit 0.75. `observed_date` =
+`INFRAPLAN = 0.85`; GVFG-Zeilen bekommen explizit 0.75 und fließen nur ein, wenn der
+Infraplan-Jahrgang **jünger** ist als die neueste GVFG-Ausgabe mit demselben Schlüssel
+(Entscheidung 22; sonst liefert der GVFG-Eintrag Lph und Inbetriebnahme). `observed_date` =
 Veröffentlichungsdatum des Jahrgangs.
 
 **Track MAIN** (Untergrenze der Hauptphase):
@@ -299,7 +303,8 @@ automatisch.
 - **Gesamtkostenprognose** (Kopfzahl im Projektdetail, oberer Kostenblock):
   - Projekt mit eigener Zeile → deren `cost_mio` (bzw. der über `cost_ref_entry_id`
     aufgelöste Wert, wenn die Zeile auf einen anderen Eintrag verweist);
-  - übergeordnetes Projekt ohne eigene Zeile → Summe der Teilprojekte;
+  - übergeordnetes Projekt ohne eigene Zeile → Summe der Teilprojekte (Grundsatz für
+    **alle** Projekte, auch reine GVFG-Elternprojekte);
   - Sammel-GWU und Verweise zählen **einmal**, beim tragenden Eintrag (Deduplizierung
     über die Eintrags-ID).
   - Beschriftung: „Gesamtkostenprognose (Infraplan 2026)“; bei GVFG „Gesamtkosten
@@ -441,22 +446,16 @@ Der GVFG-Import (eigenes Feature, Quelle: GVFG-Bundesprogramm) überschneidet si
 den GVFG-Zeilen des Infraplans (Kat. A/C, 77 Zeilen):
 
 - **Synergie:** Zuordnung über den GVFG-Schlüssel in `project_number` (siehe oben).
-- **Offene Entscheidung G1 — GVFG im Projektfortschritt:** `feature-gvfg-import.md`
-  legt fest „Lph und Inbetriebnahme nur am GVFG-Eintrag, nicht im
-  Projekt/Planungsstand“. Dieses Dokument lässt die GVFG-Zeilen des Infraplans mit
-  Vertrauen 0.75 in Phase und Prognose einfließen. Beide Quellen tragen dieselben
-  Länderangaben. Vorschlag: einheitlich — GVFG-Zeilen des Infraplans **nicht** in
-  Fortschritt/Prognose (nur speichern und im Abschnitt anzeigen), wie beim GVFG-Import.
-- **Offene Entscheidung G2 — Kosten bei GVFG-Elternprojekten:**
-  `feature-gvfg-import.md` zeigt bei Elternprojekten **keine Summen**, nur den Hinweis
-  „GVFG-Förderung in Teilprojekten“. Dieses Dokument summiert die
-  Gesamtkostenprognose über Teilprojekte. Vorschlag: Summe nur aus
-  Bedarfsplan-/InvKG-Zeilen; reine GVFG-Elternprojekte bekommen den Hinweis statt
-  einer Summe.
-- **Menü:** Der GVFG-Plan benennt „Haushalt“ in „Finanzen“ um. Die öffentliche Seite
-  `/infraplan` bleibt ein eigener Menüpunkt (Kennzahlen sind keine Finanzdaten).
-
-G1 und G2 betreffen erst Stufe 3 (#181) und müssen vor deren Beginn entschieden sein.
+- **Entschieden (2026-10-15) — jüngerer Stand gilt:** Für ein GVFG-Vorhaben liefern
+  Infraplan und GVFG-Bundesprogramm dieselben Angaben (Lph, Inbetriebnahme,
+  Gesamtkosten). Maßgeblich ist die Quelle mit dem **jüngeren Stand** (Stand-Datum der
+  GVFG-Ausgabe vs. Veröffentlichungsdatum des Infraplans). Diese Quelle fließt in
+  Planungsstand, Prognose und Kostenblock; die andere bleibt in ihrem Abschnitt
+  sichtbar. Beim Gleichstand gewinnt der Infraplan. Die Prüfung erfolgt beim
+  Materialisieren über den normalisierten Schlüssel.
+- **Entschieden (2026-10-15) — Summen überall:** Auch reine GVFG-Elternprojekte bilden
+  Summen über ihre Teilprojekte. Das ist ein projektweiter Grundsatz
+  (`docs/architecture.md` → „Grundsätze“); `feature-gvfg-import.md` ist angepasst.
 
 ## Ausbaustufen
 

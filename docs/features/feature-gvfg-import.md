@@ -86,9 +86,16 @@ der **neuesten Ausgabe** zählen in der Admin-Übersicht „Nicht zugeordnet“ 
 - Beim Bestätigen Gruppe „GVFG“ setzen, für Land 08 zusätzlich „GVFG BW“. Keine
   weiteren Landesgruppen. Gruppen werden nie entfernt; fehlt ein Projekt in einer
   neuen Ausgabe, zeigt die Übersicht „nicht mehr im Programm“.
-- Lph und Inbetriebnahme nur am GVFG-Eintrag, nicht im Projekt/Planungsstand.
-- Elternprojekte (München, Nürnberg, Breisgau, …) bekommen **keine Summen**, nur den
-  Hinweis „GVFG-Förderung in Teilprojekten“ mit Links. Aufteilungen (z. B.
+- Lph und Inbetriebnahme: Für dasselbe Vorhaben liefert auch der **Infraplan** diese
+  Angaben (GVFG Kat. A/C). Es gilt der **jüngere Stand** — Stand-Datum der GVFG-Ausgabe
+  vs. Veröffentlichungsdatum des Infraplans (Entscheidung 2026-10-15, siehe
+  `feature-infraplan-import.md` → „Abgleich mit `feature-gvfg-import.md`“). Die jüngere
+  Quelle fließt in Planungsstand und Prognose (Vertrauen 0.75), die ältere bleibt im
+  GVFG-Abschnitt sichtbar.
+- Elternprojekte (München, Nürnberg, Breisgau, …) bilden **Summen** über ihre
+  Teilprojekte (projektweiter Grundsatz, `docs/architecture.md` → „Grundsätze“;
+  ersetzt die frühere Festlegung „keine Summen“, 2026-10-15) und verlinken die
+  Teilprojekte. Aufteilungen (z. B.
   `03 D 2807_A` 2023 → 2807/2842/2843 2025) zeigt der Ausgabenvergleich als Hinweis;
   die Projekthierarchie bleibt unberührt.
 

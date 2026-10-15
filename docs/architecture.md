@@ -12,6 +12,12 @@ apps/
 
 The frontend communicates with the backend exclusively via the REST API. Types are generated automatically from the OpenAPI schema (`make gen-api`).
 
+### Principles (Grundsätze)
+
+- **Parent projects always aggregate.** Every quantitative value that belongs to projects (costs, funding, lengths, counts) is summed over the sub-projects (`superior_project_id`) for a parent that has no value of its own — for every project and every source (FinVe, GVFG, Infraplan, …). Values referenced by several rows (shared totals, cost references) are counted once. A feature must not opt out of this; if a sum would be misleading, show it with a note, but still show it. (Decided 2026-10-15.)
+- **The more recent source wins when two sources state the same fact.** Example: for a GVFG project, Lph, commissioning date and costs come from whichever is newer, the GVFG-Bundesprogramm edition or the Infraplan. Manual entries still override derived ones.
+- **Contradictions between plans are surfaced, not silently resolved.** Before a feature doc is written or changed, run the `widerspruchs-check` skill (`.claude/skills/widerspruchs-check/`) and let the user decide each conflict.
+
 ---
 
 ## Backend Structure
