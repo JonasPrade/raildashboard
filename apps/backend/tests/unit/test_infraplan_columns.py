@@ -137,9 +137,9 @@ def test_parse_parl(raw, expected):
 @pytest.mark.parametrize(
     "raw, expected",
     [
-        ("07 D 2825_A", "07D2825_A"),
-        ("7 D 2825 _A", "07D2825_A"),
-        ("09 G 5051_A", "09G5051_A"),
+        ("07 D 2825_A", "07 D 2825_A"),
+        ("7 D 2825 _A", "07 D 2825_A"),
+        ("09 G 5051_A", "09 G 5051_A"),
         ("ohne Schlüssel", None),
     ],
 )
@@ -157,7 +157,7 @@ def test_parse_project_numbers_per_section():
         "T.016076026",
     ]
     assert parse_project_numbers("/", "BP_D") == []
-    assert parse_project_numbers("12 D 1210_S", "GVFG_A") == ["12D1210_S"]
+    assert parse_project_numbers("12 D 1210_S", "GVFG_A") == ["12 D 1210_S"]
     assert parse_project_numbers("19)", "INVKG") == ["InvKG Nr. 19"]
 
 

@@ -549,6 +549,22 @@ officeholders from a CC0 source. `parliament.import` is in the capability catalo
 seeded to **no** system role: `admin` holds it through the superadmin bypass, and any other
 role is given it under `/admin/roles`.
 
+## GVFG-Bundesprogramm Import
+
+Reads the GVFG-Bundesprogramm PDF (BMV, Referat E 22) — the main part and, for editions that
+ship it separately (2024–2028), the annex with the informational part. Spec:
+`docs/features/feature-gvfg-import.md`.
+
+- `services/gvfg_parser.py` — pdfplumber tables, columns by a fixed header vocabulary (an
+  unknown column aborts), numbers placed by the header column positions and the height of
+  the ∑/A/B/C line. Checks the "Summe über <Land>" lines and each ∑ line; differences are
+  warnings for the review (the PDFs' own sum lines are not always complete).
+- `tasks/gvfg.py` — Celery task `parse_gvfg_pdf_task`, stores a `GvfgParseResult` with
+  project suggestions (`crud/gvfg.build_suggestions`).
+- `POST /api/v1/import/gvfg/parse` → review in `/admin/gvfg-import` →
+  `POST /api/v1/import/gvfg/parse-result/{id}/confirm` (`gvfg.import`). Reads:
+  `GET /api/v1/gvfg/programs`, `/programs/{id}/entries`, `/projects/{id}/entries`.
+
 ## Verkehrsinvestitionsbericht (VIB) Import
 
 Yearly import of the Bundestag printed paper „Verkehrsinvestitionsbericht für das Berichtsjahr XXXX". Only **Section B** (Schienenwege der Eisenbahnen des Bundes) is imported; sections C and D are ignored.
@@ -640,7 +656,7 @@ Deterministic, no LLM and no OCR:
   numbers, `Ref. Teil B 20 | E.…` cost references (resolved to the entry that
   carries the cost), commissioning (`offen` / `bis 2035` / `2029/2030` →
   `ibn_year` + `ibn_qualifier`), Lph, Befassung, project numbers (GVFG keys
-  normalised to `07D2825_A`).
+  normalised to `07 D 2825_A`).
 - **Checks** — running numbers 1..n per section: gaps and duplicates, unresolved
   cost references and missing sections go to `warnings_json`.
 - **KPI pages** — inside the KPI chapters, a „Steuerungskennzahl:“ /
@@ -658,7 +674,7 @@ anyway). `scripts/dump_infraplan_pages.py` writes stage 1 of the parser as JSON:
 `tests/fixtures/infraplan_2026_kpi_pages.json` (selected KPI pages). The parser
 tests (`tests/unit/test_infraplan_parse_2026.py`) run on these.
 
-### DB models (migration `20261015001`)
+### DB models (migration `20261015002`)
 
 `infraplan_parse_result`, `infraplan_report`, `infraplan_entry`,
 `infraplan_entry_project`, `infraplan_kpi`, `infraplan_kpi_value`, plus

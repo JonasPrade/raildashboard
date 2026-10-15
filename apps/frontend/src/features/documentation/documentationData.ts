@@ -115,6 +115,31 @@ export const featureHighlights: FeatureHighlight[] = [
         ]
     },
     {
+        title: "GVFG-Import",
+        description:
+            "Unter Admin → GVFG-Import lesen Nutzer mit dem Recht gvfg.import das GVFG-Bundesprogramm " +
+            "(ÖPNV-Förderung nach § 6 GVFG) als PDF ein, prüfen die Projektzuordnung und übernehmen die Ausgabe.",
+        details: [
+            "Hauptteil und – wo getrennt geliefert – Anhang (nachrichtlicher Teil) werden derselben Ausgabe zugeordnet",
+            "Die Zahlen werden direkt aus dem PDF gelesen; Summenzeilen werden gegengeprüft und Abweichungen angezeigt",
+            "Vorschläge: Projekte der Vorausgabe, dann Projektnummer = GVFG-Schlüssel, dann Name",
+            "Fehlende Projekte lassen sich beim Übernehmen anlegen; zugeordnete Projekte kommen in die Gruppe GVFG (Land 08 zusätzlich GVFG BW)",
+            "Vorhaben der neuesten Ausgabe ohne Projekt erscheinen unter Admin → Offene Zuordnungen"
+        ]
+    },
+    {
+        title: "GVFG-Bundesprogramm (/finanzen/gvfg)",
+        description:
+            "Im Menü Finanzen → GVFG stehen alle Vorhaben einer Ausgabe des GVFG-Bundesprogramms, öffentlich sichtbar. " +
+            "Auf der Projektseite zeigt der Abschnitt GVFG die Förderung des Projekts.",
+        details: [
+            "Ausgabe wählbar; Filter nach Land, Fördertatbestand, kommunal/DB, Teil (finanzrelevant/nachrichtlich) und „ohne Projekt“",
+            "Kennzahlen und Summen je Land beziehen sich auf die ∑-Zeile jedes Vorhabens (Mio. €)",
+            "Projektseite: neueste Ausgabe mit ∑/A/B/C-Zeilen, Finanzhilfen je Jahr als Diagramm und Entwicklung über die Ausgaben",
+            "Elternprojekte verlinken die GVFG-Vorhaben ihrer Unterprojekte, ohne Summe"
+        ]
+    },
+    {
         title: "Projekte zusammenführen (Dubletten)",
         description:
             "Doppelt angelegte Projekte lassen sich zu einem Projekt zusammenführen — per MCP-Tool merge_projects " +
@@ -244,7 +269,7 @@ export const featureHighlights: FeatureHighlight[] = [
         ]
     },
     {
-        title: "FinVe-Übersicht (/finves)",
+        title: "FinVe-Übersicht (Finanzen → Bedarfsplan Schiene)",
         description:
             "Zeigt alle Finanzierungsvereinbarungen als ausklappbare Karten. " +
             "Für eingeloggte Nutzer (alle Rollen) zugänglich.",

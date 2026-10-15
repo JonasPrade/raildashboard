@@ -24,12 +24,16 @@ import {
     useAssignFinve,
     useAssignVibEntry,
     useVibEntry,
+    useUnassignedGvfgEntries,
+    useAssignGvfgEntry,
 } from "../../shared/api/queries";
+import { formatMio, sumLine } from "../gvfg/gvfgFormat";
 import VibEntryEditDrawer from "../vib-import/VibEntryEditDrawer";
 
 function UnassignedPageContent() {
     const [finveSelections, setFinveSelections] = useState<Record<number, string[]>>({});
     const [vibSelections, setVibSelections] = useState<Record<number, string[]>>({});
+    const [gvfgSelections, setGvfgSelections] = useState<Record<number, string[]>>({});
     const [editingVibId, setEditingVibId] = useState<number | null>(null);
     const { data: editingVibEntry } = useVibEntry(editingVibId);
 
@@ -38,6 +42,8 @@ function UnassignedPageContent() {
     const { data: projects } = useProjectOptions();
     const assignFinve = useAssignFinve();
     const assignVib = useAssignVibEntry();
+    const { data: gvfgEntries, isLoading: gvfgLoading } = useUnassignedGvfgEntries();
+    const assignGvfg = useAssignGvfgEntry();
 
     const projectOptions = (projects ?? []).map((p) => ({
         value: String(p.id),
@@ -68,7 +74,19 @@ function UnassignedPageContent() {
         }
     };
 
-    const totalOpen = (finves?.length ?? 0) + (vibEntries?.length ?? 0);
+    const handleAssignGvfg = async (entryId: number) => {
+        const ids = (gvfgSelections[entryId] ?? []).map(Number);
+        if (!ids.length) return;
+        try {
+            await assignGvfg.mutateAsync({ entryId, projectIds: ids });
+            notifications.show({ color: "green", message: "GVFG-Vorhaben zugewiesen." });
+            setGvfgSelections((prev) => { const n = { ...prev }; delete n[entryId]; return n; });
+        } catch {
+            notifications.show({ color: "red", message: "Zuweisung fehlgeschlagen." });
+        }
+    };
+
+    const totalOpen = (finves?.length ?? 0) + (vibEntries?.length ?? 0) + (gvfgEntries?.length ?? 0);
 
     return (
         <Container size="xl" py="xl">
@@ -230,6 +248,79 @@ function UnassignedPageContent() {
                                             <Button size="xs" variant="light" onClick={() => setEditingVibId(e.id)}>
                                                 Bearbeiten
                                             </Button>
+                                        </Table.Td>
+                                    </Table.Tr>
+                                ))}
+                            </Table.Tbody>
+                        </ResponsiveTable>
+                    )}
+                </Stack>
+
+                {/* GVFG section — newest edition only */}
+                <Stack gap="sm">
+                    <Group gap="xs" align="center">
+                        <FlapNumber n={4} digits={2} width={32} height={36} fontSize={22} />
+                        <Title order={4} style={{ fontFamily: "var(--font-display)", textTransform: "uppercase", margin: 0 }}>
+                            GVFG-Vorhaben ohne Projektzuordnung
+                        </Title>
+                        <ChronicleDataChip>{gvfgEntries?.length ?? "…"}</ChronicleDataChip>
+                    </Group>
+                    <Text size="xs" c="dimmed">
+                        Nur die neueste Ausgabe des Bundesprogramms. Zugewiesene Projekte kommen in die Gruppe „GVFG“
+                        (Baden-Württemberg zusätzlich „GVFG BW“).
+                    </Text>
+                    {gvfgLoading && <Loader size="sm" />}
+                    {!gvfgLoading && (
+                        <ResponsiveTable minWidth={720} withTableBorder withColumnBorders>
+                            <Table.Thead>
+                                <Table.Tr>
+                                    <Table.Th>Schlüssel</Table.Th>
+                                    <Table.Th>Bezeichnung</Table.Th>
+                                    <Table.Th>Land</Table.Th>
+                                    <Table.Th ta="right">Finanzhilfen Mio. €</Table.Th>
+                                    <Table.Th>Projekte zuweisen</Table.Th>
+                                </Table.Tr>
+                            </Table.Thead>
+                            <Table.Tbody>
+                                {(gvfgEntries ?? []).length === 0 && (
+                                    <Table.Tr>
+                                        <Table.Td colSpan={5}>
+                                            <Text c="dimmed" size="sm" ta="center">Keine offenen GVFG-Vorhaben.</Text>
+                                        </Table.Td>
+                                    </Table.Tr>
+                                )}
+                                {(gvfgEntries ?? []).map((e) => (
+                                    <Table.Tr key={e.id}>
+                                        <Table.Td style={{ whiteSpace: "nowrap" }}>{e.key}</Table.Td>
+                                        <Table.Td style={{ maxWidth: 300 }}>
+                                            {e.name ?? "–"}
+                                            {e.part === "nachrichtlich" && (
+                                                <Text span size="xs" c="dimmed"> · nachr.</Text>
+                                            )}
+                                        </Table.Td>
+                                        <Table.Td>{e.land}</Table.Td>
+                                        <Table.Td ta="right">{formatMio(sumLine(e)?.aid_total)}</Table.Td>
+                                        <Table.Td>
+                                            <Group gap="xs" wrap="nowrap">
+                                                <MultiSelect
+                                                    data={projectOptions}
+                                                    value={gvfgSelections[e.id] ?? []}
+                                                    onChange={(v) =>
+                                                        setGvfgSelections((prev) => ({ ...prev, [e.id]: v }))
+                                                    }
+                                                    placeholder="Projekt suchen…"
+                                                    searchable
+                                                    filter={filterProjectOption}
+                                                    size="xs"
+                                                    w={300}
+                                                />
+                                                <ChronicleButton
+                                                    disabled={!(gvfgSelections[e.id]?.length)}
+                                                    onClick={() => handleAssignGvfg(e.id)}
+                                                >
+                                                    Zuweisen
+                                                </ChronicleButton>
+                                            </Group>
                                         </Table.Td>
                                     </Table.Tr>
                                 ))}

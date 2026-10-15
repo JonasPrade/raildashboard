@@ -17,6 +17,7 @@ EDITOR_KEYS = {
     "haushalt.import",
     "vib.import",
     "infraplan.import",
+    "gvfg.import",
     "finve.edit",
     "projecttext.edit",
     "assignment.manage",

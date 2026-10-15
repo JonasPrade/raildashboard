@@ -19,12 +19,31 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   superscript footnotes split off, cost references resolved, commissioning normalised, running
   numbers checked per section (`warnings_json`), KPI chart pages noted (`kpi_pages_json`). Also
   `…/parse-result[/{id}]` (GET/DELETE), `…/reparse` and `…/page/{page}.png` (pymupdf). New
-  capability `infraplan.import` (group Finanzierung, editors). **Migration** `20261015001`
+  capability `infraplan.import` (group Finanzierung, editors). **Migration** `20261015002`
   (additive): tables `infraplan_parse_result`, `infraplan_report`, `infraplan_entry`,
   `infraplan_entry_project`, `infraplan_kpi`, `infraplan_kpi_value`, column
   `progress_observation.infraplan_entry_id`; source type `INFRAPLAN`. **Deploy:** new setting
   `INFRAPLAN_PDF_DIR` (default `/app/uploads/infraplan`, inside the existing `uploads` volume);
   `/healthz` now also checks that it is writable. See `docs/features/feature-infraplan-import.md`.
+- **GVFG display (stage 3).** The main menu item "Haushalt" becomes **"Finanzen"** with the
+  sections "Bedarfsplan Schiene" (`/finanzen/bedarfsplan`, the former FinVe overview; `/finves`
+  redirects) and "GVFG" (`/finanzen/gvfg`: all Vorhaben of an edition with filters, key figures,
+  project links and sums per Land). The project page gets a "GVFG" section: newest edition with
+  ∑/A/B/C lines, a bar chart of the yearly aid and the development across editions; a parent
+  project links its subprojects' Vorhaben (`?with_subprojects=true`). GVFG Vorhaben of the newest
+  edition without a project appear under *Admin → Offene Zuordnungen*
+  (`GET /api/v1/admin/unassigned-gvfg-entries`, `PATCH …/{id}/assign`) and in the admin badge.
+- **GVFG-Bundesprogramm import (stage 1).** Editors upload a programme PDF (main part or
+  annex) under *Admin → GVFG-Import*; a Celery task reads it deterministically with pdfplumber
+  (fixed column vocabulary, numbers placed by header column positions, tolerances scaled to the
+  font size), checks the "Summe über <Land>" lines and every ∑ line against its A/B/C lines,
+  and suggests projects (previous edition's links, normalised key, key without suffix, name).
+  The review page shows the warnings, flags and suggestions; confirming writes the edition
+  (`gvfg_program`, `gvfg_entry`, `gvfg_entry_amount` with the yearly aid per printed column,
+  `gvfg_entry_project`) in one transaction, can create missing projects and adds the groups
+  "GVFG"/"GVFG BW". Public reads: `GET /api/v1/gvfg/programs`, `…/programs/{id}/entries`,
+  `…/projects/{id}/entries`. New capability `gvfg.import` (granted to editors).
+  **Migration** `20261015001` (additive). See `docs/features/feature-gvfg-import.md`.
 - **Merge duplicate projects (prerequisite for the GVFG import).** MCP tool `merge_projects`
   and `POST /api/v1/projects/merge` merge a duplicate into the project that stays: its empty
   fields are filled, property flags OR-ed, every link to the duplicate (groups, texts, FinVe/VIB/

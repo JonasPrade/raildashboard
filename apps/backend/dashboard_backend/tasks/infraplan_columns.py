@@ -17,6 +17,10 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+# The GVFG key normaliser is shared with the GVFG import, so a key from the
+# Infraplan matches the key the GVFG import stored on the project.
+from dashboard_backend.services.gvfg_parser import normalize_key as normalize_gvfg_key
+
 # ---------------------------------------------------------------------------
 # Header → canonical field
 # ---------------------------------------------------------------------------
@@ -210,22 +214,6 @@ def parse_parl(text: str | None) -> str | None:
 # Project numbers
 # ---------------------------------------------------------------------------
 
-# GVFG key, e.g. "07 D 2825_A" or "7D2825 _A" — shared with the GVFG import
-# (docs/features/feature-gvfg-import.md, "Zuordnung zu Projekten").
-GVFG_KEY_RE = re.compile(r"(\d{1,2})\s*([GD])\s*(\d+)\s*_\s*([A-Z])")
-
-
-def normalize_gvfg_key(text: str | None) -> str | None:
-    """``7 D 2825 _A`` → ``07D2825_A``; None when the text holds no key."""
-    if not text:
-        return None
-    match = GVFG_KEY_RE.search(text)
-    if not match:
-        return None
-    land, kind, number, suffix = match.groups()
-    return f"{int(land):02d}{kind}{number}_{suffix}"
-
-
 _DB_NUMBER_RE = re.compile(r"\b[A-Z]\.\d{6,}\b")
 _INVKG_NUMBER_RE = re.compile(r"^(\d{1,3})\)")
 
@@ -234,7 +222,7 @@ def parse_project_numbers(text: str | None, section: str) -> list[str]:
     """Project numbers of the first column after ``lfd_nr |``.
 
     Bedarfsplan: ``E.1637230040 // X.016030472300201`` (``/`` = none);
-    GVFG: the normalised key; InvKG: ``InvKG Nr. 6`` from ``6)``.
+    GVFG: the normalised key (``07 D 2825_A``); InvKG: ``InvKG Nr. 6`` from ``6)``.
     """
     value = " ".join((text or "").split())
     if section.startswith("GVFG"):

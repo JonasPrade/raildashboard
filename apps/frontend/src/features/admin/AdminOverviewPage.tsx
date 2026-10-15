@@ -21,6 +21,7 @@ export default function AdminOverviewPage() {
     const { can } = useAuth();
     const canAssignments = can("assignment.manage");
     const canHaushalt = can("haushalt.import");
+    const canGvfg = can("gvfg.import");
     const canVib = can("vib.import");
     const canCreateProject = can("project.create");
     const canProjectGroups = can("projectgroup.create") || can("projectgroup.edit");
@@ -34,6 +35,7 @@ export default function AdminOverviewPage() {
         canAssignments ||
         canParliament ||
         canHaushalt ||
+        canGvfg ||
         canVib ||
         canCreateProject ||
         canProjectGroups ||
@@ -103,6 +105,16 @@ export default function AdminOverviewPage() {
                                 <Stack gap={4}>
                                     <Text fw={500}>Haushalts-Import</Text>
                                     <Text size="sm" c="dimmed">Jährlichen VWIB-Bundeshaushalt importieren</Text>
+                                </Stack>
+                            </Link>
+                        </ChronicleCard>
+                    )}
+                    {canGvfg && (
+                        <ChronicleCard style={{ textDecoration: "none" }}>
+                            <Link to="/admin/gvfg-import" style={{ textDecoration: "none", color: "inherit" }}>
+                                <Stack gap={4}>
+                                    <Text fw={500}>GVFG-Import</Text>
+                                    <Text size="sm" c="dimmed">GVFG-Bundesprogramm (ÖPNV-Förderung) importieren</Text>
                                 </Stack>
                             </Link>
                         </ChronicleCard>

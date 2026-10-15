@@ -8,16 +8,16 @@ expanded schema. Grants the new ``infraplan.import`` capability to the editor
 system role. Generated with ``make migrate-create``; unrelated drift that
 autogenerate reported was removed.
 
-Revision ID: 20261015001
-Revises: 20261014001
+Revision ID: 20261015002
+Revises: 20261015001
 Create Date: 2026-10-15
 """
 
 import sqlalchemy as sa
 from alembic import op
 
-revision = "20261015001"
-down_revision = "20261014001"
+revision = "20261015002"
+down_revision = "20261015001"
 branch_labels = None
 depends_on = None
 

@@ -79,7 +79,7 @@ people from the abgeordnetenwatch API v2 (CC0).
 The yearly Infraplan of the federal government (BMV), imported per year
 (Jahrgang). No year overwrites another, so costs, commissioning years and KPI
 targets form time series. See `docs/features/feature-infraplan-import.md`;
-migration `20261015001`.
+migration `20261015002`.
 
 | Table | Description |
 |---|---|

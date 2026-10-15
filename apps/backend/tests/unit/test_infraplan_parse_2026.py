@@ -117,7 +117,7 @@ def test_project_numbers(rows):
     assert rows["BP_A-12"].project_numbers == ["E.1637230040", "X.016030472300201"]
     assert rows["BP_A-12"].primary_number == "E.1637230040"
     assert rows["BP_D-1"].project_numbers == []
-    assert rows["GVFG_A-8"].primary_number == "07D2825_A"
+    assert rows["GVFG_A-8"].primary_number == "07 D 2825_A"
     assert rows["GVFG_A-8"].cost_kind == "GESAMTKOSTEN"
     assert rows["INVKG-1"].primary_number == "InvKG Nr. 6"
 
