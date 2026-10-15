@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
     ActionIcon,
     Alert,
@@ -25,6 +25,7 @@ import {
 } from "../../shared/api/queries";
 import { computeGeojsonLengthKm } from "../../shared/geo/length";
 import GeometryPreviewMap, { type DrawMode } from "./GeometryPreviewMap";
+import { applyEditedParts, explodeEditable, parseFeatureList, type EditablePart } from "./editExisting";
 import RouteCalculatorForm from "./RouteCalculatorForm";
 import StationSelect from "./StationSelect";
 
@@ -91,10 +92,22 @@ export default function GeometryEditor({
     // Hand drawing: terra-draw owns the live geometry; we mirror its snapshot here.
     const [drawMode, setDrawMode] = useState<DrawMode>(null);
     const [drawnFeatures, setDrawnFeatures] = useState<GeoJSON.Feature[]>([]);
+    // In-place editing of the saved geometry: `editableParts` is the snapshot loaded into
+    // terra-draw (null = off), `editedParts` mirrors terra-draw's current state of it.
+    const [editableParts, setEditableParts] = useState<EditablePart[] | null>(null);
+    const [editedParts, setEditedParts] = useState<EditablePart[]>([]);
 
     const hasExisting = !!project.geojson_representation;
     const hasPoints = selectedPoints.length > 0;
     const hasDrawn = drawnFeatures.length > 0;
+    const editExisting = editableParts !== null;
+    const editedExisting = useMemo(
+        () => editableParts
+            ? applyEditedParts(parseFeatureList(project.geojson_representation), editableParts, editedParts)
+            : null,
+        [project.geojson_representation, editableParts, editedParts],
+    );
+    const hasEditedExisting = !!editedExisting?.changed;
     const drawnLengthKm = computeGeojsonLengthKm(
         hasDrawn ? JSON.stringify({ type: "FeatureCollection", features: drawnFeatures }) : null,
     );
@@ -129,6 +142,22 @@ export default function GeometryEditor({
         setSelectedFeatureIndices(new Set());
         setDrawMode(null);
         setDrawnFeatures([]);
+        setEditableParts(null);
+        setEditedParts([]);
+    }
+
+    /** Load the saved lines/points into the map for vertex editing, or discard the edits. */
+    function toggleEditExisting(on: boolean) {
+        if (on) {
+            const parts = explodeEditable(parseFeatureList(project.geojson_representation));
+            setEditableParts(parts);
+            setEditedParts(parts);
+            setDrawMode("select");
+        } else {
+            setEditableParts(null);
+            setEditedParts([]);
+            setDrawMode(null);
+        }
     }
 
     /** Persist the geometry source. Switching back to aggregated replaces the project's
@@ -235,7 +264,10 @@ export default function GeometryEditor({
     function buildFinalGeometry(keepExisting: boolean): string | null {
         const features: object[] = [];
 
-        if (keepExisting && project.geojson_representation) {
+        if (keepExisting && editedExisting) {
+            // Saved geometry with the in-place vertex edits applied.
+            features.push(...editedExisting.features);
+        } else if (keepExisting && project.geojson_representation) {
             features.push(...parseFeatures(project.geojson_representation));
         }
 
@@ -273,7 +305,7 @@ export default function GeometryEditor({
     }
 
     async function handleAccept() {
-        const hasNewGeometry = !!previewFeature || !!uploadedGeojson || hasPoints || hasDrawn;
+        const hasNewGeometry = !!previewFeature || !!uploadedGeojson || hasPoints || hasDrawn || hasEditedExisting;
 
         if (!hasNewGeometry && !deleteExisting) {
             onCancel();
@@ -338,8 +370,8 @@ export default function GeometryEditor({
 
     // In selectionMode, the primary save button is suppressed — users delete features via
     // the dedicated "Auswahl löschen" button instead.
-    const canAccept = !selectionMode && (!!previewFeature || !!uploadedGeojson || hasPoints || hasDrawn || deleteExisting);
-    const isDeleteOnly = deleteExisting && !previewFeature && !uploadedGeojson && !hasPoints && !hasDrawn;
+    const canAccept = !selectionMode && (!!previewFeature || !!uploadedGeojson || hasPoints || hasDrawn || hasEditedExisting || deleteExisting);
+    const isDeleteOnly = deleteExisting && !previewFeature && !uploadedGeojson && !hasPoints && !hasDrawn && !hasEditedExisting;
 
     return (
         <Group
@@ -409,8 +441,45 @@ export default function GeometryEditor({
                                         checked={deleteExisting}
                                         onChange={(e) => setDeleteExisting(e.currentTarget.checked)}
                                         color="red"
-                                        disabled={selectionMode || drawMode !== null}
+                                        disabled={selectionMode || drawMode !== null || editExisting}
                                     />
+                                )}
+
+                                {hasExisting && (
+                                    <Stack gap="xs">
+                                        <Switch
+                                            label="Bestehende Geometrie bearbeiten"
+                                            description="Stützpunkte gespeicherter Linien und Punkte verschieben, Zwischenpunkte einfügen oder löschen."
+                                            checked={editExisting}
+                                            onChange={(e) => toggleEditExisting(e.currentTarget.checked)}
+                                            disabled={selectionMode || deleteExisting}
+                                        />
+                                        {editExisting && (
+                                            <>
+                                                <Text size="xs" c="dimmed">
+                                                    Linie oder Punkt anklicken, um sie auszuwählen. Dann Stützpunkte
+                                                    ziehen; einen der kleinen Punkte zwischen zwei Stützpunkten anklicken oder
+                                                    ziehen, um einen Zwischenpunkt einzufügen; Rechtsklick auf einen Stützpunkt
+                                                    löscht ihn. Gespeichert wird erst mit „{saveLabel}".
+                                                </Text>
+                                                <Group justify="space-between" align="center">
+                                                    <ChronicleDataChip>
+                                                        {hasEditedExisting ? "Geändert" : "Unverändert"}
+                                                    </ChronicleDataChip>
+                                                    {hasEditedExisting && (
+                                                        <Button
+                                                            size="xs"
+                                                            variant="subtle"
+                                                            color="red"
+                                                            onClick={() => toggleEditExisting(true)}
+                                                        >
+                                                            Änderungen verwerfen
+                                                        </Button>
+                                                    )}
+                                                </Group>
+                                            </>
+                                        )}
+                                    </Stack>
                                 )}
 
                                 {hasExisting && (
@@ -423,7 +492,7 @@ export default function GeometryEditor({
                                                 if (!e.currentTarget.checked) setSelectedFeatureIndices(new Set());
                                             }}
                                             color="red"
-                                            disabled={deleteExisting || drawMode !== null || hasDrawn}
+                                            disabled={deleteExisting || drawMode !== null || hasDrawn || editExisting}
                                         />
                                         {selectionMode && (
                                             <Stack gap="xs">
@@ -488,7 +557,7 @@ export default function GeometryEditor({
                                             size="xs"
                                             variant={drawMode === "select" ? "filled" : "default"}
                                             onClick={() => setDrawMode(drawMode === "select" ? null : "select")}
-                                            disabled={selectionMode || deleteExisting || !hasDrawn}
+                                            disabled={selectionMode || deleteExisting || (!hasDrawn && !editExisting)}
                                         >
                                             Bearbeiten
                                         </Button>
@@ -638,7 +707,8 @@ export default function GeometryEditor({
                 <GeometryPreviewMap
                     existingGeojson={project.geojson_representation ?? null}
                     previewFeature={previewFeature ?? (uploadedGeojson ? buildUploadPreview(uploadedGeojson) : null)}
-                    showExisting={!deleteExisting}
+                    // While editing in place, terra-draw renders the saved geometry itself.
+                    showExisting={!deleteExisting && !editExisting}
                     previewPoints={selectedPoints}
                     selectionMode={selectionMode}
                     selectedIndices={selectedFeatureIndices}
@@ -646,6 +716,8 @@ export default function GeometryEditor({
                     drawMode={drawMode}
                     drawnFeatures={drawnFeatures}
                     onDrawnFeaturesChange={setDrawnFeatures}
+                    editableParts={editableParts}
+                    onEditedPartsChange={setEditedParts}
                     height={undefined}
                 />
             </Box>

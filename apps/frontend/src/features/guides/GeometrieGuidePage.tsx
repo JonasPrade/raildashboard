@@ -46,7 +46,9 @@ Der Editor besteht aus einem linken Bedienfeld mit den vier Erfassungswegen und 
 - **„Linie zeichnen"** — Klick für Klick Stützpunkte setzen, **Doppelklick** beendet die Linie.
 - **„Punkt setzen"** — einzelne Punkte per Klick.
 - **„Bearbeiten"** — Stützpunkte verschieben, einfügen (Mittelpunkt anklicken) oder löschen.
-- **„Fertig"** beendet den Zeichenmodus; der Zähler-Chip zeigt „N gezeichnet · x km", **„Zurücksetzen"** verwirft alles Gezeichnete.`,
+- **„Fertig"** beendet den Zeichenmodus; der Zähler-Chip zeigt „N gezeichnet · x km", **„Zurücksetzen"** verwirft alles Gezeichnete.
+
+Auch **bereits gespeicherte** Geometrie lässt sich nachbessern: Schalter **„Bestehende Geometrie bearbeiten"** einschalten, Linie oder Punkt anklicken und Stützpunkte ziehen. Einen der kleinen Mittelpunkte anklicken oder ziehen fügt einen **Zwischenpunkt** ein, Rechtsklick auf einen Stützpunkt löscht ihn. Gespeichert wird erst mit dem Speichern-Button; **„Änderungen verwerfen"** oder Ausschalten stellt den gespeicherten Stand wieder her.`,
         },
         {
             key: "speichern",
