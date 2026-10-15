@@ -12,6 +12,11 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **Edit saved project geometry in place.** The geometry editor (wizard step 2 and
+  "Geometrie verwalten") gets a switch "Bestehende Geometrie bearbeiten": saved lines and points
+  are loaded into terra-draw, vertices can be moved, intermediate points inserted and vertices
+  deleted. Only changed parts are written back; feature order and properties are kept. Frontend
+  only (`features/routing/editExisting.ts`).
 - **Infraplan import, stage 1: parser + data model (#179).** `POST /api/v1/import/infraplan/parse`
   (PDF + `year`) stores the PDF with a new draft and starts the Celery task `parse_infraplan_pdf`,
   which reads the measure tables of chapter 2.3 (Bedarfsplan Teil A–D, GVFG Kat. A/C, InvKG)
