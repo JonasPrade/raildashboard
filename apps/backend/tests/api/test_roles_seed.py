@@ -16,6 +16,7 @@ EDITOR_KEYS = {
     "project.delete",
     "haushalt.import",
     "vib.import",
+    "gvfg.import",
     "finve.edit",
     "projecttext.edit",
     "assignment.manage",

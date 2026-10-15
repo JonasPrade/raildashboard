@@ -225,7 +225,8 @@ Siehe: `docs/features/feature-new-project-wizard.md`
 
 ### GVFG-Bundesprogramm *(Backend + Frontend)*
 
-- [ ] **GVFG-Import und -Anzeige** — Ausgaben des GVFG-Bundesprogramms importieren (PDF, Review), Förderung auf der Projektseite, Menü „Finanzen“ mit „Bedarfsplan Schiene“ und „GVFG“, Vergleich der Ausgaben, MCP-Lese-Tools. Vorher Dubletten im GVFG-Bestand bereinigen.
+- [x] **GVFG-Import (Etappe 1)** — Parser, Datenmodell, Import mit Review unter `/admin/gvfg-import`, Lese-API.
+- [ ] **GVFG-Anzeige und Vergleich** — Ausgaben des GVFG-Bundesprogramms importieren (PDF, Review), Förderung auf der Projektseite, Menü „Finanzen“ mit „Bedarfsplan Schiene“ und „GVFG“, Vergleich der Ausgaben, MCP-Lese-Tools. Vorher Dubletten im GVFG-Bestand bereinigen.
   Siehe: `docs/features/feature-gvfg-import.md`
 
 ### Sonstiges

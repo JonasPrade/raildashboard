@@ -22,6 +22,13 @@ from dashboard_backend.models.associations.project_to_project_group import (
     ProjectToProjectGroup,
 )
 from dashboard_backend.models.guides import GuideSectionOverride
+from dashboard_backend.models.gvfg import (
+    GvfgEntry,
+    GvfgEntryAmount,
+    GvfgParseResult,
+    GvfgProgram,
+    gvfg_entry_project,
+)
 from dashboard_backend.models.parliament import (
     Committee,
     CommitteeMembership,
@@ -103,6 +110,11 @@ TABLES = [
     ProgressObservation.__table__,  # FKs to imported sources unenforced; MCP observation tools
     TextToProject.__table__,  # must follow project + project_text; moved by the project merge
     ProjectRedirect.__table__,  # must follow project + users; written by the project merge
+    GvfgProgram.__table__,  # GVFG import (must precede its entries)
+    GvfgEntry.__table__,
+    GvfgEntryAmount.__table__,
+    gvfg_entry_project,
+    GvfgParseResult.__table__,
 ]
 
 

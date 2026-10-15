@@ -1,6 +1,8 @@
 # Feature: GVFG-Bundesprogramm (Import, Projektseite, Finanzen-Übersicht)
 
-**Status: geplant (2026-10-14)** — Entscheidungen mit dem Nutzer abgestimmt
+**Status: Etappe 1 umgesetzt (2026-10-15)** — Datenmodell, Parser, Import mit
+Review und Lese-API stehen (siehe [Umsetzungsstand](#umsetzungsstand-2026-10-15)).
+Anzeige (Etappe 3) und Ausgabenvergleich/MCP (Etappe 4) folgen. — Entscheidungen mit dem Nutzer abgestimmt
 (Grilling-Runde 2026-10-13/14). Vorstufe:
 [`feature-project-merge.md`](feature-project-merge.md) (Dubletten bereinigen).
 
@@ -54,10 +56,12 @@ Layout 2024 entspricht 2025 (Lph, Stadt/Region, Inbetriebnahme); Jahresspalten 2
   finanzrelevant/nachrichtlich, Bezeichnung, Stadt/Region, Lph, Fördertatbestand,
   Fördersatz, Beginnjahr Mittelabfluss, Baubeginn, Inbetriebnahme geplant/tatsächlich.
   Alles, was 2023 fehlt, ist optional.
-- `GvfgEntryAmount` — Eintrag × Kategorie (∑/A/B/C): Gesamtkosten, zwf. Kosten,
-  Finanzhilfen insgesamt.
-- `GvfgEntryYearAmount` — Eintrag × Kategorie × Zeitraum (Spanne oder Jahr) × Art
-  (ausgezahlt / voraussichtlich / geplant / Rest ab). Keine festen Jahresspalten.
+- `GvfgEntryAmount` — eine Zeile je gedruckter Kategoriezeile (∑/A/B/C, in
+  Druckreihenfolge; ein Vorhaben kann zwei C-Zeilen haben, z. B. angekündigte
+  Mehrkosten): Gesamtkosten, zwf. Kosten, Finanzhilfen insgesamt und die
+  Jahreswerte als `periods` = `{Spaltenbeschriftung: Betrag}`. Die Spalten selbst
+  (Beschriftung, Jahre, Art ausgezahlt/voraussichtlich/geplant/Rest) stehen am
+  Programm (`GvfgProgram.periods`). Keine festen Jahresspalten.
 - `gvfg_entry_project` — m:n zu Projekten (Mehrfachzuordnung erlaubt).
 
 Migration rückwärtskompatibel (nur neue Tabellen).
@@ -114,6 +118,36 @@ der **neuesten Ausgabe** zählen in der Admin-Übersicht „Nicht zugeordnet“ 
   Fördertatbestand, Lph, Inbetriebnahme), Balkendiagramm Bundesfinanzhilfen je
   Jahr, Tabelle „Entwicklung über die Ausgaben“.
 
+## Umsetzungsstand (2026-10-15)
+
+- **Parser** `services/gvfg_parser.py` (pdfplumber): Tabellen und Kopfzeilen per
+  `find_tables`, Spalten über eine feste Liste von Kopfzeilentexten (unbekannte
+  Spalte → `GvfgParseError`). Zahlen werden über die Spaltenpositionen der Kopfzeile
+  und die Höhe der Kategoriezeile zugeordnet — einige Datenzeilen haben keine
+  senkrechte Trennlinie, dann stehen zwei Zahlen in einer Zelle. Toleranzen
+  skalieren mit der Schriftgröße (2023 gibt es eine Seite in 2,2 pt, 2024 ist in
+  9 pt gesetzt). Fehlt die ∑-Zeile (einige Seiten 2023), wird sie aus A/B/C
+  berechnet (`computed`). Die Art (kommunal/DB) kommt aus der Seitenüberschrift,
+  nicht aus dem Schlüsselbuchstaben — einige G-Vorhaben stehen in DB-Tabellen.
+- **Summenprüfung:** „Summe über <Land>“ und „Kat. A/C“ je Tabelle gegen die
+  eingelesenen Vorhaben, dazu ∑ gegen A+B+C je Vorhaben. Abweichungen sind
+  Hinweise im Review, kein Abbruch: Gegen die echten PDFs geprüft liest der Parser
+  2024–2028 (Haupt + Anhang) ohne Abweichung; die übrigen Hinweise in 2023/2025
+  sind Rechenfehler der PDF-Summenzeilen selbst (z. B. fehlt 05 D 633_A in der
+  NRW-DB-Summe 2025).
+- **Import:** `POST /api/v1/import/gvfg/parse` (Celery `parse_gvfg_pdf_task`) →
+  `GvfgParseResult` mit Vorschlägen; Review unter `/admin/gvfg-import`;
+  `POST …/parse-result/{id}/confirm` mit `assignments` und `create_projects`
+  ersetzt die enthaltenen Teile der Ausgabe in einer Transaktion. Vorschlag zuerst
+  die Projekte der Vorausgabe, dann normalisierter Schlüssel, dann ohne Suffix,
+  dann Name. Test mit dem echten 2025-PDF gegen den Bestand: 446 von 488 per
+  Schlüssel, 42 mit mehreren Projekten (die Dubletten), 42 ohne Projekt.
+- **Lese-API (öffentlich):** `GET /api/v1/gvfg/programs`,
+  `GET /api/v1/gvfg/programs/{id}/entries`, `GET /api/v1/gvfg/projects/{id}/entries`.
+- **Recht** `gvfg.import` (Editoren), Migration `20261015001`.
+- Noch offen aus Etappe 2: GVFG-Vorhaben ohne Projekt in der Admin-Übersicht
+  „Offene Zuordnungen“ (`crud.gvfg.unassigned_entries` steht bereit).
+
 ## MCP
 
 Lese-Tools (z. B. `list_project_gvfg`, `list_gvfg_entries`) und ein Tool zum
@@ -121,13 +155,13 @@ Zuordnen von Vorhaben zu Projekten. Der Import selbst bleibt außerhalb des MCP.
 
 ## Etappen
 
-0. Projekte zusammenführen (`merge_projects`) — siehe eigene Feature-Datei.
-1. Datenpflege per MCP: falsche Schlüssel (~12), per Namen gefundene Schlüssel (10),
+0. Projekte zusammenführen (`merge_projects`) — umgesetzt, siehe eigene Feature-Datei.
+1. Datenpflege per MCP (Block A der Korrekturen erledigt 2026-10-15): falsche Schlüssel (~12), per Namen gefundene Schlüssel (10),
    kaputte Namen (36), dann ~48 Dubletten-Gruppen zusammenführen. Regel für das
    bleibende Projekt: kein Entwurf und in GVFG → manuell gepflegte Daten → bessere
    Geometrie → Beschreibung mit Fördersatz → Welle W2 vor W3 vor W1. Analyse direkt
    vor dem Zusammenführen auf dem aktuellen Stand wiederholen.
-2. Datenmodell + Import mit Review.
+2. Datenmodell + Import mit Review — umgesetzt.
 3. Anzeige (Finanzen-Menü, GVFG-Übersicht, Projektseite).
 4. Ausgabenvergleich + MCP-Tools.
 

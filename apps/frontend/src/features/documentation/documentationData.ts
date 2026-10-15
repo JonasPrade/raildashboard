@@ -115,6 +115,18 @@ export const featureHighlights: FeatureHighlight[] = [
         ]
     },
     {
+        title: "GVFG-Import",
+        description:
+            "Unter Admin → GVFG-Import lesen Nutzer mit dem Recht gvfg.import das GVFG-Bundesprogramm " +
+            "(ÖPNV-Förderung nach § 6 GVFG) als PDF ein, prüfen die Projektzuordnung und übernehmen die Ausgabe.",
+        details: [
+            "Hauptteil und – wo getrennt geliefert – Anhang (nachrichtlicher Teil) werden derselben Ausgabe zugeordnet",
+            "Die Zahlen werden direkt aus dem PDF gelesen; Summenzeilen werden gegengeprüft und Abweichungen angezeigt",
+            "Vorschläge: Projekte der Vorausgabe, dann Projektnummer = GVFG-Schlüssel, dann Name",
+            "Fehlende Projekte lassen sich beim Übernehmen anlegen; zugeordnete Projekte kommen in die Gruppe GVFG (Land 08 zusätzlich GVFG BW)"
+        ]
+    },
+    {
         title: "Projekte zusammenführen (Dubletten)",
         description:
             "Doppelt angelegte Projekte lassen sich zu einem Projekt zusammenführen — per MCP-Tool merge_projects " +

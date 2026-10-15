@@ -11,6 +11,7 @@ from . import todos  # noqa: F401
 from . import routes  # noqa: F401
 from . import haushalt  # noqa: F401
 from . import vib  # noqa: F401
+from . import gvfg  # noqa: F401
 from .app_settings import AppSettings  # noqa: F401
 from .guides import GuideSectionOverride  # noqa: F401
 from .api_keys import ApiKey  # noqa: F401
