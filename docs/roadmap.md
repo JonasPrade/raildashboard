@@ -206,6 +206,7 @@ Siehe: `docs/features/feature-routing.md`
   - Header-Badge zeigt Gesamtzahl offener Zuordnungen für editor/admin
 
 - [x] **Neues Projekt aus Zuordnungsseite anlegen** — "Neues Projekt anlegen"-Button auf `/admin/unassigned` öffnet den Wizard.
+  Zusätzlich hat jede Zeile (FinVe, VIB, GVFG) den Link „Projekt fehlt?“: legt das Projekt als Entwurf an und weist den Eintrag direkt zu — wie in den Import-Reviews.
 
 ### Neues Projekt anlegen *(Backend + Frontend)*
 
