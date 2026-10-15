@@ -28,6 +28,7 @@ import { formatDateTimeShort } from "../../shared/format";
 // German labels for all tracked project fields
 const PROJECT_FIELD_LABELS: Record<string, string> = {
     name: "Name",
+    merged_project: "Zusammengeführt aus",
     project_number: "Projektnummer",
     description: "Beschreibung",
     justification: "Begründung",
@@ -159,14 +160,25 @@ function formatGroupIds(value: string | null | undefined, groupNames: Map<number
     }
 }
 
+// "{id, name}" of the merged project → "#2754 Ausbau Holzminden – Kreiensen".
+function formatMergedProject(value: string | null | undefined): string {
+    if (value == null) return "–";
+    try {
+        const merged = JSON.parse(value) as { id?: number; name?: string };
+        return `#${merged.id ?? "?"} ${merged.name ?? ""}`.trim();
+    } catch {
+        return value;
+    }
+}
+
 function formatEntryValue(
     entry: ChangeLogEntry,
     value: string | null | undefined,
     groupNames: Map<number, string>,
 ): string {
-    return entry.field_name === "project_group_ids"
-        ? formatGroupIds(value, groupNames)
-        : formatValue(value);
+    if (entry.field_name === "project_group_ids") return formatGroupIds(value, groupNames);
+    if (entry.field_name === MERGED_PROJECT_FIELD) return formatMergedProject(value);
+    return formatValue(value);
 }
 
 function actionLabel(action: string): string {
@@ -179,14 +191,23 @@ function actionLabel(action: string): string {
             return "Erstellt";
         case "DELETE":
             return "Gelöscht";
+        case "MERGE":
+            return "Zusammengeführt";
         default:
             return action;
     }
 }
 
+// The merged project's id/name, recorded by a project merge — history only.
+const MERGED_PROJECT_FIELD = "merged_project";
+
 // Planning-state entries are history only; a creation has no earlier value to restore.
 function isRevertible(log: ChangeLog, entry: ChangeLogEntry): boolean {
-    return log.action !== "CREATE" && !isProgressField(entry.field_name);
+    return (
+        log.action !== "CREATE" &&
+        !isProgressField(entry.field_name) &&
+        entry.field_name !== MERGED_PROJECT_FIELD
+    );
 }
 
 // ── Project field changelog item ──────────────────────────────────────────────

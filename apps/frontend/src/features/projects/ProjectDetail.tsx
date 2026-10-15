@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../lib/auth";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
@@ -197,6 +197,15 @@ export default function ProjectDetail() {
     const deleteMutation = useDeleteProject();
 
     const project = data;
+
+    // A merged project's old id resolves to the project it was merged into
+    // (project_redirect) — show the new id in the address bar.
+    useEffect(() => {
+        if (project && !isInvalidId && project.id !== projectId) {
+            const search = searchParams.toString();
+            navigate(`/projects/${project.id}${search ? `?${search}` : ""}`, { replace: true });
+        }
+    }, [project, projectId, isInvalidId, navigate, searchParams]);
 
     const mutationErrorMessage = mutation.isError
         ? mutation.error instanceof Error

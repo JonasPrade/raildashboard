@@ -217,6 +217,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `delete_progress_observation` | manuelle Beobachtung löschen (abgeleitete nicht) | `progress.edit` |
 | `set_phase_override` | manuellen Phasen-Override setzen (mit Begründung) oder aufheben | `progress.edit` |
 | `upsert_project_text` | Projekttext anlegen/ändern | `projecttext.edit` |
+| `merge_projects` | Dublette in ein anderes Projekt überführen (Vorschau, mit `apply` ausführen; destruktiv) | `project.merge` |
 | `search_operational_points` | Betriebsstellen nach Name/op_id suchen (Wegpunkte, Stationen) | — |
 | `get_project_geometry` | Geometrie-Übersicht je Feature (Index, Typ, Länge, Station), GeoJSON auf Wunsch | — |
 | `route_project_geometry` | Route über GraphHopper berechnen (Vorschau), mit `apply` anhängen/ersetzen | `project.edit` |
@@ -333,6 +334,12 @@ Client-seitig (Claude Code, `.mcp.json`):
   Begründung (`note` → `manual_override_note`), `phase = null` hebt ihn auf.
   `delete_progress_observation` löscht manuelle Beobachtungen; abgeleitete
   (`is_derived`, aus den Importen) bleiben wie in der REST-API geschützt.
+- **Projekte zusammenführen** (2026-10-14): `merge_projects(survivor_id, merged_id,
+  geometry_from, apply)` überführt eine Dublette in das bleibende Projekt und löscht
+  sie; ihre alte id leitet über `project_redirect` weiter (`get_project` liefert dann
+  das bleibende Projekt mit `redirected_from`, andere Tools nennen die neue id).
+  Ohne `apply` nur die Vorschau. Eigene Capability `project.merge` (keine
+  Systemrolle). Regeln: [`feature-project-merge.md`](feature-project-merge.md).
 - **Projektgruppen** (2026-10-11): `set_project_groups(add, remove)` löst Gruppen
   wie `list_projects` auf und lässt übrige Zuordnungen stehen; `update_project`
   lehnt `project_group_ids` ab und verweist darauf. Gruppenwechsel landen — auch über

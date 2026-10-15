@@ -115,6 +115,20 @@ export const featureHighlights: FeatureHighlight[] = [
         ]
     },
     {
+        title: "Projekte zusammenführen (Dubletten)",
+        description:
+            "Doppelt angelegte Projekte lassen sich zu einem Projekt zusammenführen — per MCP-Tool merge_projects " +
+            "oder POST /api/v1/projects/merge. Das bleibende Projekt übernimmt alle Verknüpfungen der Dublette, " +
+            "die Dublette wird gelöscht.",
+        details: [
+            "Ohne apply nur eine Vorschau: Feldänderungen, umgehängte Verknüpfungen je Tabelle, Warnungen",
+            "Leere Felder werden aus der Dublette gefüllt, Eigenschafts-Flags verknüpft; die Geometrie kommt von einer Seite",
+            "Alte Links funktionieren weiter: /projects/<alte id> springt auf das bleibende Projekt",
+            "Die Historie der Dublette wandert mit, dazu ein Eintrag „MERGE“",
+            "Nur mit dem Recht project.merge (keiner Standardrolle zugeordnet, also Admins)"
+        ]
+    },
+    {
         title: "Projektgeometrie erstellen & bearbeiten",
         description:
             "Editors und Admins legen die Geometrie eines Projekts über den geteilten Geometrie-Editor an — " +

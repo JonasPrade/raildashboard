@@ -34,6 +34,9 @@ PERMISSIONS: tuple[Permission, ...] = (
     Permission("project.create", "Projekte anlegen", GROUP_PROJECTS),
     Permission("project.edit", "Projekte bearbeiten", GROUP_PROJECTS),
     Permission("project.delete", "Projekte löschen", GROUP_PROJECTS),
+    # Merging deletes the merged project (links move, a redirect stays). Seeded
+    # for no system role, so only admins hold it until a role is granted it.
+    Permission("project.merge", "Projekte zusammenführen", GROUP_PROJECTS),
     Permission("projectgroup.create", "Projektgruppen anlegen", GROUP_PROJECT_GROUPS),
     Permission("projectgroup.edit", "Projektgruppen bearbeiten/löschen", GROUP_PROJECT_GROUPS),
     Permission("haushalt.import", "Haushaltsberichte importieren", GROUP_FINANCING),

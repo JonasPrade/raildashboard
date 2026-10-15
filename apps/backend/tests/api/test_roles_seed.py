@@ -32,6 +32,7 @@ ADMIN_ONLY_KEYS = {
     "role.manage",
     "settings.manage",
     "mcp.access",
+    "project.merge",
 }
 
 
