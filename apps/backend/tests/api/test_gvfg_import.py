@@ -105,6 +105,15 @@ def test_confirm_annex_and_reads(client, create_user, db_session):
     assert Decimal(u4_entry["amounts"][0]["aid_total"]) == Decimal("278.67")
     assert Decimal(u4_entry["amounts"][0]["periods"]["2025"]) == Decimal("39.20")
 
+    parent = Project(name="U-Bahn Hamburg")
+    db_session.add(parent)
+    db_session.flush()
+    u4.superior_project_id = parent.id
+    db_session.commit()
+    assert client.get(f"/api/v1/gvfg/projects/{parent.id}/entries").json() == []
+    children = client.get(f"/api/v1/gvfg/projects/{parent.id}/entries?with_subprojects=true").json()
+    assert [e["key"] for e in children] == ["02 G 509_A"]
+
     for_project = client.get(f"/api/v1/gvfg/projects/{u4.id}/entries").json()
     assert [e["key"] for e in for_project] == ["02 G 509_A"]
     assert for_project[0]["program"]["year_from"] == 2025
@@ -125,3 +134,33 @@ def test_import_needs_permission(client, create_user, db_session):
         ).status_code
         == 403
     )
+
+
+def test_unassigned_and_assign(client, create_user, db_session):
+    editor = create_user("editor", "editorpass", UserRole.editor)
+    headers = {"Authorization": f"Bearer {_key_for(db_session, editor)}"}
+    group, u4, u2 = _projects(db_session)
+    record = _stage(db_session, [_financial_page()])
+    client.post(
+        f"/api/v1/import/gvfg/parse-result/{record.id}/confirm",
+        json={"assignments": {"02 G 509_A": [u4.id], "02 G 4518_A": []}},
+        headers=headers,
+    )
+
+    open_entries = client.get("/api/v1/admin/unassigned-gvfg-entries", headers=headers).json()
+    assert [e["key"] for e in open_entries] == ["02 G 4518_A"]
+    entry_id = open_entries[0]["id"]
+
+    assert (
+        client.patch(
+            f"/api/v1/admin/unassigned-gvfg-entries/{entry_id}/assign", json={"project_ids": [999999]}, headers=headers
+        ).status_code
+        == 422
+    )
+    response = client.patch(
+        f"/api/v1/admin/unassigned-gvfg-entries/{entry_id}/assign", json={"project_ids": [u2.id]}, headers=headers
+    )
+    assert response.status_code == 204, response.text
+    assert client.get("/api/v1/admin/unassigned-gvfg-entries", headers=headers).json() == []
+    db_session.refresh(u2)
+    assert [g.short_name for g in u2.project_groups] == ["GVFG"]

@@ -127,6 +127,9 @@ def list_program_entries(program_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/projects/{project_id}/entries", response_model=list[GvfgProjectEntrySchema])
-def list_project_entries(project_id: int, db: Session = Depends(get_db)):
-    """GVFG entries of a project across all editions, newest first."""
-    return gvfg_crud.project_entries(db, project_id)
+def list_project_entries(
+    project_id: int, with_subprojects: bool = False, db: Session = Depends(get_db)
+):
+    """GVFG entries of a project across all editions, newest first.
+    ``with_subprojects`` adds the entries of its direct subprojects."""
+    return gvfg_crud.project_entries(db, project_id, with_subprojects)

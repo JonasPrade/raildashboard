@@ -58,7 +58,8 @@ export const queryKeys = {
     gvfgParseResult: (id: number) => ["gvfg-parse-result", id] as const,
     gvfgPrograms: ["gvfg-programs"],
     gvfgProgramEntries: (programId: number) => ["gvfg-programs", programId, "entries"] as const,
-    projectGvfg: (projectId: number) => ["project-gvfg", projectId] as const,
+    projectGvfg: (projectId: number, withSubprojects: boolean) =>
+        ["project-gvfg", projectId, withSubprojects] as const,
     haushaltParseResults: ["haushalt-parse-results"],
     haushaltParseResult: (id: number) => ["haushalt-parse-result", id] as const,
     haushaltUnmatched: ["haushalt-unmatched"],
@@ -74,6 +75,7 @@ export const queryKeys = {
     vibOcrAvailable: ["vib-ocr-available"],
     adminUnassignedFinves: ["admin-unassigned-finves"],
     adminUnassignedVibEntries: ["admin-unassigned-vib-entries"],
+    adminUnassignedGvfgEntries: ["admin-unassigned-gvfg-entries"],
     bauportalEntries: ["bauportal-entries"],
     bauportalEntriesFor: (onlyUnconfirmed: boolean) => ["bauportal-entries", onlyUnconfirmed] as const,
     mediaEntries: ["media-entries"],
@@ -1500,7 +1502,7 @@ export function useDeleteVibDraft() {
 }
 
 // ---------------------------------------------------------------------------
-// Admin: Offene Zuordnungen (unassigned FinVe / VIB entries)
+// Admin: Offene Zuordnungen (unassigned FinVe / VIB / GVFG entries)
 // ---------------------------------------------------------------------------
 
 export type UnassignedFinve = components["schemas"]["UnassignedFinveSchema"];
@@ -1542,6 +1544,26 @@ export function useAssignVibEntry() {
                 json: { project_ids: projectIds },
             }),
         [queryKeys.adminUnassignedVibEntries],
+    );
+}
+
+/** GVFG Vorhaben of the newest edition without a project. */
+export function useUnassignedGvfgEntries(enabled = true) {
+    return useQuery({
+        queryKey: queryKeys.adminUnassignedGvfgEntries,
+        queryFn: () => api<GvfgEntry[]>("/api/v1/admin/unassigned-gvfg-entries"),
+        enabled,
+    });
+}
+
+export function useAssignGvfgEntry() {
+    return useInvalidatingMutation(
+        ({ entryId, projectIds }: { entryId: number; projectIds: number[] }) =>
+            api<void>(`/api/v1/admin/unassigned-gvfg-entries/${entryId}/assign`, {
+                method: "PATCH",
+                json: { project_ids: projectIds },
+            }),
+        [queryKeys.adminUnassignedGvfgEntries, queryKeys.gvfgPrograms, ["project-gvfg"]],
     );
 }
 
@@ -2017,10 +2039,15 @@ export function useGvfgProgramEntries(programId: number | null) {
     });
 }
 
-export function useProjectGvfg(projectId: number) {
+/** GVFG entries of a project — with those of its direct subprojects, so a
+ *  parent can show "Förderung in Teilprojekten". */
+export function useProjectGvfg(projectId: number, withSubprojects = true) {
     return useQuery({
-        queryKey: queryKeys.projectGvfg(projectId),
+        queryKey: queryKeys.projectGvfg(projectId, withSubprojects),
         enabled: Number.isFinite(projectId),
-        queryFn: () => api<GvfgProjectEntry[]>(`/api/v1/gvfg/projects/${projectId}/entries`),
+        queryFn: () =>
+            api<GvfgProjectEntry[]>(
+                `/api/v1/gvfg/projects/${projectId}/entries?with_subprojects=${withSubprojects}`,
+            ),
     });
 }
