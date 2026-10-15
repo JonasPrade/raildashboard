@@ -54,6 +54,7 @@ _SOURCE_LABEL: dict[SourceType, str] = {
     SourceType.FULDA_RUNDE: "Fulda-Runde",
     SourceType.BAUPORTAL: "Bauportal",
     SourceType.MEDIEN: "Medien",
+    SourceType.INFRAPLAN: "Infraplan",
     SourceType.MANUELL: "Manuell",
 }
 

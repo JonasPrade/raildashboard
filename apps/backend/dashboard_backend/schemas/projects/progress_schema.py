@@ -22,7 +22,7 @@ SkippablePhaseLiteral = Literal["VORPLANUNG", "GENEHMIGUNGSPLANUNG"]
 ParallelStateLiteral = Literal["OFFEN", "LAEUFT", "ABGESCHLOSSEN"]
 LifecycleStatusLiteral = Literal["AKTIV", "PAUSIERT", "ABGEBROCHEN"]
 SourceTypeLiteral = Literal[
-    "VIB", "FINVE", "FULDA_RUNDE", "BAUPORTAL", "MEDIEN", "MANUELL"
+    "VIB", "FINVE", "FULDA_RUNDE", "BAUPORTAL", "MEDIEN", "INFRAPLAN", "MANUELL"
 ]
 TrackLiteral = Literal["MAIN", "PF", "PARL"]
 # Documents can only be linked behind the PF / parliamentary tracks.

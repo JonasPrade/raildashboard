@@ -1,11 +1,13 @@
 # Feature: Infraplan-Import
 
-> **Status: geplant, mit dem Nutzer abgestimmt (2026-10-15).** Grundlage ist der
-> Infraplan 2026 (BMV, 6. Oktober 2026). Ein Prototyp-Parser (pdfplumber, ohne LLM)
-> hat daraus die Maßnahmentabellen gelesen; die Zahlen unten stammen aus diesem Lauf.
-> Das PDF liegt vorübergehend unter `docs/261002_Infraplan_2026_1.pdf` und wird
-> gelöscht, sobald die Test-Fixture daraus erzeugt ist (Stufe 1). Künftige Jahrgänge
-> kommen **nur über den Upload im Frontend** ins System.
+> **Status: Stufe 1 (Parser + Datenmodell, #179) umgesetzt; Stufen 2–5 geplant, mit
+> dem Nutzer abgestimmt (2026-10-15).** Grundlage ist der Infraplan 2026 (BMV,
+> 6. Oktober 2026). Die Zeilenzahlen unten stammen aus dem Parser von Stufe 1 und
+> stimmen mit den laufenden Nummern im Dokument überein (der Prototyp hatte 300 Zeilen
+> gemeldet, weil er Teil C/D und GVFG Kat. A/C falsch abgegrenzt hatte). Das PDF lag
+> nur vorübergehend im Repo; die Test-Fixtures sind daraus erzeugt
+> (`apps/backend/tests/fixtures/infraplan_2026_*.json`). Künftige Jahrgänge kommen
+> **nur über den Upload im Frontend** ins System.
 
 ## Ziel
 
@@ -62,13 +64,14 @@ Vergleiche (Infraplan 2026 vs. 2027 vs. …) dauerhaft möglich bleiben.
 |---|---|---|---|---|
 | Bedarfsplan, Teil A – im Bau und/oder mit durchgängigem Baurecht (Lph 4–9) | `BP_A` | 38 | `Bau` · `Lph 4 abgeschlossen – durchgängiges Baurecht vorliegend` | GWU in Mio. € |
 | Bedarfsplan, Teil B – Entwurfs- und Genehmigungsplanung (Lph 3–4) | `BP_B` | 40 | `Lph 3-4` | GWU |
-| Bedarfsplan, Teil C – Vorplanung (Lph 1–2) | `BP_C` | 69 | `Lph 1` · `Lph 1-2` | GWU |
-| Bedarfsplan, Teil D – Grundlagenermittlung (noch keine Lph) | `BP_D` | 71 | leer | GWU |
-| GVFG, Kat. A – endgültig ins Bundesprogramm aufgenommene DB-Vorhaben | `GVFG_A` | 35 | `Lph 5 - 9`, `Lph 3 - 4`, `offen`, … | Gesamtkosten in Mio. € |
-| GVFG, Kat. C – bedingt aufgenommene DB-Vorhaben | `GVFG_C` | 42 | wie Kat. A | Gesamtkosten |
+| Bedarfsplan, Teil C – Vorplanung (Lph 1–2) | `BP_C` | 71 | `Lph 1` · `Lph 1-2` | GWU |
+| Bedarfsplan, Teil D – Grundlagenermittlung (noch keine Lph) | `BP_D` | 34 | leer | GWU |
+| GVFG, Kat. A – endgültig ins Bundesprogramm aufgenommene DB-Vorhaben | `GVFG_A` | 42 | `Lph 5 - 9`, `Lph 3 - 4`, `offen`, … | Gesamtkosten in Mio. € |
+| GVFG, Kat. C – bedingt aufgenommene DB-Vorhaben | `GVFG_C` | 41 | wie Kat. A | Gesamtkosten |
 | InvKG – Maßnahmen im Bau | `INVKG` | 5 | `Bau` | GWU |
 
-Summe **300 Zeilen**.
+Summe **271 Zeilen** (Seiten 33–56; Teil C endet und Teil D beginnt auf S. 47,
+GVFG Kat. A endet und Kat. C beginnt auf S. 53).
 
 **Spalten Bedarfsplan:** `Laufende Nummer | Projektnummer` · `Bezeichnung` · `Maßnahme` ·
 `Land` · `Realisierungsstand / Lph` · `Geplante Inbetriebnahme` · `GWU in Mio. €` ·
@@ -158,7 +161,7 @@ Bestätigung durch den Agenten umkehrbar.
 | 2 Segmentierung | Abschnitte über die Überschriften `Bedarfsplan, Teil A–D`, `GVFG, Kat. A/C`, `InvKG`; Zeilen an der laufenden Nummer in Spalte 1; Fußnotenzone abschneiden | `tasks/infraplan.py` |
 | 3 Semantik | Kopfzeile → kanonisches Schema (deterministisch über Spaltentitel, Muster `haushalt_columns`); Werte normalisieren (deutsche Zahlen, Jahr, Lph, Befassung) | `tasks/infraplan_columns.py` |
 | 4 Matching | Vorschläge je Zeile, siehe [Zuordnung](#zuordnung-zu-projekten) | `tasks/infraplan_matching.py` |
-| 5 Kennzahl-Seiten | Seitenzahlen der Kennzahl-Diagramme merken (Überschrift „Steuerungskennzahl:“ / „Informationskennzahl:“) für die Bildausgabe | `tasks/infraplan.py` |
+| 5 Kennzahl-Seiten | Seitenzahlen der Kennzahl-Diagramme merken für die Bildausgabe: innerhalb der Kennzahl-Kapitel („3 Steuerungskennzahlen“, „I: Informationskennzahlen“) setzt die Überschrift „Steuerungskennzahl:“ / „Informationskennzahl:“ die aktuelle Kennzahl; eine Seite mit Diagrammbeschriftung und Einheitenzeile („(jährlich in km)“) wird ihr zugeordnet (das Diagramm steht oft eine Seite nach der Überschrift) | `tasks/infraplan.py` |
 
 Das hochgeladene PDF wird je Entwurf gespeichert (Seitenbilder für MCP und Freigabe-
 Ansicht werden bei Bedarf mit pymupdf gerendert). OCR ist nicht nötig; fehlt einem
@@ -172,8 +175,9 @@ Neue Tabellen (Migration via `make migrate-create`, rein additiv):
 
 **`infraplan_parse_result`** — Entwurf je Upload (Muster `haushalts_parse_result`)
 - `id`, `year`, `status`, `result_json`, `warnings_json`, `error_message`, `file_name`,
-  `pdf_path` (gespeicherte Datei), `kpi_pages_json`, `created_at`, `confirmed_at`,
-  `confirmed_by_snapshot`
+  `pdf_path` (gespeicherte Datei in `INFRAPLAN_PDF_DIR`), `kpi_pages_json`, `task_id`
+  (letzter Auslese-Task), `created_at`, `created_by_user_id`, `username_snapshot`,
+  `confirmed_at`, `confirmed_by_snapshot`
 
 **`infraplan_report`** — bestätigter Jahrgang
 - `id`, `year` (unique), `title`, `published_on` (Date), `parse_result_id`, `created_at`
@@ -419,12 +423,14 @@ claude.ai-Skills dieses Projekts, mit kurzer `skills/README.md` zum Hochladen):
 ## Tests
 
 - Fixture `tests/fixtures/infraplan_2026_pages.json`: Wortlisten (Text, Position,
-  Schriftgröße) der Seiten 33–56, erzeugt per Skript `scripts/dump_infraplan_pages.py`
-  aus dem PDF (Muster `haushalt_ep12_2027_pages.json`). Danach wird
-  `docs/261002_Infraplan_2026_1.pdf` gelöscht.
-- Parser: Zeilenzahl je Abschnitt (38/40/69/71/35/42/5), lückenlose laufende Nummern,
+  Schriftgröße) und Tabellenköpfe der Seiten 33–56, erzeugt per Skript
+  `scripts/dump_infraplan_pages.py` aus dem PDF (Muster `haushalt_ep12_2027_pages.json`);
+  dazu `infraplan_2026_kpi_pages.json` mit ausgewählten Kennzahl-Seiten (57, 60–62,
+  66–68, 85, 93–94, 102). Danach wurde `docs/261002_Infraplan_2026_1.pdf` gelöscht.
+- Parser: Zeilenzahl je Abschnitt (38/40/71/34/42/41/5), lückenlose laufende Nummern,
   Fußnote abgetrennt (`1.720,48` + `[14]`), Kostenverweis aufgelöst, `bis 2035` →
-  (2035, `BIS`).
+  (2035, `BIS`), Folgeseiten ohne Kopfzeile, Lücken/Dubletten als Warnung,
+  Kennzahl-Diagrammseiten.
 - Mapper: Tabellen MAIN/PF/PARL parametrisiert; PaBe-Relevanz-Ebenen.
 - Prognose: Rangfolge Infraplan vs. VIB-PFA/Fulda/Manuell.
 - Kosten: Summe über Teilprojekte ohne Doppelzählung von Verweisen.
@@ -471,7 +477,7 @@ G1 und G2 betreffen erst Stufe 3 (#181) und müssen vor deren Beginn entschieden
 
 ## Akzeptanzkriterien (gesamt)
 
-- [ ] Upload des Infraplans 2026 liefert 300 Zeilen ohne Lücken-Warnung.
+- [ ] Upload des Infraplans 2026 liefert 271 Zeilen ohne Lücken-Warnung.
 - [ ] Nach Bestätigung zeigt „ABS Magdeburg – Stendal – Uelzen“ im Projektdetail Teil A,
       Bau, IBN 2030, Gesamtkostenprognose 1.720,48 Mio. € mit Fußnote, daneben die
       zugesicherten FinVe-Mittel.

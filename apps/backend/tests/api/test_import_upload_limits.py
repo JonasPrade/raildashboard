@@ -1,4 +1,4 @@
-"""Upload ceiling shared by the three PDF importers.
+"""Upload ceiling shared by the PDF importers.
 
 All of them read the upload into memory before handing it to a Celery task, so
 ``deps.read_upload_within_limit`` is the single gate. The nginx in front of the
@@ -22,6 +22,7 @@ PARSE_ENDPOINTS = [
     "/api/v1/import/haushalt/parse",
     "/api/v1/import/vib/parse",
     "/api/v1/import/fulda/parse",
+    "/api/v1/import/infraplan/parse",
 ]
 
 
@@ -67,6 +68,7 @@ def test_parse_accepts_upload_below_the_limit(client, create_user, monkeypatch, 
         ("haushalt", "parse_haushalt_pdf"),
         ("vib", "parse_vib_pdf"),
         ("fulda", "parse_fulda_pdf"),
+        ("infraplan", "parse_infraplan_pdf"),
     ):
         module = __import__(
             f"dashboard_backend.api.v1.endpoints.{module_name}_import",
