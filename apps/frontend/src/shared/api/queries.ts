@@ -54,6 +54,11 @@ export const queryKeys = {
     // Nested under `apiKeys`: invalidating the own list refreshes the admin overview too.
     apiKeys: ["api-keys"],
     allApiKeys: ["api-keys", "all"],
+    gvfgParseResults: ["gvfg-parse-results"],
+    gvfgParseResult: (id: number) => ["gvfg-parse-result", id] as const,
+    gvfgPrograms: ["gvfg-programs"],
+    gvfgProgramEntries: (programId: number) => ["gvfg-programs", programId, "entries"] as const,
+    projectGvfg: (projectId: number) => ["project-gvfg", projectId] as const,
     haushaltParseResults: ["haushalt-parse-results"],
     haushaltParseResult: (id: number) => ["haushalt-parse-result", id] as const,
     haushaltUnmatched: ["haushalt-unmatched"],
@@ -1886,5 +1891,136 @@ export function useConstituencyGeojson(enabled: boolean) {
         enabled,
         // The outlines change once per election — no reason to refetch them.
         staleTime: Infinity,
+    });
+}
+
+// ---------------------------------------------------------------------------
+// GVFG-Bundesprogramm (docs/features/feature-gvfg-import.md)
+// ---------------------------------------------------------------------------
+
+export type GvfgParseResultSummary = components["schemas"]["GvfgParseResultSummary"];
+export type GvfgParseResultDetail = components["schemas"]["GvfgParseResultDetail"];
+export type GvfgProgram = components["schemas"]["GvfgProgramSchema"];
+export type GvfgEntry = components["schemas"]["GvfgEntrySchema"];
+export type GvfgProjectEntry = components["schemas"]["GvfgProjectEntrySchema"];
+export type GvfgConfirmRequest = components["schemas"]["GvfgConfirmRequest"];
+export type GvfgConfirmResponse = components["schemas"]["GvfgConfirmResponse"];
+
+/** One amount line of a parsed Vorhaben (result_json is untyped on the wire). */
+export type GvfgParsedAmount = {
+    category: "SUM" | "A" | "B" | "C";
+    computed: boolean;
+    cost_total: string | null;
+    cost_eligible: string | null;
+    aid_total: string | null;
+    periods: Record<string, string>;
+};
+
+export type GvfgParsedEntry = {
+    key: string;
+    key_raw: string;
+    land: string;
+    kind: "kommunal" | "db";
+    part: "finanzrelevant" | "nachrichtlich";
+    page: number;
+    city: string | null;
+    name: string | null;
+    lph: string | null;
+    funding_type: string | null;
+    funding_rate: number | null;
+    amounts: GvfgParsedAmount[];
+};
+
+export type GvfgSuggestion = {
+    selected: number[];
+    source: "previous" | "key" | "key_without_suffix" | "none";
+    candidates: { id: number; score: number; reason: string }[];
+    flags: string[];
+};
+
+export type GvfgParseResultJson = {
+    title: string | null;
+    year_from: number;
+    year_to: number;
+    stand: string | null;
+    is_annex: boolean;
+    periods: { label: string; year_from: number | null; year_to: number | null; kind: string }[];
+    entries: GvfgParsedEntry[];
+    warnings: string[];
+    suggestions: {
+        by_key: Record<string, GvfgSuggestion>;
+        projects: Record<string, { id: number; name: string; project_number: string | null; is_draft: boolean }>;
+    };
+};
+
+export function useGvfgParseResults() {
+    return useQuery({
+        queryKey: queryKeys.gvfgParseResults,
+        queryFn: () => api<GvfgParseResultSummary[]>("/api/v1/import/gvfg/parse-result"),
+    });
+}
+
+export function useGvfgParseResult(id: number) {
+    return useQuery({
+        queryKey: queryKeys.gvfgParseResult(id),
+        enabled: Number.isFinite(id),
+        queryFn: () => api<GvfgParseResultDetail>(`/api/v1/import/gvfg/parse-result/${id}`),
+    });
+}
+
+export function useStartGvfgImport() {
+    return useMutation({
+        mutationFn: (pdf: File) => {
+            const form = new FormData();
+            form.append("pdf", pdf);
+            return api<TaskLaunchResponse>("/api/v1/import/gvfg/parse", { method: "POST", body: form });
+        },
+    });
+}
+
+export function useDeleteGvfgParseResult() {
+    return useInvalidatingMutation(
+        (id: number) => api<void>(`/api/v1/import/gvfg/parse-result/${id}`, { method: "DELETE" }),
+        [queryKeys.gvfgParseResults],
+    );
+}
+
+export function useConfirmGvfgImport() {
+    return useInvalidatingMutation(
+        ({ id, body }: { id: number; body: GvfgConfirmRequest }) =>
+            api<GvfgConfirmResponse>(`/api/v1/import/gvfg/parse-result/${id}/confirm`, {
+                method: "POST",
+                json: body,
+            }),
+        (_data, { id }) => [
+            queryKeys.gvfgParseResults,
+            queryKeys.gvfgParseResult(id),
+            queryKeys.gvfgPrograms,
+            queryKeys.projects,
+            queryKeys.projectGroups,
+        ],
+    );
+}
+
+export function useGvfgPrograms() {
+    return useQuery({
+        queryKey: queryKeys.gvfgPrograms,
+        queryFn: () => api<GvfgProgram[]>("/api/v1/gvfg/programs"),
+    });
+}
+
+export function useGvfgProgramEntries(programId: number | null) {
+    return useQuery({
+        queryKey: queryKeys.gvfgProgramEntries(programId ?? Number.NaN),
+        enabled: programId !== null && Number.isFinite(programId),
+        queryFn: () => api<GvfgEntry[]>(`/api/v1/gvfg/programs/${programId}/entries`),
+    });
+}
+
+export function useProjectGvfg(projectId: number) {
+    return useQuery({
+        queryKey: queryKeys.projectGvfg(projectId),
+        enabled: Number.isFinite(projectId),
+        queryFn: () => api<GvfgProjectEntry[]>(`/api/v1/gvfg/projects/${projectId}/entries`),
     });
 }

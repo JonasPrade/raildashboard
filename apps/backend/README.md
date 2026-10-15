@@ -549,6 +549,22 @@ officeholders from a CC0 source. `parliament.import` is in the capability catalo
 seeded to **no** system role: `admin` holds it through the superadmin bypass, and any other
 role is given it under `/admin/roles`.
 
+## GVFG-Bundesprogramm Import
+
+Reads the GVFG-Bundesprogramm PDF (BMV, Referat E 22) — the main part and, for editions that
+ship it separately (2024–2028), the annex with the informational part. Spec:
+`docs/features/feature-gvfg-import.md`.
+
+- `services/gvfg_parser.py` — pdfplumber tables, columns by a fixed header vocabulary (an
+  unknown column aborts), numbers placed by the header column positions and the height of
+  the ∑/A/B/C line. Checks the "Summe über <Land>" lines and each ∑ line; differences are
+  warnings for the review (the PDFs' own sum lines are not always complete).
+- `tasks/gvfg.py` — Celery task `parse_gvfg_pdf_task`, stores a `GvfgParseResult` with
+  project suggestions (`crud/gvfg.build_suggestions`).
+- `POST /api/v1/import/gvfg/parse` → review in `/admin/gvfg-import` →
+  `POST /api/v1/import/gvfg/parse-result/{id}/confirm` (`gvfg.import`). Reads:
+  `GET /api/v1/gvfg/programs`, `/programs/{id}/entries`, `/projects/{id}/entries`.
+
 ## Verkehrsinvestitionsbericht (VIB) Import
 
 Yearly import of the Bundestag printed paper „Verkehrsinvestitionsbericht für das Berichtsjahr XXXX". Only **Section B** (Schienenwege der Eisenbahnen des Bundes) is imported; sections C and D are ignored.

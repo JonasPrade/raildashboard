@@ -20,6 +20,8 @@ const HaushaltsImportPage = lazyWithRetry(() => import("./features/haushalt-impo
 const HaushaltsReviewPage = lazyWithRetry(() => import("./features/haushalt-import/HaushaltsReviewPage"));
 const HaushaltsUnmatchedPage = lazyWithRetry(() => import("./features/haushalt-import/HaushaltsUnmatchedPage"));
 const HaushaltsGuidePage = lazyWithRetry(() => import("./features/haushalt-import/HaushaltsGuidePage"));
+const GvfgImportPage = lazyWithRetry(() => import("./features/gvfg-import/GvfgImportPage"));
+const GvfgReviewPage = lazyWithRetry(() => import("./features/gvfg-import/GvfgReviewPage"));
 const FinveOverviewPage = lazyWithRetry(() => import("./features/finves/FinveOverviewPage"));
 const VibImportPage = lazyWithRetry(() => import("./features/vib-import/VibImportPage"));
 const VibReviewPage = lazyWithRetry(() => import("./features/vib-import/VibReviewPage"));
@@ -123,6 +125,14 @@ export const router = createBrowserRouter([
             {
                 path: "admin/haushalt-import/guide",
                 element: <HaushaltsGuidePage />,
+            },
+            {
+                path: "admin/gvfg-import",
+                element: <GvfgImportPage />,
+            },
+            {
+                path: "admin/gvfg-import/review/:parseResultId",
+                element: <GvfgReviewPage />,
             },
             {
                 path: "admin/haushalt-unmatched",

@@ -55,6 +55,7 @@ export function Header() {
     const canAdmin =
         can("assignment.manage") ||
         can("haushalt.import") ||
+        can("gvfg.import") ||
         can("vib.import") ||
         can("project.create") ||
         can("projectgroup.create") ||

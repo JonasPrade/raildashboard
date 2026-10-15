@@ -12,6 +12,17 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **GVFG-Bundesprogramm import (stage 1).** Editors upload a programme PDF (main part or
+  annex) under *Admin → GVFG-Import*; a Celery task reads it deterministically with pdfplumber
+  (fixed column vocabulary, numbers placed by header column positions, tolerances scaled to the
+  font size), checks the "Summe über <Land>" lines and every ∑ line against its A/B/C lines,
+  and suggests projects (previous edition's links, normalised key, key without suffix, name).
+  The review page shows the warnings, flags and suggestions; confirming writes the edition
+  (`gvfg_program`, `gvfg_entry`, `gvfg_entry_amount` with the yearly aid per printed column,
+  `gvfg_entry_project`) in one transaction, can create missing projects and adds the groups
+  "GVFG"/"GVFG BW". Public reads: `GET /api/v1/gvfg/programs`, `…/programs/{id}/entries`,
+  `…/projects/{id}/entries`. New capability `gvfg.import` (granted to editors).
+  **Migration** `20261015001` (additive). See `docs/features/feature-gvfg-import.md`.
 - **Merge duplicate projects (prerequisite for the GVFG import).** MCP tool `merge_projects`
   and `POST /api/v1/projects/merge` merge a duplicate into the project that stays: its empty
   fields are filled, property flags OR-ed, every link to the duplicate (groups, texts, FinVe/VIB/

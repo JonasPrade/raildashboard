@@ -2247,6 +2247,145 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/import/gvfg/parse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Parse
+         * @description Upload a GVFG programme PDF (main part or annex) and start the parse task.
+         *     Poll GET /api/v1/tasks/{task_id}; the result carries the parse_result_id.
+         */
+        post: operations["start_parse_api_v1_import_gvfg_parse_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/gvfg/parse-result": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Parse Results */
+        get: operations["list_parse_results_api_v1_import_gvfg_parse_result_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/gvfg/parse-result/{parse_result_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Parse Result */
+        get: operations["get_parse_result_api_v1_import_gvfg_parse_result__parse_result_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Parse Result
+         * @description Delete a parse run. Data already confirmed into an edition stays.
+         */
+        delete: operations["delete_parse_result_api_v1_import_gvfg_parse_result__parse_result_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/gvfg/parse-result/{parse_result_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm Parse Result
+         * @description Write the reviewed result into its edition (replaces the parts it contains).
+         */
+        post: operations["confirm_parse_result_api_v1_import_gvfg_parse_result__parse_result_id__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/gvfg/programs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Programs
+         * @description All imported editions, newest first.
+         */
+        get: operations["list_programs_api_v1_gvfg_programs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/gvfg/programs/{program_id}/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Program Entries
+         * @description All Vorhaben of an edition with their amount lines and linked projects.
+         */
+        get: operations["list_program_entries_api_v1_gvfg_programs__program_id__entries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/gvfg/projects/{project_id}/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Project Entries
+         * @description GVFG entries of a project across all editions, newest first.
+         */
+        get: operations["list_project_entries_api_v1_gvfg_projects__project_id__entries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2433,6 +2572,11 @@ export interface components {
              * @description abgeordnetenwatch-Wahlperiode; leer = aktuelle
              */
             period_external_id?: number | null;
+        };
+        /** Body_start_parse_api_v1_import_gvfg_parse_post */
+        Body_start_parse_api_v1_import_gvfg_parse_post: {
+            /** Pdf */
+            pdf: string;
         };
         /** Body_start_parse_api_v1_import_haushalt_parse_post */
         Body_start_parse_api_v1_import_haushalt_parse_post: {
@@ -3268,6 +3412,217 @@ export interface components {
             updated_at?: string | null;
             /** Username Snapshot */
             username_snapshot?: string | null;
+        };
+        /** GvfgAmountSchema */
+        GvfgAmountSchema: {
+            /** Category */
+            category: string;
+            /** Computed */
+            computed: boolean;
+            /** Cost Total */
+            cost_total: string | null;
+            /** Cost Eligible */
+            cost_eligible: string | null;
+            /** Aid Total */
+            aid_total: string | null;
+            /** Periods */
+            periods: {
+                [key: string]: string;
+            };
+        };
+        /** GvfgConfirmRequest */
+        GvfgConfirmRequest: {
+            /** Assignments */
+            assignments?: {
+                [key: string]: number[];
+            };
+            /** Create Projects */
+            create_projects?: string[];
+        };
+        /** GvfgConfirmResponse */
+        GvfgConfirmResponse: {
+            /** Entries */
+            entries: number;
+            /** Links */
+            links: number;
+            /** Projects Created */
+            projects_created: number;
+            /** Groups Added */
+            groups_added: number;
+        };
+        /** GvfgEntrySchema */
+        GvfgEntrySchema: {
+            /** Id */
+            id: number;
+            /** Program Id */
+            program_id: number;
+            /** Key */
+            key: string;
+            /** Key Raw */
+            key_raw: string;
+            /** Land */
+            land: string;
+            /** Kind */
+            kind: string;
+            /** Part */
+            part: string;
+            /** City */
+            city: string | null;
+            /** Name */
+            name: string | null;
+            /** Lph */
+            lph: string | null;
+            /** Funding Type */
+            funding_type: string | null;
+            /** Funding Rate */
+            funding_rate: number | null;
+            /** Start Year */
+            start_year: number | null;
+            /** Construction Start */
+            construction_start: number | null;
+            /** Commissioning Planned */
+            commissioning_planned: number | null;
+            /** Commissioning Actual */
+            commissioning_actual: number | null;
+            /** Amounts */
+            amounts: components["schemas"]["GvfgAmountSchema"][];
+            /** Projects */
+            projects: components["schemas"]["GvfgProjectRef"][];
+        };
+        /** GvfgParseResultDetail */
+        GvfgParseResultDetail: {
+            /** Id */
+            id: number;
+            /** Pdf Filename */
+            pdf_filename: string;
+            /** Year From */
+            year_from: number | null;
+            /** Year To */
+            year_to: number | null;
+            /** Is Annex */
+            is_annex: boolean;
+            /** Status */
+            status: string;
+            /** Error Message */
+            error_message: string | null;
+            /**
+             * Parsed At
+             * Format: date-time
+             */
+            parsed_at: string;
+            /** Username Snapshot */
+            username_snapshot: string | null;
+            /** Confirmed At */
+            confirmed_at: string | null;
+            /** Confirmed By Snapshot */
+            confirmed_by_snapshot: string | null;
+            /** Result Json */
+            result_json: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** GvfgParseResultSummary */
+        GvfgParseResultSummary: {
+            /** Id */
+            id: number;
+            /** Pdf Filename */
+            pdf_filename: string;
+            /** Year From */
+            year_from: number | null;
+            /** Year To */
+            year_to: number | null;
+            /** Is Annex */
+            is_annex: boolean;
+            /** Status */
+            status: string;
+            /** Error Message */
+            error_message: string | null;
+            /**
+             * Parsed At
+             * Format: date-time
+             */
+            parsed_at: string;
+            /** Username Snapshot */
+            username_snapshot: string | null;
+            /** Confirmed At */
+            confirmed_at: string | null;
+            /** Confirmed By Snapshot */
+            confirmed_by_snapshot: string | null;
+        };
+        /** GvfgPeriodSchema */
+        GvfgPeriodSchema: {
+            /** Label */
+            label: string;
+            /** Year From */
+            year_from: number | null;
+            /** Year To */
+            year_to: number | null;
+            /** Kind */
+            kind: string;
+        };
+        /** GvfgProgramSchema */
+        GvfgProgramSchema: {
+            /** Id */
+            id: number;
+            /** Year From */
+            year_from: number;
+            /** Year To */
+            year_to: number;
+            /** Title */
+            title: string;
+            /** Stand */
+            stand: string | null;
+            /** Has Annex */
+            has_annex: boolean;
+            /** Periods */
+            periods: components["schemas"]["GvfgPeriodSchema"][];
+        };
+        /** GvfgProjectEntrySchema */
+        GvfgProjectEntrySchema: {
+            /** Id */
+            id: number;
+            /** Program Id */
+            program_id: number;
+            /** Key */
+            key: string;
+            /** Key Raw */
+            key_raw: string;
+            /** Land */
+            land: string;
+            /** Kind */
+            kind: string;
+            /** Part */
+            part: string;
+            /** City */
+            city: string | null;
+            /** Name */
+            name: string | null;
+            /** Lph */
+            lph: string | null;
+            /** Funding Type */
+            funding_type: string | null;
+            /** Funding Rate */
+            funding_rate: number | null;
+            /** Start Year */
+            start_year: number | null;
+            /** Construction Start */
+            construction_start: number | null;
+            /** Commissioning Planned */
+            commissioning_planned: number | null;
+            /** Commissioning Actual */
+            commissioning_actual: number | null;
+            /** Amounts */
+            amounts: components["schemas"]["GvfgAmountSchema"][];
+            /** Projects */
+            projects: components["schemas"]["GvfgProjectRef"][];
+            program: components["schemas"]["GvfgProgramSchema"];
+        };
+        /** GvfgProjectRef */
+        GvfgProjectRef: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -10420,6 +10775,255 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_parse_api_v1_import_gvfg_parse_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_start_parse_api_v1_import_gvfg_parse_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskLaunchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_parse_results_api_v1_import_gvfg_parse_result_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GvfgParseResultSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_parse_result_api_v1_import_gvfg_parse_result__parse_result_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                parse_result_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GvfgParseResultDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_parse_result_api_v1_import_gvfg_parse_result__parse_result_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                parse_result_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_parse_result_api_v1_import_gvfg_parse_result__parse_result_id__confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                parse_result_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GvfgConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GvfgConfirmResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_programs_api_v1_gvfg_programs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GvfgProgramSchema"][];
+                };
+            };
+        };
+    };
+    list_program_entries_api_v1_gvfg_programs__program_id__entries_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                program_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GvfgEntrySchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_project_entries_api_v1_gvfg_projects__project_id__entries_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GvfgProjectEntrySchema"][];
+                };
             };
             /** @description Validation Error */
             422: {
