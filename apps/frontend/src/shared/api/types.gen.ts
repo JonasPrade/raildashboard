@@ -1904,6 +1904,43 @@ export interface paths {
         patch: operations["assign_vib_entry_api_v1_admin_unassigned_vib_entries__entry_id__assign_patch"];
         trace?: never;
     };
+    "/api/v1/admin/unassigned-gvfg-entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Unassigned Gvfg Entries
+         * @description GVFG Vorhaben of the newest edition without a project.
+         */
+        get: operations["get_unassigned_gvfg_entries_api_v1_admin_unassigned_gvfg_entries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/unassigned-gvfg-entries/{entry_id}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Assign Gvfg Entry */
+        patch: operations["assign_gvfg_entry_api_v1_admin_unassigned_gvfg_entries__entry_id__assign_patch"];
+        trace?: never;
+    };
     "/api/v1/roles/": {
         parameters: {
             query?: never;
@@ -2376,6 +2413,7 @@ export interface paths {
         /**
          * List Project Entries
          * @description GVFG entries of a project across all editions, newest first.
+         *     ``with_subprojects`` adds the entries of its direct subprojects.
          */
         get: operations["list_project_entries_api_v1_gvfg_projects__project_id__entries_get"];
         put?: never;
@@ -10097,6 +10135,72 @@ export interface operations {
             };
         };
     };
+    get_unassigned_gvfg_entries_api_v1_admin_unassigned_gvfg_entries_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GvfgEntrySchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assign_gvfg_entry_api_v1_admin_unassigned_gvfg_entries__entry_id__assign_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignProjectsInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_roles_api_v1_roles__get: {
         parameters: {
             query?: never;
@@ -11007,7 +11111,9 @@ export interface operations {
     };
     list_project_entries_api_v1_gvfg_projects__project_id__entries_get: {
         parameters: {
-            query?: never;
+            query?: {
+                with_subprojects?: boolean;
+            };
             header?: never;
             path: {
                 project_id: number;

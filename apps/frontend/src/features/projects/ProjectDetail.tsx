@@ -26,6 +26,7 @@ import {
     useDeleteProject,
     useProject,
     useProjectBvwp,
+    useProjectGvfg,
     useSubprojects,
     queryKeys,
 } from "../../shared/api/queries";
@@ -40,6 +41,7 @@ import ProjectHistorySection from "../changelog/ProjectHistorySection";
 import ProjectTextsSection from "./ProjectTextsSection";
 import { ProjectTableOfContents, type TocSection } from "./ProjectTableOfContents";
 import FinveSection from "./components/FinveSection";
+import GvfgSection from "./components/GvfgSection";
 import ProgressSection from "./components/progress/ProgressSection";
 import ProjectConstituencySection from "../abgeordnete/ProjectConstituencySection";
 import TasksSection from "../todos/TasksSection";
@@ -152,6 +154,7 @@ export default function ProjectDetail() {
     const textsRef = useRef<HTMLDivElement>(null);
     const justificationRef = useRef<HTMLDivElement>(null);
     const finveRef = useRef<HTMLDivElement>(null);
+    const gvfgRef = useRef<HTMLDivElement>(null);
     const bvwpRef = useRef<HTMLDivElement>(null);
     const vibRef = useRef<HTMLDivElement>(null);
     const superiorRef = useRef<HTMLDivElement>(null);
@@ -167,6 +170,7 @@ export default function ProjectDetail() {
     const isInvalidId = Number.isNaN(projectId);
 
     const { data, isLoading, isError, error } = useProject(projectId);
+    const { data: gvfgEntries } = useProjectGvfg(projectId);
     const { data: bvwpData } = useProjectBvwp(projectId);
 
     const mutation = useMutation({
@@ -409,6 +413,12 @@ export default function ProjectDetail() {
             label: "FinVe",
             ref: finveRef,
             visible: true,
+        },
+        {
+            id: "gvfg",
+            label: "GVFG",
+            ref: gvfgRef,
+            visible: (gvfgEntries?.length ?? 0) > 0,
         },
         {
             id: "bvwp",
@@ -696,6 +706,11 @@ export default function ProjectDetail() {
                 {/* FinVe */}
                 <div ref={finveRef}>
                     <FinveSection projectId={projectId} />
+                </div>
+
+                {/* GVFG-Bundesprogramm */}
+                <div ref={gvfgRef}>
+                    <GvfgSection projectId={projectId} />
                 </div>
 
                 {/* BVWP-Bewertung */}

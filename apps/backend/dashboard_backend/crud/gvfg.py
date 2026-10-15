@@ -395,17 +395,29 @@ def program_entries(db: Session, program_id: int) -> list[GvfgEntry]:
     )
 
 
-def project_entries(db: Session, project_id: int) -> list[GvfgEntry]:
-    """All GVFG entries linked to a project, newest edition first."""
-    return (
+def project_entries(db: Session, project_id: int, with_subprojects: bool = False) -> list[GvfgEntry]:
+    """GVFG entries linked to a project (and, optionally, to its direct
+    subprojects — a parent shows them as "Förderung in Teilprojekten"),
+    newest edition first."""
+    ids = [project_id]
+    if with_subprojects:
+        ids += [pid for (pid,) in db.query(Project.id).filter(Project.superior_project_id == project_id)]
+    rows = (
         db.query(GvfgEntry)
         .join(gvfg_entry_project, gvfg_entry_project.c.entry_id == GvfgEntry.id)
         .join(GvfgProgram, GvfgProgram.id == GvfgEntry.program_id)
-        .filter(gvfg_entry_project.c.project_id == project_id)
-        .options(selectinload(GvfgEntry.amounts), selectinload(GvfgEntry.program))
-        .order_by(GvfgProgram.year_from.desc())
+        .filter(gvfg_entry_project.c.project_id.in_(ids))
+        .options(
+            selectinload(GvfgEntry.amounts),
+            selectinload(GvfgEntry.program),
+            selectinload(GvfgEntry.projects),
+        )
+        .order_by(GvfgProgram.year_from.desc(), GvfgEntry.key)
         .all()
     )
+    # An entry linked to the parent and a child comes back twice; no DISTINCT
+    # because Postgres wants ORDER BY columns in a DISTINCT select list.
+    return list(dict.fromkeys(rows))
 
 
 def unassigned_entries(db: Session) -> list[GvfgEntry]:
@@ -417,6 +429,22 @@ def unassigned_entries(db: Session) -> list[GvfgEntry]:
     return (
         db.query(GvfgEntry)
         .filter(GvfgEntry.program_id == newest.id, GvfgEntry.id.not_in(linked))
+        .options(selectinload(GvfgEntry.amounts), selectinload(GvfgEntry.projects))
         .order_by(GvfgEntry.land, GvfgEntry.key)
         .all()
     )
+
+
+def assign_entry(db: Session, entry: GvfgEntry, project_ids: list[int], user: Any) -> None:
+    """Link an entry to projects (from "Offene Zuordnungen"); like the
+    confirm, the projects get the GVFG group(s) — added, never removed."""
+    projects = db.query(Project).filter(Project.id.in_(project_ids)).all()
+    missing = set(project_ids) - {p.id for p in projects}
+    if missing:
+        raise GvfgConfirmError(f"Unbekannte Projekte: {sorted(missing)}")
+    groups = _groups(db)
+    for project in projects:
+        if project not in entry.projects:
+            entry.projects.append(project)
+        _ensure_groups(db, project, entry.key, groups, user)
+    db.commit()

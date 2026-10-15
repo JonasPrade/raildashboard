@@ -12,6 +12,14 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **GVFG display (stage 3).** The main menu item "Haushalt" becomes **"Finanzen"** with the
+  sections "Bedarfsplan Schiene" (`/finanzen/bedarfsplan`, the former FinVe overview; `/finves`
+  redirects) and "GVFG" (`/finanzen/gvfg`: all Vorhaben of an edition with filters, key figures,
+  project links and sums per Land). The project page gets a "GVFG" section: newest edition with
+  ∑/A/B/C lines, a bar chart of the yearly aid and the development across editions; a parent
+  project links its subprojects' Vorhaben (`?with_subprojects=true`). GVFG Vorhaben of the newest
+  edition without a project appear under *Admin → Offene Zuordnungen*
+  (`GET /api/v1/admin/unassigned-gvfg-entries`, `PATCH …/{id}/assign`) and in the admin badge.
 - **GVFG-Bundesprogramm import (stage 1).** Editors upload a programme PDF (main part or
   annex) under *Admin → GVFG-Import*; a Celery task reads it deterministically with pdfplumber
   (fixed column vocabulary, numbers placed by header column positions, tolerances scaled to the

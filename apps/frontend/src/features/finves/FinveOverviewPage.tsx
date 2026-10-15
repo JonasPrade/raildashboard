@@ -3,7 +3,6 @@ import { Link, useSearchParams } from "react-router-dom";
 import {
     Alert,
     Collapse,
-    Container,
     Group,
     Loader,
     SegmentedControl,
@@ -159,9 +158,8 @@ export default function FinveOverviewPage() {
     }, [finves, search, typeFilter]);
 
     return (
-        <Container size="xl" py={{ base: "md", sm: "xl" }} px={{ base: 0, sm: "md" }}>
-            <Stack gap="lg">
-                <ChronicleHeadline as="h1">Finanzierungsvereinbarungen</ChronicleHeadline>
+        <Stack gap="lg" py="lg">
+                <ChronicleHeadline as="h2">Finanzierungsvereinbarungen</ChronicleHeadline>
 
                 <Group wrap="wrap" gap="sm">
                     <TextInput
@@ -207,7 +205,6 @@ export default function FinveOverviewPage() {
                         ))}
                     </Stack>
                 )}
-            </Stack>
-        </Container>
+        </Stack>
     );
 }

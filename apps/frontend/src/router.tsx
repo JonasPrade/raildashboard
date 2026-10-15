@@ -23,6 +23,9 @@ const HaushaltsGuidePage = lazyWithRetry(() => import("./features/haushalt-impor
 const GvfgImportPage = lazyWithRetry(() => import("./features/gvfg-import/GvfgImportPage"));
 const GvfgReviewPage = lazyWithRetry(() => import("./features/gvfg-import/GvfgReviewPage"));
 const FinveOverviewPage = lazyWithRetry(() => import("./features/finves/FinveOverviewPage"));
+const FinanzenLayout = lazyWithRetry(() => import("./features/finanzen/FinanzenLayout"));
+const FinvesRedirect = lazyWithRetry(() => import("./features/finanzen/FinvesRedirect"));
+const GvfgOverviewPage = lazyWithRetry(() => import("./features/gvfg/GvfgOverviewPage"));
 const VibImportPage = lazyWithRetry(() => import("./features/vib-import/VibImportPage"));
 const VibReviewPage = lazyWithRetry(() => import("./features/vib-import/VibReviewPage"));
 const VibStructurePreviewPage = lazyWithRetry(() => import("./features/vib-import/VibStructurePreviewPage"));
@@ -140,7 +143,15 @@ export const router = createBrowserRouter([
             },
             {
                 path: "finves",
-                element: <FinveOverviewPage />,
+                element: <FinvesRedirect />,
+            },
+            {
+                path: "finanzen",
+                element: <FinanzenLayout />,
+                children: [
+                    { path: "bedarfsplan", element: <FinveOverviewPage /> },
+                    { path: "gvfg", element: <GvfgOverviewPage /> },
+                ],
             },
             {
                 path: "admin/finve-progress",

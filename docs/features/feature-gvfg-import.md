@@ -1,8 +1,9 @@
 # Feature: GVFG-Bundesprogramm (Import, Projektseite, Finanzen-Übersicht)
 
-**Status: Etappe 1 umgesetzt (2026-10-15)** — Datenmodell, Parser, Import mit
-Review und Lese-API stehen (siehe [Umsetzungsstand](#umsetzungsstand-2026-10-15)).
-Anzeige (Etappe 3) und Ausgabenvergleich/MCP (Etappe 4) folgen. — Entscheidungen mit dem Nutzer abgestimmt
+**Status: Etappen 2 und 3 umgesetzt (2026-10-15)** — Datenmodell, Parser, Import mit
+Review, Lese-API, Finanzen-Menü, GVFG-Übersicht, Projektseite und offene Zuordnungen
+stehen (siehe [Umsetzungsstand](#umsetzungsstand-2026-10-15)). Ausgabenvergleich und
+MCP-Tools (Etappe 4) folgen. — Entscheidungen mit dem Nutzer abgestimmt
 (Grilling-Runde 2026-10-13/14). Vorstufe:
 [`feature-project-merge.md`](feature-project-merge.md) (Dubletten bereinigen).
 
@@ -152,8 +153,21 @@ der **neuesten Ausgabe** zählen in der Admin-Übersicht „Nicht zugeordnet“ 
 - **Lese-API (öffentlich):** `GET /api/v1/gvfg/programs`,
   `GET /api/v1/gvfg/programs/{id}/entries`, `GET /api/v1/gvfg/projects/{id}/entries`.
 - **Recht** `gvfg.import` (Editoren), Migration `20261015001`.
-- Noch offen aus Etappe 2: GVFG-Vorhaben ohne Projekt in der Admin-Übersicht
-  „Offene Zuordnungen“ (`crud.gvfg.unassigned_entries` steht bereit).
+- **Offene Zuordnungen:** `GET /api/v1/admin/unassigned-gvfg-entries` (Vorhaben der
+  neuesten Ausgabe ohne Projekt) und `PATCH …/{id}/assign` (Recht
+  `assignment.manage`); das Zuordnen ergänzt wie der Import die Gruppen „GVFG“/„GVFG BW“.
+  Die Vorhaben zählen im Admin-Badge mit.
+- **Anzeige (Etappe 3):** Menüpunkt „Finanzen“ (`FinanzenLayout`, Umschalter
+  „Bedarfsplan Schiene“ / „GVFG“); `/finves?q=` leitet auf `/finanzen/bedarfsplan` um.
+  `/finanzen/gvfg` (`GvfgOverviewPage`): Ausgabe wählen, Filter Land, Fördertatbestand,
+  kommunal/DB, Teil, „ohne Projekt“, Suche; Kennzahlen, Tabelle mit Projektlinks,
+  Summen je Land. Der Kategorie-Filter entfällt — die Spalte „Kat.“ zeigt die
+  Kategorien. Projektseite (`GvfgSection`, Inhaltsverzeichnis „GVFG“): je Schlüssel die
+  neueste Ausgabe mit Eckdaten, aufklappbar ∑/A/B/C-Tabelle, Balkendiagramm der
+  Finanzhilfen je Jahresspalte (ausgezahlt / geplant) und „Entwicklung über die
+  Ausgaben“. Ein Elternprojekt listet unter „GVFG-Förderung in Teilprojekten“ die
+  Vorhaben seiner direkten Unterprojekte als Links, ohne Summe
+  (`GET /api/v1/gvfg/projects/{id}/entries?with_subprojects=true`).
 
 ## MCP
 
@@ -169,7 +183,8 @@ Zuordnen von Vorhaben zu Projekten. Der Import selbst bleibt außerhalb des MCP.
    Geometrie → Beschreibung mit Fördersatz → Welle W2 vor W3 vor W1. Analyse direkt
    vor dem Zusammenführen auf dem aktuellen Stand wiederholen.
 2. Datenmodell + Import mit Review — umgesetzt.
-3. Anzeige (Finanzen-Menü, GVFG-Übersicht, Projektseite).
+3. Anzeige (Finanzen-Menü, GVFG-Übersicht, Projektseite) — umgesetzt; Reiter
+   „Änderungen zur Vorausgabe“ kommt mit Etappe 4.
 4. Ausgabenvergleich + MCP-Tools.
 
 Etappe 1 läuft parallel zu 2/3, muss aber vor dem ersten echten Import abgeschlossen sein.
