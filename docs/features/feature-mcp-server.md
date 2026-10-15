@@ -31,6 +31,11 @@ Rechtemodell — ein Key kann nie mehr als der Nutzer, dem er gehört.
 - **Importe bleiben draußen** — VIB-/Haushalt-/PDF-Import sind langlaufende
   Celery-Jobs mit Mensch-im-Loop-Review; die gehören nicht in eine
   Tool-Aufruf-Semantik mit Sekunden-Timeout.
+  **Ausnahme Infraplan (2026-10-15):** Für den Infraplan-Import gibt es MCP-Tools für
+  den ganzen Ablauf nach dem Upload (Auslesen anstoßen, Status abfragen, zuordnen,
+  bestätigen, Kennzahlen eintragen). Langlaufend bleibt nur der Celery-Task, den das
+  Tool startet und dessen Status ein zweites Tool abfragt. Siehe
+  `feature-infraplan-import.md` → „MCP & Skill“.
 
 ## Ausgangslage (Stand 2026-09-09)
 
@@ -84,7 +89,8 @@ konfigurierbaren Headern (Claude Code) funktionieren schon vorher.
 **Out of scope:**
 
 - OAuth / Authentik-Anbindung (eigenes Thema, siehe oben).
-- Import-Pipelines als MCP-Tools (VIB, Haushalt, Bauportal, Fulda, Medien).
+- Import-Pipelines als MCP-Tools (VIB, Haushalt, Bauportal, Fulda, Medien) —
+  Ausnahme Infraplan, siehe oben.
 - Löschen von Projekten oder anderen Stammdaten über MCP (einzelne Geometrie-Features
   schon, siehe `edit_project_geometry`).
 - MCP-*Resources* und *Prompts* — die erste Ausbaustufe bietet nur *Tools*.
