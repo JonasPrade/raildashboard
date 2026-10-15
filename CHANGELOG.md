@@ -12,6 +12,11 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **MCP: free FinVe search.** `list_finves` searches all FinVes — including those not linked
+  to any project — by FinVe number, name, Bedarfsplan number or lfd. Nr., with filters for
+  budget year, Sammel-FinVe and project link; `get_finve` returns one FinVe with its budget
+  history and linked projects. Previously FinVes were only reachable through a project
+  (`list_project_finves`).
 - **Infraplan import, stage 1: parser + data model (#179).** `POST /api/v1/import/infraplan/parse`
   (PDF + `year`) stores the PDF with a new draft and starts the Celery task `parse_infraplan_pdf`,
   which reads the measure tables of chapter 2.3 (Bedarfsplan Teil A–D, GVFG Kat. A/C, InvKG)

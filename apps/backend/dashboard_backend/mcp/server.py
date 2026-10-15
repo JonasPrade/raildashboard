@@ -29,6 +29,8 @@ INSTRUCTIONS = (
     "Schienendashboard: Eisenbahn-Infrastrukturprojekte in Deutschland mit "
     "Finanzierung (FinVe, Haushalt), Planungsstand und Aufgaben. Projekte zuerst "
     "mit list_projects suchen, dann per id mit den get_*-Tools vertiefen. "
+    "FinVe frei nach Nummer, Name oder Bedarfsplannummer mit list_finves suchen "
+    "(auch ohne Projektzuordnung), Details mit get_finve. "
     "Schreibende Tools wirken sofort und stehen im Änderungsprotokoll. "
     "Projektlängen kommen aus der Geometrie (compute_project_length mit apply), "
     "nicht aus veröffentlichten Angaben. Geometrie: Bahnstrecken mit "

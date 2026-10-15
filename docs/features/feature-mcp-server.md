@@ -207,6 +207,8 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `get_project` | Projektdetail inkl. BVWP-Daten und Unterprojekten | — |
 | `get_project_progress` | Planungsstand inkl. Beobachtungen und Prognose | — |
 | `list_project_finves` | Finanzierungsvereinbarungen und Budgets eines Projekts | — |
+| `list_finves` | FinVe frei suchen — auch ohne Projektzuordnung: FinVe-Nummer, Name, Bedarfsplannummer, lfd. Nr.; Filter Haushaltsjahr, Sammel-FinVe, mit/ohne Projekt | — |
+| `get_finve` | eine FinVe per Nummer mit Budgethistorie und verknüpften Projekten | — |
 | `get_project_texts` | Projekttexte nach Typ | — |
 | `list_todos` | Aufgaben, gefiltert | — |
 | `create_project` | Projekt/Unterprojekt anlegen (final, ohne Geometrie) | `project.create` |

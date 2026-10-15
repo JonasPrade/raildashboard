@@ -126,7 +126,8 @@ A bearer key on these endpoints gets `403` — a key cannot mint or revoke keys.
 Streamable HTTP, stateless, JSON responses, disabled with `MCP_ENABLED=false`. Only bearer
 keys holding `mcp.access` get in (admin-only for now); tools call the CRUD layer directly
 and check the key's capabilities before writing. Tools: `list_project_groups`, `list_projects`,
-`get_project`, `get_project_progress`, `list_project_finves`, `get_project_texts`,
+`get_project`, `get_project_progress`, `list_project_finves`, `list_finves`, `get_finve`
+(free FinVe search by number, name or Bedarfsplan number), `get_project_texts`,
 `list_text_types`, `list_todos`, `search_operational_points`, `get_project_geometry`,
 `list_data_gaps`, `check_geometry` (data maintenance across many projects) (read)
 and `create_project`, `compute_project_length`, `update_project`, `set_project_groups`,

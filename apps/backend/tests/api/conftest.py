@@ -21,7 +21,10 @@ from dashboard_backend.models.associations.text_to_project import TextToProject
 from dashboard_backend.models.associations.project_to_project_group import (
     ProjectToProjectGroup,
 )
+from dashboard_backend.models.associations.finve_to_project import FinveToProject
 from dashboard_backend.models.guides import GuideSectionOverride
+from dashboard_backend.models.haushalt.budget_titel_entry import BudgetTitelEntry
+from dashboard_backend.models.haushalt.haushalt_titel import HaushaltTitel
 from dashboard_backend.models.infraplan import InfraplanParseResult
 from dashboard_backend.models.gvfg import (
     GvfgEntry,
@@ -39,7 +42,9 @@ from dashboard_backend.models.parliament import (
     ParliamentPeriod,
     Politician,
 )
+from dashboard_backend.models.projects.budget import Budget
 from dashboard_backend.models.projects.bvwp_project_data import BvwpProjectData
+from dashboard_backend.models.projects.finve import Finve
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.projects.progress_observation import ProgressObservation
 from dashboard_backend.models.projects.project_progress import ProjectProgress
@@ -117,6 +122,11 @@ TABLES = [
     GvfgEntryAmount.__table__,
     gvfg_entry_project,
     GvfgParseResult.__table__,
+    Finve.__table__,  # MCP FinVe search (list_finves / get_finve)
+    FinveToProject.__table__,  # must follow project + finve (FK dependency)
+    Budget.__table__,  # must follow finve (FK dependency)
+    HaushaltTitel.__table__,  # must precede BudgetTitelEntry (FK dependency)
+    BudgetTitelEntry.__table__,  # must follow budgets + haushalt_titel
 ]
 
 
