@@ -12,6 +12,11 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **MCP: free FinVe search.** `list_finves` searches all FinVes — including those not linked
+  to any project — by FinVe number, name, Bedarfsplan number or lfd. Nr., with filters for
+  budget year, Sammel-FinVe and project link; `get_finve` returns one FinVe with its budget
+  history and linked projects. Previously FinVes were only reachable through a project
+  (`list_project_finves`).
 - **Edit saved project geometry in place.** The geometry editor (wizard step 2 and
   "Geometrie verwalten") gets a switch "Bestehende Geometrie bearbeiten": saved lines and points
   are loaded into terra-draw, vertices can be moved, intermediate points inserted and vertices
