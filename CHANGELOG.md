@@ -17,6 +17,11 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   budget year, Sammel-FinVe and project link; `get_finve` returns one FinVe with its budget
   history and linked projects. Previously FinVes were only reachable through a project
   (`list_project_finves`).
+- **Edit saved project geometry in place.** The geometry editor (wizard step 2 and
+  "Geometrie verwalten") gets a switch "Bestehende Geometrie bearbeiten": saved lines and points
+  are loaded into terra-draw, vertices can be moved, intermediate points inserted and vertices
+  deleted. Only changed parts are written back; feature order and properties are kept. Frontend
+  only (`features/routing/editExisting.ts`).
 - **Infraplan import, stage 1: parser + data model (#179).** `POST /api/v1/import/infraplan/parse`
   (PDF + `year`) stores the PDF with a new draft and starts the Celery task `parse_infraplan_pdf`,
   which reads the measure tables of chapter 2.3 (Bedarfsplan Teil A–D, GVFG Kat. A/C, InvKG)

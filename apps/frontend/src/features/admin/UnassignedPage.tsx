@@ -26,7 +26,10 @@ import {
     useVibEntry,
     useUnassignedGvfgEntries,
     useAssignGvfgEntry,
+    type Project,
 } from "../../shared/api/queries";
+import CreateDraftProjectModal from "../projects/CreateDraftProjectModal";
+import { MissingProjectAnchor } from "../import-review/shared";
 import { formatMio, sumLine } from "../gvfg/gvfgFormat";
 import VibEntryEditDrawer from "../vib-import/VibEntryEditDrawer";
 
@@ -36,6 +39,13 @@ function UnassignedPageContent() {
     const [gvfgSelections, setGvfgSelections] = useState<Record<number, string[]>>({});
     const [editingVibId, setEditingVibId] = useState<number | null>(null);
     const { data: editingVibEntry } = useVibEntry(editingVibId);
+    // "A project is missing → create it as a draft and assign it here." One
+    // modal serves every row; the anchor sets the target entry.
+    const [draft, setDraft] = useState<{
+        name: string;
+        sourceLabel: string;
+        onCreated: (project: Project) => void;
+    } | null>(null);
 
     const { data: finves, isLoading: finvesLoading } = useUnassignedFinves();
     const { data: vibEntries, isLoading: vibLoading } = useUnassignedVibEntries();
@@ -50,8 +60,8 @@ function UnassignedPageContent() {
         label: p.name ?? `Projekt ${p.id}`,
     }));
 
-    const handleAssignFinve = async (finveId: number) => {
-        const ids = (finveSelections[finveId] ?? []).map(Number);
+    const handleAssignFinve = async (finveId: number, extraIds: number[] = []) => {
+        const ids = [...new Set([...(finveSelections[finveId] ?? []).map(Number), ...extraIds])];
         if (!ids.length) return;
         try {
             await assignFinve.mutateAsync({ finveId, projectIds: ids });
@@ -62,8 +72,8 @@ function UnassignedPageContent() {
         }
     };
 
-    const handleAssignVib = async (entryId: number) => {
-        const ids = (vibSelections[entryId] ?? []).map(Number);
+    const handleAssignVib = async (entryId: number, extraIds: number[] = []) => {
+        const ids = [...new Set([...(vibSelections[entryId] ?? []).map(Number), ...extraIds])];
         if (!ids.length) return;
         try {
             await assignVib.mutateAsync({ entryId, projectIds: ids });
@@ -74,8 +84,8 @@ function UnassignedPageContent() {
         }
     };
 
-    const handleAssignGvfg = async (entryId: number) => {
-        const ids = (gvfgSelections[entryId] ?? []).map(Number);
+    const handleAssignGvfg = async (entryId: number, extraIds: number[] = []) => {
+        const ids = [...new Set([...(gvfgSelections[entryId] ?? []).map(Number), ...extraIds])];
         if (!ids.length) return;
         try {
             await assignGvfg.mutateAsync({ entryId, projectIds: ids });
@@ -85,6 +95,21 @@ function UnassignedPageContent() {
             notifications.show({ color: "red", message: "Zuweisung fehlgeschlagen." });
         }
     };
+
+    // The new draft is assigned right away, together with any projects already
+    // picked in that row.
+    const openDraft = (
+        name: string | null | undefined,
+        sourceLabel: string,
+        assign: (extraIds: number[]) => void,
+    ) =>
+        setDraft({
+            name: name ?? "",
+            sourceLabel,
+            onCreated: (project) => {
+                if (project.id != null) assign([project.id]);
+            },
+        });
 
     const totalOpen = (finves?.length ?? 0) + (vibEntries?.length ?? 0) + (gvfgEntries?.length ?? 0);
 
@@ -154,26 +179,33 @@ function UnassignedPageContent() {
                                         </Table.Td>
                                         <Table.Td>{f.starting_year ?? "–"}</Table.Td>
                                         <Table.Td>
-                                            <Group gap="xs" wrap="nowrap">
-                                                <MultiSelect
-                                                    data={projectOptions}
-                                                    value={finveSelections[f.id] ?? []}
-                                                    onChange={(v) =>
-                                                        setFinveSelections((prev) => ({ ...prev, [f.id]: v }))
+                                            <Stack gap={4}>
+                                                <Group gap="xs" wrap="nowrap">
+                                                    <MultiSelect
+                                                        data={projectOptions}
+                                                        value={finveSelections[f.id] ?? []}
+                                                        onChange={(v) =>
+                                                            setFinveSelections((prev) => ({ ...prev, [f.id]: v }))
+                                                        }
+                                                        placeholder="Projekt suchen…"
+                                                        searchable
+                                                        filter={filterProjectOption}
+                                                        size="xs"
+                                                        w={300}
+                                                    />
+                                                    <ChronicleButton
+                                                        disabled={!(finveSelections[f.id]?.length)}
+                                                        onClick={() => handleAssignFinve(f.id)}
+                                                    >
+                                                        Zuweisen
+                                                    </ChronicleButton>
+                                                </Group>
+                                                <MissingProjectAnchor
+                                                    onClick={() =>
+                                                        openDraft(f.name, "FinVe", (extra) => handleAssignFinve(f.id, extra))
                                                     }
-                                                    placeholder="Projekt suchen…"
-                                                    searchable
-                                                    filter={filterProjectOption}
-                                                    size="xs"
-                                                    w={300}
                                                 />
-                                                <ChronicleButton
-                                                    disabled={!(finveSelections[f.id]?.length)}
-                                                    onClick={() => handleAssignFinve(f.id)}
-                                                >
-                                                    Zuweisen
-                                                </ChronicleButton>
-                                            </Group>
+                                            </Stack>
                                         </Table.Td>
                                     </Table.Tr>
                                 ))}
@@ -223,26 +255,33 @@ function UnassignedPageContent() {
                                         </Table.Td>
                                         <Table.Td>{e.report_year}</Table.Td>
                                         <Table.Td>
-                                            <Group gap="xs" wrap="nowrap">
-                                                <MultiSelect
-                                                    data={projectOptions}
-                                                    value={vibSelections[e.id] ?? []}
-                                                    onChange={(v) =>
-                                                        setVibSelections((prev) => ({ ...prev, [e.id]: v }))
+                                            <Stack gap={4}>
+                                                <Group gap="xs" wrap="nowrap">
+                                                    <MultiSelect
+                                                        data={projectOptions}
+                                                        value={vibSelections[e.id] ?? []}
+                                                        onChange={(v) =>
+                                                            setVibSelections((prev) => ({ ...prev, [e.id]: v }))
+                                                        }
+                                                        placeholder="Projekt suchen…"
+                                                        searchable
+                                                        filter={filterProjectOption}
+                                                        size="xs"
+                                                        w={300}
+                                                    />
+                                                    <ChronicleButton
+                                                        disabled={!(vibSelections[e.id]?.length)}
+                                                        onClick={() => handleAssignVib(e.id)}
+                                                    >
+                                                        Zuweisen
+                                                    </ChronicleButton>
+                                                </Group>
+                                                <MissingProjectAnchor
+                                                    onClick={() =>
+                                                        openDraft(e.vib_name_raw, "VIB", (extra) => handleAssignVib(e.id, extra))
                                                     }
-                                                    placeholder="Projekt suchen…"
-                                                    searchable
-                                                    filter={filterProjectOption}
-                                                    size="xs"
-                                                    w={300}
                                                 />
-                                                <ChronicleButton
-                                                    disabled={!(vibSelections[e.id]?.length)}
-                                                    onClick={() => handleAssignVib(e.id)}
-                                                >
-                                                    Zuweisen
-                                                </ChronicleButton>
-                                            </Group>
+                                            </Stack>
                                         </Table.Td>
                                         <Table.Td>
                                             <Button size="xs" variant="light" onClick={() => setEditingVibId(e.id)}>
@@ -301,26 +340,33 @@ function UnassignedPageContent() {
                                         <Table.Td>{e.land}</Table.Td>
                                         <Table.Td ta="right">{formatMio(sumLine(e)?.aid_total)}</Table.Td>
                                         <Table.Td>
-                                            <Group gap="xs" wrap="nowrap">
-                                                <MultiSelect
-                                                    data={projectOptions}
-                                                    value={gvfgSelections[e.id] ?? []}
-                                                    onChange={(v) =>
-                                                        setGvfgSelections((prev) => ({ ...prev, [e.id]: v }))
+                                            <Stack gap={4}>
+                                                <Group gap="xs" wrap="nowrap">
+                                                    <MultiSelect
+                                                        data={projectOptions}
+                                                        value={gvfgSelections[e.id] ?? []}
+                                                        onChange={(v) =>
+                                                            setGvfgSelections((prev) => ({ ...prev, [e.id]: v }))
+                                                        }
+                                                        placeholder="Projekt suchen…"
+                                                        searchable
+                                                        filter={filterProjectOption}
+                                                        size="xs"
+                                                        w={300}
+                                                    />
+                                                    <ChronicleButton
+                                                        disabled={!(gvfgSelections[e.id]?.length)}
+                                                        onClick={() => handleAssignGvfg(e.id)}
+                                                    >
+                                                        Zuweisen
+                                                    </ChronicleButton>
+                                                </Group>
+                                                <MissingProjectAnchor
+                                                    onClick={() =>
+                                                        openDraft(e.name, "GVFG", (extra) => handleAssignGvfg(e.id, extra))
                                                     }
-                                                    placeholder="Projekt suchen…"
-                                                    searchable
-                                                    filter={filterProjectOption}
-                                                    size="xs"
-                                                    w={300}
                                                 />
-                                                <ChronicleButton
-                                                    disabled={!(gvfgSelections[e.id]?.length)}
-                                                    onClick={() => handleAssignGvfg(e.id)}
-                                                >
-                                                    Zuweisen
-                                                </ChronicleButton>
-                                            </Group>
+                                            </Stack>
                                         </Table.Td>
                                     </Table.Tr>
                                 ))}
@@ -329,6 +375,14 @@ function UnassignedPageContent() {
                     )}
                 </Stack>
             </Stack>
+
+            <CreateDraftProjectModal
+                opened={draft !== null}
+                onClose={() => setDraft(null)}
+                initialName={draft?.name}
+                sourceLabel={draft?.sourceLabel}
+                onCreated={draft ? draft.onCreated : () => {}}
+            />
 
             <VibEntryEditDrawer
                 entry={editingVibEntry ?? null}

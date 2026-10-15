@@ -9,6 +9,7 @@ import {
 } from "terra-draw";
 import { TerraDrawMapLibreGLAdapter } from "terra-draw-maplibre-gl-adapter";
 import type { OperationalPointRef, RoutePreviewFeature } from "../../shared/api/queries";
+import type { EditablePart } from "./editExisting";
 
 const tileLayerUrl = import.meta.env.REACT_APP_TILE_LAYER_URL as string | undefined;
 
@@ -54,6 +55,14 @@ type Props = {
     drawnFeatures?: GeoJSON.Feature[];
     /** Fired on every terra-draw snapshot change with the current hand-drawn line/point features. */
     onDrawnFeaturesChange?: (features: GeoJSON.Feature[]) => void;
+    /**
+     * Saved geometry exploded into editable parts (see `editExisting.ts`). When set, the
+     * parts are loaded into terra-draw so their vertices can be moved, inserted and deleted
+     * in select mode; `null` removes them again (discarding unsaved edits).
+     */
+    editableParts?: EditablePart[] | null;
+    /** Fired on every terra-draw snapshot change with the current state of the editable parts. */
+    onEditedPartsChange?: (parts: EditablePart[]) => void;
     height?: number;
 };
 
@@ -155,7 +164,12 @@ function splitIndexedFC(raw: string | null, selected: Set<number>) {
     };
 }
 
-export default function GeometryPreviewMap({ existingGeojson, previewFeature, showExisting, previewPoints = [], selectionMode = false, selectedIndices, onFeatureClick, drawMode = null, drawnFeatures = [], onDrawnFeaturesChange, height = 500 }: Props) {
+/** True for terra-draw features that were loaded from the saved geometry (see `editExisting.ts`). */
+function isEditablePart(f: { properties?: Record<string, unknown> | null }): f is { properties: EditablePart["properties"] } {
+    return typeof f.properties?.srcIdx === "number";
+}
+
+export default function GeometryPreviewMap({ existingGeojson, previewFeature, showExisting, previewPoints = [], selectionMode = false, selectedIndices, onFeatureClick, drawMode = null, drawnFeatures = [], onDrawnFeaturesChange, editableParts = null, onEditedPartsChange, height = 500 }: Props) {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const mapRef = useRef<maplibregl.Map | null>(null);
     const drawRef = useRef<TerraDraw | null>(null);
@@ -164,9 +178,11 @@ export default function GeometryPreviewMap({ existingGeojson, previewFeature, sh
     const selectionModeRef = useRef(selectionMode);
     const onFeatureClickRef = useRef(onFeatureClick);
     const onDrawnFeaturesChangeRef = useRef(onDrawnFeaturesChange);
+    const onEditedPartsChangeRef = useRef(onEditedPartsChange);
     selectionModeRef.current = selectionMode;
     onFeatureClickRef.current = onFeatureClick;
     onDrawnFeaturesChangeRef.current = onDrawnFeaturesChange;
+    onEditedPartsChangeRef.current = onEditedPartsChange;
 
     // Init map once
     useLayoutEffect(() => {
@@ -249,12 +265,26 @@ export default function GeometryPreviewMap({ existingGeojson, previewFeature, sh
                     }),
                 ],
             });
+            // Split the snapshot into newly drawn features and loaded parts of the saved
+            // geometry (recognisable by their `srcIdx` property).
             const emitDrawn = () => {
-                const drawn = draw
+                const snapshot = draw
                     .getSnapshot()
-                    .filter((f) => f.properties?.mode === "linestring" || f.properties?.mode === "point")
+                    .filter((f) => f.properties?.mode === "linestring" || f.properties?.mode === "point");
+                const drawn = snapshot
+                    .filter((f) => !isEditablePart(f))
                     .map((f) => ({ type: "Feature" as const, geometry: f.geometry, properties: {} }));
+                const edited = snapshot.filter(isEditablePart).map((f) => ({
+                    type: "Feature" as const,
+                    geometry: f.geometry,
+                    properties: {
+                        mode: f.properties.mode,
+                        srcIdx: f.properties.srcIdx,
+                        srcPart: f.properties.srcPart,
+                    },
+                }));
                 onDrawnFeaturesChangeRef.current?.(drawn as GeoJSON.Feature[]);
+                if (edited.length > 0) onEditedPartsChangeRef.current?.(edited as EditablePart[]);
             };
             draw.start();
             draw.setMode("static");
@@ -302,17 +332,39 @@ export default function GeometryPreviewMap({ existingGeojson, previewFeature, sh
     }, [drawMode, isReady]);
 
     // Controlled reset: when the parent clears drawnFeatures (after save / "Zurücksetzen"),
-    // flush terra-draw's internal store. Guarded so we only clear when something is there.
+    // remove the newly drawn features from terra-draw's store. Loaded parts of the saved
+    // geometry are left alone — they follow `editableParts` below.
     useEffect(() => {
         const draw = drawRef.current;
         if (!isReady || !draw) return;
         if (drawnFeatures.length === 0) {
-            const hasDrawn = draw
+            const ids = draw
                 .getSnapshot()
-                .some((f) => f.properties?.mode === "linestring" || f.properties?.mode === "point");
-            if (hasDrawn) draw.clear();
+                .filter((f) => (f.properties?.mode === "linestring" || f.properties?.mode === "point") && !isEditablePart(f))
+                .map((f) => f.id as string | number);
+            if (ids.length > 0) draw.removeFeatures(ids);
         }
     }, [drawnFeatures, isReady]);
+
+    // Load / unload the saved geometry into terra-draw for in-place editing. A new
+    // `editableParts` identity replaces whatever was loaded before.
+    useEffect(() => {
+        const draw = drawRef.current;
+        if (!isReady || !draw) return;
+        const loadedIds = draw.getSnapshot().filter(isEditablePart).map((f) => f.id as string | number);
+        if (loadedIds.length > 0) {
+            // Leave select mode first so no removed feature is still selected.
+            const mode = draw.getMode();
+            if (mode === "select") draw.setMode("static");
+            draw.removeFeatures(loadedIds);
+            if (mode === "select") draw.setMode("select");
+        }
+        if (editableParts && editableParts.length > 0) {
+            const results = draw.addFeatures(editableParts as unknown as Parameters<TerraDraw["addFeatures"]>[0]);
+            const rejected = results.filter((r) => !r.valid);
+            if (rejected.length > 0) console.warn("terra-draw rejected editable parts", rejected);
+        }
+    }, [editableParts, isReady]);
 
     // Update existing layer + fit bounds
     useEffect(() => {

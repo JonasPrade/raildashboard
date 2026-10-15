@@ -29,11 +29,40 @@ Es fehlt das interaktive Zeichnen. Diese Funktion ergänzt genau diese Lücke.
 
 ## Nicht im Scope
 
-- In-Place-Vertex-Edit bereits **gespeicherter** Geometrie (stattdessen: über den vorhandenen
-  „Einzelne Features auswählen & löschen"-Modus entfernen und neu zeichnen)
 - Manuelle numerische Koordinateneingabe (nur Klick auf der Karte)
 - Backend-/Schema-/Migrations-Änderungen
 - Snapping an bestehende Features, Undo/Redo-Historie
+
+## Erweiterung: Bestehende Geometrie bearbeiten (2026-10-15)
+
+Ursprünglich ausgeschlossen („In-Place-Vertex-Edit bereits gespeicherter Geometrie"),
+auf ausdrücklichen Wunsch nachgezogen: Editors/Admins können **gespeicherte** Linien und
+Punkte direkt verschieben und Zwischenpunkte einfügen, statt sie zu löschen und neu zu zeichnen.
+
+- Neuer Schalter „Bestehende Geometrie bearbeiten" (nur sichtbar, wenn Geometrie vorhanden ist).
+  An → die gespeicherten Linien/Punkte werden in terra-draw geladen, der Editor springt in den
+  Modus „Bearbeiten". Linie/Punkt anklicken → Stützpunkte ziehen, Mittelpunkt anklicken oder
+  ziehen fügt einen Zwischenpunkt ein, Rechtsklick löscht einen Stützpunkt, Punkte lassen sich
+  verschieben. Aus → ungespeicherte Änderungen werden verworfen; „Änderungen verwerfen" lädt
+  den gespeicherten Stand neu.
+- Geladen wird jedes Feature als eigener terra-draw-Teil (`MultiLineString`/`MultiPoint` je
+  Glied), mit Herkunft `srcIdx`/`srcPart` (`features/routing/editExisting.ts`). Beim Speichern
+  werden nur **geänderte** Teile zurück in die ursprünglichen Features geschrieben —
+  Reihenfolge, Properties (z. B. Name/`op_id` von Betriebsstellen) und unberührte Geometrie
+  bleiben unverändert. Koordinaten editierter Teile werden auf 9 Nachkommastellen gerundet
+  und auf 2D reduziert (terra-draw-Vorgabe). Polygone u. ä. bleiben unberührt.
+- Zusammen mit neu Gezeichnetem/Route/Betriebsstellen in einem Speichervorgang kombinierbar.
+  Schließt „Bestehende Geometrie löschen" und „Einzelne Features auswählen & löschen" aus
+  (und umgekehrt). Ganze Features löscht weiterhin der Auswahl-Modus.
+- Bei Überprojekten im Automatik-Modus nicht verfügbar (der Editor zeigt dann ohnehin nur den
+  Kippschalter); das Speichern eines Unterprojekts löst die Parent-Aggregation wie gewohnt aus.
+- Kein Backend-Change: gespeichert wird über denselben `PATCH /api/v1/projects/{id}`.
+
+Akzeptanzkriterien:
+- Schalter an → gespeicherte Linie anklicken → Stützpunkt ziehen → Linie folgt live; Chip zeigt „Geändert"
+- Mittelpunkt zwischen zwei Stützpunkten anklicken → neuer Zwischenpunkt, der sich ziehen lässt
+- „Übernehmen"/„Geometrie speichern" → nach Reload ist die geänderte Linie gespeichert; Betriebsstellen-Punkte behalten Name/`op_id`
+- Schalter aus ohne Speichern → Karte zeigt wieder die unveränderte gespeicherte Geometrie
 
 ## Voraussetzungen
 

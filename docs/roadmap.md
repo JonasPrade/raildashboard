@@ -177,6 +177,7 @@ Vollständig implementiert. Backend-Infrastruktur (GraphHopper HTTP client, Rout
 - [x] **Parent GeoJSON auto-merge** — When a sub-project's `geojson_representation` changes, automatically recompute all ancestor projects' geometry as a FeatureCollection of their children's features (arbitrary depth, synchronous, no migration needed). See: `docs/features/feature-parent-geojson-merge.md`
 - [x] **Geometrie-Modus für Überprojekte** — Ein Projekt mit Unterprojekten wählt über den Kippschalter „Geometrie automatisch aus Unterprojekten zusammensetzen" (`project.geojson_from_subprojects`, Default `true`), ob seine Kartengeometrie aus den Unterprojekten aggregiert oder selbst gepflegt wird. Im Selbst-Modus stoppt die Aufwärts-Kaskade an dem Projekt; das direkte Schreiben der Geometrie im Automatik-Modus lehnt die API mit HTTP 400 ab. See: `docs/features/feature-parent-geometry-mode.md`
 - [x] **Manuelle Geometrie zeichnen** — Linien und Punkte direkt auf der Karte zeichnen (Neubaustrecken, Tram/U-Bahn ohne routbaren Pfad). `GeometryPreviewMap` integriert `terra-draw` (+ `terra-draw-maplibre-gl-adapter`); der geteilte `GeometryEditor` bietet „Linie zeichnen / Punkt setzen / Bearbeiten / Fertig". Gezeichnetes wird gemischt oder ersetzt die bestehende Geometrie und über `useUpdateProjectGeometry` gespeichert. Reines Frontend, keine Backend-Änderung. See: `docs/features/feature-manual-geometry.md` (Issue #27)
+- [x] **Bestehende Geometrie bearbeiten** — Schalter „Bestehende Geometrie bearbeiten" lädt die gespeicherten Linien/Punkte in terra-draw: Stützpunkte verschieben, Zwischenpunkte einfügen, Stützpunkte löschen; nur geänderte Teile werden zurückgeschrieben, Properties bleiben erhalten. See: `docs/features/feature-manual-geometry.md` → „Erweiterung"
 
 Siehe: `docs/features/feature-routing.md`
 
@@ -206,6 +207,7 @@ Siehe: `docs/features/feature-routing.md`
   - Header-Badge zeigt Gesamtzahl offener Zuordnungen für editor/admin
 
 - [x] **Neues Projekt aus Zuordnungsseite anlegen** — "Neues Projekt anlegen"-Button auf `/admin/unassigned` öffnet den Wizard.
+  Zusätzlich hat jede Zeile (FinVe, VIB, GVFG) den Link „Projekt fehlt?“: legt das Projekt als Entwurf an und weist den Eintrag direkt zu — wie in den Import-Reviews.
 
 ### Neues Projekt anlegen *(Backend + Frontend)*
 

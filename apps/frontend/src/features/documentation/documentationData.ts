@@ -164,6 +164,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Einzelne Betriebsstellen als Punkte hinzufügen",
             "Fertige GeoJSON-Datei hochladen",
             "Linien und Punkte direkt auf der Karte zeichnen (terra-draw): Klicks setzen Stützpunkte, Doppelklick beendet eine Linie; im Bearbeiten-Modus Stützpunkte verschieben, einfügen und löschen",
+            "Bestehende Geometrie bearbeiten: gespeicherte Linien/Punkte verschieben, Zwischenpunkte einfügen und Stützpunkte löschen; Properties (z. B. Betriebsstellen-Name) bleiben erhalten",
             "Gezeichnete Geometrie wird mit der bestehenden gemischt oder ersetzt sie („Bestehende Geometrie löschen“)",
             "Zeichnen und „Einzelne Features auswählen & löschen“ schließen sich gegenseitig aus",
             "Nur für editor/admin sichtbar"
