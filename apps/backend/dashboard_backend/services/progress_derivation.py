@@ -39,6 +39,8 @@ from dashboard_backend.models.projects.progress_enums import (
 # per-observation confidence. Editorial manual input ranks highest; media lowest.
 SOURCE_TYPE_DEFAULT_TRUST: dict[SourceType, float] = {
     SourceType.MANUELL: 0.9,
+    # Bedarfsplan/InvKG rows; GVFG rows carry an explicit 0.75 (Länderangaben).
+    SourceType.INFRAPLAN: 0.85,
     SourceType.BAUPORTAL: 0.8,
     SourceType.FINVE: 0.7,
     SourceType.FULDA_RUNDE: 0.7,

@@ -213,3 +213,62 @@ def consume_staged_import(staged_name: str) -> Iterator[bytes]:
         yield _staged_path(staged_name).read_bytes()
     finally:
         delete_staged_import(staged_name)
+
+
+# ---------------------------------------------------------------------------
+# Infraplan PDFs — kept per draft, not staged
+# ---------------------------------------------------------------------------
+#
+# Unlike the staged imports above, the Infraplan PDF stays after the parse: the
+# draft is re-parsed from it and page images (KPI charts) are rendered from it.
+# The file is deleted together with its draft.
+
+
+def _infraplan_root() -> Path:
+    return Path(settings.infraplan_pdf_dir).resolve()
+
+
+def _infraplan_path(stored_name: str) -> Path:
+    root = _infraplan_root()
+    safe_name = Path(stored_name).name
+    if not safe_name or safe_name != stored_name or not safe_name.endswith(".pdf"):
+        raise ValueError(f"Invalid Infraplan file name: {stored_name!r}")
+    candidate = (root / safe_name).resolve()
+    if candidate.parent != root:
+        raise ValueError(f"Path traversal attempt detected: {stored_name!r}")
+    return candidate
+
+
+def save_infraplan_pdf(parse_result_id: int, file_bytes: bytes) -> str:
+    """Store the PDF of draft ``parse_result_id`` and return its file name."""
+    root = _infraplan_root()
+    root.mkdir(parents=True, exist_ok=True)
+    stored_name = f"infraplan-{parse_result_id}-{uuid.uuid4().hex}.pdf"
+    _infraplan_path(stored_name).write_bytes(file_bytes)
+    return stored_name
+
+
+def read_infraplan_pdf(stored_name: str | None) -> bytes:
+    """Bytes of a stored Infraplan PDF; FileNotFoundError when it is gone."""
+    if not stored_name:
+        raise FileNotFoundError("Kein PDF zu diesem Infraplan-Entwurf gespeichert")
+    return _infraplan_path(stored_name).read_bytes()
+
+
+def infraplan_pdf_exists(stored_name: str | None) -> bool:
+    if not stored_name:
+        return False
+    try:
+        return _infraplan_path(stored_name).is_file()
+    except ValueError:
+        return False
+
+
+def delete_infraplan_pdf(stored_name: str | None) -> None:
+    """Remove a stored Infraplan PDF. Silently ignores missing files."""
+    if not stored_name:
+        return
+    try:
+        _infraplan_path(stored_name).unlink(missing_ok=True)
+    except (ValueError, OSError):
+        pass

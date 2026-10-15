@@ -43,6 +43,9 @@ class Settings(BaseSettings):
     # receives only the file name, never the bytes. Must be on a volume shared by
     # backend and worker. IMPORT_STAGING_DIR env var.
     import_staging_dir: str = "/app/uploads/import-staging"
+    # Uploaded Infraplan PDFs, kept per draft so it can be re-parsed and page
+    # images rendered. Same shared volume as above. INFRAPLAN_PDF_DIR env var.
+    infraplan_pdf_dir: str = "/app/uploads/infraplan"
     # LLM settings for optional VIB semantic extraction (OpenAI-compatible)
     # llm_base_url empty = feature disabled
     llm_base_url: str = ""

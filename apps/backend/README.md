@@ -614,6 +614,73 @@ In addition to the parsed data, the admin can set per entry:
 
 `tasks/vib_matching.py` — VDE-number extraction (highest confidence) + fuzzy name matching (SequenceMatcher + token overlap, threshold 0.50). Top suggestions stored in `suggested_project_ids` in the parse result.
 
+## Infraplan Import
+
+Yearly import of the federal **Infraplan** (five-year plan for the rail
+infrastructure, BMV). Stage 1 reads the measure tables of chapter 2.3 —
+Bedarfsplan Teil A–D, GVFG Kat. A/C, InvKG — into a draft and notes the pages
+with KPI charts. Review, project matching and confirmation follow in stage 2.
+Concept: `docs/features/feature-infraplan-import.md`.
+
+### Import workflow (stage 1)
+
+1. **Upload PDF** — `POST /api/v1/import/infraplan/parse` (multipart: `pdf`, `year`)
+   → `{ task_id, parse_result_id }`. The PDF is stored with the draft
+   (`INFRAPLAN_PDF_DIR`, default `/app/uploads/infraplan` in the `uploads` volume)
+   and the Celery task `parse_infraplan_pdf` starts right away.
+2. **Poll task** — `GET /api/v1/tasks/{task_id}`.
+3. **Draft** — `GET /api/v1/import/infraplan/parse-result/{id}`: rows, warnings,
+   KPI pages; `GET …/parse-result` lists all drafts without rows.
+4. **Re-parse** — `POST …/parse-result/{id}/reparse` reads the stored PDF again
+   (e.g. after a parser fix); `DELETE …/parse-result/{id}` discards draft and PDF.
+5. **Page image** — `GET …/parse-result/{id}/page/{page}.png?dpi=110` renders one
+   page with pymupdf (KPI review, MCP).
+
+All endpoints require the capability `infraplan.import` (group Finanzierung,
+granted to editors).
+
+### Parser (`tasks/infraplan.py`, `tasks/infraplan_columns.py`)
+
+Deterministic, no LLM and no OCR:
+
+- **Stage 1** — pdfplumber words with font size (`extract_words(extra_attrs=["size"])`)
+  and the column edges of every table header (`find_tables()`). Only pages that
+  print „Projektnummer“ are searched for tables.
+- **Stage 2** — sections by their headings, rows by the running number
+  (`12 | E.…`) in column 1. Superscript footnote markers (smaller font) are
+  split off before words are joined (`1.720,48` + `[14]`); the footnote area
+  at the foot of the page is cut off and its texts are stored per row. A page
+  without a header row reuses the columns of the last header of the same
+  section. Hyphenation at line ends is undone.
+- **Stage 3** — header texts → canonical fields; values normalised: German
+  numbers, `Ref. Teil B 20 | E.…` cost references (resolved to the entry that
+  carries the cost), commissioning (`offen` / `bis 2035` / `2029/2030` →
+  `ibn_year` + `ibn_qualifier`), Lph, Befassung, project numbers (GVFG keys
+  normalised to `07 D 2825_A`).
+- **Checks** — running numbers 1..n per section: gaps and duplicates, unresolved
+  cost references and missing sections go to `warnings_json`.
+- **KPI pages** — inside the KPI chapters, a „Steuerungskennzahl:“ /
+  „Informationskennzahl:“ heading sets the current KPI; a page with a chart
+  caption plus unit line („(jährlich in km)“) is stored in `kpi_pages_json`.
+
+The Infraplan 2026 yields 271 rows (A 38, B 40, C 71, D 34, GVFG A 42, GVFG C 41,
+InvKG 5) without warnings.
+
+### Test fixtures
+
+The PDF is not part of the repository (it lies outside the Docker build context
+anyway). `scripts/dump_infraplan_pages.py` writes stage 1 of the parser as JSON:
+`tests/fixtures/infraplan_2026_pages.json` (pages 33–56, measure tables) and
+`tests/fixtures/infraplan_2026_kpi_pages.json` (selected KPI pages). The parser
+tests (`tests/unit/test_infraplan_parse_2026.py`) run on these.
+
+### DB models (migration `20261015002`)
+
+`infraplan_parse_result`, `infraplan_report`, `infraplan_entry`,
+`infraplan_entry_project`, `infraplan_kpi`, `infraplan_kpi_value`, plus
+`progress_observation.infraplan_entry_id` and `SourceType.INFRAPLAN` — see
+`docs/models.md`.
+
 ## Routing API
 
 Rail routes are computed and persisted in a two-step flow. `project_id` in all route endpoints is an **integer** (FK to `project.id`); `route_id` is a UUID.
@@ -684,6 +751,7 @@ The `scripts/` directory contains helpers for ingesting external data sources:
 - `import_old_db/`: Utilities for migrating legacy datasets.
 - `generate_rinf_models/`: Generators for models and schemas derived from RINF structures.
 - `import_osm_railways.py`: Imports OpenStreetMap railway data either offline from `.osm.pbf` extracts or via the Overpass API.
+- `dump_infraplan_pages.py`: Writes the words (with position and font size) and table headers of selected Infraplan pages as the parser's test fixture — see [Infraplan Import](#infraplan-import). The Infraplan itself is imported through the upload endpoint, not by a script.
 
 ### Offline OpenStreetMap workflow
 Offline imports rely on the PostGIS-enabled database so that geometries can be stored and spatial indexes remain valid. Prepare the Geofabrik extracts and import them as follows:

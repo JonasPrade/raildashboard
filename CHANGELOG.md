@@ -12,6 +12,19 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **Infraplan import, stage 1: parser + data model (#179).** `POST /api/v1/import/infraplan/parse`
+  (PDF + `year`) stores the PDF with a new draft and starts the Celery task `parse_infraplan_pdf`,
+  which reads the measure tables of chapter 2.3 (Bedarfsplan Teil A–D, GVFG Kat. A/C, InvKG)
+  deterministically with pdfplumber: words with font size, column edges from the table headers,
+  superscript footnotes split off, cost references resolved, commissioning normalised, running
+  numbers checked per section (`warnings_json`), KPI chart pages noted (`kpi_pages_json`). Also
+  `…/parse-result[/{id}]` (GET/DELETE), `…/reparse` and `…/page/{page}.png` (pymupdf). New
+  capability `infraplan.import` (group Finanzierung, editors). **Migration** `20261015002`
+  (additive): tables `infraplan_parse_result`, `infraplan_report`, `infraplan_entry`,
+  `infraplan_entry_project`, `infraplan_kpi`, `infraplan_kpi_value`, column
+  `progress_observation.infraplan_entry_id`; source type `INFRAPLAN`. **Deploy:** new setting
+  `INFRAPLAN_PDF_DIR` (default `/app/uploads/infraplan`, inside the existing `uploads` volume);
+  `/healthz` now also checks that it is writable. See `docs/features/feature-infraplan-import.md`.
 - **GVFG display (stage 3).** The main menu item "Haushalt" becomes **"Finanzen"** with the
   sections "Bedarfsplan Schiene" (`/finanzen/bedarfsplan`, the former FinVe overview; `/finves`
   redirects) and "GVFG" (`/finanzen/gvfg`: all Vorhaben of an edition with filters, key figures,

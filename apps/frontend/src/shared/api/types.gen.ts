@@ -1836,6 +1836,108 @@ export interface paths {
         patch: operations["update_fulda_entry_api_v1_import_fulda_entries__entry_id__patch"];
         trace?: never;
     };
+    "/api/v1/import/infraplan/parse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Parse
+         * @description Upload an Infraplan PDF; the parse task starts right away.
+         *
+         *     The PDF is stored with the draft (re-parse, page images). Poll the task via
+         *     GET /api/v1/tasks/{task_id}, then load the draft by ``parse_result_id``.
+         */
+        post: operations["start_parse_api_v1_import_infraplan_parse_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/infraplan/parse-result/{parse_result_id}/reparse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reparse */
+        post: operations["reparse_api_v1_import_infraplan_parse_result__parse_result_id__reparse_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/infraplan/parse-result": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Drafts
+         * @description All drafts without their rows, newest first.
+         */
+        get: operations["list_drafts_api_v1_import_infraplan_parse_result_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/infraplan/parse-result/{parse_result_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Draft */
+        get: operations["get_draft_api_v1_import_infraplan_parse_result__parse_result_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Draft
+         * @description Discard a draft and its stored PDF. A confirmed draft belongs to an
+         *     imported year and is removed together with that year, not here.
+         */
+        delete: operations["delete_draft_api_v1_import_infraplan_parse_result__parse_result_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/infraplan/parse-result/{parse_result_id}/page/{page}.png": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Page Image
+         * @description Render one page of the stored PDF as PNG (1-indexed).
+         */
+        get: operations["page_image_api_v1_import_infraplan_parse_result__parse_result_id__page__page__png_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/unassigned-finves": {
         parameters: {
             query?: never;
@@ -2618,6 +2720,13 @@ export interface components {
         };
         /** Body_start_parse_api_v1_import_haushalt_parse_post */
         Body_start_parse_api_v1_import_haushalt_parse_post: {
+            /** Pdf */
+            pdf: string;
+            /** Year */
+            year: number;
+        };
+        /** Body_start_parse_api_v1_import_infraplan_parse_post */
+        Body_start_parse_api_v1_import_infraplan_parse_post: {
             /** Pdf */
             pdf: string;
             /** Year */
@@ -3761,6 +3870,243 @@ export interface components {
             /** Error */
             error?: string | null;
         };
+        /**
+         * InfraplanCostRef
+         * @description Target of a cost reference ("Ref. Teil B 20 | E.…").
+         */
+        InfraplanCostRef: {
+            /** Section */
+            section: string;
+            /** Lfd Nr */
+            lfd_nr: number;
+            /**
+             * Resolved
+             * @default false
+             */
+            resolved: boolean;
+            /** Cost Mio */
+            cost_mio?: number | null;
+        };
+        /** InfraplanKpiPage */
+        InfraplanKpiPage: {
+            /** Page */
+            page: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "STEUERUNG" | "INFORMATION";
+            /** Title */
+            title: string;
+        };
+        /** InfraplanParseLaunchResponse */
+        InfraplanParseLaunchResponse: {
+            /** Task Id */
+            task_id: string;
+            /** Parse Result Id */
+            parse_result_id: number;
+        };
+        /**
+         * InfraplanParseOutput
+         * @description Content of ``infraplan_parse_result.result_json``.
+         */
+        InfraplanParseOutput: {
+            /** Sections */
+            sections: components["schemas"]["InfraplanSectionSummary"][];
+            /** Rows */
+            rows: components["schemas"]["InfraplanParsedRow"][];
+            /** Footnotes */
+            footnotes?: {
+                [key: string]: string;
+            };
+            /**
+             * Page Count
+             * @default 0
+             */
+            page_count: number;
+        };
+        /**
+         * InfraplanParseResultListItem
+         * @description A draft without its rows — for the list view.
+         */
+        InfraplanParseResultListItem: {
+            /** Id */
+            id: number;
+            /** Year */
+            year: number;
+            /** Status */
+            status: string;
+            /** File Name */
+            file_name: string;
+            /** Task Id */
+            task_id?: string | null;
+            /** Error Message */
+            error_message?: string | null;
+            /** Warnings Json */
+            warnings_json?: components["schemas"]["InfraplanWarning"][] | null;
+            /** Kpi Pages Json */
+            kpi_pages_json?: components["schemas"]["InfraplanKpiPage"][] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Username Snapshot */
+            username_snapshot?: string | null;
+            /** Confirmed At */
+            confirmed_at?: string | null;
+            /** Confirmed By Snapshot */
+            confirmed_by_snapshot?: string | null;
+            /** Row Count */
+            row_count?: number | null;
+        };
+        /**
+         * InfraplanParseResultSchema
+         * @description A draft with all parsed rows.
+         */
+        InfraplanParseResultSchema: {
+            /** Id */
+            id: number;
+            /** Year */
+            year: number;
+            /** Status */
+            status: string;
+            /** File Name */
+            file_name: string;
+            /** Task Id */
+            task_id?: string | null;
+            /** Error Message */
+            error_message?: string | null;
+            /** Warnings Json */
+            warnings_json?: components["schemas"]["InfraplanWarning"][] | null;
+            /** Kpi Pages Json */
+            kpi_pages_json?: components["schemas"]["InfraplanKpiPage"][] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Username Snapshot */
+            username_snapshot?: string | null;
+            /** Confirmed At */
+            confirmed_at?: string | null;
+            /** Confirmed By Snapshot */
+            confirmed_by_snapshot?: string | null;
+            /** Row Count */
+            row_count?: number | null;
+            result_json?: components["schemas"]["InfraplanParseOutput"] | null;
+            /**
+             * Has Pdf
+             * @default false
+             */
+            has_pdf: boolean;
+        };
+        /**
+         * InfraplanParsedRow
+         * @description One table row as read from the PDF, values normalised, raw text kept.
+         */
+        InfraplanParsedRow: {
+            /** Row Key */
+            row_key: string;
+            /**
+             * Section
+             * @enum {string}
+             */
+            section: "BP_A" | "BP_B" | "BP_C" | "BP_D" | "GVFG_A" | "GVFG_C" | "INVKG";
+            /** Lfd Nr */
+            lfd_nr: number;
+            /** Page */
+            page: number;
+            /** Project Numbers Raw */
+            project_numbers_raw?: string | null;
+            /** Project Numbers */
+            project_numbers?: string[];
+            /** Primary Number */
+            primary_number?: string | null;
+            /** Bezeichnung */
+            bezeichnung?: string | null;
+            /** Massnahme */
+            massnahme?: string | null;
+            /** Laender */
+            laender?: string | null;
+            /** State Raw */
+            state_raw?: string | null;
+            /** Lph From */
+            lph_from?: number | null;
+            /** Lph To */
+            lph_to?: number | null;
+            /**
+             * Under Construction
+             * @default false
+             */
+            under_construction: boolean;
+            /**
+             * Baurecht
+             * @default false
+             */
+            baurecht: boolean;
+            /** Ibn Raw */
+            ibn_raw?: string | null;
+            /** Ibn Year */
+            ibn_year?: number | null;
+            /** Ibn Qualifier */
+            ibn_qualifier?: ("OFFEN" | "BIS" | "SPANNE") | null;
+            /** Cost Raw */
+            cost_raw?: string | null;
+            /** Cost Mio */
+            cost_mio?: number | null;
+            /**
+             * Cost Kind
+             * @enum {string}
+             */
+            cost_kind: "GWU" | "GESAMTKOSTEN";
+            /** Cost Ref Raw */
+            cost_ref_raw?: string | null;
+            cost_ref?: components["schemas"]["InfraplanCostRef"] | null;
+            /** Parl Raw */
+            parl_raw?: string | null;
+            /** Parl State */
+            parl_state?: ("ABGESCHLOSSEN" | "LAEUFT" | "VORGESEHEN" | "NICHT_VEREINBART") | null;
+            /** Footnote Refs */
+            footnote_refs?: number[];
+            /** Footnotes */
+            footnotes?: {
+                [key: string]: string;
+            };
+        };
+        /** InfraplanSectionSummary */
+        InfraplanSectionSummary: {
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "BP_A" | "BP_B" | "BP_C" | "BP_D" | "GVFG_A" | "GVFG_C" | "INVKG";
+            /** Title */
+            title: string;
+            /** Row Count */
+            row_count: number;
+            /** Pages */
+            pages: number[];
+        };
+        /**
+         * InfraplanWarning
+         * @description A plausibility finding. Any warning blocks an unforced confirmation.
+         */
+        InfraplanWarning: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "GAP" | "DUPLICATE" | "UNRESOLVED_REF" | "NO_LAYOUT" | "EMPTY_SECTION";
+            /** Section */
+            section?: string | null;
+            /** Lfd Nr */
+            lfd_nr?: number | null;
+            /** Page */
+            page?: number | null;
+            /** Message */
+            message: string;
+        };
         /** LinkDocumentInput */
         LinkDocumentInput: {
             /** Document Id */
@@ -4166,7 +4512,7 @@ export interface components {
              * @default MANUELL
              * @enum {string}
              */
-            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "MANUELL";
+            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "INFRAPLAN" | "MANUELL";
             /**
              * Track
              * @enum {string}
@@ -4194,7 +4540,7 @@ export interface components {
              * Source Type
              * @enum {string}
              */
-            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "MANUELL";
+            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "INFRAPLAN" | "MANUELL";
             /**
              * Track
              * @enum {string}
@@ -5521,7 +5867,7 @@ export interface components {
              * Source Type
              * @enum {string}
              */
-            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "MANUELL";
+            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "INFRAPLAN" | "MANUELL";
             /**
              * Track
              * @enum {string}
@@ -9990,6 +10336,205 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FuldaEntrySchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_parse_api_v1_import_infraplan_parse_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_start_parse_api_v1_import_infraplan_parse_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfraplanParseLaunchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reparse_api_v1_import_infraplan_parse_result__parse_result_id__reparse_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                parse_result_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfraplanParseLaunchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_drafts_api_v1_import_infraplan_parse_result_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfraplanParseResultListItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_draft_api_v1_import_infraplan_parse_result__parse_result_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                parse_result_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfraplanParseResultSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_draft_api_v1_import_infraplan_parse_result__parse_result_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                parse_result_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    page_image_api_v1_import_infraplan_parse_result__parse_result_id__page__page__png_get: {
+        parameters: {
+            query?: {
+                dpi?: number;
+            };
+            header?: never;
+            path: {
+                parse_result_id: number;
+                page: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/png": unknown;
                 };
             };
             /** @description Validation Error */
