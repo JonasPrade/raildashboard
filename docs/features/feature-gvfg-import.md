@@ -21,8 +21,17 @@ PDF „nicht zur Veröffentlichung vorgesehen“ ist — bewusste Entscheidung d
 ## Quelle: Aufbau des PDFs
 
 Textbasiertes PDF (kein Scan), `pdftotext -layout`/pdfplumber lesen die Tabellen
-sauber. Vorliegende Ausgaben: 2023–2027 (Stand 01.09.2023), 2025–2029 (Stand
-18.07.2025); 2024–2028 reicht der Nutzer nach.
+sauber. Vorliegende Ausgaben: 2023–2027 (Stand 01.09.2023), 2024–2028 (Stand
+08.11.2024), 2025–2029 (Stand 18.07.2025).
+
+**2024–2028 kommt in zwei Dateien:** Hauptteil (37 S., 221 Vorhaben, nur
+finanzrelevant) und ein separates **Anhang**-PDF (29 S., 217 Vorhaben, nachrichtlich,
+ohne Jahreswerte; „- Anhang -“ im Seitenkopf, eigene Übersicht „alle Länder“). Beide
+Schlüsselmengen sind disjunkt. Der Import muss deshalb mehrere PDFs zu **einer**
+Ausgabe zusammenführen können (Anhang nachträglich zu einer bestehenden Ausgabe
+hochladen). 2023–2027 hat keinen nachrichtlichen Teil, 2025–2029 hat ihn im selben PDF.
+Layout 2024 entspricht 2025 (Lph, Stadt/Region, Inbetriebnahme); Jahresspalten 2024:
+`1967–2022`, `2023`, `2024`, `2025`–`2028`, Rest ab `2029`.
 
 - Vorbemerkungen, Übersicht „alle Länder“ (Summen kommunal/DB/gesamt).
 - Je **Land** und je **kommunale Vorhaben / DB-Vorhaben** eine Tabelle, jeweils
@@ -61,7 +70,7 @@ Migration rückwärtskompatibel (nur neue Tabellen).
   Spaltennamen; unbekannte Spalte → Abbruch mit klarer Meldung.
 - Summen je Land/Teil nur als Plausibilitätsprüfung (Warnung im Review), nicht
   gespeichert.
-- Testfälle: Ausgaben 2023 und 2025 (größter Layout-Abstand), 2024 nachgereicht.
+- Testfälle: alle drei Ausgaben, für 2024 Hauptteil + Anhang.
 - Berechtigung `gvfg.import` (Gruppe Finanzierung, für Editoren).
 
 ### Zuordnung zu Projekten
