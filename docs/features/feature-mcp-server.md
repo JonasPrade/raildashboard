@@ -36,6 +36,11 @@ Rechtemodell — ein Key kann nie mehr als der Nutzer, dem er gehört.
   bestätigen, Kennzahlen eintragen). Langlaufend bleibt nur der Celery-Task, den das
   Tool startet und dessen Status ein zweites Tool abfragt. Siehe
   `feature-infraplan-import.md` → „MCP & Skill“.
+- **Skills kommen vom MCP (2026-10-17):** Skills für die Arbeit über den MCP werden
+  nicht mehr von Hand nach claude.ai hochgeladen, sondern vom Server selbst
+  ausgeliefert (`list_skills`, `get_skill`) — immer in der Fassung des deployten
+  Images, passend zu den Tools, die gerade laufen. Siehe
+  [Skills über MCP](#skills-über-mcp-2026-10-17).
 
 ## Ausgangslage (Stand 2026-09-09)
 
@@ -226,6 +231,8 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `edit_project_geometry` | Linien/Punkte aus Koordinaten, Betriebsstellen als Punkte, Features löschen | `project.edit` |
 | `list_data_gaps` | Projekte mit fehlenden/veralteten Daten, Lücken je Projekt und Zählung (siehe *Datenpflege*) | — |
 | `check_geometry` | Geometrie-Plausibilität für ein Projekt oder eine Gruppe (siehe *Datenpflege*) | — |
+| `list_skills` | Skills für die Arbeit über den MCP (Name, Beschreibung), siehe *Skills über MCP* | — |
+| `get_skill` | Anleitung eines Skills (Text der `SKILL.md`, optional eine Begleitdatei) | — |
 | `create_todo` | Aufgabe anlegen | `todo.create` |
 | `update_todo` | Aufgabe ändern | `todo.edit` |
 
@@ -477,6 +484,57 @@ trägt `is_known`. Das Feld `phase` bleibt wie bisher (bei unbekanntem Stand der
 **Stufe B und C** (Gruppen-Zusammenfassung, erwartete Meilensteine, Ortssuche,
 Volltextsuche, Änderungs- und Beobachtungsverlauf, Sammel-Längenberechnung) sind noch nicht
 umgesetzt; was davon kommt, wird in eigenen Issues entschieden.
+
+## Skills über MCP (2026-10-17)
+
+**Problem:** Mehrstufige Abläufe (z. B. Infraplan-Import) brauchen eine Anleitung als
+Skill. Von Hand nach claude.ai hochgeladene Skills veralten bei jeder Änderung im Repo,
+und über die Claude-API hochgeladene Skills erscheinen in claude.ai nicht.
+
+**Lösung:** Der MCP-Server liefert die Skills selbst aus. Quelle bleibt der eine Ordner
+`.claude/skills/` (`AGENT.md` → „Skills“); er wird beim Bauen als zweiter Build-Kontext
+`skills` ins Backend-Image kopiert (`/app/skills`). Damit entspricht der ausgelieferte
+Text immer dem **deployten** Stand — ein Rollback nimmt die Anleitung mit zurück.
+
+Mit dem Nutzer abgestimmt (Widerspruchs-Check, 2026-10-17):
+
+| # | Frage | Entscheidung |
+|---|---|---|
+| W1 | „Upload nach claude.ai von Hand“ (`AGENT.md`, Skills-README, Infraplan Nr. 21) | ersetzt: Inhalt kommt vom MCP; von Hand hochgeladen wird nur noch der dünne Einstiegs-Skill `schienendashboard`, einmalig |
+| W2 | Form — Resources/Prompts sind oben ausgeklammert | **Tools** (`list_skills`, `get_skill`); für claude.ai sind nur Tools sicher unterstützt. Der Ausschluss von Resources/Prompts bleibt |
+| W3 | Wie kommt `.claude/skills/` ins Image (Kontext `apps/backend`)? | zusätzlicher **Named Build-Context** `skills=.claude/skills` in `Makefile`, `release.yml` und `compose.override.yaml`; keine Kopie im Repo |
+| W4 | Welche Skills? | nur **markierte**: Frontmatter `metadata:` → `mcp: true`. Repo-Skills (`audit-auth`, `widerspruchs-check`) brauchen den Code und bleiben außen vor |
+
+**Tools** (`mcp/tools/skills.py`, lesend, jeder Key mit `mcp.access`):
+
+- `list_skills()` → `skills: [{name, description}]` aller markierten Skills.
+- `get_skill(name, file?)` → `name`, `description`, `content` (Text der `SKILL.md` ohne
+  Frontmatter) und `files` (Begleitdateien im Skill-Ordner). Mit `file` kommt statt der
+  `SKILL.md` diese Begleitdatei; Pfade außerhalb des Skill-Ordners werden abgelehnt.
+  Unbekannte oder nicht markierte Skills → Tool-Fehler.
+
+**Fundort:** `/app/skills` im Image, sonst `.claude/skills/` im Checkout (lokaler
+`uvicorn`, `make test-local`). Ein Build ohne Kontext `skills` schlägt fehl — gewollt,
+damit kein Image stillschweigend ohne Skills ausgeliefert wird.
+
+**Frontmatter:** einfache Form (`key: wert` je Zeile, `metadata:` mit eingerückten
+Unterschlüsseln). Ein Test prüft alle Skills im Ordner (Name = Ordnername, Beschreibung
+vorhanden), damit ein kaputter Skill `make test` bricht statt still zu verschwinden.
+
+**Einstieg in claude.ai:** `.claude/skills/schienendashboard/` ist der einzige
+hochgeladene Skill. Er sagt nur: bei Arbeit mit dem Schienendashboard-MCP erst
+`list_skills`, dann `get_skill` und der Anleitung folgen. Er ändert sich praktisch nie.
+Die `INSTRUCTIONS` des Servers weisen zusätzlich auf `list_skills` hin (wirkt in Claude
+Code; ob claude.ai das Feld auswertet, ist nicht dokumentiert).
+
+**Akzeptanzkriterien**
+
+- [x] `list_skills` listet genau die markierten Skills, `get_skill` liefert Text und
+      Begleitdateien, Pfad-Ausbrüche und unmarkierte Skills werden abgelehnt.
+- [x] `make test` baut Test- und Runtime-Image mit Kontext `skills`; `release.yml` und
+      `compose.override.yaml` ebenso.
+- [ ] Nach dem nächsten Deploy liefert `list_skills` in claude.ai die markierten Skills
+      (sobald es welche gibt, z. B. `infraplan-import` mit #182).
 
 ## Umsetzung
 

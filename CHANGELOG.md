@@ -12,6 +12,12 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **MCP: skills come from the server.** `list_skills` and `get_skill` hand out the skills in
+  `.claude/skills/` marked with `metadata: mcp: true`, so claude.ai and Claude Code always
+  get the guide that matches the deployed tools — no more manual skill uploads. Only the thin
+  entry skill `schienendashboard` is uploaded to claude.ai once. The backend image now needs
+  the named build context `skills=.claude/skills` (`make test`, `release.yml`,
+  `compose.override.yaml` pass it; a build without it fails on purpose).
 - **MCP: free FinVe search.** `list_finves` searches all FinVes — including those not linked
   to any project — by FinVe number, name, Bedarfsplan number or lfd. Nr., with filters for
   budget year, Sammel-FinVe and project link; `get_finve` returns one FinVe with its budget

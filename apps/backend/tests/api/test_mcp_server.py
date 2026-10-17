@@ -166,6 +166,8 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
         "edit_project_geometry",
         "list_data_gaps",
         "check_geometry",
+        "list_skills",
+        "get_skill",
     }
     by_name = {tool["name"]: tool for tool in tools}
     assert by_name["list_projects"]["annotations"]["readOnlyHint"] is True

@@ -50,7 +50,7 @@ Vergleiche (Infraplan 2026 vs. 2027 vs. …) dauerhaft möglich bleiben.
 | 18 | Zwei Wege | **manuell** im Frontend und **per MCP** mit gleichem Ergebnis |
 | 19 | Autonomie MCP | Agent darf alles bis einschließlich Bestätigen und Kennzahlen eintragen — Halt nur bei Parser-Warnungen |
 | 20 | KI-Kennzahlen | Status „ungeprüft“, öffentlich erst nach Freigabe |
-| 21 | Skills | **Alle** Dashboard-Skills liegen in einem Ordner im Repo, `.claude/skills/` (hier `.claude/skills/infraplan-import/SKILL.md`), immer in der aktuellen Fassung; Upload nach claude.ai von Hand |
+| 21 | Skills | **Alle** Dashboard-Skills liegen in einem Ordner im Repo, `.claude/skills/` (hier `.claude/skills/infraplan-import/SKILL.md`), immer in der aktuellen Fassung; ~~Upload nach claude.ai von Hand~~ — **seit 2026-10-17 liefert der MCP-Server den Skill selbst aus** (`list_skills`/`get_skill`, Markierung `metadata: mcp: true`), siehe `feature-mcp-server.md` → „Skills über MCP“ |
 | 22 | GVFG: Infraplan vs. GVFG-Bundesprogramm | Es gilt der **jüngere Stand** (Stand-Datum der GVFG-Ausgabe vs. Veröffentlichungsdatum des Infraplans) — für Lph, Inbetriebnahme und Kosten |
 | 23 | Summen in der Projekthierarchie | **Grundsatz für alle Projekte:** Elternprojekte bilden Summen über ihre Teilprojekte (auch reine GVFG-Elternprojekte) — siehe `docs/architecture.md` → „Grundsätze“ |
 
@@ -410,8 +410,9 @@ Import so weit abschließen, dass nur unklare Reste übrig bleiben. Alle Tools p
 
 `list_data_gaps` bekommt die Lücke `infraplan_unassigned`.
 
-**Skill** `.claude/skills/infraplan-import/SKILL.md` (alle Dashboard-Skills liegen in
-`.claude/skills/`, Übersicht und Upload-Hinweis in `.claude/skills/README.md`):
+**Skill** `.claude/skills/infraplan-import/SKILL.md` mit `metadata:` → `mcp: true`, damit
+der MCP-Server ihn über `list_skills`/`get_skill` ausliefert (alle Dashboard-Skills liegen
+in `.claude/skills/`, Übersicht in `.claude/skills/README.md`):
 1. Neuesten Entwurf holen; Warnungen → anhalten und berichten.
 2. Vorschläge ≥ 0.85 übernehmen.
 3. Offene Zeilen einzeln: Projekt suchen (Name, Strecke, Bundesland, Projektnummer in
