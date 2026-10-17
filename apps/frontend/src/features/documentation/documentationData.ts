@@ -48,6 +48,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Keine BVWP-Schätzungen; Projekte ohne konkrete Termine werden gezählt, aber nicht gezeichnet",
             "Phasenbalken in den Phasenfarben, der Teil nach heute schraffiert (geplant); hohle Punkte markieren „spätestens seit“-Belege aus glaubwürdigen Beobachtungen",
             "Übergeordnete Projekte bündeln die Termine ihrer Unterprojekte (frühester Beginn, späteste Inbetriebnahme)",
+            "Bauen die Unterprojekte in getrennten Etappen, zeigt der Balken nur die Bauzeiten der Etappen; die Pause dazwischen erscheint als gestrichelte Linie „zwischen Bauetappen“",
             "Sortierung nach Inbetriebnahme, Baubeginn oder Name; Gruppe, Suche, Sortierung und „Nur Hauptprojekte“ stehen in der URL",
             "Details: docs/features/feature-project-timeline.md"
         ]

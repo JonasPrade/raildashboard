@@ -20,7 +20,7 @@ function phase(p: TimelineMilestone["phase"], date: string, certainty: TimelineM
 }
 
 function row(name: string, milestones: TimelineMilestone[]): ProjectTimeline {
-    return { project_id: name.length, name, lifecycle_status: "AKTIV", milestones };
+    return { project_id: name.length, name, lifecycle_status: "AKTIV", milestones, construction_periods: [] };
 }
 
 describe("buildSegments", () => {
@@ -45,6 +45,52 @@ describe("buildSegments", () => {
 
     it("draws no bar for contradicting dates", () => {
         expect(buildSegments([phase("BAU", "2030-01-01"), phase("IN_BETRIEB", "2029-01-01")], TODAY)).toEqual([]);
+    });
+
+    it("splits the BAU bar of separate construction stages and leaves the pause as a gap", () => {
+        // HLK 11: stages 01–07/2028 and 01–07/2031, pooled BAU 2028 → IB 2031.
+        const segs = buildSegments(
+            [phase("BAU", "2028-01-01"), phase("IN_BETRIEB", "2031-07-01")],
+            TODAY,
+            [
+                { start: "2028-01-01", end: "2028-07-01" },
+                { start: "2031-01-01", end: "2031-07-01" },
+            ],
+        );
+        expect(segs).toEqual([
+            { phase: "BAU", start: toTime("2028-01-01"), end: toTime("2028-07-01"), planned: true },
+            { phase: "BAU", start: toTime("2028-07-01"), end: toTime("2031-01-01"), planned: true, gap: true },
+            { phase: "BAU", start: toTime("2031-01-01"), end: toTime("2031-07-01"), planned: true },
+        ]);
+    });
+
+    it("splits a stage at today and keeps the previous phase", () => {
+        const segs = buildSegments(
+            [phase("GENEHMIGUNGSPLANUNG", "2020-01-01"), phase("BAU", "2025-01-01"), phase("IN_BETRIEB", "2030-01-01")],
+            TODAY,
+            [
+                { start: "2025-01-01", end: "2027-01-01" },
+                { start: "2029-01-01", end: "2030-01-01" },
+            ],
+        );
+        expect(segs).toEqual([
+            { phase: "GENEHMIGUNGSPLANUNG", start: toTime("2020-01-01"), end: toTime("2025-01-01"), planned: false },
+            { phase: "BAU", start: toTime("2025-01-01"), end: TODAY, planned: false },
+            { phase: "BAU", start: TODAY, end: toTime("2027-01-01"), planned: true },
+            { phase: "BAU", start: toTime("2027-01-01"), end: toTime("2029-01-01"), planned: true, gap: true },
+            { phase: "BAU", start: toTime("2029-01-01"), end: toTime("2030-01-01"), planned: true },
+        ]);
+    });
+
+    it("draws the plain BAU bar when the periods don't split it", () => {
+        const milestones = [phase("BAU", "2028-01-01"), phase("IN_BETRIEB", "2031-07-01")];
+        const plain = buildSegments(milestones, TODAY);
+        expect(buildSegments(milestones, TODAY, [])).toEqual(plain);
+        // Only one period inside the BAU span after clipping.
+        expect(buildSegments(milestones, TODAY, [
+            { start: "2020-01-01", end: "2021-01-01" },
+            { start: "2028-01-01", end: "2031-07-01" },
+        ])).toEqual(plain);
     });
 
     it("ignores PFB and parliamentary milestones", () => {
