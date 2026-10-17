@@ -50,7 +50,7 @@ Vergleiche (Infraplan 2026 vs. 2027 vs. …) dauerhaft möglich bleiben.
 | 18 | Zwei Wege | **manuell** im Frontend und **per MCP** mit gleichem Ergebnis |
 | 19 | Autonomie MCP | Agent darf alles bis einschließlich Bestätigen und Kennzahlen eintragen — Halt nur bei Parser-Warnungen |
 | 20 | KI-Kennzahlen | Status „ungeprüft“, öffentlich erst nach Freigabe |
-| 21 | Skills | Ordner `skills/` im Repo (`skills/infraplan-import/SKILL.md`); Upload nach claude.ai von Hand |
+| 21 | Skills | **Alle** Dashboard-Skills liegen in einem Ordner im Repo, `.claude/skills/` (hier `.claude/skills/infraplan-import/SKILL.md`), immer in der aktuellen Fassung; Upload nach claude.ai von Hand |
 | 22 | GVFG: Infraplan vs. GVFG-Bundesprogramm | Es gilt der **jüngere Stand** (Stand-Datum der GVFG-Ausgabe vs. Veröffentlichungsdatum des Infraplans) — für Lph, Inbetriebnahme und Kosten |
 | 23 | Summen in der Projekthierarchie | **Grundsatz für alle Projekte:** Elternprojekte bilden Summen über ihre Teilprojekte (auch reine GVFG-Elternprojekte) — siehe `docs/architecture.md` → „Grundsätze“ |
 
@@ -410,8 +410,8 @@ Import so weit abschließen, dass nur unklare Reste übrig bleiben. Alle Tools p
 
 `list_data_gaps` bekommt die Lücke `infraplan_unassigned`.
 
-**Skill** `skills/infraplan-import/SKILL.md` (neuer Ordner `skills/` für alle
-claude.ai-Skills dieses Projekts, mit kurzer `skills/README.md` zum Hochladen):
+**Skill** `.claude/skills/infraplan-import/SKILL.md` (alle Dashboard-Skills liegen in
+`.claude/skills/`, Übersicht und Upload-Hinweis in `.claude/skills/README.md`):
 1. Neuesten Entwurf holen; Warnungen → anhalten und berichten.
 2. Vorschläge ≥ 0.85 übernehmen.
 3. Offene Zeilen einzeln: Projekt suchen (Name, Strecke, Bundesland, Projektnummer in
@@ -471,7 +471,7 @@ den GVFG-Zeilen des Infraplans (Kat. A/C, 77 Zeilen):
 | 2 | Manueller Weg: Review, Teilprojekt anlegen, Vorjahresabgleich, Übernahme, Offene Zuordnungen | #180 |
 | 3 | Fortschritt (`INFRAPLAN`), PaBe-Ebene, Prognose, Kostenblock, Projektdetail-Abschnitt | #181 |
 | 4 | Kennzahlen: Formular, Freigabe, öffentliche Seite `/infraplan` | #184 |
-| 5 | MCP-Tools für den ganzen Ablauf + `skills/infraplan-import/` | #182 |
+| 5 | MCP-Tools für den ganzen Ablauf + `.claude/skills/infraplan-import/` | #182 |
 | später | Kennzahl-Maßnahmenlisten im Anhang (Name + Jahr), Startseite neu ordnen, wenn mehr solcher Übersichten dazukommen | — |
 
 ## Akzeptanzkriterien (gesamt)
