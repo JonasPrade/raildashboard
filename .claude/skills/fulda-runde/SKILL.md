@@ -1,6 +1,8 @@
 ---
 name: fulda-runde
 description: Liest eine Antwort der Bundesregierung auf eine Kleine Anfrage zu den „Ergebnissen der Fulda-Runde“ (PDF) ins Schienendashboard ein — Dokument anlegen, jede Projektzeile mit Kategorie, Fundstelle und Wortlaut erfassen, Projekten zuordnen, bestätigen. Verwenden, wenn ein Fulda-Runde-PDF vorliegt oder der Nutzer sagt „Fulda-Runde einlesen“, „Fulda-Antwort einarbeiten“, „Fulda 20xx nachtragen“.
+metadata:
+  mcp: true
 ---
 
 # Fulda-Runde einlesen

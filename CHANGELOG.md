@@ -12,6 +12,12 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **MCP: skills come from the server.** `list_skills` and `get_skill` hand out the skills in
+  `.claude/skills/` marked with `metadata: mcp: true`, so claude.ai and Claude Code always
+  get the guide that matches the deployed tools — no more manual skill uploads. Only the thin
+  entry skill `schienendashboard` is uploaded to claude.ai once. The backend image now needs
+  the named build context `skills=.claude/skills` (`make test`, `release.yml`,
+  `compose.override.yaml` pass it; a build without it fails on purpose).
 - **Fulda-Runde via MCP + skill.** An agent reads the Federal Government's answer on the
   Fulda-Runde itself (skill `.claude/skills/fulda-runde/SKILL.md`) and writes it with new MCP tools (`list_fulda_categories`, `list_fulda_documents`,
   `create_fulda_document`, `update_fulda_document`, `add_fulda_entries`, `list_fulda_entries`,

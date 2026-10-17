@@ -39,7 +39,9 @@ INSTRUCTIONS = (
     "Punkte und Korrekturen mit edit_project_geometry; Bestand mit "
     "get_project_geometry ansehen. Datenpflege über viele Projekte: "
     "list_data_gaps (fehlende Daten) und check_geometry (auffällige Geometrien) "
-    "statt jedes Projekt einzeln abzurufen."
+    "statt jedes Projekt einzeln abzurufen. "
+    "Für mehrstufige Abläufe (z. B. Importe) zuerst list_skills aufrufen und die "
+    "passende Anleitung mit get_skill laden; sie passt immer zu den laufenden Tools."
 )
 
 

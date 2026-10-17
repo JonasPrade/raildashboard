@@ -2,6 +2,11 @@
 # Multi-stage build: builder installs dependencies, runtime runs the app.
 
 # ---------------------------------------------------------------------------
+# The skills the MCP server hands out (list_skills/get_skill) come from the
+# repo folder .claude/skills, passed as the named build context `skills`:
+#   docker build --build-context skills=.claude/skills apps/backend
+# Without it the build fails on purpose – no image ships without its skills.
+# ---------------------------------------------------------------------------
 # Stage 1: builder – install Python dependencies into /venv
 # ---------------------------------------------------------------------------
 FROM python:3.13-slim AS builder
@@ -31,6 +36,7 @@ FROM builder AS test
 
 WORKDIR /app
 COPY . .
+COPY --from=skills . /app/skills
 ENV PATH="/venv/bin:$PATH" ENVIRONMENT=test
 RUN python -m pytest --ignore=tests/db_related_tests -q -p no:warnings
 
@@ -52,8 +58,9 @@ WORKDIR /app
 # Copy venv from builder
 COPY --from=builder /venv /venv
 
-# Copy application source
+# Copy application source and the MCP skills
 COPY . .
+COPY --from=skills . /app/skills
 
 # Mount point of the `uploads` volume (text attachments, import staging). It must
 # exist in the image and belong to appuser: Docker initialises an empty named

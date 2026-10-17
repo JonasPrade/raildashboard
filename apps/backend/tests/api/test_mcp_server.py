@@ -176,6 +176,8 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
         "update_fulda_entry",
         "delete_fulda_entry",
         "confirm_fulda_document",
+        "list_skills",
+        "get_skill",
     }
     by_name = {tool["name"]: tool for tool in tools}
     assert by_name["list_projects"]["annotations"]["readOnlyHint"] is True

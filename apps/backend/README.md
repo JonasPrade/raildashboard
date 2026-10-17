@@ -129,7 +129,9 @@ and check the key's capabilities before writing. Tools: `list_project_groups`, `
 `get_project`, `get_project_progress`, `list_project_finves`, `list_finves`, `get_finve`
 (free FinVe search by number, name or Bedarfsplan number), `get_project_texts`,
 `list_text_types`, `list_todos`, `search_operational_points`, `get_project_geometry`,
-`list_data_gaps`, `check_geometry` (data maintenance across many projects) (read)
+`list_data_gaps`, `check_geometry` (data maintenance across many projects), `list_skills`,
+`get_skill` (skills from `.claude/skills` marked `metadata: mcp: true`; the image carries
+them as `/app/skills` via the named build context `skills`) (read)
 and `create_project`, `compute_project_length`, `update_project`, `set_project_groups`,
 `add_progress_observation`,
 `delete_progress_observation`, `set_phase_override`, `upsert_project_text`, `create_todo`,

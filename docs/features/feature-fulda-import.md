@@ -47,8 +47,9 @@ Glaubwürdigkeit liegt etwas unter den Berichten: Vertrauen **0.55** (VIB 0.6, M
 8. Migration löscht die alten Fulda-Daten (Neu-Einlesen ab 2019 macht der User).
 
 **Out of scope:** Finanzzahlen aus den Antworten (Planungsmittel, Mittelbedarf) — gehören,
-wenn überhaupt, zu den Infraplan-Kennzahlen. Anbindung des Skills an claude.ai (macht
-der User).
+wenn überhaupt, zu den Infraplan-Kennzahlen. Anbindung an claude.ai entfällt: der Skill
+ist mit `metadata: mcp: true` markiert und kommt vom MCP-Server (`list_skills`/`get_skill`,
+`feature-mcp-server.md` → „Skills über MCP“).
 
 ## Datenmodell
 
@@ -155,7 +156,8 @@ und meldet den Rest.
 ## Skill
 
 `.claude/skills/fulda-runde/SKILL.md` — wie alle Dashboard-Skills in `.claude/skills/`,
-gelistet in `.claude/skills/README.md`, von dort von Hand nach claude.ai hochgeladen.
+gelistet in `.claude/skills/README.md`; mit `metadata: mcp: true` markiert, der MCP-Server
+liefert ihn aus (`list_skills`/`get_skill`) — kein Upload nach claude.ai.
 Inhalt kurz:
 
 1. Dokument erkennen (Jahr, Drucksache, Datum), prüfen, ob es schon existiert.

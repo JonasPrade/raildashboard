@@ -13,11 +13,13 @@ This file applies to the entire repository. Read it before making any substantia
  
 ## Skills
 
-**All skills for the dashboard live in `.claude/skills/<name>/SKILL.md` — one folder, always the current version.** That covers Claude Code skills for working on the repo (e.g. `widerspruchs-check`, `audit-auth`) and claude.ai skills that drive the Schienendashboard MCP (e.g. `infraplan-import`). `.claude/skills/README.md` lists every skill, what it is for and whether it is uploaded to claude.ai.
+**All skills for the dashboard live in `.claude/skills/<name>/SKILL.md` — one folder, always the current version.** That covers Claude Code skills for working on the repo (e.g. `widerspruchs-check`, `audit-auth`) and skills that drive the Schienendashboard MCP (e.g. `infraplan-import`). `.claude/skills/README.md` lists every skill and how it is used.
 
+- **MCP skills are served by the MCP server itself** (`list_skills`, `get_skill`): mark them with `metadata:` → `mcp: true` in the frontmatter. The folder is copied into the backend image as the named build context `skills`, so clients always get the version that matches the deployed tools. Only the thin entry skill `schienendashboard` is uploaded to claude.ai (once). See `docs/features/feature-mcp-server.md` → „Skills über MCP“.
+- Frontmatter stays simple (`key: value` per line, one indented level under `metadata:`); `make test` checks every skill parses.
 - A change to an MCP tool, endpoint, workflow or principle that a skill describes updates that skill **in the same commit**.
 - A new skill is added to the table in `.claude/skills/README.md`.
-- No skill copies elsewhere in the repo; claude.ai copies are uploaded from this folder by hand (the README says how).
+- No skill copies elsewhere in the repo.
 
 ## Feature Development Workflow
 
