@@ -85,6 +85,7 @@ export const queryKeys = {
         ["fulda-entries", onlyUnconfirmed, year] as const,
     fuldaYears: ["fulda-years"],
     fuldaYearSummaries: ["fulda-year-summaries"],
+    fuldaCategories: ["fulda-categories"],
     operationalPoints: (q: string) => ["operational-points", q] as const,
     todos: ["todos"],
     guideOverrides: (guideSlug: string) => ["guide-overrides", guideSlug] as const,
@@ -1346,16 +1347,14 @@ export function useDeleteMediaEntry() {
 }
 
 // ---------------------------------------------------------------------------
-// Fulda-Runde importer (#46)
+// Fulda-Runde importer (read by an agent over MCP; feature-fulda-import.md)
 // ---------------------------------------------------------------------------
 
 export type FuldaEntry = components["schemas"]["FuldaEntrySchema"];
 
-export type FuldaParseSummary = {
-    ocr_status: string;
-    created: number;
-    source_label: string | null;
-};
+export type FuldaDocument = components["schemas"]["FuldaDocumentSchema"];
+
+export type FuldaCategory = components["schemas"]["FuldaCategorySchema"];
 
 export type FuldaYearSummary = components["schemas"]["FuldaYearSummary"];
 
@@ -1379,19 +1378,11 @@ export function useFuldaYearSummaries() {
     });
 }
 
-export function useParseFulda() {
-    return useMutation({
-        mutationFn: ({ file, year }: { file: File; year: number }) => {
-            const form = new FormData();
-            form.append("pdf", file);
-            form.append("year", String(year));
-            // OCR + LLM run in a Celery task; poll via useTaskStatus. The
-            // fulda query keys are invalidated when the task reaches SUCCESS.
-            return api<TaskLaunchResponse>("/api/v1/import/fulda/parse", {
-                method: "POST",
-                body: form,
-            });
-        },
+export function useFuldaCategories() {
+    return useQuery({
+        queryKey: queryKeys.fuldaCategories,
+        queryFn: () => api<FuldaCategory[]>("/api/v1/import/fulda/categories"),
+        staleTime: Infinity,
     });
 }
 

@@ -14,7 +14,6 @@ import pytest
 
 import dashboard_backend.api.deps as deps
 import dashboard_backend.utils.file_storage as fs
-from dashboard_backend.tasks import fulda as fulda_task
 from dashboard_backend.tasks import haushalt as haushalt_task
 from dashboard_backend.tasks import parliament as parliament_task
 from dashboard_backend.tasks import vib as vib_task
@@ -106,7 +105,6 @@ def test_launch_removes_the_file_when_dispatch_fails(staging_dir):
     [
         (haushalt_task.parse_haushalt_pdf, haushalt_task, "run_haushalt_parse"),
         (vib_task.parse_vib_pdf, vib_task, "run_vib_parse"),
-        (fulda_task.parse_fulda_pdf, fulda_task, "run_fulda_parse"),
     ],
 )
 @pytest.mark.parametrize("fails", [False, True])

@@ -349,7 +349,7 @@ make docker-migrate
 
 ### Hängt ein Import? Worker prüfen
 
-Importe (Haushalt, VIB, Fulda, Bauportal) laufen als Celery-Aufträge. Läuft kein Worker, nimmt die
+Importe (Haushalt, VIB, Bauportal) laufen als Celery-Aufträge. Läuft kein Worker, nimmt die
 Anwendung den Upload trotzdem an — Celery meldet dauerhaft `PENDING` und die Import-Seite wartet
 endlos. Die Oberfläche benennt diesen Fall selbst: Die Import-Seite zeigt nach ~15 s
 den Grund, und **Administration → Systemstatus** (`/admin/system`, Recht `settings.manage`) zeigt
@@ -383,7 +383,7 @@ make docker-backup-db
 
 Das Docker-Volume `raildashboard_uploads` (im Compose-Stack als `uploads` deklariert, gemountet unter `/app/uploads` in Backend- **und** Worker-Container) enthält alle Dateianhänge von Projekttexten (`text-attachments/`).
 
-Seit #149 liegen dort außerdem unter `import-staging/` die gerade hochgeladenen Import-PDFs (Haushalt, VIB, Fulda): Der Backend-Endpunkt legt die Datei ab und übergibt dem Celery-Task nur den Dateinamen, damit keine PDF-Inhalte mehr durch Redis gehen. Der Task löscht die Datei nach dem Lauf, auch im Fehlerfall; was ein Task nie abgeholt hat, wird nach 24 h beim nächsten Upload aufgeräumt. Der Ordner ist also flüchtig. Landet er in einem Backup, schadet das nicht. Der Worker braucht deshalb dasselbe Volume wie das Backend (`compose.yaml`), sonst scheitert jeder PDF-Import mit `FileNotFoundError`. `make backup-db` und `make docker-backup-db` sichern das Volume zusammen mit dem DB-Dump — aber nur, wenn sie jemand aufruft. Zusätzlich nimmt das nächtliche Borg-Backup auf vmd92747 das Volume mit (siehe *Nächtliches Backup auf vmd92747*).
+Seit #149 liegen dort außerdem unter `import-staging/` die gerade hochgeladenen Import-PDFs (Haushalt, VIB): Der Backend-Endpunkt legt die Datei ab und übergibt dem Celery-Task nur den Dateinamen, damit keine PDF-Inhalte mehr durch Redis gehen. Der Task löscht die Datei nach dem Lauf, auch im Fehlerfall; was ein Task nie abgeholt hat, wird nach 24 h beim nächsten Upload aufgeräumt. Der Ordner ist also flüchtig. Landet er in einem Backup, schadet das nicht. Der Worker braucht deshalb dasselbe Volume wie das Backend (`compose.yaml`), sonst scheitert jeder PDF-Import mit `FileNotFoundError`. `make backup-db` und `make docker-backup-db` sichern das Volume zusammen mit dem DB-Dump — aber nur, wenn sie jemand aufruft. Zusätzlich nimmt das nächtliche Borg-Backup auf vmd92747 das Volume mit (siehe *Nächtliches Backup auf vmd92747*).
 
 **Warum das wichtig ist:** Ohne paariges Uploads-Tar zeigen nach einem Restore alle `text_attachment`-Zeilen auf nicht vorhandene Dateien.
 

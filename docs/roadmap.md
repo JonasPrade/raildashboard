@@ -60,7 +60,8 @@ Themenschwerpunkt: die im v0.0.4-Rollout aufgedeckten Stabilitäts- und Tooling-
   > - **DB-Bauportal (#47):** offene JSON-API `GET bauprojekte.deutschebahn.com/api/getProjectsList`
   >   (Status via `icon_title`, Bauzeitraum via `projecttime`), Fuzzy-Match auf `shorttitle`. Trust 0.8.
   > - **Fulda-Runde (#46):** Kleine Anfragen (PDF) → OCR+LLM (VIB-Pipeline wiederverwenden),
-  >   Lph→Phase-Mapping wie Sammel-FinVe. Trust 0.7.
+  >   Lph→Phase-Mapping wie Sammel-FinVe. Trust 0.7. **Abgelöst 2026-10-17** durch MCP + Skill,
+  >   Trust 0.55, Ist/Prognose getrennt — siehe `docs/features/feature-fulda-import.md`.
   > - **Medien/Presse (#48):** halb-automatisch — URL/Text → LLM-Extraktion → Mensch-im-Loop. Trust 0.4.
   >
   > **Listen-/Karten-Integration umgesetzt (#9/#10):** die schlanke Projektgruppen-Liste liefert
@@ -219,7 +220,7 @@ Siehe: `docs/features/feature-new-project-wizard.md`
 
 - [x] **API-Keys als Auth-Weg** — persönliche Bearer-Tokens neben Session-Cookie und HTTP Basic, mit Widerruf, Ablauf und optionaler Rechte-Einschränkung pro Key. Eigenständig nützlich, Voraussetzung für den MCP-Server.
 
-- [x] **MCP-Server** — Streamable-HTTP-Endpunkt `/mcp` im Backend, der Projekte, Finanzierung und Planungsstand als MCP-Tools für KI-Assistenten bereitstellt. Rechte kommen aus dem bestehenden Capability-Katalog; Importe bleiben außen vor. OAuth folgt erst mit dem Authentik-Umzug, die Key-Auth bleibt danach bestehen. Zugriff vorerst nur für Admins (`mcp.access`), Keys laufen nach 90 Tagen ab. Geometrie-Tools inkl. GraphHopper-Routing und Zeichnen aus Koordinaten ergänzt. FinVe frei suchbar (`list_finves`, `get_finve`), auch ohne Projektzuordnung.
+- [x] **MCP-Server** — Streamable-HTTP-Endpunkt `/mcp` im Backend, der Projekte, Finanzierung und Planungsstand als MCP-Tools für KI-Assistenten bereitstellt. Rechte kommen aus dem bestehenden Capability-Katalog; Importe dürfen seit 2026-10-17 eigene Tools bekommen (Fulda-Runde, Infraplan). OAuth folgt erst mit dem Authentik-Umzug, die Key-Auth bleibt danach bestehen. Zugriff vorerst nur für Admins (`mcp.access`), Keys laufen nach 90 Tagen ab. Geometrie-Tools inkl. GraphHopper-Routing und Zeichnen aus Koordinaten ergänzt. FinVe frei suchbar (`list_finves`, `get_finve`), auch ohne Projektzuordnung.
   Siehe: `docs/features/feature-mcp-server.md`
 
 - [x] **Projekte zusammenführen** — MCP-Tool `merge_projects` und `POST /projects/merge`: Dublette in das bleibende Projekt überführen (Verknüpfungen, Historie, Unterprojekte), alte id leitet um. Vorstufe zur GVFG-Datenpflege.
@@ -251,6 +252,9 @@ Siehe: `docs/features/feature-new-project-wizard.md`
 - [ ] **VIB-Review: OCR-Bilder anzeigen** — Im Review und in `VibStructurePreviewPage` extrahierte Mistral-OCR-Bilder (Diagramme, Karten, Fortschrittsbalken) pro Vorhaben anzeigen. Backend-Infrastruktur bereits implementiert: `ocr_images_json` auf `VibDraftReport`, `GET /draft/{task_id}/images` (Metadaten) und `GET /draft/{task_id}/image/{id}` (Bytes). Offen: pro-Eintrag-Zuordnung der Bilder (page_index-Matching gegen entry block_start/end-Seiten) und Frontend-Komponente (Galerie oder Inline-Thumbnails in der Strukturvorschau).
 
 - [ ] **PDF-Import vereinheitlichen** — Die OCR-Stufe der VIB-Pipeline (PDF → Markdown, dann Zuordnung aufs Zielformat) als gemeinsamen Service für alle PDF-Quellen bereitstellen; Haushalt-Spaltenlayout per LLM auf das kanonische Schema mappen statt pro Jahrgang neue Heuristiken. Evaluation und empfohlene Reihenfolge: `docs/features/feature-pdf-import-unification.md`. Umgesetzt: Schritt 1 (`services/document_ocr.py` mit `OcrResult`), Schritt 2 (OCR-Persistenz-Mixin), Schritt 4 (OCR-Pfad des Haushalts parallel über `HAUSHALT_EXTRACTION=compare` inkl. Vergleichsskript) und Schritt 5 (Spaltenzuordnung). Offen: Schritt 3 (Medien-PDF-Upload) und Schritt 6 — die Umschaltung auf `ocr` setzt einen Vergleichslauf gegen die echte OCR-API voraus (`docs/manual-tests-backlog.md`).
+
+- [x] **Fulda-Runde über MCP + Skill** — Antworten der Bundesregierung zur Fulda-Runde liest ein Agent selbst (Skill `.claude/skills/fulda-runde/`) und schreibt sie über MCP-Tools: Dokument mit Antwortstand, feinere Kategorien (Ist / ohne Folgephase / Prognose / Neuaufnahme), Fundstelle und Wortlaut je Eintrag. Ist-Aussagen setzen die Phase, Prognosen nur einen erwarteten Termin; Termine VIB-PFA vs. Fulda nach Glaubwürdigkeit × Aktualität. Trust 0.55, Recht `fulda.import`, OCR+LLM-Upload entfällt.
+  Siehe: `docs/features/feature-fulda-import.md`
 
 - [ ] **Infraplan-Import** — Jährlicher Import des Infraplans (BMV, Fünfjahresplan Schiene): Maßnahmentabellen aus Kapitel 2.3 (Bedarfsplan Teil A–D, GVFG, InvKG) mit Realisierungsstand, Befassung, geplanter Inbetriebnahme und Gesamtkostenprognose sowie alle Steuerungs- und Informationskennzahlen als Zeitreihe über die Jahrgänge. Zwei Wege mit gleichem Ergebnis: manuell im Frontend oder per MCP + Skill (`.claude/skills/infraplan-import/`). Neue Fortschrittsquelle `INFRAPLAN`, öffentliche Seite `/infraplan`. Stufen: Infraplan – Stufe 1 (Parser + Datenmodell), Stufe 2 (manueller Weg), Stufe 3 (Fortschritt + Kosten), Stufe 4 (Kennzahlen + Seite), Stufe 5 (MCP + Skill).
   Siehe: `docs/features/feature-infraplan-import.md`

@@ -22,6 +22,7 @@ EDITOR_KEYS = {
     "projecttext.edit",
     "assignment.manage",
     "progress.edit",
+    "fulda.import",
     "todo.create",
     "todo.edit",
     "todo.delete",

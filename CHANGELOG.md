@@ -12,6 +12,17 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **Fulda-Runde via MCP + skill.** An agent reads the Federal Government's answer on the
+  Fulda-Runde itself (skill `.claude/skills/fulda-runde/SKILL.md`) and writes it with new MCP tools (`list_fulda_categories`, `list_fulda_documents`,
+  `create_fulda_document`, `update_fulda_document`, `add_fulda_entries`, `list_fulda_entries`,
+  `assign_fulda_entry`, `update_fulda_entry`, `delete_fulda_entry`, `confirm_fulda_document`).
+  New table `fulda_document`; entries gain category-defined statement kinds (Ist / ohne
+  Folgephase / Prognose / Neuaufnahme), question, page, verbatim text, attribution and an
+  assignment note. "Ist" lines set the phase as of the answer date, prognoses only add an
+  expected date. New capability `fulda.import` (editors), which now also guards the Fulda REST
+  routes (was `progress.edit`); `GET /import/fulda/categories` and `/documents` added.
+  **Migration** `20261017001`: adds the table/columns and **deletes all existing Fulda entries
+  and their derived observations** (to be re-read). See `docs/features/feature-fulda-import.md`.
 - **MCP: free FinVe search.** `list_finves` searches all FinVes — including those not linked
   to any project — by FinVe number, name, Bedarfsplan number or lfd. Nr., with filters for
   budget year, Sammel-FinVe and project link; `get_finve` returns one FinVe with its budget
@@ -120,6 +131,12 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   and are revertible; projects aggregating their subprojects' geometry stay protected.
 
 ### Changed
+- **Fulda-Runde trust 0.7 → 0.55** (a working-level preview, below VIB 0.6). Forecast and
+  timeline no longer let a Fulda date override a VIB-PFA date when earlier: per phase the date
+  of the more credible × more recent report wins (VIB report date vs. Fulda answer date);
+  manual expected dates still always win.
+- **Removed** the Fulda OCR + LLM upload (`POST /import/fulda/parse`, Celery task
+  `parse_fulda_pdf`, upload form) and "Fulda-Runde" as a source for manual observations.
 - **Members of parliament are only shown to signed-in users.** All read routes under
   `/api/v1/parliament` and `GET /api/v1/projects/{id}/constituencies` now require a login
   (any role) and answer 401 otherwise. The frontend hides the "Abgeordnete" nav entry, the

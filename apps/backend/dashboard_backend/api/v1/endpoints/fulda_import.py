@@ -1,58 +1,51 @@
-"""Fulda-Runde importer endpoints (#46).
+"""Fulda-Runde importer endpoints (feature-fulda-import.md).
 
-Mounted under ``/import/fulda``. Upload a Kleine-Anfrage PDF for OCR + LLM
-extraction into draft announcements, review/edit/match them, then confirm to
-materialise FULDA_RUNDE observations. All actions require ``progress.edit``.
+Mounted under ``/import/fulda``. Fulda answers are read by an agent over MCP
+(``mcp/tools/fulda.py``); these endpoints serve the human review: year and
+document overview, per-entry assignment, confirm, delete. All actions require
+``fulda.import``.
 """
 
 from __future__ import annotations
 
-from fastapi import Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi import Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from dashboard_backend.api.deps import launch_with_staged_pdf, read_upload_within_limit
 from dashboard_backend.core.security import require_permission
 from dashboard_backend.crud import fulda as fulda_crud
 from dashboard_backend.crud._importer_common import ProjectNotFoundError
 from dashboard_backend.database import get_db
-from dashboard_backend.models.users import User
 from dashboard_backend.routing.auth_router import AuthRouter
 from dashboard_backend.schemas.fulda import (
+    FuldaCategorySchema,
     FuldaConfirmSummary,
+    FuldaDocumentSchema,
     FuldaEntrySchema,
     FuldaUpdateInput,
     FuldaYearSummary,
 )
-from dashboard_backend.schemas.tasks import TaskLaunchResponse
-from dashboard_backend.tasks.fulda import parse_fulda_pdf
+from dashboard_backend.services.fulda_categories import FULDA_CATEGORY_LIST
 
 router = AuthRouter()
 
-_require_edit = Depends(require_permission("progress.edit"))
+_require_import = Depends(require_permission("fulda.import"))
 
 
-@router.post("/parse", response_model=TaskLaunchResponse)
-async def parse_fulda(
-    pdf: UploadFile = File(...),
-    year: int = Form(...),
-    current_user: User = Depends(require_permission("progress.edit")),
-):
-    """Upload a Fulda Kleine-Anfrage PDF for ``year``; OCR + LLM run in Celery.
-
-    Returns the Celery task_id for polling via GET /api/v1/tasks/{task_id};
-    the task result is the summary ``{ocr_status, created, source_label}``.
-    """
-    pdf_bytes = await read_upload_within_limit(pdf)
-    if not pdf_bytes:
-        raise HTTPException(status_code=400, detail="Leere Datei")
-    user_info = {"id": current_user.id, "username": current_user.username}
-    result = launch_with_staged_pdf(
-        parse_fulda_pdf, pdf_bytes, year, pdf.filename or "upload.pdf", user_info,
-    )
-    return TaskLaunchResponse(task_id=result.id)
+@router.get("/categories", response_model=list[FuldaCategorySchema], dependencies=[_require_import])
+def list_fulda_categories():
+    """Category catalog in display order (meaning, statement kind, phase)."""
+    return [
+        {
+            "key": c.key,
+            "label": c.label,
+            "statement_kind": c.kind,
+            "phase": c.phase.value if c.phase else None,
+        }
+        for c in FULDA_CATEGORY_LIST
+    ]
 
 
-@router.get("/years", response_model=list[int], dependencies=[_require_edit])
+@router.get("/years", response_model=list[int], dependencies=[_require_import])
 def list_fulda_years(db: Session = Depends(get_db)):
     """Distinct Fulda-Runde years present (newest first)."""
     return fulda_crud.list_years(db)
@@ -61,42 +54,53 @@ def list_fulda_years(db: Session = Depends(get_db)):
 @router.get(
     "/year-summaries",
     response_model=list[FuldaYearSummary],
-    dependencies=[_require_edit],
+    dependencies=[_require_import],
 )
 def list_fulda_year_summaries(db: Session = Depends(get_db)):
-    """Per-year overview rows (counts + provenance) for the landing table."""
+    """Per-year overview rows (counts + documents) for the landing table."""
     return fulda_crud.list_year_summaries(db)
+
+
+@router.get("/documents", response_model=list[FuldaDocumentSchema], dependencies=[_require_import])
+def list_fulda_documents(year: int | None = Query(None), db: Session = Depends(get_db)):
+    """Evaluated Fulda answers with entry counters, newest first."""
+    return fulda_crud.list_documents(db, year=year)
 
 
 @router.post(
     "/years/{year}/confirm",
     response_model=FuldaConfirmSummary,
-    dependencies=[_require_edit],
+    dependencies=[_require_import],
 )
 def confirm_fulda_year(year: int, db: Session = Depends(get_db)):
     """Confirm all assigned, still-open entries of a year in one step."""
     return {"confirmed": fulda_crud.confirm_year(db, year)}
 
 
-@router.delete("/years/{year}", status_code=204, dependencies=[_require_edit])
+@router.delete("/years/{year}", status_code=204, dependencies=[_require_import])
 def delete_fulda_year(year: int, db: Session = Depends(get_db)):
-    """Delete all Fulda announcements of a year (and their derived observations)."""
+    """Delete all Fulda documents and entries of a year (and their observations)."""
     deleted = fulda_crud.delete_year(db, year)
     if deleted == 0:
         raise HTTPException(status_code=404, detail=f"Keine Fulda-Einträge für {year}")
 
 
-@router.get("/entries", response_model=list[FuldaEntrySchema], dependencies=[_require_edit])
+@router.get("/entries", response_model=list[FuldaEntrySchema], dependencies=[_require_import])
 def list_fulda_entries(
     only_unconfirmed: bool = Query(False),
     year: int | None = Query(None),
+    document_id: int | None = Query(None),
     db: Session = Depends(get_db),
 ):
-    """List Fulda announcements with suggested / confirmed matches."""
-    return fulda_crud.list_entries(db, only_unconfirmed=only_unconfirmed, year=year)
+    """List Fulda announcements with their (suggested or confirmed) projects."""
+    return fulda_crud.list_entries(
+        db, only_unconfirmed=only_unconfirmed, year=year, document_id=document_id
+    )
 
 
-@router.patch("/entries/{entry_id}", response_model=FuldaEntrySchema, dependencies=[_require_edit])
+@router.patch(
+    "/entries/{entry_id}", response_model=FuldaEntrySchema, dependencies=[_require_import]
+)
 def update_fulda_entry(
     entry_id: int,
     body: FuldaUpdateInput,
@@ -107,12 +111,14 @@ def update_fulda_entry(
         entry = fulda_crud.update_entry(db, entry_id, body.model_dump(exclude_unset=True))
     except ProjectNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except fulda_crud.FuldaValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     if entry is None:
         raise HTTPException(status_code=404, detail="Fulda-Eintrag nicht gefunden")
     return entry
 
 
-@router.delete("/entries/{entry_id}", status_code=204, dependencies=[_require_edit])
+@router.delete("/entries/{entry_id}", status_code=204, dependencies=[_require_import])
 def delete_fulda_entry(entry_id: int, db: Session = Depends(get_db)):
     """Delete a Fulda announcement (and drop its derived observation)."""
     if not fulda_crud.delete_entry(db, entry_id):

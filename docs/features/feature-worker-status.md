@@ -3,7 +3,8 @@
 ## Goal
 
 Make a stalled background job explain itself. Every import (Haushalt, VIB,
-Fulda, Bauportal, Abgeordnete) runs as a Celery job; if no worker is running,
+Bauportal, Abgeordnete) runs as a Celery job (the Fulda-Runde no longer does — an
+agent reads it over MCP, see `feature-fulda-import.md`); if no worker is running,
 the upload still succeeds, Celery answers `PENDING` forever and the import page
 spins without ever saying why. The admin area gets a place to check broker and
 workers, and a waiting job names its own cause instead of leaving the user to

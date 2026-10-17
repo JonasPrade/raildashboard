@@ -178,6 +178,9 @@ palette — that is the fix, not a regression.
 
 ### M-1 Fulda import must not block the event loop
 
+> Obsolete since 2026-10-17: the Fulda upload/parse path was removed
+> (`feature-fulda-import.md`); the agent reads the PDF and writes over MCP.
+
 **Problem:** `api/v1/endpoints/fulda_import.py:32-47` (`parse_fulda`) is
 `async def` and synchronously runs Mistral-OCR + LLM extraction inline
 (`crud/fulda.py:parse_and_store`). Because the endpoint is async, this runs

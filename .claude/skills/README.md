@@ -16,6 +16,7 @@ Regeln (siehe `AGENT.md` → „Skills“):
 |---|---|---|
 | [`audit-auth`](audit-auth/SKILL.md) | Prüft, welche API-Endpunkte Authentifizierung verlangen, und ob das Frontend damit umgeht | Claude Code |
 | [`widerspruchs-check`](widerspruchs-check/SKILL.md) | Findet Widersprüche zwischen Plänen, Grundsätzen und Code und legt sie dem Nutzer zur Entscheidung vor | Claude Code |
+| [`fulda-runde`](fulda-runde/SKILL.md) | Liest eine Antwort der Bundesregierung zur Fulda-Runde per MCP ein (Dokument, Einträge, Zuordnung, Bestätigung); braucht `fulda.import` | claude.ai (Upload) |
 | `infraplan-import` | Führt einen hochgeladenen Infraplan per MCP bis zur Bestätigung und trägt die Kennzahlen ein (entsteht mit #182) | claude.ai (Upload) |
 
 ## Nach claude.ai hochladen

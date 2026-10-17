@@ -43,7 +43,8 @@ SOURCE_TYPE_DEFAULT_TRUST: dict[SourceType, float] = {
     SourceType.INFRAPLAN: 0.85,
     SourceType.BAUPORTAL: 0.8,
     SourceType.FINVE: 0.7,
-    SourceType.FULDA_RUNDE: 0.7,
+    # Fulda-Runde: a working-level preview, a little below the reports.
+    SourceType.FULDA_RUNDE: 0.55,
     SourceType.VIB: 0.6,
     SourceType.MEDIEN: 0.4,
 }

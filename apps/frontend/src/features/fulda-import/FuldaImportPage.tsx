@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
     Alert,
@@ -6,85 +5,22 @@ import {
     Badge,
     Button,
     Container,
-    FileInput,
     Group,
     Loader,
-    Paper,
     Stack,
     Table,
     Text,
     Title,
-    NumberInput,
 } from "@mantine/core";
-import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
-import { notifications } from "@mantine/notifications";
-import { IconChevronRight, IconUpload } from "@tabler/icons-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { IconChevronRight } from "@tabler/icons-react";
 
-import {
-    type FuldaParseSummary,
-    useFuldaYearSummaries,
-    useParseFulda,
-    queryKeys,
-} from "../../shared/api/queries";
-import { exceedsUploadLimit, tooLargeMessage, uploadErrorMessage } from "../../shared/api/uploads";
-import { useImportTask } from "../import-review/shared";
+import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
+import { useFuldaYearSummaries } from "../../shared/api/queries";
+import { ANSWER_STATUS_LABEL } from "./fuldaShared";
 
 export default function FuldaImportPage() {
     const navigate = useNavigate();
-    const queryClient = useQueryClient();
-    const [file, setFile] = useState<File | null>(null);
-    const [importYear, setImportYear] = useState<number>(new Date().getFullYear());
-
     const { data: summaries, isLoading } = useFuldaYearSummaries();
-    const parse = useParseFulda();
-    // OCR + LLM run in a Celery task — react once it finishes.
-    const task = useImportTask({
-        onSuccess: (result) => {
-            const summary = result as FuldaParseSummary | null;
-            task.reset();
-            setFile(null);
-            queryClient.invalidateQueries({ queryKey: queryKeys.fuldaEntries });
-            queryClient.invalidateQueries({ queryKey: queryKeys.fuldaYears });
-            queryClient.invalidateQueries({ queryKey: queryKeys.fuldaYearSummaries });
-            notifications.show({
-                color: "green",
-                title: `Fulda-Runde ${importYear} ausgewertet`,
-                message: summary
-                    ? `${summary.created} Einträge erkannt (OCR: ${summary.ocr_status}) — bitte prüfen.`
-                    : "Auswertung abgeschlossen — bitte prüfen.",
-            });
-            navigate(`/admin/fulda-import/year/${importYear}`);
-        },
-        onFailure: (error) =>
-            notifications.show({
-                color: "red",
-                title: "Auswertung fehlgeschlagen",
-                message: error ?? "Das PDF konnte nicht verarbeitet werden.",
-            }),
-    });
-
-    const handleParse = () => {
-        if (!file) return;
-        if (exceedsUploadLimit(file)) {
-            notifications.show({ color: "red", title: "Datei zu groß", message: tooLargeMessage(file) });
-            return;
-        }
-        parse.mutate(
-            { file, year: importYear },
-            {
-                onSuccess: (launch) => task.start(launch.task_id),
-                onError: (error) =>
-                    notifications.show({
-                        color: "red",
-                        title: "Auswertung fehlgeschlagen",
-                        message: uploadErrorMessage(error, "Das PDF konnte nicht hochgeladen werden."),
-                    }),
-            },
-        );
-    };
-
-    const isParsing = parse.isPending || task.taskId !== null;
 
     return (
         <Container size="lg" py="xl">
@@ -92,59 +28,19 @@ export default function FuldaImportPage() {
                 <Stack gap={4}>
                     <Title order={2}>Fulda-Runde</Title>
                     <Text c="dimmed" size="sm">
-                        <b>Antwort der Bundesregierung</b> auf die Kleine Anfrage zur „Fulda-Runde"
-                        (PDF) hochladen — nicht die Anfrage selbst, denn nur die Antwort enthält die
-                        Projektlisten. OCR + KI ordnen jede Projektliste anhand der Frage-Überschrift
-                        einer Leistungsphase zu (inkl. Abschnitt → Unterprojekt). Anschließend wird
-                        der Jahrgang <b>Schritt für Schritt</b> durchgearbeitet; bestätigte
-                        Zuordnungen erzeugen je Projekt eine Beobachtung (Quelle „Fulda-Runde").
+                        Die Ergebnisse der Fulda-Runde stehen in den <b>Antworten der
+                        Bundesregierung</b> auf Kleine Anfragen. Diese PDFs liest Claude mit dem
+                        Skill <code>fulda-runde</code> über den MCP-Server ein: Dokument, jede
+                        Projektzeile mit Kategorie, Fundstelle und Wortlaut, Zuordnung zu Projekten.
+                        Hier prüfst du das Ergebnis und gibst es frei. Ist-Aussagen setzen den
+                        Planungsstand, angekündigte Abschlüsse und Neuaufnahmen erscheinen nur als
+                        erwarteter Termin in der Prognose.{" "}
+                        <Anchor component={Link} to="/admin/anleitungen/fulda" size="sm">
+                            Anleitung
+                        </Anchor>
                     </Text>
                 </Stack>
 
-                {/* Upload */}
-                <Paper withBorder p="md" radius="md">
-                    <Group align="flex-end">
-                        <NumberInput
-                            label="Fulda-Runde Jahr"
-                            value={importYear}
-                            onChange={(v) => setImportYear(Number(v))}
-                            min={2000}
-                            max={2100}
-                            allowDecimal={false}
-                            w={140}
-                        />
-                        <FileInput
-                            label="Antwort der Bundesregierung (PDF)"
-                            placeholder="PDF auswählen"
-                            accept="application/pdf"
-                            value={file}
-                            onChange={setFile}
-                            leftSection={<IconUpload size={16} />}
-                            style={{ flex: 1, maxWidth: 420 }}
-                        />
-                        <Button onClick={handleParse} loading={isParsing} disabled={!file}>
-                            Auswerten & durcharbeiten
-                        </Button>
-                    </Group>
-                    {isParsing && (
-                        <Text size="sm" c="dimmed" mt="xs">
-                            OCR und KI-Auswertung laufen im Hintergrund — das kann bei großen
-                            PDFs einige Minuten dauern. Die Seite bleibt benutzbar.
-                        </Text>
-                    )}
-                    {task.warning && (
-                        <Alert color="orange" variant="light" mt="xs" title="Der Auftrag wurde noch nicht gestartet">
-                            <Stack gap={4}>
-                                <Text size="sm">{task.warning}</Text>
-                                <Anchor component={Link} to="/admin/system" size="sm">
-                                    Systemstatus öffnen →
-                                </Anchor>
-                            </Stack>
-                        </Alert>
-                    )}
-                </Paper>
-
-                {/* Year overview table */}
                 <Stack gap="xs">
                     <Title order={4}>Jahrgänge</Title>
                     {isLoading ? (
@@ -153,7 +49,8 @@ export default function FuldaImportPage() {
                         </Group>
                     ) : !summaries || summaries.length === 0 ? (
                         <Alert variant="light" title="Keine Jahrgänge">
-                            Noch keine Fulda-Einträge. Lade oben eine Antwort der Bundesregierung hoch.
+                            Noch keine Fulda-Antworten eingelesen. Gib Claude das PDF und bitte, es
+                            mit dem Skill „fulda-runde" einzulesen.
                         </Alert>
                     ) : (
                         <ResponsiveTable minWidth={640} striped highlightOnHover>
@@ -169,21 +66,29 @@ export default function FuldaImportPage() {
                             <Table.Tbody>
                                 {summaries.map((s) => {
                                     const open = s.total - s.confirmed;
+                                    const target = `/admin/fulda-import/year/${s.announcement_year}`;
                                     return (
                                         <Table.Tr
                                             key={s.announcement_year}
                                             style={{ cursor: "pointer" }}
-                                            onClick={() =>
-                                                navigate(`/admin/fulda-import/year/${s.announcement_year}`)
-                                            }
+                                            onClick={() => navigate(target)}
                                         >
                                             <Table.Td>
                                                 <Text fw={600}>{s.announcement_year}</Text>
                                             </Table.Td>
                                             <Table.Td>
-                                                <Text size="sm" c="dimmed">
-                                                    {s.source_label ?? "—"}
-                                                </Text>
+                                                <Stack gap={2}>
+                                                    {(s.documents ?? []).map((d) => (
+                                                        <Group key={d.id} gap={6} wrap="nowrap">
+                                                            <Text size="sm">Drs. {d.drucksache}</Text>
+                                                            {d.answer_status !== "VOLLSTAENDIG" && (
+                                                                <Badge size="xs" variant="light" color="orange">
+                                                                    {ANSWER_STATUS_LABEL[d.answer_status]}
+                                                                </Badge>
+                                                            )}
+                                                        </Group>
+                                                    ))}
+                                                </Stack>
                                             </Table.Td>
                                             <Table.Td>{s.total}</Table.Td>
                                             <Table.Td>
@@ -204,11 +109,7 @@ export default function FuldaImportPage() {
                                                         size="xs"
                                                         variant="light"
                                                         rightSection={<IconChevronRight size={14} />}
-                                                        onClick={() =>
-                                                            navigate(
-                                                                `/admin/fulda-import/year/${s.announcement_year}`,
-                                                            )
-                                                        }
+                                                        onClick={() => navigate(target)}
                                                     >
                                                         Öffnen
                                                     </Button>

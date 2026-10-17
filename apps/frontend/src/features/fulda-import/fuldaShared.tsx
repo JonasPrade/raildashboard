@@ -26,21 +26,48 @@ import {
     usePatchWithToast,
 } from "../import-review/shared";
 
-// Fixed display order of the phase tables (one table per category per year).
+// Fixed display order of the category tables (mirrors services/fulda_categories.py):
+// current state first, then announcements.
 export const CATEGORY_ORDER = [
     "IN_LPH_1_2",
-    "COMPLETED_LPH_1_2",
     "IN_LPH_3_4",
-    "COMPLETED_LPH_3_4",
     "HAS_BAUFINVE",
+    "COMPLETED_LPH_1_2_NO_FOLLOWUP",
+    "COMPLETED_LPH_3_4_NO_FOLLOWUP",
+    "COMPLETES_LPH_1",
+    "COMPLETES_LPH_2",
+    "COMPLETES_LPH_3_4",
+    "NEW_LPH_1_2",
+    "NEW_LPH_3_4",
+    "NEW_BAUFINVE",
 ] as const;
 
 export const CATEGORY_LABEL: Record<string, string> = {
-    IN_LPH_1_2: "Projekte in Lph 1–2",
-    COMPLETED_LPH_1_2: "Projekte mit Abschluss Lph 1–2",
-    IN_LPH_3_4: "Projekte in Lph 3–4",
-    COMPLETED_LPH_3_4: "Projekte mit Abschluss Lph 3–4",
-    HAS_BAUFINVE: "Projekte mit Baufinanzierungsvereinbarung",
+    IN_LPH_1_2: "Aktuell in der Sammel-FinVe Lph 1/2",
+    IN_LPH_3_4: "Aktuell in der Sammel-FinVe Lph 3/4",
+    HAS_BAUFINVE: "Mit Baufinanzierungsvereinbarung",
+    COMPLETED_LPH_1_2_NO_FOLLOWUP: "Lph 1/2 abgeschlossen, keine Aufnahme in Lph 3/4",
+    COMPLETED_LPH_3_4_NO_FOLLOWUP: "Lph 3/4 abgeschlossen, keine Bau-FinVe",
+    COMPLETES_LPH_1: "Abschluss Lph 1 angekündigt (nur Hinweis)",
+    COMPLETES_LPH_2: "Abschluss Lph 2 bzw. 1/2 angekündigt",
+    COMPLETES_LPH_3_4: "Abschluss Lph 3/4 angekündigt",
+    NEW_LPH_1_2: "Neuaufnahme Lph 1/2 geplant",
+    NEW_LPH_3_4: "Neuaufnahme Lph 3/4 geplant",
+    NEW_BAUFINVE: "Bau-FinVe geplant",
+};
+
+// What a category does to the planning state (statement kind → effect).
+export const KIND_LABEL: Record<string, { label: string; color: string }> = {
+    IST: { label: "Ist · setzt Phase", color: "blue" },
+    OHNE_FOLGEPHASE: { label: "Ist · ohne Folgephase", color: "orange" },
+    PROGNOSE: { label: "Prognose · nur Termin", color: "grape" },
+    NEUAUFNAHME: { label: "Neuaufnahme · nur Termin", color: "grape" },
+};
+
+export const ANSWER_STATUS_LABEL: Record<string, string> = {
+    VOLLSTAENDIG: "vollständig",
+    TEILWEISE: "teilweise beantwortet",
+    OHNE_ERGEBNIS: "ohne Ergebnis",
 };
 
 export type ProjectOption = { value: string; label: string };
@@ -56,7 +83,7 @@ function draftName(entry: FuldaEntry): string {
     return entry.raw_name;
 }
 
-/** Group a year's entries into the five fixed phase buckets (+ an "other" bucket). */
+/** Group a year's entries into the fixed category buckets (+ an "other" bucket). */
 export function bucketByCategory(rows: FuldaEntry[]) {
     const map = new Map<string, FuldaEntry[]>();
     for (const cat of CATEGORY_ORDER) map.set(cat, []);
@@ -87,14 +114,38 @@ export function FuldaRow({
     return (
         <Table.Tr>
             <Table.Td style={{ wordBreak: "break-word" }}>
-                <Text size="sm" fw={500}>
-                    {entry.raw_name}
-                </Text>
+                <Stack gap={2}>
+                    <Text size="sm" fw={500}>
+                        {entry.raw_name}
+                    </Text>
+                    <Text size="xs" c="dimmed">
+                        {[
+                            entry.drucksache ? `Drs. ${entry.drucksache}` : null,
+                            entry.question_ref,
+                            entry.page != null ? `S. ${entry.page}` : null,
+                            entry.attributed_to === "DB" ? "Angabe der DB" : null,
+                        ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                    </Text>
+                    {entry.raw_text && (
+                        <Text size="xs" c="dimmed" fs="italic" lineClamp={3} title={entry.raw_text}>
+                            „{entry.raw_text}“
+                        </Text>
+                    )}
+                </Stack>
             </Table.Td>
             <Table.Td style={{ wordBreak: "break-word" }}>
-                <Text size="sm" c={entry.abschnitt ? undefined : "dimmed"}>
-                    {entry.abschnitt ?? "—"}
-                </Text>
+                <Stack gap={2}>
+                    <Text size="sm" c={entry.abschnitt ? undefined : "dimmed"}>
+                        {entry.abschnitt ?? "—"}
+                    </Text>
+                    {entry.expected_date && (
+                        <Text size="xs" c="grape">
+                            Termin: {new Date(entry.expected_date).toLocaleDateString("de-DE")}
+                        </Text>
+                    )}
+                </Stack>
             </Table.Td>
             <Table.Td style={{ width: "36%" }}>
                 <Stack gap={4}>
@@ -109,6 +160,11 @@ export function FuldaRow({
                         filter={filterProjectOption}
                         nothingFoundMessage="Kein Projekt gefunden"
                     />
+                    {entry.assignment_note && (
+                        <Text size="xs" c="dimmed">
+                            {entry.assignment_note}
+                        </Text>
+                    )}
                     <MissingProjectAnchor
                         alignSelfStart
                         initialName={draftName(entry)}
@@ -156,10 +212,16 @@ export function PhaseTable({
     projectOptions: ProjectOption[];
 }) {
     const confirmed = useMemo(() => rows.filter((r) => r.confirmed).length, [rows]);
+    const kind = rows[0]?.statement_kind ? KIND_LABEL[rows[0].statement_kind] : undefined;
     return (
         <Stack gap={6}>
             <Group gap="xs">
                 <Title order={5}>{CATEGORY_LABEL[category] ?? category}</Title>
+                {kind && (
+                    <Badge variant="outline" color={kind.color}>
+                        {kind.label}
+                    </Badge>
+                )}
                 <Badge variant="light" color={rows.length ? "blue" : "gray"}>
                     {rows.length}
                 </Badge>
@@ -171,13 +233,13 @@ export function PhaseTable({
             </Group>
             {rows.length === 0 ? (
                 <Text size="sm" c="dimmed" pl={4}>
-                    Keine Projekte in dieser Phase.
+                    Keine Projekte in dieser Kategorie.
                 </Text>
             ) : (
                 <ResponsiveTable minWidth={640} striped highlightOnHover layout="fixed" w="100%" verticalSpacing="sm">
                     <Table.Thead>
                         <Table.Tr>
-                            <Table.Th style={{ width: "28%" }}>Projekt (Roh)</Table.Th>
+                            <Table.Th style={{ width: "28%" }}>Projekt (Wortlaut, Fundstelle)</Table.Th>
                             <Table.Th style={{ width: "24%" }}>Abschnitt → Unterprojekt</Table.Th>
                             <Table.Th style={{ width: "36%" }}>Projekte zuordnen</Table.Th>
                             <Table.Th style={{ width: "12%" }}>Übernehmen</Table.Th>
