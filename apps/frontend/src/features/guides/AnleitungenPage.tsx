@@ -40,9 +40,9 @@ const WORKFLOWS: Guide[] = [
     },
     {
         to: "/admin/anleitungen/fulda",
-        title: "Fulda-Runde anlegen",
+        title: "Fulda-Runde einlesen",
         description:
-            "Antwort der Bundesregierung auf die Kleine Anfrage per OCR+KI nach Leistungsphase auswerten und den Jahrgang durcharbeiten.",
+            "Antwort der Bundesregierung zur Fulda-Runde von Claude (Skill + MCP) einlesen lassen und den Jahrgang prüfen und freigeben.",
     },
     {
         to: "/admin/anleitungen/bauportal",

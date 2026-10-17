@@ -50,7 +50,9 @@ import {
 
 const PHASE_NONE = "__none__";
 const PARL_STATE_NONE = "__none__";
-const MANUAL_SOURCE_TYPES: SourceType[] = ["MANUELL", "FULDA_RUNDE", "BAUPORTAL", "MEDIEN"];
+// Fulda-Runde is read only through its importer (feature-fulda-import.md).
+type ManualSourceType = ProgressObservationCreate["source_type"] & SourceType;
+const MANUAL_SOURCE_TYPES: ManualSourceType[] = ["MANUELL", "BAUPORTAL", "MEDIEN"];
 
 type PfLinkDraft = { url: string; comment: string };
 
@@ -192,7 +194,7 @@ function scalarPayload(draft: Draft, progress: ProjectProgress): ProjectProgress
 // ---------------------------------------------------------------------------
 
 function ObservationDraftForm({ onAdd }: { onAdd: (obs: ProgressObservationCreate) => void }) {
-    const [sourceType, setSourceType] = useState<SourceType>("MANUELL");
+    const [sourceType, setSourceType] = useState<ManualSourceType>("MANUELL");
     // Manual observations only ever record a Leistungsphase (MAIN track). The
     // Planfeststellung / parl. Befassung tracks are maintained in the "Verfahren"
     // section instead, so this form no longer offers a track selector.
@@ -229,7 +231,7 @@ function ObservationDraftForm({ onAdd }: { onAdd: (obs: ProgressObservationCreat
                     size="xs"
                     label="Quelle"
                     value={sourceType}
-                    onChange={(v) => setSourceType((v as SourceType) ?? "MANUELL")}
+                    onChange={(v) => setSourceType((v as ManualSourceType) ?? "MANUELL")}
                     data={MANUAL_SOURCE_TYPES.map((s) => ({ value: s, label: SOURCE_LABEL[s] }))}
                     w={140}
                 />

@@ -231,7 +231,7 @@ A task optionally links to one project (`project_id`, `ON DELETE SET NULL`) or i
 returns an `OcrResult(text, pages, model, status, images)` — Mistral OCR when `OCR_API_KEY` is set,
 pymupdf otherwise. Credentials and model come from `settings`, so callers pass only the bytes and an
 optional page range. `OcrResult.tables` carries the markdown of each recognised table per page, which
-is what lets a table source read the grid rather than the prose. VIB and Fulda-Runde read through it;
+is what lets a table source read the grid rather than the prose. VIB reads through it;
 the Haushalt import can run it alongside or instead of pdfplumber (`HAUSHALT_EXTRACTION`).
 
 Draft models keep that outcome via `models/mixins.py::OcrSourceMixin` (`ocr_raw_text`, `ocr_status`,

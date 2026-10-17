@@ -91,6 +91,9 @@ Before writing any code:
 - Environment variables: `docs/environment.md`
 - Git workflow: `docs/git_workflow.md`
 - Testing: `docs/testing.md`
+- Skills: `.claude/skills/` holds skills for working **on this repository** (e.g.
+  `widerspruchs-check`); `skills/` holds skills for agents working **with the dashboard**
+  over MCP (e.g. `skills/fulda-runde/`). Keep a dashboard skill in sync with its MCP tools.
 
 
 ## Keep documentation

@@ -3,7 +3,9 @@
 Combines three input kinds into a "remaining duration + next steps" forecast:
 - **Concrete milestone dates** from VIB PFA fields (``baubeginn`` → BAU start,
   ``inbetriebnahme`` → IN_BETRIEB, ``datum_pfb`` → Genehmigung/PF done) and from
-  Fulda-Runde announcements (manual observations carrying a phase + date).
+  Fulda-Runde prognoses (derived expected observations carrying a phase + date).
+  When both name a date for the same phase, the more credible × more recent
+  report wins (trust of the source × recency of the report it comes from).
 - **BVWP planning/build durations** (years) as a fallback when no concrete date
   exists for an upcoming phase.
 
@@ -19,7 +21,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 
-from dashboard_backend.models.projects.progress_enums import MainPhase
+from dashboard_backend.models.projects.progress_enums import MainPhase, SourceType
+from dashboard_backend.services.progress_derivation import (
+    SOURCE_TYPE_DEFAULT_TRUST,
+    recency_decay,
+)
 
 # Phases that are forecast targets (everything after NICHT_GESTARTET).
 _FORECASTABLE = [
@@ -37,6 +43,17 @@ class PfaForecastInput:
     datum_pfb: date | None = None
     baubeginn: date | None = None
     inbetriebnahme: date | None = None
+    # Date of the VIB report the section comes from (recency of its dates).
+    reported_on: date | None = None
+
+
+@dataclass(frozen=True)
+class ExpectedDate:
+    """A dated prognosis for a phase plus the date of the report stating it."""
+
+    phase: MainPhase
+    date: date
+    reported_on: date | None = None
 
 
 @dataclass(frozen=True)
@@ -79,42 +96,84 @@ def _humanize_remaining(end: date, today: date) -> str:
     return f"noch ca. {round(years)} Jahre in der aktuellen Phase"
 
 
+def reduce_expected(claims: list[ExpectedDate]) -> list[ExpectedDate]:
+    """One prognosis per phase: earliest start, but the latest in-service date.
+
+    Several claims per phase arise when a superior pools its subtree (each
+    section has its own dates) — same aggregation as the PFA sections. The
+    pooled claim keeps the most recent report date.
+    """
+
+    best: dict[MainPhase, ExpectedDate] = {}
+    for claim in claims:
+        current = best.get(claim.phase)
+        if current is None:
+            best[claim.phase] = claim
+            continue
+        if claim.phase is MainPhase.IN_BETRIEB:
+            dt = max(current.date, claim.date)
+        else:
+            dt = min(current.date, claim.date)
+        reported = max(
+            (d for d in (current.reported_on, claim.reported_on) if d is not None),
+            default=None,
+        )
+        best[claim.phase] = ExpectedDate(phase=claim.phase, date=dt, reported_on=reported)
+    return list(best.values())
+
+
+def _weight(source: SourceType, reported_on: date | None, today: date) -> float:
+    return SOURCE_TYPE_DEFAULT_TRUST[source] * recency_decay(reported_on, today)
+
+
 def concrete_milestone_dates(
     *,
     pfas: list[PfaForecastInput],
-    fulda: list[tuple[MainPhase, date]],
+    fulda: list[ExpectedDate],
     manual_expected: list[tuple[MainPhase, date]],
+    today: date,
     pfb_as_genehmigung: bool = True,
 ) -> dict[MainPhase, tuple[date, str]]:
     """Concrete (non-estimated) milestone date per phase, with its source label.
 
     Shared by the forecast and the multi-project timeline so both apply the same
-    precedence: VIB-PFA dates as the base, Fulda-Runde announcements override
-    only if earlier / fill gaps, manual expected dates always win.
+    precedence: per phase, the VIB-PFA or Fulda-Runde date with the higher
+    weight wins — trust of the source × recency of its report (tie → earlier
+    date). Manual expected dates are editorial and always win.
 
     ``pfb_as_genehmigung`` maps the PFA ``datum_pfb`` onto GENEHMIGUNGSPLANUNG
     (the forecast's reading); the timeline shows the PFB as its own milestone
     and passes False.
     """
 
+    # (date, source label, weight) candidates per phase.
+    candidates: dict[MainPhase, list[tuple[date, str, float]]] = {}
+
+    def _pfa_candidate(phase: MainPhase, field: str, pick) -> None:
+        dated = [(getattr(p, field), p.reported_on) for p in pfas if getattr(p, field)]
+        if not dated:
+            return
+        dt = pick(d for d, _ in dated)
+        # The section(s) carrying the chosen date decide the weight.
+        weight = max(_weight(SourceType.VIB, rep, today) for d, rep in dated if d == dt)
+        candidates.setdefault(phase, []).append((dt, "VIB-PFA", weight))
+
     # Aggregate across PFA sections: earliest construction start (first section
     # breaks ground), latest in-service (last section opens), earliest PFB.
-    concrete: dict[MainPhase, tuple[date, str]] = {}
-    baubeginn_dates = [p.baubeginn for p in pfas if p.baubeginn]
-    inbetrieb_dates = [p.inbetriebnahme for p in pfas if p.inbetriebnahme]
-    pfb_dates = [p.datum_pfb for p in pfas if p.datum_pfb]
-    if pfb_as_genehmigung and pfb_dates:
-        concrete[MainPhase.GENEHMIGUNGSPLANUNG] = (min(pfb_dates), "VIB-PFA")
-    if baubeginn_dates:
-        concrete[MainPhase.BAU] = (min(baubeginn_dates), "VIB-PFA")  # first section starts
-    if inbetrieb_dates:
-        concrete[MainPhase.IN_BETRIEB] = (max(inbetrieb_dates), "VIB-PFA")  # last section opens
+    if pfb_as_genehmigung:
+        _pfa_candidate(MainPhase.GENEHMIGUNGSPLANUNG, "datum_pfb", min)
+    _pfa_candidate(MainPhase.BAU, "baubeginn", min)
+    _pfa_candidate(MainPhase.IN_BETRIEB, "inbetriebnahme", max)
 
-    # Fulda announcements override only if earlier / fill gaps.
-    for phase, dt in fulda:
-        existing = concrete.get(phase)
-        if existing is None or dt < existing[0]:
-            concrete[phase] = (dt, "Fulda-Runde")
+    for claim in reduce_expected(fulda):
+        candidates.setdefault(claim.phase, []).append(
+            (claim.date, "Fulda-Runde", _weight(SourceType.FULDA_RUNDE, claim.reported_on, today))
+        )
+
+    concrete: dict[MainPhase, tuple[date, str]] = {}
+    for phase, options in candidates.items():
+        dt, source, _ = max(options, key=lambda o: (o[2], -o[0].toordinal()))
+        concrete[phase] = (dt, source)
 
     # Manual expected dates are editorial — they always win over derived sources.
     for phase, dt in manual_expected:
@@ -129,7 +188,7 @@ def build_forecast(
     today: date,
     pfas: list[PfaForecastInput] | None = None,
     bvwp: BvwpDurations | None = None,
-    fulda: list[tuple[MainPhase, date]] | None = None,
+    fulda: list[ExpectedDate] | None = None,
     manual_expected: list[tuple[MainPhase, date]] | None = None,
     skipped_phases: frozenset[MainPhase] | set[MainPhase] = frozenset(),
 ) -> ForecastResult:
@@ -138,7 +197,7 @@ def build_forecast(
     manual_expected = manual_expected or []
 
     concrete = concrete_milestone_dates(
-        pfas=pfas, fulda=fulda, manual_expected=manual_expected
+        pfas=pfas, fulda=fulda, manual_expected=manual_expected, today=today
     )
 
     has_concrete = bool(concrete)

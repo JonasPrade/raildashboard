@@ -1,15 +1,16 @@
-"""DB access for the Fulda-Runde importer (#46).
+"""DB access for the Fulda-Runde importer (feature-fulda-import.md).
 
-Parses an uploaded "Antwort der Bundesregierung" PDF (OCR + LLM) into
-per-(project, category) draft rows whose project assignment is pre-filled with
-the top fuzzy-match candidates (m:n, like VIB — the editor adjusts via a
-MultiSelect). On confirm/edit/delete the affected projects' derived FULDA_RUNDE
-observations are re-materialised. Rows are editor-owned (editable / deletable),
-and whole years can be dropped at once.
+An agent reads a Fulda answer (PDF) itself and records it via the MCP tools: one
+``FuldaDocument`` per answer, one ``FuldaAnnouncement`` per statement. New
+entries get their project assignment pre-filled with the top fuzzy matches
+(marked as automatic in ``assignment_note``); the agent or an editor confirms or
+corrects it. Confirming materialises the derived FULDA_RUNDE observations;
+every change re-materialises the affected projects.
 """
 
 from __future__ import annotations
 
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session, load_only
 
 from dashboard_backend.crud._importer_common import (
@@ -18,142 +19,302 @@ from dashboard_backend.crud._importer_common import (
     recompute_for,
 )
 from dashboard_backend.models.projects.fulda_announcement import FuldaAnnouncement
+from dashboard_backend.models.projects.fulda_document import ANSWER_STATUSES, FuldaDocument
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.users import User
-from dashboard_backend.services.progress_dates import parse_flexible_date
-from dashboard_backend.services.progress_materialization import fulda_category_to_phase
-from dashboard_backend.tasks.fulda_extraction import (
-    extract_fulda_announcements,
-    ocr_fulda_pdf,
-)
+from dashboard_backend.services.fulda_categories import ATTRIBUTED_TO, get_category
 from dashboard_backend.tasks.vib_matching import (
     suggest_projects_for_vib_entry,
     suggest_subproject_for_pfa,
 )
 
-_EDITABLE_FIELDS = {
-    "announcement_year",
-    "source_label",
-    "document_date",
+AUTO_SUGGESTION_NOTE = "Automatischer Vorschlag (Namensabgleich), ungeprüft"
+
+_DOCUMENT_FIELDS = {"year", "drucksache", "title", "document_date", "dip_url", "answer_status", "note"}
+_ENTRY_FIELDS = {
     "raw_name",
     "abschnitt",
     "category",
-    "announced_phase",
     "expected_date",
+    "question_ref",
+    "page",
+    "raw_text",
+    "attributed_to",
+    "assignment_note",
     "confirmed",
 }
 
 # Abschnitt values that name the whole project rather than a distinct subproject
-# (so the observation stays on the superior project, not a leaf).
+# (so the suggestion stays on the superior project, not a leaf).
 _GENERIC_ABSCHNITT = {"", "gesamtstrecke", "gesamtprojekt", "gesamtmaßnahme"}
 
 
-def _resolve_leaf_ids(
-    superior_ids: list[int],
-    abschnitt: str | None,
-    children_by_superior: dict[int, list[Project]],
-) -> list[int]:
-    """Pick the leaf project(s) to pre-assign for one extracted Fulda row.
-
-    The Abschnitt is the subproject: if it names a distinct section and a
-    matching subproject exists under one of the fuzzy-matched superior projects,
-    pre-fill that leaf; otherwise fall back to the superior matches. Never
-    creates subprojects — the editor confirms/corrects in the review.
-    """
-    if not superior_ids:
-        return []
-    norm = (abschnitt or "").strip().lower()
-    if norm in _GENERIC_ABSCHNITT:
-        return superior_ids
-    candidates: list[Project] = []
-    for sid in superior_ids:
-        candidates.extend(children_by_superior.get(sid, []))
-    if not candidates:
-        return superior_ids
-    sub_id = suggest_subproject_for_pfa(abschnitt, candidates)
-    return [sub_id] if sub_id is not None else superior_ids
+class FuldaValidationError(ValueError):
+    """Invalid input (unknown category, duplicate Drucksache, …); message is German."""
 
 
-def parse_and_store(
-    db: Session, *, pdf_bytes: bytes, year: int, user: User | None
-) -> dict:
-    """OCR + LLM extract a Fulda PDF and store draft announcement rows for ``year``.
+# --- Validation --------------------------------------------------------------
 
-    Each row's project assignment is pre-filled with the top fuzzy-match
-    candidates so the editor reviews suggestions directly instead of searching.
-    Re-parsing the same year first drops that year's still-unconfirmed drafts, so
-    a fresh upload replaces the old suggestions without touching confirmed rows.
-    Returns a summary ``{ocr_status, created, source_label}``.
-    """
 
-    full_text, _ocr_model, ocr_status = ocr_fulda_pdf(pdf_bytes)
-    extracted = extract_fulda_announcements(full_text)
-
-    document_date = parse_flexible_date(extracted.get("document_date"))
-    source_label = extracted.get("source_label")
-    # The fuzzy matcher only reads id/name/superior_project_id — don't drag
-    # geojson_representation (potentially MBs per row) along for every project.
-    projects = (
-        db.query(Project)
-        .options(load_only(Project.id, Project.name, Project.superior_project_id))
-        .all()
-    )
-    by_id = {p.id: p for p in projects}
-    children_by_superior: dict[int, list[Project]] = {}
-    for p in projects:
-        if p.superior_project_id is not None:
-            children_by_superior.setdefault(p.superior_project_id, []).append(p)
-
-    db.query(FuldaAnnouncement).filter(
-        FuldaAnnouncement.announcement_year == year,
-        FuldaAnnouncement.confirmed.is_(False),
-    ).delete(synchronize_session=False)
-
-    created = 0
-    for item in extracted["items"]:
-        phase = fulda_category_to_phase(item["category"])
-        abschnitt = item.get("abschnitt")
-        superior_ids = suggest_projects_for_vib_entry(item["project_name"], projects)
-        leaf_ids = _resolve_leaf_ids(superior_ids, abschnitt, children_by_superior)
-        row = FuldaAnnouncement(
-            announcement_year=year,
-            source_label=source_label,
-            document_date=document_date,
-            raw_name=item["project_name"],
-            abschnitt=abschnitt,
-            category=item["category"],
-            announced_phase=phase.value if phase is not None else None,
-            expected_date=None,
-            projects=[by_id[pid] for pid in leaf_ids if pid in by_id],
-            confirmed=False,
-            created_by_user_id=user.id if user else None,
-            username_snapshot=user.username if user else None,
+def _validate_document(payload: dict) -> None:
+    status = payload.get("answer_status")
+    if status is not None and status not in ANSWER_STATUSES:
+        raise FuldaValidationError(
+            f"Unbekannter Antwortstand '{status}'. Erlaubt: {', '.join(ANSWER_STATUSES)}."
         )
-        db.add(row)
-        created += 1
+    for key in ("year", "drucksache", "document_date"):
+        if key in payload and payload[key] in (None, ""):
+            raise FuldaValidationError(f"'{key}' darf nicht leer sein.")
 
-    db.commit()
-    return {"ocr_status": ocr_status, "created": created, "source_label": source_label}
+
+def _validate_entry(payload: dict) -> None:
+    if "category" in payload and get_category(payload["category"]) is None:
+        raise FuldaValidationError(
+            f"Unbekannte Kategorie '{payload['category']}'. Siehe list_fulda_categories."
+        )
+    if "category" in payload:
+        payload["category"] = get_category(payload["category"]).key
+    attributed = payload.get("attributed_to")
+    if attributed is not None and attributed not in ATTRIBUTED_TO:
+        raise FuldaValidationError(
+            f"Unbekannte Urheberschaft '{attributed}'. Erlaubt: {', '.join(ATTRIBUTED_TO)}."
+        )
+    if "raw_name" in payload and not (payload["raw_name"] or "").strip():
+        raise FuldaValidationError("'raw_name' darf nicht leer sein.")
+
+
+# --- Serialisation -----------------------------------------------------------
+
+
+def _document_dict(doc: FuldaDocument, counts: dict | None = None) -> dict:
+    counts = counts or {}
+    return {
+        "id": doc.id,
+        "year": doc.year,
+        "drucksache": doc.drucksache,
+        "title": doc.title,
+        "document_date": doc.document_date,
+        "dip_url": doc.dip_url,
+        "answer_status": doc.answer_status,
+        "note": doc.note,
+        "total": counts.get("total", 0),
+        "assigned": counts.get("assigned", 0),
+        "confirmed": counts.get("confirmed", 0),
+        "created_at": doc.created_at,
+        "username_snapshot": doc.username_snapshot,
+    }
 
 
 def _entry_dict(row: FuldaAnnouncement) -> dict:
     linked = sorted(row.projects, key=lambda p: (p.name or ""))
+    cat = get_category(row.category)
+    doc = row.document
     return {
         "id": row.id,
+        "document_id": row.document_id,
         "announcement_year": row.announcement_year,
-        "source_label": row.source_label,
-        "document_date": row.document_date,
+        "drucksache": doc.drucksache if doc is not None else None,
+        "document_date": doc.document_date if doc is not None else None,
         "raw_name": row.raw_name,
         "abschnitt": row.abschnitt,
         "category": row.category,
-        "announced_phase": row.announced_phase,
+        "statement_kind": cat.kind if cat is not None else None,
+        "phase": cat.phase.value if cat is not None and cat.phase is not None else None,
         "expected_date": row.expected_date,
+        "question_ref": row.question_ref,
+        "page": row.page,
+        "raw_text": row.raw_text,
+        "attributed_to": row.attributed_to,
+        "assignment_note": row.assignment_note,
         "project_ids": [p.id for p in linked],
         "project_names": [p.name for p in linked if p.name],
         "confirmed": row.confirmed,
         "created_at": row.created_at,
         "username_snapshot": row.username_snapshot,
     }
+
+
+# --- Documents ---------------------------------------------------------------
+
+
+def _document_counts(db: Session) -> dict[int, dict]:
+    from dashboard_backend.models.associations.fulda_announcement_to_project import (
+        fulda_announcement_to_project as link,
+    )
+
+    assigned_ids = (
+        db.query(link.c.fulda_announcement_id).distinct().subquery()
+    )
+    rows = (
+        db.query(
+            FuldaAnnouncement.document_id,
+            func.count(FuldaAnnouncement.id),
+            func.sum(case((FuldaAnnouncement.id.in_(db.query(assigned_ids)), 1), else_=0)),
+            func.sum(case((FuldaAnnouncement.confirmed.is_(True), 1), else_=0)),
+        )
+        .filter(FuldaAnnouncement.document_id.isnot(None))
+        .group_by(FuldaAnnouncement.document_id)
+        .all()
+    )
+    return {
+        doc_id: {"total": int(t or 0), "assigned": int(a or 0), "confirmed": int(c or 0)}
+        for doc_id, t, a, c in rows
+    }
+
+
+def list_documents(db: Session, *, year: int | None = None) -> list[dict]:
+    query = db.query(FuldaDocument)
+    if year is not None:
+        query = query.filter(FuldaDocument.year == year)
+    docs = query.order_by(FuldaDocument.year.desc(), FuldaDocument.document_date.desc()).all()
+    counts = _document_counts(db)
+    return [_document_dict(d, counts.get(d.id)) for d in docs]
+
+
+def get_document(db: Session, document_id: int) -> FuldaDocument | None:
+    return db.query(FuldaDocument).filter(FuldaDocument.id == document_id).first()
+
+
+def create_document(db: Session, payload: dict, user: User | None) -> dict:
+    _validate_document(payload)
+    for key in ("year", "drucksache", "document_date"):
+        if payload.get(key) in (None, ""):
+            raise FuldaValidationError(f"'{key}' ist Pflicht.")
+    drucksache = payload["drucksache"].strip()
+    existing = db.query(FuldaDocument).filter(FuldaDocument.drucksache == drucksache).first()
+    if existing is not None:
+        raise FuldaValidationError(
+            f"Drucksache {drucksache} ist schon als Dokument {existing.id} erfasst."
+        )
+    doc = FuldaDocument(
+        **{k: v for k, v in payload.items() if k in _DOCUMENT_FIELDS},
+        created_by_user_id=user.id if user else None,
+        username_snapshot=user.username if user else None,
+    )
+    doc.drucksache = drucksache
+    db.add(doc)
+    db.commit()
+    db.refresh(doc)
+    return _document_dict(doc)
+
+
+def update_document(db: Session, document_id: int, payload: dict) -> dict | None:
+    doc = get_document(db, document_id)
+    if doc is None:
+        return None
+    _validate_document(payload)
+    apply_editable_fields(doc, payload, _DOCUMENT_FIELDS)
+    affected: set[int] = set()
+    if "year" in payload or "document_date" in payload:
+        # Year is copied onto the entries; the date drives the observations.
+        for row in doc.entries:
+            row.announcement_year = doc.year
+            affected.update(p.id for p in row.projects)
+    db.commit()
+    db.refresh(doc)
+    recompute_for(db, affected)
+    return _document_dict(doc, _document_counts(db).get(doc.id))
+
+
+def delete_document(db: Session, document_id: int) -> bool:
+    doc = get_document(db, document_id)
+    if doc is None:
+        return False
+    affected = {p.id for row in doc.entries for p in row.projects}
+    db.delete(doc)
+    db.commit()
+    recompute_for(db, affected)
+    return True
+
+
+# --- Suggestions ---------------------------------------------------------------
+
+
+class _Matcher:
+    """Fuzzy project suggestions for Fulda lines (superior project → leaf).
+
+    Loads id/name/superior once — never the (potentially huge) geometry.
+    """
+
+    def __init__(self, db: Session):
+        self.projects = (
+            db.query(Project)
+            .options(load_only(Project.id, Project.name, Project.superior_project_id))
+            .all()
+        )
+        self.children: dict[int, list[Project]] = {}
+        for p in self.projects:
+            if p.superior_project_id is not None:
+                self.children.setdefault(p.superior_project_id, []).append(p)
+
+    def suggest(self, raw_name: str, abschnitt: str | None) -> list[int]:
+        """The Abschnitt is the subproject: if it names a distinct section and a
+        matching subproject exists under a matched superior, suggest that leaf;
+        otherwise the superior matches."""
+
+        superior_ids = suggest_projects_for_vib_entry(raw_name, self.projects)
+        if not superior_ids:
+            return []
+        if (abschnitt or "").strip().lower() in _GENERIC_ABSCHNITT:
+            return superior_ids
+        candidates = [c for sid in superior_ids for c in self.children.get(sid, [])]
+        if not candidates:
+            return superior_ids
+        sub_id = suggest_subproject_for_pfa(abschnitt, candidates)
+        return [sub_id] if sub_id is not None else superior_ids
+
+
+# --- Entries -------------------------------------------------------------------
+
+
+def add_entries(
+    db: Session, document_id: int, items: list[dict], user: User | None
+) -> list[dict]:
+    """Create announcement rows for a document, all-or-nothing.
+
+    Each item needs ``raw_name``, ``category`` and ``raw_text``. The project
+    assignment is pre-filled with fuzzy suggestions (``assignment_note`` says
+    so); nothing is confirmed here.
+    """
+
+    doc = get_document(db, document_id)
+    if doc is None:
+        raise FuldaValidationError(f"Dokument {document_id} gibt es nicht.")
+    for index, item in enumerate(items):
+        for key in ("raw_name", "category", "raw_text"):
+            if not str(item.get(key) or "").strip():
+                raise FuldaValidationError(f"Eintrag {index + 1}: '{key}' ist Pflicht.")
+        try:
+            _validate_entry(item)
+        except FuldaValidationError as exc:
+            raise FuldaValidationError(f"Eintrag {index + 1}: {exc}") from exc
+
+    matcher = _Matcher(db)
+    by_id = {p.id: p for p in matcher.projects}
+    rows: list[FuldaAnnouncement] = []
+    for item in items:
+        suggested = matcher.suggest(item["raw_name"], item.get("abschnitt"))
+        row = FuldaAnnouncement(
+            document_id=doc.id,
+            announcement_year=doc.year,
+            **{k: v for k, v in item.items() if k in _ENTRY_FIELDS and k != "confirmed"},
+            projects=[by_id[pid] for pid in suggested if pid in by_id],
+            confirmed=False,
+            created_by_user_id=user.id if user else None,
+            username_snapshot=user.username if user else None,
+        )
+        if suggested and not row.assignment_note:
+            row.assignment_note = AUTO_SUGGESTION_NOTE
+        db.add(row)
+        rows.append(row)
+    db.commit()
+    for row in rows:
+        db.refresh(row)
+    return [_entry_dict(row) for row in rows]
+
+
+def get_entry(db: Session, entry_id: int) -> FuldaAnnouncement | None:
+    return db.query(FuldaAnnouncement).filter(FuldaAnnouncement.id == entry_id).first()
 
 
 def list_years(db: Session) -> list[int]:
@@ -168,79 +329,63 @@ def list_years(db: Session) -> list[int]:
 
 
 def list_year_summaries(db: Session) -> list[dict]:
-    """Per-year overview rows (total/confirmed counts + provenance), newest first.
+    """Per-year overview rows (counts + the year's documents), newest first."""
 
-    Drives the year-overview table that is the importer's landing view; clicking
-    a year opens its detail (the five phase tables).
-    """
-    from sqlalchemy import case, func
-
-    rows = (
-        db.query(
-            FuldaAnnouncement.announcement_year.label("year"),
-            func.count(FuldaAnnouncement.id).label("total"),
-            func.sum(
-                case((FuldaAnnouncement.confirmed.is_(True), 1), else_=0)
-            ).label("confirmed"),
-            func.max(FuldaAnnouncement.source_label).label("source_label"),
-            func.max(FuldaAnnouncement.document_date).label("document_date"),
+    years: dict[int, dict] = {}
+    for doc in list_documents(db):
+        summary = years.setdefault(
+            doc["year"],
+            {"announcement_year": doc["year"], "total": 0, "confirmed": 0, "documents": []},
         )
-        .group_by(FuldaAnnouncement.announcement_year)
-        .order_by(FuldaAnnouncement.announcement_year.desc())
-        .all()
-    )
-    return [
-        {
-            "announcement_year": r.year,
-            "total": int(r.total or 0),
-            "confirmed": int(r.confirmed or 0),
-            "source_label": r.source_label,
-            "document_date": r.document_date,
-        }
-        for r in rows
-    ]
+        summary["total"] += doc["total"]
+        summary["confirmed"] += doc["confirmed"]
+        summary["documents"].append(doc)
+    return [years[y] for y in sorted(years, reverse=True)]
 
 
 def list_entries(
-    db: Session, *, only_unconfirmed: bool = False, year: int | None = None
+    db: Session,
+    *,
+    only_unconfirmed: bool = False,
+    year: int | None = None,
+    document_id: int | None = None,
 ) -> list[dict]:
     query = db.query(FuldaAnnouncement)
     if year is not None:
         query = query.filter(FuldaAnnouncement.announcement_year == year)
+    if document_id is not None:
+        query = query.filter(FuldaAnnouncement.document_id == document_id)
     if only_unconfirmed:
         query = query.filter(FuldaAnnouncement.confirmed.is_(False))
     rows = query.order_by(
         FuldaAnnouncement.announcement_year.desc(),
         FuldaAnnouncement.confirmed,  # unconfirmed first
-        FuldaAnnouncement.raw_name,
+        FuldaAnnouncement.id,
     ).all()
     return [_entry_dict(row) for row in rows]
 
 
-def _set_projects(db: Session, row: FuldaAnnouncement, project_ids: list[int]) -> None:
-    row.projects = ensure_projects_exist(db, project_ids)
-
-
 def update_entry(db: Session, entry_id: int, payload: dict) -> dict | None:
-    row = db.query(FuldaAnnouncement).filter(FuldaAnnouncement.id == entry_id).first()
+    """Patch one entry; ``project_ids`` replaces the whole assignment."""
+
+    row = get_entry(db, entry_id)
     if row is None:
         return None
+    _validate_entry(payload)
 
     old_project_ids = {p.id for p in row.projects}
-    if "project_ids" in payload and payload["project_ids"] is not None:
-        _set_projects(db, row, payload["project_ids"])
-
-    apply_editable_fields(row, payload, _EDITABLE_FIELDS)
+    if payload.get("project_ids") is not None:
+        row.projects = ensure_projects_exist(db, payload["project_ids"])
+    apply_editable_fields(row, payload, _ENTRY_FIELDS)
 
     db.commit()
     db.refresh(row)
     recompute_for(db, old_project_ids | {p.id for p in row.projects})
-
     return _entry_dict(row)
 
 
 def delete_entry(db: Session, entry_id: int) -> bool:
-    row = db.query(FuldaAnnouncement).filter(FuldaAnnouncement.id == entry_id).first()
+    row = get_entry(db, entry_id)
     if row is None:
         return False
     linked_ids = {p.id for p in row.projects}
@@ -250,26 +395,13 @@ def delete_entry(db: Session, entry_id: int) -> bool:
     return True
 
 
-def confirm_year(db: Session, year: int) -> int:
-    """Confirm every still-open entry of a year that has a project assigned.
+def _confirm(db: Session, rows: list[FuldaAnnouncement]) -> int:
+    """Confirm every open row that has a project; re-materialise once."""
 
-    Skips entries without any linked project (they cannot be materialised).
-    Re-materialises the affected projects once at the end. Returns the number of
-    newly confirmed entries. Confirmed entries stay editable afterwards — changing
-    their assignment re-materialises again via ``update_entry``.
-    """
-    rows = (
-        db.query(FuldaAnnouncement)
-        .filter(
-            FuldaAnnouncement.announcement_year == year,
-            FuldaAnnouncement.confirmed.is_(False),
-        )
-        .all()
-    )
     affected: set[int] = set()
     count = 0
     for row in rows:
-        if not row.projects:
+        if row.confirmed or not row.projects:
             continue
         row.confirmed = True
         affected.update(p.id for p in row.projects)
@@ -279,22 +411,33 @@ def confirm_year(db: Session, year: int) -> int:
     return count
 
 
-def delete_year(db: Session, year: int) -> int:
-    """Delete all Fulda announcements of a year; re-materialise affected projects.
+def confirm_year(db: Session, year: int) -> int:
+    """Confirm all assigned, still-open entries of a year. Returns the count."""
+    rows = db.query(FuldaAnnouncement).filter(FuldaAnnouncement.announcement_year == year).all()
+    return _confirm(db, rows)
 
-    Returns the number of deleted rows.
-    """
+
+def confirm_document(db: Session, document_id: int) -> int:
+    """Confirm all assigned, still-open entries of a document. Returns the count."""
     rows = (
-        db.query(FuldaAnnouncement)
-        .filter(FuldaAnnouncement.announcement_year == year)
-        .all()
+        db.query(FuldaAnnouncement).filter(FuldaAnnouncement.document_id == document_id).all()
     )
-    if not rows:
+    return _confirm(db, rows)
+
+
+def delete_year(db: Session, year: int) -> int:
+    """Delete all documents and entries of a year; returns the deleted entry count."""
+
+    rows = db.query(FuldaAnnouncement).filter(FuldaAnnouncement.announcement_year == year).all()
+    docs = db.query(FuldaDocument).filter(FuldaDocument.year == year).all()
+    if not rows and not docs:
         return 0
-    affected: set[int] = set()
+    affected = {p.id for row in rows for p in row.projects}
     for row in rows:
-        affected.update(p.id for p in row.projects)
         db.delete(row)
+    for doc in docs:
+        db.delete(doc)
     db.commit()
     recompute_for(db, affected)
-    return len(rows)
+    return max(len(rows), 1)
+

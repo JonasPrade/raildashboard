@@ -208,8 +208,8 @@ export const featureHighlights: FeatureHighlight[] = [
             "Lazy-Resync der abgeleiteten Beobachtungen bei stalem Cache (24h); „Neu berechnen\" erzwingt den Sync",
             "Prognose-Panel: Restdauer der aktuellen Phase + nächste Schritte aus BVWP-Dauern, VIB-PFA-Terminen, Fulda-Runde- und manuellen Erwartet-Beobachtungen",
             "Übersprungene Planungsphasen: Projektgruppen können Vorplanung und/oder Genehmigungsplanung überspringen (z. B. Korridorsanierungen ohne Planfeststellung, Admin → Projektgruppe bearbeiten). Die Phasen verschwinden dann aus Phasenleiste und Prognose – aber nur, wenn alle Gruppen eines Projekts sie überspringen und keine Daten das Projekt in diese Phase setzen",
-            "Manuelle Beobachtungen erfassen nur Leistungsphasen (Quellentyp MANUELL/FULDA_RUNDE/BAUPORTAL/MEDIEN + optionaler Vertrauens-Override); Planfeststellung & parl. Befassung werden separat im Schaltmenü „Verfahren\" gepflegt",
-            "Erwartete Termine: eine manuelle Beobachtung kann als „erwarteter Termin\" markiert werden (Schalter im Beobachtungsformular). Sie speist nur die Prognose (z. B. erwartete Inbetriebnahme), zieht die aktuelle Phase nicht hoch und übersteuert dort alle automatischen Quellen (VIB-PFA/BVWP/Fulda)",
+            "Manuelle Beobachtungen erfassen nur Leistungsphasen (Quellentyp MANUELL/BAUPORTAL/MEDIEN + optionaler Vertrauens-Override; die Fulda-Runde kommt nur über ihren Import); Planfeststellung & parl. Befassung werden separat im Schaltmenü „Verfahren\" gepflegt",
+            "Erwartete Termine: eine manuelle Beobachtung kann als „erwarteter Termin\" markiert werden (Schalter im Beobachtungsformular). Sie speist nur die Prognose (z. B. erwartete Inbetriebnahme), zieht die aktuelle Phase nicht hoch und übersteuert dort alle automatischen Quellen (VIB-PFA/BVWP/Fulda). Zwischen VIB-PFA- und Fulda-Terminen entscheidet Glaubwürdigkeit × Aktualität des Berichts",
             "Kurzansicht (Karten-Popup, Unter-/Übergeordnet-Abschnitte): kompakte Leistungsphasen-Leiste mit aktuellem Stand; erreichte Phasen grün, „In Betrieb\" grün (= abgeschlossen), Spanne bei übergeordneten Projekten",
             "Tabelle „Quellen & Beobachtungen\": Spalte „Bereich\" (Planungsphasen/Planfeststellung/parl. Befassung); Vertrauen und „entscheidend\" sind nur für eingeloggte Nutzer sichtbar, ebenso die Vertrauensangabe in der Kopfzeile",
             "Beim Anlegen eines neuen Projekts (Wizard, Schritt „Eigenschaften\") lässt sich die aktuelle Planungsphase direkt setzen (manueller Override, optional)",
@@ -322,7 +322,7 @@ export const featureHighlights: FeatureHighlight[] = [
     {
         title: "Systemstatus der Hintergrund-Aufträge",
         description:
-            "Importe (Haushalt, VIB, Fulda, Bauportal) laufen als Hintergrund-Auftrag, den ein Celery-Worker abarbeitet. " +
+            "Importe (Haushalt, VIB, Bauportal) laufen als Hintergrund-Auftrag, den ein Celery-Worker abarbeitet. " +
             "Läuft kein Worker, wird der Upload zwar angenommen, aber nie ausgeführt — die Seite wartet dann endlos. " +
             "Der Systemstatus macht diesen Fall sichtbar und die Import-Seiten benennen ihn von selbst.",
         details: [

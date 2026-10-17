@@ -10,7 +10,7 @@ from dashboard_backend.models.projects.progress_enums import (
     SourceType,
 )
 from dashboard_backend.services.progress_derivation import ObservationInput
-from dashboard_backend.services.progress_forecast import PfaForecastInput
+from dashboard_backend.services.progress_forecast import ExpectedDate, PfaForecastInput
 from dashboard_backend.services.progress_timeline import (
     CERTAINTY_CONCRETE,
     CERTAINTY_EVIDENCE,
@@ -66,7 +66,7 @@ def test_manual_expected_wins_and_milestones_are_sorted():
     result = build_timeline(
         today=TODAY,
         pfas=[PfaForecastInput(baubeginn=date(2027, 1, 1))],
-        fulda=[(MainPhase.BAU, date(2026, 6, 1))],
+        fulda=[ExpectedDate(MainPhase.BAU, date(2026, 6, 1), date(2026, 6, 1))],
         manual_expected=[(MainPhase.BAU, date(2029, 3, 1)), (MainPhase.IN_BETRIEB, date(2035, 1, 1))],
     )
     [bau] = _phase(result, MainPhase.BAU)

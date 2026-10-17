@@ -24,6 +24,7 @@ from dashboard_backend.models.projects.progress_enums import (
     ParallelState,
     SourceType,
 )
+from dashboard_backend.services.fulda_categories import get_category
 from dashboard_backend.services.progress_dates import parse_flexible_date
 
 # Sammel-FinVe (year-scoped pooled financing) is a much weaker signal than a
@@ -73,6 +74,8 @@ class DerivedSpec:
     bauportal_status_id: int | None = None
     media_report_id: int | None = None
     fulda_announcement_id: int | None = None
+    # Prognosis: feeds the forecast only, never the phase.
+    is_expected: bool = False
 
 
 @dataclass(frozen=True)
@@ -362,50 +365,40 @@ def media_to_spec(
     )
 
 
-# Fulda-Runde category → MainPhase. The answer groups projects by Leistungsphase:
-# currently *in* Lph 1–2 / 3–4, having *completed* a phase (which advances the
-# project to the next one), or holding a Baufinanzierungsvereinbarung (→ Bau).
-FULDA_CATEGORY_PHASE: dict[str, MainPhase] = {
-    "IN_LPH_1_2": MainPhase.VORPLANUNG,
-    "IN_LPH_3_4": MainPhase.GENEHMIGUNGSPLANUNG,
-    "COMPLETED_LPH_1_2": MainPhase.GENEHMIGUNGSPLANUNG,
-    "COMPLETED_LPH_3_4": MainPhase.BAU,
-    "HAS_BAUFINVE": MainPhase.BAU,
-}
-
-
-def fulda_category_to_phase(category: str | None) -> MainPhase | None:
-    if not category:
-        return None
-    return FULDA_CATEGORY_PHASE.get(category.strip().upper())
-
-
 def fulda_to_spec(
     *,
     fulda_announcement_id: int,
-    announced_phase: str | None,
     category: str | None,
-    observed_date: date | None,
-    source_label: str | None = None,
+    document_date: date | None,
+    expected_date: date | None,
+    drucksache: str | None = None,
 ) -> DerivedSpec | None:
-    """Map a confirmed Fulda announcement to a MAIN observation spec (trust 0.7).
+    """Map a confirmed Fulda announcement to a MAIN observation spec (trust 0.55).
 
-    ``announced_phase`` (editor-confirmed MainPhase value) wins; otherwise the
-    phase is derived from ``category``. ``observed_date`` (expected/announcement
-    date) also feeds the forecast via the existing FULDA_RUNDE seam. Returns
-    ``None`` when no phase can be determined.
+    "Ist" lines (current phase, completed without follow-up phase) assert their
+    phase as of the answer's ``document_date``. Prognoses and new admissions
+    become an *expected* observation (``is_expected``) at ``expected_date``
+    (fallback: 31 Dec of the document year): it never raises the phase and only
+    feeds the forecast / timeline. Returns ``None`` for hint-only categories.
     """
 
-    phase = _coerce_main_phase(announced_phase) or fulda_category_to_phase(category)
-    if phase is None:
+    cat = get_category(category)
+    if cat is None or cat.phase is None:
         return None
-    note = f"Fulda-Runde ({source_label})" if source_label else "Fulda-Runde"
+    note = f"Fulda-Runde (Drs. {drucksache})" if drucksache else "Fulda-Runde"
+    if cat.is_expected:
+        observed = expected_date or (
+            date(document_date.year, 12, 31) if document_date is not None else None
+        )
+    else:
+        observed = document_date
     return DerivedSpec(
         source_type=SourceType.FULDA_RUNDE,
         track=ObservationTrack.MAIN,
-        asserted_state=phase.value,
-        observed_date=observed_date,
+        asserted_state=cat.phase.value,
+        observed_date=observed,
         note=note,
+        is_expected=cat.is_expected,
         fulda_announcement_id=fulda_announcement_id,
     )
 

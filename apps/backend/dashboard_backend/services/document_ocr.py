@@ -257,7 +257,7 @@ def extract_document_text(
 
     table_format: how the model is asked to render a recognised table —
     ``"markdown"`` or ``"html"``.  Markdown is the right choice for prose with
-    the occasional table (VIB, Fulda).  A source whose *record* spans several
+    the occasional table (VIB).  A source whose *record* spans several
     printed lines inside one table row (the Haushalt report) needs ``"html"``:
     markdown has no way to express a line break inside a cell, so the model
     joins the stacked lines with spaces and the row geometry — which line

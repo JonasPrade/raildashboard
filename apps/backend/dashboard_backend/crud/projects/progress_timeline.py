@@ -13,11 +13,15 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
-from dashboard_backend.crud.projects.progress import _phase_date_pairs, _to_inputs
+from dashboard_backend.crud.projects.progress import (
+    _to_inputs,
+    fulda_report_dates,
+    pfa_forecast_input,
+    split_expected,
+)
 from dashboard_backend.models.projects.progress_enums import (
     LifecycleStatus,
     ObservationTrack,
-    SourceType,
 )
 from dashboard_backend.models.projects.progress_observation import ProgressObservation
 from dashboard_backend.models.projects.project import Project
@@ -25,7 +29,7 @@ from dashboard_backend.models.projects.project_group import ProjectGroup
 from dashboard_backend.models.projects.project_progress import ProjectProgress
 from dashboard_backend.models.vib.vib_entry import VibEntry, vib_entry_project
 from dashboard_backend.models.vib.vib_pfa_entry import VibPfaEntry
-from dashboard_backend.services.progress_dates import parse_flexible_date
+from dashboard_backend.models.vib.vib_report import VibReport
 from dashboard_backend.services.progress_forecast import PfaForecastInput
 from dashboard_backend.services.progress_timeline import build_timeline
 
@@ -87,26 +91,24 @@ def get_group_timeline(
     pfas_by_project: dict[int, dict[int, PfaForecastInput]] = {}
     if all_ids:
         linked = (
-            db.query(VibPfaEntry, vib_entry_project.c.project_id)
+            db.query(VibPfaEntry, VibReport, vib_entry_project.c.project_id)
             .join(VibEntry, VibEntry.id == VibPfaEntry.vib_entry_id)
+            .outerjoin(VibReport, VibReport.id == VibEntry.vib_report_id)
             .join(vib_entry_project, vib_entry_project.c.vib_entry_id == VibEntry.id)
             .filter(vib_entry_project.c.project_id.in_(all_ids))
             .all()
         )
         assigned = (
-            db.query(VibPfaEntry, VibPfaEntry.project_id)
+            db.query(VibPfaEntry, VibReport, VibPfaEntry.project_id)
+            .join(VibEntry, VibEntry.id == VibPfaEntry.vib_entry_id)
+            .outerjoin(VibReport, VibReport.id == VibEntry.vib_report_id)
             .filter(VibPfaEntry.project_id.in_(all_ids))
             .all()
         )
-        for pfa, project_id in [*linked, *assigned]:
-            pfas_by_project.setdefault(project_id, {})[pfa.id] = PfaForecastInput(
-                datum_pfb=parse_flexible_date(pfa.datum_pfb),
-                baubeginn=parse_flexible_date(pfa.baubeginn),
-                inbetriebnahme=parse_flexible_date(pfa.inbetriebnahme),
-            )
+        for pfa, report, project_id in [*linked, *assigned]:
+            pfas_by_project.setdefault(project_id, {})[pfa.id] = pfa_forecast_input(pfa, report)
 
     # --- MAIN observations, split like the forecast / derivation read them ---
-    fulda_by_project: dict[int, list[ProgressObservation]] = {}
     expected_by_project: dict[int, list[ProgressObservation]] = {}
     evidence_by_project: dict[int, list[ProgressObservation]] = {}
     if all_ids:
@@ -118,13 +120,15 @@ def get_group_timeline(
             )
             .all()
         ):
-            if obs.observed_date is not None and obs.source_type == SourceType.FULDA_RUNDE.value:
-                fulda_by_project.setdefault(obs.project_id, []).append(obs)
             if obs.is_expected:
                 if obs.observed_date is not None:
                     expected_by_project.setdefault(obs.project_id, []).append(obs)
             else:
                 evidence_by_project.setdefault(obs.project_id, []).append(obs)
+
+    fulda_reported = fulda_report_dates(
+        db, [obs for rows in expected_by_project.values() for obs in rows]
+    )
 
     progress_by_project: dict[int, ProjectProgress] = {}
     if all_ids:
@@ -139,14 +143,12 @@ def get_group_timeline(
         # A PFA reachable from several members (parent link + subproject
         # assignment) counts once.
         pfas: dict[int, PfaForecastInput] = {}
-        fulda: list[ProgressObservation] = []
         expected: list[ProgressObservation] = []
         evidence: list[ProgressObservation] = []
         pf_dates: list[date] = []
         parl_dates: list[date] = []
         for member in members:
             pfas.update(pfas_by_project.get(member, {}))
-            fulda.extend(fulda_by_project.get(member, []))
             expected.extend(expected_by_project.get(member, []))
             evidence.extend(evidence_by_project.get(member, []))
             progress = progress_by_project.get(member)
@@ -156,11 +158,12 @@ def get_group_timeline(
                 if progress.parl_befassung_date is not None:
                     parl_dates.append(progress.parl_befassung_date)
 
+        fulda, manual_expected = split_expected(expected, fulda_reported)
         result = build_timeline(
             today=today,
             pfas=list(pfas.values()),
-            fulda=_phase_date_pairs(fulda),
-            manual_expected=_phase_date_pairs(expected),
+            fulda=fulda,
+            manual_expected=manual_expected,
             observations=_to_inputs(evidence),
             pf_dates=pf_dates,
             parl_dates=parl_dates,

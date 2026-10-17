@@ -164,6 +164,16 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
         "edit_project_geometry",
         "list_data_gaps",
         "check_geometry",
+        "list_fulda_categories",
+        "list_fulda_documents",
+        "create_fulda_document",
+        "update_fulda_document",
+        "add_fulda_entries",
+        "list_fulda_entries",
+        "assign_fulda_entry",
+        "update_fulda_entry",
+        "delete_fulda_entry",
+        "confirm_fulda_document",
     }
     by_name = {tool["name"]: tool for tool in tools}
     assert by_name["list_projects"]["annotations"]["readOnlyHint"] is True

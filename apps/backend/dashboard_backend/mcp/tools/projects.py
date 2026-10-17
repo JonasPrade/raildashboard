@@ -56,9 +56,9 @@ from dashboard_backend.schemas.projects.bvwp_schema import BvwpProjectDataSchema
 from dashboard_backend.schemas.projects.progress_schema import (
     LifecycleStatusLiteral,
     MainPhaseLiteral,
+    ManualSourceTypeLiteral,
     ProgressObservationCreate,
     ProjectProgressSchema,
-    SourceTypeLiteral,
     TrackLiteral,
 )
 from dashboard_backend.schemas.projects.project_create_schema import ProjectCreate
@@ -607,7 +607,7 @@ def add_progress_observation(
     note: str | None = None,
     confidence: float | None = None,
     is_expected: bool = False,
-    source_type: SourceTypeLiteral = "MANUELL",
+    source_type: ManualSourceTypeLiteral = "MANUELL",
     *,
     ctx: Context,
 ) -> dict[str, Any]:

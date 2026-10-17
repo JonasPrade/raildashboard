@@ -51,6 +51,18 @@ from dashboard_backend.models.todos.todo import Todo, TodoAssignee
 from dashboard_backend.models.users import User
 from dashboard_backend.models.vib.vib_entry import VibEntry, vib_entry_project
 from dashboard_backend.models.vib.vib_pfa_entry import VibPfaEntry
+from dashboard_backend.models.vib.vib_report import VibReport
+from dashboard_backend.models.associations.fulda_announcement_to_project import (
+    fulda_announcement_to_project,
+)
+from dashboard_backend.models.projects.fulda_announcement import FuldaAnnouncement
+from dashboard_backend.models.projects.fulda_document import FuldaDocument
+from dashboard_backend.models.associations.finve_to_project import FinveToProject
+from dashboard_backend.models.projects.bauportal_status import BauportalStatus
+from dashboard_backend.models.projects.finve import Finve
+from dashboard_backend.models.projects.media_report import MediaReport
+from dashboard_backend.models.projects.document import Document
+from dashboard_backend.models.associations.progress_track_document import ProgressTrackDocument
 from dashboard_backend.models.railway_infrastructure.operational_point import OperationalPoint
 from dashboard_backend.models.routes import Route
 from dashboard_backend.models.projects.project_group import ProjectGroup
@@ -102,7 +114,8 @@ TABLES = [
     ProjectToProjectGroup.__table__,  # must follow project + project_group (FK dependency)
     ProjectProgress.__table__,  # FK to project; read by the MCP list_projects phase filter
     ProgressObservation.__table__,  # read by the group timeline
-    VibEntry.__table__,  # FK to vib_report (absent here) is unenforced in SQLite
+    VibReport.__table__,  # joined by the forecast/timeline (report date = recency)
+    VibEntry.__table__,  # must follow vib_report (FK dependency)
     vib_entry_project,  # must follow project + vib_entry (FK dependency)
     VibPfaEntry.__table__,  # must follow vib_entry (FK dependency)
     BvwpProjectData.__table__,  # FK to project; read by the MCP get_project tool
@@ -117,6 +130,15 @@ TABLES = [
     GvfgEntryAmount.__table__,
     gvfg_entry_project,
     GvfgParseResult.__table__,
+    Finve.__table__,  # read by sync_derived_observations (Fulda MCP flow)
+    FinveToProject.__table__,
+    BauportalStatus.__table__,
+    MediaReport.__table__,
+    Document.__table__,  # progress view (PF/parl documents)
+    ProgressTrackDocument.__table__,
+    FuldaDocument.__table__,  # Fulda import (must precede its entries)
+    FuldaAnnouncement.__table__,
+    fulda_announcement_to_project,
 ]
 
 

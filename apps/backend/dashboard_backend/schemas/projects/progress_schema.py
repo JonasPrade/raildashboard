@@ -24,6 +24,9 @@ LifecycleStatusLiteral = Literal["AKTIV", "PAUSIERT", "ABGEBROCHEN"]
 SourceTypeLiteral = Literal[
     "VIB", "FINVE", "FULDA_RUNDE", "BAUPORTAL", "MEDIEN", "INFRAPLAN", "MANUELL"
 ]
+# Sources an editor may record by hand. The Fulda-Runde is read only through its
+# importer (feature-fulda-import.md, W3), never as a manual observation.
+ManualSourceTypeLiteral = Literal["VIB", "FINVE", "BAUPORTAL", "MEDIEN", "INFRAPLAN", "MANUELL"]
 TrackLiteral = Literal["MAIN", "PF", "PARL"]
 # Documents can only be linked behind the PF / parliamentary tracks.
 DocumentTrackLiteral = Literal["PF", "PARL"]
@@ -81,7 +84,7 @@ class ProgressObservationSchema(BaseModel):
 
 
 class ProgressObservationCreate(BaseModel):
-    source_type: SourceTypeLiteral = "MANUELL"
+    source_type: ManualSourceTypeLiteral = "MANUELL"
     track: TrackLiteral
     asserted_state: str
     observed_date: Optional[date] = None

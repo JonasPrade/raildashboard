@@ -21,7 +21,6 @@ from dashboard_backend.utils.file_storage import MAX_FILE_SIZE
 PARSE_ENDPOINTS = [
     "/api/v1/import/haushalt/parse",
     "/api/v1/import/vib/parse",
-    "/api/v1/import/fulda/parse",
     "/api/v1/import/infraplan/parse",
 ]
 
@@ -67,7 +66,6 @@ def test_parse_accepts_upload_below_the_limit(client, create_user, monkeypatch, 
     for module_name, task_name in (
         ("haushalt", "parse_haushalt_pdf"),
         ("vib", "parse_vib_pdf"),
-        ("fulda", "parse_fulda_pdf"),
         ("infraplan", "parse_infraplan_pdf"),
     ):
         module = __import__(

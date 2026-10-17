@@ -1,4 +1,4 @@
-"""Shared LLM client for the extraction tasks (VIB, Fulda-Runde, media).
+"""Shared LLM client for the extraction tasks (VIB, media).
 
 Single site for the OpenAI-compatible chat call (``json_object`` response
 format, ``temperature=0``) and for classifying API errors into the short

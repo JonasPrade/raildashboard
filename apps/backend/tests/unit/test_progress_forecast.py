@@ -7,8 +7,11 @@ from datetime import date
 from dashboard_backend.models.projects.progress_enums import MainPhase
 from dashboard_backend.services.progress_forecast import (
     BvwpDurations,
+    ExpectedDate,
     PfaForecastInput,
     build_forecast,
+    concrete_milestone_dates,
+    reduce_expected,
 )
 
 TODAY = date(2026, 6, 18)
@@ -72,7 +75,7 @@ def test_fulda_announcement_fills_gap():
     r = build_forecast(
         effective_phase=MainPhase.VORPLANUNG,
         today=TODAY,
-        fulda=[(MainPhase.BAU, date(2028, 6, 1))],
+        fulda=[ExpectedDate(MainPhase.BAU, date(2028, 6, 1), date(2026, 6, 3))],
     )
     bau = next(s for s in r.next_steps if s.phase is MainPhase.BAU)
     assert bau.expected_date == date(2028, 6, 1)
@@ -88,7 +91,7 @@ def test_manual_expected_overrides_all_other_sources():
         today=TODAY,
         pfas=pfas,
         bvwp=bvwp,
-        fulda=[(MainPhase.IN_BETRIEB, date(2031, 1, 1))],
+        fulda=[ExpectedDate(MainPhase.IN_BETRIEB, date(2031, 1, 1), date(2026, 6, 3))],
         manual_expected=[(MainPhase.IN_BETRIEB, date(2029, 12, 1))],
     )
     ib = next(s for s in r.next_steps if s.phase is MainPhase.IN_BETRIEB)
@@ -162,3 +165,42 @@ def test_skipped_phases_use_bvwp_construction_date_as_phase_end():
     )
     assert r.next_steps[0].phase is MainPhase.BAU
     assert r.estimated_phase_end.year == 2028
+
+
+# --- VIB-PFA vs. Fulda-Runde: credibility × recency (feature-fulda-import.md, W1)
+
+
+def _bau(pfa_reported, fulda_reported):
+    concrete = concrete_milestone_dates(
+        pfas=[PfaForecastInput(baubeginn=date(2027, 1, 1), reported_on=pfa_reported)],
+        fulda=[ExpectedDate(MainPhase.BAU, date(2029, 12, 31), fulda_reported)],
+        manual_expected=[],
+        today=TODAY,
+    )
+    return concrete[MainPhase.BAU]
+
+
+def test_newer_fulda_beats_older_vib_even_with_a_later_date():
+    # Fulda 0.55 × fresh vs. VIB 0.6 × three years old: Fulda wins although its
+    # date is later (no "earlier date overrides" rule any more).
+    assert _bau(date(2023, 12, 31), date(2026, 6, 3)) == (date(2029, 12, 31), "Fulda-Runde")
+
+
+def test_equally_fresh_vib_beats_fulda():
+    assert _bau(date(2026, 6, 1), date(2026, 6, 3)) == (date(2027, 1, 1), "VIB-PFA")
+
+
+def test_newer_vib_beats_older_fulda():
+    assert _bau(date(2026, 5, 1), date(2023, 6, 1)) == (date(2027, 1, 1), "VIB-PFA")
+
+
+def test_reduce_expected_pools_subtree_claims():
+    claims = [
+        ExpectedDate(MainPhase.BAU, date(2028, 1, 1), date(2025, 6, 1)),
+        ExpectedDate(MainPhase.BAU, date(2027, 1, 1), date(2026, 6, 1)),
+        ExpectedDate(MainPhase.IN_BETRIEB, date(2030, 1, 1), None),
+        ExpectedDate(MainPhase.IN_BETRIEB, date(2032, 1, 1), None),
+    ]
+    pooled = {c.phase: c for c in reduce_expected(claims)}
+    assert pooled[MainPhase.BAU] == ExpectedDate(MainPhase.BAU, date(2027, 1, 1), date(2026, 6, 1))
+    assert pooled[MainPhase.IN_BETRIEB].date == date(2032, 1, 1)

@@ -22,6 +22,7 @@ from dashboard_backend.models.associations.project_to_project_group import (
 from dashboard_backend.models.projects.bauportal_status import BauportalStatus
 from dashboard_backend.models.projects.finve import Finve
 from dashboard_backend.models.projects.fulda_announcement import FuldaAnnouncement
+from dashboard_backend.models.projects.fulda_document import FuldaDocument
 from dashboard_backend.models.projects.media_report import MediaReport
 from dashboard_backend.models.projects.progress_observation import ProgressObservation
 from dashboard_backend.models.projects.project import Project
@@ -46,6 +47,7 @@ _TABLES_BEFORE = [
     FinveToProject.__table__,
     BauportalStatus.__table__,
     MediaReport.__table__,
+    FuldaDocument.__table__,
     FuldaAnnouncement.__table__,
     fulda_announcement_to_project,
 ]

@@ -29,6 +29,7 @@ from dashboard_backend.services.progress_derivation import (
     effective_confidence,
 )
 from dashboard_backend.services.progress_forecast import (
+    ExpectedDate,
     PfaForecastInput,
     concrete_milestone_dates,
 )
@@ -123,7 +124,7 @@ def build_timeline(
     *,
     today: date,
     pfas: list[PfaForecastInput] | None = None,
-    fulda: list[tuple[MainPhase, date]] | None = None,
+    fulda: list[ExpectedDate] | None = None,
     manual_expected: list[tuple[MainPhase, date]] | None = None,
     observations: list[ObservationInput] | None = None,
     pf_dates: list[date] | None = None,
@@ -139,8 +140,9 @@ def build_timeline(
     pfas = pfas or []
     concrete = concrete_milestone_dates(
         pfas=pfas,
-        fulda=_reduce_per_phase(fulda or []),
+        fulda=fulda or [],
         manual_expected=_reduce_per_phase(manual_expected or []),
+        today=today,
         pfb_as_genehmigung=False,
     )
 
