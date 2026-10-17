@@ -17,7 +17,9 @@ from dashboard_backend.services.progress_timeline import (
     KIND_PARL,
     KIND_PFB,
     KIND_PHASE,
+    ConstructionUnitInput,
     build_timeline,
+    construction_periods,
 )
 
 TODAY = date(2026, 10, 1)
@@ -150,3 +152,102 @@ def test_editorial_pf_and_parl_dates():
     [parl] = [m for m in result.milestones if m.kind == KIND_PARL]
     assert parl.date == date(2022, 11, 1)
     assert result.has_credible_dates is True
+
+
+# --- Construction periods of a pooled superior row ---------------------------
+
+
+def _stage(bau, ib):
+    expected = [(MainPhase.BAU, bau)] if bau else []
+    if ib:
+        expected.append((MainPhase.IN_BETRIEB, ib))
+    return ConstructionUnitInput(manual_expected=expected)
+
+
+def test_separate_stages_give_two_periods():
+    # HLK 11: two stages, 2028 and 2031, with no construction in between.
+    units = [
+        ConstructionUnitInput(),  # the superior itself has no dates
+        _stage(date(2028, 1, 1), date(2028, 7, 1)),
+        _stage(date(2031, 1, 1), date(2031, 7, 1)),
+    ]
+    assert construction_periods(units) == [
+        (date(2028, 1, 1), date(2028, 7, 1)),
+        (date(2031, 1, 1), date(2031, 7, 1)),
+    ]
+
+
+def test_overlapping_and_touching_stages_merge_into_one():
+    overlapping = [_stage(date(2028, 1, 1), date(2029, 1, 1)), _stage(date(2028, 6, 1), date(2030, 1, 1))]
+    touching = [_stage(date(2028, 1, 1), date(2028, 7, 1)), _stage(date(2028, 7, 1), date(2029, 1, 1))]
+    # One continuous period is the plain BAU segment: nothing extra to report.
+    assert construction_periods(overlapping) == []
+    assert construction_periods(touching) == []
+
+
+def test_three_stages_merge_partially():
+    units = [
+        _stage(date(2028, 1, 1), date(2028, 7, 1)),
+        _stage(date(2028, 5, 1), date(2029, 1, 1)),
+        _stage(date(2031, 1, 1), date(2031, 7, 1)),
+    ]
+    assert construction_periods(units) == [
+        (date(2028, 1, 1), date(2029, 1, 1)),
+        (date(2031, 1, 1), date(2031, 7, 1)),
+    ]
+
+
+def test_open_ended_stage_cancels_the_split():
+    units = [
+        _stage(date(2028, 1, 1), date(2028, 7, 1)),
+        _stage(date(2029, 1, 1), None),  # end unknown: may fill the gap
+        _stage(date(2031, 1, 1), date(2031, 7, 1)),
+    ]
+    assert construction_periods(units) == []
+
+
+def test_opening_only_member():
+    old = _stage(None, date(2015, 1, 1))  # finished long before: harmless
+    inside = _stage(None, date(2030, 1, 1))  # built sometime before 2030: unknown
+    stages = [_stage(date(2028, 1, 1), date(2028, 7, 1)), _stage(date(2031, 1, 1), date(2031, 7, 1))]
+    assert len(construction_periods([old, *stages])) == 2
+    assert construction_periods([inside, *stages]) == []
+
+
+def test_contradicting_stage_cancels_the_split():
+    units = [
+        _stage(date(2028, 1, 1), date(2027, 1, 1)),
+        _stage(date(2031, 1, 1), date(2031, 7, 1)),
+    ]
+    assert construction_periods(units) == []
+
+
+def test_stage_dates_from_pfa_sections():
+    units = [
+        ConstructionUnitInput(pfas=[PfaForecastInput(baubeginn=date(2027, 3, 1), inbetriebnahme=date(2028, 1, 1))]),
+        ConstructionUnitInput(pfas=[PfaForecastInput(baubeginn=date(2030, 3, 1), inbetriebnahme=date(2031, 1, 1))]),
+    ]
+    assert len(construction_periods(units)) == 2
+
+
+def test_build_timeline_carries_periods_and_keeps_milestones():
+    stage1 = _stage(date(2028, 1, 1), date(2028, 7, 1))
+    stage2 = _stage(date(2031, 1, 1), date(2031, 7, 1))
+    result = build_timeline(
+        today=TODAY,
+        manual_expected=[*stage1.manual_expected, *stage2.manual_expected],
+        construction_units=[stage1, stage2],
+    )
+    # Pooled milestones unchanged: first BAU start, last opening.
+    assert _phase(result, MainPhase.BAU)[0].date == date(2028, 1, 1)
+    assert _phase(result, MainPhase.IN_BETRIEB)[0].date == date(2031, 7, 1)
+    assert result.construction_periods == [
+        (date(2028, 1, 1), date(2028, 7, 1)),
+        (date(2031, 1, 1), date(2031, 7, 1)),
+    ]
+
+
+def test_build_timeline_single_unit_has_no_periods():
+    unit = _stage(date(2028, 1, 1), date(2028, 7, 1))
+    result = build_timeline(today=TODAY, manual_expected=unit.manual_expected, construction_units=[unit])
+    assert result.construction_periods == []

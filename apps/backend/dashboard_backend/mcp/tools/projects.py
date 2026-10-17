@@ -387,7 +387,8 @@ def get_project_progress(project_id: int, *, ctx: Context) -> dict[str, Any]:
 
 def list_project_finves(project_id: int, *, ctx: Context) -> list[dict[str, Any]]:
     """Financing agreements (FinVe) of a project with their budget history per
-    budget year, including the per-Haushaltstitel breakdown. Amounts in T€."""
+    budget year, including the per-Haushaltstitel breakdown. Amounts in T€.
+    To find FinVes regardless of a project link, use list_finves."""
     get_principal(ctx)
     with tool_session(ctx) as db:
         project = _project_or_error(db, project_id)

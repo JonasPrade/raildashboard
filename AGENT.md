@@ -11,6 +11,14 @@ This file applies to the entire repository. Read it before making any substantia
 - When updating documentation, update ALL documentation layers (README, AGENT.md, roadmap.md, frontend docs, etc.) — not just a single file. Look also at the section ## Keep documentation in this file
 - **Roadmap Style**: `docs/roadmap.md` ist eine Lese-Übersicht. Planung und Status passieren im GitHub-Projects-Board (`docs/github-projects.md`), nicht über `[p]`/`[ ]`-Checkboxen in der Roadmap.
  
+## Skills
+
+**All skills for the dashboard live in `.claude/skills/<name>/SKILL.md` — one folder, always the current version.** That covers Claude Code skills for working on the repo (e.g. `widerspruchs-check`, `audit-auth`) and claude.ai skills that drive the Schienendashboard MCP (e.g. `infraplan-import`). `.claude/skills/README.md` lists every skill, what it is for and whether it is uploaded to claude.ai.
+
+- A change to an MCP tool, endpoint, workflow or principle that a skill describes updates that skill **in the same commit**.
+- A new skill is added to the table in `.claude/skills/README.md`.
+- No skill copies elsewhere in the repo; claude.ai copies are uploaded from this folder by hand (the README says how).
+
 ## Feature Development Workflow
 
 **Principles** that apply to every feature are listed in `docs/architecture.md` → „Principles (Grundsätze)“ (e.g. parent projects always aggregate over sub-projects; the more recent source wins). Before writing or changing a feature file, run the `widerspruchs-check` skill and resolve every conflict with the user — never decide a contradiction silently.
@@ -91,9 +99,6 @@ Before writing any code:
 - Environment variables: `docs/environment.md`
 - Git workflow: `docs/git_workflow.md`
 - Testing: `docs/testing.md`
-- Skills: `.claude/skills/` holds skills for working **on this repository** (e.g.
-  `widerspruchs-check`); `skills/` holds skills for agents working **with the dashboard**
-  over MCP (e.g. `skills/fulda-runde/`). Keep a dashboard skill in sync with its MCP tools.
 
 
 ## Keep documentation

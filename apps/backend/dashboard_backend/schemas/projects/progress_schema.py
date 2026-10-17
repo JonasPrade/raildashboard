@@ -271,6 +271,11 @@ class TimelineMilestoneSchema(BaseModel):
     certainty: Literal["CONCRETE", "EVIDENCE"]
 
 
+class TimelinePeriodSchema(BaseModel):
+    start: date
+    end: date
+
+
 class ProjectTimelineSchema(BaseModel):
     project_id: int
     name: str
@@ -278,6 +283,10 @@ class ProjectTimelineSchema(BaseModel):
     superior_project_id: Optional[int] = None
     lifecycle_status: LifecycleStatusLiteral
     milestones: list[TimelineMilestoneSchema] = []
+    # Superior whose subprojects build in separate stages: the disjoint
+    # construction periods (union of the members' Baubeginn–IB intervals).
+    # Empty when construction is one continuous period.
+    construction_periods: list[TimelinePeriodSchema] = []
 
 
 class ProjectGroupTimelineSchema(BaseModel):

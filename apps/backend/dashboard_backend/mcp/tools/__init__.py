@@ -1,10 +1,11 @@
 from mcp.server.mcpserver import MCPServer
 
-from . import data_quality, fulda, geometry, projects, todos
+from . import data_quality, finves, fulda, geometry, projects, todos
 
 
 def register_all(server: MCPServer) -> None:
     projects.register(server)
+    finves.register(server)
     todos.register(server)
     geometry.register(server)
     data_quality.register(server)

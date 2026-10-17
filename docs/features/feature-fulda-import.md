@@ -41,7 +41,7 @@ Glaubwürdigkeit liegt etwas unter den Berichten: Vertrauen **0.55** (VIB 0.6, M
 4. Prognose-Panel und Zeitstrahl: Termine nach Glaubwürdigkeit × Aktualität statt fester
    Rangfolge (VIB-PFA vs. Fulda).
 5. MCP-Tools für den ganzen Ablauf, Recht `fulda.import`.
-6. Skill `skills/fulda-runde/SKILL.md` (neuer Projekt-Ordner `skills/`).
+6. Skill `.claude/skills/fulda-runde/SKILL.md` (Ordner aller Dashboard-Skills, siehe `AGENT.md` → „Skills“).
 7. Abbau: OCR+LLM-Upload, Celery-Task, Upload-UI; „Fulda-Runde“ verschwindet aus den
    manuellen Quellen.
 8. Migration löscht die alten Fulda-Daten (Neu-Einlesen ab 2019 macht der User).
@@ -154,9 +154,9 @@ und meldet den Rest.
 
 ## Skill
 
-`skills/fulda-runde/SKILL.md` — neuer Projekt-Ordner `skills/` für alle Skills, die mit
-dem Dashboard über MCP arbeiten (README dort erklärt den Unterschied zu `.claude/skills/`,
-das Skills für die Arbeit *am Repository* enthält). Inhalt kurz:
+`.claude/skills/fulda-runde/SKILL.md` — wie alle Dashboard-Skills in `.claude/skills/`,
+gelistet in `.claude/skills/README.md`, von dort von Hand nach claude.ai hochgeladen.
+Inhalt kurz:
 
 1. Dokument erkennen (Jahr, Drucksache, Datum), prüfen, ob es schon existiert.
 2. Fragen nach ihrem **Wortlaut** einer Kategorie zuordnen, nie nach der Nummer.
@@ -203,7 +203,7 @@ das Skills für die Arbeit *am Repository* enthält). Inhalt kurz:
 | W2 | 2026-10-17 | Fulda-Prognosen sind abgeleitete Beobachtungen (Quelle Fulda), nie „Manuell“. |
 | W3 | 2026-10-17 | „Fulda-Runde“ aus den manuellen Quellen entfernt. |
 | W4 | 2026-10-17 | Eigenes Recht `fulda.import`. |
-| W5 | 2026-10-17 | Projekt-Ordner `skills/` für Dashboard-Skills; claude.ai-Anbindung macht der User. |
+| W5 | 2026-10-17 | Skill im Projekt-Skill-Ordner `.claude/skills/` (gemeinsame Regel aller Dashboard-Skills, `AGENT.md`); claude.ai-Anbindung macht der User. |
 | W6 | 2026-10-17 | Alte Fulda-Daten werden gelöscht, Neu-Einlesen ab 2019. |
 
 ## Akzeptanzkriterien

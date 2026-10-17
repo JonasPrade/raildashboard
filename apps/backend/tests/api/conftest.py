@@ -21,7 +21,10 @@ from dashboard_backend.models.associations.text_to_project import TextToProject
 from dashboard_backend.models.associations.project_to_project_group import (
     ProjectToProjectGroup,
 )
+from dashboard_backend.models.associations.finve_to_project import FinveToProject
 from dashboard_backend.models.guides import GuideSectionOverride
+from dashboard_backend.models.haushalt.budget_titel_entry import BudgetTitelEntry
+from dashboard_backend.models.haushalt.haushalt_titel import HaushaltTitel
 from dashboard_backend.models.infraplan import InfraplanParseResult
 from dashboard_backend.models.gvfg import (
     GvfgEntry,
@@ -39,7 +42,9 @@ from dashboard_backend.models.parliament import (
     ParliamentPeriod,
     Politician,
 )
+from dashboard_backend.models.projects.budget import Budget
 from dashboard_backend.models.projects.bvwp_project_data import BvwpProjectData
+from dashboard_backend.models.projects.finve import Finve
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.projects.progress_observation import ProgressObservation
 from dashboard_backend.models.projects.project_progress import ProjectProgress
@@ -57,9 +62,7 @@ from dashboard_backend.models.associations.fulda_announcement_to_project import 
 )
 from dashboard_backend.models.projects.fulda_announcement import FuldaAnnouncement
 from dashboard_backend.models.projects.fulda_document import FuldaDocument
-from dashboard_backend.models.associations.finve_to_project import FinveToProject
 from dashboard_backend.models.projects.bauportal_status import BauportalStatus
-from dashboard_backend.models.projects.finve import Finve
 from dashboard_backend.models.projects.media_report import MediaReport
 from dashboard_backend.models.projects.document import Document
 from dashboard_backend.models.associations.progress_track_document import ProgressTrackDocument
@@ -130,9 +133,12 @@ TABLES = [
     GvfgEntryAmount.__table__,
     gvfg_entry_project,
     GvfgParseResult.__table__,
-    Finve.__table__,  # read by sync_derived_observations (Fulda MCP flow)
-    FinveToProject.__table__,
-    BauportalStatus.__table__,
+    Finve.__table__,  # MCP FinVe search + sync_derived_observations (Fulda MCP flow)
+    FinveToProject.__table__,  # must follow project + finve (FK dependency)
+    Budget.__table__,  # must follow finve (FK dependency)
+    HaushaltTitel.__table__,  # must precede BudgetTitelEntry (FK dependency)
+    BudgetTitelEntry.__table__,  # must follow budgets + haushalt_titel
+    BauportalStatus.__table__,  # read by sync_derived_observations
     MediaReport.__table__,
     Document.__table__,  # progress view (PF/parl documents)
     ProgressTrackDocument.__table__,

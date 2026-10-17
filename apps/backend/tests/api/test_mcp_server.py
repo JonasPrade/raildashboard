@@ -144,6 +144,8 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
         "get_project",
         "get_project_progress",
         "list_project_finves",
+        "list_finves",
+        "get_finve",
         "get_project_texts",
         "list_text_types",
         "create_project",

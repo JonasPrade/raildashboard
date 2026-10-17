@@ -11,6 +11,12 @@ kinds of dates are produced:
 - **Evidence** points — for a phase without a concrete date, the earliest date
   of a credible, non-expected MAIN observation ("spätestens seit"). Evidence
   that contradicts the phase order (a higher phase is dated earlier) is dropped.
+
+For a superior, the pooled row has one BAU start (earliest) and one opening
+(latest). When the subprojects build in separate stages, the row additionally
+carries the **construction periods** — the union of each member's own
+Baubeginn–Inbetriebnahme interval — so the bar does not paint the gap between
+stages as construction (:func:`construction_periods`).
 """
 
 from __future__ import annotations
@@ -69,11 +75,24 @@ class TimelineMilestone:
     phase: MainPhase | None = None  # set for KIND_PHASE
 
 
+@dataclass(frozen=True)
+class ConstructionUnitInput:
+    """Concrete date inputs of one member of a pooled row (the superior itself
+    or one project of its subtree), read with its own PFAs only."""
+
+    pfas: list[PfaForecastInput] = field(default_factory=list)
+    fulda: list[ExpectedDate] = field(default_factory=list)
+    manual_expected: list[tuple[MainPhase, date]] = field(default_factory=list)
+
+
 @dataclass
 class TimelineResult:
     milestones: list[TimelineMilestone] = field(default_factory=list)
     # True when at least one concrete milestone exists (evidence alone is not enough).
     has_credible_dates: bool = False
+    # Disjoint construction periods (start, end), only when there are at least
+    # two — a single period is the plain BAU segment and needs no extra data.
+    construction_periods: list[tuple[date, date]] = field(default_factory=list)
 
 
 def _reduce_per_phase(pairs: list[tuple[MainPhase, date]]) -> list[tuple[MainPhase, date]]:
@@ -93,6 +112,60 @@ def _reduce_per_phase(pairs: list[tuple[MainPhase, date]]) -> list[tuple[MainPha
         else:
             best[phase] = min(current, dt)
     return list(best.items())
+
+
+def construction_periods(
+    units: list[ConstructionUnitInput], today: date | None = None
+) -> list[tuple[date, date]]:
+    """Union of the members' Baubeginn–Inbetriebnahme intervals.
+
+    Overlapping or touching intervals merge into one period. The result is
+    only returned when it has a real gap (two or more periods); otherwise the
+    plain BAU segment of the row is already right. Conservative on incomplete
+    data, since a gap must never be invented:
+
+    - a member with a construction start but no opening (open end) or with
+      contradicting dates (opening not after the start) cancels the split;
+    - a member with only an opening date cancels it too, unless that opening
+      lies before the first construction start (an older, finished stage).
+    """
+
+    intervals: list[tuple[date, date]] = []
+    openings_only: list[date] = []
+    for unit in units:
+        concrete = concrete_milestone_dates(
+            pfas=unit.pfas,
+            fulda=unit.fulda,
+            manual_expected=_reduce_per_phase(unit.manual_expected),
+            # Only weighs VIB-PFA against Fulda dates; any day works for tests.
+            today=today or date.today(),
+            pfb_as_genehmigung=False,
+        )
+        start = concrete.get(MainPhase.BAU, (None, ""))[0]
+        end = concrete.get(MainPhase.IN_BETRIEB, (None, ""))[0]
+        if start is None and end is None:
+            continue
+        if start is None:
+            openings_only.append(end)
+            continue
+        if end is None or end <= start:
+            return []
+        intervals.append((start, end))
+
+    if not intervals:
+        return []
+    intervals.sort()
+    if any(opening > intervals[0][0] for opening in openings_only):
+        return []
+
+    merged: list[tuple[date, date]] = [intervals[0]]
+    for start, end in intervals[1:]:
+        last_start, last_end = merged[-1]
+        if start <= last_end:
+            merged[-1] = (last_start, max(last_end, end))
+        else:
+            merged.append((start, end))
+    return merged if len(merged) >= 2 else []
 
 
 def _evidence_dates(
@@ -129,12 +202,14 @@ def build_timeline(
     observations: list[ObservationInput] | None = None,
     pf_dates: list[date] | None = None,
     parl_dates: list[date] | None = None,
+    construction_units: list[ConstructionUnitInput] | None = None,
 ) -> TimelineResult:
     """Assemble the dated milestones of one timeline row.
 
     ``observations`` are the non-expected observations used for evidence;
     ``pf_dates`` / ``parl_dates`` are editorial dates (several when a superior
-    pools its subtree — the earliest wins).
+    pools its subtree — the earliest wins). ``construction_units`` are the
+    per-member inputs of a pooled row (see :func:`construction_periods`).
     """
 
     pfas = pfas or []
@@ -200,4 +275,9 @@ def build_timeline(
     return TimelineResult(
         milestones=milestones,
         has_credible_dates=any(m.certainty == CERTAINTY_CONCRETE for m in milestones),
+        construction_periods=(
+            construction_periods(construction_units, today)
+            if construction_units and len(construction_units) >= 2
+            else []
+        ),
     )

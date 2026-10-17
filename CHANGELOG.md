@@ -13,8 +13,7 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 
 ### Added
 - **Fulda-Runde via MCP + skill.** An agent reads the Federal Government's answer on the
-  Fulda-Runde itself (skill `skills/fulda-runde/SKILL.md`, new folder `skills/` for dashboard
-  skills) and writes it with new MCP tools (`list_fulda_categories`, `list_fulda_documents`,
+  Fulda-Runde itself (skill `.claude/skills/fulda-runde/SKILL.md`) and writes it with new MCP tools (`list_fulda_categories`, `list_fulda_documents`,
   `create_fulda_document`, `update_fulda_document`, `add_fulda_entries`, `list_fulda_entries`,
   `assign_fulda_entry`, `update_fulda_entry`, `delete_fulda_entry`, `confirm_fulda_document`).
   New table `fulda_document`; entries gain category-defined statement kinds (Ist / ohne
@@ -24,6 +23,16 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   routes (was `progress.edit`); `GET /import/fulda/categories` and `/documents` added.
   **Migration** `20261017001`: adds the table/columns and **deletes all existing Fulda entries
   and their derived observations** (to be re-read). See `docs/features/feature-fulda-import.md`.
+- **MCP: free FinVe search.** `list_finves` searches all FinVes — including those not linked
+  to any project — by FinVe number, name, Bedarfsplan number or lfd. Nr., with filters for
+  budget year, Sammel-FinVe and project link; `get_finve` returns one FinVe with its budget
+  history and linked projects. Previously FinVes were only reachable through a project
+  (`list_project_finves`).
+- **Edit saved project geometry in place.** The geometry editor (wizard step 2 and
+  "Geometrie verwalten") gets a switch "Bestehende Geometrie bearbeiten": saved lines and points
+  are loaded into terra-draw, vertices can be moved, intermediate points inserted and vertices
+  deleted. Only changed parts are written back; feature order and properties are kept. Frontend
+  only (`features/routing/editExisting.ts`).
 - **Infraplan import, stage 1: parser + data model (#179).** `POST /api/v1/import/infraplan/parse`
   (PDF + `year`) stores the PDF with a new draft and starts the Celery task `parse_infraplan_pdf`,
   which reads the measure tables of chapter 2.3 (Bedarfsplan Teil A–D, GVFG Kat. A/C, InvKG)
@@ -141,6 +150,13 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   with short names) and can be reverted like any other project field.
 
 ### Fixed
+- **Timeline: separate construction stages of a superior.** A superior whose subprojects
+  build in separate stages (e.g. HLK 11 München-Ost – Rosenheim, 2028 and 2031) no longer shows
+  one continuous BAU bar across the gap. The timeline items carry `construction_periods`
+  (union of each subtree member's own Baubeginn–Inbetriebnahme interval, overlapping/touching
+  intervals merged, only reported with a real gap); the bar draws one BAU segment per stage and
+  the pause as a dashed "zwischen Bauetappen" line. Milestones and the "IB" headline are
+  unchanged. No migration.
 - **The backend image creates `/app/uploads` owned by `appuser`.** A named volume created
   before the directory existed in the image was root-owned, so the app could write neither
   text attachments nor (since v0.0.15) import PDFs; `/healthz` reports this as

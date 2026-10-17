@@ -1,7 +1,7 @@
 """Fulda-Runde import tools (feature-fulda-import.md).
 
 The agent reads a Fulda answer (PDF) itself and records it here: document,
-entries, project assignment, confirmation. The skill ``skills/fulda-runde``
+entries, project assignment, confirmation. The skill ``.claude/skills/fulda-runde``
 holds the reading rules. Every tool requires ``fulda.import``.
 """
 

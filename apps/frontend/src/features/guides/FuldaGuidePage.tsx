@@ -8,7 +8,7 @@ const DEF: GuideDef = {
     intro: `Wie Claude eine Antwort der Bundesregierung zur „Fulda-Runde" über den MCP-Server einliest und wie du das Ergebnis prüfst und freigibst.`,
     prerequisites: `- Dein Nutzer hat das Recht „Fulda-Runde einlesen" (\`fulda.import\`, in der Editor-Rolle enthalten).
 - Du hast einen **API-Key** mit diesem Recht und Claude ist mit dem MCP-Server des Dashboards verbunden.
-- Claude kennt den Skill \`fulda-runde\` (Ordner \`skills/fulda-runde\` im Repository).
+- Claude kennt den Skill \`fulda-runde\` (Ordner \`.claude/skills/fulda-runde\` im Repository).
 - Das Antwort-PDF der Kleinen Anfrage liegt vor.`,
     steps: [
         {
