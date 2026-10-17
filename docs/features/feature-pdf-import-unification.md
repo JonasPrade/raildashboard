@@ -6,6 +6,11 @@
 > gelaufen und rot — der Haushalt bezieht seine Zahlen weiterhin aus pdfplumber
 > (siehe *Schritt 6: Vergleich gelaufen* am Ende). Offen bleibt nur Schritt 3
 > (Medien-PDF-Upload). Der Rest dieser Datei bleibt die Entscheidungsgrundlage.
+>
+> **Fulda-Runde nicht mehr Teil der Pipeline (2026-10-17):** Ihre Antworten liest ein
+> Agent selbst und schreibt sie über MCP (`feature-fulda-import.md`); `tasks/fulda.py`,
+> `tasks/fulda_extraction.py` und der Upload-Endpunkt sind entfernt. Fulda-Stellen
+> unten beschreiben den Stand vor diesem Datum.
 
 ## Ziel dieser Evaluation
 

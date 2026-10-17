@@ -1689,23 +1689,20 @@ export interface paths {
         patch: operations["update_media_entry_api_v1_import_media_entries__entry_id__patch"];
         trace?: never;
     };
-    "/api/v1/import/fulda/parse": {
+    "/api/v1/import/fulda/categories": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
         /**
-         * Parse Fulda
-         * @description Upload a Fulda Kleine-Anfrage PDF for ``year``; OCR + LLM run in Celery.
-         *
-         *     Returns the Celery task_id for polling via GET /api/v1/tasks/{task_id};
-         *     the task result is the summary ``{ocr_status, created, source_label}``.
+         * List Fulda Categories
+         * @description Category catalog in display order (meaning, statement kind, phase).
          */
-        post: operations["parse_fulda_api_v1_import_fulda_parse_post"];
+        get: operations["list_fulda_categories_api_v1_import_fulda_categories_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1741,9 +1738,29 @@ export interface paths {
         };
         /**
          * List Fulda Year Summaries
-         * @description Per-year overview rows (counts + provenance) for the landing table.
+         * @description Per-year overview rows (counts + documents) for the landing table.
          */
         get: operations["list_fulda_year_summaries_api_v1_import_fulda_year_summaries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/fulda/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Fulda Documents
+         * @description Evaluated Fulda answers with entry counters, newest first.
+         */
+        get: operations["list_fulda_documents_api_v1_import_fulda_documents_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1784,7 +1801,7 @@ export interface paths {
         post?: never;
         /**
          * Delete Fulda Year
-         * @description Delete all Fulda announcements of a year (and their derived observations).
+         * @description Delete all Fulda documents and entries of a year (and their observations).
          */
         delete: operations["delete_fulda_year_api_v1_import_fulda_years__year__delete"];
         options?: never;
@@ -1801,7 +1818,7 @@ export interface paths {
         };
         /**
          * List Fulda Entries
-         * @description List Fulda announcements with suggested / confirmed matches.
+         * @description List Fulda announcements with their (suggested or confirmed) projects.
          */
         get: operations["list_fulda_entries_api_v1_import_fulda_entries_get"];
         put?: never;
@@ -2691,13 +2708,6 @@ export interface components {
             /** Confirmed */
             confirmed?: boolean | null;
         };
-        /** Body_parse_fulda_api_v1_import_fulda_parse_post */
-        Body_parse_fulda_api_v1_import_fulda_parse_post: {
-            /** Pdf */
-            pdf: string;
-            /** Year */
-            year: number;
-        };
         /** Body_start_constituency_import_api_v1_parliament_constituencies_import_post */
         Body_start_constituency_import_api_v1_parliament_constituencies_import_post: {
             /**
@@ -3448,6 +3458,20 @@ export interface components {
             /** Source */
             source: string;
         };
+        /** FuldaCategorySchema */
+        FuldaCategorySchema: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * Statement Kind
+             * @enum {string}
+             */
+            statement_kind: "IST" | "OHNE_FOLGEPHASE" | "PROGNOSE" | "NEUAUFNAHME";
+            /** Phase */
+            phase?: string | null;
+        };
         /**
          * FuldaConfirmSummary
          * @description Result of confirming a whole year at once.
@@ -3456,14 +3480,63 @@ export interface components {
             /** Confirmed */
             confirmed: number;
         };
+        /**
+         * FuldaDocumentSchema
+         * @description One evaluated answer of the Federal Government, with entry counters.
+         */
+        FuldaDocumentSchema: {
+            /** Id */
+            id: number;
+            /** Year */
+            year: number;
+            /** Drucksache */
+            drucksache: string;
+            /** Title */
+            title?: string | null;
+            /**
+             * Document Date
+             * Format: date
+             */
+            document_date: string;
+            /** Dip Url */
+            dip_url?: string | null;
+            /**
+             * Answer Status
+             * @enum {string}
+             */
+            answer_status: "VOLLSTAENDIG" | "TEILWEISE" | "OHNE_ERGEBNIS";
+            /** Note */
+            note?: string | null;
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+            /**
+             * Assigned
+             * @default 0
+             */
+            assigned: number;
+            /**
+             * Confirmed
+             * @default 0
+             */
+            confirmed: number;
+            /** Created At */
+            created_at?: string | null;
+            /** Username Snapshot */
+            username_snapshot?: string | null;
+        };
         /** FuldaEntrySchema */
         FuldaEntrySchema: {
             /** Id */
             id: number;
+            /** Document Id */
+            document_id?: number | null;
             /** Announcement Year */
             announcement_year: number;
-            /** Source Label */
-            source_label?: string | null;
+            /** Drucksache */
+            drucksache?: string | null;
             /** Document Date */
             document_date?: string | null;
             /** Raw Name */
@@ -3472,10 +3545,22 @@ export interface components {
             abschnitt?: string | null;
             /** Category */
             category?: string | null;
-            /** Announced Phase */
-            announced_phase?: string | null;
+            /** Statement Kind */
+            statement_kind?: ("IST" | "OHNE_FOLGEPHASE" | "PROGNOSE" | "NEUAUFNAHME") | null;
+            /** Phase */
+            phase?: string | null;
             /** Expected Date */
             expected_date?: string | null;
+            /** Question Ref */
+            question_ref?: string | null;
+            /** Page */
+            page?: number | null;
+            /** Raw Text */
+            raw_text?: string | null;
+            /** Attributed To */
+            attributed_to?: ("BMV" | "DB") | null;
+            /** Assignment Note */
+            assignment_note?: string | null;
             /**
              * Project Ids
              * @default []
@@ -3501,22 +3586,24 @@ export interface components {
          * @description Patch a Fulda announcement; ``project_ids`` replaces the whole assignment.
          */
         FuldaUpdateInput: {
-            /** Announcement Year */
-            announcement_year?: number | null;
-            /** Source Label */
-            source_label?: string | null;
-            /** Document Date */
-            document_date?: string | null;
             /** Raw Name */
             raw_name?: string | null;
             /** Abschnitt */
             abschnitt?: string | null;
             /** Category */
             category?: string | null;
-            /** Announced Phase */
-            announced_phase?: string | null;
             /** Expected Date */
             expected_date?: string | null;
+            /** Question Ref */
+            question_ref?: string | null;
+            /** Page */
+            page?: number | null;
+            /** Raw Text */
+            raw_text?: string | null;
+            /** Attributed To */
+            attributed_to?: ("BMV" | "DB") | null;
+            /** Assignment Note */
+            assignment_note?: string | null;
             /** Project Ids */
             project_ids?: number[] | null;
             /** Confirmed */
@@ -3524,7 +3611,7 @@ export interface components {
         };
         /**
          * FuldaYearSummary
-         * @description One row of the year-overview table (entry counts + provenance per year).
+         * @description One row of the year-overview table (entry counts + the year's documents).
          */
         FuldaYearSummary: {
             /** Announcement Year */
@@ -3533,10 +3620,11 @@ export interface components {
             total: number;
             /** Confirmed */
             confirmed: number;
-            /** Source Label */
-            source_label?: string | null;
-            /** Document Date */
-            document_date?: string | null;
+            /**
+             * Documents
+             * @default []
+             */
+            documents: components["schemas"]["FuldaDocumentSchema"][];
         };
         /**
          * GuideOverrideInput
@@ -4512,7 +4600,7 @@ export interface components {
              * @default MANUELL
              * @enum {string}
              */
-            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "INFRAPLAN" | "MANUELL";
+            source_type: "VIB" | "FINVE" | "BAUPORTAL" | "MEDIEN" | "INFRAPLAN" | "MANUELL";
             /**
              * Track
              * @enum {string}
@@ -10104,7 +10192,7 @@ export interface operations {
             };
         };
     };
-    parse_fulda_api_v1_import_fulda_parse_post: {
+    list_fulda_categories_api_v1_import_fulda_categories_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -10113,11 +10201,7 @@ export interface operations {
                 session?: string | null;
             };
         };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_parse_fulda_api_v1_import_fulda_parse_post"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -10125,7 +10209,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskLaunchResponse"];
+                    "application/json": components["schemas"]["FuldaCategorySchema"][];
                 };
             };
             /** @description Validation Error */
@@ -10188,6 +10272,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FuldaYearSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_fulda_documents_api_v1_import_fulda_documents_get: {
+        parameters: {
+            query?: {
+                year?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FuldaDocumentSchema"][];
                 };
             };
             /** @description Validation Error */
@@ -10270,6 +10387,7 @@ export interface operations {
             query?: {
                 only_unconfirmed?: boolean;
                 year?: number | null;
+                document_id?: number | null;
             };
             header?: never;
             path?: never;

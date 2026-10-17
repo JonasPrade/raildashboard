@@ -72,7 +72,8 @@ rückwärts gehen; das ist gewollt, damit aktuelle und menschliche Eingaben maß
 Quellentypen: `VIB, FINVE, FULDA_RUNDE, BAUPORTAL, MEDIEN, MANUELL`.
 - **VIB** und **FINVE** sind bereits importiert & m:n verknüpft → Beobachtungen werden
   daraus **abgeleitet/materialisiert** (nicht neu erfasst).
-- **FULDA_RUNDE, BAUPORTAL, MEDIEN** existieren noch nicht → zunächst manuelle Erfassung.
+- **FULDA_RUNDE, BAUPORTAL, MEDIEN** haben inzwischen eigene Importer; die Fulda-Runde ist
+  keine manuelle Quelle mehr (`feature-fulda-import.md`).
 
 **Vertrauensmodell:** Default-Vertrauen pro Quellentyp × Aktualitätsverfall
 (`recency_decay`; wichtig für den „immer veralteten" VIB), pro Beobachtung übersteuerbar.
@@ -349,7 +350,7 @@ Nachgezogen in v0.0.5. Alle drei folgen demselben Muster wie VIB/FinVe:
 in `progress_materialization.py` → eigener Zweig in `sync_derived_observations`**
 (regenerieren-statt-derive-on-read, sonst löscht der 24-h-Lazy-Resync die Zeilen).
 Quellentyp + Default-Trust existieren bereits (`SourceType`, `SOURCE_TYPE_DEFAULT_TRUST`:
-BAUPORTAL 0.8, FULDA_RUNDE 0.7, MEDIEN 0.4). Abgeleitete Zeilen sind nicht hand-löschbar
+BAUPORTAL 0.8, FULDA_RUNDE 0.55, MEDIEN 0.4). Abgeleitete Zeilen sind nicht hand-löschbar
 und werden nicht ins Changelog geschrieben.
 
 ### DB-Bauportal (#47) — offene JSON-API
@@ -385,53 +386,11 @@ und werden nicht ins Changelog geschrieben.
 
 ### Fulda-Runde (#46) — Antwort auf Kleine Anfrage (PDF)
 
-- **Wichtig:** Hochgeladen wird die **Antwort der Bundesregierung** (enthält die Projekt-Tabellen),
-  nicht die Kleine Anfrage selbst (nur Fragen). Die Antwort gliedert Projekte nach **Leistungsphase**;
-  die Frage-Überschrift über jeder Tabelle sagt, in welcher Phase die Projekte stehen
-  (Spalten „Projekt"/„Abschnitt").
-- **UI = zwei Flächen (Tabelle wie VIB, aber synchron):**
-  1. **Übersicht** (`FuldaImportPage`, `/admin/fulda-import`): Upload (Jahr + PDF) **plus** eine
-     **Tabelle der Jahrgänge** (`GET /year-summaries` → `list_year_summaries`: Jahr, Drs, total,
-     confirmed). Einstiegs- und Browse-Fläche; Upload navigiert direkt in die Jahres-Detailansicht.
-  2. **Jahres-Detail** (`FuldaYearDetailPage`, `/admin/fulda-import/year/:year`): die **5 festen
-     Phasen-Tabellen** in fester Reihenfolge (`CATEGORY_ORDER`: *in Lph 1–2*, *Abschluss Lph 1–2*,
-     *in Lph 3–4*, *Abschluss Lph 3–4*, *BauFinVe*; leere Phasen als „Keine Projekte"). Je Zeile
-     Projekt/Unterprojekt zuordnen (Reihenfolge-unabhängige Suche `filterProjectOption`) + „Übernehmen"-
-     Toggle; optimistische Zwischenspeicherung. Kopf-Button **„Alle übernehmen (N)"**
-     (`POST /years/{year}/confirm` → `confirm_year`) bestätigt alle zugeordneten offenen Einträge auf
-     einmal; danach weiter anpassbar. Geteilte Komponenten in `fuldaShared.tsx`. (Der frühere
-     Schritt-für-Schritt-Review `FuldaReviewPage` wurde verworfen.)
-- **Jahresbezogen (wie VIB):** Der Redakteur gibt beim Upload das **Jahr** an (`announcement_year`,
-  NOT NULL, indiziert). Alles ist nach Jahr gefiltert (`GET /entries?year=`, `/years`,
-  `/year-summaries`). Ein erneuter Upload desselben Jahres ersetzt nur die **offenen** Drafts
-  (bestätigte bleiben). Ganze Jahrgänge löschbar (`DELETE /years/{year}` → `delete_year`,
-  re-materialisiert betroffene Projekte). Fehlt ein Beobachtungsdatum, dient der 1. Januar des Jahres
-  als `observed_date` (Recency-Decay).
-- **Abschnitt → Unterprojekt:** Jede Zeile trägt neben `raw_name` (Spalte „Projekt" = Oberprojekt)
-  den `abschnitt` (Spalte „Abschnitt"; bei Bullet-Listen der Teil nach dem Doppelpunkt). Beim Parsen
-  matcht `suggest_projects_for_vib_entry` zunächst das Oberprojekt; ist der Abschnitt distinkt (nicht
-  „Gesamtstrecke" o. Ä.), sucht `suggest_subproject_for_pfa` ein passendes **Unterprojekt** unter den
-  Kindern (`superior_project_id`) und füllt dieses **Blatt** vor (Zustand am Blatt). Es werden **keine
-  Unterprojekte angelegt** — gibt es keins, bleibt der beste Oberprojekt-Treffer vorausgewählt; der
-  Redakteur korrigiert.
-- **m:n-Projektzuordnung (wie VIB):** Link-Tabelle `fulda_announcement_to_project` (analog
-  `vib_entry_project`). Vorausgewählte Treffer als `MultiSelect`, kein separates Vorschlag-Feld. Erst
-  Bestätigen erzeugt je verknüpftem Projekt eine Beobachtung (`sync_derived_observations` JOINt die
-  Link-Tabelle, nur `confirmed`-Zeilen).
-- **Roh-Tabelle `fulda_announcement`:** Jahr, Roh-Name, **Abschnitt**, Kategorie, angekündigte Phase,
-  Quelle/Datum + m:n-Link zu Projekten. OCR (`services.document_ocr.extract_document_text`) + LLM-Extraktion.
-- **Mehrstufige Extraktion — LLM ordnet nur Phasen zu:** Enger Auftrag: jede Projektliste **anhand
-  ihrer Frage-Überschrift** genau einer von fünf Kategorien zuordnen (Katalog in
-  `FULDA_CATEGORY_LABELS`) und je Zeile `{category, project_name, abschnitt}` liefern (Projektname
-  **wortwörtlich**; Abschnitt Pflicht — in Bullet-Listen „X: Y" wird X=Projekt, Y=Abschnitt). Kein
-  Fragenummer-Raten mehr (der frühere, unzuverlässige Ansatz). Der Prompt erzwingt **Exklusivität**
-  (eine Liste → genau eine Kategorie, keine Mehrfachausgabe) und „keine Liste → keine Einträge" für
-  Fragen, die nur auf Anlagen verweisen — gegen die beobachtete Duplikation einer Tabelle nach
-  BauFinVe. `normalize_items` validiert gegen `FULDA_CATEGORIES` und dedupt je (Name, Abschnitt,
-  Kategorie). Kategorie→Phase (`FULDA_CATEGORY_PHASE`): IN_LPH_1_2→Vorplanung, COMPLETED_LPH_1_2 &
-  IN_LPH_3_4→Genehmigungsplanung, COMPLETED_LPH_3_4 & HAS_BAUFINVE→Bau.
-- Termine fließen über den bestehenden Seam `_build_forecast_for_project` (FULDA_RUNDE +
-  `observed_date`) in die Prognose. Debug: `scripts/dump_fulda_parse.py <pdf>`.
+> **Seit 2026-10-17 eigenes Feature:** `docs/features/feature-fulda-import.md`. Der frühere
+> Weg (PDF-Upload → OCR → LLM mit fünf Kategorien) ist entfernt. Ein Agent liest die
+> Antwort selbst und schreibt sie über MCP; Trust 0.55; Ist-Aussagen setzen die Phase,
+> Prognosen und Neuaufnahmen erzeugen nur erwartete Termine (`is_expected`, abgeleitet).
+> Die Jahres-Ansicht (`FuldaYearDetailPage`) bleibt als Freigabe-Fläche.
 
 ### Fehlendes Projekt → Projektentwurf anlegen & verknüpfen
 
@@ -491,10 +450,12 @@ klar als „erwartet" markiert.
 **Prognose (`build_forecast` / `_build_forecast_for_project`):** erwartete Einträge
 fließen als neue, **höchstpriorisierte** Quelle ein — *manuell übersteuert immer*.
 Neuer Parameter `manual_expected: list[(MainPhase, date)]`; im `concrete`-Aufbau
-**nach** VIB-PFA/Fulda gesetzt, sodass er bestehende Einträge überschreibt (nicht nur
+**nach** VIB-PFA/Fulda gesetzt (die untereinander nach Glaubwürdigkeit × Aktualität
+konkurrieren, siehe `feature-fulda-import.md`), sodass er bestehende Einträge überschreibt (nicht nur
 Lücken füllt). Quelle-Label `"Manuell"` im `ForecastStep` und farblich im
-`ForecastPanel` (`SOURCE_COLOR`). CRUD lädt manuelle `is_expected=True`-MAIN-Beobachtungen
-mit Datum analog zu `fulda_obs`.
+`ForecastPanel` (`SOURCE_COLOR`). CRUD lädt alle `is_expected=True`-MAIN-Beobachtungen
+mit Datum und trennt sie mit `split_expected`: nicht abgeleitete → „Manuell“, abgeleitete
+Fulda-Prognosen → Fulda-Eingang (mit Datum der Antwort für die Gewichtung).
 
 **Sichtbarkeit:** wie der übrige Planungsstand **öffentlich** (GET offen). Eingabe nur
 mit Permission `progress.edit`.

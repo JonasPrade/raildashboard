@@ -18,6 +18,7 @@ Regeln (siehe `AGENT.md` → „Skills“):
 | [`audit-auth`](audit-auth/SKILL.md) | Prüft, welche API-Endpunkte Authentifizierung verlangen, und ob das Frontend damit umgeht | Claude Code |
 | [`widerspruchs-check`](widerspruchs-check/SKILL.md) | Findet Widersprüche zwischen Plänen, Grundsätzen und Code und legt sie dem Nutzer zur Entscheidung vor | Claude Code |
 | [`schienendashboard`](schienendashboard/SKILL.md) | Einstieg: verweist auf `list_skills`/`get_skill` des MCP-Servers | claude.ai (einmaliger Upload) |
+| [`fulda-runde`](fulda-runde/SKILL.md) | Liest eine Antwort der Bundesregierung zur Fulda-Runde per MCP ein (Dokument, Einträge, Zuordnung, Bestätigung); braucht `fulda.import` | MCP (`mcp: true`) |
 | `infraplan-import` | Führt einen hochgeladenen Infraplan per MCP bis zur Bestätigung und trägt die Kennzahlen ein (entsteht mit #182) | MCP (`mcp: true`) |
 
 ## Einen Skill über den MCP ausliefern

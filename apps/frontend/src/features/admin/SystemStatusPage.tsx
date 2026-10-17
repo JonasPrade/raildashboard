@@ -1,7 +1,7 @@
 /**
  * Systemstatus — „läuft im Hintergrund überhaupt jemand?"
  *
- * Imports (Haushalt, VIB, Fulda, Bauportal) run as Celery jobs. If no worker is
+ * Imports (Haushalt, VIB, Bauportal) run as Celery jobs. If no worker is
  * running, the upload still succeeds and the page waits forever: Celery reports
  * the same PENDING for „queued" and for „nobody is listening". This page makes
  * that difference visible — broker, workers, queue length — and names the
@@ -85,7 +85,7 @@ function SystemStatusPageContent() {
                 </Group>
 
                 <Text size="sm" c="dimmed">
-                    Importe (Haushalt, VIB, Fulda, Bauportal) laufen als Hintergrund-Aufträge. Sie
+                    Importe (Haushalt, VIB, Bauportal) laufen als Hintergrund-Aufträge. Sie
                     werden von einem <b>Celery-Worker</b> abgearbeitet, der die Aufträge aus der
                     Warteschlange (Redis) zieht. Fehlt der Worker, nimmt die Anwendung den Auftrag
                     zwar an, aber niemand führt ihn aus — der Import bleibt dann endlos im Zustand

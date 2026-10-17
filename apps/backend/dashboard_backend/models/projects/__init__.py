@@ -4,6 +4,7 @@ from .bvwp_project_data import BvwpProjectData
 from .document import Document
 from .finve import Finve
 from .fulda_announcement import FuldaAnnouncement
+from .fulda_document import FuldaDocument
 from .media_report import MediaReport
 from .project import Project
 from .project_group import ProjectGroup

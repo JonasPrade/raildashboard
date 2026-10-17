@@ -7,7 +7,9 @@ import {
     Container,
     Group,
     Loader,
+    Paper,
     Stack,
+    Text,
     Title,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
@@ -17,9 +19,10 @@ import {
     useConfirmFuldaYear,
     useDeleteFuldaYear,
     useFuldaEntries,
+    useFuldaYearSummaries,
     useProjectOptions,
 } from "../../shared/api/queries";
-import { CATEGORY_ORDER, PhaseTable, bucketByCategory } from "./fuldaShared";
+import { ANSWER_STATUS_LABEL, CATEGORY_ORDER, PhaseTable, bucketByCategory } from "./fuldaShared";
 
 export default function FuldaYearDetailPage() {
     const navigate = useNavigate();
@@ -28,6 +31,8 @@ export default function FuldaYearDetailPage() {
 
     const { data: entries, isLoading } = useFuldaEntries(false, year);
     const { data: projects } = useProjectOptions();
+    const { data: summaries } = useFuldaYearSummaries();
+    const documents = summaries?.find((s) => s.announcement_year === year)?.documents ?? [];
     const deleteYear = useDeleteFuldaYear();
     const confirmYear = useConfirmFuldaYear();
 
@@ -146,20 +151,52 @@ export default function FuldaYearDetailPage() {
                     <Group justify="center" py="xl">
                         <Loader />
                     </Group>
-                ) : total === 0 ? (
+                ) : null}
+
+                {documents.map((d) => (
+                    <Paper key={d.id} withBorder p="sm" radius="md">
+                        <Stack gap={4}>
+                            <Group gap="xs">
+                                <Text fw={600} size="sm">
+                                    Drs. {d.drucksache}
+                                </Text>
+                                <Text size="sm" c="dimmed">
+                                    vom {new Date(d.document_date).toLocaleDateString("de-DE")}
+                                </Text>
+                                <Badge
+                                    variant="light"
+                                    color={d.answer_status === "VOLLSTAENDIG" ? "green" : "orange"}
+                                >
+                                    {ANSWER_STATUS_LABEL[d.answer_status]}
+                                </Badge>
+                            </Group>
+                            {d.title && <Text size="sm">{d.title}</Text>}
+                            {d.note && (
+                                <Text size="sm" c="dimmed">
+                                    {d.note}
+                                </Text>
+                            )}
+                        </Stack>
+                    </Paper>
+                ))}
+
+                {isLoading ? null : total === 0 ? (
                     <Alert variant="light" title="Keine Einträge">
                         Für {year} liegen keine Fulda-Einträge vor.
                     </Alert>
                 ) : (
                     <Stack gap="xl">
-                        {CATEGORY_ORDER.map((cat) => (
-                            <PhaseTable
-                                key={cat}
-                                category={cat}
-                                rows={buckets.map.get(cat) ?? []}
-                                projectOptions={projectOptions}
-                            />
-                        ))}
+                        {/* Only categories the answer actually lists. */}
+                        {CATEGORY_ORDER.filter((cat) => (buckets.map.get(cat) ?? []).length > 0).map(
+                            (cat) => (
+                                <PhaseTable
+                                    key={cat}
+                                    category={cat}
+                                    rows={buckets.map.get(cat) ?? []}
+                                    projectOptions={projectOptions}
+                                />
+                            ),
+                        )}
                         {buckets.other.length > 0 && (
                             <PhaseTable
                                 category="Ohne Kategorie"

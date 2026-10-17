@@ -1,11 +1,12 @@
-"""Raw record for the Fulda-Runde importer (#46).
+"""One statement of a Fulda-Runde answer (feature-fulda-import.md).
 
-The Fulda-Runde appears as a yearly "Antwort der Bundesregierung" (PDF) that
-lists projects per Leistungsphase, grouped by numbered question. One row per
-(project, category) is extracted via OCR + LLM. An announcement can be matched
-to several projects (m:n, like VIB) — once an editor confirms the match,
-``sync_derived_observations`` materialises a derived FULDA_RUNDE observation
-(trust 0.7) for each linked project, whose date also feeds the forecast.
+An agent records each project line of a ``FuldaDocument`` via the MCP tools:
+the category (``services/fulda_categories.py``) fixes whether the line states
+the current phase ("Ist") or announces a future one (prognosis / new
+admission), plus provenance (question, page, verbatim text). An announcement can
+be matched to several projects (m:n, like VIB) — once confirmed,
+``sync_derived_observations`` materialises a derived FULDA_RUNDE observation per
+linked project: a phase for "Ist" lines, an expected date for prognoses.
 """
 
 from __future__ import annotations
@@ -13,7 +14,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from dashboard_backend.models.associations.fulda_announcement_to_project import (
@@ -22,6 +23,7 @@ from dashboard_backend.models.associations.fulda_announcement_to_project import 
 from dashboard_backend.models.base import Base
 
 if TYPE_CHECKING:
+    from dashboard_backend.models.projects.fulda_document import FuldaDocument
     from dashboard_backend.models.projects.project import Project
 
 
@@ -30,11 +32,19 @@ class FuldaAnnouncement(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
 
-    # Fulda-Runde year the import belongs to (one answer per year). Entered by the
-    # editor at upload time; the whole importer is organised/filtered by this year.
+    # The answer this line comes from. Nullable only for the expand step; every
+    # row written since feature-fulda-import.md carries it.
+    document_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("fulda_document.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    document: Mapped["FuldaDocument | None"] = relationship(
+        "FuldaDocument", back_populates="entries"
+    )
+
+    # Copy of ``document.year`` — the review UI is organised/filtered by year.
     announcement_year: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
 
-    # Provenance of the Kleine Anfrage (e.g. "Drucksache 20/12345") + its date.
+    # Deprecated (expand/contract): now on ``fulda_document``; no longer written.
     source_label: Mapped[str | None] = mapped_column(String(255), nullable=True)
     document_date: Mapped[date | None] = mapped_column(Date, nullable=True)
 
@@ -43,11 +53,22 @@ class FuldaAnnouncement(Base):
     # bullet list). In the dashboard the Abschnitt is the subproject — matching
     # pre-fills the leaf subproject under the matched superior project.
     abschnitt: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    # Extraction category: IN_LPH_1_2 | IN_LPH_3_4 | COMPLETED_LPH_1_2 | COMPLETED_LPH_3_4
+    # Key of ``FULDA_CATEGORIES`` — fixes statement kind and phase.
     category: Mapped[str | None] = mapped_column(String(40), nullable=True)
-    # Derived MainPhase value (from category; editor-confirmable).
+    # Deprecated (expand/contract): the phase now follows from ``category``.
     announced_phase: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # Announced date for prognoses / new admissions (e.g. 2026-12-31 for
+    # "bis Ende 2026"); unused for "Ist" lines.
     expected_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+
+    # Provenance inside the document.
+    question_ref: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    page: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    raw_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Who the answer attributes the statement to: BMV or DB ("nach Angaben der DB AG").
+    attributed_to: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # Why the projects were assigned (written by the agent or editor).
+    assignment_note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # m:n project assignment (mirrors VIB's vib_entry_project). Pre-filled with the
     # fuzzy-match suggestions at parse time; the editor adjusts via a MultiSelect.

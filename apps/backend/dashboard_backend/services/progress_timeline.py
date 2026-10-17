@@ -35,6 +35,7 @@ from dashboard_backend.services.progress_derivation import (
     effective_confidence,
 )
 from dashboard_backend.services.progress_forecast import (
+    ExpectedDate,
     PfaForecastInput,
     concrete_milestone_dates,
 )
@@ -80,7 +81,7 @@ class ConstructionUnitInput:
     or one project of its subtree), read with its own PFAs only."""
 
     pfas: list[PfaForecastInput] = field(default_factory=list)
-    fulda: list[tuple[MainPhase, date]] = field(default_factory=list)
+    fulda: list[ExpectedDate] = field(default_factory=list)
     manual_expected: list[tuple[MainPhase, date]] = field(default_factory=list)
 
 
@@ -113,7 +114,9 @@ def _reduce_per_phase(pairs: list[tuple[MainPhase, date]]) -> list[tuple[MainPha
     return list(best.items())
 
 
-def construction_periods(units: list[ConstructionUnitInput]) -> list[tuple[date, date]]:
+def construction_periods(
+    units: list[ConstructionUnitInput], today: date | None = None
+) -> list[tuple[date, date]]:
     """Union of the members' Baubeginn–Inbetriebnahme intervals.
 
     Overlapping or touching intervals merge into one period. The result is
@@ -132,8 +135,10 @@ def construction_periods(units: list[ConstructionUnitInput]) -> list[tuple[date,
     for unit in units:
         concrete = concrete_milestone_dates(
             pfas=unit.pfas,
-            fulda=_reduce_per_phase(unit.fulda),
+            fulda=unit.fulda,
             manual_expected=_reduce_per_phase(unit.manual_expected),
+            # Only weighs VIB-PFA against Fulda dates; any day works for tests.
+            today=today or date.today(),
             pfb_as_genehmigung=False,
         )
         start = concrete.get(MainPhase.BAU, (None, ""))[0]
@@ -192,7 +197,7 @@ def build_timeline(
     *,
     today: date,
     pfas: list[PfaForecastInput] | None = None,
-    fulda: list[tuple[MainPhase, date]] | None = None,
+    fulda: list[ExpectedDate] | None = None,
     manual_expected: list[tuple[MainPhase, date]] | None = None,
     observations: list[ObservationInput] | None = None,
     pf_dates: list[date] | None = None,
@@ -210,8 +215,9 @@ def build_timeline(
     pfas = pfas or []
     concrete = concrete_milestone_dates(
         pfas=pfas,
-        fulda=_reduce_per_phase(fulda or []),
+        fulda=fulda or [],
         manual_expected=_reduce_per_phase(manual_expected or []),
+        today=today,
         pfb_as_genehmigung=False,
     )
 
@@ -270,7 +276,7 @@ def build_timeline(
         milestones=milestones,
         has_credible_dates=any(m.certainty == CERTAINTY_CONCRETE for m in milestones),
         construction_periods=(
-            construction_periods(construction_units)
+            construction_periods(construction_units, today)
             if construction_units and len(construction_units) >= 2
             else []
         ),

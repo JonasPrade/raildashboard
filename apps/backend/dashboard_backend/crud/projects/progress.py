@@ -45,6 +45,7 @@ from dashboard_backend.services.progress_derivation import (
 from dashboard_backend.services.progress_dates import parse_flexible_date
 from dashboard_backend.services.progress_forecast import (
     BvwpDurations,
+    ExpectedDate,
     PfaForecastInput,
     build_forecast,
 )
@@ -64,9 +65,11 @@ from dashboard_backend.models.associations.fulda_announcement_to_project import 
     fulda_announcement_to_project,
 )
 from dashboard_backend.models.projects.fulda_announcement import FuldaAnnouncement
+from dashboard_backend.models.projects.fulda_document import FuldaDocument
 from dashboard_backend.models.projects.media_report import MediaReport
 from dashboard_backend.models.projects.bvwp_project_data import BvwpProjectData
 from dashboard_backend.models.vib.vib_pfa_entry import VibPfaEntry
+from dashboard_backend.models.vib.vib_report import VibReport
 
 # A project whose group membership includes a "BSWAG*" group (Bedarfsplan
 # Schiene / BSWAG) defaults to parliamentary relevance. The nullable
@@ -259,15 +262,69 @@ def _enum_or_none(enum_cls, value):
         return None
 
 
-def _phase_date_pairs(
-    observations: list[ProgressObservation],
-) -> list[tuple[MainPhase, date]]:
-    pairs: list[tuple[MainPhase, date]] = []
+def pfa_forecast_input(pfa: VibPfaEntry, report: VibReport | None) -> PfaForecastInput:
+    """PFA milestone dates plus the date of the VIB report they come from."""
+
+    reported_on = None
+    if report is not None:
+        reported_on = report.report_date or date(report.year, 12, 31)
+    return PfaForecastInput(
+        datum_pfb=parse_flexible_date(pfa.datum_pfb),
+        baubeginn=parse_flexible_date(pfa.baubeginn),
+        inbetriebnahme=parse_flexible_date(pfa.inbetriebnahme),
+        reported_on=reported_on,
+    )
+
+
+def fulda_report_dates(
+    db: Session, observations: list[ProgressObservation]
+) -> dict[int, date]:
+    """Answer date (``fulda_document.document_date``) per Fulda announcement id
+    referenced by ``observations`` — one query for any number of rows."""
+
+    announcement_ids = {
+        o.fulda_announcement_id
+        for o in observations
+        if o.is_derived and o.fulda_announcement_id
+    }
+    if not announcement_ids:
+        return {}
+    return dict(
+        db.query(FuldaAnnouncement.id, FuldaDocument.document_date)
+        .join(FuldaDocument, FuldaDocument.id == FuldaAnnouncement.document_id)
+        .filter(FuldaAnnouncement.id.in_(announcement_ids))
+        .all()
+    )
+
+
+def split_expected(
+    observations: list[ProgressObservation], reported: dict[int, date]
+) -> tuple[list[ExpectedDate], list[tuple[MainPhase, date]]]:
+    """Split dated expected MAIN observations into Fulda prognoses and manual ones.
+
+    Fulda prognoses carry the date of their answer (``reported``, from
+    :func:`fulda_report_dates`) so the forecast can weigh them against VIB-PFA
+    dates; hand-made entries (any source label) are editorial and always win.
+    Other derived expected observations do not exist and are ignored.
+    """
+
+    fulda: list[ExpectedDate] = []
+    manual: list[tuple[MainPhase, date]] = []
     for obs in observations:
         phase = _enum_or_none(MainPhase, obs.asserted_state)
-        if phase is not None:
-            pairs.append((phase, obs.observed_date))
-    return pairs
+        if phase is None or obs.observed_date is None:
+            continue
+        if obs.is_derived and obs.source_type == SourceType.FULDA_RUNDE.value:
+            fulda.append(
+                ExpectedDate(
+                    phase=phase,
+                    date=obs.observed_date,
+                    reported_on=reported.get(obs.fulda_announcement_id),
+                )
+            )
+        elif not obs.is_derived:
+            manual.append((phase, obs.observed_date))
+    return fulda, manual
 
 
 def derive_for_project(
@@ -509,6 +566,7 @@ def sync_derived_observations_bulk(
             fulda_announcement_to_project,
             fulda_announcement_to_project.c.fulda_announcement_id == FuldaAnnouncement.id,
         )
+        .options(joinedload(FuldaAnnouncement.document))
         .filter(
             fulda_announcement_to_project.c.project_id.in_(project_ids),
             FuldaAnnouncement.confirmed.is_(True),
@@ -516,17 +574,15 @@ def sync_derived_observations_bulk(
         .all()
     )
     for row, project_id in fulda_rows:
-        observed_date = row.expected_date or row.document_date
-        if observed_date is None and row.announcement_year:
-            observed_date = date(row.announcement_year, 1, 1)
+        document = row.document
         fulda_spec = fulda_to_spec(
             fulda_announcement_id=row.id,
-            announced_phase=row.announced_phase,
             category=row.category,
-            observed_date=observed_date,
-            source_label=row.source_label,
+            document_date=document.document_date if document is not None else None,
+            expected_date=row.expected_date,
+            drucksache=document.drucksache if document is not None else None,
         )
-        if fulda_spec is not None:  # no derivable phase → no contribution
+        if fulda_spec is not None:  # hint-only category → no contribution
             specs_by_project[project_id].append(fulda_spec)
 
     for project_id, specs in specs_by_project.items():
@@ -547,6 +603,7 @@ def sync_derived_observations_bulk(
                     bauportal_status_id=spec.bauportal_status_id,
                     media_report_id=spec.media_report_id,
                     fulda_announcement_id=spec.fulda_announcement_id,
+                    is_expected=spec.is_expected,
                 )
             )
 
@@ -598,20 +655,14 @@ def _build_forecast_for_project(
 
     # PFA milestone dates from linked VIB entries.
     pfa_rows = (
-        db.query(VibPfaEntry)
+        db.query(VibPfaEntry, VibReport)
         .join(VibEntry, VibEntry.id == VibPfaEntry.vib_entry_id)
+        .outerjoin(VibReport, VibReport.id == VibEntry.vib_report_id)
         .join(vib_entry_project, vib_entry_project.c.vib_entry_id == VibEntry.id)
         .filter(vib_entry_project.c.project_id == project_id)
         .all()
     )
-    pfas = [
-        PfaForecastInput(
-            datum_pfb=parse_flexible_date(p.datum_pfb),
-            baubeginn=parse_flexible_date(p.baubeginn),
-            inbetriebnahme=parse_flexible_date(p.inbetriebnahme),
-        )
-        for p in pfa_rows
-    ]
+    pfas = [pfa_forecast_input(p, report) for p, report in pfa_rows]
 
     bvwp_row = (
         db.query(BvwpProjectData)
@@ -626,21 +677,8 @@ def _build_forecast_for_project(
             operating=bvwp_row.bvwp_duration_operating,
         )
 
-    # Fulda-Runde announcements: manual MAIN observations with a date.
-    fulda_obs = (
-        db.query(ProgressObservation)
-        .filter(
-            ProgressObservation.project_id == project_id,
-            ProgressObservation.source_type == SourceType.FULDA_RUNDE.value,
-            ProgressObservation.track == ObservationTrack.MAIN.value,
-            ProgressObservation.observed_date.isnot(None),
-        )
-        .all()
-    )
-    fulda = _phase_date_pairs(fulda_obs)
-
-    # Manual expected milestones (is_expected=True): editorial future dates that
-    # override all derived sources in the forecast.
+    # Expected MAIN observations with a date: Fulda-Runde prognoses (derived)
+    # compete with VIB-PFA by weight; manual ones are editorial and always win.
     expected_obs = (
         db.query(ProgressObservation)
         .filter(
@@ -651,7 +689,9 @@ def _build_forecast_for_project(
         )
         .all()
     )
-    manual_expected = _phase_date_pairs(expected_obs)
+    fulda, manual_expected = split_expected(
+        expected_obs, fulda_report_dates(db, expected_obs)
+    )
 
     result = build_forecast(
         effective_phase=effective_phase,

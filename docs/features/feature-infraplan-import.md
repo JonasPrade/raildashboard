@@ -42,7 +42,7 @@ Vergleiche (Infraplan 2026 vs. 2027 vs. …) dauerhaft möglich bleiben.
 | 10 | Kennzahlen-Modell | generisch, alle Kennzahlen inkl. Anhang |
 | 11 | Zeitreihen | Werte aller Jahrgänge bleiben erhalten |
 | 12 | Anzeige Kennzahlen | neue **öffentliche Seite** `/infraplan`; Startseite bleibt vorerst unverändert |
-| 13 | Rangfolge Termine | Infraplan schlägt VIB-PFA, Fulda-Runde und BVWP, aber nicht manuelle Termine |
+| 13 | Rangfolge Termine | Je Phase Glaubwürdigkeit × Aktualität des Berichts (Infraplan 0.85 > VIB 0.6 > Fulda 0.55); BVWP nur als Lückenfüller, manuelle Termine gewinnen immer (angepasst 2026-10-17, `feature-fulda-import.md` W1) |
 | 14 | Deckungsgrad | **nicht** anzeigen (andere Organisationen finanzieren mit) |
 | 15 | PaBe-Relevanz | eigene Ebene „laut Infraplan“: manuell > Infraplan > Projektgruppen |
 | 16 | Fehlendes Teilprojekt | Review bietet „Teilprojekt anlegen unter …“ |
@@ -294,8 +294,10 @@ Jahrgang, folgt die Anzeige automatisch.
 
 **Prognose:** `concrete_milestone_dates` (`services/progress_forecast.py`) bekommt den
 Eingang `infraplan: list[(MainPhase.IN_BETRIEB, date)]` mit Quelle `"Infraplan"`.
-Datum = 31.12. des `ibn_year`, Anzeige nur als Jahr. Rangfolge: BVWP-Schätzung <
-VIB-PFA < Fulda-Runde < **Infraplan** < Manuell. Kein Eingang bei `ibn_qualifier = OFFEN`
+Datum = 31.12. des `ibn_year`, Anzeige nur als Jahr. Rangfolge: Wie VIB-PFA und Fulda
+konkurriert der Infraplan-Termin über Glaubwürdigkeit × Aktualität des Jahrgangs
+(`feature-fulda-import.md` → „Termine im Prognose-Panel“); BVWP-Schätzungen füllen nur
+Lücken, manuelle Termine gewinnen immer. Kein Eingang bei `ibn_qualifier = OFFEN`
 oder einem Jahr vor dem Jahrgang (GVFG-Altfälle). Mehrere Einträge je Projekt →
 spätestes Jahr. Die Multi-Projekt-Zeitleiste nutzt dieselbe Funktion und übernimmt das
 automatisch.

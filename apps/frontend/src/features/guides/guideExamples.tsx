@@ -66,14 +66,15 @@ function FuldaYearTableExample() {
     return (
         <Stack gap={6}>
             <Group gap="xs">
-                <Title order={5}>Projekte in Lph 3–4</Title>
+                <Title order={5}>Aktuell in der Sammel-FinVe Lph 3/4</Title>
+                <Badge variant="outline" color="blue">Ist · setzt Phase</Badge>
                 <Badge variant="light" color="blue">2</Badge>
                 <Badge variant="light" color="green">1 aktiv</Badge>
             </Group>
             <ResponsiveTable minWidth={560} layout="fixed" w="100%" verticalSpacing="sm">
                 <Table.Thead>
                     <Table.Tr>
-                        <Table.Th style={{ width: "28%" }}>Projekt (Roh)</Table.Th>
+                        <Table.Th style={{ width: "28%" }}>Projekt (Wortlaut, Fundstelle)</Table.Th>
                         <Table.Th style={{ width: "24%" }}>Abschnitt → Unterprojekt</Table.Th>
                         <Table.Th style={{ width: "36%" }}>Projekte zuordnen</Table.Th>
                         <Table.Th style={{ width: "12%" }}>Übernehmen</Table.Th>
@@ -81,7 +82,12 @@ function FuldaYearTableExample() {
                 </Table.Thead>
                 <Table.Tbody>
                     <Table.Tr>
-                        <Table.Td><Text size="sm" fw={500}>ABS/NBS Hanau–Würzburg/Fulda</Text></Table.Td>
+                        <Table.Td>
+                            <Stack gap={2}>
+                                <Text size="sm" fw={500}>ABS/NBS Hanau–Würzburg/Fulda</Text>
+                                <Text size="xs" c="dimmed">Drs. 21/5855 · Frage 6 · S. 6</Text>
+                            </Stack>
+                        </Table.Td>
                         <Table.Td><Text size="sm">Gelnhausen–Wächtersbach</Text></Table.Td>
                         <Table.Td>
                             <Stack gap={4}>

@@ -28,14 +28,16 @@ Rechtemodell — ein Key kann nie mehr als der Nutzer, dem er gehört.
 - **Lesen *und* Schreiben** — Schreib-Tools sind über den bestehenden
   Permission-Katalog gegated und lassen sich pro Key zusätzlich einschränken
   (ein Key kann read-only sein, auch wenn sein Nutzer Editor ist).
-- **Importe bleiben draußen** — VIB-/Haushalt-/PDF-Import sind langlaufende
-  Celery-Jobs mit Mensch-im-Loop-Review; die gehören nicht in eine
-  Tool-Aufruf-Semantik mit Sekunden-Timeout.
-  **Ausnahme Infraplan (2026-10-15):** Für den Infraplan-Import gibt es MCP-Tools für
-  den ganzen Ablauf nach dem Upload (Auslesen anstoßen, Status abfragen, zuordnen,
-  bestätigen, Kennzahlen eintragen). Langlaufend bleibt nur der Celery-Task, den das
-  Tool startet und dessen Status ein zweites Tool abfragt. Siehe
-  `feature-infraplan-import.md` → „MCP & Skill“.
+- **Importe dürfen MCP-Tools bekommen (2026-10-17, vorher ausgeschlossen).** Ein
+  Import bekommt Tools, wenn sein Ablauf in kurze Schritte zerfällt: Ein langlaufender
+  Celery-Job wird nur *gestartet* und sein Status von einem zweiten Tool abgefragt, nie
+  in einem Tool-Aufruf abgewartet. Mensch-im-Loop bleibt: Agenten schreiben Rohdaten und
+  Zuordnungen mit Begründung, abgeleitete Beobachtungen entstehen erst beim Bestätigen.
+  Jeder Import gated über sein eigenes `*.import`-Recht. Umgesetzt bzw. geplant:
+  **Fulda-Runde** (Agent liest das PDF selbst, kein Upload, siehe
+  `feature-fulda-import.md`) und **Infraplan** (Tools nach dem Upload, siehe
+  `feature-infraplan-import.md` → „MCP & Skill“). Skills für diese Abläufe liegen in
+  `.claude/skills/` und kommen vom Server (nächster Punkt).
 - **Skills kommen vom MCP (2026-10-17):** Skills für die Arbeit über den MCP werden
   nicht mehr von Hand nach claude.ai hochgeladen, sondern vom Server selbst
   ausgeliefert (`list_skills`, `get_skill`) — immer in der Fassung des deployten
@@ -94,8 +96,8 @@ konfigurierbaren Headern (Claude Code) funktionieren schon vorher.
 **Out of scope:**
 
 - OAuth / Authentik-Anbindung (eigenes Thema, siehe oben).
-- Import-Pipelines als MCP-Tools (VIB, Haushalt, Bauportal, Fulda, Medien) —
-  Ausnahme Infraplan, siehe oben.
+- MCP-Tools für die übrigen Importe (VIB, Haushalt, Bauportal, Medien) — erlaubt
+  (siehe oben), aber noch nicht gebaut.
 - Löschen von Projekten oder anderen Stammdaten über MCP (einzelne Geometrie-Features
   schon, siehe `edit_project_geometry`).
 - MCP-*Resources* und *Prompts* — die erste Ausbaustufe bietet nur *Tools*.
@@ -534,7 +536,7 @@ Code; ob claude.ai das Feld auswertet, ist nicht dokumentiert).
 - [x] `make test` baut Test- und Runtime-Image mit Kontext `skills`; `release.yml` und
       `compose.override.yaml` ebenso.
 - [ ] Nach dem nächsten Deploy liefert `list_skills` in claude.ai die markierten Skills
-      (sobald es welche gibt, z. B. `infraplan-import` mit #182).
+      (zuerst `fulda-runde`, später `infraplan-import` mit #182).
 
 ## Umsetzung
 

@@ -18,7 +18,7 @@ Ein Projekt erscheint, wenn es mindestens einen **konkreten Termin** hat:
 
 | Meilenstein | Quelle (Vorrang wie in der Prognose) |
 |---|---|
-| Phasenbeginn Vorplanung / Genehmigungsplanung / Bau / Inbetriebnahme | erwarteter manueller Eintrag > Fulda-Runde (wenn früher oder Lücke) > VIB-PFA-Termine (`baubeginn` frühester, `inbetriebnahme` spätester Abschnitt) |
+| Phasenbeginn Vorplanung / Genehmigungsplanung / Bau / Inbetriebnahme | erwarteter manueller Eintrag > sonst je Phase der glaubwürdigere × aktuellere Bericht: VIB-PFA-Termine (`baubeginn` frühester, `inbetriebnahme` spätester Abschnitt) oder Fulda-Prognose (`feature-fulda-import.md`) |
 | Planfeststellungsbeschluss (PFB) | redaktionelles PF-Datum > frühestes `datum_pfb` der PFA |
 | Parlamentarische Befassung | redaktionelles Datum der Befassung |
 
