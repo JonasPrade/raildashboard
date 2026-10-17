@@ -18,6 +18,7 @@ from celery.result import AsyncResult
 from fastapi import Depends, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
+from dashboard_backend.crud.projects.merge import resolve_redirect
 from dashboard_backend.crud.projects.projects import get_project_by_id
 from dashboard_backend.crud.vib import get_draft_by_task_id
 from dashboard_backend.database import get_db
@@ -39,6 +40,20 @@ UPLOAD_TOO_LARGE = f"Datei zu groß. Maximal {MAX_FILE_SIZE // (1024 * 1024)} MB
 
 def get_project_or_404(project_id: int, db: Session = Depends(get_db)) -> Project:
     project = get_project_by_id(db, project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail=PROJECT_NOT_FOUND)
+    return project
+
+
+def get_project_or_redirect_404(project_id: int, db: Session = Depends(get_db)) -> Project:
+    """Like get_project_or_404, but the id of a merged project resolves to the
+    project it was merged into (``project_redirect``). For read endpoints only:
+    a write must never silently land on another project."""
+    project = get_project_by_id(db, project_id)
+    if project is None:
+        target = resolve_redirect(db, project_id)
+        if target is not None:
+            project = get_project_by_id(db, target)
     if project is None:
         raise HTTPException(status_code=404, detail=PROJECT_NOT_FOUND)
     return project

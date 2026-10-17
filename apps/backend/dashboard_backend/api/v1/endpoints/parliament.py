@@ -1,11 +1,12 @@
 """Constituency and members-of-parliament endpoints.
 
-Mounted under ``/parliament``. **Reading is public** — like every other ``GET``
-in this API (``AuthRouter`` only gates non-GET methods). The assignment is public
-information about officeholders from a CC0 source; there is no reason in the
-permission model to put it behind ``editor``. Writing means *importing*, and that
-gets its own capability ``parliament.import``: not because of the data, but
-because a run triggers external requests and overwrites existing rows.
+Mounted under ``/parliament``. **Reading requires a login** (any role) — unlike
+most other ``GET``s in this API, the members of parliament are only shown to
+signed-in users, so every read route carries ``_require_login`` explicitly
+(``AuthRouter`` only gates non-GET methods on its own). Writing means
+*importing*, and that gets its own capability ``parliament.import``: not because
+of the data, but because a run triggers external requests and overwrites
+existing rows.
 """
 
 from __future__ import annotations
@@ -16,7 +17,7 @@ from fastapi import Depends, File, Form, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session, selectinload
 
 from dashboard_backend.api.deps import launch_with_staged_file, read_upload_within_limit
-from dashboard_backend.core.security import require_permission
+from dashboard_backend.core.security import require_auth, require_permission
 from dashboard_backend.crud import parliament as parliament_crud
 from dashboard_backend.database import get_db
 from dashboard_backend.models.parliament import (
@@ -49,6 +50,9 @@ from dashboard_backend.services.parliament_import import (
 
 router = AuthRouter()
 
+# Any signed-in user may read; anonymous visitors get 401.
+_require_login = Depends(require_auth())
+
 VALID_COMMITTEE_KEYS = {COMMITTEE_KEY_TRANSPORT, COMMITTEE_KEY_BUDGET}
 
 # Shown wherever the outlines are drawn.
@@ -61,7 +65,7 @@ GEOMETRY_SOURCE = "Die Bundeswahlleiterin, © GeoBasis-DE / BKG"
 DEFAULT_PERIOD_EXTERNAL_ID = 161
 
 
-@router.get("/status", response_model=ParliamentStatusSchema)
+@router.get("/status", response_model=ParliamentStatusSchema, dependencies=[_require_login])
 def read_status(db: Session = Depends(get_db)):
     """Abrufstand, key figures and how much of the portfolio is covered."""
     period = parliament_crud.current_period(db)
@@ -92,7 +96,7 @@ def _run_schema(run) -> ImportRunSchema | None:
     return ImportRunSchema.model_validate(run) if run else None
 
 
-@router.get("/politicians", response_model=list[PoliticianListItemSchema])
+@router.get("/politicians", response_model=list[PoliticianListItemSchema], dependencies=[_require_login])
 def read_politicians(
     query: str | None = Query(default=None, description="Namensteil"),
     committee: str | None = Query(default=None, description="verkehr | haushalt"),
@@ -134,7 +138,7 @@ def _politician_list_item(mandate: Mandate, counts: dict[int, int]) -> Politicia
     )
 
 
-@router.get("/politicians/{mandate_id}", response_model=PoliticianDetailSchema)
+@router.get("/politicians/{mandate_id}", response_model=PoliticianDetailSchema, dependencies=[_require_login])
 def read_politician(mandate_id: int, db: Session = Depends(get_db)):
     mandate = (
         db.query(Mandate)
@@ -159,7 +163,7 @@ def read_politician(mandate_id: int, db: Session = Depends(get_db)):
     return PoliticianDetailSchema(**base.model_dump(), projects=projects)
 
 
-@router.get("/constituencies", response_model=list[ConstituencyListItemSchema])
+@router.get("/constituencies", response_model=list[ConstituencyListItemSchema], dependencies=[_require_login])
 def read_constituencies(db: Session = Depends(get_db)):
     period = parliament_crud.current_period(db)
     q = db.query(Constituency)
@@ -189,7 +193,7 @@ def read_constituencies(db: Session = Depends(get_db)):
     return items
 
 
-@router.get("/constituencies/geojson")
+@router.get("/constituencies/geojson", dependencies=[_require_login])
 def read_constituencies_geojson(
     tolerance: float = Query(
         default=0.002,
@@ -253,7 +257,7 @@ def _is_postgres(db: Session) -> bool:
     return bool(bind is not None and bind.dialect.name == "postgresql")
 
 
-@router.get("/constituencies/{constituency_id}", response_model=ConstituencyDetailSchema)
+@router.get("/constituencies/{constituency_id}", response_model=ConstituencyDetailSchema, dependencies=[_require_login])
 def read_constituency(constituency_id: int, db: Session = Depends(get_db)):
     constituency = db.query(Constituency).filter(Constituency.id == constituency_id).one_or_none()
     if constituency is None:

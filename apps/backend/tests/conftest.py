@@ -25,6 +25,10 @@ os.environ.setdefault(
     "IMPORT_STAGING_DIR",
     os.path.join(tempfile.gettempdir(), "raildashboard-test-import-staging"),
 )
+os.environ.setdefault(
+    "INFRAPLAN_PDF_DIR",
+    os.path.join(tempfile.gettempdir(), "raildashboard-test-infraplan"),
+)
 
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))

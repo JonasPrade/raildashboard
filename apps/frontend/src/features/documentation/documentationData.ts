@@ -116,6 +116,45 @@ export const featureHighlights: FeatureHighlight[] = [
         ]
     },
     {
+        title: "GVFG-Import",
+        description:
+            "Unter Admin → GVFG-Import lesen Nutzer mit dem Recht gvfg.import das GVFG-Bundesprogramm " +
+            "(ÖPNV-Förderung nach § 6 GVFG) als PDF ein, prüfen die Projektzuordnung und übernehmen die Ausgabe.",
+        details: [
+            "Hauptteil und – wo getrennt geliefert – Anhang (nachrichtlicher Teil) werden derselben Ausgabe zugeordnet",
+            "Die Zahlen werden direkt aus dem PDF gelesen; Summenzeilen werden gegengeprüft und Abweichungen angezeigt",
+            "Vorschläge: Projekte der Vorausgabe, dann Projektnummer = GVFG-Schlüssel, dann Name",
+            "Fehlende Projekte lassen sich beim Übernehmen anlegen; zugeordnete Projekte kommen in die Gruppe GVFG (Land 08 zusätzlich GVFG BW)",
+            "Vorhaben der neuesten Ausgabe ohne Projekt erscheinen unter Admin → Offene Zuordnungen"
+        ]
+    },
+    {
+        title: "GVFG-Bundesprogramm (/finanzen/gvfg)",
+        description:
+            "Im Menü Finanzen → GVFG stehen alle Vorhaben einer Ausgabe des GVFG-Bundesprogramms, öffentlich sichtbar. " +
+            "Auf der Projektseite zeigt der Abschnitt GVFG die Förderung des Projekts.",
+        details: [
+            "Ausgabe wählbar; Filter nach Land, Fördertatbestand, kommunal/DB, Teil (finanzrelevant/nachrichtlich) und „ohne Projekt“",
+            "Kennzahlen und Summen je Land beziehen sich auf die ∑-Zeile jedes Vorhabens (Mio. €)",
+            "Projektseite: neueste Ausgabe mit ∑/A/B/C-Zeilen, Finanzhilfen je Jahr als Diagramm und Entwicklung über die Ausgaben",
+            "Elternprojekte verlinken die GVFG-Vorhaben ihrer Unterprojekte, ohne Summe"
+        ]
+    },
+    {
+        title: "Projekte zusammenführen (Dubletten)",
+        description:
+            "Doppelt angelegte Projekte lassen sich zu einem Projekt zusammenführen — per MCP-Tool merge_projects " +
+            "oder POST /api/v1/projects/merge. Das bleibende Projekt übernimmt alle Verknüpfungen der Dublette, " +
+            "die Dublette wird gelöscht.",
+        details: [
+            "Ohne apply nur eine Vorschau: Feldänderungen, umgehängte Verknüpfungen je Tabelle, Warnungen",
+            "Leere Felder werden aus der Dublette gefüllt, Eigenschafts-Flags verknüpft; die Geometrie kommt von einer Seite",
+            "Alte Links funktionieren weiter: /projects/<alte id> springt auf das bleibende Projekt",
+            "Die Historie der Dublette wandert mit, dazu ein Eintrag „MERGE“",
+            "Nur mit dem Recht project.merge (keiner Standardrolle zugeordnet, also Admins)"
+        ]
+    },
+    {
         title: "Projektgeometrie erstellen & bearbeiten",
         description:
             "Editors und Admins legen die Geometrie eines Projekts über den geteilten Geometrie-Editor an — " +
@@ -126,6 +165,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Einzelne Betriebsstellen als Punkte hinzufügen",
             "Fertige GeoJSON-Datei hochladen",
             "Linien und Punkte direkt auf der Karte zeichnen (terra-draw): Klicks setzen Stützpunkte, Doppelklick beendet eine Linie; im Bearbeiten-Modus Stützpunkte verschieben, einfügen und löschen",
+            "Bestehende Geometrie bearbeiten: gespeicherte Linien/Punkte verschieben, Zwischenpunkte einfügen und Stützpunkte löschen; Properties (z. B. Betriebsstellen-Name) bleiben erhalten",
             "Gezeichnete Geometrie wird mit der bestehenden gemischt oder ersetzt sie („Bestehende Geometrie löschen“)",
             "Zeichnen und „Einzelne Features auswählen & löschen“ schließen sich gegenseitig aus",
             "Nur für editor/admin sichtbar"
@@ -231,7 +271,7 @@ export const featureHighlights: FeatureHighlight[] = [
         ]
     },
     {
-        title: "FinVe-Übersicht (/finves)",
+        title: "FinVe-Übersicht (Finanzen → Bedarfsplan Schiene)",
         description:
             "Zeigt alle Finanzierungsvereinbarungen als ausklappbare Karten. " +
             "Für eingeloggte Nutzer (alle Rollen) zugänglich.",
@@ -329,7 +369,8 @@ export const featureHighlights: FeatureHighlight[] = [
         description:
             "Project geometries are intersected with the 299 Bundestag constituencies, and the members of parliament " +
             "responsible for those constituencies are attached to the result — the answer to \"what connects this " +
-            "member of parliament with this project?\". Reading is public; importing requires the parliament.import capability.",
+            "member of parliament with this project?\". Reading requires a login (any role) — anonymous visitors see neither the " +
+            "block, the /abgeordnete page nor the constituency layer; importing requires the parliament.import capability.",
         details: [
             "Project detail: block \"Wahlkreise und Abgeordnete\", constituencies in descending order of kilometres",
             "Direct mandates are shown separately from \"über Liste, hier angetreten\" (the candidacy, not a maintained Betreuungswahlkreis)",

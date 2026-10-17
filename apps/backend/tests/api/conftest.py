@@ -17,10 +17,22 @@ from dashboard_backend.models.change_tracking import ChangeLog, ChangeLogEntry
 from dashboard_backend.models.associations.project_to_constituency import (
     ProjectToConstituency,
 )
+from dashboard_backend.models.associations.text_to_project import TextToProject
 from dashboard_backend.models.associations.project_to_project_group import (
     ProjectToProjectGroup,
 )
+from dashboard_backend.models.associations.finve_to_project import FinveToProject
 from dashboard_backend.models.guides import GuideSectionOverride
+from dashboard_backend.models.haushalt.budget_titel_entry import BudgetTitelEntry
+from dashboard_backend.models.haushalt.haushalt_titel import HaushaltTitel
+from dashboard_backend.models.infraplan import InfraplanParseResult
+from dashboard_backend.models.gvfg import (
+    GvfgEntry,
+    GvfgEntryAmount,
+    GvfgParseResult,
+    GvfgProgram,
+    gvfg_entry_project,
+)
 from dashboard_backend.models.parliament import (
     Committee,
     CommitteeMembership,
@@ -30,10 +42,13 @@ from dashboard_backend.models.parliament import (
     ParliamentPeriod,
     Politician,
 )
+from dashboard_backend.models.projects.budget import Budget
 from dashboard_backend.models.projects.bvwp_project_data import BvwpProjectData
+from dashboard_backend.models.projects.finve import Finve
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.projects.progress_observation import ProgressObservation
 from dashboard_backend.models.projects.project_progress import ProjectProgress
+from dashboard_backend.models.projects.project_redirect import ProjectRedirect
 from dashboard_backend.models.projects.project_text import ProjectText
 from dashboard_backend.models.projects.project_text_type import ProjectTextType
 from dashboard_backend.models.roles import Role, RolePermission
@@ -99,6 +114,19 @@ TABLES = [
     ChangeLog.__table__,  # FK to project + users; written by the MCP update_project tool
     ChangeLogEntry.__table__,  # must follow ChangeLog (FK dependency)
     ProgressObservation.__table__,  # FKs to imported sources unenforced; MCP observation tools
+    TextToProject.__table__,  # must follow project + project_text; moved by the project merge
+    ProjectRedirect.__table__,  # must follow project + users; written by the project merge
+    InfraplanParseResult.__table__,  # must follow users; Infraplan import drafts
+    GvfgProgram.__table__,  # GVFG import (must precede its entries)
+    GvfgEntry.__table__,
+    GvfgEntryAmount.__table__,
+    gvfg_entry_project,
+    GvfgParseResult.__table__,
+    Finve.__table__,  # MCP FinVe search (list_finves / get_finve)
+    FinveToProject.__table__,  # must follow project + finve (FK dependency)
+    Budget.__table__,  # must follow finve (FK dependency)
+    HaushaltTitel.__table__,  # must precede BudgetTitelEntry (FK dependency)
+    BudgetTitelEntry.__table__,  # must follow budgets + haushalt_titel
 ]
 
 

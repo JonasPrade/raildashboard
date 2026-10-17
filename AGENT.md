@@ -13,6 +13,8 @@ This file applies to the entire repository. Read it before making any substantia
  
 ## Feature Development Workflow
 
+**Principles** that apply to every feature are listed in `docs/architecture.md` → „Principles (Grundsätze)“ (e.g. parent projects always aggregate over sub-projects; the more recent source wins). Before writing or changing a feature file, run the `widerspruchs-check` skill and resolve every conflict with the user — never decide a contradiction silently.
+
 Features are documented in two layers:
 
 - **`docs/roadmap.md`** — coarse overview: order, priority, high-level dependencies. No deep technical detail.

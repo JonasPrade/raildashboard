@@ -29,7 +29,7 @@ function FinveCard({ finve }: { finve: FinveWithBudgets }) {
         return (
             <Anchor
                 component={Link}
-                to={`/finves?q=${finve.id}`}
+                to={`/finanzen/bedarfsplan?q=${finve.id}`}
                 underline="never"
                 style={{ color: "inherit" }}
             >

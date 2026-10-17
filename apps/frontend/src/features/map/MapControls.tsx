@@ -21,7 +21,8 @@ type Props = {
     totalProjects: number;
     filteredCount: number;
     showConstituencies: boolean;
-    onShowConstituenciesChange: (value: boolean) => void;
+    /** Omitted for anonymous visitors — the constituency switch is hidden then. */
+    onShowConstituenciesChange?: (value: boolean) => void;
 };
 
 export default function MapControls({
@@ -76,12 +77,14 @@ export default function MapControls({
 
     const layerSwitches = (
         <>
-            <Switch
-                label="Wahlkreise"
-                checked={showConstituencies}
-                onChange={(e) => onShowConstituenciesChange(e.currentTarget.checked)}
-                size={isMobile ? "md" : "sm"}
-            />
+            {onShowConstituenciesChange && (
+                <Switch
+                    label="Wahlkreise"
+                    checked={showConstituencies}
+                    onChange={(e) => onShowConstituenciesChange(e.currentTarget.checked)}
+                    size={isMobile ? "md" : "sm"}
+                />
+            )}
             <Switch
                 label="Nur Hauptprojekte"
                 checked={onlySuperior}

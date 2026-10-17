@@ -184,6 +184,8 @@ The same editor (`GeometryEditor`) also runs in the project-creation wizard (ste
 
 **Hand-drawing flow (`terra-draw`):** `GeometryPreviewMap` owns the MapLibre instance and layers a `TerraDraw` instance (via `terra-draw-maplibre-gl-adapter`) on top. The editor exposes "Linie zeichnen" / "Punkt setzen" / "Bearbeiten" / "Fertig"; `drawMode` switches the terra-draw mode (`null` → neutral `static` so the selection-mode click handlers stay intact), and every snapshot change mirrors the drawn line/point features back into the editor's `drawnFeatures` state. On save they are appended to (or replace, with "delete existing") the FeatureCollection written via `useUpdateProjectGeometry()`. Mutually exclusive with the "select & delete features" mode.
 
+**In-place editing of saved geometry:** the switch "Bestehende Geometrie bearbeiten" explodes the saved FeatureCollection into terra-draw LineString/Point parts tagged with `srcIdx`/`srcPart` (`editExisting.ts`) and loads them via the `editableParts` prop; the map reports their current state through `onEditedPartsChange`. On save, `applyEditedParts()` writes only changed parts back into the original features (order and properties preserved) before any newly added geometry is appended.
+
 **Route calculator flow:**
 1. User picks start/via/end operational points in `RouteCalculatorForm`
 2. `useCalculateRoute()` → `POST /api/v1/routes/calculate` — returns a `RoutePreviewFeature` (not persisted)
@@ -224,8 +226,9 @@ parliament with this project?
 Shared presentation (mandate row, committee badges, "51 km" vs. "Lage im Wahlkreis") lives
 in `mandateDisplay.tsx`. Data via `useProjectConstituencies()`, `usePoliticians()`,
 `usePolitician()`, `useConstituency()`, `useConstituencyGeojson()` and
-`useParliamentStatus()` in `shared/api/queries.ts`. Everything here is public — reading
-needs no login. See `docs/features/feature-abgeordnete.md`.
+`useParliamentStatus()` in `shared/api/queries.ts`. Everything here needs a login: for
+anonymous visitors the nav entry, the project-detail block and the map's "Wahlkreise"
+switch are hidden, and `/abgeordnete` shows a hint instead of the list. See `docs/features/feature-abgeordnete.md`.
 
 ### Haushalt PDF import (`features/haushalt-import/`)
 

@@ -12,6 +12,12 @@ apps/
 
 The frontend communicates with the backend exclusively via the REST API. Types are generated automatically from the OpenAPI schema (`make gen-api`).
 
+### Principles (Grundsätze)
+
+- **Parent projects always aggregate.** Every quantitative value that belongs to projects (costs, funding, lengths, counts) is summed over the sub-projects (`superior_project_id`) for a parent that has no value of its own — for every project and every source (FinVe, GVFG, Infraplan, …). Values referenced by several rows (shared totals, cost references) are counted once. A feature must not opt out of this; if a sum would be misleading, show it with a note, but still show it. (Decided 2026-10-15.)
+- **The more recent source wins when two sources state the same fact.** Example: for a GVFG project, Lph, commissioning date and costs come from whichever is newer, the GVFG-Bundesprogramm edition or the Infraplan. Manual entries still override derived ones.
+- **Contradictions between plans are surfaced, not silently resolved.** Before a feature doc is written or changed, run the `widerspruchs-check` skill (`.claude/skills/widerspruchs-check/`) and let the user decide each conflict.
+
 ---
 
 ## Backend Structure
@@ -97,7 +103,7 @@ Both the status endpoint and task-launch endpoints require a logged-in user (any
 
 Project geometries are intersected with the 299 Bundestag constituencies, and the members of parliament responsible for those constituencies are attached to the result. The intersection is materialised in `project_to_constituency` (kilometres, share, overlap kind) and refreshed from the existing geojson cascade in `crud/projects/projects.py`, including the aggregation from subprojects — never on page load.
 
-The people come from the abgeordnetenwatch API v2 (CC0) via an idempotent Celery task; the constituency outlines (Die Bundeswahlleiterin, © GeoBasis-DE / BKG) are uploaded as GeoJSON on the admin page (Celery task `import_constituency_file`; `scripts/import_constituencies.py` is the server-side alternative). Both record an Abrufstand in `parliament_import_run`. Reading is public, importing needs the `parliament.import` capability. See `docs/features/feature-abgeordnete.md`.
+The people come from the abgeordnetenwatch API v2 (CC0) via an idempotent Celery task; the constituency outlines (Die Bundeswahlleiterin, © GeoBasis-DE / BKG) are uploaded as GeoJSON on the admin page (Celery task `import_constituency_file`; `scripts/import_constituencies.py` is the server-side alternative). Both record an Abrufstand in `parliament_import_run`. Reading requires a login (any role), importing needs the `parliament.import` capability. See `docs/features/feature-abgeordnete.md`.
 
 The intersection is PostGIS-only; on a non-PostgreSQL bind (the SQLite test suite) `compute_links_for_project` is a documented no-op so that saving a project keeps working.
 

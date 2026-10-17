@@ -12,7 +12,9 @@ from dashboard_backend.crud.admin_assignments import (
     list_unassigned_finves,
     list_unassigned_vib_entries,
 )
+from dashboard_backend.crud import gvfg as gvfg_crud
 from dashboard_backend.database import get_db
+from dashboard_backend.models.gvfg import GvfgEntry
 from dashboard_backend.models.users import User
 from dashboard_backend.routing.auth_router import AuthRouter
 from dashboard_backend.schemas.admin_assignments import (
@@ -20,6 +22,7 @@ from dashboard_backend.schemas.admin_assignments import (
     UnassignedFinveSchema,
     UnassignedVibEntrySchema,
 )
+from dashboard_backend.schemas.gvfg import GvfgEntrySchema
 router = AuthRouter()
 
 _require_editor = Depends(require_permission("assignment.manage"))
@@ -71,3 +74,30 @@ def assign_vib_entry(
         raise HTTPException(status_code=422, detail="project_ids must not be empty")
     assign_vib_entry_to_projects(db, entry_id, body.project_ids)
     db.commit()
+
+
+@router.get("/unassigned-gvfg-entries", response_model=list[GvfgEntrySchema])
+def get_unassigned_gvfg_entries(
+    db: Session = Depends(get_db),
+    _current_user: User = _require_editor,
+) -> list[GvfgEntry]:
+    """GVFG Vorhaben of the newest edition without a project."""
+    return gvfg_crud.unassigned_entries(db)
+
+
+@router.patch("/unassigned-gvfg-entries/{entry_id}/assign", response_model=None, status_code=204)
+def assign_gvfg_entry(
+    entry_id: int,
+    body: AssignProjectsInput,
+    db: Session = Depends(get_db),
+    current_user: User = _require_editor,
+) -> None:
+    entry = db.get(GvfgEntry, entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="GVFG entry not found")
+    if not body.project_ids:
+        raise HTTPException(status_code=422, detail="project_ids must not be empty")
+    try:
+        gvfg_crud.assign_entry(db, entry, body.project_ids, current_user)
+    except gvfg_crud.GvfgConfirmError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc

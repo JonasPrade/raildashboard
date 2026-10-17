@@ -177,6 +177,7 @@ Vollständig implementiert. Backend-Infrastruktur (GraphHopper HTTP client, Rout
 - [x] **Parent GeoJSON auto-merge** — When a sub-project's `geojson_representation` changes, automatically recompute all ancestor projects' geometry as a FeatureCollection of their children's features (arbitrary depth, synchronous, no migration needed). See: `docs/features/feature-parent-geojson-merge.md`
 - [x] **Geometrie-Modus für Überprojekte** — Ein Projekt mit Unterprojekten wählt über den Kippschalter „Geometrie automatisch aus Unterprojekten zusammensetzen" (`project.geojson_from_subprojects`, Default `true`), ob seine Kartengeometrie aus den Unterprojekten aggregiert oder selbst gepflegt wird. Im Selbst-Modus stoppt die Aufwärts-Kaskade an dem Projekt; das direkte Schreiben der Geometrie im Automatik-Modus lehnt die API mit HTTP 400 ab. See: `docs/features/feature-parent-geometry-mode.md`
 - [x] **Manuelle Geometrie zeichnen** — Linien und Punkte direkt auf der Karte zeichnen (Neubaustrecken, Tram/U-Bahn ohne routbaren Pfad). `GeometryPreviewMap` integriert `terra-draw` (+ `terra-draw-maplibre-gl-adapter`); der geteilte `GeometryEditor` bietet „Linie zeichnen / Punkt setzen / Bearbeiten / Fertig". Gezeichnetes wird gemischt oder ersetzt die bestehende Geometrie und über `useUpdateProjectGeometry` gespeichert. Reines Frontend, keine Backend-Änderung. See: `docs/features/feature-manual-geometry.md` (Issue #27)
+- [x] **Bestehende Geometrie bearbeiten** — Schalter „Bestehende Geometrie bearbeiten" lädt die gespeicherten Linien/Punkte in terra-draw: Stützpunkte verschieben, Zwischenpunkte einfügen, Stützpunkte löschen; nur geänderte Teile werden zurückgeschrieben, Properties bleiben erhalten. See: `docs/features/feature-manual-geometry.md` → „Erweiterung"
 
 Siehe: `docs/features/feature-routing.md`
 
@@ -206,6 +207,7 @@ Siehe: `docs/features/feature-routing.md`
   - Header-Badge zeigt Gesamtzahl offener Zuordnungen für editor/admin
 
 - [x] **Neues Projekt aus Zuordnungsseite anlegen** — "Neues Projekt anlegen"-Button auf `/admin/unassigned` öffnet den Wizard.
+  Zusätzlich hat jede Zeile (FinVe, VIB, GVFG) den Link „Projekt fehlt?“: legt das Projekt als Entwurf an und weist den Eintrag direkt zu — wie in den Import-Reviews.
 
 ### Neues Projekt anlegen *(Backend + Frontend)*
 
@@ -217,8 +219,18 @@ Siehe: `docs/features/feature-new-project-wizard.md`
 
 - [x] **API-Keys als Auth-Weg** — persönliche Bearer-Tokens neben Session-Cookie und HTTP Basic, mit Widerruf, Ablauf und optionaler Rechte-Einschränkung pro Key. Eigenständig nützlich, Voraussetzung für den MCP-Server.
 
-- [x] **MCP-Server** — Streamable-HTTP-Endpunkt `/mcp` im Backend, der Projekte, Finanzierung und Planungsstand als MCP-Tools für KI-Assistenten bereitstellt. Rechte kommen aus dem bestehenden Capability-Katalog; Importe bleiben außen vor. OAuth folgt erst mit dem Authentik-Umzug, die Key-Auth bleibt danach bestehen. Zugriff vorerst nur für Admins (`mcp.access`), Keys laufen nach 90 Tagen ab. Geometrie-Tools inkl. GraphHopper-Routing und Zeichnen aus Koordinaten ergänzt.
+- [x] **MCP-Server** — Streamable-HTTP-Endpunkt `/mcp` im Backend, der Projekte, Finanzierung und Planungsstand als MCP-Tools für KI-Assistenten bereitstellt. Rechte kommen aus dem bestehenden Capability-Katalog; Importe bleiben außen vor. OAuth folgt erst mit dem Authentik-Umzug, die Key-Auth bleibt danach bestehen. Zugriff vorerst nur für Admins (`mcp.access`), Keys laufen nach 90 Tagen ab. Geometrie-Tools inkl. GraphHopper-Routing und Zeichnen aus Koordinaten ergänzt. FinVe frei suchbar (`list_finves`, `get_finve`), auch ohne Projektzuordnung.
   Siehe: `docs/features/feature-mcp-server.md`
+
+- [x] **Projekte zusammenführen** — MCP-Tool `merge_projects` und `POST /projects/merge`: Dublette in das bleibende Projekt überführen (Verknüpfungen, Historie, Unterprojekte), alte id leitet um. Vorstufe zur GVFG-Datenpflege.
+  Siehe: `docs/features/feature-project-merge.md`
+
+### GVFG-Bundesprogramm *(Backend + Frontend)*
+
+- [x] **GVFG-Import (Etappe 1)** — Parser, Datenmodell, Import mit Review unter `/admin/gvfg-import`, Lese-API.
+- [x] **GVFG-Anzeige** — Menü „Finanzen“ mit „Bedarfsplan Schiene“ und „GVFG“, Übersicht `/finanzen/gvfg`, Abschnitt „GVFG“ auf der Projektseite (inkl. Teilprojekte), offene Zuordnungen im Admin.
+- [ ] **GVFG-Vergleich und MCP** — Reiter „Änderungen zur Vorausgabe“, MCP-Lese-Tools und Zuordnungs-Tool. Vorher Dubletten im GVFG-Bestand bereinigen.
+  Siehe: `docs/features/feature-gvfg-import.md`
 
 ### Sonstiges
 
@@ -239,6 +251,9 @@ Siehe: `docs/features/feature-new-project-wizard.md`
 - [ ] **VIB-Review: OCR-Bilder anzeigen** — Im Review und in `VibStructurePreviewPage` extrahierte Mistral-OCR-Bilder (Diagramme, Karten, Fortschrittsbalken) pro Vorhaben anzeigen. Backend-Infrastruktur bereits implementiert: `ocr_images_json` auf `VibDraftReport`, `GET /draft/{task_id}/images` (Metadaten) und `GET /draft/{task_id}/image/{id}` (Bytes). Offen: pro-Eintrag-Zuordnung der Bilder (page_index-Matching gegen entry block_start/end-Seiten) und Frontend-Komponente (Galerie oder Inline-Thumbnails in der Strukturvorschau).
 
 - [ ] **PDF-Import vereinheitlichen** — Die OCR-Stufe der VIB-Pipeline (PDF → Markdown, dann Zuordnung aufs Zielformat) als gemeinsamen Service für alle PDF-Quellen bereitstellen; Haushalt-Spaltenlayout per LLM auf das kanonische Schema mappen statt pro Jahrgang neue Heuristiken. Evaluation und empfohlene Reihenfolge: `docs/features/feature-pdf-import-unification.md`. Umgesetzt: Schritt 1 (`services/document_ocr.py` mit `OcrResult`), Schritt 2 (OCR-Persistenz-Mixin), Schritt 4 (OCR-Pfad des Haushalts parallel über `HAUSHALT_EXTRACTION=compare` inkl. Vergleichsskript) und Schritt 5 (Spaltenzuordnung). Offen: Schritt 3 (Medien-PDF-Upload) und Schritt 6 — die Umschaltung auf `ocr` setzt einen Vergleichslauf gegen die echte OCR-API voraus (`docs/manual-tests-backlog.md`).
+
+- [ ] **Infraplan-Import** — Jährlicher Import des Infraplans (BMV, Fünfjahresplan Schiene): Maßnahmentabellen aus Kapitel 2.3 (Bedarfsplan Teil A–D, GVFG, InvKG) mit Realisierungsstand, Befassung, geplanter Inbetriebnahme und Gesamtkostenprognose sowie alle Steuerungs- und Informationskennzahlen als Zeitreihe über die Jahrgänge. Zwei Wege mit gleichem Ergebnis: manuell im Frontend oder per MCP + Skill (`skills/infraplan-import/`). Neue Fortschrittsquelle `INFRAPLAN`, öffentliche Seite `/infraplan`. Stufen: Infraplan – Stufe 1 (Parser + Datenmodell), Stufe 2 (manueller Weg), Stufe 3 (Fortschritt + Kosten), Stufe 4 (Kennzahlen + Seite), Stufe 5 (MCP + Skill).
+  Siehe: `docs/features/feature-infraplan-import.md`
 
 - [ ] **Netzzustandsbericht** — PDF-Import, Extraktion relevanter Kennzahlen in die Datenbank
 

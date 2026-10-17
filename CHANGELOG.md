@@ -12,6 +12,68 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **MCP: free FinVe search.** `list_finves` searches all FinVes — including those not linked
+  to any project — by FinVe number, name, Bedarfsplan number or lfd. Nr., with filters for
+  budget year, Sammel-FinVe and project link; `get_finve` returns one FinVe with its budget
+  history and linked projects. Previously FinVes were only reachable through a project
+  (`list_project_finves`).
+- **Edit saved project geometry in place.** The geometry editor (wizard step 2 and
+  "Geometrie verwalten") gets a switch "Bestehende Geometrie bearbeiten": saved lines and points
+  are loaded into terra-draw, vertices can be moved, intermediate points inserted and vertices
+  deleted. Only changed parts are written back; feature order and properties are kept. Frontend
+  only (`features/routing/editExisting.ts`).
+- **Infraplan import, stage 1: parser + data model (#179).** `POST /api/v1/import/infraplan/parse`
+  (PDF + `year`) stores the PDF with a new draft and starts the Celery task `parse_infraplan_pdf`,
+  which reads the measure tables of chapter 2.3 (Bedarfsplan Teil A–D, GVFG Kat. A/C, InvKG)
+  deterministically with pdfplumber: words with font size, column edges from the table headers,
+  superscript footnotes split off, cost references resolved, commissioning normalised, running
+  numbers checked per section (`warnings_json`), KPI chart pages noted (`kpi_pages_json`). Also
+  `…/parse-result[/{id}]` (GET/DELETE), `…/reparse` and `…/page/{page}.png` (pymupdf). New
+  capability `infraplan.import` (group Finanzierung, editors). **Migration** `20261015002`
+  (additive): tables `infraplan_parse_result`, `infraplan_report`, `infraplan_entry`,
+  `infraplan_entry_project`, `infraplan_kpi`, `infraplan_kpi_value`, column
+  `progress_observation.infraplan_entry_id`; source type `INFRAPLAN`. **Deploy:** new setting
+  `INFRAPLAN_PDF_DIR` (default `/app/uploads/infraplan`, inside the existing `uploads` volume);
+  `/healthz` now also checks that it is writable. See `docs/features/feature-infraplan-import.md`.
+- **GVFG display (stage 3).** The main menu item "Haushalt" becomes **"Finanzen"** with the
+  sections "Bedarfsplan Schiene" (`/finanzen/bedarfsplan`, the former FinVe overview; `/finves`
+  redirects) and "GVFG" (`/finanzen/gvfg`: all Vorhaben of an edition with filters, key figures,
+  project links and sums per Land). The project page gets a "GVFG" section: newest edition with
+  ∑/A/B/C lines, a bar chart of the yearly aid and the development across editions; a parent
+  project links its subprojects' Vorhaben (`?with_subprojects=true`). GVFG Vorhaben of the newest
+  edition without a project appear under *Admin → Offene Zuordnungen*
+  (`GET /api/v1/admin/unassigned-gvfg-entries`, `PATCH …/{id}/assign`) and in the admin badge.
+- **GVFG-Bundesprogramm import (stage 1).** Editors upload a programme PDF (main part or
+  annex) under *Admin → GVFG-Import*; a Celery task reads it deterministically with pdfplumber
+  (fixed column vocabulary, numbers placed by header column positions, tolerances scaled to the
+  font size), checks the "Summe über <Land>" lines and every ∑ line against its A/B/C lines,
+  and suggests projects (previous edition's links, normalised key, key without suffix, name).
+  The review page shows the warnings, flags and suggestions; confirming writes the edition
+  (`gvfg_program`, `gvfg_entry`, `gvfg_entry_amount` with the yearly aid per printed column,
+  `gvfg_entry_project`) in one transaction, can create missing projects and adds the groups
+  "GVFG"/"GVFG BW". Public reads: `GET /api/v1/gvfg/programs`, `…/programs/{id}/entries`,
+  `…/projects/{id}/entries`. New capability `gvfg.import` (granted to editors).
+  **Migration** `20261015001` (additive). See `docs/features/feature-gvfg-import.md`.
+- **Merge duplicate projects (prerequisite for the GVFG import).** MCP tool `merge_projects`
+  and `POST /api/v1/projects/merge` merge a duplicate into the project that stays: its empty
+  fields are filled, property flags OR-ed, every link to the duplicate (groups, texts, FinVe/VIB/
+  Fulda/Bauportal/media links, todos, observations, changelog, subprojects, …) is moved — found
+  generically through the foreign keys, duplicates dropped — and the geometry comes from one side
+  (`geometry_from`). Preview by default, `apply=true` deletes the duplicate and records a `MERGE`
+  changelog entry. Its old id keeps working: `GET /api/v1/projects/{old id}` returns the project
+  it went into and the detail page replaces the URL. New capability `project.merge` (seeded for
+  no system role, i.e. admins only). **Migration** `20261014001` adds the table
+  `project_redirect` (additive). See `docs/features/feature-project-merge.md`.
+- **MCP: data maintenance across many projects (#175, stage A).** `list_data_gaps` lists
+  projects with missing or outdated data in one call — no geometry, geometry without a saved
+  route, no length, unknown planning state, no description, no project number, newest
+  observation older than N years — with the gaps per project and counts per gap.
+  `check_geometry` checks one project or a whole group: straight two-point chords instead of a
+  routed line, gaps between line parts, start/end far from the operational points named in the
+  project name, stored vs. computed length. `list_projects` gets the filters `is_known`,
+  `has_geometry`, `has_length`, `lifecycle_status`, `parl_befassung_relevant` and
+  `updated_since`, sorting (`order_by` name/id/length/last_change, `descending`) and reports
+  `is_known` per project. All read-only, no migration.
 - **Planning-phase filter on the map and list view (#9/#10).** The slim project-group list
   (`GET /api/v1/project_groups/`, `GET /api/v1/project_groups/{id}`) now carries `headline_phase`
   (manual override, else the cached computed phase; `null` without a progress row or when the phase
@@ -58,6 +120,11 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   and are revertible; projects aggregating their subprojects' geometry stay protected.
 
 ### Changed
+- **Members of parliament are only shown to signed-in users.** All read routes under
+  `/api/v1/parliament` and `GET /api/v1/projects/{id}/constituencies` now require a login
+  (any role) and answer 401 otherwise. The frontend hides the "Abgeordnete" nav entry, the
+  "Wahlkreise und Abgeordnete" block in the project detail and the map's "Wahlkreise" switch
+  for anonymous visitors; `/abgeordnete` shows a hint instead.
 - **Planning-state changes are written to the project change log** — from the UI and from
   MCP alike: flags, overrides, PF/parliament details, observations added or deleted and
   linked documents. They show up as "Planungsstand" entries in the project history

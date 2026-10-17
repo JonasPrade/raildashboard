@@ -80,6 +80,7 @@ def healthz(db: Session = Depends(get_db)):
     for name, directory in (
         ("upload_dir", settings.upload_dir),
         ("import_staging_dir", settings.import_staging_dir),
+        ("infraplan_pdf_dir", settings.infraplan_pdf_dir),
     ):
         if not _writable(directory):
             logger.error("healthz: %s %s is not writable (uid %s)", name, directory, os.getuid())

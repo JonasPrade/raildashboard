@@ -4,11 +4,12 @@
 
 The backend uses a PostgreSQL database with the PostGIS extension.
 
-Tables are grouped into four domains:
+Tables are grouped into five domains:
 
 - **RailwayInfrastructure** – based on the ERA RINF data model
 - **Projects** – planned or executed railway investments and related metadata
 - **Parliament** – Bundestag constituencies, mandates and their link to projects
+- **Infraplan** – the federal five-year rail infrastructure plan: measure tables and KPIs per year
 - **ChangeTracking** – audit log of data modifications
 
 ### RailwayInfrastructure
@@ -72,6 +73,25 @@ people from the abgeordnetenwatch API v2 (CC0).
 | CommitteeMembership | Role of a mandate in a committee, strongest role only |
 | project_to_constituency | Materialised intersection: kilometres, share and overlap kind (`line` / `point`) per project and constituency |
 | ParliamentImportRun | Abrufstand per import run (kind, status, counters), shown in the UI |
+
+### Infraplan
+
+The yearly Infraplan of the federal government (BMV), imported per year
+(Jahrgang). No year overwrites another, so costs, commissioning years and KPI
+targets form time series. See `docs/features/feature-infraplan-import.md`;
+migration `20261015002`.
+
+| Table | Description |
+|---|---|
+| infraplan_parse_result | Draft per upload: `year`, `status`, parsed rows (`result_json`), plausibility findings (`warnings_json`), KPI chart pages (`kpi_pages_json`), stored PDF (`pdf_path`, for re-parsing and page images), `confirmed_at` |
+| infraplan_report | A confirmed year (`year` unique, `published_on`); entries and KPI values cascade with it |
+| infraplan_entry | One row of a measure table: `section` (`BP_A`…`BP_D`, `GVFG_A`, `GVFG_C`, `INVKG`) + `lfd_nr` (unique per report), project numbers (`primary_number` indexed, recognition key across years), Realisierungsstand/Lph, commissioning (`ibn_raw`, `ibn_year`, `ibn_qualifier` `OFFEN`/`BIS`/`SPANNE`), cost (`cost_mio`, `cost_kind` `GWU`/`GESAMTKOSTEN`, or a reference `cost_ref_entry_id` → entry carrying the cost), Befassung (`parl_state`), footnotes |
+| infraplan_entry_project | Many-to-many: entry ↔ project, with `assignment_source` (`NUMBER`/`FUZZY`/`MANUAL`/`AGENT`) and `note` |
+| infraplan_kpi | KPI definition shared by all years: stable `key`, `kind` (`STEUERUNG`/`INFORMATION`), `category`, unit |
+| infraplan_kpi_value | One value as published in one year: `report_id` (source year), `year` (reference year), `value_kind` (`IST`/`ZIEL`), optional `series`, `status` (`UNGEPRUEFT`/`GEPRUEFT`); unique per (report, kpi, year, kind, series) |
+
+`progress_observation.infraplan_entry_id` (nullable, `SET NULL`) is the
+provenance of observations derived from an entry (source type `INFRAPLAN`).
 
 ### ChangeTracking
 

@@ -6,7 +6,7 @@ from fastapi import Depends, HTTPException
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from dashboard_backend.api.deps import get_project_or_404
+from dashboard_backend.api.deps import get_project_or_404, get_project_or_redirect_404
 from dashboard_backend.core.security import require_auth, require_permission
 from dashboard_backend.crud.admin_assignments import link_project_to_finves
 from dashboard_backend.crud.changelog import (
@@ -17,6 +17,7 @@ from dashboard_backend.crud.changelog import (
 from dashboard_backend.crud import parliament as parliament_crud
 from dashboard_backend.crud.finves import get_project_finves_with_budgets
 from dashboard_backend.crud.projects.bvwp import get_bvwp_data
+from dashboard_backend.crud.projects.merge import MergeError, merge_projects
 from dashboard_backend.crud.projects.projects import (
     ProjectHierarchyError,
     create_project,
@@ -50,6 +51,10 @@ from dashboard_backend.schemas.projects.project_schema import (
 from dashboard_backend.schemas.projects.bvwp_schema import BvwpProjectDataSchema
 from dashboard_backend.schemas.projects.link_finves_schema import LinkFinvesInput
 from dashboard_backend.schemas.projects.project_create_schema import ProjectCreate
+from dashboard_backend.schemas.projects.project_merge_schema import (
+    ProjectMergeRequest,
+    ProjectMergeResult,
+)
 from dashboard_backend.schemas.projects.project_update_schema import ProjectUpdate
 from dashboard_backend.schemas.vib import VibEntryForProjectSchema
 
@@ -167,9 +172,35 @@ def delete_project_endpoint(
     return None
 
 
+@router.post("/merge", response_model=ProjectMergeResult)
+def merge_projects_endpoint(
+    body: ProjectMergeRequest,
+    current_user: User = Depends(require_permission("project.merge")),
+    db: Session = Depends(get_db),
+):
+    """Merge a duplicate project into another one (feature-project-merge.md).
+    ``apply=false`` returns the plan only; ``apply=true`` deletes the merged
+    project and leaves a redirect from its id to the survivor."""
+    try:
+        return merge_projects(
+            db,
+            body.survivor_id,
+            body.merged_id,
+            geometry_from=body.geometry_from,
+            apply=body.apply,
+            user_id=current_user.id,
+            username=current_user.username,
+        )
+    except MergeError as exc:
+        # Raised while planning, before anything is written.
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @router.get("/{project_id}", response_model=ProjectSchema)
-def read_project(project: Project = Depends(get_project_or_404)):
-    """Retrieve a single project by ID."""
+def read_project(project: Project = Depends(get_project_or_redirect_404)):
+    """Retrieve a single project by ID. The id of a merged project resolves to
+    the project it was merged into — the response then carries the new id, and
+    the frontend replaces the URL."""
     return project
 
 
@@ -182,14 +213,19 @@ def read_subprojects(
     return get_subprojects(db, project.id)
 
 
-@router.get("/{project_id}/constituencies", response_model=ProjectConstituenciesSchema)
+@router.get(
+    "/{project_id}/constituencies",
+    response_model=ProjectConstituenciesSchema,
+    dependencies=[Depends(require_auth())],
+)
 def read_project_constituencies(
     project: Project = Depends(get_project_or_404),
     db: Session = Depends(get_db),
 ):
     """Constituencies this project touches, heaviest first, with their MPs.
 
-    Public, like the other project reads. A project without a geometry returns an
+    Requires a login (any role): members of parliament are only shown to
+    signed-in users, unlike the other project reads. A project without a geometry returns an
     empty list plus ``has_geometry = false`` — the UI says *why* there is nothing
     to show instead of rendering an empty block.
     """

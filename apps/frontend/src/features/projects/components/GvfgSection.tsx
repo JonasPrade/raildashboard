@@ -1,0 +1,256 @@
+import { useState } from "react";
+import { Anchor, Collapse, Group, Loader, Stack, Table, Text, Title } from "@mantine/core";
+import { BarChart } from "@mantine/charts";
+import "@mantine/charts/styles.css";
+import { Link } from "react-router-dom";
+import { ChronicleCard, ChronicleDataChip } from "../../../components/chronicle";
+import { type GvfgProjectEntry, useProjectGvfg } from "../../../shared/api/queries";
+import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
+import { CATEGORY_LABEL, KIND_LABEL, editionLabel, formatMio, num, sumLine } from "../../gvfg/gvfgFormat";
+
+// ---------------------------------------------------------------------------
+// GVFG-Bundesprogramm on the project page (docs/features/feature-gvfg-import.md).
+// The newest edition is shown in full; older editions only as a development
+// of the totals. A parent lists its subprojects' entries as links — no sums,
+// because a parent's own entry and its children's may overlap.
+// ---------------------------------------------------------------------------
+
+/** Entries grouped by key, newest edition first in each group. */
+function byKey(entries: GvfgProjectEntry[]): GvfgProjectEntry[][] {
+    const groups = new Map<string, GvfgProjectEntry[]>();
+    for (const e of entries) groups.set(e.key, [...(groups.get(e.key) ?? []), e]);
+    return [...groups.values()].map((g) => [...g].sort((a, b) => b.program.year_from - a.program.year_from));
+}
+
+function Fact({ label, value }: { label: string; value: string | number | null | undefined }) {
+    if (value === null || value === undefined || value === "") return null;
+    return (
+        <Stack gap={0}>
+            <Text size="xs" c="dimmed">{label}</Text>
+            <Text size="sm" fw={500}>{value}</Text>
+        </Stack>
+    );
+}
+
+function AmountTable({ entry }: { entry: GvfgProjectEntry }) {
+    const periods = entry.program.periods;
+    const informational = entry.part === "nachrichtlich";
+    return (
+        <ResponsiveTable minWidth={informational ? 360 : 720} striped verticalSpacing={4} fz="sm">
+            <Table.Thead>
+                <Table.Tr>
+                    <Table.Th>Kat.</Table.Th>
+                    <Table.Th ta="right">Gesamtkosten</Table.Th>
+                    <Table.Th ta="right">zwf. Kosten</Table.Th>
+                    <Table.Th ta="right">Finanzhilfen</Table.Th>
+                    {!informational && periods.map((p) => <Table.Th key={p.label} ta="right">{p.label}</Table.Th>)}
+                </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+                {entry.amounts.map((a, i) => (
+                    <Table.Tr key={`${a.category}-${i}`} fw={a.category === "SUM" ? 600 : undefined}>
+                        <Table.Td>
+                            {CATEGORY_LABEL[a.category] ?? a.category}
+                            {a.computed && (
+                                <Text span size="xs" c="dimmed" title="Im PDF ohne ∑-Zeile; aus den Kategorien berechnet">
+                                    {" "}(ber.)
+                                </Text>
+                            )}
+                        </Table.Td>
+                        <Table.Td ta="right">{formatMio(a.cost_total)}</Table.Td>
+                        <Table.Td ta="right">{formatMio(a.cost_eligible)}</Table.Td>
+                        <Table.Td ta="right">{formatMio(a.aid_total)}</Table.Td>
+                        {!informational &&
+                            periods.map((p) => (
+                                <Table.Td key={p.label} ta="right">
+                                    {a.periods[p.label] != null ? formatMio(a.periods[p.label]) : ""}
+                                </Table.Td>
+                            ))}
+                    </Table.Tr>
+                ))}
+            </Table.Tbody>
+        </ResponsiveTable>
+    );
+}
+
+function PeriodChart({ entry }: { entry: GvfgProjectEntry }) {
+    const line = sumLine(entry);
+    if (!line) return null;
+    // Paid and planned years in separate (stacked) series so they differ in colour.
+    const data = entry.program.periods
+        .map((p) => {
+            const aid = num(line.periods[p.label]) ?? 0;
+            return { period: p.label, paid: p.kind === "ausgezahlt" ? aid : 0, planned: p.kind === "ausgezahlt" ? 0 : aid };
+        })
+        .filter((d) => d.paid !== 0 || d.planned !== 0);
+    if (data.length === 0) return null;
+    return (
+        <BarChart
+            h={200}
+            data={data}
+            dataKey="period"
+            type="stacked"
+            series={[
+                { name: "paid", label: "ausgezahlt", color: "teal.6" },
+                { name: "planned", label: "geplant / Rest", color: "blue.6" },
+            ]}
+            valueFormatter={(v) => formatMio(v)}
+            withLegend
+            tickLine="y"
+        />
+    );
+}
+
+function EditionHistory({ editions }: { editions: GvfgProjectEntry[] }) {
+    if (editions.length < 2) return null;
+    return (
+        <ResponsiveTable minWidth={420} verticalSpacing={4} fz="sm">
+            <Table.Thead>
+                <Table.Tr>
+                    <Table.Th>Ausgabe</Table.Th>
+                    <Table.Th ta="right">Gesamtkosten</Table.Th>
+                    <Table.Th ta="right">Finanzhilfen</Table.Th>
+                    <Table.Th>Inbetriebnahme gepl.</Table.Th>
+                </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+                {editions.map((e) => (
+                    <Table.Tr key={e.id}>
+                        <Table.Td>
+                            {editionLabel(e.program)}
+                            {e.part === "nachrichtlich" ? " (nachr.)" : ""}
+                        </Table.Td>
+                        <Table.Td ta="right">{formatMio(sumLine(e)?.cost_total)}</Table.Td>
+                        <Table.Td ta="right">{formatMio(sumLine(e)?.aid_total)}</Table.Td>
+                        <Table.Td>{e.commissioning_planned ?? "–"}</Table.Td>
+                    </Table.Tr>
+                ))}
+            </Table.Tbody>
+        </ResponsiveTable>
+    );
+}
+
+function EntryCard({ editions }: { editions: GvfgProjectEntry[] }) {
+    const [open, setOpen] = useState(false);
+    const entry = editions[0];
+    const total = sumLine(entry);
+    return (
+        <ChronicleCard>
+            <Stack gap="sm">
+                <Group justify="space-between" align="flex-start" wrap="wrap">
+                    <Stack gap={4}>
+                        <Group gap="xs">
+                            <ChronicleDataChip>{entry.key}</ChronicleDataChip>
+                            <ChronicleDataChip>Ausgabe {editionLabel(entry.program)}</ChronicleDataChip>
+                            {entry.part === "nachrichtlich" && <ChronicleDataChip>nachrichtlich</ChronicleDataChip>}
+                        </Group>
+                        <Text size="sm" fw={500}>{entry.name ?? "–"}</Text>
+                        <Text size="xs" c="dimmed">
+                            {[entry.land, KIND_LABEL[entry.kind] ?? entry.kind, entry.city].filter(Boolean).join(" · ")}
+                        </Text>
+                    </Stack>
+                    <Group gap="xl">
+                        <Fact label="Gesamtkosten (Mio. €)" value={formatMio(total?.cost_total)} />
+                        <Fact label="Finanzhilfen (Mio. €)" value={formatMio(total?.aid_total)} />
+                        <Text
+                            size="xs"
+                            c="blue"
+                            style={{ cursor: "pointer", userSelect: "none" }}
+                            onClick={() => setOpen((o) => !o)}
+                        >
+                            {open ? "Ausblenden ▲" : "Details ▼"}
+                        </Text>
+                    </Group>
+                </Group>
+                <Group gap="xl" wrap="wrap">
+                    <Fact label="Fördertatbestand" value={entry.funding_type} />
+                    <Fact label="Fördersatz" value={entry.funding_rate != null ? `${entry.funding_rate} %` : null} />
+                    <Fact label="Lph" value={entry.lph} />
+                    <Fact label="Beginn Mittelabfluss" value={entry.start_year} />
+                    <Fact label="Baubeginn" value={entry.construction_start} />
+                    <Fact label="Inbetriebnahme gepl." value={entry.commissioning_planned} />
+                    <Fact label="Inbetriebnahme tats." value={entry.commissioning_actual} />
+                </Group>
+                <Collapse in={open}>
+                    <Stack gap="md" pt="xs">
+                        <AmountTable entry={entry} />
+                        {entry.part === "finanzrelevant" && <PeriodChart entry={entry} />}
+                        {editions.length > 1 && (
+                            <Stack gap={4}>
+                                <Text size="sm" fw={600}>Entwicklung über die Ausgaben</Text>
+                                <EditionHistory editions={editions} />
+                            </Stack>
+                        )}
+                    </Stack>
+                </Collapse>
+            </Stack>
+        </ChronicleCard>
+    );
+}
+
+function SubprojectEntries({ groups, projectId }: { groups: GvfgProjectEntry[][]; projectId: number }) {
+    return (
+        <Stack gap="xs">
+            <Text size="sm" fw={600}>GVFG-Förderung in Teilprojekten</Text>
+            <ResponsiveTable minWidth={560} striped verticalSpacing={4} fz="sm">
+                <Table.Thead>
+                    <Table.Tr>
+                        <Table.Th>Teilprojekt</Table.Th>
+                        <Table.Th>Schlüssel</Table.Th>
+                        <Table.Th>Ausgabe</Table.Th>
+                        <Table.Th ta="right">Finanzhilfen (Mio. €)</Table.Th>
+                    </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                    {groups.map(([entry]) => (
+                        <Table.Tr key={entry.id}>
+                            <Table.Td>
+                                <Stack gap={0}>
+                                    {entry.projects
+                                        .filter((p) => p.id !== projectId)
+                                        .map((p) => (
+                                            <Anchor key={p.id} component={Link} to={`/projects/${p.id}`} size="sm">
+                                                {p.name}
+                                            </Anchor>
+                                        ))}
+                                </Stack>
+                            </Table.Td>
+                            <Table.Td style={{ whiteSpace: "nowrap" }}>{entry.key}</Table.Td>
+                            <Table.Td>{editionLabel(entry.program)}</Table.Td>
+                            <Table.Td ta="right">{formatMio(sumLine(entry)?.aid_total)}</Table.Td>
+                        </Table.Tr>
+                    ))}
+                </Table.Tbody>
+            </ResponsiveTable>
+        </Stack>
+    );
+}
+
+export default function GvfgSection({ projectId }: { projectId: number }) {
+    const { data: entries, isLoading } = useProjectGvfg(projectId);
+
+    if (isLoading) return <Loader size="sm" />;
+    if (!entries || entries.length === 0) return null;
+
+    const own = byKey(entries.filter((e) => e.projects.some((p) => p.id === projectId)));
+    const children = byKey(entries.filter((e) => !e.projects.some((p) => p.id === projectId)));
+
+    return (
+        <ChronicleCard>
+            <Stack gap="md">
+                <Group justify="space-between" wrap="wrap">
+                    <Title order={4}>GVFG-Bundesprogramm</Title>
+                    <Anchor component={Link} to="/finanzen/gvfg" size="sm">Alle GVFG-Vorhaben →</Anchor>
+                </Group>
+                {own.map((editions) => (
+                    <EntryCard key={editions[0].key} editions={editions} />
+                ))}
+                {children.length > 0 && <SubprojectEntries groups={children} projectId={projectId} />}
+                <Text size="xs" c="dimmed">
+                    Beträge in Mio. €. {CATEGORY_LABEL.A}: endgültig, {CATEGORY_LABEL.B}: vorläufig,{" "}
+                    {CATEGORY_LABEL.C}: bedingt aufgenommen.
+                </Text>
+            </Stack>
+        </ChronicleCard>
+    );
+}

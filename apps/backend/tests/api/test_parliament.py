@@ -1,7 +1,7 @@
 """Tests for /api/v1/parliament/* and /api/v1/projects/{id}/constituencies.
 
-Reading is public on purpose — the assignment is public information about
-officeholders — while an import run is gated behind ``parliament.import``.
+Reading requires a login (any role) — members of parliament are only shown to
+signed-in users — while an import run is gated behind ``parliament.import``.
 """
 
 from __future__ import annotations
@@ -171,6 +171,14 @@ def parliament_data(db_session):
 
 
 @pytest.fixture()
+def reader(client, create_user):
+    """Signs the test client in as a plain viewer — enough to read."""
+    create_user("leser-in", "pw", UserRole.viewer)
+    client.headers.update(basic_auth_header("leser-in", "pw"))
+    return client
+
+
+@pytest.fixture()
 def project_override():
     app.dependency_overrides[api_deps.get_project_or_404] = lambda: FakeProject()
     yield
@@ -180,8 +188,8 @@ def project_override():
 # --- project → constituencies -----------------------------------------------
 
 
-def test_project_constituencies_are_public_and_sorted_by_kilometres(
-    client, parliament_data, project_override
+def test_project_constituencies_are_sorted_by_kilometres(
+    client, reader, parliament_data, project_override
 ):
     resp = client.get(f"/api/v1/projects/{PROJECT_ID}/constituencies")
     assert resp.status_code == 200
@@ -194,7 +202,7 @@ def test_project_constituencies_are_public_and_sorted_by_kilometres(
 
 
 def test_direct_and_list_mandates_are_reported_separately(
-    client, parliament_data, project_override
+    client, reader, parliament_data, project_override
 ):
     body = client.get(f"/api/v1/projects/{PROJECT_ID}/constituencies").json()
     offenbach = body["constituencies"][0]
@@ -206,7 +214,7 @@ def test_direct_and_list_mandates_are_reported_separately(
 
 
 def test_constituency_without_a_direct_mandate_says_so(
-    client, parliament_data, project_override
+    client, reader, parliament_data, project_override
 ):
     body = client.get(f"/api/v1/projects/{PROJECT_ID}/constituencies").json()
     flensburg = next(c for c in body["constituencies"] if c["number"] == 1)
@@ -216,7 +224,7 @@ def test_constituency_without_a_direct_mandate_says_so(
     assert flensburg["has_any_mandate"] is True
 
 
-def test_project_without_geometry_reports_why_it_is_empty(client, parliament_data):
+def test_project_without_geometry_reports_why_it_is_empty(client, reader, parliament_data):
     app.dependency_overrides[api_deps.get_project_or_404] = lambda: FakeProject(
         project_id=9999, geojson=None
     )
@@ -232,7 +240,7 @@ def test_project_without_geometry_reports_why_it_is_empty(client, parliament_dat
 # --- politicians ------------------------------------------------------------
 
 
-def test_politician_list_is_public(client, parliament_data):
+def test_politician_list_for_a_signed_in_user(client, reader, parliament_data):
     resp = client.get("/api/v1/parliament/politicians")
     assert resp.status_code == 200
     assert {row["name"] for row in resp.json()} == {
@@ -242,7 +250,7 @@ def test_politician_list_is_public(client, parliament_data):
     }
 
 
-def test_politician_search_is_umlaut_tolerant(client, parliament_data):
+def test_politician_search_is_umlaut_tolerant(client, reader, parliament_data):
     body = client.get("/api/v1/parliament/politicians", params={"query": "anne"}).json()
     assert [row["name"] for row in body] == ["Änne Beispiel"]
 
@@ -250,7 +258,7 @@ def test_politician_search_is_umlaut_tolerant(client, parliament_data):
     assert [row["name"] for row in body] == ["Tarek Al-Wazir"]
 
 
-def test_committee_filter_narrows_to_the_working_list(client, parliament_data):
+def test_committee_filter_narrows_to_the_working_list(client, reader, parliament_data):
     body = client.get("/api/v1/parliament/politicians", params={"committee": "verkehr"}).json()
     assert [row["name"] for row in body] == ["Tarek Al-Wazir"]
     assert body[0]["project_count"] == 1
@@ -260,17 +268,17 @@ def test_committee_filter_narrows_to_the_working_list(client, parliament_data):
     ).json() == []
 
 
-def test_unknown_committee_is_rejected(client, parliament_data):
+def test_unknown_committee_is_rejected(client, reader, parliament_data):
     resp = client.get("/api/v1/parliament/politicians", params={"committee": "sport"})
     assert resp.status_code == 400
 
 
-def test_fraction_filter(client, parliament_data):
+def test_fraction_filter(client, reader, parliament_data):
     body = client.get("/api/v1/parliament/politicians", params={"fraction": "SPD"}).json()
     assert {row["name"] for row in body} == {"Änne Beispiel", "Nord Licht"}
 
 
-def test_politician_detail_lists_the_projects_in_their_constituency(client, parliament_data):
+def test_politician_detail_lists_the_projects_in_their_constituency(client, reader, parliament_data):
     mandate_id = parliament_data["chair_mandate"].id
     body = client.get(f"/api/v1/parliament/politicians/{mandate_id}").json()
 
@@ -279,14 +287,14 @@ def test_politician_detail_lists_the_projects_in_their_constituency(client, parl
     assert body["projects"][0]["length_km"] == 51.0
 
 
-def test_politician_detail_404(client, parliament_data):
+def test_politician_detail_404(client, reader, parliament_data):
     assert client.get("/api/v1/parliament/politicians/999999").status_code == 404
 
 
 # --- constituencies ---------------------------------------------------------
 
 
-def test_constituency_list_counts_projects_and_mandates(client, parliament_data):
+def test_constituency_list_counts_projects_and_mandates(client, reader, parliament_data):
     body = client.get("/api/v1/parliament/constituencies").json()
     by_number = {row["number"]: row for row in body}
 
@@ -298,7 +306,7 @@ def test_constituency_list_counts_projects_and_mandates(client, parliament_data)
     assert by_number[42]["has_geometry"] is False
 
 
-def test_constituency_detail(client, parliament_data):
+def test_constituency_detail(client, reader, parliament_data):
     constituency_id = parliament_data["offenbach"].id
     body = client.get(f"/api/v1/parliament/constituencies/{constituency_id}").json()
 
@@ -307,7 +315,7 @@ def test_constituency_detail(client, parliament_data):
     assert body["has_any_mandate"] is True
 
 
-def test_constituency_without_anyone_running_there(client, parliament_data):
+def test_constituency_without_anyone_running_there(client, reader, parliament_data):
     constituency_id = parliament_data["empty"].id
     body = client.get(f"/api/v1/parliament/constituencies/{constituency_id}").json()
 
@@ -317,14 +325,14 @@ def test_constituency_without_anyone_running_there(client, parliament_data):
     assert body["has_any_mandate"] is False
 
 
-def test_constituency_detail_404(client, parliament_data):
+def test_constituency_detail_404(client, reader, parliament_data):
     assert client.get("/api/v1/parliament/constituencies/999999").status_code == 404
 
 
 # --- status & import --------------------------------------------------------
 
 
-def test_status_reports_period_counts_and_coverage(client, parliament_data):
+def test_status_reports_period_counts_and_coverage(client, reader, parliament_data):
     body = client.get("/api/v1/parliament/status").json()
 
     assert body["period"]["external_id"] == 161
@@ -339,12 +347,28 @@ def test_status_reports_period_counts_and_coverage(client, parliament_data):
     assert "GeoBasis-DE" in body["geometry_attribution"]
 
 
-def test_status_flags_an_old_import_as_stale(client, db_session, parliament_data):
+def test_status_flags_an_old_import_as_stale(client, reader, db_session, parliament_data):
     run = db_session.query(ParliamentImportRun).one()
     run.finished_at = datetime.utcnow() - timedelta(days=90)
     db_session.commit()
 
     assert client.get("/api/v1/parliament/status").json()["is_stale"] is True
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/v1/parliament/status",
+        "/api/v1/parliament/politicians",
+        "/api/v1/parliament/politicians/1",
+        "/api/v1/parliament/constituencies",
+        "/api/v1/parliament/constituencies/geojson",
+        "/api/v1/parliament/constituencies/1",
+        f"/api/v1/projects/{PROJECT_ID}/constituencies",
+    ],
+)
+def test_reading_requires_a_login(client, parliament_data, project_override, path):
+    assert client.get(path).status_code == 401
 
 
 def test_import_requires_authentication(client):

@@ -16,6 +16,8 @@ EDITOR_KEYS = {
     "project.delete",
     "haushalt.import",
     "vib.import",
+    "infraplan.import",
+    "gvfg.import",
     "finve.edit",
     "projecttext.edit",
     "assignment.manage",
@@ -32,6 +34,7 @@ ADMIN_ONLY_KEYS = {
     "role.manage",
     "settings.manage",
     "mcp.access",
+    "project.merge",
 }
 
 

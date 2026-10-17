@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../lib/auth";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
@@ -26,6 +26,7 @@ import {
     useDeleteProject,
     useProject,
     useProjectBvwp,
+    useProjectGvfg,
     useSubprojects,
     queryKeys,
 } from "../../shared/api/queries";
@@ -40,6 +41,7 @@ import ProjectHistorySection from "../changelog/ProjectHistorySection";
 import ProjectTextsSection from "./ProjectTextsSection";
 import { ProjectTableOfContents, type TocSection } from "./ProjectTableOfContents";
 import FinveSection from "./components/FinveSection";
+import GvfgSection from "./components/GvfgSection";
 import ProgressSection from "./components/progress/ProgressSection";
 import ProjectConstituencySection from "../abgeordnete/ProjectConstituencySection";
 import TasksSection from "../todos/TasksSection";
@@ -152,6 +154,7 @@ export default function ProjectDetail() {
     const textsRef = useRef<HTMLDivElement>(null);
     const justificationRef = useRef<HTMLDivElement>(null);
     const finveRef = useRef<HTMLDivElement>(null);
+    const gvfgRef = useRef<HTMLDivElement>(null);
     const bvwpRef = useRef<HTMLDivElement>(null);
     const vibRef = useRef<HTMLDivElement>(null);
     const superiorRef = useRef<HTMLDivElement>(null);
@@ -167,6 +170,7 @@ export default function ProjectDetail() {
     const isInvalidId = Number.isNaN(projectId);
 
     const { data, isLoading, isError, error } = useProject(projectId);
+    const { data: gvfgEntries } = useProjectGvfg(projectId);
     const { data: bvwpData } = useProjectBvwp(projectId);
 
     const mutation = useMutation({
@@ -197,6 +201,15 @@ export default function ProjectDetail() {
     const deleteMutation = useDeleteProject();
 
     const project = data;
+
+    // A merged project's old id resolves to the project it was merged into
+    // (project_redirect) — show the new id in the address bar.
+    useEffect(() => {
+        if (project && !isInvalidId && project.id !== projectId) {
+            const search = searchParams.toString();
+            navigate(`/projects/${project.id}${search ? `?${search}` : ""}`, { replace: true });
+        }
+    }, [project, projectId, isInvalidId, navigate, searchParams]);
 
     const mutationErrorMessage = mutation.isError
         ? mutation.error instanceof Error
@@ -386,7 +399,7 @@ export default function ProjectDetail() {
             id: "constituencies",
             label: "Wahlkreise und Abgeordnete",
             ref: constituenciesRef,
-            visible: true,
+            visible: user !== null,
         },
         { id: "texts", label: "Texte", ref: textsRef, visible: true },
         {
@@ -400,6 +413,12 @@ export default function ProjectDetail() {
             label: "FinVe",
             ref: finveRef,
             visible: true,
+        },
+        {
+            id: "gvfg",
+            label: "GVFG",
+            ref: gvfgRef,
+            visible: (gvfgEntries?.length ?? 0) > 0,
         },
         {
             id: "bvwp",
@@ -661,9 +680,11 @@ export default function ProjectDetail() {
                 </div>
 
                 {/* Wahlkreise und Abgeordnete */}
-                <div ref={constituenciesRef}>
-                    <ProjectConstituencySection projectId={projectId} />
-                </div>
+                {user !== null && (
+                    <div ref={constituenciesRef}>
+                        <ProjectConstituencySection projectId={projectId} />
+                    </div>
+                )}
 
                 {/* Texte */}
                 <div ref={textsRef}>
@@ -685,6 +706,11 @@ export default function ProjectDetail() {
                 {/* FinVe */}
                 <div ref={finveRef}>
                     <FinveSection projectId={projectId} />
+                </div>
+
+                {/* GVFG-Bundesprogramm */}
+                <div ref={gvfgRef}>
+                    <GvfgSection projectId={projectId} />
                 </div>
 
                 {/* BVWP-Bewertung */}

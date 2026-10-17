@@ -63,6 +63,7 @@ Punkte ohne Versionszuordnung bekommen **keinen** Milestone und liegen in
 | `area:routing` | GraphHopper-Routing, Geometrie-Management |
 | `area:haushalt-import` | Haushaltsberichte-Import, FinVe-Matching |
 | `area:vib-import` | VIB-Import, OCR, AI-Extraktion |
+| `area:infraplan-import` | Infraplan-Import (BMV-Fünfjahresplan Schiene) |
 | `area:finve` | FinVe-/Budget-Übersicht und -Logik |
 | `area:progress` | ProjectProgress (Fortschrittsanzeige) |
 | `area:auth` | Benutzerverwaltung, Rollen, Sessions |
