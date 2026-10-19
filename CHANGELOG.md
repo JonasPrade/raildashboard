@@ -12,6 +12,13 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **MCP: GVFG-Bundesprogramm.** New read tools `list_gvfg_programs` (editions with year
+  columns and counts), `list_gvfg_entries` (Vorhaben of an edition, search by key in any
+  spelling or by name, filters Land, kind, part, Fördertatbestand, with/without project),
+  `get_gvfg_entry` (all printed lines plus the key's history across editions) and
+  `list_project_gvfg` (a project's GVFG funding, optionally with subprojects). The write tool
+  `assign_gvfg_entry` (needs `assignment.manage`) replaces a Vorhaben's projects, optionally
+  in every edition, and adds the groups "GVFG"/"GVFG BW" like the import. No migration.
 - **MCP: skills come from the server.** `list_skills` and `get_skill` hand out the skills in
   `.claude/skills/` marked with `metadata: mcp: true`, so claude.ai and Claude Code always
   get the guide that matches the deployed tools — no more manual skill uploads. Only the thin

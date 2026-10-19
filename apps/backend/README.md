@@ -127,7 +127,9 @@ Streamable HTTP, stateless, JSON responses, disabled with `MCP_ENABLED=false`. O
 keys holding `mcp.access` get in (admin-only for now); tools call the CRUD layer directly
 and check the key's capabilities before writing. Tools: `list_project_groups`, `list_projects`,
 `get_project`, `get_project_progress`, `list_project_finves`, `list_finves`, `get_finve`
-(free FinVe search by number, name or Bedarfsplan number), `get_project_texts`,
+(free FinVe search by number, name or Bedarfsplan number), `list_gvfg_programs`,
+`list_gvfg_entries`, `get_gvfg_entry` (with the key's history across editions),
+`list_project_gvfg` (GVFG-Bundesprogramm), `get_project_texts`,
 `list_text_types`, `list_todos`, `search_operational_points`, `get_project_geometry`,
 `list_data_gaps`, `check_geometry` (data maintenance across many projects), `list_skills`,
 `get_skill` (skills from `.claude/skills` marked `metadata: mcp: true`; the image carries
@@ -136,7 +138,9 @@ and `create_project`, `compute_project_length`, `update_project`, `set_project_g
 `add_progress_observation`,
 `delete_progress_observation`, `set_phase_override`, `upsert_project_text`, `create_todo`,
 `update_todo`, `route_project_geometry` (GraphHopper route, preview or apply),
-`edit_project_geometry` (draw lines/points, add operational points, delete features) (write),
+`edit_project_geometry` (draw lines/points, add operational points, delete features),
+`assign_gvfg_entry` (needs `assignment.manage`: replace a GVFG Vorhaben's projects, optionally
+in every edition) (write),
 and `merge_projects` (destructive, needs `project.merge`: merge a duplicate into another
 project, preview by default, `apply=true` deletes the duplicate and leaves a `project_redirect`;
 same logic as `POST /api/v1/projects/merge`, see `docs/features/feature-project-merge.md`).

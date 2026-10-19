@@ -216,6 +216,11 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `list_project_finves` | Finanzierungsvereinbarungen und Budgets eines Projekts | — |
 | `list_finves` | FinVe frei suchen — auch ohne Projektzuordnung: FinVe-Nummer, Name, Bedarfsplannummer, lfd. Nr.; Filter Haushaltsjahr, Sammel-FinVe, mit/ohne Projekt | — |
 | `get_finve` | eine FinVe per Nummer mit Budgethistorie und verknüpften Projekten | — |
+| `list_gvfg_programs` | GVFG-Ausgaben mit Jahresspalten, Zahl der Vorhaben und der Vorhaben ohne Projekt | — |
+| `list_gvfg_entries` | Vorhaben einer Ausgabe (Standard: neueste) suchen: Schlüssel in jeder Schreibweise, Name, Stadt; Filter Land, kommunal/DB, Teil, Fördertatbestand, mit/ohne Projekt | — |
+| `get_gvfg_entry` | ein Vorhaben mit ∑/A/B/C-Zeilen und Verlauf desselben Schlüssels über alle Ausgaben | — |
+| `list_project_gvfg` | GVFG-Förderung eines Projekts über alle Ausgaben, optional mit direkten Teilprojekten | — |
+| `assign_gvfg_entry` | Projekte eines Vorhabens setzen (ersetzt die bisherigen), optional für alle Ausgaben; ergänzt die Gruppen „GVFG“/„GVFG BW“ | `assignment.manage` |
 | `get_project_texts` | Projekttexte nach Typ | — |
 | `list_todos` | Aufgaben, gefiltert | — |
 | `create_project` | Projekt/Unterprojekt anlegen (final, ohne Geometrie) | `project.create` |

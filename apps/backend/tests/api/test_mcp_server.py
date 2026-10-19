@@ -176,6 +176,11 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
         "update_fulda_entry",
         "delete_fulda_entry",
         "confirm_fulda_document",
+        "list_gvfg_programs",
+        "list_gvfg_entries",
+        "get_gvfg_entry",
+        "list_project_gvfg",
+        "assign_gvfg_entry",
         "list_skills",
         "get_skill",
     }

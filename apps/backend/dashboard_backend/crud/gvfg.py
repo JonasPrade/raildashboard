@@ -448,3 +448,37 @@ def assign_entry(db: Session, entry: GvfgEntry, project_ids: list[int], user: An
             entry.projects.append(project)
         _ensure_groups(db, project, entry.key, groups, user)
     db.commit()
+
+
+def entries_with_key(db: Session, key: str) -> list[GvfgEntry]:
+    """The entries of one key across all editions, newest first."""
+    return (
+        db.query(GvfgEntry)
+        .join(GvfgProgram, GvfgProgram.id == GvfgEntry.program_id)
+        .filter(GvfgEntry.key == key)
+        .options(
+            selectinload(GvfgEntry.amounts),
+            selectinload(GvfgEntry.program),
+            selectinload(GvfgEntry.projects),
+        )
+        .order_by(GvfgProgram.year_from.desc())
+        .all()
+    )
+
+
+def set_entry_projects(
+    db: Session, entries: list[GvfgEntry], project_ids: list[int], user: Any
+) -> None:
+    """Replace the projects of the entries (MCP correction of wrong links).
+    New projects get the GVFG group(s); groups are never removed, even from a
+    project that loses its link. An empty list removes every link."""
+    projects = db.query(Project).filter(Project.id.in_(project_ids)).all() if project_ids else []
+    missing = set(project_ids) - {p.id for p in projects}
+    if missing:
+        raise GvfgConfirmError(f"Unbekannte Projekte: {sorted(missing)}")
+    groups = _groups(db)
+    for entry in entries:
+        entry.projects = list(projects)
+        for project in projects:
+            _ensure_groups(db, project, entry.key, groups, user)
+    db.commit()
