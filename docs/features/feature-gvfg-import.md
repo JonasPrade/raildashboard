@@ -1,9 +1,10 @@
 # Feature: GVFG-Bundesprogramm (Import, Projektseite, Finanzen-Übersicht)
 
-**Status: Etappen 2 und 3 umgesetzt (2026-10-15)** — Datenmodell, Parser, Import mit
-Review, Lese-API, Finanzen-Menü, GVFG-Übersicht, Projektseite und offene Zuordnungen
-stehen (siehe [Umsetzungsstand](#umsetzungsstand-2026-10-15)). Ausgabenvergleich und
-MCP-Tools (Etappe 4) folgen. — Entscheidungen mit dem Nutzer abgestimmt
+**Status: Etappen 2 und 3 umgesetzt (2026-10-15), MCP-Tools aus Etappe 4 umgesetzt
+(2026-10-19)** — Datenmodell, Parser, Import mit Review, Lese-API, Finanzen-Menü,
+GVFG-Übersicht, Projektseite, offene Zuordnungen und MCP-Tools stehen (siehe
+[Umsetzungsstand](#umsetzungsstand-2026-10-15) und [MCP](#mcp)). Der Ausgabenvergleich
+(Reiter „Änderungen zur Vorausgabe“) folgt. — Entscheidungen mit dem Nutzer abgestimmt
 (Grilling-Runde 2026-10-13/14). Vorstufe:
 [`feature-project-merge.md`](feature-project-merge.md) (Dubletten bereinigen).
 
@@ -171,8 +172,21 @@ der **neuesten Ausgabe** zählen in der Admin-Übersicht „Nicht zugeordnet“ 
 
 ## MCP
 
-Lese-Tools (z. B. `list_project_gvfg`, `list_gvfg_entries`) und ein Tool zum
-Zuordnen von Vorhaben zu Projekten. Der Import selbst bleibt außerhalb des MCP.
+Lese-Tools und ein Tool zum Zuordnen von Vorhaben zu Projekten
+(`mcp/tools/gvfg.py`, umgesetzt 2026-10-19). Der Import selbst bleibt außerhalb des MCP.
+Beträge in Mio. €.
+
+| Tool | Wirkung | Recht |
+|---|---|---|
+| `list_gvfg_programs` | Ausgaben (neueste zuerst) mit Jahresspalten, Zahl der Vorhaben und der Vorhaben ohne Projekt | — |
+| `list_gvfg_entries` | Vorhaben einer Ausgabe (Standard: neueste), kompakt mit ∑-Zeile, Kategorien mit Finanzhilfe, geplanten Finanzhilfen in den Jahren der Ausgabe und Projekten. Suche: Schlüssel in jeder Schreibweise (auch ohne Suffix) oder Text in Name/Stadt; Filter Land, kommunal/DB, Teil, Fördertatbestand, mit/ohne Projekt | — |
+| `get_gvfg_entry` | ein Vorhaben mit allen gedruckten Zeilen, PDF-Seite und `history` (derselbe Schlüssel in allen Ausgaben) | — |
+| `list_project_gvfg` | Förderung eines Projekts über alle Ausgaben, `with_subprojects` ergänzt die direkten Teilprojekte | — |
+| `assign_gvfg_entry` | setzt die Projekte eines Vorhabens (ersetzt die bisherigen, leere Liste löscht), `all_editions` für denselben Schlüssel in allen Ausgaben. Neue Projekte bekommen „GVFG“ (Land 08 auch „GVFG BW“); Gruppen werden nie entfernt | `assignment.manage` |
+
+`assign_gvfg_entry` ersetzt statt zu ergänzen (anders als die REST-Zuordnung unter
+„Offene Zuordnungen“), weil es vor allem falsche Zuordnungen korrigiert — etwa wenn
+nach dem Zusammenführen von Dubletten ein Vorhaben noch auf zwei Projekte zeigt.
 
 ## Etappen
 
@@ -185,6 +199,6 @@ Zuordnen von Vorhaben zu Projekten. Der Import selbst bleibt außerhalb des MCP.
 2. Datenmodell + Import mit Review — umgesetzt.
 3. Anzeige (Finanzen-Menü, GVFG-Übersicht, Projektseite) — umgesetzt; Reiter
    „Änderungen zur Vorausgabe“ kommt mit Etappe 4.
-4. Ausgabenvergleich + MCP-Tools.
+4. Ausgabenvergleich + MCP-Tools — MCP-Tools umgesetzt (2026-10-19), Ausgabenvergleich offen.
 
 Etappe 1 läuft parallel zu 2/3, muss aber vor dem ersten echten Import abgeschlossen sein.
