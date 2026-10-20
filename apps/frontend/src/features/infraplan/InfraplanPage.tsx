@@ -213,17 +213,32 @@ function KpiFlowView({ kpi }: { kpi: InfraplanPublicKpi }) {
     );
 }
 
+/** Short explanation of a KPI (admin "Beschreibung") behind an info icon next to its name. */
+function KpiInfo({ description }: { description: string }) {
+    return (
+        <Tooltip label={description} multiline w={280} withArrow position="top" events={{ hover: true, focus: true, touch: true }}>
+            <ActionIcon variant="subtle" color="gray" size="sm" aria-label="Erklärung der Kennzahl">
+                <IconInfoCircle size={16} />
+            </ActionIcon>
+        </Tooltip>
+    );
+}
+
 function KpiCard({ kpi, companion }: { kpi: InfraplanPublicKpi; companion?: KpiCompanion }) {
     const overview = useMemo(() => kpiOverview(kpi), [kpi]);
     const [detailOpen, setDetailOpen] = useState(false);
     const hasDetails = overview.layout === "chart" && overview.detailSeries.length > 0;
+    // The flow lists show a single year; it belongs in the heading, not just in the footnote.
+    const flowYear = overview.layout === "flow" ? kpiFlow(kpi)?.year : undefined;
     return (
         <ChronicleCard>
             <Stack gap="xs">
                 <Group justify="space-between" align="flex-start" wrap="nowrap" gap="sm">
                     <Stack gap={0}>
-                        <Text fw={600} size="sm">{kpi.name}</Text>
-                        {kpi.description && <Text size="xs" c="dimmed">{kpi.description}</Text>}
+                        <Group gap={4} wrap="nowrap" align="center">
+                            <Text fw={600} size="sm">{flowYear ? `${kpi.name} ${flowYear}` : kpi.name}</Text>
+                            {kpi.description && <KpiInfo description={kpi.description} />}
+                        </Group>
                         {(overview.note || (kpi.unit && !axisUnit(kpi.unit))) && (
                             <Text size="xs" c="dimmed">
                                 {[overview.note, kpi.unit && !axisUnit(kpi.unit) ? `in ${kpi.unit}` : null]

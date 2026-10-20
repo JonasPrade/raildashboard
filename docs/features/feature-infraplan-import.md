@@ -353,15 +353,25 @@ Teilmengen), zeigt die Übersicht diese Teilreihe und die Details die übrigen
 Aussage in anderer Einheit (ETCS-Strecken-km und Ausrüstungsgrad in %), steht die
 Begleitkennzahl als zweiter Balken daneben auf einer eigenen rechten Skala, in der
 Übersicht wie in jedem Detaildiagramm; eine eigene Karte bekommt sie nicht
-(`companion_key`, Bezeichnung `companion_label`; ETCS mit Ausrüstungsgrad,
-Elektrifizierung mit Anteil am Gesamtnetz). Sonderfälle legt `chart_layout` fest: Barrierefreie Bahnsteige
+(`companion_key`, Bezeichnung `companion_label`; ETCS mit Ausrüstungsgrad). Der
+Elektrifizierungsgrad ist dagegen bewusst **zwei Karten** nebeneinander: die je Jahr neu
+elektrifizierten Strecken-km (Jahreswert) und der Anteil am Gesamtnetz (kumulierter
+Bestand) — ein gemeinsames Diagramm würde eine Jahresentwicklung mit einer aufsummierten
+verwechseln (Migration `20261021002` löst die Begleitkennzahl auf bestehenden
+Datenbanken). Sonderfälle legt `chart_layout` fest: Barrierefreie Bahnsteige
 (überlappende Anteile je Merkmal) als kleine Einzeldiagramme in der Karte,
 Planfeststellungsanträge (Bestand neben Zu- und Abgängen) als Balken nebeneinander,
 Mittelherkunft und -einsatz (ein Jahr, Herkunft/Einsatz je `series`-Präfix) als zwei
 Ranglisten mit Anteilsbalken statt Zeitreihe. Werte nahe 100 % (Stellwerksbesetzungsquote,
 `zoomed_axis`) bekommen eine Achse, die knapp unter dem kleinsten Wert beginnt, mit
 Hinweis unter dem Diagramm. Kurze Einheiten (km, %) stehen an der Achse, längere
-(„Mio. Trkm“) unter dem Titel; der Tooltip nennt die Einheit je Reihe. Nur Werte mit Status
+(„Mio. Trkm“) unter dem Titel; der Tooltip nennt die Einheit je Reihe. Die Karte der
+Mittelherkunft trägt das gezeigte Jahr im Titel („Mittelherkunft und Mitteleinsatz 2025“).
+Die `description` einer Kennzahl (Admin „Beschreibung“) erscheint als Tooltip hinter einem
+Info-Symbol neben dem Namen — für Kennzahlen, deren Name allein nicht sagt, was gemessen
+wird (Kapazitätsauslastung: Anteil der gefahrenen Trassenkilometer in überausgelasteten
+Netzabschnitten, Infraplan 2026 Anhang I; der Seed und Migration `20261021002` tragen
+diese Erklärung ein). Nur Werte mit Status
 `GEPRUEFT`.
 
 Aufbau der Seite: Kopf mit Titel, Info-Symbol (Tooltip mit der Erklärung, was der Infraplan

@@ -11,6 +11,19 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 
 ## [Unreleased]
 
+### Changed
+- **Elektrifizierungsgrad as two charts on `/infraplan`.** The share of the network (%)
+  no longer sits inside the km chart on a right axis but gets its own card right next to
+  it: the km are an annual figure, the share a cumulative stock, and one chart for both
+  misled. Migration `20261021002` (data only) clears the companion link on existing
+  databases, orders the share after the km KPI and adds a description to both where none
+  is set; the seed matches.
+- **KPI explanations as tooltips on `/infraplan`.** A KPI's description (Admin → Infraplan →
+  Allgemeines, „Beschreibung“) now shows behind an info icon next to the name instead of
+  as a subtitle. The Kapazitätsauslastung gets its definition from the Infraplan 2026
+  (share of train-path km run on overloaded sections, > 125 % load) in the seed and in
+  migration `20261021002`. The Mittelherkunft card names the shown year in its title.
+
 ### Added
 - **Infraplan KPI settings in the admin area.** Admin → Infraplan gets the tabs „Import“
   and „Allgemeines“; the latter lists every KPI and edits name, unit, category,
@@ -19,8 +32,8 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   `companion_key`/`companion_label`, `zoomed_axis`; migration `20261021001`, expand only,
   sets the rules of the Infraplan 2026 on existing rows). `/infraplan` reads them instead of
   frontend constants: KMM as a sum with per-category details, ETCS on its Gesamtnetz with
-  the equipment rate as a second bar on a right axis (likewise Elektrifizierung with its
-  share of the network), small multiples for barrierefreie Bahnsteige, grouped bars for
+  the equipment rate as a second bar on a right axis, small multiples for barrierefreie
+  Bahnsteige, grouped bars for
   Planfeststellungsanträge, Herkunft/Einsatz lists for Mittelherkunft, a zoomed axis for the
   Stellwerksbesetzungsquote, stack totals in the tooltip. Units of the
   Informationskennzahlen are seeded from the Infraplan 2026.
