@@ -60,7 +60,7 @@ export default function GroupFilterDrawer({ opened, onClose, groups = [], loadin
             position="right"
             size={isMobile ? "100%" : "sm"}
         >
-            <Stack gap="xs">
+            <Stack gap="xs" p={2}>
                 {error && (
                     <Alert color="red" variant="light" title="Projektgruppen konnten nicht geladen werden">
                         {error}
