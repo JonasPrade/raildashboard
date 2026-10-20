@@ -185,6 +185,10 @@ export type KpiChartSeries = {
     color: string;
     type: "bar" | "line";
     strokeDasharray?: string;
+    /** "right" for the companion KPI on its own scale. */
+    yAxisId?: "left" | "right";
+    /** Unit shown in the tooltip, e.g. "km". */
+    unit?: string;
 };
 
 export type KpiChart = {
@@ -199,6 +203,22 @@ export type KpiChart = {
 // for actual values, warm tones for targets.
 const IST_COLORS = ["blue.6", "teal.6", "indigo.5", "cyan.6", "violet.5", "green.6"];
 const ZIEL_COLORS = ["orange.6", "red.6", "grape.6", "yellow.7", "pink.6"];
+const COMPANION_IST_COLOR = "gray.5";
+const COMPANION_ZIEL_COLORS = ["yellow.6", "lime.7"];
+
+/**
+ * A second statement drawn into a KPI's chart on its own right-hand scale,
+ * e.g. the ETCS equipment rate (%) next to the ETCS route km. The companion
+ * KPI has the same sub-series and gets no card of its own.
+ */
+export type KpiCompanion = { key: string; label: string; unit: string };
+
+export const KPI_COMPANION: Record<string, KpiCompanion> = {
+    etcs_strecken_km: { key: "etcs_ausruestungsgrad", label: "Ausrüstungsgrad", unit: "%" },
+};
+
+/** KPI keys that are drawn inside another KPI's chart. */
+export const COMPANION_KPI_KEYS = new Set(Object.values(KPI_COMPANION).map((c) => c.key));
 
 function seriesSuffix(series: string | null | undefined): string {
     return series ? ` – ${series}` : "";
@@ -248,62 +268,95 @@ export function kpiOverview(kpi: Pick<InfraplanPublicKpi, "key" | "values">): Kp
  */
 export type KpiChartScope = "all" | "total" | { series: string };
 
+type KpiValue = NonNullable<InfraplanPublicKpi["values"]>[number];
+
+function scopeValues(values: InfraplanPublicKpi["values"], scope: KpiChartScope): KpiValue[] {
+    const all = values ?? [];
+    // "total" collapses the sub-series; values of the same key are summed.
+    if (scope === "total") return all.map((v) => ({ ...v, series: null }));
+    if (scope === "all") return all;
+    return all.filter((v) => v.series === scope.series).map((v) => ({ ...v, series: null }));
+}
+
 /**
  * Ist values of the newest report year become (stacked) bars, one bar series
  * per sub-series; the targets of every report year become their own line
- * ("Ziel IP 2026"), so shifted targets stay visible.
+ * ("Ziel IP 2026"), so shifted targets stay visible. A companion KPI is drawn
+ * the same way on the right axis, its bars in a stack of their own so they
+ * stand next to the main bars.
  */
-export function buildKpiChart(kpi: Pick<InfraplanPublicKpi, "values">, scope: KpiChartScope = "all"): KpiChart {
-    let values = kpi.values ?? [];
-    if (scope === "total") {
-        // Collapse the sub-series; values of the same key are summed below.
-        values = values.map((v) => ({ ...v, series: null }));
-    } else if (scope !== "all") {
-        values = values.filter((v) => v.series === scope.series).map((v) => ({ ...v, series: null }));
-    }
-    const istYears = values.filter((v) => v.value_kind === "IST").map((v) => v.report_year);
+export function buildKpiChart(
+    kpi: Pick<InfraplanPublicKpi, "values"> & { unit?: string | null },
+    scope: KpiChartScope = "all",
+    companion?: { kpi: Pick<InfraplanPublicKpi, "values">; label: string; unit: string },
+): KpiChart {
+    const main = scopeValues(kpi.values, scope);
+    const istYears = main.filter((v) => v.value_kind === "IST").map((v) => v.report_year);
     const istReportYear = istYears.length > 0 ? Math.max(...istYears) : null;
 
     const rows = new Map<number, Record<string, number | string | null>>();
     const seriesMap = new Map<string, KpiChartSeries>();
-    let istIdx = 0;
-    const zielIdx = new Map<number, number>();
-    const zielYears = [...new Set(values.filter((v) => v.value_kind === "ZIEL").map((v) => v.report_year))].sort(
-        (a, b) => b - a,
-    );
-    zielYears.forEach((y, i) => zielIdx.set(y, i));
 
-    for (const v of values) {
-        let name: string;
-        if (v.value_kind === "IST") {
-            if (v.report_year !== istReportYear) continue;
-            name = `ist|${v.series ?? ""}`;
-            if (!seriesMap.has(name)) {
-                seriesMap.set(name, {
-                    name,
-                    label: `Ist${seriesSuffix(v.series)}`,
-                    color: IST_COLORS[istIdx++ % IST_COLORS.length],
-                    type: "bar",
-                });
+    const add = (
+        values: KpiValue[],
+        opts: { prefix: string; label: string; unit?: string; right: boolean },
+    ) => {
+        const ist = values.filter((v) => v.value_kind === "IST").map((v) => v.report_year);
+        const istYear = ist.length > 0 ? Math.max(...ist) : null;
+        const zielYears = [...new Set(values.filter((v) => v.value_kind === "ZIEL").map((v) => v.report_year))].sort(
+            (a, b) => b - a,
+        );
+        let istIdx = 0;
+        const axis = opts.right ? { yAxisId: "right" as const } : {};
+        for (const v of values) {
+            let name: string;
+            if (v.value_kind === "IST") {
+                if (v.report_year !== istYear) continue;
+                name = `${opts.prefix}ist|${v.series ?? ""}`;
+                if (!seriesMap.has(name)) {
+                    seriesMap.set(name, {
+                        name,
+                        label: `${opts.label}${seriesSuffix(v.series)}`,
+                        color: opts.right ? COMPANION_IST_COLOR : IST_COLORS[istIdx++ % IST_COLORS.length],
+                        type: "bar",
+                        unit: opts.unit,
+                        ...axis,
+                    });
+                }
+            } else {
+                name = `${opts.prefix}ziel|${v.report_year}|${v.series ?? ""}`;
+                if (!seriesMap.has(name)) {
+                    const i = Math.max(zielYears.indexOf(v.report_year), 0);
+                    const colors = opts.right ? COMPANION_ZIEL_COLORS : ZIEL_COLORS;
+                    seriesMap.set(name, {
+                        name,
+                        label: `Ziel${opts.right ? ` ${opts.label}` : ""} IP ${v.report_year}${seriesSuffix(v.series)}`,
+                        color: colors[i % colors.length],
+                        type: "line",
+                        // Older targets dashed, the newest solid.
+                        strokeDasharray: i === 0 ? undefined : "5 4",
+                        unit: opts.unit,
+                        ...axis,
+                    });
+                }
             }
-        } else {
-            name = `ziel|${v.report_year}|${v.series ?? ""}`;
-            if (!seriesMap.has(name)) {
-                const i = zielIdx.get(v.report_year) ?? 0;
-                seriesMap.set(name, {
-                    name,
-                    label: `Ziel IP ${v.report_year}${seriesSuffix(v.series)}`,
-                    color: ZIEL_COLORS[i % ZIEL_COLORS.length],
-                    type: "line",
-                    // Older targets dashed, the newest solid.
-                    strokeDasharray: i === 0 ? undefined : "5 4",
-                });
-            }
+            const row = rows.get(v.year) ?? { year: String(v.year) };
+            const prev = row[name];
+            row[name] = typeof prev === "number" ? prev + v.value : v.value;
+            rows.set(v.year, row);
         }
-        const row = rows.get(v.year) ?? { year: String(v.year) };
-        const prev = row[name];
-        row[name] = typeof prev === "number" ? prev + v.value : v.value;
-        rows.set(v.year, row);
+    };
+
+    // With two scales the legend names the unit, so each bar maps to its axis.
+    const mainLabel = companion && kpi.unit ? `Ist (${kpi.unit})` : "Ist";
+    add(main, { prefix: "", label: mainLabel, unit: kpi.unit ?? undefined, right: false });
+    if (companion) {
+        add(scopeValues(companion.kpi.values, scope), {
+            prefix: "r:",
+            label: `${companion.label} (${companion.unit})`,
+            unit: companion.unit,
+            right: true,
+        });
     }
 
     const data = [...rows.entries()].sort(([a], [b]) => a - b).map(([, row]) => row);

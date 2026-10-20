@@ -162,6 +162,28 @@ describe("buildKpiChart", () => {
         expect(kpiOverview({ key: "x", values: [] }).detailSeries).toEqual([]);
     });
 
+    it("draws a companion KPI on the right axis in its own stack", () => {
+        const km = {
+            unit: "km",
+            values: [
+                { report_year: 2026, year: 2025, value_kind: "IST", series: "Gesamtnetz", value: 683 },
+                { report_year: 2026, year: 2025, value_kind: "IST", series: "TEN-Kernnetz bis 2030", value: 594 },
+            ],
+        } as Pick<InfraplanPublicKpi, "values" | "unit">;
+        const rate = {
+            values: [
+                { report_year: 2026, year: 2025, value_kind: "IST", series: "Gesamtnetz", value: 2 },
+                { report_year: 2026, year: 2025, value_kind: "IST", series: "TEN-Kernnetz bis 2030", value: 5.8 },
+            ],
+        } as Pick<InfraplanPublicKpi, "values">;
+        const chart = buildKpiChart(km, { series: "Gesamtnetz" }, { kpi: rate, label: "Ausrüstungsgrad", unit: "%" });
+        expect(chart.series.map((s) => [s.label, s.yAxisId, s.unit])).toEqual([
+            ["Ist (km)", undefined, "km"],
+            ["Ausrüstungsgrad (%)", "right", "%"],
+        ]);
+        expect(chart.data).toEqual([{ year: "2025", "ist|": 683, "r:ist|": 2 }]);
+    });
+
     it("shows a single sub-series for the detail view", () => {
         const chart = buildKpiChart(split, { series: "Stabiles Netz" });
         expect(chart.series.map((s) => s.label)).toEqual(["Ist", "Ziel IP 2026"]);

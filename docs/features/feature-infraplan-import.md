@@ -339,7 +339,11 @@ zeigt die Übersicht nur deren Summe je Jahr; der Button „Details“ öffnet e
 mit einem Diagramm je Teilreihe (Ist und Ziele der Kategorie). Sind die Teilreihen nicht
 additiv, weil eine davon schon das Ganze ist (ETCS: „Gesamtnetz“, die TEN-Netze sind
 Teilmengen), zeigt die Übersicht diese Teilreihe und die Details die übrigen
-(`KPI_TOTAL_SERIES` in `infraplanFormat.ts`). Nur Werte mit Status
+(`KPI_TOTAL_SERIES` in `infraplanFormat.ts`). Gehört zu einer Kennzahl eine zweite
+Aussage in anderer Einheit (ETCS-Strecken-km und Ausrüstungsgrad in %), steht die
+Begleitkennzahl als zweiter Balken daneben auf einer eigenen rechten Skala, in der
+Übersicht wie in jedem Detaildiagramm; eine eigene Karte bekommt sie nicht
+(`KPI_COMPANION`). Nur Werte mit Status
 `GEPRUEFT`. Darunter je Jahrgang die Liste der Maßnahmen mit Link aufs Projekt.
 Navigationseintrag „Infraplan“. Die Startseite bleibt vorerst unverändert.
 

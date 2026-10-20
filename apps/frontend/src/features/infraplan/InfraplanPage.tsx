@@ -33,7 +33,9 @@ import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import Footnotes from "./Footnotes";
 import {
+    COMPANION_KPI_KEYS,
     KPI_CATEGORY_LABEL,
+    KPI_COMPANION,
     KPI_KIND_LABEL,
     PARL_LABEL,
     SECTION_SHORT,
@@ -43,14 +45,29 @@ import {
     groupKpis,
     kpiOverview,
     type KpiChartScope,
+    type KpiChartSeries,
 } from "./infraplanFormat";
 
 const PAGE_SIZE = 50;
 
-function KpiChart({ kpi, scope, h = 220 }: { kpi: InfraplanPublicKpi; scope: KpiChartScope; h?: number }) {
-    const chart = useMemo(() => buildKpiChart(kpi, scope), [kpi, scope]);
-    const format = (v: number) =>
-        `${v.toLocaleString("de-DE", { maximumFractionDigits: 2 })}${kpi.unit ? ` ${kpi.unit}` : ""}`;
+type Companion = { kpi: InfraplanPublicKpi; label: string; unit: string };
+
+const formatNumber = (v: number) => v.toLocaleString("de-DE", { maximumFractionDigits: 2 });
+const withUnit = (unit: string | null | undefined) => (v: number) => `${formatNumber(v)}${unit ? ` ${unit}` : ""}`;
+
+function KpiChart({ kpi, scope, companion, h = 220 }: {
+    kpi: InfraplanPublicKpi;
+    scope: KpiChartScope;
+    companion?: Companion;
+    h?: number;
+}) {
+    const chart = useMemo(() => buildKpiChart(kpi, scope, companion), [kpi, scope, companion]);
+    const hasRight = chart.series.some((s) => s.yAxisId === "right");
+    // Units travel per series into the tooltip, so the shared formatter stays unit-free.
+    const perSeries = (s: KpiChartSeries) => ({
+        stackId: s.yAxisId === "right" ? "right" : "ist",
+        unit: s.unit ? ` ${s.unit}` : undefined,
+    });
     if (chart.data.length === 0) return <Text size="sm" c="dimmed">Keine geprüften Werte.</Text>;
     return (
         <>
@@ -59,17 +76,22 @@ function KpiChart({ kpi, scope, h = 220 }: { kpi: InfraplanPublicKpi; scope: Kpi
                 data={chart.data}
                 dataKey="year"
                 series={chart.series}
-                valueFormatter={format}
+                valueFormatter={formatNumber}
+                yAxisProps={{ tickFormatter: withUnit(kpi.unit) }}
+                withRightYAxis={hasRight}
+                rightYAxisProps={{ tickFormatter: withUnit(companion?.unit) }}
                 withLegend
                 legendProps={{ verticalAlign: "bottom", height: 50 }}
                 tickLine="y"
                 maxBarWidth={36}
-                barProps={{ stackId: "ist" }}
+                barProps={(s) => perSeries(s as KpiChartSeries)}
+                lineProps={(s) => ({ unit: perSeries(s as KpiChartSeries).unit })}
                 connectNulls
             />
             {chart.istReportYear && (
                 <Text size="xs" c="dimmed">
                     Ist-Werte aus dem Infraplan {chart.istReportYear}; Zielwerte je Jahrgang.
+                    {companion && ` ${companion.label} auf der rechten Skala.`}
                 </Text>
             )}
         </>
@@ -77,8 +99,9 @@ function KpiChart({ kpi, scope, h = 220 }: { kpi: InfraplanPublicKpi; scope: Kpi
 }
 
 /** One chart per sub-series, so each category's Ist and targets can be traced on their own. */
-function KpiDetailModal({ kpi, subSeries, opened, onClose }: {
+function KpiDetailModal({ kpi, companion, subSeries, opened, onClose }: {
     kpi: InfraplanPublicKpi;
+    companion?: Companion;
     subSeries: string[];
     opened: boolean;
     onClose: () => void;
@@ -91,7 +114,7 @@ function KpiDetailModal({ kpi, subSeries, opened, onClose }: {
                     <ChronicleCard key={s}>
                         <Stack gap="xs">
                             <Text fw={600} size="sm">{s}</Text>
-                            <KpiChart kpi={kpi} scope={{ series: s }} h={200} />
+                            <KpiChart kpi={kpi} scope={{ series: s }} companion={companion} h={200} />
                         </Stack>
                     </ChronicleCard>
                 ))}
@@ -100,7 +123,7 @@ function KpiDetailModal({ kpi, subSeries, opened, onClose }: {
     );
 }
 
-function KpiCard({ kpi }: { kpi: InfraplanPublicKpi }) {
+function KpiCard({ kpi, companion }: { kpi: InfraplanPublicKpi; companion?: Companion }) {
     const overview = useMemo(() => kpiOverview(kpi), [kpi]);
     const [detailOpen, setDetailOpen] = useState(false);
     const hasDetails = overview.detailSeries.length > 0;
@@ -122,12 +145,13 @@ function KpiCard({ kpi }: { kpi: InfraplanPublicKpi }) {
                 {(kpi.values ?? []).length === 0 ? (
                     <Text size="sm" c="dimmed">Noch keine geprüften Werte.</Text>
                 ) : (
-                    <KpiChart kpi={kpi} scope={overview.scope} />
+                    <KpiChart kpi={kpi} scope={overview.scope} companion={companion} />
                 )}
             </Stack>
             {hasDetails && (
                 <KpiDetailModal
                     kpi={kpi}
+                    companion={companion}
                     subSeries={overview.detailSeries}
                     opened={detailOpen}
                     onClose={() => setDetailOpen(false)}
@@ -138,8 +162,20 @@ function KpiCard({ kpi }: { kpi: InfraplanPublicKpi }) {
 }
 
 function Kpis({ kpis }: { kpis: InfraplanPublicKpi[] }) {
-    const withValues = kpis.filter((k) => (k.values ?? []).length > 0);
+    // Companion KPIs are drawn inside their main KPI's chart, not on their own.
+    const withValues = kpis.filter((k) => (k.values ?? []).length > 0 && !COMPANION_KPI_KEYS.has(k.key));
     const groups = groupKpis(withValues);
+    const companions = useMemo(() => {
+        const byKey = new Map(kpis.map((k) => [k.key, k]));
+        const out = new Map<string, Companion>();
+        for (const [mainKey, c] of Object.entries(KPI_COMPANION)) {
+            const companionKpi = byKey.get(c.key);
+            if (companionKpi && (companionKpi.values ?? []).length > 0) {
+                out.set(mainKey, { kpi: companionKpi, label: c.label, unit: c.unit });
+            }
+        }
+        return out;
+    }, [kpis]);
     if (groups.length === 0) {
         return <Text size="sm" c="dimmed">Für die Kennzahlen liegen noch keine geprüften Werte vor.</Text>;
     }
@@ -157,7 +193,7 @@ function Kpis({ kpis }: { kpis: InfraplanPublicKpi[] }) {
                             )}
                             <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                                 {c.kpis.map((k) => (
-                                    <KpiCard key={k.key} kpi={k} />
+                                    <KpiCard key={k.key} kpi={k} companion={companions.get(k.key)} />
                                 ))}
                             </SimpleGrid>
                         </Stack>

@@ -161,6 +161,7 @@ export const featureHighlights: FeatureHighlight[] = [
         title: "Infraplan (/infraplan) und Projektseite",
         description:
             "Die öffentliche Seite Infraplan zeigt die Kennzahlen als Diagramme (bei Kennzahlen mit Kategorien wie den KMM die Summe bzw. das Gesamtnetz, " +
+            "ETCS mit dem Ausrüstungsgrad als zweitem Balken auf eigener Skala, " +
             "über „Details“ ein Diagramm je Kategorie) und je Jahrgang die Liste der Maßnahmen " +
             "mit Link aufs Projekt. Auf der Projektseite stehen die Infraplan-Einträge aller Jahrgänge und die Gesamtkostenprognose.",
         details: [
