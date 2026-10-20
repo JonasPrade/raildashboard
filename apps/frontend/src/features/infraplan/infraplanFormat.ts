@@ -210,6 +210,39 @@ export function kpiSubSeries(kpi: Pick<InfraplanPublicKpi, "values">): string[] 
 }
 
 /**
+ * KPIs whose sub-series are not additive: one of them already is the whole
+ * (the others are subsets of it), so the overview shows that one instead of
+ * a sum. Keyed by KPI key.
+ */
+export const KPI_TOTAL_SERIES: Record<string, string> = {
+    etcs_strecken_km: "Gesamtnetz",
+};
+
+export type KpiOverview = {
+    /** What the overview chart shows. */
+    scope: KpiChartScope;
+    /** Sub-series that get their own chart in the detail view. */
+    detailSeries: string[];
+    /** Short hint under the KPI name; null when nothing is collapsed. */
+    note: string | null;
+};
+
+/**
+ * With several sub-series the overview shows one line of numbers per year —
+ * the series that is the whole (KPI_TOTAL_SERIES) or else their sum — and the
+ * split goes to a detail view, one chart per remaining sub-series.
+ */
+export function kpiOverview(kpi: Pick<InfraplanPublicKpi, "key" | "values">): KpiOverview {
+    const sub = kpiSubSeries(kpi);
+    if (sub.length < 2) return { scope: "all", detailSeries: [], note: null };
+    const total = KPI_TOTAL_SERIES[kpi.key];
+    if (total && sub.includes(total)) {
+        return { scope: { series: total }, detailSeries: sub.filter((s) => s !== total), note: total };
+    }
+    return { scope: "total", detailSeries: sub, note: `Summe aus ${sub.length} Kategorien` };
+}
+
+/**
  * Which values a chart shows: all sub-series side by side (default), their sum
  * per year (`"total"`) or a single sub-series by name.
  */

@@ -336,7 +336,10 @@ Diagramm: Ist-Werte aus dem neuesten Jahrgang als Balken/Linie, Zielwerte **jede
 Jahrgangs als eigene Linie („Ziel IP 2026“, „Ziel IP 2027“), sodass Zielverschiebungen
 sichtbar sind. Hat eine Kennzahl mehrere Teilreihen (`series`, z. B. die KMM-Kategorien),
 zeigt die Übersicht nur deren Summe je Jahr; der Button „Details“ öffnet eine Ansicht
-mit einem Diagramm je Teilreihe (Ist und Ziele der Kategorie). Nur Werte mit Status
+mit einem Diagramm je Teilreihe (Ist und Ziele der Kategorie). Sind die Teilreihen nicht
+additiv, weil eine davon schon das Ganze ist (ETCS: „Gesamtnetz“, die TEN-Netze sind
+Teilmengen), zeigt die Übersicht diese Teilreihe und die Details die übrigen
+(`KPI_TOTAL_SERIES` in `infraplanFormat.ts`). Nur Werte mit Status
 `GEPRUEFT`. Darunter je Jahrgang die Liste der Maßnahmen mit Link aufs Projekt.
 Navigationseintrag „Infraplan“. Die Startseite bleibt vorerst unverändert.
 

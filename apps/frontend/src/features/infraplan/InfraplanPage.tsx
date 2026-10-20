@@ -41,7 +41,7 @@ import {
     entryCost,
     formatMio,
     groupKpis,
-    kpiSubSeries,
+    kpiOverview,
     type KpiChartScope,
 } from "./infraplanFormat";
 
@@ -101,11 +101,9 @@ function KpiDetailModal({ kpi, subSeries, opened, onClose }: {
 }
 
 function KpiCard({ kpi }: { kpi: InfraplanPublicKpi }) {
-    const subSeries = useMemo(() => kpiSubSeries(kpi), [kpi]);
+    const overview = useMemo(() => kpiOverview(kpi), [kpi]);
     const [detailOpen, setDetailOpen] = useState(false);
-    // With several sub-series the overview shows only their sum; the split
-    // lives in the detail view, one chart per sub-series.
-    const split = subSeries.length > 1;
+    const hasDetails = overview.detailSeries.length > 0;
     return (
         <ChronicleCard>
             <Stack gap="xs">
@@ -113,9 +111,9 @@ function KpiCard({ kpi }: { kpi: InfraplanPublicKpi }) {
                     <Stack gap={0}>
                         <Text fw={600} size="sm">{kpi.name}</Text>
                         {kpi.description && <Text size="xs" c="dimmed">{kpi.description}</Text>}
-                        {split && <Text size="xs" c="dimmed">Summe aus {subSeries.length} Kategorien</Text>}
+                        {overview.note && <Text size="xs" c="dimmed">{overview.note}</Text>}
                     </Stack>
-                    {split && (
+                    {hasDetails && (
                         <Button size="compact-xs" variant="light" onClick={() => setDetailOpen(true)} style={{ flexShrink: 0 }}>
                             Details
                         </Button>
@@ -124,11 +122,16 @@ function KpiCard({ kpi }: { kpi: InfraplanPublicKpi }) {
                 {(kpi.values ?? []).length === 0 ? (
                     <Text size="sm" c="dimmed">Noch keine geprüften Werte.</Text>
                 ) : (
-                    <KpiChart kpi={kpi} scope={split ? "total" : "all"} />
+                    <KpiChart kpi={kpi} scope={overview.scope} />
                 )}
             </Stack>
-            {split && (
-                <KpiDetailModal kpi={kpi} subSeries={subSeries} opened={detailOpen} onClose={() => setDetailOpen(false)} />
+            {hasDetails && (
+                <KpiDetailModal
+                    kpi={kpi}
+                    subSeries={overview.detailSeries}
+                    opened={detailOpen}
+                    onClose={() => setDetailOpen(false)}
+                />
             )}
         </ChronicleCard>
     );

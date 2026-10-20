@@ -7,6 +7,7 @@ import {
     filterRows,
     formatPercentChange,
     groupKpis,
+    kpiOverview,
     kpiSubSeries,
     measureKey,
 } from "./infraplanFormat";
@@ -138,6 +139,27 @@ describe("buildKpiChart", () => {
             { year: "2025", "ist|": 7 },
             { year: "2027", "ziel|2026|": 7 },
         ]);
+    });
+
+    it("sums additive sub-series but shows the whole one where configured", () => {
+        expect(kpiOverview({ key: "kmm", ...split })).toEqual({
+            scope: "total",
+            detailSeries: ["740-m-Netz", "Stabiles Netz"],
+            note: "Summe aus 2 Kategorien",
+        });
+        const etcs = {
+            key: "etcs_strecken_km",
+            values: [
+                { report_year: 2026, year: 2025, value_kind: "IST", series: "TEN-Kernnetz bis 2030", value: 600 },
+                { report_year: 2026, year: 2025, value_kind: "IST", series: "Gesamtnetz", value: 1800 },
+            ],
+        } as Pick<InfraplanPublicKpi, "key" | "values">;
+        expect(kpiOverview(etcs)).toEqual({
+            scope: { series: "Gesamtnetz" },
+            detailSeries: ["TEN-Kernnetz bis 2030"],
+            note: "Gesamtnetz",
+        });
+        expect(kpiOverview({ key: "x", values: [] }).detailSeries).toEqual([]);
     });
 
     it("shows a single sub-series for the detail view", () => {
