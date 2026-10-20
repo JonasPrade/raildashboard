@@ -234,6 +234,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `compute_project_length` | Länge aus der Geometrie berechnen, optional übernehmen | — / `project.edit` mit `apply` |
 | `update_project` | Projektfelder ändern | `project.edit` |
 | `set_project_draft` | Projekt zum Entwurf machen oder Entwurf fertigstellen | `project.edit` |
+| `create_project_group` | Neue Projektgruppe anlegen (Name, eindeutiger Kurzname, Farbe, Sichtbarkeit); Duplikate (Kurzname/Name) werden abgelehnt | `projectgroup.create` |
 | `set_project_groups` | Projekt Gruppen hinzufügen/entfernen (id, Kurzname, Name) | `project.edit` |
 | `add_progress_observation` | Planungsstand-Beobachtung ergänzen | `progress.edit` |
 | `delete_progress_observation` | manuelle Beobachtung löschen (abgeleitete nicht) | `progress.edit` |

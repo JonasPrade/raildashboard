@@ -153,6 +153,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Vorjahresabgleich: Projekte mit Eintrag im Vorjahr, aber ohne Zeile im neuen Jahrgang",
             "Übernehmen nur ohne Parser-Warnungen oder ausdrücklich mit „Trotzdem übernehmen“; ein Jahrgang lässt sich löschen und neu übernehmen",
             "Kennzahlen je Jahrgang (/admin/infraplan/kpis/:jahr): manuelles Formular (gilt als geprüft) und Freigabe der KI-gelesenen Werte neben dem Seitenbild",
+            "Admin → Infraplan → Allgemeines: Name, Einheit, Kategorie, Beschreibung (Tooltip hinter dem Info-Symbol) und Darstellung jeder Kennzahl auf /infraplan (Diagrammart, Teilreihe für die Übersicht, Begleitkennzahl auf rechter Skala, Skala ab Werten)",
             "Zeilen ohne Projekt erscheinen unter Admin → Offene Zuordnungen",
             "Plan: docs/features/feature-infraplan-import.md"
         ]
@@ -160,10 +161,15 @@ export const featureHighlights: FeatureHighlight[] = [
     {
         title: "Infraplan (/infraplan) und Projektseite",
         description:
-            "Die öffentliche Seite Infraplan zeigt die Kennzahlen als Diagramme und je Jahrgang die Liste der Maßnahmen " +
+            "Die öffentliche Seite Infraplan zeigt die Kennzahlen als Diagramme (bei Kennzahlen mit Kategorien wie den KMM die Summe bzw. das Gesamtnetz, " +
+            "ETCS mit dem Ausrüstungsgrad als zweitem Balken auf eigener Skala, " +
+            "über „Details“ ein Diagramm je Kategorie; barrierefreie Bahnsteige je Merkmal, Mittelherkunft und -einsatz " +
+            "als Ranglisten, gestapelte Balken mit Summe im Tooltip) und je Jahrgang die Liste der Maßnahmen " +
             "mit Link aufs Projekt. Auf der Projektseite stehen die Infraplan-Einträge aller Jahrgänge und die Gesamtkostenprognose.",
         details: [
             "Je Kennzahl ein Diagramm: Ist-Werte des neuesten Jahrgangs als (gestapelte) Balken, Zielwerte jedes Jahrgangs als eigene Linie („Ziel IP 2026“); nur geprüfte Werte",
+            "Elektrifizierungsgrad als zwei Karten nebeneinander: neu elektrifizierte Strecken-km je Jahr und der Anteil am Gesamtnetz (kumuliert)",
+            "Info-Symbol neben dem Namen: Tooltip mit der Erklärung der Kennzahl (z. B. Kapazitätsauslastung = Anteil der gefahrenen Trassenkilometer in überausgelasteten Netzabschnitten); die Mittelherkunft-Karte nennt das gezeigte Jahr im Titel",
             "Projektseite, Abschnitt Infraplan: Abschnitt, Realisierungsstand, geplante Inbetriebnahme, Kosten und Befassung je Jahrgang, ab dem zweiten Jahrgang Veränderungen („GWU +12 %“, „IBN 2028 → 2030“)",
             "Hinweis „Nicht mehr im Infraplan …“, wenn das Projekt im neuesten Jahrgang fehlt",
             "Kostenblock: Gesamtkostenprognose laut Infraplan (bei Elternprojekten ohne eigene Zeile die Summe der Teilprojekte) neben den vom Bund zugesicherten FinVe-Mitteln — bewusst ohne Deckungsgrad"

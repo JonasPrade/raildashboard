@@ -60,7 +60,7 @@ export default function GroupFilterDrawer({ opened, onClose, groups = [], loadin
             position="right"
             size={isMobile ? "100%" : "sm"}
         >
-            <Stack gap="xs">
+            <Stack gap="xs" p={2}>
                 {error && (
                     <Alert color="red" variant="light" title="Projektgruppen konnten nicht geladen werden">
                         {error}
@@ -82,6 +82,9 @@ export default function GroupFilterDrawer({ opened, onClose, groups = [], loadin
                                 style={{
                                     display: "flex",
                                     alignItems: "center",
+                                    width: "100%",
+                                    minWidth: 0,
+                                    boxSizing: "border-box",
                                     gap: 10,
                                     padding: "10px 12px",
                                     borderRadius: 8,
@@ -102,9 +105,9 @@ export default function GroupFilterDrawer({ opened, onClose, groups = [], loadin
                                         flexShrink: 0,
                                     }}
                                 />
-                                <Text size="sm" style={{ flex: 1 }}>{group.name}</Text>
+                                <Text size="sm" style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>{group.name}</Text>
                                 {typeof group.count === "number" && (
-                                    <ChronicleDataChip>{group.count}</ChronicleDataChip>
+                                    <ChronicleDataChip style={{ flexShrink: 0 }}>{group.count}</ChronicleDataChip>
                                 )}
                             </UnstyledButton>
                         );

@@ -11,25 +11,62 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 
 ## [Unreleased]
 
+### Changed
+- **New layout of `/infraplan`.** The explanation moved into a tooltip next to the title,
+  the Jahrgang is picked from a dropdown in the header (once there is more than one), and a
+  central switch (like Karte/Liste/Zeitstrahl on the start page) toggles between
+  „Kennzahlen“ and „Maßnahmen“ (`?view=massnahmen`, `?jahr=`). The Kennzahlen get the
+  project page's table of contents, one entry per kind and category. Maßnahmen are cards
+  like the FinVe overview, with the linked projects as buttons (shared `LinkedProjects`).
+  The Jahrgang also drives the Kennzahlen: Ist and Ziel of the chosen Infraplan, compared
+  with the targets of the previous Jahrgang (dashed); later Jahrgänge are left out.
+- **Elektrifizierungsgrad as two charts on `/infraplan`.** The share of the network (%)
+  no longer sits inside the km chart on a right axis but gets its own card right next to
+  it: the km are an annual figure, the share a cumulative stock, and one chart for both
+  misled. Migration `20261021002` (data only) clears the companion link on existing
+  databases, orders the share after the km KPI and adds a description to both where none
+  is set; the seed matches.
+- **KPI explanations as tooltips on `/infraplan`.** A KPI's description (Admin → Infraplan →
+  Allgemeines, „Beschreibung“) now shows behind an info icon next to the name instead of
+  as a subtitle. The Kapazitätsauslastung gets its definition from the Infraplan 2026
+  (share of train-path km run on overloaded sections, > 125 % load) in the seed and in
+  migration `20261021002`. The Mittelherkunft card names the shown year in its title.
+
 ### Added
 - **Infraplan import for 2027.** Matching writes out the Infraplan's abbreviations
   (Ubf, Vbk, Abzw, Ü-BW, 2gl., Bf, Mü, HH, MA, HD, Ffm, …) before comparing, finds the
   subproject of the parent the Bezeichnung names ("Großknoten München", "PB 07: ABS/NBS
   Karlsruhe – Basel") by section number or words, takes over the previous year's
   assignments also by row text (with their note) and treats a project number such as
-  "InvKG Nr. 6" as a sure hit. New column `project.aliases` (migration `20261020003`,
+  "InvKG Nr. 6" as a sure hit. New column `project.aliases` (migration `20261021003`,
   expand only): a Deutschlandtakt id "DT 38" counts as a sure hit, free aliases help the
   name matching and the project search. New MCP tools `assign_infraplan_rows`,
   `create_infraplan_subprojects` (also without a parent and after the confirmation),
   `get_infraplan_page_text`, `suggest_infraplan_kpi_values`, `check_project_data`;
   `get_infraplan_draft(compact=true)` and `list_projects(with_description=true)`, whose
-  search now also covers description and aliases. The KPIs with km and % are two KPIs
-  each with clear names. Skill `infraplan-import` rewritten for batch calls and
+  search now also covers description and aliases. Skill `infraplan-import` rewritten for
+  batch calls and
   subagents. On the 271 rows of the Infraplan 2026, 145 rows reach ≥ 0.85 without a
   previous year (before: 93), 162 with the DT aliases.
 - **One-off `scripts/set_dt_aliases_2026.py`** (run after the deploy, dry run first):
   sets 76 Deutschlandtakt aliases read from the Infraplan 2026 rows; a project is only
   changed while its number is the one the pair was read with. Idempotent.
+- **Infraplan KPI settings in the admin area.** Admin → Infraplan gets the tabs „Import“
+  and „Allgemeines“; the latter lists every KPI and edits name, unit, category,
+  description, order and how `/infraplan` draws it (`PATCH /import/infraplan/kpis/{key}`).
+  The display rules are new columns on `infraplan_kpi` (`chart_layout`, `total_series`,
+  `companion_key`/`companion_label`, `zoomed_axis`; migration `20261021001`, expand only,
+  sets the rules of the Infraplan 2026 on existing rows). `/infraplan` reads them instead of
+  frontend constants: KMM as a sum with per-category details, ETCS on its Gesamtnetz with
+  the equipment rate as a second bar on a right axis, small multiples for barrierefreie
+  Bahnsteige, grouped bars for
+  Planfeststellungsanträge, Herkunft/Einsatz lists for Mittelherkunft, a zoomed axis for the
+  Stellwerksbesetzungsquote, stack totals in the tooltip. Units of the
+  Informationskennzahlen are seeded from the Infraplan 2026.
+- **MCP: create project groups.** New tool `create_project_group` (`projectgroup.create`)
+  creates a group with name, unique short name, colour and visibility flags; duplicate
+  short names/names and over-long values are rejected. Projects are added afterwards with
+  `set_project_groups`.
 - **MCP: generic project filters.** `list_projects` takes a `filters` list of
   `{field, op, value}` conditions (AND), and the new tool `list_project_filters` publishes
   the catalog (fields, types, operators, enum values) from one registry, so the MCP can ask
@@ -250,6 +287,15 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   with short names) and can be reverted like any other project field.
 
 ### Fixed
+- **Infraplan: full stops read as "�".** Some prints of the Infraplan 2026 map the table
+  font's full stop to U+FFFD in their ToUnicode table, so every "." came out as "�"
+  ("4gl�", "1�676,02", "E�1637260058") — which also broke costs from 1,000 Mio. € on, the
+  "Ref. Teil …" cost references, the Lph of the state column and the matching by project
+  number. The text extraction now restores the full stop. Still unreadable glyphs
+  (U+FFFD, `(cid:N)`) and cost cells that are neither number nor reference become parser
+  warnings (`UNREADABLE_TEXT`, `UNPARSED_COST`) instead of being lost silently.
+  `scripts/repair_infraplan_full_stops.py` (dry run, `--apply` to write) repairs stored
+  drafts and the years confirmed from them in place — assignments and KPI values stay.
 - **Text history: partial updates no longer log untouched fields.** A text PATCH that sends
   only some fields (e.g. via MCP `upsert_project_text`) recorded every other tracked field as
   cleared; now only the sent fields are compared.

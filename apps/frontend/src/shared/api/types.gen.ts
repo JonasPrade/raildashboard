@@ -2144,6 +2144,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/import/infraplan/kpis/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Kpi
+         * @description Admin settings of one KPI: name, unit, description, order and how
+         *     /infraplan draws it (layout, total series, companion, zoomed axis).
+         */
+        patch: operations["update_kpi_api_v1_import_infraplan_kpis__key__patch"];
+        trace?: never;
+    };
     "/api/v1/import/infraplan/report/{year}/kpi-values": {
         parameters: {
             query?: never;
@@ -4467,6 +4488,19 @@ export interface components {
              * @default 0
              */
             sort_order: number;
+            /** Chart Layout */
+            chart_layout?: ("split" | "grouped" | "flow") | null;
+            /** Total Series */
+            total_series?: string | null;
+            /** Companion Key */
+            companion_key?: string | null;
+            /** Companion Label */
+            companion_label?: string | null;
+            /**
+             * Zoomed Axis
+             * @default false
+             */
+            zoomed_axis: boolean;
         };
         /** InfraplanKpiSeriesValue */
         InfraplanKpiSeriesValue: {
@@ -4483,6 +4517,33 @@ export interface components {
             series?: string | null;
             /** Value */
             value: number;
+        };
+        /**
+         * InfraplanKpiUpdate
+         * @description Admin settings of one KPI; only the fields sent are changed, null
+         *     clears an optional field.
+         */
+        InfraplanKpiUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Unit */
+            unit?: string | null;
+            /** Category */
+            category?: ("AUS_NEUBAU" | "BESTANDSNETZ" | "UEBERGEORDNET") | null;
+            /** Description */
+            description?: string | null;
+            /** Sort Order */
+            sort_order?: number | null;
+            /** Chart Layout */
+            chart_layout?: ("split" | "grouped" | "flow") | null;
+            /** Total Series */
+            total_series?: string | null;
+            /** Companion Key */
+            companion_key?: string | null;
+            /** Companion Label */
+            companion_label?: string | null;
+            /** Zoomed Axis */
+            zoomed_axis?: boolean | null;
         };
         /**
          * InfraplanKpiValueInput
@@ -4902,6 +4963,19 @@ export interface components {
              * @default 0
              */
             sort_order: number;
+            /** Chart Layout */
+            chart_layout?: ("split" | "grouped" | "flow") | null;
+            /** Total Series */
+            total_series?: string | null;
+            /** Companion Key */
+            companion_key?: string | null;
+            /** Companion Label */
+            companion_label?: string | null;
+            /**
+             * Zoomed Axis
+             * @default false
+             */
+            zoomed_axis: boolean;
             /** Values */
             values?: components["schemas"]["InfraplanKpiSeriesValue"][];
         };
@@ -5133,7 +5207,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "GAP" | "DUPLICATE" | "UNRESOLVED_REF" | "NO_LAYOUT" | "EMPTY_SECTION";
+            kind: "GAP" | "DUPLICATE" | "UNRESOLVED_REF" | "NO_LAYOUT" | "EMPTY_SECTION" | "UNREADABLE_TEXT" | "UNPARSED_COST";
             /** Section */
             section?: string | null;
             /** Lfd Nr */
@@ -12082,6 +12156,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InfraplanKpiSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_kpi_api_v1_import_infraplan_kpis__key__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InfraplanKpiUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfraplanKpiSchema"];
                 };
             };
             /** @description Validation Error */

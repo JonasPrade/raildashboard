@@ -7,7 +7,15 @@ import {
     filterRows,
     formatPercentChange,
     groupKpis,
+    companionKeys,
+    kpiCompanions,
+    kpiFlow,
+    kpiOverview,
+    kpiSubSeries,
+    kpisAsOf,
     measureKey,
+    stackTotal,
+    zoomedDomain,
 } from "./infraplanFormat";
 
 function entry(overrides: Partial<Parameters<typeof entryDeltas>[0][number]>) {
@@ -116,6 +124,152 @@ describe("buildKpiChart", () => {
         ]);
     });
 
+    const split = {
+        values: [
+            { report_year: 2026, year: 2025, value_kind: "IST", series: "740-m-Netz", value: 4 },
+            { report_year: 2026, year: 2025, value_kind: "IST", series: "Stabiles Netz", value: 3 },
+            { report_year: 2026, year: 2027, value_kind: "ZIEL", series: "740-m-Netz", value: 2 },
+            { report_year: 2026, year: 2027, value_kind: "ZIEL", series: "Stabiles Netz", value: 5 },
+        ],
+    } as Pick<InfraplanPublicKpi, "values">;
+
+    it("lists the sub-series in order of appearance", () => {
+        expect(kpiSubSeries(split)).toEqual(["740-m-Netz", "Stabiles Netz"]);
+        expect(kpiSubSeries(kpi)).toEqual(["Teil 1", "Teil 2"]);
+    });
+
+    it("sums the sub-series per year for the overview", () => {
+        const chart = buildKpiChart(split, "total");
+        expect(chart.series.map((s) => s.label)).toEqual(["Ist", "Ziel IP 2026"]);
+        expect(chart.data).toEqual([
+            { year: "2025", "ist|": 7 },
+            { year: "2027", "ziel|2026|": 7 },
+        ]);
+    });
+
+    it("sums additive sub-series but shows the whole one where configured", () => {
+        expect(kpiOverview(split)).toMatchObject({
+            scope: "total",
+            detailSeries: ["740-m-Netz", "Stabiles Netz"],
+            note: "Summe aus 2 Kategorien",
+        });
+        const etcs = {
+            total_series: "Gesamtnetz",
+            values: [
+                { report_year: 2026, year: 2025, value_kind: "IST", series: "TEN-Kernnetz bis 2030", value: 600 },
+                { report_year: 2026, year: 2025, value_kind: "IST", series: "Gesamtnetz", value: 1800 },
+            ],
+        } as Pick<InfraplanPublicKpi, "values" | "total_series">;
+        expect(kpiOverview(etcs)).toMatchObject({
+            scope: { series: "Gesamtnetz" },
+            detailSeries: ["TEN-Kernnetz bis 2030"],
+            note: "Gesamtnetz",
+        });
+        expect(kpiOverview({ values: [] }).detailSeries).toEqual([]);
+    });
+
+    it("draws a companion KPI on the right axis in its own stack", () => {
+        const km = {
+            unit: "km",
+            values: [
+                { report_year: 2026, year: 2025, value_kind: "IST", series: "Gesamtnetz", value: 683 },
+                { report_year: 2026, year: 2025, value_kind: "IST", series: "TEN-Kernnetz bis 2030", value: 594 },
+            ],
+        } as Pick<InfraplanPublicKpi, "values" | "unit">;
+        const rate = {
+            values: [
+                { report_year: 2026, year: 2025, value_kind: "IST", series: "Gesamtnetz", value: 2 },
+                { report_year: 2026, year: 2025, value_kind: "IST", series: "TEN-Kernnetz bis 2030", value: 5.8 },
+            ],
+        } as Pick<InfraplanPublicKpi, "values">;
+        const chart = buildKpiChart(km, { series: "Gesamtnetz" }, { kpi: rate, label: "Ausrüstungsgrad", unit: "%" });
+        expect(chart.series.map((s) => [s.label, s.yAxisId, s.unit])).toEqual([
+            ["Ist (km)", undefined, "km"],
+            ["Ausrüstungsgrad (%)", "right", "%"],
+        ]);
+        expect(chart.data).toEqual([{ year: "2025", "ist|": 683, "r:ist|": 2 }]);
+    });
+
+    it("pairs each KPI with its configured companion and hides the companion", () => {
+        const kpis = [
+            { key: "km", name: "km", unit: "km", values: kpi.values, companion_key: "rate", companion_label: null },
+            { key: "rate", name: "Ausrüstungsgrad", unit: "%", values: kpi.values, companion_key: null, companion_label: null },
+            { key: "empty", name: "x", unit: null, values: [], companion_key: "rate2", companion_label: null },
+        ] as Parameters<typeof kpiCompanions>[0];
+        const companions = kpiCompanions(kpis);
+        expect([...companions.keys()]).toEqual(["km"]);
+        expect(companions.get("km")).toMatchObject({ label: "Ausrüstungsgrad", unit: "%" });
+        expect([...companionKeys(kpis)]).toEqual(["rate", "rate2"]);
+    });
+
+    it("keeps an Ist-only split as a stack", () => {
+        expect(kpiOverview(kpi)).toMatchObject({
+            layout: "chart",
+            scope: "all",
+            stacked: true,
+            detailSeries: [],
+            note: null,
+        });
+    });
+
+    it("follows chart_layout for non-additive and one-year KPIs", () => {
+        expect(kpiOverview({ ...kpi, chart_layout: "grouped" })).toMatchObject({ layout: "chart", stacked: false });
+        expect(kpiOverview({ ...kpi, chart_layout: "split" })).toMatchObject({
+            layout: "split",
+            detailSeries: ["Teil 1", "Teil 2"],
+        });
+        expect(kpiOverview({ values: [], chart_layout: "flow" }).layout).toBe("flow");
+    });
+
+    it("splits a Herkunft/Einsatz KPI into two ranked lists", () => {
+        const flow = kpiFlow({
+            values: [
+                { report_year: 2026, year: 2025, value_kind: "IST", series: "Herkunft: Ländermittel", value: 1.28 },
+                { report_year: 2026, year: 2025, value_kind: "IST", series: "Herkunft: Trassenerlöse", value: 6.74 },
+                { report_year: 2026, year: 2025, value_kind: "IST", series: "Einsatz: Non-Infra / Sonstige", value: 0.5 },
+            ],
+        } as Pick<InfraplanPublicKpi, "values">);
+        expect(flow).toEqual({
+            year: 2025,
+            herkunft: [
+                { label: "Trassenerlöse", value: 6.74 },
+                { label: "Ländermittel", value: 1.28 },
+            ],
+            einsatz: [{ label: "Non-Infra / Sonstige", value: 0.5 }],
+        });
+        expect(kpiFlow({ values: [] })).toBeNull();
+    });
+
+    it("sums the stacked main-axis bars for the tooltip", () => {
+        const series = [
+            { name: "ist|SGV", type: "bar" as const },
+            { name: "ist|SPNV", type: "bar" as const },
+            { name: "r:ist|", type: "bar" as const, yAxisId: "right" as const },
+            { name: "ziel|2026|", type: "line" as const },
+        ];
+        expect(
+            stackTotal(
+                [
+                    { name: "ist|SGV", value: 236 },
+                    { name: "ist|SPNV", value: 688 },
+                    { name: "r:ist|", value: 2 },
+                    { name: "ziel|2026|", value: 900 },
+                ],
+                series,
+            ),
+        ).toBe(924);
+        expect(stackTotal([{ name: "ist|SGV", value: 236 }], series)).toBeNull();
+    });
+
+    it("shows a single sub-series for the detail view", () => {
+        const chart = buildKpiChart(split, { series: "Stabiles Netz" });
+        expect(chart.series.map((s) => s.label)).toEqual(["Ist", "Ziel IP 2026"]);
+        expect(chart.data).toEqual([
+            { year: "2025", "ist|": 3 },
+            { year: "2027", "ziel|2026|": 5 },
+        ]);
+    });
+
     it("is empty without values", () => {
         expect(buildKpiChart({ values: [] })).toEqual({ data: [], series: [], istReportYear: null });
     });
@@ -132,5 +286,50 @@ describe("groupKpis", () => {
         expect(groups.map((g) => g.kind)).toEqual(["STEUERUNG", "INFORMATION"]);
         expect(groups[0].categories.map((c) => c.category)).toEqual(["AUS_NEUBAU", "BESTANDSNETZ"]);
         expect(groups[0].categories[1].kpis.map((k) => k.name)).toEqual(["A", "B"]);
+    });
+});
+
+describe("zoomedDomain", () => {
+    it("starts the axis just below the smallest main-axis value", () => {
+        const chart = {
+            series: [
+                { name: "ist|", label: "Ist", color: "", type: "bar" as const },
+                { name: "r:ist|", label: "x", color: "", type: "bar" as const, yAxisId: "right" as const },
+            ],
+            data: [
+                { year: "2024", "ist|": 99.6, "r:ist|": 3 },
+                { year: "2025", "ist|": 99.8, "r:ist|": null },
+            ],
+        };
+        expect(zoomedDomain(chart)).toEqual([99, 100]);
+        const rate = { ...chart, data: [{ year: "2024", "ist|": 98.9, "r:ist|": null }, { year: "2027", "ist|": 99.8, "r:ist|": null }] };
+        expect(zoomedDomain(rate, "%")).toEqual([98, 100]);
+        expect(zoomedDomain({ series: [], data: [] })).toBeNull();
+    });
+});
+
+describe("kpisAsOf", () => {
+    const kpi = {
+        values: [
+            { report_year: 2026, year: 2024, value_kind: "IST", series: null, value: 10 },
+            { report_year: 2028, year: 2026, value_kind: "IST", series: null, value: 12 },
+            { report_year: 2025, year: 2027, value_kind: "ZIEL", series: null, value: 40 },
+            { report_year: 2026, year: 2027, value_kind: "ZIEL", series: null, value: 30 },
+            { report_year: 2027, year: 2027, value_kind: "ZIEL", series: null, value: 25 },
+            { report_year: 2028, year: 2027, value_kind: "ZIEL", series: null, value: 20 },
+        ],
+    } as Pick<InfraplanPublicKpi, "values">;
+
+    it("keeps Ist up to the chosen Jahrgang and the targets of it and the comparison year", () => {
+        const [k] = kpisAsOf([kpi], 2027, 2026);
+        expect(k.values!.map((v) => `${v.value_kind} ${v.report_year}`)).toEqual(["IST 2026", "ZIEL 2026", "ZIEL 2027"]);
+        const chart = buildKpiChart(k);
+        expect(chart.istReportYear).toBe(2026);
+        expect(chart.series.map((s) => s.label)).toEqual(["Ist", "Ziel IP 2027", "Ziel IP 2026"]);
+    });
+
+    it("shows only the chosen targets without a comparison year", () => {
+        const [k] = kpisAsOf([kpi], 2025, null);
+        expect(k.values!.map((v) => `${v.value_kind} ${v.report_year}`)).toEqual(["ZIEL 2025"]);
     });
 });

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import {
     Alert,
     Collapse,
@@ -16,6 +16,7 @@ import { useFinves, type FinveListItem } from "../../shared/api/queries";
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { FinveBudgetDetails } from "./shared/FinveBudgetDetails";
 import { formatTEuro } from "../../shared/format";
+import { LinkedProjects } from "../../shared/ui/LinkedProjects";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -79,35 +80,7 @@ function FinveCard({ finve }: { finve: FinveListItem }) {
                 </Group>
 
                 {/* ── Linked projects ────────────────────────────────────── */}
-                {finve.projects.length > 0 && (
-                    <Stack gap={6}>
-                        <Text size="xs" c="dimmed" fw={500} tt="uppercase" style={{ letterSpacing: "0.05em" }}>
-                            Verknüpfte Projekte
-                        </Text>
-                        <Group gap="xs" wrap="wrap">
-                            {finve.projects.map((p) => (
-                                <Link
-                                    key={p.id}
-                                    to={`/projects/${p.id}`}
-                                    style={{
-                                        textDecoration: "none",
-                                        cursor: "pointer",
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: 6,
-                                        padding: "4px 8px",
-                                        border: "1px solid var(--mantine-color-default-border)",
-                                        borderRadius: 4,
-                                        transition: "background 0.15s",
-                                    }}
-                                >
-                                    <Text size="xs" c="dimmed" ff="monospace">{p.id}</Text>
-                                    <Text size="xs" fw={500} c="dark">{p.name}</Text>
-                                </Link>
-                            ))}
-                        </Group>
-                    </Stack>
-                )}
+                <LinkedProjects projects={finve.projects} />
 
                 {/* ── Expandable charts / budget details ─────────────────── */}
                 {hasBudgets && (

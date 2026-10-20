@@ -100,7 +100,15 @@ class InfraplanSectionSummary(BaseModel):
 class InfraplanWarning(BaseModel):
     """A plausibility finding. Any warning blocks an unforced confirmation."""
 
-    kind: Literal["GAP", "DUPLICATE", "UNRESOLVED_REF", "NO_LAYOUT", "EMPTY_SECTION"]
+    kind: Literal[
+        "GAP",
+        "DUPLICATE",
+        "UNRESOLVED_REF",
+        "NO_LAYOUT",
+        "EMPTY_SECTION",
+        "UNREADABLE_TEXT",
+        "UNPARSED_COST",
+    ]
     section: Optional[str] = None
     lfd_nr: Optional[int] = None
     page: Optional[int] = None

@@ -29,6 +29,10 @@ class InfraplanKpiError(ValueError):
     """Invalid KPI input; the message is user-facing (German)."""
 
 
+class InfraplanKpiNotFoundError(InfraplanKpiError):
+    """The KPI to change does not exist."""
+
+
 def _float(value: Decimal | None) -> float | None:
     return None if value is None else float(value)
 
@@ -240,7 +244,7 @@ def ensure_default_kpis(db: Session) -> int:
     for order, kpi in enumerate(DEFAULT_KPIS):
         if kpi["key"] in existing:
             continue
-        db.add(InfraplanKpi(**{"sort_order": order * 10, **kpi}))
+        db.add(InfraplanKpi(sort_order=order * 10, **kpi))
         created += 1
     if created:
         db.flush()
@@ -251,6 +255,31 @@ def list_kpis(db: Session) -> list[InfraplanKpi]:
     if ensure_default_kpis(db):
         db.commit()
     return db.query(InfraplanKpi).order_by(InfraplanKpi.sort_order, InfraplanKpi.id).all()
+
+
+def update_kpi(db: Session, key: str, changes: dict[str, Any]) -> InfraplanKpi:
+    """Change the admin settings of one KPI (only the keys in ``changes``)."""
+    ensure_default_kpis(db)
+    kpi = db.query(InfraplanKpi).filter(InfraplanKpi.key == key).one_or_none()
+    if kpi is None:
+        raise InfraplanKpiNotFoundError(f"Die Kennzahl {key} gibt es nicht.")
+    for field in ("name", "sort_order", "zoomed_axis"):
+        if field in changes and changes[field] is None:
+            raise InfraplanKpiError(f"{field} darf nicht leer sein.")
+    for field in ("unit", "description", "total_series", "companion_key", "companion_label"):
+        if isinstance(changes.get(field), str):
+            changes[field] = changes[field].strip() or None
+    companion = changes.get("companion_key")
+    if companion is not None:
+        if companion == key:
+            raise InfraplanKpiError("Eine Kennzahl kann nicht ihre eigene Begleitkennzahl sein.")
+        if db.query(InfraplanKpi.id).filter(InfraplanKpi.key == companion).first() is None:
+            raise InfraplanKpiError(f"Die Begleitkennzahl {companion} gibt es nicht.")
+    for field, value in changes.items():
+        setattr(kpi, field, value)
+    db.commit()
+    db.refresh(kpi)
+    return kpi
 
 
 def kpi_values(db: Session, report: InfraplanReport) -> list[dict[str, Any]]:
@@ -386,6 +415,11 @@ def public_kpis(db: Session) -> list[dict[str, Any]]:
             "category": k.category,
             "description": k.description,
             "sort_order": k.sort_order,
+            "chart_layout": k.chart_layout,
+            "total_series": k.total_series,
+            "companion_key": k.companion_key,
+            "companion_label": k.companion_label,
+            "zoomed_axis": k.zoomed_axis,
             "values": values.get(k.id, []),
         }
         for k in list_kpis(db)
