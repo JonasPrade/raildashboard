@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { createRef, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { IconInfoCircle } from "@tabler/icons-react";
 import {
     ActionIcon,
     Alert,
-    Anchor,
     Button,
     Container,
     Group,
@@ -15,14 +15,12 @@ import {
     Select,
     SimpleGrid,
     Stack,
-    Table,
     Text,
     TextInput,
     Title,
     Tooltip,
 } from "@mantine/core";
 import { ChartTooltip, CompositeChart } from "@mantine/charts";
-import { IconInfoCircle } from "@tabler/icons-react";
 import "@mantine/charts/styles.css";
 import { ChronicleCard, ChronicleDataChip, ChronicleHeadline } from "../../components/chronicle";
 import {
@@ -34,7 +32,8 @@ import {
 } from "../../shared/api/queries";
 import { formatDateShort } from "../../shared/format";
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
-import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
+import { LinkedProjects, type LinkedProject } from "../../shared/ui/LinkedProjects";
+import { ProjectTableOfContents, type TocSection } from "../projects/ProjectTableOfContents";
 import Footnotes from "./Footnotes";
 import {
     KPI_CATEGORY_LABEL,
@@ -50,6 +49,7 @@ import {
     kpiCompanions,
     kpiFlow,
     kpiOverview,
+    kpisAsOf,
     stackTotal,
     zoomedDomain,
     type KpiChartScope,
@@ -57,7 +57,7 @@ import {
     type KpiChartSeries,
 } from "./infraplanFormat";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 25;
 
 const formatNumber = (v: number) => v.toLocaleString("de-DE", { maximumFractionDigits: 2 });
 const withUnit = (unit: string | null | undefined) => (v: number) => `${formatNumber(v)}${unit ? ` ${unit}` : ""}`;
@@ -286,47 +286,122 @@ function KpiCard({ kpi, companion }: { kpi: InfraplanPublicKpi; companion?: KpiC
     );
 }
 
+type SectionRef = React.RefObject<HTMLDivElement | null>;
+
 function Kpis({ kpis }: { kpis: InfraplanPublicKpi[] }) {
     // Companion KPIs are drawn inside their main KPI's chart, not on their own.
-    const hidden = companionKeys(kpis);
-    const withValues = kpis.filter((k) => (k.values ?? []).length > 0 && !hidden.has(k.key));
-    const groups = groupKpis(withValues);
+    const groups = useMemo(() => {
+        const hidden = companionKeys(kpis);
+        return groupKpis(kpis.filter((k) => (k.values ?? []).length > 0 && !hidden.has(k.key)));
+    }, [kpis]);
     const companions = useMemo(() => kpiCompanions(kpis), [kpis]);
+    // One scroll target per Bereich: the kind, and each category below it.
+    const tocSections = useMemo<TocSection[]>(
+        () =>
+            groups.flatMap((g) => [
+                { id: g.kind, label: KPI_KIND_LABEL[g.kind] ?? g.kind, ref: createRef<HTMLDivElement>() as SectionRef, visible: true },
+                ...g.categories
+                    .filter((c) => c.category)
+                    .map((c) => ({
+                        id: `${g.kind}:${c.category}`,
+                        label: KPI_CATEGORY_LABEL[c.category!] ?? c.category!,
+                        ref: createRef<HTMLDivElement>() as SectionRef,
+                        visible: true,
+                        level: 2 as const,
+                    })),
+            ]),
+        [groups],
+    );
+    const refOf = (id: string) => tocSections.find((s) => s.id === id)?.ref;
     if (groups.length === 0) {
         return <Text size="sm" c="dimmed">Für die Kennzahlen liegen noch keine geprüften Werte vor.</Text>;
     }
     return (
-        <Stack gap="xl">
-            {groups.map((g) => (
-                <Stack key={g.kind} gap="md">
-                    <Title order={3}>{KPI_KIND_LABEL[g.kind] ?? g.kind}</Title>
-                    {g.categories.map((c) => (
-                        <Stack key={c.category ?? "none"} gap="xs">
-                            {c.category && (
-                                <Text fw={600} size="sm" c="dimmed" tt="uppercase">
-                                    {KPI_CATEGORY_LABEL[c.category] ?? c.category}
-                                </Text>
-                            )}
-                            <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-                                {c.kpis.map((k) => (
-                                    // Small multiples and the flow lists need the full row.
-                                    <div key={k.key} style={k.chart_layout === "split" || k.chart_layout === "flow" ? { gridColumn: "1 / -1" } : undefined}>
-                                        <KpiCard kpi={k} companion={companions.get(k.key)} />
-                                    </div>
-                                ))}
-                            </SimpleGrid>
-                        </Stack>
-                    ))}
-                </Stack>
-            ))}
+        <>
+            <ProjectTableOfContents sections={tocSections} />
+            <Stack gap="xl">
+                {groups.map((g) => (
+                    <Stack key={g.kind} gap="md" ref={refOf(g.kind)} style={{ scrollMarginTop: 80 }}>
+                        <Title order={3}>{KPI_KIND_LABEL[g.kind] ?? g.kind}</Title>
+                        {g.categories.map((c) => (
+                            <Stack
+                                key={c.category ?? "none"}
+                                gap="xs"
+                                ref={c.category ? refOf(`${g.kind}:${c.category}`) : undefined}
+                                style={{ scrollMarginTop: 80 }}
+                            >
+                                {c.category && (
+                                    <Text fw={600} size="sm" c="dimmed" tt="uppercase">
+                                        {KPI_CATEGORY_LABEL[c.category] ?? c.category}
+                                    </Text>
+                                )}
+                                <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                                    {c.kpis.map((k) => (
+                                        // Small multiples and the flow lists need the full row.
+                                        <div key={k.key} style={k.chart_layout === "split" || k.chart_layout === "flow" ? { gridColumn: "1 / -1" } : undefined}>
+                                            <KpiCard kpi={k} companion={companions.get(k.key)} />
+                                        </div>
+                                    ))}
+                                </SimpleGrid>
+                            </Stack>
+                        ))}
+                    </Stack>
+                ))}
+            </Stack>
+        </>
+    );
+}
+
+function projectsOf(entry: InfraplanReportEntry): LinkedProject[] {
+    return (entry.projects ?? [])
+        .map((p) => ({ id: Number(p.id), name: String(p.name ?? `Projekt ${p.id}`) }))
+        .filter((p) => Number.isFinite(p.id));
+}
+
+function Fact({ label, value }: { label: string; value: React.ReactNode }) {
+    return (
+        <Stack gap={2} align="flex-end" maw={180}>
+            <Text size="xs" c="dimmed">{label}</Text>
+            <Text size="sm" fw={600} ta="right">{value}</Text>
         </Stack>
     );
 }
 
-function projectsOf(entry: InfraplanReportEntry): { id: number; name: string }[] {
-    return (entry.projects ?? [])
-        .map((p) => ({ id: Number(p.id), name: String(p.name ?? `Projekt ${p.id}`) }))
-        .filter((p) => Number.isFinite(p.id));
+/** One Maßnahme, laid out like a FinVe card. */
+function MeasureCard({ entry }: { entry: InfraplanReportEntry }) {
+    const cost = entryCost(entry);
+    return (
+        <ChronicleCard>
+            <Stack gap="md">
+                <Group justify="space-between" align="flex-start" wrap="wrap" gap="sm">
+                    <Stack gap={4} style={{ flex: "1 1 280px", minWidth: 0 }}>
+                        <Group gap="sm" align="center">
+                            <ChronicleDataChip>{SECTION_SHORT[entry.section] ?? entry.section}</ChronicleDataChip>
+                            <ChronicleDataChip>Nr. {entry.lfd_nr}</ChronicleDataChip>
+                            {entry.primary_number && <ChronicleDataChip>{entry.primary_number}</ChronicleDataChip>}
+                        </Group>
+                        <Text fw={600} size="md" lh={1.3}>
+                            {entry.bezeichnung ?? "–"}
+                            <Footnotes footnotes={entry.footnotes} />
+                        </Text>
+                        {entry.massnahme && entry.massnahme !== entry.bezeichnung && (
+                            <Text size="sm" c="dimmed">{entry.massnahme}</Text>
+                        )}
+                    </Stack>
+                    <Group gap="lg" align="flex-start" wrap="wrap">
+                        <Fact label="Stand" value={entry.state_raw ?? "–"} />
+                        <Fact label="IBN" value={entry.ibn_raw ?? "–"} />
+                        <Fact label="Kosten Mio. €" value={cost !== null ? formatMio(cost) : (entry.cost_ref_raw ?? "–")} />
+                        <Fact
+                            label="Befassung"
+                            value={entry.parl_state ? (PARL_LABEL[entry.parl_state] ?? entry.parl_state) : (entry.parl_raw ?? "–")}
+                        />
+                    </Group>
+                </Group>
+                <LinkedProjects projects={projectsOf(entry)} />
+            </Stack>
+        </ChronicleCard>
+    );
 }
 
 function Measures({ year }: { year: number }) {
@@ -356,7 +431,7 @@ function Measures({ year }: { year: number }) {
 
     const pageRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
     return (
-        <Stack gap="sm">
+        <Stack gap="md">
             <Group gap="sm" wrap="wrap">
                 <Select
                     placeholder="Abschnitt"
@@ -376,63 +451,16 @@ function Measures({ year }: { year: number }) {
                         setSearch(e.currentTarget.value);
                         setPage(1);
                     }}
-                    w={{ base: "100%", xs: 260 }}
+                    flex="1 1 260px"
                 />
-                <Text size="sm" c="dimmed">{filtered.length} Maßnahmen</Text>
             </Group>
-            <ResponsiveTable minWidth={980} striped withTableBorder verticalSpacing="xs" fz="sm">
-                <Table.Thead>
-                    <Table.Tr>
-                        <Table.Th>Abschnitt</Table.Th>
-                        <Table.Th>Maßnahme</Table.Th>
-                        <Table.Th>Stand</Table.Th>
-                        <Table.Th>IBN</Table.Th>
-                        <Table.Th ta="right">Kosten Mio. €</Table.Th>
-                        <Table.Th>Befassung</Table.Th>
-                        <Table.Th>Projekt</Table.Th>
-                    </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                    {pageRows.map((e) => {
-                        const cost = entryCost(e);
-                        const projects = projectsOf(e);
-                        return (
-                            <Table.Tr key={e.id}>
-                                <Table.Td style={{ whiteSpace: "nowrap" }}>
-                                    {SECTION_SHORT[e.section] ?? e.section}
-                                    <Text size="xs" c="dimmed">Nr. {e.lfd_nr}{e.primary_number ? ` · ${e.primary_number}` : ""}</Text>
-                                </Table.Td>
-                                <Table.Td style={{ maxWidth: 320 }}>
-                                    {e.bezeichnung ?? "–"}
-                                    <Footnotes footnotes={e.footnotes} />
-                                    {e.massnahme && e.massnahme !== e.bezeichnung && (
-                                        <Text size="xs">{e.massnahme}</Text>
-                                    )}
-                                </Table.Td>
-                                <Table.Td style={{ maxWidth: 180 }}>{e.state_raw ?? "–"}</Table.Td>
-                                <Table.Td style={{ whiteSpace: "nowrap" }}>{e.ibn_raw ?? "–"}</Table.Td>
-                                <Table.Td ta="right" style={{ whiteSpace: "nowrap" }}>
-                                    {cost !== null ? formatMio(cost) : (e.cost_ref_raw ?? "–")}
-                                </Table.Td>
-                                <Table.Td>{e.parl_state ? (PARL_LABEL[e.parl_state] ?? e.parl_state) : (e.parl_raw ?? "–")}</Table.Td>
-                                <Table.Td>
-                                    {projects.length === 0 ? (
-                                        <Text size="xs" c="dimmed">–</Text>
-                                    ) : (
-                                        <Stack gap={0}>
-                                            {projects.map((p) => (
-                                                <Anchor key={p.id} component={Link} to={`/projects/${p.id}`} size="sm">
-                                                    {p.name}
-                                                </Anchor>
-                                            ))}
-                                        </Stack>
-                                    )}
-                                </Table.Td>
-                            </Table.Tr>
-                        );
-                    })}
-                </Table.Tbody>
-            </ResponsiveTable>
+            <Text size="sm" c="dimmed">{filtered.length} von {(entries ?? []).length} Maßnahmen</Text>
+            {filtered.length === 0 && (
+                <Text c="dimmed" ta="center" py="xl">Keine Maßnahmen gefunden.</Text>
+            )}
+            {pageRows.map((e) => (
+                <MeasureCard key={e.id} entry={e} />
+            ))}
             {filtered.length > PAGE_SIZE && (
                 <Group justify="center">
                     <Pagination total={Math.ceil(filtered.length / PAGE_SIZE)} value={page} onChange={setPage} size="sm" />
@@ -442,12 +470,33 @@ function Measures({ year }: { year: number }) {
     );
 }
 
+type View = "kennzahlen" | "massnahmen";
+
 export default function InfraplanPage() {
     const isMobile = useIsMobile();
+    const [searchParams, setSearchParams] = useSearchParams();
     const { data: reports, isLoading: reportsLoading } = useInfraplanPublicReports();
     const { data: kpis, isLoading: kpisLoading } = useInfraplanPublicKpis();
-    const [year, setYear] = useState<number | null>(null);
+    const view: View = searchParams.get("view") === "massnahmen" ? "massnahmen" : "kennzahlen";
+    const year = Number(searchParams.get("jahr")) || null;
     const current = reports?.find((r) => r.year === year) ?? reports?.[0] ?? null;
+    // Targets are compared with the Jahrgang before the chosen one.
+    const compareYear =
+        (reports ?? []).map((r) => r.year).filter((y) => current && y < current.year).sort((a, b) => b - a)[0] ?? null;
+    const kpisForYear = useMemo(
+        () => (current ? kpisAsOf(kpis ?? [], current.year, compareYear) : (kpis ?? [])),
+        [kpis, current, compareYear],
+    );
+
+    const setParam = (key: string, value: string | null) =>
+        setSearchParams(
+            (prev) => {
+                if (value) prev.set(key, value);
+                else prev.delete(key);
+                return prev;
+            },
+            { replace: true },
+        );
 
     if (reportsLoading || kpisLoading) {
         return <Container py="xl"><Group justify="center"><Loader /></Group></Container>;
@@ -456,18 +505,38 @@ export default function InfraplanPage() {
     return (
         <Container size="xl" pt={{ base: "md", sm: "xl" }} pb="xl" px={{ base: 0, sm: "md" }}>
             <Stack gap="xl">
-                <Stack gap="xs">
-                    <Group gap="xs" align="center">
+                <Group justify="space-between" align="center" wrap="wrap" gap="sm">
+                    <Group gap="xs" align="center" wrap="nowrap">
                         <ChronicleHeadline as="h1">Infraplan</ChronicleHeadline>
-                        {current && <ChronicleDataChip>Infraplan {current.year}</ChronicleDataChip>}
+                        <Tooltip
+                            label="Der Infraplan ist der jährlich fortgeschriebene Fünfjahresplan des Bundes für die
+                                Schieneninfrastruktur. Er nennt je Maßnahme Realisierungsstand, geplante Inbetriebnahme,
+                                Kosten und parlamentarische Befassung sowie Kennzahlen mit Ist- und Zielwerten. Jeder
+                                Jahrgang bleibt erhalten, damit sich Kosten, Termine und Ziele über die Jahre vergleichen
+                                lassen."
+                            multiline
+                            w={320}
+                            withArrow
+                            events={{ hover: true, focus: true, touch: true }}
+                        >
+                            <ActionIcon variant="subtle" color="gray" size="md" aria-label="Was ist der Infraplan?">
+                                <IconInfoCircle size={18} />
+                            </ActionIcon>
+                        </Tooltip>
                     </Group>
-                    <Text size="sm" c="dimmed">
-                        Der Infraplan ist der jährlich fortgeschriebene Fünfjahresplan des Bundes für die
-                        Schieneninfrastruktur. Er nennt je Maßnahme Realisierungsstand, geplante Inbetriebnahme, Kosten
-                        und parlamentarische Befassung sowie Kennzahlen mit Ist- und Zielwerten. Jeder Jahrgang bleibt
-                        erhalten, damit sich Kosten, Termine und Ziele über die Jahre vergleichen lassen.
-                    </Text>
-                </Stack>
+                    {reports && reports.length > 1 ? (
+                        <Select
+                            aria-label="Jahrgang"
+                            data={reports.map((r) => ({ value: String(r.year), label: `Infraplan ${r.year}` }))}
+                            value={String(current?.year ?? "")}
+                            onChange={(v) => setParam("jahr", v)}
+                            allowDeselect={false}
+                            w={{ base: "100%", xs: 180 }}
+                        />
+                    ) : (
+                        current && <ChronicleDataChip>Infraplan {current.year}</ChronicleDataChip>
+                    )}
+                </Group>
 
                 {!reports || reports.length === 0 ? (
                     <Alert color="gray" variant="light" title="Noch kein Infraplan eingelesen">
@@ -475,32 +544,43 @@ export default function InfraplanPage() {
                     </Alert>
                 ) : (
                     <>
-                        <Stack gap="md">
-                            <ChronicleHeadline as="h2">Kennzahlen</ChronicleHeadline>
-                            <Kpis kpis={kpis ?? []} />
-                        </Stack>
+                        <Group justify="center">
+                            <SegmentedControl
+                                value={view}
+                                onChange={(v) => setParam("view", v === "massnahmen" ? v : null)}
+                                size="md"
+                                fullWidth={isMobile}
+                                style={isMobile ? { flex: 1, minWidth: 0 } : { minWidth: 300 }}
+                                data={[
+                                    { value: "kennzahlen", label: "Kennzahlen" },
+                                    { value: "massnahmen", label: "Maßnahmen" },
+                                ]}
+                            />
+                        </Group>
 
-                        <Stack gap="md">
-                            <Group justify="space-between" align="flex-end" wrap="wrap">
-                                <ChronicleHeadline as="h2">Maßnahmen</ChronicleHeadline>
-                                {reports.length > 1 && (
-                                    <SegmentedControl
-                                        data={reports.map((r) => ({ value: String(r.year), label: String(r.year) }))}
-                                        value={String(current?.year ?? "")}
-                                        onChange={(v) => setYear(Number(v))}
-                                        fullWidth={isMobile}
-                                    />
+                        {view === "kennzahlen" ? (
+                            <Stack gap="md">
+                                {current && (
+                                    <Text size="sm" c="dimmed">
+                                        Ist- und Zielwerte aus dem Infraplan {current.year}
+                                        {compareYear
+                                            ? `, im Vergleich zu den Zielen des Infraplans ${compareYear} (gestrichelt).`
+                                            : "."}
+                                    </Text>
                                 )}
-                            </Group>
-                            {current && (
-                                <Text size="sm" c="dimmed">
-                                    {current.title ?? `Infraplan ${current.year}`}
-                                    {current.published_on ? `, veröffentlicht ${formatDateShort(current.published_on)}` : ""}
-                                    {` · ${current.entry_count} Maßnahmen`}
-                                </Text>
-                            )}
-                            {current && <Measures key={current.year} year={current.year} />}
-                        </Stack>
+                                <Kpis kpis={kpisForYear} />
+                            </Stack>
+                        ) : (
+                            current && (
+                                <Stack gap="md">
+                                    <Text size="sm" c="dimmed">
+                                        {current.title ?? `Infraplan ${current.year}`}
+                                        {current.published_on ? `, veröffentlicht ${formatDateShort(current.published_on)}` : ""}
+                                    </Text>
+                                    <Measures key={current.year} year={current.year} />
+                                </Stack>
+                            )
+                        )}
                     </>
                 )}
             </Stack>

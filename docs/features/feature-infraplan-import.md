@@ -338,9 +338,11 @@ Kosten, Befassung; ab dem zweiten Jahrgang Delta-Spalten („GWU +12 %“, „IB
 fehlt, zuvor aber enthalten war. Mobil über `ResponsiveTable`.
 
 **Öffentliche Seite `/infraplan`:** Kennzahlen gruppiert nach Kategorie, je Kennzahl ein
-Diagramm: Ist-Werte aus dem neuesten Jahrgang als Balken/Linie, Zielwerte **jedes**
-Jahrgangs als eigene Linie („Ziel IP 2026“, „Ziel IP 2027“), sodass Zielverschiebungen
-sichtbar sind. Teilreihen (`series`) nur mit Ist-Werten (z. B. Betriebsleistung nach
+Diagramm für den gewählten Jahrgang: Ist-Werte aus diesem Jahrgang (fehlen sie dort, aus dem
+jüngsten älteren) als Balken, seine Zielwerte als durchgezogene Linie und die Zielwerte des
+**Vorjahrgangs** gestrichelt daneben („Ziel IP 2027“ gegen „Ziel IP 2026“), sodass
+Zielverschiebungen sichtbar sind. Spätere Jahrgänge blendet die Auswahl aus
+(`kpisAsOf` in `infraplanFormat.ts`). Teilreihen (`series`) nur mit Ist-Werten (z. B. Betriebsleistung nach
 SPNV/SPFV/SGV) bleiben ein Stapel; der Tooltip nennt zusätzlich die Summe. Hat eine
 Kennzahl Zielwerte je Teilreihe (z. B. die KMM-Kategorien), zeigt die Übersicht nur
 deren Summe je Jahr; der Button „Details“ öffnet eine Ansicht
@@ -370,7 +372,19 @@ Info-Symbol neben dem Namen — für Kennzahlen, deren Name allein nicht sagt, w
 wird (Kapazitätsauslastung: Anteil der gefahrenen Trassenkilometer in überausgelasteten
 Netzabschnitten, Infraplan 2026 Anhang I; der Seed und Migration `20261021002` tragen
 diese Erklärung ein). Nur Werte mit Status
-`GEPRUEFT`. Darunter je Jahrgang die Liste der Maßnahmen mit Link aufs Projekt.
+`GEPRUEFT`.
+
+Aufbau der Seite: Kopf mit Titel, Info-Symbol (Tooltip mit der Erklärung, was der Infraplan
+ist) und — sobald es mehr als einen Jahrgang gibt — einem Dropdown für den Jahrgang; er
+gilt für beide Ansichten (Kennzahlen: Ist und Ziel des Jahrgangs gegen die Ziele des
+Vorjahrgangs; Maßnahmen: Einträge des Jahrgangs). Darunter
+ein zentraler Umschalter wie auf der Startseite (Karte/Liste/Zeitstrahl) mit den Ansichten
+**Kennzahlen** und **Maßnahmen**; die Wahl steht in der URL (`?view=massnahmen`), damit
+sich die Ansicht teilen lässt. Die Kennzahlen bekommen das Inhaltsverzeichnis der
+Projektseite (Knopf am linken Rand) mit einem Eintrag je Bereich (Kennzahl-Art bzw.
+Kategorie). Die Maßnahmen des gewählten Jahrgangs stehen mit Filter (Abschnitt, Suche) als
+Karten wie in der FinVe-Übersicht: Kopf mit Abschnitt und Nummer, Bezeichnung, rechts
+Stand, Inbetriebnahme, Kosten und Befassung, darunter die verknüpften Projekte als Knöpfe.
 
 Diese Darstellungsregeln sind Felder der Kennzahl-Definition (`infraplan_kpi`), keine
 Konstanten im Frontend: Admin → Infraplan → Reiter „Allgemeines“ → Kennzahlen zeigt alle

@@ -12,6 +12,7 @@ import {
     kpiFlow,
     kpiOverview,
     kpiSubSeries,
+    kpisAsOf,
     measureKey,
     stackTotal,
     zoomedDomain,
@@ -304,5 +305,31 @@ describe("zoomedDomain", () => {
         const rate = { ...chart, data: [{ year: "2024", "ist|": 98.9, "r:ist|": null }, { year: "2027", "ist|": 99.8, "r:ist|": null }] };
         expect(zoomedDomain(rate, "%")).toEqual([98, 100]);
         expect(zoomedDomain({ series: [], data: [] })).toBeNull();
+    });
+});
+
+describe("kpisAsOf", () => {
+    const kpi = {
+        values: [
+            { report_year: 2026, year: 2024, value_kind: "IST", series: null, value: 10 },
+            { report_year: 2028, year: 2026, value_kind: "IST", series: null, value: 12 },
+            { report_year: 2025, year: 2027, value_kind: "ZIEL", series: null, value: 40 },
+            { report_year: 2026, year: 2027, value_kind: "ZIEL", series: null, value: 30 },
+            { report_year: 2027, year: 2027, value_kind: "ZIEL", series: null, value: 25 },
+            { report_year: 2028, year: 2027, value_kind: "ZIEL", series: null, value: 20 },
+        ],
+    } as Pick<InfraplanPublicKpi, "values">;
+
+    it("keeps Ist up to the chosen Jahrgang and the targets of it and the comparison year", () => {
+        const [k] = kpisAsOf([kpi], 2027, 2026);
+        expect(k.values!.map((v) => `${v.value_kind} ${v.report_year}`)).toEqual(["IST 2026", "ZIEL 2026", "ZIEL 2027"]);
+        const chart = buildKpiChart(k);
+        expect(chart.istReportYear).toBe(2026);
+        expect(chart.series.map((s) => s.label)).toEqual(["Ist", "Ziel IP 2027", "Ziel IP 2026"]);
+    });
+
+    it("shows only the chosen targets without a comparison year", () => {
+        const [k] = kpisAsOf([kpi], 2025, null);
+        expect(k.values!.map((v) => `${v.value_kind} ${v.report_year}`)).toEqual(["ZIEL 2025"]);
     });
 });
