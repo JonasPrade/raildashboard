@@ -1,6 +1,6 @@
 from mcp.server.mcpserver import MCPServer
 
-from . import data_quality, finves, fulda, geometry, gvfg, projects, skills, todos
+from . import data_quality, finves, fulda, geometry, gvfg, projects, skills, todos, vib
 
 
 def register_all(server: MCPServer) -> None:
@@ -11,4 +11,5 @@ def register_all(server: MCPServer) -> None:
     data_quality.register(server)
     fulda.register(server)
     gvfg.register(server)
+    vib.register(server)
     skills.register(server)

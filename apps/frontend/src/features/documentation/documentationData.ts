@@ -289,8 +289,11 @@ export const featureHighlights: FeatureHighlight[] = [
         description:
             "Editors and administrators can upload the annual Verkehrsinvestitionsbericht as PDF and import all Section B rail projects. " +
             "The PDF is parsed asynchronously via a Celery background task. " +
-            "A card-based review step lets users inspect each Vorhaben individually before confirming.",
+            "A card-based review step lets users inspect each Vorhaben individually before confirming. " +
+            "Preferred since 2026-10: Claude reads the report itself over the MCP server (skill vib-import) and records Vorhaben, PFA tables and project assignments with a reason; the upload stays as a second way.",
         details: [
+            "MCP-Weg (empfohlen): Claude liest den VIB mit dem Skill vib-import ein oder prüft einen vorhandenen Jahrgang; jede Zuordnung trägt eine Begründung, ein Vorhaben kann mehreren Projekten zugeordnet sein",
+            "Über MCP geschriebene Einträge sind „unbestätigt“ und fließen erst nach dem Bestätigen (MCP oder Knopf „Bestätigen“ auf der Projektseite) in den Planungsstand ein; Zuordnen in der Oberfläche bestätigt ebenfalls",
             "Upload PDF + Berichtsjahr → background task starts, frontend polls every 2 s",
             "Review: one card per Vorhaben, navigate with ← / → arrows",
             "Each card shows: Kenndaten, Planungsstand, Bauaktivitäten, Teilinbetriebnahmen, PFA-Tabelle, editable Volltext",

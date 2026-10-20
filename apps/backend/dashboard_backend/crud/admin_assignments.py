@@ -121,4 +121,9 @@ def assign_vib_entry_to_projects(db: Session, entry_id: int, project_ids: list[i
     ]
     if new_rows:
         db.execute(vib_entry_project.insert(), new_rows)
+    # An editor assigning here decides, so the entry counts as confirmed
+    # (feature-vib-import.md → Phase 7).
+    db.query(VibEntry).filter(VibEntry.id == entry_id).update(
+        {VibEntry.confirmed: True}, synchronize_session=False
+    )
     db.flush()

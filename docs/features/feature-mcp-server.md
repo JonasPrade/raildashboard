@@ -35,8 +35,9 @@ Rechtemodell — ein Key kann nie mehr als der Nutzer, dem er gehört.
   Zuordnungen mit Begründung, abgeleitete Beobachtungen entstehen erst beim Bestätigen.
   Jeder Import gated über sein eigenes `*.import`-Recht. Umgesetzt bzw. geplant:
   **Fulda-Runde** (Agent liest das PDF selbst, kein Upload, siehe
-  `feature-fulda-import.md`) und **Infraplan** (Tools nach dem Upload, siehe
-  `feature-infraplan-import.md` → „MCP & Skill“). Skills für diese Abläufe liegen in
+  `feature-fulda-import.md`), **VIB** (Agent liest das PDF selbst, der Upload bleibt als
+  zweiter Weg, siehe `feature-vib-import.md` → Phase 7) und **Infraplan** (Tools nach dem
+  Upload, siehe `feature-infraplan-import.md` → „MCP & Skill“). Skills für diese Abläufe liegen in
   `.claude/skills/` und kommen vom Server (nächster Punkt).
 - **Skills kommen vom MCP (2026-10-17):** Skills für die Arbeit über den MCP werden
   nicht mehr von Hand nach claude.ai hochgeladen, sondern vom Server selbst
@@ -96,7 +97,7 @@ konfigurierbaren Headern (Claude Code) funktionieren schon vorher.
 **Out of scope:**
 
 - OAuth / Authentik-Anbindung (eigenes Thema, siehe oben).
-- MCP-Tools für die übrigen Importe (VIB, Haushalt, Bauportal, Medien) — erlaubt
+- MCP-Tools für die übrigen Importe (Haushalt, Bauportal, Medien) — erlaubt
   (siehe oben), aber noch nicht gebaut.
 - Löschen von Projekten oder anderen Stammdaten über MCP (einzelne Geometrie-Features
   schon, siehe `edit_project_geometry`).
@@ -541,7 +542,7 @@ Code; ob claude.ai das Feld auswertet, ist nicht dokumentiert).
 - [x] `make test` baut Test- und Runtime-Image mit Kontext `skills`; `release.yml` und
       `compose.override.yaml` ebenso.
 - [ ] Nach dem nächsten Deploy liefert `list_skills` in claude.ai die markierten Skills
-      (zuerst `fulda-runde`, später `infraplan-import` mit #182).
+      (zuerst `fulda-runde` und `vib-import`, später `infraplan-import` mit #182).
 
 ## Umsetzung
 

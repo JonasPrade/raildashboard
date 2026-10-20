@@ -175,6 +175,7 @@ def create_vib_report_with_entries(
             vib_report_id=report.id,
             vib_section=entry_data.vib_section,
             vib_lfd_nr=entry_data.vib_lfd_nr,
+            confirmed=True,  # reviewed in the upload review (Phase 7: MCP writes start False)
             **entry_data.model_dump(include=_ENTRY_CONTENT_FIELDS),
         )
         db.add(vib_entry)
@@ -303,6 +304,11 @@ def update_vib_entry(db: Session, entry_id: int, data: VibEntryUpdateSchema) -> 
                 vib_entry_project.insert(),
                 [{"vib_entry_id": entry_id, "project_id": pid} for pid in unique_pids],
             )
+        # An editor setting the projects decides — the entry counts as confirmed.
+        entry.confirmed = True
+
+    if data.confirmed is not None:
+        entry.confirmed = data.confirmed
 
     db.flush()
     db.expire(entry)

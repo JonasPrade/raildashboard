@@ -574,6 +574,13 @@ ship it separately (2024–2028), the annex with the informational part. Spec:
 
 ## Verkehrsinvestitionsbericht (VIB) Import
 
+**Preferred way in: MCP + skill** (`docs/features/feature-vib-import.md` → Phase 7). An
+agent reads the report itself (skill `.claude/skills/vib-import/`) and writes it with the
+MCP tools in `dashboard_backend/mcp/tools/vib.py` (DB layer `crud/vib_agent.py`, permission
+`vib.import`). Entries written over MCP are unconfirmed (`vib_entry.confirmed = false`)
+and only feed the planning state after `confirm_vib_report`; the upload below writes
+confirmed entries and stays as the second way.
+
 Yearly import of the Bundestag printed paper „Verkehrsinvestitionsbericht für das Berichtsjahr XXXX". Only **Section B** (Schienenwege der Eisenbahnen des Bundes) is imported; sections C and D are ignored.
 
 ### Import workflow

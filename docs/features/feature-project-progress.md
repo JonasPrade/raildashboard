@@ -127,7 +127,8 @@ einem **Blatt-Unterprojekt** zugeordnet (1:1, nullable, `SET NULL`):
   zugeordnete PFA, wird die **Eintrags-Sammel-Phase nicht mehr aufs Elternprojekt**
   geschrieben — der Superior bekommt seinen Stand allein über die Spanne der Kinder.
   Ohne Zuordnung verhält sich alles **rückwärtskompatibel** wie bisher.
-- **Zuordnung per Vorschlag + Editor-Bestätigung:** Im VIB-Review/-Edit wird je PFA ein
+- **Zuordnung per Vorschlag + Editor-Bestätigung:** Im VIB-Review/-Edit bzw. über MCP
+  (`get_vib_entry`, `assign_vib_pfa`, `feature-vib-import.md` → Phase 7) wird je PFA ein
   Unterprojekt vorgeschlagen (Fuzzy-Match `nr_pfa`/`abschnitt_label`/`oertlichkeit` gegen
   die Unterprojekt-Namen) und vom Editor bestätigt/korrigiert. Nicht zugeordnete Abschnitte
   bleiben „offen". Es werden nur **bestehende** Unterprojekte angeboten (kein Auto-Anlegen).
@@ -205,7 +206,8 @@ sieht. Backend-Python: `apps/backend/.venv/bin/python`.
 - **DB-Zugriff** in `crud/projects/progress.py`:
   - `sync_derived_observations(db, project_id)` — löscht `is_derived=True`-Zeilen und
     regeneriert sie aus aktuell verknüpften VIB/FinVe-Records (**materialisieren**, nicht
-    derive-on-read). Lazy bei stalem `computed_at` im GET + explizit per „recompute".
+    derive-on-read). VIB nur aus **bestätigten** Einträgen (`vib_entry.confirmed`, seit
+    2026-10-20; über MCP geschriebene Einträge sind bis zum Bestätigen offen). Lazy bei stalem `computed_at` im GET + explizit per „recompute".
   - Mapping VIB: `status_planung→≥VORPLANUNG`, `status_bau→≥BAU`,
     `status_abgeschlossen→≥IN_BETRIEB` (Eintrags-Flags, am Elternprojekt unterdrückt
     sobald PFAs auf Unterprojekte zugeordnet sind); PFA-Felder → PF-Spur + Prognose **und**

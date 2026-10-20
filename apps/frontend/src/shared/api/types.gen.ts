@@ -6546,6 +6546,15 @@ export interface components {
              */
             ai_extracted: boolean;
             /**
+             * Confirmed
+             * @default true
+             */
+            confirmed: boolean;
+            /** Assignment Note */
+            assignment_note?: string | null;
+            /** Page */
+            page?: number | null;
+            /**
              * Pfa Entries
              * @default []
              */
@@ -6716,6 +6725,15 @@ export interface components {
              */
             ai_extracted: boolean;
             /**
+             * Confirmed
+             * @default true
+             */
+            confirmed: boolean;
+            /** Assignment Note */
+            assignment_note?: string | null;
+            /** Page */
+            page?: number | null;
+            /**
              * Pfa Entries
              * @default []
              */
@@ -6769,6 +6787,8 @@ export interface components {
             pfa_entries?: components["schemas"]["VibPfaEntryProposed"][] | null;
             /** Project Ids */
             project_ids?: number[] | null;
+            /** Confirmed */
+            confirmed?: boolean | null;
         };
         /** VibOcrAvailableResponse */
         VibOcrAvailableResponse: {

@@ -97,14 +97,14 @@ def get_group_timeline(
             .join(VibEntry, VibEntry.id == VibPfaEntry.vib_entry_id)
             .outerjoin(VibReport, VibReport.id == VibEntry.vib_report_id)
             .join(vib_entry_project, vib_entry_project.c.vib_entry_id == VibEntry.id)
-            .filter(vib_entry_project.c.project_id.in_(all_ids))
+            .filter(vib_entry_project.c.project_id.in_(all_ids), VibEntry.confirmed.is_(True))
             .all()
         )
         assigned = (
             db.query(VibPfaEntry, VibReport, VibPfaEntry.project_id)
             .join(VibEntry, VibEntry.id == VibPfaEntry.vib_entry_id)
             .outerjoin(VibReport, VibReport.id == VibEntry.vib_report_id)
-            .filter(VibPfaEntry.project_id.in_(all_ids))
+            .filter(VibPfaEntry.project_id.in_(all_ids), VibEntry.confirmed.is_(True))
             .all()
         )
         for pfa, report, project_id in [*linked, *assigned]:
