@@ -101,19 +101,23 @@ def _round(value: float) -> float:
     return round(float(value), 2)
 
 
-# Some prints of the Infraplan 2026 (``261002_Infraplan_2026.pdf``) carry no
-# Unicode mapping for the full stop of the table font: pdfplumber returns
-# U+FFFD for every "." ("4gl�", "1�676,02", "E�1637260058"). The glyph is a
-# full stop in every case seen, and without it numbers, cost references and
-# project numbers no longer parse.
+# Some prints of the Infraplan 2026 (``261002_Infraplan_2026.pdf``) carry a
+# broken Unicode mapping for the full stop of the table font: pdfplumber
+# returns U+FFFD for every "." ("4gl�", "1�676,02", "E�1637260058"). The glyph
+# is a full stop in every case seen, and without it numbers, cost references
+# and project numbers no longer parse.
 _FULL_STOP_FIXES = str.maketrans({"\ufffd": "."})
+
+
+def restore_full_stops(text: str) -> str:
+    return text.translate(_FULL_STOP_FIXES)
 
 
 def extract_page(page, number: int) -> PageData:
     """Words with font size and the header tables of one pdfplumber page."""
     words = [
         {
-            "text": w["text"].translate(_FULL_STOP_FIXES),
+            "text": restore_full_stops(w["text"]),
             "x0": _round(w["x0"]),
             "x1": _round(w["x1"]),
             "top": _round(w["top"]),
@@ -618,28 +622,51 @@ def _parse_region(page: PageData, region: _Region, state: ParseState) -> None:
 def _to_row(raw: _RawRow) -> InfraplanParsedRow:
     first = raw.cell("lfd_projekt") or ""
     match = _ROW_START_RE.match(first)
-    numbers_raw = match.group(2).strip() if match else None
-    numbers = parse_project_numbers(numbers_raw, raw.section)
-
-    state_raw = raw.cell("state")
-    state = parse_state(state_raw)
-    ibn_raw = raw.cell("ibn")
-    ibn_year, ibn_qualifier = parse_ibn(ibn_raw)
-    cost_raw = raw.cell("cost")
-    ref = parse_cost_ref(cost_raw)
-    parl_raw = raw.cell("parl")
-
-    return InfraplanParsedRow(
-        row_key=f"{raw.section}-{raw.lfd_nr}",
+    return build_row(
         section=raw.section,
         lfd_nr=raw.lfd_nr,
         page=raw.page,
+        numbers_raw=match.group(2).strip() if match else None,
+        cells={key: raw.cell(key) for key in _CELL_FIELDS},
+        cost_kind=raw.layout.cost_kind,
+        footnote_refs=raw.footnote_refs,
+    )
+
+
+_CELL_FIELDS = ("bezeichnung", "massnahme", "land", "state", "ibn", "cost", "parl")
+
+
+def build_row(
+    *,
+    section: str,
+    lfd_nr: int,
+    page: int,
+    numbers_raw: str | None,
+    cells: dict[str, str | None],
+    cost_kind: str,
+    footnote_refs: list[int],
+) -> InfraplanParsedRow:
+    """Stage 3 for one row: the raw cell texts → normalised fields."""
+    numbers = parse_project_numbers(numbers_raw, section)
+    state_raw = cells.get("state")
+    state = parse_state(state_raw)
+    ibn_raw = cells.get("ibn")
+    ibn_year, ibn_qualifier = parse_ibn(ibn_raw)
+    cost_raw = cells.get("cost")
+    ref = parse_cost_ref(cost_raw)
+    parl_raw = cells.get("parl")
+
+    return InfraplanParsedRow(
+        row_key=f"{section}-{lfd_nr}",
+        section=section,
+        lfd_nr=lfd_nr,
+        page=page,
         project_numbers_raw=numbers_raw or None,
         project_numbers=numbers,
         primary_number=numbers[0] if numbers else None,
-        bezeichnung=raw.cell("bezeichnung"),
-        massnahme=raw.cell("massnahme"),
-        laender=raw.cell("land"),
+        bezeichnung=cells.get("bezeichnung"),
+        massnahme=cells.get("massnahme"),
+        laender=cells.get("land"),
         state_raw=state_raw,
         lph_from=state.lph_from,
         lph_to=state.lph_to,
@@ -650,12 +677,12 @@ def _to_row(raw: _RawRow) -> InfraplanParsedRow:
         ibn_qualifier=ibn_qualifier,
         cost_raw=cost_raw,
         cost_mio=None if ref else parse_german_number(cost_raw),
-        cost_kind=raw.layout.cost_kind,
+        cost_kind=cost_kind,
         cost_ref_raw=cost_raw if ref else None,
         cost_ref=InfraplanCostRef(section=ref[0], lfd_nr=ref[1]) if ref else None,
         parl_raw=parl_raw,
         parl_state=parse_parl(parl_raw),
-        footnote_refs=raw.footnote_refs,
+        footnote_refs=list(footnote_refs),
     )
 
 
@@ -690,6 +717,50 @@ def resolve_cost_refs(rows: list[InfraplanParsedRow]) -> list[InfraplanWarning]:
             continue
         row.cost_ref.resolved = True
         row.cost_ref.cost_mio = target.cost_mio
+    return warnings
+
+
+# Glyphs without a usable Unicode mapping: U+FFFD, or pdfminer's "(cid:N)".
+_UNREADABLE_RE = re.compile(r"\ufffd|\(cid:\d+\)")
+_ROW_TEXT_FIELDS = (
+    "project_numbers_raw", "bezeichnung", "massnahme", "laender",
+    "state_raw", "ibn_raw", "cost_raw", "parl_raw",
+)
+_NO_COST_RE = re.compile(r"^(offen|[–-])$", re.IGNORECASE)
+
+
+def check_cell_texts(rows: list[InfraplanParsedRow]) -> list[InfraplanWarning]:
+    """Report what the text extraction could not read, instead of losing it
+    silently: unreadable glyphs, and cost cells that are neither a number nor
+    a reference."""
+    warnings: list[InfraplanWarning] = []
+    for row in rows:
+        texts = [getattr(row, f) for f in _ROW_TEXT_FIELDS] + list(row.footnotes.values())
+        bad = sorted({m.group(0) for t in texts if t for m in _UNREADABLE_RE.finditer(t)})
+        if bad:
+            warnings.append(
+                InfraplanWarning(
+                    kind="UNREADABLE_TEXT",
+                    section=row.section,
+                    lfd_nr=row.lfd_nr,
+                    page=row.page,
+                    message=(
+                        f"{row.section} {row.lfd_nr}: Zeichen im PDF nicht lesbar "
+                        f"({', '.join(bad)}). Bitte mit dem PDF abgleichen."
+                    ),
+                )
+            )
+        cost = (row.cost_raw or "").strip()
+        if cost and row.cost_mio is None and row.cost_ref is None and not _NO_COST_RE.match(cost):
+            warnings.append(
+                InfraplanWarning(
+                    kind="UNPARSED_COST",
+                    section=row.section,
+                    lfd_nr=row.lfd_nr,
+                    page=row.page,
+                    message=f"{row.section} {row.lfd_nr}: Kostenangabe „{cost}“ ist weder Zahl noch Verweis.",
+                )
+            )
     return warnings
 
 
@@ -755,6 +826,7 @@ def parse_pages(pages: list[PageData]) -> InfraplanParse:
     warnings = list(state.warnings)
     warnings += check_running_numbers(rows)
     warnings += resolve_cost_refs(rows)
+    warnings += check_cell_texts(rows)
 
     sections = [
         InfraplanSectionSummary(
@@ -772,6 +844,52 @@ def parse_pages(pages: list[PageData]) -> InfraplanParse:
         page_count=len(pages),
     )
     return InfraplanParse(output=output, warnings=warnings, kpi_pages=state.kpi_pages)
+
+
+def repair_rows(rows: list[dict]) -> tuple[list[dict], set[str], list[InfraplanWarning]]:
+    """Restore the full stops in already stored draft rows (``result_json``)
+    and derive their fields anew — for drafts parsed before
+    ``restore_full_stops`` existed, so they need no new upload.
+
+    Review state (suggestions, assignment) is kept. Returns the rows, the keys
+    of the rows that changed and the warnings of the repaired rows.
+    """
+    def fix(value):
+        return restore_full_stops(value) if isinstance(value, str) else value
+
+    rebuilt: list[InfraplanParsedRow] = []
+    changed: set[str] = set()
+    for row in rows:
+        new = build_row(
+            section=row["section"],
+            lfd_nr=row["lfd_nr"],
+            page=row["page"],
+            numbers_raw=fix(row.get("project_numbers_raw")),
+            cells={
+                "bezeichnung": fix(row.get("bezeichnung")),
+                "massnahme": fix(row.get("massnahme")),
+                "land": fix(row.get("laender")),
+                "state": fix(row.get("state_raw")),
+                "ibn": fix(row.get("ibn_raw")),
+                "cost": fix(row.get("cost_raw")),
+                "parl": fix(row.get("parl_raw")),
+            },
+            cost_kind=row["cost_kind"],
+            footnote_refs=row.get("footnote_refs") or [],
+        )
+        new.footnotes = {k: fix(v) for k, v in (row.get("footnotes") or {}).items()}
+        rebuilt.append(new)
+    warnings = resolve_cost_refs(rebuilt) + check_cell_texts(rebuilt)
+
+    review = ("suggestions", "project_ids", "assignment_source", "assignment_note", "assigned_by")
+    out: list[dict] = []
+    for old, new in zip(rows, rebuilt):
+        merged = new.model_dump(mode="json", exclude=set(review))
+        merged.update({k: old[k] for k in review if k in old})
+        if any(merged.get(k) != old.get(k) for k in merged):
+            changed.add(new.row_key)
+        out.append(merged)
+    return out, changed, warnings
 
 
 def parse_infraplan_pdf_bytes(pdf_bytes: bytes) -> InfraplanParse:

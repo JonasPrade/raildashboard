@@ -232,11 +232,15 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   with short names) and can be reverted like any other project field.
 
 ### Fixed
-- **Infraplan: full stops read as "�".** Some prints of the Infraplan 2026 carry no Unicode
-  mapping for the table font's full stop, so every "." came out as U+FFFD ("4gl�",
-  "1�676,02", "E�1637260058") — which also broke costs from 1,000 Mio. € on, the
-  "Ref. Teil …" cost references and the matching by project number. The text extraction now
-  restores the full stop; an already imported year needs a re-parse to pick it up.
+- **Infraplan: full stops read as "�".** Some prints of the Infraplan 2026 map the table
+  font's full stop to U+FFFD in their ToUnicode table, so every "." came out as "�"
+  ("4gl�", "1�676,02", "E�1637260058") — which also broke costs from 1,000 Mio. € on, the
+  "Ref. Teil …" cost references, the Lph of the state column and the matching by project
+  number. The text extraction now restores the full stop. Still unreadable glyphs
+  (U+FFFD, `(cid:N)`) and cost cells that are neither number nor reference become parser
+  warnings (`UNREADABLE_TEXT`, `UNPARSED_COST`) instead of being lost silently.
+  `scripts/repair_infraplan_full_stops.py` (dry run, `--apply` to write) repairs stored
+  drafts and the years confirmed from them in place — assignments and KPI values stay.
 - **Text history: partial updates no longer log untouched fields.** A text PATCH that sends
   only some fields (e.g. via MCP `upsert_project_text`) recorded every other tracked field as
   cleared; now only the sent fields are compared.

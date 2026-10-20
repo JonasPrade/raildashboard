@@ -24,7 +24,8 @@ Planungsstand, Prognose und Kosten des Projekts.
    (`status` = `SUCCESS`). Steht `status` auf `PENDING`/`RUNNING`, kurz warten und neu
    abfragen; bei `FAILURE` den `error` berichten und aufhören.
 2. **Hat der Entwurf `warnings`: anhalten.** Melde jede Warnung (Lücke oder Dublette in
-   den laufenden Nummern, unaufgelöster Kostenverweis, fehlender Abschnitt) und frag,
+   den laufenden Nummern, unaufgelöster Kostenverweis, fehlender Abschnitt, unlesbare
+   Zeichen, nicht lesbare Kostenangabe) und frag,
    wie es weitergehen soll. Bestätigen kann ihn dann nur ein Mensch im Frontend.
    `start_infraplan_parse` liest das PDF neu aus, wenn der Nutzer das will.
 3. Ist der Jahrgang unter `years` schon übernommen, nicht neu bestätigen — nur offene

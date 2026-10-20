@@ -9,6 +9,7 @@ writes ``infraplan_report`` / ``infraplan_entry`` / ``infraplan_entry_project``.
 
 from __future__ import annotations
 
+import json
 from collections import defaultdict
 from datetime import date, datetime
 from decimal import Decimal
@@ -414,6 +415,33 @@ def _decimal(value: Any) -> Decimal | None:
     return None if value is None else Decimal(str(value))
 
 
+def _entry_fields(row: dict[str, Any]) -> dict[str, Any]:
+    """The parsed fields of a draft row as ``InfraplanEntry`` columns."""
+    return {
+        "page": row.get("page"),
+        "project_numbers": row.get("project_numbers") or [],
+        "primary_number": row.get("primary_number"),
+        "bezeichnung": row.get("bezeichnung"),
+        "massnahme": row.get("massnahme"),
+        "laender": row.get("laender"),
+        "state_raw": row.get("state_raw"),
+        "lph_from": row.get("lph_from"),
+        "lph_to": row.get("lph_to"),
+        "under_construction": bool(row.get("under_construction")),
+        "baurecht": bool(row.get("baurecht")),
+        "ibn_raw": row.get("ibn_raw"),
+        "ibn_year": row.get("ibn_year"),
+        "ibn_qualifier": row.get("ibn_qualifier"),
+        "cost_mio": _decimal(row.get("cost_mio")),
+        "cost_kind": row.get("cost_kind"),
+        "cost_ref_raw": row.get("cost_ref_raw"),
+        "parl_raw": row.get("parl_raw"),
+        "parl_state": row.get("parl_state"),
+        "footnote_refs": row.get("footnote_refs") or [],
+        "footnotes": row.get("footnotes") or {},
+    }
+
+
 def _linked_project_ids(db: Session) -> set[int]:
     return {pid for (pid,) in db.query(InfraplanEntryProject.project_id).distinct()}
 
@@ -465,27 +493,7 @@ def confirm_parse_result(
             report_id=report.id,
             section=row["section"],
             lfd_nr=row["lfd_nr"],
-            page=row.get("page"),
-            project_numbers=row.get("project_numbers") or [],
-            primary_number=row.get("primary_number"),
-            bezeichnung=row.get("bezeichnung"),
-            massnahme=row.get("massnahme"),
-            laender=row.get("laender"),
-            state_raw=row.get("state_raw"),
-            lph_from=row.get("lph_from"),
-            lph_to=row.get("lph_to"),
-            under_construction=bool(row.get("under_construction")),
-            baurecht=bool(row.get("baurecht")),
-            ibn_raw=row.get("ibn_raw"),
-            ibn_year=row.get("ibn_year"),
-            ibn_qualifier=row.get("ibn_qualifier"),
-            cost_mio=_decimal(row.get("cost_mio")),
-            cost_kind=row.get("cost_kind"),
-            cost_ref_raw=row.get("cost_ref_raw"),
-            parl_raw=row.get("parl_raw"),
-            parl_state=row.get("parl_state"),
-            footnote_refs=row.get("footnote_refs") or [],
-            footnotes=row.get("footnotes") or {},
+            **_entry_fields(row),
         )
         db.add(entry)
         by_key[(entry.section, entry.lfd_nr)] = entry
@@ -685,3 +693,76 @@ def render_page(record: InfraplanParseResult, page: int, dpi: int = 110) -> byte
         if not 1 <= page <= doc.page_count:
             raise InfraplanNotFoundError(f"Seite {page} gibt es nicht (1–{doc.page_count}).")
         return doc[page - 1].get_pixmap(dpi=dpi).tobytes("png")
+
+
+# ---------------------------------------------------------------------------
+# Repair of drafts parsed before ``restore_full_stops``
+# ---------------------------------------------------------------------------
+
+# Warnings that depend on the cell texts; the rest (running numbers, layout)
+# do not change when the full stops come back.
+_TEXT_WARNING_KINDS = {"UNRESOLVED_REF", "UNREADABLE_TEXT", "UNPARSED_COST"}
+
+
+def repair_full_stops(db: Session, *, apply: bool) -> list[dict[str, Any]]:
+    """Restore the full stops read as U+FFFD in every stored draft and in the
+    year confirmed from it — in place, so assignments and KPI values stay.
+
+    Entries are updated by (section, lfd_nr) and cost references re-pointed.
+    With ``apply`` the changes are committed and the planning state of the
+    linked projects is re-materialised; otherwise nothing is written (dry
+    run). Returns one summary per draft that needs the repair.
+    """
+    from dashboard_backend.tasks.infraplan import repair_rows, restore_full_stops
+
+    summaries: list[dict[str, Any]] = []
+    affected: set[int] = set()
+    for record in db.query(InfraplanParseResult).order_by(InfraplanParseResult.id):
+        if "\ufffd" not in json.dumps(record.result_json or {}, ensure_ascii=False):
+            continue
+        rows, changed, warnings = repair_rows(_rows(record))
+        report = db.query(InfraplanReport).filter(InfraplanReport.parse_result_id == record.id).one_or_none()
+        entries = {
+            (e.section, e.lfd_nr): e
+            for e in db.query(InfraplanEntry).filter(InfraplanEntry.report_id == report.id)
+        } if report is not None else {}
+        touched = [
+            (row, entries[(row["section"], row["lfd_nr"])])
+            for row in rows
+            if row["row_key"] in changed and (row["section"], row["lfd_nr"]) in entries
+        ]
+        linked = {
+            pid
+            for (pid,) in db.query(InfraplanEntryProject.project_id).filter(
+                InfraplanEntryProject.entry_id.in_([entry.id for _, entry in touched])
+            )
+        } if touched else set()
+        affected |= linked
+        summaries.append({
+            "parse_result_id": record.id,
+            "year": record.year,
+            "rows_changed": len(changed),
+            "entries_changed": len(touched),
+            "projects_updated": len(linked),
+            "warnings": [w.message for w in warnings],
+        })
+        if not apply:
+            continue
+
+        footnotes = (record.result_json or {}).get("footnotes") or {}
+        _store_rows(record, rows)
+        record.result_json["footnotes"] = {k: restore_full_stops(v) for k, v in footnotes.items()}
+        kept = [w for w in record.warnings_json or [] if w.get("kind") not in _TEXT_WARNING_KINDS]
+        record.warnings_json = kept + [w.model_dump(mode="json") for w in warnings]
+        for row, entry in touched:
+            for key, value in _entry_fields(row).items():
+                setattr(entry, key, value)
+            ref = row.get("cost_ref")
+            target = entries.get((ref["section"], ref["lfd_nr"])) if ref and ref.get("resolved") else None
+            entry.cost_ref_entry_id = target.id if target is not None else None
+
+    if apply and summaries:
+        db.commit()
+        # recompute_progress commits per project, so it runs after the repair.
+        recompute_for(db, affected)
+    return summaries

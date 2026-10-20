@@ -160,11 +160,17 @@ Bestätigung durch den Agenten umkehrbar.
 
 | Stufe | Was passiert | Wo (neu) |
 |---|---|---|
-| 1 Textgewinnung | pdfplumber, Wörter **mit Schriftgröße** (`extra_attrs=["size"]`); Spaltengrenzen aus der Kopfzeile (`find_tables()[0]`) | `tasks/infraplan.py` |
+| 1 Textgewinnung | pdfplumber, Wörter **mit Schriftgröße** (`extra_attrs=["size"]`); Spaltengrenzen aus der Kopfzeile (`find_tables()[0]`); „�“ (U+FFFD) → „.“, weil manche Drucke den Punkt der Tabellenschrift so kodieren | `tasks/infraplan.py` |
 | 2 Segmentierung | Abschnitte über die Überschriften `Bedarfsplan, Teil A–D`, `GVFG, Kat. A/C`, `InvKG`; Zeilen an der laufenden Nummer in Spalte 1; Fußnotenzone abschneiden | `tasks/infraplan.py` |
 | 3 Semantik | Kopfzeile → kanonisches Schema (deterministisch über Spaltentitel, Muster `haushalt_columns`); Werte normalisieren (deutsche Zahlen, Jahr, Lph, Befassung) | `tasks/infraplan_columns.py` |
 | 4 Matching | Vorschläge je Zeile, siehe [Zuordnung](#zuordnung-zu-projekten) | `tasks/infraplan_matching.py` |
 | 5 Kennzahl-Seiten | Seitenzahlen der Kennzahl-Diagramme merken für die Bildausgabe: innerhalb der Kennzahl-Kapitel („3 Steuerungskennzahlen“, „I: Informationskennzahlen“) setzt die Überschrift „Steuerungskennzahl:“ / „Informationskennzahl:“ die aktuelle Kennzahl; eine Seite mit Diagrammbeschriftung und Einheitenzeile („(jährlich in km)“) wird ihr zugeordnet (das Diagramm steht oft eine Seite nach der Überschrift) | `tasks/infraplan.py` |
+
+Was die Textgewinnung danach noch nicht lesen kann (`�`, `(cid:N)`), und Kostenzellen,
+die weder Zahl noch Verweis sind, werden Warnungen (`UNREADABLE_TEXT`, `UNPARSED_COST`)
+statt still zu verschwinden. Entwürfe aus der Zeit vor der Punkt-Korrektur und die daraus
+bestätigten Jahrgänge repariert `scripts/repair_infraplan_full_stops.py` an Ort und Stelle
+aus den gespeicherten Zelltexten (Zuordnungen und Kennzahlwerte bleiben).
 
 Das hochgeladene PDF wird je Entwurf gespeichert (Seitenbilder für MCP und Freigabe-
 Ansicht werden bei Bedarf mit pymupdf gerendert). OCR ist nicht nötig; fehlt einem
