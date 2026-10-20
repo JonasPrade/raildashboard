@@ -124,7 +124,7 @@ function GvfgReviewPageContent() {
             children: (
                 <Text size="sm">
                     {result.entries.length} Vorhaben ({record.is_annex ? "Anhang" : "Hauptteil"}) ersetzen die
-                    entsprechenden Einträge dieser Ausgabe. {create.size} Projekte werden neu angelegt,{" "}
+                    entsprechenden Einträge dieser Ausgabe. {create.size} Projekte werden neu angelegt (als Entwurf, bis sie gepflegt und fertiggestellt sind),{" "}
                     {withoutProject.filter((e) => !create.has(e.key)).length} Vorhaben bleiben ohne Projekt.
                 </Text>
             ),
@@ -184,6 +184,14 @@ function GvfgReviewPageContent() {
                     </Alert>
                 )}
 
+                {!confirmed && (
+                    <Alert color="blue" variant="light" title="Neue Projekte werden als Entwurf angelegt">
+                        Projekte, die der Import neu anlegt, sind Entwürfe: Sie bleiben aus Listen und Karte
+                        ausgeblendet, bis sie gepflegt und fertiggestellt sind. Die Verknüpfung mit dem Vorhaben
+                        und seine Förderdaten bleiben sichtbar.
+                    </Alert>
+                )}
+
                 {result.warnings.length > 0 && (
                     <Alert color="yellow" variant="light" title={`${result.warnings.length} Hinweise aus der Summenprüfung`}>
                         <List size="sm" spacing={2}>
@@ -234,7 +242,7 @@ function GvfgReviewPageContent() {
                                     size="sm"
                                     onClick={() => setCreate(new Set([...create, ...withoutProject.map((e) => e.key)]))}
                                 >
-                                    Für alle {withoutProject.length} ohne Projekt anlegen
+                                    Für alle {withoutProject.length} ohne Projekt als Entwurf anlegen
                                 </Button>
                             )}
                         </Group>
@@ -283,7 +291,7 @@ function GvfgReviewPageContent() {
                                                     data={data}
                                                     value={(current[entry.key] ?? []).map(String)}
                                                     onChange={(vals) => setProjects(entry.key, vals.map(Number))}
-                                                    placeholder={create.has(entry.key) ? "wird neu angelegt" : "Projekt wählen…"}
+                                                    placeholder={create.has(entry.key) ? "wird als Entwurf angelegt" : "Projekt wählen…"}
                                                     searchable
                                                     filter={filterProjectOption}
                                                     limit={30}
@@ -298,7 +306,7 @@ function GvfgReviewPageContent() {
                                                         {create.has(entry.key) ? (
                                                             <>
                                                                 <Badge color="blue" variant="light" size="xs">
-                                                                    wird beim Übernehmen angelegt
+                                                                    wird beim Übernehmen als Entwurf angelegt
                                                                 </Badge>
                                                                 <Anchor
                                                                     component="button"
@@ -316,7 +324,7 @@ function GvfgReviewPageContent() {
                                                                 leftSection={<IconPlus size={12} />}
                                                                 onClick={() => setDraftFor(entry)}
                                                             >
-                                                                Projekt nicht gefunden – neu anlegen
+                                                                Projekt nicht gefunden – als Entwurf anlegen
                                                             </Button>
                                                         )}
                                                     </Group>

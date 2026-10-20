@@ -23,7 +23,9 @@ from dashboard_backend.mcp.context import get_principal, tool_session
 from dashboard_backend.mcp.tools.projects import (
     MAX_LIMIT,
     READ_ONLY,
+    DraftFilter,
     _group_filter,
+    draft_filter,
     _project_or_error,
     has_geometry_expr,
     has_length_expr,
@@ -82,13 +84,17 @@ def list_data_gaps(
     stale_years: int = DEFAULT_STALE_YEARS,
     limit: int = 50,
     offset: int = 0,
+    drafts: DraftFilter = "exclude",
     *,
     ctx: Context,
 ) -> dict[str, Any]:
-    """Projects with missing or outdated data (drafts excluded), with the gaps
+    """Projects with missing or outdated data (drafts excluded by default), with the gaps
     that apply to each — one call instead of reading every project.
 
     - project_group: id, short name or name (see list_project_groups); default all
+    - drafts: exclude (default), only or include — draft projects (e.g. created
+      by an import) are mostly empty; ``only`` lists them to be filled in, each
+      entry carries ``is_draft`` (finalize with set_project_draft)
     - gaps: which gaps to look for (default all); a project is listed when at
       least one of them applies:
       no_geometry (no line or point stored), no_route (geometry but no saved
@@ -164,10 +170,12 @@ def list_data_gaps(
         query = (
             db.query(Project.id, *(flags[g].label(g) for g in wanted))
             .outerjoin(ProjectProgress, ProjectProgress.project_id == Project.id)
-            .filter(Project.is_draft.is_(False))
             .filter(or_(*(flags[g] for g in wanted)))
             .order_by(Project.name, Project.id)
         )
+        draft_condition = draft_filter(drafts)
+        if draft_condition is not None:
+            query = query.filter(draft_condition)
         if project_group:
             group = _resolve_group(db, project_group)
             query = query.filter(Project.project_groups.any(ProjectGroup.id == group.id))
@@ -194,6 +202,7 @@ def list_data_gaps(
                     "name": projects[row.id].name,
                     "project_number": projects[row.id].project_number,
                     "superior_project_id": projects[row.id].superior_project_id,
+                    "is_draft": bool(projects[row.id].is_draft),
                     "project_groups": [g.short_name for g in projects[row.id].project_groups],
                     "gaps": [g for g in wanted if getattr(row, g)],
                 }
