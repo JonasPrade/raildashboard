@@ -38,6 +38,9 @@ from dashboard_backend.crud.projects.projects import (
     update_project as update_project_crud,
     validate_superior_project,
 )
+from dashboard_backend.crud.projects.project_groups import (
+    create_project_group as create_project_group_crud,
+)
 from dashboard_backend.crud.projects.texts import (
     create_text_for_project,
     get_default_text_category,
@@ -61,7 +64,7 @@ from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.projects.project_group import ProjectGroup
 from dashboard_backend.models.projects.project_progress import ProjectProgress
 from dashboard_backend.models.projects.project_text import ProjectText
-from dashboard_backend.schemas.projects import ProjectSchema
+from dashboard_backend.schemas.projects import ProjectGroupCreate, ProjectSchema
 from dashboard_backend.schemas.projects.bvwp_schema import BvwpProjectDataSchema
 from dashboard_backend.schemas.projects.progress_schema import (
     LifecycleStatusLiteral,
@@ -940,6 +943,63 @@ def set_project_draft(project_id: int, is_draft: bool, *, ctx: Context) -> dict[
         return _project_dict(updated)
 
 
+def create_project_group(
+    name: str,
+    short_name: str,
+    description: str | None = None,
+    color: str = "#FF0000",
+    public: bool = False,
+    plot_only_superior_projects: bool = True,
+    is_visible: bool = True,
+    is_default_selected: bool = False,
+    *,
+    ctx: Context,
+) -> dict[str, Any]:
+    """Create a new project group (requires ``projectgroup.create``). ``short_name``
+    (max. 20 characters) must be unique and is what list_projects and
+    set_project_groups accept as ``project_group``; ``name`` is the display name
+    (max. 100). ``color`` is a hex colour for the map. New groups are not public
+    and hold no projects — add projects with set_project_groups. Check
+    list_project_groups first to avoid near-duplicates. Returns the group."""
+    principal = get_principal(ctx)
+    require(principal, "projectgroup.create")
+    try:
+        payload = ProjectGroupCreate(
+            name=name.strip(),
+            short_name=short_name.strip(),
+            description=description,
+            color=color.strip(),
+            public=public,
+            plot_only_superior_projects=plot_only_superior_projects,
+            is_visible=is_visible,
+            is_default_selected=is_default_selected,
+        )
+    except ValidationError as exc:
+        raise ToolError(f"Ungültige Werte: {exc}") from exc
+    if not payload.name or not payload.short_name:
+        raise ToolError("name und short_name dürfen nicht leer sein.")
+    if len(payload.name) > 100 or len(payload.short_name) > 20 or len(payload.color) > 10:
+        raise ToolError("Zu lang: name max. 100, short_name max. 20, color max. 10 Zeichen.")
+    with tool_session(ctx) as db:
+        if db.query(ProjectGroup).filter(_group_filter(payload.short_name)).first():
+            raise ToolError(
+                f"Eine Projektgruppe mit Kurzname oder Name '{payload.short_name}' existiert bereits."
+            )
+        group = create_project_group_crud(db, payload.model_dump())
+        return {
+            "id": group.id,
+            "short_name": group.short_name,
+            "name": group.name,
+            "description": group.description,
+            "color": group.color,
+            "public": group.public,
+            "plot_only_superior_projects": group.plot_only_superior_projects,
+            "is_visible": group.is_visible,
+            "is_default_selected": group.is_default_selected,
+            "project_count": 0,
+        }
+
+
 def set_project_groups(
     project_id: int,
     add: list[str] | None = None,
@@ -1209,6 +1269,7 @@ def register(server: MCPServer) -> None:
         server.add_tool(fn, annotations=READ_ONLY)
     for fn in (
         create_project,
+        create_project_group,
         compute_project_length,
         update_project,
         set_project_draft,
