@@ -49,6 +49,7 @@ import {
     kpiCompanions,
     kpiFlow,
     kpiOverview,
+    kpisAsOf,
     stackTotal,
     zoomedDomain,
     type KpiChartScope,
@@ -464,6 +465,13 @@ export default function InfraplanPage() {
     const view: View = searchParams.get("view") === "massnahmen" ? "massnahmen" : "kennzahlen";
     const year = Number(searchParams.get("jahr")) || null;
     const current = reports?.find((r) => r.year === year) ?? reports?.[0] ?? null;
+    // Targets are compared with the Jahrgang before the chosen one.
+    const compareYear =
+        (reports ?? []).map((r) => r.year).filter((y) => current && y < current.year).sort((a, b) => b - a)[0] ?? null;
+    const kpisForYear = useMemo(
+        () => (current ? kpisAsOf(kpis ?? [], current.year, compareYear) : (kpis ?? [])),
+        [kpis, current, compareYear],
+    );
 
     const setParam = (key: string, value: string | null) =>
         setSearchParams(
@@ -536,7 +544,17 @@ export default function InfraplanPage() {
                         </Group>
 
                         {view === "kennzahlen" ? (
-                            <Kpis kpis={kpis ?? []} />
+                            <Stack gap="md">
+                                {current && (
+                                    <Text size="sm" c="dimmed">
+                                        Ist- und Zielwerte aus dem Infraplan {current.year}
+                                        {compareYear
+                                            ? `, im Vergleich zu den Zielen des Infraplans ${compareYear} (gestrichelt).`
+                                            : "."}
+                                    </Text>
+                                )}
+                                <Kpis kpis={kpisForYear} />
+                            </Stack>
                         ) : (
                             current && (
                                 <Stack gap="md">

@@ -235,6 +235,8 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   „Kennzahlen“ and „Maßnahmen“ (`?view=massnahmen`, `?jahr=`). The Kennzahlen get the
   project page's table of contents, one entry per kind and category. Maßnahmen are cards
   like the FinVe overview, with the linked projects as buttons (shared `LinkedProjects`).
+  The Jahrgang also drives the Kennzahlen: Ist and Ziel of the chosen Infraplan, compared
+  with the targets of the previous Jahrgang (dashed); later Jahrgänge are left out.
 - **Fulda-Runde trust 0.7 → 0.55** (a working-level preview, below VIB 0.6). Forecast and
   timeline no longer let a Fulda date override a VIB-PFA date when earlier: per phase the date
   of the more credible × more recent report wins (VIB report date vs. Fulda answer date);
