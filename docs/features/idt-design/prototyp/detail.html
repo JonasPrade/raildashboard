@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Knoten Frankfurt · Schienendashboard</title>
+<link rel="stylesheet" href="tokens.css"><link rel="stylesheet" href="proto.css"></head>
+<body><header class="kopf">
+  <a class="marke" href="#"><img src="bildmarke.png" alt=""> Schienendashboard</a>
+  <nav class="nav"><a href="#" class="aktiv">Projekte</a><a href="#" class="">Finanzen</a><a href="#" class="">Infraplan</a><a href="#" class="">Abgeordnete</a><a href="#" class="">Aufgaben<span class="zahl">7</span></a><a href="#" class="">Admin</a></nav>
+  <div class="kopf-rechts">
+    <button class="btn btn--icon" aria-label="Dunkelfassung einschalten" title="Dunkelfassung einschalten"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
+    <button class="btn btn--icon burger" aria-label="Menü"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16"/><path d="M4 6h16"/><path d="M4 18h16"/></svg></button>
+  </div>
+</header><main class="seite"><div class="detail">
+  <aside class="register"><div class="rkopf">Abschnitte <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></div>
+    <a href="#">Übersicht</a><a href="#">Kennzahlen</a><a href="#" class="aktiv">Planungsstand</a><a href="#">Finanzierung</a><a href="#">Infraplan</a><a href="#">Dokumente</a><a href="#">Geometrie</a><a href="#">Aufgaben</a></aside>
+  <div>
+    <div class="eyebrow"><span class="pfeil">→</span>Projekt · Bedarfsplan VB-E</div>
+    <div class="titelzeile"><h1 class="titel">Knoten Frankfurt (Main) <span class="frage"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span></h1>
+      <div style="display:flex;gap:10px;align-items:center"><span class="rueckmeldung"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> gespeichert 12:04</span><button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Teilen</button></div></div>
+    <div class="tagzeile"><span class="tag" style="--c:var(--idt-seq-3)"><i class="punkt"></i>Genehmigungsplanung</span> <span class="tag tag--violet">Fernverkehr</span> <span class="tag tag--cyan">Nahverkehr</span> <span class="tag tag--neutral">3 Unterprojekte</span></div>
+
+    <h2 class="abschnitt">Planungsstand</h2>
+    <div class="stepper"><div class="step erledigt"><span class="quadrat" style="--c:var(--idt-seq-1)"></span>Nicht gestartet<span class="datum">2016</span></div><div class="step erledigt"><span class="quadrat" style="--c:var(--idt-seq-2)"></span>Vorplanung<span class="datum">2018–2022</span></div><div class="step aktiv"><span class="quadrat" style="--c:var(--idt-seq-3)"></span>Genehmigungsplanung<span class="datum">seit 2023</span></div><div class="step "><span class="quadrat" style="--c:var(--idt-seq-4)"></span>Bau<span class="datum">geplant 2028</span></div><div class="step "><span class="quadrat" style="--c:var(--idt-success)"></span>In Betrieb<span class="datum">Ziel 2034</span></div></div>
+
+    <h2 class="abschnitt">Stammdaten</h2>
+    <div class="felder">
+      <div class="feldzeile"><div class="etikett">Name</div><span class="wert">Knoten Frankfurt (Main)</span></div>
+      <div class="feldzeile"><div class="etikett">Bedarfsplan-Nummer</div><span class="wert gesperrt">2-016-V01</span></div>
+      <div class="feldzeile"><div class="etikett">Länge</div><span class="wert tnum">28 km</span></div>
+      <div class="feldzeile"><div class="etikett">Phasenfestlegung</div><span class="wert">automatisch aus VIB 2025</span></div>
+      <div class="feldzeile" style="grid-column:1/-1"><div class="etikett">Beschreibung</div><span class="wert breit">Neuordnung des Eisenbahnknotens Frankfurt mit Fernbahntunnel, Ausbau Nordmainische S-Bahn und Verknüpfung mit dem Zielfahrplan 2030+. Stand aus VIB 2025, Abschnitt B.</span></div>
+    </div>
+
+    <h2 class="abschnitt">Finanzierung</h2>
+    <div class="statband statband--3">
+      <div class="stat"><div class="stat__num">3,8<small>Mrd €</small></div><div class="stat__title">Gesamtkosten</div><div class="stat__label">VIB 2025</div></div>
+      <div class="stat"><div class="stat__num" style="color:var(--idt-violet)">1,2<small>Mrd €</small></div><div class="stat__title">verausgabt</div><div class="stat__label">bis 2025, kumuliert</div></div>
+      <div class="stat"><div class="stat__num">2</div><div class="stat__title">FinVe</div><div class="stat__label">Nr. 2.17 und 2.31</div></div>
+    </div>
+    <table class="tab tab--rand tab--klein">
+      <thead><tr><th>FinVe</th><th>Bezeichnung</th><th class="num">Volumen (Mio €)</th><th class="num sortiert">Stand<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></th></tr></thead>
+      <tbody>
+        <tr><td class="name">2.17</td><td data-l="Bezeichnung">Fernbahntunnel, Planungsleistungen</td><td class="num" data-l="Volumen">412,0</td><td class="num" data-l="Stand">2025</td></tr>
+        <tr><td class="name">2.31</td><td data-l="Bezeichnung">Nordmainische S-Bahn, Bau</td><td class="num" data-l="Volumen">816,5</td><td class="num" data-l="Stand">2024</td></tr>
+      </tbody></table>
+  </div>
+</div>
+<a class="abschnitte-knopf" href="#"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16"/><path d="M4 6h16"/><path d="M4 18h16"/></svg> Abschnitte</a></main><footer class="fuss">
+  <img src="logo-idt-inverse.png" alt="Initiative Deutschlandtakt">
+  <span>Schienendashboard · Fassung 0.0.5</span>
+  <nav class="links"><a href="#">Impressum</a><a href="#">Datenschutz</a><a href="#">Dokumentation</a></nav>
+</footer></body></html>

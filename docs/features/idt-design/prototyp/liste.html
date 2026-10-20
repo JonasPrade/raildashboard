@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Projekte · Schienendashboard</title>
+<link rel="stylesheet" href="tokens.css"><link rel="stylesheet" href="proto.css"></head>
+<body><header class="kopf">
+  <a class="marke" href="#"><img src="bildmarke.png" alt=""> Schienendashboard</a>
+  <nav class="nav"><a href="#" class="aktiv">Projekte</a><a href="#" class="">Finanzen</a><a href="#" class="">Infraplan</a><a href="#" class="">Abgeordnete</a><a href="#" class="">Aufgaben<span class="zahl">7</span></a><a href="#" class="">Admin</a></nav>
+  <div class="kopf-rechts">
+    <button class="btn btn--icon" aria-label="Dunkelfassung einschalten" title="Dunkelfassung einschalten"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
+    <button class="btn btn--icon burger" aria-label="Menü"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16"/><path d="M4 6h16"/><path d="M4 18h16"/></svg></button>
+  </div>
+</header><main class="seite"><div class="eyebrow"><span class="pfeil">→</span>Bestand</div>
+<div class="titelzeile"><h1 class="titel">Projekte <span class="frage" title="Handbuch: Projekte"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span></h1>
+  <div><button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></svg> Karte</button> <button class="btn btn--primary"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg> Projekt anlegen</button></div></div>
+<div class="statband">
+  <div class="stat"><div class="stat__num">312</div><div class="stat__title">Projekte</div><div class="stat__label">Bestand gesamt</div></div>
+  <div class="stat"><div class="stat__num" style="color:var(--idt-violet)">48</div><div class="stat__title">im Bau</div><div class="stat__label">Phase Bau</div></div>
+  <div class="stat"><div class="stat__num">12,4<small>Mrd €</small></div><div class="stat__title">FinVe-Volumen</div><div class="stat__label">Vereinbart, Stand 2026</div></div>
+  <div class="stat"><div class="stat__num" style="color:var(--idt-ink-70)">2.431<small>km</small></div><div class="stat__title">Streckenlänge</div><div class="stat__label">Aus Geometrie berechnet</div></div>
+</div>
+<div class="filter">
+  <div class="suche"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><span>Knoten</span></div>
+  <span class="fmarke">Phase: Bau <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></span>
+  <span class="fmarke">Fernverkehr <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></span>
+  <button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46"/></svg> Filter</button>
+  <span class="treffer">23 von 312</span>
+</div>
+<div class="sortzeile" style="display:none">Sortiert: Zuletzt geändert ↑</div>
+<div class="auswahl"><strong>2 ausgewählt</strong><span class="trenner"></span>
+  <button class="btn btn--sm">Gruppe zuweisen</button>
+  <button class="btn btn--sm"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg> CSV</button>
+  <button class="btn btn--sm btn--danger-outline"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> Entfernen</button>
+  <a class="aufheben" href="#">Auswahl aufheben</a></div>
+<table class="tab">
+  <thead><tr>
+    <th class="k"><span class="kasten"></span></th>
+    <th>Projekt</th><th>Phase</th><th>Verkehrsart</th><th class="num">Länge (km)</th>
+    <th class="num sortiert">Zuletzt geändert<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></th>
+  </tr></thead>
+  <tbody><tr class="">
+      <td class="k"><span class="kasten"></span></td>
+      <td class="name">ABS/NBS Hannover–Bielefeld<span class="sub">Bedarfsplan · VB-E</span></td>
+      <td class="status" data-l="Phase"><span class="tag" style="--c:var(--idt-seq-2)"><i class="punkt"></i>Vorplanung</span></td>
+      <td data-l="Verkehrsart"><span class="tag tag--violet">Fernverkehr</span></td>
+      <td class="num" data-l="Länge (km)">112</td>
+      <td class="num" data-l="Zuletzt geändert">14.10.2026</td>
+    </tr><tr class="gewaehlt">
+      <td class="k"><span class="kasten an"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span></td>
+      <td class="name">Knoten Frankfurt (Main)<span class="sub">Bedarfsplan · VB-E</span></td>
+      <td class="status" data-l="Phase"><span class="tag" style="--c:var(--idt-seq-3)"><i class="punkt"></i>Genehmigungsplanung</span></td>
+      <td data-l="Verkehrsart"><span class="tag tag--violet">Fernverkehr</span> <span class="tag tag--cyan">Nahverkehr</span></td>
+      <td class="num" data-l="Länge (km)">28</td>
+      <td class="num" data-l="Zuletzt geändert">09.10.2026</td>
+    </tr><tr class="">
+      <td class="k"><span class="kasten"></span></td>
+      <td class="name">NBS Dresden–Prag<span class="sub">Bedarfsplan · VB</span></td>
+      <td class="status" data-l="Phase"><span class="tag" style="--c:var(--idt-seq-2)"><i class="punkt"></i>Vorplanung</span></td>
+      <td data-l="Verkehrsart"><span class="tag tag--violet">Fernverkehr</span> <span class="tag tag--ink">Güterverkehr</span></td>
+      <td class="num" data-l="Länge (km)">43</td>
+      <td class="num" data-l="Zuletzt geändert">02.10.2026</td>
+    </tr><tr class="">
+      <td class="k"><span class="kasten"></span></td>
+      <td class="name">Nordmainische S-Bahn<span class="sub">GVFG-Bundesprogramm</span></td>
+      <td class="status" data-l="Phase"><span class="tag" style="--c:var(--idt-seq-4)"><i class="punkt"></i>Bau</span></td>
+      <td data-l="Verkehrsart"><span class="tag tag--cyan">Nahverkehr</span></td>
+      <td class="num" data-l="Länge (km)">15</td>
+      <td class="num" data-l="Zuletzt geändert">30.09.2026</td>
+    </tr><tr class="gewaehlt">
+      <td class="k"><span class="kasten an"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span></td>
+      <td class="name">Elektrifizierung Hochrheinbahn<span class="sub">GVFG · Elektrifizierung</span></td>
+      <td class="status" data-l="Phase"><span class="tag" style="--c:var(--idt-seq-4)"><i class="punkt"></i>Bau</span></td>
+      <td data-l="Verkehrsart"><span class="tag tag--cyan">Nahverkehr</span></td>
+      <td class="num" data-l="Länge (km)">75</td>
+      <td class="num" data-l="Zuletzt geändert">28.09.2026</td>
+    </tr><tr class="">
+      <td class="k"><span class="kasten"></span></td>
+      <td class="name">Korridor Mittelrhein, Alternativtrasse<span class="sub">Bedarfsplan · PB</span></td>
+      <td class="status" data-l="Phase"><span class="tag" style="--c:var(--idt-seq-1)"><i class="punkt"></i>Nicht gestartet</span></td>
+      <td data-l="Verkehrsart"><span class="tag tag--ink">Güterverkehr</span></td>
+      <td class="num" data-l="Länge (km)">160</td>
+      <td class="num" data-l="Zuletzt geändert">11.09.2026</td>
+    </tr><tr class="">
+      <td class="k"><span class="kasten"></span></td>
+      <td class="name">Stuttgart 21, PFA 1.3<span class="sub">Bedarfsplan · VB-E</span></td>
+      <td class="status" data-l="Phase"><span class="tag" style="--c:var(--idt-success)"><i class="punkt"></i>In Betrieb</span></td>
+      <td data-l="Verkehrsart"><span class="tag tag--violet">Fernverkehr</span> <span class="tag tag--cyan">Nahverkehr</span></td>
+      <td class="num" data-l="Länge (km)">9</td>
+      <td class="num" data-l="Zuletzt geändert">05.09.2026</td>
+    </tr></tbody></table>
+<div class="zweispaltig">
+  <section>
+    <h2 class="abschnitt">Infraplan · Mittelabfluss in Mrd. € <span class="frage"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span></h2>
+    <div class="karte karte--soft"><svg class="chart" viewBox="0 0 640 300" width="100%" role="img" aria-label="Mittelabfluss Ist und Ziel"><line class="grid" x1="44" x2="624" y1="266.0" y2="266.0"/><text x="36" y="270.0" text-anchor="end">0</text><line class="grid" x1="44" x2="624" y1="203.5" y2="203.5"/><text x="36" y="207.5" text-anchor="end">3</text><line class="grid" x1="44" x2="624" y1="141.0" y2="141.0"/><text x="36" y="145.0" text-anchor="end">6</text><line class="grid" x1="44" x2="624" y1="78.5" y2="78.5"/><text x="36" y="82.5" text-anchor="end">9</text><line class="grid" x1="44" x2="624" y1="16.0" y2="16.0"/><text x="36" y="20.0" text-anchor="end">12</text><line class="achse" x1="44" x2="624" y1="266.0" y2="266.0"/><line class="heute" x1="334.0" x2="334.0" y1="16" y2="266.0"/><text x="339.0" y="26" style="fill:var(--idt-ink);font-weight:600">Ist | Ziel</text><text x="44.0" y="288" text-anchor="middle">2022</text><text x="116.5" y="288" text-anchor="middle">2023</text><text x="189.0" y="288" text-anchor="middle">2024</text><text x="261.5" y="288" text-anchor="middle">2025</text><text x="334.0" y="288" text-anchor="middle">2026</text><text x="406.5" y="288" text-anchor="middle">2027</text><text x="479.0" y="288" text-anchor="middle">2028</text><text x="551.5" y="288" text-anchor="middle">2029</text><text x="624.0" y="288" text-anchor="middle">2030</text><polyline class="ist" points="44.0,226.4 116.5,218.1 189.0,211.8 261.5,201.4 334.0,195.2" style="stroke:var(--idt-chart-1)"/><polyline class="ziel" points="334.0,195.2 406.5,182.7 479.0,170.2 551.5,159.8 624.0,149.3" style="stroke:var(--idt-chart-1)"/><circle class="pt" cx="44.0" cy="226.4" r="3.5" style="fill:var(--idt-chart-1)"/><circle class="pt" cx="116.5" cy="218.1" r="3.5" style="fill:var(--idt-chart-1)"/><circle class="pt" cx="189.0" cy="211.8" r="3.5" style="fill:var(--idt-chart-1)"/><circle class="pt" cx="261.5" cy="201.4" r="3.5" style="fill:var(--idt-chart-1)"/><circle class="pt" cx="334.0" cy="195.2" r="3.5" style="fill:var(--idt-chart-1)"/><polyline class="ist" points="44.0,149.3 116.5,141.0 189.0,124.3 261.5,111.8 334.0,95.2" style="stroke:var(--idt-chart-2)"/><polyline class="ziel" points="334.0,95.2 406.5,80.6 479.0,70.2 551.5,61.8 624.0,53.5" style="stroke:var(--idt-chart-2)"/><circle class="pt" cx="44.0" cy="149.3" r="3.5" style="fill:var(--idt-chart-2)"/><circle class="pt" cx="116.5" cy="141.0" r="3.5" style="fill:var(--idt-chart-2)"/><circle class="pt" cx="189.0" cy="124.3" r="3.5" style="fill:var(--idt-chart-2)"/><circle class="pt" cx="261.5" cy="111.8" r="3.5" style="fill:var(--idt-chart-2)"/><circle class="pt" cx="334.0" cy="95.2" r="3.5" style="fill:var(--idt-chart-2)"/><polyline class="ist" points="44.0,245.2 116.5,241.0 189.0,234.8 261.5,228.5 334.0,224.3" style="stroke:var(--idt-chart-3)"/><polyline class="ziel" points="334.0,224.3 406.5,220.2 479.0,213.9 551.5,207.7 624.0,203.5" style="stroke:var(--idt-chart-3)"/><circle class="pt" cx="44.0" cy="245.2" r="3.5" style="fill:var(--idt-chart-3)"/><circle class="pt" cx="116.5" cy="241.0" r="3.5" style="fill:var(--idt-chart-3)"/><circle class="pt" cx="189.0" cy="234.8" r="3.5" style="fill:var(--idt-chart-3)"/><circle class="pt" cx="261.5" cy="228.5" r="3.5" style="fill:var(--idt-chart-3)"/><circle class="pt" cx="334.0" cy="224.3" r="3.5" style="fill:var(--idt-chart-3)"/></svg><div class="legende"><span><i style="--c:var(--idt-chart-1)"></i>Bedarfsplan</span><span><i style="--c:var(--idt-chart-2)"></i>LuFV</span><span><i style="--c:var(--idt-chart-3)"></i>GVFG</span><span><i class="linie"></i>Ist</span><span><i class="linie ziel"></i>Ziel</span></div></div>
+  </section>
+  <section>
+    <h2 class="abschnitt">Hinweise</h2>
+    <div class="callout" style="--c:var(--idt-warning)"><strong>3 Projekte ohne Geometrie</strong><p>Länge und Karte fehlen, bis eine Strecke geroutet ist. <a href="#">Datenlücken ansehen</a></p></div>
+    <div class="callout" style="--c:var(--idt-cyan)"><strong>Infraplan 2026 eingelesen</strong><p>41 Zeilen zugeordnet, 2 offen. Kennzahlen sind noch nicht bestätigt.</p></div>
+    <div class="callout" style="--c:var(--idt-danger)"><strong>VIB 2025: Zuordnung fehlgeschlagen</strong><p>Vorhaben 2.17 kennt kein Projekt. <a href="#">Erneut zuordnen</a></p></div>
+    <div class="zustaende">
+      <div class="zustand"><div class="hinweis">Leer</div><h4>Keine Aufgaben</h4><p>Für dieses Projekt ist nichts offen.</p><button class="btn btn--sm"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg> Aufgabe</button></div>
+      <div class="zustand"><div class="hinweis">Lädt</div><div class="balken mittel"></div><div class="balken"></div><div class="balken kurz"></div><div class="balken"></div></div>
+      <div class="zustand zustand--fehler"><div class="hinweis">Fehler</div><h4>Nicht geladen</h4><p>Der Server hat nicht geantwortet.</p><button class="btn btn--sm">Erneut versuchen</button></div>
+    </div>
+  </section>
+</div></main><footer class="fuss">
+  <img src="logo-idt-inverse.png" alt="Initiative Deutschlandtakt">
+  <span>Schienendashboard · Fassung 0.0.5</span>
+  <nav class="links"><a href="#">Impressum</a><a href="#">Datenschutz</a><a href="#">Dokumentation</a></nav>
+</footer></body></html>
