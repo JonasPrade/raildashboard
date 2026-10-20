@@ -213,6 +213,14 @@ is returned without its credentials. Results are cached for 5 s (the task pollin
 `refresh=true` forces a fresh probe. The admin UI renders it at `/admin/system` —
 see `docs/features/feature-worker-status.md`.
 
+```
+GET /api/v1/system/routing                   # capability: settings.manage
+```
+
+One bounded `GET <ROUTING_BASE_URL>/health` against GraphHopper (`services/routing_health.py`): status
+`ok` / `error` (non-200) / `unreachable`, response time, and a German message naming the next step.
+Never raises; shown on `/admin/system` next to the worker check.
+
 ### Tests
 
 Tests use `CELERY_BROKER_URL=memory://` and `CELERY_RESULT_BACKEND=cache+memory://` (set in `tests/conftest.py`) combined with `task_always_eager=True` — tasks run synchronously in-process; no Redis instance required.

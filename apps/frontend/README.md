@@ -253,7 +253,7 @@ Plan: `docs/features/feature-infraplan-import.md`. Capability `infraplan.import`
 
 ### Admin: Systemstatus (`features/admin/SystemStatusPage.tsx`)
 
-`/admin/system` (capability `settings.manage`) answers „läuft im Hintergrund überhaupt jemand?": broker reachability, every Celery worker with what it is working on, the queue length, and the commands to run when something is off — plus a badge on the admin overview when no worker is online. Data via `useWorkerHealth()` / `useRecheckWorkerHealth()` → `GET /api/v1/tasks/workers`.
+`/admin/system` (capability `settings.manage`) answers „läuft im Hintergrund überhaupt jemand?": broker reachability, every Celery worker with what it is working on, the queue length, and the commands to run when something is off — plus a badge on the admin overview when no worker is online. Data via `useWorkerHealth()` / `useRecheckWorkerHealth()` → `GET /api/v1/tasks/workers`. The same page shows the routing service (GraphHopper) via `useRoutingHealth()` → `GET /api/v1/system/routing`.
 
 The same diagnosis reaches the import pages: `useImportTask()` returns a `warning` once a job has stayed pending for ~12 s, which `TaskProgressIndicator` renders under the progress bar with a link to this page. See `docs/features/feature-worker-status.md`.
 

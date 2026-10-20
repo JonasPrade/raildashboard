@@ -19,6 +19,9 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   `list_projects` and `list_data_gaps` take `drafts` (exclude/only/include) and return
   `is_draft`, `list_gvfg_entries` marks draft projects. One-off correction for the 21 projects
   of the 2025–2029 import: `scripts/draft_gvfg_2025_projects.py` (idempotent, checks first).
+- **Routing service in the system status.** `/admin/system` now shows whether GraphHopper is
+  reachable (status, response time, next step on failure). New endpoint
+  `GET /api/v1/system/routing` (`settings.manage`).
 - **Text categories and internal texts.** Project texts get a category next to their type
   (seeded „Info“ and „Warnung“; editors add more with one of the fixed styles neutral, info,
   warning, critical). Warning and critical texts are highlighted with a left border. Texts can

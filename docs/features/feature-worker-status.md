@@ -12,7 +12,7 @@ guess whether the file, the parser or the stack is at fault.
 
 ## Scope
 
-Three separate things, all triggered by the same failure mode:
+Four separate things, all triggered by the same failure mode:
 
 1. **Honest progress.** The Haushalt parse reported `rows_found: 0` on every
    page, so the page read „Seite 12 / 42 — 0 Zeilen gefunden" for the whole run
@@ -29,6 +29,12 @@ Three separate things, all triggered by the same failure mode:
    not started (no worker / broker unreachable), and a failed one names the
    exception class, its message and the file and line it was raised in, plus
    where the full traceback lives.
+
+4. **Routing service check.** `/admin/system` also probes GraphHopper (`GET
+   /api/v1/system/routing`, capability `settings.manage`): one bounded request to
+   `ROUTING_BASE_URL/health`, shown as erreichbar / Fehler / nicht erreichbar with the
+   response time and the next command. Without it a dead GraphHopper only surfaces as a
+   failed route on the map.
 
 Out of scope: restarting a worker from the UI, retrying or cancelling a job,
 metrics history. The page diagnoses, it does not operate the stack.

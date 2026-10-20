@@ -69,6 +69,7 @@ export const queryKeys = {
     haushaltUnmatchedFor: (resolved?: boolean) => ["haushalt-unmatched", resolved] as const,
     taskStatus: (taskId: string | null) => ["task-status", taskId] as const,
     workerHealth: ["worker-health"],
+    routingHealth: ["routing-health"],
     vibParseResult: (taskId: string | null) => ["vib-parse-result", taskId] as const,
     vibReports: ["vib-reports"],
     vibDrafts: ["vib-drafts"],
@@ -1068,6 +1069,18 @@ export function useRecheckWorkerHealth() {
     return useMutation({
         mutationFn: () => api<WorkerHealth>("/api/v1/tasks/workers?refresh=true"),
         onSuccess: (data) => qc.setQueryData(queryKeys.workerHealth, data),
+    });
+}
+
+export type RoutingHealth = components["schemas"]["RoutingHealthSchema"];
+
+/** Is the routing service (GraphHopper) answering? Same slow poll as the worker check. */
+export function useRoutingHealth(enabled = true, refetchMs: number | false = 15000) {
+    return useQuery({
+        queryKey: queryKeys.routingHealth,
+        queryFn: () => api<RoutingHealth>("/api/v1/system/routing"),
+        enabled,
+        refetchInterval: refetchMs,
     });
 }
 

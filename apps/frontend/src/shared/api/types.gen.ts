@@ -906,6 +906,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/system/routing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Routing Health
+         * @description Is GraphHopper reachable right now? Probed on every call (one bounded request).
+         */
+        get: operations["get_routing_health_api_v1_system_routing_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tasks/workers": {
         parameters: {
             query?: never;
@@ -7889,6 +7909,29 @@ export interface components {
             lon: number;
         };
         /**
+         * RoutingHealthSchema
+         * @description The routing service (GraphHopper) at one moment.
+         */
+        RoutingHealthSchema: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "error" | "unreachable";
+            /** Base Url */
+            base_url: string;
+            /** Http Status */
+            http_status?: number | null;
+            /** Latency Ms */
+            latency_ms?: number | null;
+            /** Message */
+            message: string;
+            /** Detail */
+            detail?: string | null;
+            /** Checked At */
+            checked_at: number;
+        };
+        /**
          * WorkerHealthSchema
          * @description Broker and workers at one moment — the answer to "läuft da überhaupt was?".
          */
@@ -9844,6 +9887,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_routing_health_api_v1_system_routing_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoutingHealthSchema"];
                 };
             };
         };
