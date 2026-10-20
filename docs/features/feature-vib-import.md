@@ -8,6 +8,9 @@ zweispaltiges Layout mit inkonsistenten Seitenstrukturen hat. Ziel ist eine
 **Hybridarchitektur**: robuste Strukturerkennung aus dem Inhaltsverzeichnis +
 LLM-basierte Inhaltsextraktion pro Vorhabenblock.
 
+> **Seit 2026-10-20 (Phase 7):** Der empfohlene Weg ist das Einlesen über MCP + Skill
+> (`vib-import`); der hier beschriebene Upload bleibt als zweiter Weg bestehen.
+
 ---
 
 ## Bekannte Probleme (Ist-Zustand)
@@ -552,20 +555,149 @@ class VibEntryProposed(BaseModel):
 
 ---
 
-## Phase 6: Post-Confirm KI-Extraktion → ProjectProgress (geplant)
+## Phase 6: Post-Confirm KI-Extraktion → ProjectProgress — entfällt
 
-Nach dem Bestätigen eines VIB-Imports kann ein Admin optional eine KI-gestützte Extraktion starten, die strukturierte Fortschrittsinformationen aus den VIB-Einträgen zieht und als `ProjectProgress`-Einträge speichert.
+Entfällt (2026-10-20, W5): Bestätigte VIB-Einträge werden längst über die Materialisierung
+(`services/progress_materialization.py`) zu abgeleiteten Beobachtungen; eine zweite
+KI-Extraktion nach dem Confirm ist überflüssig.
 
-- **Voraussetzung:** `ProjectProgress`-Modell muss implementiert sein (→ `docs/features/feature-project-progress.md`). Bis dahin Zwischenspeicherung in `vib_entry.ai_result`.
-- Celery-Task `extract_vib_progress` in `tasks/vib_ai_extraction.py`
-- "KI-Extraktion starten"-Button nach Confirm (deaktiviert ohne `LLM_BASE_URL`)
-- Pro VIB-Eintrag ein `ProjectProgress`-Eintrag (`source="vib_{year}"`)
+---
+
+## Phase 7: VIB über MCP + Skill (Vorrang vor dem Upload)
+
+> Entschieden 2026-10-20 (Widerspruchs-Check W1–W6, siehe [Entscheidungen](#entscheidungen-phase-7)).
+> Vorbild: `feature-fulda-import.md`.
+
+### Ziel
+
+Der Upload-Weg (OCR → Regex-Blöcke → Fuzzy-Match → Review) ordnet viele Vorhaben falschen
+Projekten zu und verteilt Text auf falsche Felder: Bis zu drei Namensvorschläge waren
+vorausgewählt, Abschnittsüberschriften wurden irgendwo im Fließtext erkannt, und die
+Statusflags trafen auf fast jede PFA-Tabelle („Entwurfsplanung … abgeschlossen“).
+
+Neu liest ein Agent (Claude) den VIB selbst, der **Skill** `.claude/skills/vib-import/`
+gibt die Leseregeln, die **MCP-Tools** geben die Felder vor und prüfen sie. Jede
+Zuordnung trägt eine Begründung. Ein Mensch bleibt im Loop: Was der Agent schreibt, ist
+**unbestätigt** und wirkt erst nach dem Bestätigen auf den Projektfortschritt.
+
+Der Upload bleibt als **zweiter Weg** bestehen (W2); der MCP-Weg hat Vorrang und ist der
+empfohlene. Beide schreiben dieselben Tabellen.
+
+### Datenmodell
+
+`vib_entry` bekommt (Migration `20261020001`, Expand only):
+
+| Feld | Typ | Bedeutung |
+|---|---|---|
+| `confirmed` | bool, Pflicht, Default `true` | Nur bestätigte Einträge materialisieren. Bestehende Zeilen werden `true` (Backfill), der Upload-Confirm und Zuordnungen durch Menschen in der Oberfläche setzen `true`; jeder Schreibzugriff über MCP setzt `false`. |
+| `assignment_note` | text? | Begründung der Projektzuordnung (W4: am Eintrag, nicht je Verknüpfung) |
+| `page` | int? | Seite im PDF (Fundstelle) |
+
+Die Zuordnung bleibt **m:n** (`vib_entry_project`): Ein Vorhaben kann mehreren Projekten
+zugeordnet sein (z. B. ein Sammelvorhaben mehreren Oberprojekten); die Begründung deckt
+alle zugeordneten Projekte ab. PFA-Abschnitte zeigen weiter einzeln auf ein Teilprojekt
+(`vib_pfa_entry.project_id`).
+
+Ein Bericht je Jahr (`vib_report.year` eindeutig). Innerhalb eines Berichts ist die
+Sektionsnummer (`vib_section`) der Schlüssel: Ein zweites Vorhaben mit derselben Nummer
+weist `add_vib_entries` zurück — so kann der Agent einen Jahrgang fortsetzen.
+
+### Bestätigen und Materialisierung (W1)
+
+- `sync_derived_observations` (`crud/projects/progress.py`) liest nur Einträge mit
+  `confirmed = true` — für die m:n-Verknüpfung und für PFA→Teilprojekt (wie Bauportal,
+  Medien, Fulda).
+- `confirm_vib_report` bestätigt alle offenen Einträge eines Berichts, die mindestens ein
+  Projekt haben, und rechnet die betroffenen Projekte neu. Einträge ohne Projekt bleiben
+  offen und erscheinen unter „Offene Zuordnungen“.
+- Ein Mensch, der in der Oberfläche zuordnet (Bearbeiten-Drawer, Projekt-Assistent,
+  Offene Zuordnungen), bestätigt damit.
+- Auf der Projektseite trägt ein unbestätigter Eintrag das Kennzeichen „unbestätigt“ und
+  einen Knopf „Bestätigen“.
+
+### Vorschläge
+
+`add_vib_entries` füllt je Eintrag **genau einen** Vorschlag vor (nicht mehr bis zu drei)
+und liefert alle Kandidaten mit Grund:
+
+1. **Vorjahr** — dasselbe Vorhaben (gleicher normalisierter Name) war in einem früheren
+   Bericht bestätigt zugeordnet → diese Projekte.
+2. **VDE-Nummer** — gleiche „VDE Nr. x“ in Name/Beschreibung.
+3. **Name** — Fuzzy-Match; das Präfix „Lfd. Vorhaben Nr. x –“ wird vor dem Vergleich
+   entfernt.
+
+`assignment_note` sagt „Automatischer Vorschlag (…), ungeprüft“, bis der Agent oder ein
+Editor zuordnet. Für PFA-Abschnitte liefert `get_vib_entry` je offenem Abschnitt einen
+Teilprojekt-Vorschlag aus den Teilprojekten der zugeordneten Projekte.
+
+### MCP-Tools
+
+Modul `mcp/tools/vib.py`; alle Tools prüfen das bestehende Recht `vib.import`.
+
+| Tool | Art | Zweck |
+|---|---|---|
+| `list_vib_reports` | lesend | Berichte mit Jahr, Drucksache, Datum, Zählern (gesamt / zugeordnet / bestätigt) |
+| `create_vib_report(year, drucksache_nr, report_date)` | schreibend | Bericht anlegen; gleiches Jahr → Fehler mit der vorhandenen id |
+| `update_vib_report(report_id, changes)` | schreibend | Drucksache, Berichtsdatum korrigieren (W6) |
+| `list_vib_entries(report_id, only_open?, search?)` | lesend | kompakte Liste: Abschnitt, Name, Kategorie, Projekte, Begründung, bestätigt |
+| `get_vib_entry(entry_id)` | lesend | alle Felder, PFA-Zeilen mit id, Teilprojekt und Vorschlag |
+| `add_vib_entries(report_id, entries[])` | schreibend | Vorhaben samt PFA-Zeilen anlegen, alles oder nichts; liefert Vorschläge |
+| `update_vib_entry(entry_id, changes)` | schreibend | Felder korrigieren (Text, Status, Kenndaten, Kategorie, Name, Seite) |
+| `set_vib_pfa_entries(entry_id, pfa_entries[])` | schreibend | PFA-Tabelle eines Vorhabens ersetzen |
+| `assign_vib_entry(entry_id, project_ids, note)` | schreibend | Projekte (eins oder mehrere) mit Begründung; leere Liste löst die Zuordnung |
+| `assign_vib_pfa(pfa_id, project_id)` | schreibend | PFA-Abschnitt einem Teilprojekt zuordnen oder lösen |
+| `delete_vib_entry(entry_id)` | löschend | Fehleintrag entfernen |
+| `confirm_vib_report(report_id, entry_ids?)` | schreibend | offene Einträge mit Projekt bestätigen → Beobachtungen entstehen |
+
+Bestehende Jahrgänge bleiben stehen (W3). Der Skill hat einen **Prüfmodus**: einen
+vorhandenen Jahrgang durchgehen, Zuordnungen prüfen und mit Begründung korrigieren,
+falsche Felder und Berichtsdaten richtigstellen, dann bestätigen.
+
+### Skill
+
+`.claude/skills/vib-import/SKILL.md` (`metadata: mcp: true`, kommt vom MCP-Server):
+
+1. Bericht erkennen (Jahr, Drucksache, Datum der Drucksache), vorhandenen Bericht
+   fortsetzen statt neu anlegen.
+2. Vorhaben aus Abschnitt B (Schienenwege) einzeln erfassen: Sektionsnummer, Name wie in
+   der Überschrift, Kategorie aus der Gliederung, Unterabschnitte nach ihren Überschriften,
+   Kenndaten, PFA-Tabelle zeilenweise.
+3. Status nur aus Projektstand/Planungsstand und den Terminen, nie aus Wörtern der
+   PFA-Spalte „Entwurfsplanung“.
+4. Zuordnen: Vorschlag prüfen, Teilprojekt-Ebene beachten, mehrere Projekte erlaubt,
+   Begründung schreiben, Unklares offen lassen.
+5. PFA-Abschnitte Teilprojekten zuordnen, wo es sie gibt.
+6. Bestätigen, Bericht an den Nutzer: übernommen / selbst entschieden / offen.
+
+### Entscheidungen Phase 7
+
+| # | Datum | Entscheidung |
+|---|---|---|
+| W1 | 2026-10-20 | Neues Feld `vib_entry.confirmed`; nur bestätigte Einträge materialisieren. Backfill `true`. |
+| W2 | 2026-10-20 | Upload bleibt als zweiter Weg; MCP + Skill hat Vorrang. Die OCR-Stufe bleibt Referenz der PDF-Vereinheitlichung. |
+| W3 | 2026-10-20 | Vorhandene Jahrgänge bleiben; Prüfmodus im Skill korrigiert Zuordnungen und Felder. |
+| W4 | 2026-10-20 | Begründung als `assignment_note` am Eintrag; Zuordnung bleibt m:n (mehrere Projekte je Vorhaben). |
+| W5 | 2026-10-20 | Roadmap-Punkte des Review-Wegs (Original-PDF, OCR-Bilder, Phase 6) entfallen; „Lernen aus Zuordnungen“ wird für VIB durch den Vorjahres-Vorschlag gelöst. |
+| W6 | 2026-10-20 | Der Agent trägt das Datum der Drucksache als `report_date` ein; der Prüfmodus korrigiert falsche Daten alter Jahrgänge. |
+
+### Akzeptanzkriterien Phase 7
+
+- [ ] Über MCP lässt sich ein VIB-Jahrgang vollständig erfassen: Bericht, Vorhaben mit
+      PFA-Tabelle, Zuordnung mit Begründung (auch zu mehreren Projekten), Bestätigung.
+- [ ] Ein unbestätigter Eintrag erzeugt keine Beobachtung; nach `confirm_vib_report`
+      erscheinen sie.
+- [ ] Bestehende VIB-Einträge sind nach der Migration bestätigt; der Projektfortschritt
+      ändert sich nicht.
+- [ ] Ein über MCP umgehängter Eintrag ist unbestätigt, bis er bestätigt wird.
+- [ ] `add_vib_entries` füllt höchstens ein Projekt vor und nennt den Grund.
+- [ ] Ohne `vib.import` verweigern die Tools den Zugriff.
+- [ ] Der Upload-Weg funktioniert unverändert; seine Einträge sind bestätigt.
 
 ---
 
 ## Nicht im Scope
 
-- Automatischer Import ohne Human Review
+- Automatischer Import ohne Human Review (auch über MCP: Bestätigen bleibt ein eigener Schritt)
 - Extraktion von Pressemitteilungen oder externen Quellen
 - ProjectProgress-Verknüpfung (separates Feature: `feature-project-progress.md`)
 

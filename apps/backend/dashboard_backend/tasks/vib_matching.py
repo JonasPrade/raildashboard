@@ -44,6 +44,10 @@ def _vde_match(vib_name: str, project_name: str, project_description: str | None
 # Fuzzy name matching (same approach as finve_matching.py)
 # ---------------------------------------------------------------------------
 
+# VIB headings often start with the running number of the Bedarfsplan line:
+# "Lfd. Vorhaben Nr. 2 – ABS Lübeck/Hagenow Land–Rostock–Stralsund (VDE Nr. 1)".
+# Drop it so the name itself (and the ABS/NBS prefix after it) is compared.
+_LFD_PREFIX = re.compile(r"^lfd\.?\s*(?:vorhaben\s*)?nr\.?\s*\d+\w?\s*[-–—:]?\s*")
 _STRIP_PREFIXES = re.compile(
     r"^(abs/nbs|nbs/abs|abs|nbs|neu-|aus-|um-)\s*",
     re.IGNORECASE,
@@ -63,6 +67,7 @@ _PFA_THRESHOLD = 0.35
 def _normalize(text: str) -> str:
     text = unicodedata.normalize("NFC", text)
     text = text.lower()
+    text = _LFD_PREFIX.sub("", text)
     text = _STRIP_PREFIXES.sub("", text)
     text = _PUNCTUATION.sub(" ", text)
     text = _WHITESPACE.sub(" ", text).strip()
@@ -89,46 +94,46 @@ def _score(vib_name: str, project_name: str) -> float:
     return 0.6 * full + 0.4 * token_score
 
 
+def rank_projects_for_vib_entry(
+    vib_name: str,
+    projects: list,  # list of Project ORM instances (.id, .name, .description)
+) -> list[tuple[int, str, float]]:
+    """All candidate projects for a VIB name as ``(project_id, reason, score)``.
+
+    VDE-number matches come first (reason ``"vde"``, score 1.0), then fuzzy
+    name matches above _THRESHOLD (reason ``"name"``), best first.
+    """
+    vde: list[tuple[int, str, float]] = []
+    fuzzy: list[tuple[int, str, float]] = []
+    for project in projects:
+        if not project.name:
+            continue
+        proj_desc = getattr(project, "description", None) or ""
+        if _vde_match(vib_name, project.name, proj_desc):
+            vde.append((project.id, "vde", 1.0))
+            continue
+        s = _score(vib_name, project.name)
+        if s >= _THRESHOLD:
+            fuzzy.append((project.id, "name", s))
+    fuzzy.sort(key=lambda x: x[2], reverse=True)
+    return vde + fuzzy
+
+
+def same_vib_name(a: str, b: str) -> bool:
+    """True when two VIB headings name the same Vorhaben (year-over-year)."""
+    return bool(a and b) and (_normalize(a) == _normalize(b) or _score(a, b) >= 0.9)
+
+
 def suggest_projects_for_vib_entry(
     vib_name: str,
     projects: list,  # list of Project ORM instances (.id, .name, .description)
 ) -> list[int]:
     """Return project IDs (up to _MAX_SUGGESTIONS) that best match the given VIB name.
 
-    Strategy:
-    1. If any project shares the same VDE number → include it unconditionally at
-       the top of the list (high confidence match).
-    2. Fuzzy name match for remaining candidates above _THRESHOLD.
-    3. Return deduplicated list, VDE matches first.
+    VDE-number matches first (high confidence), then fuzzy name matches above
+    _THRESHOLD — see :func:`rank_projects_for_vib_entry`.
     """
-    vde_matches: list[int] = []
-    fuzzy_scored: list[tuple[float, int]] = []
-    seen: set[int] = set()
-
-    for project in projects:
-        if not project.name:
-            continue
-        proj_desc = getattr(project, "description", None) or ""
-
-        if _vde_match(vib_name, project.name, proj_desc):
-            if project.id not in seen:
-                vde_matches.append(project.id)
-                seen.add(project.id)
-
-        s = _score(vib_name, project.name)
-        if s >= _THRESHOLD and project.id not in seen:
-            fuzzy_scored.append((s, project.id))
-
-    fuzzy_scored.sort(key=lambda x: x[0], reverse=True)
-    result = vde_matches[:]
-    for _, pid in fuzzy_scored:
-        if pid not in seen:
-            result.append(pid)
-            seen.add(pid)
-        if len(result) >= _MAX_SUGGESTIONS:
-            break
-
-    return result[:_MAX_SUGGESTIONS]
+    return [pid for pid, _, _ in rank_projects_for_vib_entry(vib_name, projects)][:_MAX_SUGGESTIONS]
 
 
 def suggest_project_for_bauportal(

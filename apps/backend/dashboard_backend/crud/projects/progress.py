@@ -421,7 +421,10 @@ def sync_derived_observations_bulk(
         db.query(VibEntry, vib_entry_project.c.project_id)
         .options(joinedload(VibEntry.report), selectinload(VibEntry.pfa_entries))
         .join(vib_entry_project, vib_entry_project.c.vib_entry_id == VibEntry.id)
-        .filter(vib_entry_project.c.project_id.in_(project_ids))
+        .filter(
+            vib_entry_project.c.project_id.in_(project_ids),
+            VibEntry.confirmed.is_(True),
+        )
         .all()
     )
     for entry, project_id in vib_rows:
@@ -472,7 +475,7 @@ def sync_derived_observations_bulk(
         db.query(VibPfaEntry, VibEntry)
         .join(VibEntry, VibEntry.id == VibPfaEntry.vib_entry_id)
         .options(joinedload(VibEntry.report))
-        .filter(VibPfaEntry.project_id.in_(project_ids))
+        .filter(VibPfaEntry.project_id.in_(project_ids), VibEntry.confirmed.is_(True))
         .all()
     )
     for pfa, entry in assigned_pfa_rows:
@@ -659,7 +662,7 @@ def _build_forecast_for_project(
         .join(VibEntry, VibEntry.id == VibPfaEntry.vib_entry_id)
         .outerjoin(VibReport, VibReport.id == VibEntry.vib_report_id)
         .join(vib_entry_project, vib_entry_project.c.vib_entry_id == VibEntry.id)
-        .filter(vib_entry_project.c.project_id == project_id)
+        .filter(vib_entry_project.c.project_id == project_id, VibEntry.confirmed.is_(True))
         .all()
     )
     pfas = [pfa_forecast_input(p, report) for p, report in pfa_rows]

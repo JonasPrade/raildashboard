@@ -99,9 +99,7 @@ Themenschwerpunkt: die im v0.0.4-Rollout aufgedeckten Stabilitäts- und Tooling-
   - [ ] Für übergeordnete Projekte (mit `subprojects`): Phasen-Verteilung der direkten Kinder berechnen und als Mini-Stacked-Bar in der ProjectCard anzeigen ("3 Bau · 1 Planung · 1 Inbetrieb"). Read-only, keine eigene DB-Spalte.
   - [ ] Akzeptanzkriterium: ein Parent-Projekt mit 5 Sub-Projekten in unterschiedlichen Phasen zeigt den korrekten Stacked-Bar; Klick auf Segment filtert die Sub-Projekt-Liste.
 
-  **Phase 6 — Auto-Extraktion aus VIB**
-  - [ ] In `tasks/vib_ai_extraction.py` zusätzlich `planungsstand` → `ProjectProgressStatus` mappen (LLM-Output normalisieren). Beim Confirm eines VIB-Imports: pro zugeordnetem Projekt einen Eintrag mit `source="vib_{year}"` erzeugen, **nur wenn nicht bereits identischer Status+Quelle+Datum vorhanden** (Idempotenz).
-  - [ ] Akzeptanzkriterium: erneuter VIB-Import desselben Berichts erzeugt keine Duplikate; ein neuer Bericht mit anderem Planungsstand erzeugt einen zusätzlichen Timeline-Eintrag.
+  **Phase 6 — Auto-Extraktion aus VIB** — entfällt (2026-10-20): bestätigte VIB-Einträge materialisieren bereits als abgeleitete Beobachtungen; siehe `feature-vib-import.md` → Phase 7.
 
   **Out-of-Scope für v0.0.5:**
   - Auto-Extraktion aus Pressemitteilungen (eigenes Feature, Long-Term).
@@ -117,7 +115,7 @@ Themenschwerpunkt: die im v0.0.4-Rollout aufgedeckten Stabilitäts- und Tooling-
 ### Out-of-Scope für v0.0.5 (bewusst auf später)
 
 - BVWP-Datenimport (zu groß)
-- VIB-OCR-Bilder im Review (eigener Long-Term-Block)
+- ~~VIB-OCR-Bilder im Review~~ — entfällt (2026-10-20, VIB über MCP + Skill)
 - Passwort-Reset per E-Mail (eigener Block)
 - ~~ProjectProgress: Gantt-Übersicht über mehrere Projekte (Long-Term)~~ — umgesetzt als
   Zeitstrahl-Ansicht, siehe `docs/features/feature-project-timeline.md`
@@ -248,9 +246,9 @@ Siehe: `docs/features/feature-new-project-wizard.md`
 
 ## Long-Term Features
 
-- [ ] **VIB-Review: Original-PDF-Anzeige** — Im Review-Schritt das hochgeladene PDF parallel zum Formular anzeigen, auf die passende Seite gesprungen. Erfordert: PDF-Speicherung serverseitig (z.B. temporär an draft_id geknüpft), Seitennummer-Tracking im Parser (pro Eintrag), Serve-Endpoint `GET /import/vib/pdf/{task_id}`, Frontend-Integration mit `react-pdf` oder ähnlichem.
+- ~~**VIB-Review: Original-PDF-Anzeige**~~ — entfällt (2026-10-20): Der empfohlene Weg ist das Einlesen über MCP + Skill, der Agent liest das PDF selbst (`feature-vib-import.md` → Phase 7). Bisheriger Plan: Im Review-Schritt das hochgeladene PDF parallel zum Formular anzeigen, auf die passende Seite gesprungen. Erfordert: PDF-Speicherung serverseitig (z.B. temporär an draft_id geknüpft), Seitennummer-Tracking im Parser (pro Eintrag), Serve-Endpoint `GET /import/vib/pdf/{task_id}`, Frontend-Integration mit `react-pdf` oder ähnlichem.
 
-- [ ] **VIB-Review: OCR-Bilder anzeigen** — Im Review und in `VibStructurePreviewPage` extrahierte Mistral-OCR-Bilder (Diagramme, Karten, Fortschrittsbalken) pro Vorhaben anzeigen. Backend-Infrastruktur bereits implementiert: `ocr_images_json` auf `VibDraftReport`, `GET /draft/{task_id}/images` (Metadaten) und `GET /draft/{task_id}/image/{id}` (Bytes). Offen: pro-Eintrag-Zuordnung der Bilder (page_index-Matching gegen entry block_start/end-Seiten) und Frontend-Komponente (Galerie oder Inline-Thumbnails in der Strukturvorschau).
+- ~~**VIB-Review: OCR-Bilder anzeigen**~~ — entfällt (2026-10-20, siehe oben). Bisheriger Plan: Im Review und in `VibStructurePreviewPage` extrahierte Mistral-OCR-Bilder (Diagramme, Karten, Fortschrittsbalken) pro Vorhaben anzeigen. Backend-Infrastruktur bereits implementiert: `ocr_images_json` auf `VibDraftReport`, `GET /draft/{task_id}/images` (Metadaten) und `GET /draft/{task_id}/image/{id}` (Bytes). Offen: pro-Eintrag-Zuordnung der Bilder (page_index-Matching gegen entry block_start/end-Seiten) und Frontend-Komponente (Galerie oder Inline-Thumbnails in der Strukturvorschau).
 
 - [ ] **PDF-Import vereinheitlichen** — Die OCR-Stufe der VIB-Pipeline (PDF → Markdown, dann Zuordnung aufs Zielformat) als gemeinsamen Service für alle PDF-Quellen bereitstellen; Haushalt-Spaltenlayout per LLM auf das kanonische Schema mappen statt pro Jahrgang neue Heuristiken. Evaluation und empfohlene Reihenfolge: `docs/features/feature-pdf-import-unification.md`. Umgesetzt: Schritt 1 (`services/document_ocr.py` mit `OcrResult`), Schritt 2 (OCR-Persistenz-Mixin), Schritt 4 (OCR-Pfad des Haushalts parallel über `HAUSHALT_EXTRACTION=compare` inkl. Vergleichsskript) und Schritt 5 (Spaltenzuordnung). Offen: Schritt 3 (Medien-PDF-Upload) und Schritt 6 — die Umschaltung auf `ocr` setzt einen Vergleichslauf gegen die echte OCR-API voraus (`docs/manual-tests-backlog.md`).
 
@@ -275,6 +273,7 @@ Siehe: `docs/features/feature-new-project-wizard.md`
   Siehe: `docs/features/feature-password-reset.md`
 
 - [ ] **VIB/Haushalt-Matching: Lernen aus manuellen Zuordnungen**
+  *VIB: gelöst (2026-10-20) — `add_vib_entries` schlägt zuerst die bestätigte Zuordnung desselben Vorhabens aus früheren Berichten vor (`feature-vib-import.md` → Phase 7). Offen bleibt Haushalt/FinVe.*
   Der aktuelle Fuzzy-Matching-Algorithmus (`vib_matching.py`, `finve_matching.py`) berechnet Vorschläge einmalig beim Import und hat kein Gedächtnis. Bestätigte Zuordnungen aus vergangenen Importen (Tabellen `vib_entry_project`, `finve_to_project`) könnten als Trainingsgrundlage dienen: Wenn ein Vorhaben-/FinVe-Name bereits früher manuell einem Projekt zugeordnet wurde, sollte diese Entscheidung als starker Hinweis in zukünftigen Importen gewertet werden. Mögliche Ansätze: (a) Exact-/Near-Match gegen historische `(name_raw, project_id)`-Paare vor dem Fuzzy-Scoring; (b) Boost des Fuzzy-Scores für Projekte, die für ähnliche Namen bereits gewählt wurden. Kein Modell-Training nötig — reine Datenbankabfrage zur Parse-Zeit.
 
 - [ ] **CI: Tests in GitHub Actions** *(aus v0.0.5 hierher verschoben)*
@@ -326,6 +325,7 @@ Siehe: `docs/features/feature-vib-import.md`
 - [x] **Mistral OCR Pipeline** — `services/document_ocr.py` (bis v0.0.12 `tasks/vib_ocr.py`, jetzt gemeinsame Stufe 1 aller PDF-Importe): `mistral-ocr-latest` API + pymupdf fallback; inline table resolution; header/footer stripping; page-range extraction; image collection stored as JSON in `vib_draft_report.ocr_images_json`
 - [x] **API** — Celery task `extract_vib_blocks`; image endpoints `GET /draft/{task_id}/images` + `/image/{id}`; single-entry AI extraction endpoint
 - [x] **Review-UI** — `VibStructurePreviewPage` with Markdown rendering, quality indicators, sub-section badges; `VibReviewPage` with editable sub-block fields and inline PFA table; per-entry "KI extrahieren" button; m:n project assignment (`project_ids`)
+- [ ] **VIB über MCP + Skill (Vorrang vor dem Upload)** — Agent liest den VIB selbst (Skill `.claude/skills/vib-import/`) und schreibt Bericht, Vorhaben, PFA-Tabelle und Zuordnungen mit Begründung über MCP-Tools (Recht `vib.import`); `vib_entry.confirmed` — nur bestätigte Einträge materialisieren; Prüfmodus für vorhandene Jahrgänge; Upload bleibt als zweiter Weg. Siehe `feature-vib-import.md` → Phase 7.
 
 ### Rebrand · Richtung F (Bahnhofshalle Tag)
 

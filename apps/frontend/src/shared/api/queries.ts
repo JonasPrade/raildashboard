@@ -1218,13 +1218,15 @@ export function useProjectVibEntries(projectId: number) {
 
 export function useUpdateVibEntry() {
     return useInvalidatingMutation(
-        ({ entryId, data }: { entryId: number; data: Partial<VibEntryProposed> }) =>
+        ({ entryId, data }: { entryId: number; data: Partial<VibEntryProposed> & { confirmed?: boolean } }) =>
             api<VibEntrySchema>(`/api/v1/import/vib/entries/${entryId}`, {
                 method: "PATCH",
                 json: data,
             }),
         [
             queryKeys.projectVib,
+            // Confirming or reassigning changes what feeds the planning state.
+            queryKeys.progress,
             queryKeys.adminUnassignedVibEntries,
             queryKeys.vibEntriesConfirmed,
         ],

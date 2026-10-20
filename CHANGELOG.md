@@ -12,6 +12,19 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **VIB via MCP + skill (preferred way in).** An agent reads the Verkehrsinvestitionsbericht
+  itself (skill `.claude/skills/vib-import/SKILL.md`, also a check mode for existing years)
+  and writes it with new MCP tools (`list_vib_reports`, `create_vib_report`,
+  `update_vib_report`, `list_vib_entries`, `get_vib_entry`, `add_vib_entries`,
+  `update_vib_entry`, `set_vib_pfa_entries`, `assign_vib_entry`, `assign_vib_pfa`,
+  `delete_vib_entry`, `confirm_vib_report`), gated by `vib.import`. Suggestions come from the
+  previous year's confirmed assignment, then the VDE number, then the name (the
+  "Lfd. Vorhaben Nr." prefix is ignored); at most one project is pre-assigned. Migration
+  `20261020001` adds `vib_entry.confirmed` (existing rows become confirmed),
+  `assignment_note` and `page`. Only confirmed VIB entries feed the planning state; MCP
+  writes leave an entry unconfirmed, the upload confirm and assignments by an editor in the
+  UI confirm it. The project page marks unconfirmed entries and offers "Bestätigen". The
+  upload stays as a second way. See `docs/features/feature-vib-import.md` → Phase 7.
 - **Drag & Drop für PDF-Uploads.** VIB-, Haushalts- und GVFG-Import sowie die Anhänge an
   Projekttexten nehmen Dateien jetzt auch per Drag & Drop an, zusätzlich zum Dateidialog
   (shared `FileDropZone` in `apps/frontend/src/shared/ui/`). Dateien mit falschem Typ werden
