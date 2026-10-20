@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from dashboard_backend.tasks.infraplan import PageData, parse_pages
+from dashboard_backend.tasks.infraplan import PageData, extract_page, parse_pages
 
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "infraplan_2026_pages.json"
 
@@ -213,3 +213,45 @@ def test_kpi_pages_do_not_disturb_the_tables(raw_pages):
     result = parse_pages([PageData.from_dict(p) for p in raw_pages + kpi_pages])
     assert {s.key: s.row_count for s in result.output.sections} == EXPECTED_ROWS
     assert len(result.kpi_pages) == 5
+
+
+class _FakePage:
+    """The two pdfplumber calls ``extract_page`` makes, with words as given."""
+
+    width = 595.0
+    height = 842.0
+
+    def __init__(self, texts: list[str]):
+        self._words = [
+            {"text": t, "x0": 10.0 * i, "x1": 10.0 * i + 8, "top": 100.0, "bottom": 107.5, "size": 7.5}
+            for i, t in enumerate(texts)
+        ]
+
+    def extract_words(self, extra_attrs=None):
+        return self._words
+
+    def find_tables(self):
+        return []
+
+
+def test_unmapped_full_stop_is_restored():
+    # A print without Unicode mapping for "." yields U+FFFD in its place.
+    page = extract_page(_FakePage(["4gl\ufffd", "1\ufffd676,02", "E\ufffd1637260058"]), 33)
+    assert [w["text"] for w in page.words] == ["4gl.", "1.676,02", "E.1637260058"]
+
+
+def test_unreadable_text_and_unparsed_cost_are_reported(raw_pages):
+    pages = copy.deepcopy(raw_pages)
+    for page in pages:
+        for word in page["words"]:
+            if word["text"] == "4gl.":
+                word["text"] = "4gl�"
+            if word["text"] == "1.140,02":
+                word["text"] = "1(cid:17)140,02"
+    parsed = parse_pages([PageData.from_dict(p) for p in pages])
+
+    kinds = {(w.kind, w.section, w.lfd_nr) for w in parsed.warnings}
+    assert ("UNREADABLE_TEXT", "BP_A", 2) in kinds
+    assert ("UNREADABLE_TEXT", "BP_A", 4) in kinds
+    assert ("UNPARSED_COST", "BP_A", 4) in kinds
+    assert all(k in {"UNREADABLE_TEXT", "UNPARSED_COST"} for k, _, _ in kinds)

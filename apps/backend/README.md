@@ -134,7 +134,7 @@ and check the key's capabilities before writing. Tools: `list_project_groups`, `
 `list_data_gaps`, `check_geometry` (data maintenance across many projects), `list_skills`,
 `get_skill` (skills from `.claude/skills` marked `metadata: mcp: true`; the image carries
 them as `/app/skills` via the named build context `skills`) (read)
-and `create_project`, `compute_project_length`, `update_project`, `set_project_groups`,
+and `create_project`, `create_project_group`, `compute_project_length`, `update_project`, `set_project_groups`,
 `add_progress_observation`,
 `delete_progress_observation`, `set_phase_override`, `upsert_project_text`, `create_todo`,
 `update_todo`, `route_project_geometry` (GraphHopper route, preview or apply),
@@ -709,6 +709,19 @@ Deterministic, no LLM and no OCR:
 
 The Infraplan 2026 yields 271 rows (A 38, B 40, C 71, D 34, GVFG A 42, GVFG C 41,
 InvKG 5) without warnings.
+
+**Unreadable glyphs.** Some prints of the Infraplan 2026 map the full stop of the
+table font to U+FFFD in their ToUnicode table („4gl�“, „1�676,02“). Stage 1 restores
+it (`restore_full_stops`). Anything still unreadable (U+FFFD, `(cid:N)`) and cost cells
+that are neither a number nor a reference become warnings (`UNREADABLE_TEXT`,
+`UNPARSED_COST`) instead of being lost silently. Drafts parsed before the fix — and
+the years confirmed from them — are repaired in place, keeping assignments and KPI
+values:
+
+```bash
+docker compose --env-file .env exec backend python scripts/repair_infraplan_full_stops.py          # dry run
+docker compose --env-file .env exec backend python scripts/repair_infraplan_full_stops.py --apply
+```
 
 ### Test fixtures
 

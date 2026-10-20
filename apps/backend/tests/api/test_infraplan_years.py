@@ -343,3 +343,66 @@ def test_kpi_settings_are_validated(client, editor, db_session):
 
 def test_kpi_values_require_year(client, editor):
     assert client.get(f"{BASE}/report/2026/kpi-values", headers=editor).status_code == 404
+
+
+# --- repair of full stops read as U+FFFD -----------------------------------------
+
+
+def test_repair_full_stops_fixes_confirmed_year_in_place(client, editor, db_session):
+    from dashboard_backend.crud.infraplan_import import repair_full_stops
+    from dashboard_backend.models.infraplan import InfraplanEntry, InfraplanEntryProject
+
+    p = project(db_session, "Hanau – Gelnhausen")
+    q = project(db_session, "Puttgarden")
+    draft = make_draft(
+        db_session,
+        [
+            row(
+                "BP_A", 2,
+                project_numbers_raw="E�1637260058",
+                massnahme="4gl� Ausbau Hanau-Gelnhausen",
+                cost_raw="Ref� Teil A 3 | E�1631230009",
+                footnotes={"10": "Der GWU-Wert in Höhe von 1�676,02 Mio� €"},
+                project_ids=[p.id],
+                assignment_source="AGENT",
+                assignment_note="Name stimmt",
+            ),
+            row(
+                "BP_A", 3,
+                project_numbers_raw="E�1631230009",
+                state_raw="Lph� 3",
+                cost_raw="8�044,54",
+                project_ids=[q.id],
+                assignment_source="MANUAL",
+            ),
+        ],
+    )
+    confirm(client, editor, draft)
+
+    # A dry run writes nothing.
+    assert repair_full_stops(db_session, apply=False)[0]["rows_changed"] == 2
+    assert "\ufffd" in str(db_session.get(type(draft), draft.id).result_json)
+
+    summaries = repair_full_stops(db_session, apply=True)
+
+    assert summaries[0]["rows_changed"] == 2
+    assert summaries[0]["entries_changed"] == 2
+    assert summaries[0]["warnings"] == []
+    entries = {e.lfd_nr: e for e in db_session.query(InfraplanEntry).filter_by(section="BP_A")}
+    assert entries[2].massnahme == "4gl. Ausbau Hanau-Gelnhausen"
+    assert entries[2].primary_number == "E.1637260058"
+    assert entries[2].footnotes == {"10": "Der GWU-Wert in Höhe von 1.676,02 Mio. €"}
+    assert entries[2].cost_ref_entry_id == entries[3].id
+    assert float(entries[3].cost_mio) == 8044.54
+    assert entries[3].lph_from == 3
+    # The links of the confirmed year stay.
+    links = {(link.entry_id, link.project_id) for link in db_session.query(InfraplanEntryProject)}
+    assert links == {(entries[2].id, p.id), (entries[3].id, q.id)}
+    # The draft keeps its review state.
+    stored = {r["lfd_nr"]: r for r in draft.result_json["rows"]}
+    assert stored[2]["project_ids"] == [p.id]
+    assert stored[2]["assignment_note"] == "Name stimmt"
+    assert stored[2]["massnahme"] == "4gl. Ausbau Hanau-Gelnhausen"
+
+    # A second run finds nothing left to do.
+    assert repair_full_stops(db_session, apply=True) == []

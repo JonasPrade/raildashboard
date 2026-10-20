@@ -24,6 +24,10 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   Planfeststellungsanträge, Herkunft/Einsatz lists for Mittelherkunft, a zoomed axis for the
   Stellwerksbesetzungsquote, stack totals in the tooltip. Units of the
   Informationskennzahlen are seeded from the Infraplan 2026.
+- **MCP: create project groups.** New tool `create_project_group` (`projectgroup.create`)
+  creates a group with name, unique short name, colour and visibility flags; duplicate
+  short names/names and over-long values are rejected. Projects are added afterwards with
+  `set_project_groups`.
 - **MCP: generic project filters.** `list_projects` takes a `filters` list of
   `{field, op, value}` conditions (AND), and the new tool `list_project_filters` publishes
   the catalog (fields, types, operators, enum values) from one registry, so the MCP can ask
@@ -244,6 +248,15 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   with short names) and can be reverted like any other project field.
 
 ### Fixed
+- **Infraplan: full stops read as "�".** Some prints of the Infraplan 2026 map the table
+  font's full stop to U+FFFD in their ToUnicode table, so every "." came out as "�"
+  ("4gl�", "1�676,02", "E�1637260058") — which also broke costs from 1,000 Mio. € on, the
+  "Ref. Teil …" cost references, the Lph of the state column and the matching by project
+  number. The text extraction now restores the full stop. Still unreadable glyphs
+  (U+FFFD, `(cid:N)`) and cost cells that are neither number nor reference become parser
+  warnings (`UNREADABLE_TEXT`, `UNPARSED_COST`) instead of being lost silently.
+  `scripts/repair_infraplan_full_stops.py` (dry run, `--apply` to write) repairs stored
+  drafts and the years confirmed from them in place — assignments and KPI values stay.
 - **Text history: partial updates no longer log untouched fields.** A text PATCH that sends
   only some fields (e.g. via MCP `upsert_project_text`) recorded every other tracked field as
   cleared; now only the sent fields are compared.
