@@ -24,13 +24,25 @@ import { IconRefresh } from "@tabler/icons-react";
 
 import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
 import RequirePermission from "../../components/RequirePermission";
-import { useRecheckWorkerHealth, useWorkerHealth, type WorkerHealth } from "../../shared/api/queries";
+import {
+    useRecheckWorkerHealth,
+    useRoutingHealth,
+    useWorkerHealth,
+    type RoutingHealth,
+    type WorkerHealth,
+} from "../../shared/api/queries";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 
 const STATUS_DISPLAY: Record<WorkerHealth["status"], { color: string; label: string }> = {
     ok: { color: "green", label: "Worker laufen" },
     no_workers: { color: "red", label: "Kein Worker online" },
     broker_unreachable: { color: "red", label: "Warteschlange nicht erreichbar" },
+};
+
+const ROUTING_STATUS_DISPLAY: Record<RoutingHealth["status"], { color: string; label: string }> = {
+    ok: { color: "green", label: "Routing erreichbar" },
+    error: { color: "red", label: "Routing meldet Fehler" },
+    unreachable: { color: "red", label: "Routing nicht erreichbar" },
 };
 
 function formatCheckedAt(checkedAt: number): string {
@@ -68,6 +80,8 @@ function WorkerTable({ health }: { health: WorkerHealth }) {
 function SystemStatusPageContent() {
     const { data: health, isLoading, isError } = useWorkerHealth();
     const recheck = useRecheckWorkerHealth();
+    const { data: routing, isLoading: routingLoading, isError: routingError, refetch: refetchRouting } =
+        useRoutingHealth();
 
     return (
         <Container size="md" py="xl">
@@ -78,7 +92,10 @@ function SystemStatusPageContent() {
                         variant="light"
                         leftSection={<IconRefresh size={16} />}
                         loading={recheck.isPending}
-                        onClick={() => recheck.mutate()}
+                        onClick={() => {
+                            recheck.mutate();
+                            void refetchRouting();
+                        }}
                     >
                         Erneut prüfen
                     </Button>
@@ -144,6 +161,64 @@ function SystemStatusPageContent() {
                                             <Table.Tr>
                                                 <Table.Th>Technische Meldung</Table.Th>
                                                 <Table.Td><Code>{health.detail}</Code></Table.Td>
+                                            </Table.Tr>
+                                        )}
+                                    </Table.Tbody>
+                                </ResponsiveTable>
+                            </>
+                        )}
+                    </Stack>
+                </ChronicleCard>
+
+                <ChronicleCard>
+                    <Stack gap="md">
+                        <Text fw={600} size="md">Routing-Dienst</Text>
+                        <Text size="sm" c="dimmed">
+                            Strecken werden über <b>GraphHopper</b> auf dem Schienennetz geroutet.
+                            Ist er nicht erreichbar, schlägt das Routen von Projektgeometrien fehl.
+                        </Text>
+
+                        {routingLoading && (
+                            <Group gap="xs"><Loader size="xs" /><Text size="sm">Prüfung läuft…</Text></Group>
+                        )}
+
+                        {routingError && (
+                            <Alert color="red" variant="light" title="Prüfung nicht möglich">
+                                Der Routing-Status konnte nicht abgefragt werden.
+                            </Alert>
+                        )}
+
+                        {routing && (
+                            <>
+                                <Group gap="sm" align="center">
+                                    <Badge color={ROUTING_STATUS_DISPLAY[routing.status].color} variant="filled">
+                                        {ROUTING_STATUS_DISPLAY[routing.status].label}
+                                    </Badge>
+                                    <Text size="sm" c="dimmed">
+                                        geprüft um {formatCheckedAt(routing.checked_at)}
+                                    </Text>
+                                </Group>
+
+                                <Alert color={routing.status === "ok" ? "green" : "orange"} variant="light">
+                                    {routing.message}
+                                </Alert>
+
+                                <ResponsiveTable minWidth={480} variant="vertical" withTableBorder>
+                                    <Table.Tbody>
+                                        <Table.Tr>
+                                            <Table.Th w={220}>Adresse</Table.Th>
+                                            <Table.Td><Code>{routing.base_url || "—"}</Code></Table.Td>
+                                        </Table.Tr>
+                                        {routing.latency_ms != null && (
+                                            <Table.Tr>
+                                                <Table.Th>Antwortzeit</Table.Th>
+                                                <Table.Td>{routing.latency_ms} ms</Table.Td>
+                                            </Table.Tr>
+                                        )}
+                                        {routing.detail && (
+                                            <Table.Tr>
+                                                <Table.Th>Technische Meldung</Table.Th>
+                                                <Table.Td><Code>{routing.detail}</Code></Table.Td>
                                             </Table.Tr>
                                         )}
                                     </Table.Tbody>
