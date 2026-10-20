@@ -23,7 +23,8 @@ import { notifications } from "@mantine/notifications";
 import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
 import RequirePermission from "../../components/RequirePermission";
 import { filterProjectOption } from "../../lib/filterProjectOption";
-import { MissingProjectAnchor } from "../import-review/shared";
+import { IconPlus } from "@tabler/icons-react";
+import CreateDraftProjectModal from "../projects/CreateDraftProjectModal";
 import {
     useConfirmGvfgImport,
     useGvfgParseResult,
@@ -63,6 +64,8 @@ function GvfgReviewPageContent() {
     const [land, setLand] = useState<string | null>(null);
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
+    // Entry whose "project not found" dialog is open (one page-level modal).
+    const [draftFor, setDraftFor] = useState<GvfgParsedEntry | null>(null);
 
     const initial = useMemo(() => {
         const out: Record<string, number[]> = {};
@@ -307,17 +310,14 @@ function GvfgReviewPageContent() {
                                                                 </Anchor>
                                                             </>
                                                         ) : (
-                                                            <MissingProjectAnchor
-                                                                initialName={entry.name ?? entry.key}
-                                                                sourceLabel="GVFG"
-                                                                onCreated={(project) => {
-                                                                    if (project.id == null) return;
-                                                                    setProjects(entry.key, [
-                                                                        ...(current[entry.key] ?? []),
-                                                                        project.id,
-                                                                    ]);
-                                                                }}
-                                                            />
+                                                            <Button
+                                                                variant="light"
+                                                                size="compact-xs"
+                                                                leftSection={<IconPlus size={12} />}
+                                                                onClick={() => setDraftFor(entry)}
+                                                            >
+                                                                Projekt nicht gefunden – neu anlegen
+                                                            </Button>
                                                         )}
                                                     </Group>
                                                 )}
@@ -336,6 +336,16 @@ function GvfgReviewPageContent() {
                     </Stack>
                 </ChronicleCard>
             </Stack>
+            <CreateDraftProjectModal
+                opened={draftFor !== null}
+                onClose={() => setDraftFor(null)}
+                initialName={draftFor ? (draftFor.name ?? draftFor.key) : undefined}
+                sourceLabel="GVFG"
+                onCreated={(project) => {
+                    if (!draftFor || project.id == null) return;
+                    setProjects(draftFor.key, [...(current[draftFor.key] ?? []), project.id]);
+                }}
+            />
         </Container>
     );
 }

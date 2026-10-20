@@ -92,7 +92,7 @@ Leerzeichen.
 
 Mehrfachtreffer, Namensähnlichkeit < 0,45 und widersprüchliche Fördertatbestände
 kommen auf eine Prüfliste statt automatisch übernommen zu werden. Neue Vorhaben:
-„Projekt fehlt?“ je Vorhaben legt sofort einen Projektentwurf an (Name vorbelegt,
+Der Button „Projekt nicht gefunden – neu anlegen“ unter jedem Vorhaben legt sofort einen Projektentwurf an (Name vorbelegt,
 optional Überprojekt) und ordnet ihn zu — wie bei Haushalt, Bauportal und
 Fulda-Runde; die Sammelaktion legt alle Vorhaben ohne Projekt beim Übernehmen an
 (Name, Schlüssel als `project_number`, Gruppe GVFG; Geometrie später per
