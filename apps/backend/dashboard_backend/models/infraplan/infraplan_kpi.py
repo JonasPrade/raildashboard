@@ -4,6 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    Boolean,
     DateTime,
     ForeignKey,
     Integer,
@@ -31,6 +32,19 @@ class InfraplanKpi(Base):
     category: Mapped[str | None] = mapped_column(String(20), nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+
+    # How /infraplan draws the KPI (docs/features/feature-infraplan-import.md,
+    # "Öffentliche Seite"), editable in the admin settings.
+    # None = automatic | split (one chart per series) | grouped (bars side by
+    # side) | flow (one year as Herkunft/Einsatz lists).
+    chart_layout: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # The sub-series that already is the whole (others are subsets of it).
+    total_series: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    # Key of a KPI drawn into this chart on its own right-hand axis.
+    companion_key: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    companion_label: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    # Axis starts just below the values instead of at 0 (rates near 100 %).
+    zoomed_axis: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
 
     values = relationship("InfraplanKpiValue", back_populates="kpi", passive_deletes=True)
 

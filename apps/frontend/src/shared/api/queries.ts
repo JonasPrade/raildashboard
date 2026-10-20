@@ -2287,6 +2287,17 @@ export function useInfraplanKpis() {
     });
 }
 
+export type InfraplanKpiUpdate = components["schemas"]["InfraplanKpiUpdate"];
+
+/** Admin settings of one KPI (name, unit, how /infraplan draws it). */
+export function useUpdateInfraplanKpi() {
+    return useInvalidatingMutation(
+        ({ key, body }: { key: string; body: InfraplanKpiUpdate }) =>
+            api<InfraplanKpi>(`${INFRAPLAN_IMPORT}/kpis/${encodeURIComponent(key)}`, { method: "PATCH", json: body }),
+        [queryKeys.infraplanKpis, queryKeys.infraplanPublicKpis],
+    );
+}
+
 export function useInfraplanKpiValues(year: number) {
     return useQuery({
         queryKey: queryKeys.infraplanKpiValues(year),

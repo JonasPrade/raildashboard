@@ -906,26 +906,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/system/routing": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Routing Health
-         * @description Is GraphHopper reachable right now? Probed on every call (one bounded request).
-         */
-        get: operations["get_routing_health_api_v1_system_routing_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/tasks/workers": {
         parameters: {
             query?: never;
@@ -983,6 +963,26 @@ export interface paths {
          * @description Start the debug add-task and return its task_id for polling.
          */
         post: operations["start_debug_task_api_v1_tasks_debug_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/system/routing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Routing Health
+         * @description Is GraphHopper reachable right now? Probed on every call (one bounded request).
+         */
+        get: operations["get_routing_health_api_v1_system_routing_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2141,6 +2141,27 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/infraplan/kpis/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Kpi
+         * @description Admin settings of one KPI: name, unit, description, order and how
+         *     /infraplan draws it (layout, total series, companion, zoomed axis).
+         */
+        patch: operations["update_kpi_api_v1_import_infraplan_kpis__key__patch"];
         trace?: never;
     };
     "/api/v1/import/infraplan/report/{year}/kpi-values": {
@@ -4466,6 +4487,19 @@ export interface components {
              * @default 0
              */
             sort_order: number;
+            /** Chart Layout */
+            chart_layout?: ("split" | "grouped" | "flow") | null;
+            /** Total Series */
+            total_series?: string | null;
+            /** Companion Key */
+            companion_key?: string | null;
+            /** Companion Label */
+            companion_label?: string | null;
+            /**
+             * Zoomed Axis
+             * @default false
+             */
+            zoomed_axis: boolean;
         };
         /** InfraplanKpiSeriesValue */
         InfraplanKpiSeriesValue: {
@@ -4482,6 +4516,33 @@ export interface components {
             series?: string | null;
             /** Value */
             value: number;
+        };
+        /**
+         * InfraplanKpiUpdate
+         * @description Admin settings of one KPI; only the fields sent are changed, null
+         *     clears an optional field.
+         */
+        InfraplanKpiUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Unit */
+            unit?: string | null;
+            /** Category */
+            category?: ("AUS_NEUBAU" | "BESTANDSNETZ" | "UEBERGEORDNET") | null;
+            /** Description */
+            description?: string | null;
+            /** Sort Order */
+            sort_order?: number | null;
+            /** Chart Layout */
+            chart_layout?: ("split" | "grouped" | "flow") | null;
+            /** Total Series */
+            total_series?: string | null;
+            /** Companion Key */
+            companion_key?: string | null;
+            /** Companion Label */
+            companion_label?: string | null;
+            /** Zoomed Axis */
+            zoomed_axis?: boolean | null;
         };
         /**
          * InfraplanKpiValueInput
@@ -4901,6 +4962,19 @@ export interface components {
              * @default 0
              */
             sort_order: number;
+            /** Chart Layout */
+            chart_layout?: ("split" | "grouped" | "flow") | null;
+            /** Total Series */
+            total_series?: string | null;
+            /** Companion Key */
+            companion_key?: string | null;
+            /** Companion Label */
+            companion_label?: string | null;
+            /**
+             * Zoomed Axis
+             * @default false
+             */
+            zoomed_axis: boolean;
             /** Values */
             values?: components["schemas"]["InfraplanKpiSeriesValue"][];
         };
@@ -6904,6 +6978,29 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /**
+         * RoutingHealthSchema
+         * @description The routing service (GraphHopper) at one moment.
+         */
+        RoutingHealthSchema: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "error" | "unreachable";
+            /** Base Url */
+            base_url: string;
+            /** Http Status */
+            http_status?: number | null;
+            /** Latency Ms */
+            latency_ms?: number | null;
+            /** Message */
+            message: string;
+            /** Detail */
+            detail?: string | null;
+            /** Checked At */
+            checked_at: number;
+        };
         /** SammelFinveProgressSchema */
         SammelFinveProgressSchema: {
             /** Finve Id */
@@ -7907,29 +8004,6 @@ export interface components {
             lat: number;
             /** Lon */
             lon: number;
-        };
-        /**
-         * RoutingHealthSchema
-         * @description The routing service (GraphHopper) at one moment.
-         */
-        RoutingHealthSchema: {
-            /**
-             * Status
-             * @enum {string}
-             */
-            status: "ok" | "error" | "unreachable";
-            /** Base Url */
-            base_url: string;
-            /** Http Status */
-            http_status?: number | null;
-            /** Latency Ms */
-            latency_ms?: number | null;
-            /** Message */
-            message: string;
-            /** Detail */
-            detail?: string | null;
-            /** Checked At */
-            checked_at: number;
         };
         /**
          * WorkerHealthSchema
@@ -9891,28 +9965,6 @@ export interface operations {
             };
         };
     };
-    get_routing_health_api_v1_system_routing_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: {
-                session?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RoutingHealthSchema"];
-                };
-            };
-        };
-    };
     get_task_status_api_v1_tasks__task_id__get: {
         parameters: {
             query?: never;
@@ -9968,6 +10020,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaskLaunchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_routing_health_api_v1_system_routing_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoutingHealthSchema"];
                 };
             };
             /** @description Validation Error */
@@ -12056,6 +12139,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InfraplanKpiSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_kpi_api_v1_import_infraplan_kpis__key__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InfraplanKpiUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfraplanKpiSchema"];
                 };
             };
             /** @description Validation Error */

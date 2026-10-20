@@ -12,6 +12,18 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **Infraplan KPI settings in the admin area.** Admin → Infraplan gets the tabs „Import“
+  and „Allgemeines“; the latter lists every KPI and edits name, unit, category,
+  description, order and how `/infraplan` draws it (`PATCH /import/infraplan/kpis/{key}`).
+  The display rules are new columns on `infraplan_kpi` (`chart_layout`, `total_series`,
+  `companion_key`/`companion_label`, `zoomed_axis`; migration `20261021001`, expand only,
+  sets the rules of the Infraplan 2026 on existing rows). `/infraplan` reads them instead of
+  frontend constants: KMM as a sum with per-category details, ETCS on its Gesamtnetz with
+  the equipment rate as a second bar on a right axis (likewise Elektrifizierung with its
+  share of the network), small multiples for barrierefreie Bahnsteige, grouped bars for
+  Planfeststellungsanträge, Herkunft/Einsatz lists for Mittelherkunft, a zoomed axis for the
+  Stellwerksbesetzungsquote, stack totals in the tooltip. Units of the
+  Informationskennzahlen are seeded from the Infraplan 2026.
 - **MCP: create project groups.** New tool `create_project_group` (`projectgroup.create`)
   creates a group with name, unique short name, colour and visibility flags; duplicate
   short names/names and over-long values are rejected. Projects are added afterwards with

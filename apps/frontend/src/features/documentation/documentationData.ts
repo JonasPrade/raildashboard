@@ -153,6 +153,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Vorjahresabgleich: Projekte mit Eintrag im Vorjahr, aber ohne Zeile im neuen Jahrgang",
             "Übernehmen nur ohne Parser-Warnungen oder ausdrücklich mit „Trotzdem übernehmen“; ein Jahrgang lässt sich löschen und neu übernehmen",
             "Kennzahlen je Jahrgang (/admin/infraplan/kpis/:jahr): manuelles Formular (gilt als geprüft) und Freigabe der KI-gelesenen Werte neben dem Seitenbild",
+            "Admin → Infraplan → Allgemeines: Name, Einheit, Kategorie und Darstellung jeder Kennzahl auf /infraplan (Diagrammart, Teilreihe für die Übersicht, Begleitkennzahl auf rechter Skala, Skala ab Werten)",
             "Zeilen ohne Projekt erscheinen unter Admin → Offene Zuordnungen",
             "Plan: docs/features/feature-infraplan-import.md"
         ]
@@ -160,7 +161,10 @@ export const featureHighlights: FeatureHighlight[] = [
     {
         title: "Infraplan (/infraplan) und Projektseite",
         description:
-            "Die öffentliche Seite Infraplan zeigt die Kennzahlen als Diagramme und je Jahrgang die Liste der Maßnahmen " +
+            "Die öffentliche Seite Infraplan zeigt die Kennzahlen als Diagramme (bei Kennzahlen mit Kategorien wie den KMM die Summe bzw. das Gesamtnetz, " +
+            "ETCS mit dem Ausrüstungsgrad als zweitem Balken auf eigener Skala, " +
+            "über „Details“ ein Diagramm je Kategorie; barrierefreie Bahnsteige je Merkmal, Mittelherkunft und -einsatz " +
+            "als Ranglisten, gestapelte Balken mit Summe im Tooltip) und je Jahrgang die Liste der Maßnahmen " +
             "mit Link aufs Projekt. Auf der Projektseite stehen die Infraplan-Einträge aller Jahrgänge und die Gesamtkostenprognose.",
         details: [
             "Je Kennzahl ein Diagramm: Ist-Werte des neuesten Jahrgangs als (gestapelte) Balken, Zielwerte jedes Jahrgangs als eigene Linie („Ziel IP 2026“); nur geprüfte Werte",

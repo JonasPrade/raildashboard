@@ -233,8 +233,10 @@ def test_kpi_defaults_and_manual_values_are_public(client, editor, db_session):
     confirm(client, editor, make_draft(db_session, [row("BP_A", 1)]))
 
     kpis = client.get(f"{BASE}/kpis", headers=editor).json()
-    assert len(kpis) == 23
+    assert len(kpis) == 25
     assert kpis[0]["key"] == "neu_gebaute_gleis_km"
+    etcs = next(k for k in kpis if k["key"] == "etcs_strecken_km")
+    assert (etcs["total_series"], etcs["companion_key"]) == ("Gesamtnetz", "etcs_ausruestungsgrad")
 
     resp = client.put(
         f"{BASE}/report/2026/kpi-values",
@@ -308,6 +310,35 @@ def test_unchecked_values_hidden_until_approved(client, editor, db_session):
     assert client.post(f"{BASE}/report/2026/kpi-values/approve", headers=editor).json() == {"approved": 1}
     public = {k["key"]: k for k in client.get(f"{PUBLIC}/kpis").json()}
     assert public["etcs_strecken_km"]["values"][0]["value"] == 600.0
+
+
+def test_kpi_settings_are_editable_and_public(client, editor, db_session):
+    url = f"{BASE}/kpis/betriebsleistung"
+    resp = client.patch(
+        url,
+        json={"unit": " Mio. Trkm ", "chart_layout": "split", "companion_key": "kapazitaetsauslastung", "companion_label": "Auslastung"},
+        headers=editor,
+    )
+    assert resp.status_code == 200, resp.text
+    assert (resp.json()["unit"], resp.json()["chart_layout"]) == ("Mio. Trkm", "split")
+
+    public = {k["key"]: k for k in client.get(f"{PUBLIC}/kpis").json()}
+    assert public["betriebsleistung"]["companion_key"] == "kapazitaetsauslastung"
+
+    # Only the fields sent change; null clears an optional one.
+    cleared = client.patch(url, json={"chart_layout": None}, headers=editor).json()
+    assert (cleared["chart_layout"], cleared["unit"]) == (None, "Mio. Trkm")
+
+
+def test_kpi_settings_are_validated(client, editor, db_session):
+    url = f"{BASE}/kpis/betriebsleistung"
+    client.get(f"{BASE}/kpis", headers=editor)  # creates the defaults
+    assert client.patch(f"{BASE}/kpis/gibt_es_nicht", json={"unit": "%"}, headers=editor).status_code == 404
+    assert client.patch(url, json={"companion_key": "betriebsleistung"}, headers=editor).status_code == 422
+    assert client.patch(url, json={"companion_key": "gibt_es_nicht"}, headers=editor).status_code == 422
+    assert client.patch(url, json={"chart_layout": "pie"}, headers=editor).status_code == 422
+    assert client.patch(url, json={"name": None}, headers=editor).status_code == 422
+    assert client.patch(url, json={"unit": "%"}).status_code == 401
 
 
 def test_kpi_values_require_year(client, editor):

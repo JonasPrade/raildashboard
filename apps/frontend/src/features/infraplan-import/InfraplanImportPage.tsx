@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
     Anchor,
     Badge,
@@ -11,6 +11,7 @@ import {
     NumberInput,
     Stack,
     Table,
+    Tabs,
     Text,
 } from "@mantine/core";
 import { modals } from "@mantine/modals";
@@ -31,6 +32,7 @@ import { exceedsUploadLimit, tooLargeMessage, uploadErrorMessage } from "../../s
 import { formatDateShort, formatDateTime } from "../../shared/format";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { TaskProgressIndicator, useImportTask } from "../import-review/shared";
+import InfraplanKpiSettings from "./InfraplanKpiSettings";
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
     PENDING: { label: "wartet", color: "gray" },
@@ -256,6 +258,8 @@ function Years({ reports }: { reports: InfraplanReport[] }) {
 
 function InfraplanImportPageContent() {
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const tab = searchParams.get("tab") === "allgemeines" ? "allgemeines" : "import";
     const [file, setFile] = useState<File | null>(null);
     const [year, setYear] = useState<number | string>(new Date().getFullYear());
     const { data: drafts, isLoading: draftsLoading } = useInfraplanParseResults();
@@ -290,62 +294,83 @@ function InfraplanImportPageContent() {
         <Container size="lg" py="xl">
             <Stack gap="xl">
                 <Stack gap={4}>
-                    <ChronicleHeadline as="h1">Infraplan-Import</ChronicleHeadline>
+                    <ChronicleHeadline as="h1">Infraplan</ChronicleHeadline>
                     <Text size="sm" c="dimmed">
                         Infraplan des Bundes (Fünfjahresplan Schiene): Maßnahmentabellen einlesen, Projekten zuordnen,
                         Kennzahlen erfassen. Schritt für Schritt in der{" "}
                         <Anchor component={Link} to="/admin/anleitungen/infraplan" size="sm">Anleitung</Anchor>.
                     </Text>
                 </Stack>
-                <ChronicleCard>
-                    <Stack gap="md">
-                        <Text fw={600}>Neuer Jahrgang</Text>
-                        <Text size="sm" c="dimmed">
-                            PDF des Infraplans hochladen. Das Auslesen startet automatisch; danach öffnet sich die
-                            Prüfansicht. Die Zuordnung kann auch ein KI-Agent über den MCP-Server übernehmen (Skill
-                            „infraplan-import“).
-                        </Text>
-                        <Group align="flex-end" gap="sm" wrap="wrap">
-                            <NumberInput
-                                label="Jahrgang"
-                                value={year}
-                                onChange={setYear}
-                                min={2020}
-                                max={2100}
-                                allowDecimal={false}
-                                w={120}
-                            />
-                            <FileInput
-                                label="PDF-Datei"
-                                placeholder="PDF auswählen..."
-                                accept="application/pdf"
-                                value={file}
-                                onChange={setFile}
-                                w={{ base: "100%", xs: 320 }}
-                            />
-                            <Button
-                                onClick={handleUpload}
-                                loading={startImport.isPending || task.isRunning}
-                                disabled={!file || !yearValid}
-                            >
-                                PDF lesen
-                            </Button>
-                        </Group>
-                        {task.isRunning && <TaskProgressIndicator progress={task.progress} warning={task.warning} />}
-                    </Stack>
-                </ChronicleCard>
-                <ChronicleCard>
-                    <Stack gap="md">
-                        <Text fw={600}>Entwürfe</Text>
-                        {draftsLoading ? <Group justify="center"><Loader /></Group> : <Drafts drafts={drafts ?? []} />}
-                    </Stack>
-                </ChronicleCard>
-                <ChronicleCard>
-                    <Stack gap="md">
-                        <Text fw={600}>Übernommene Jahrgänge</Text>
-                        {reportsLoading ? <Group justify="center"><Loader /></Group> : <Years reports={reports ?? []} />}
-                    </Stack>
-                </ChronicleCard>
+                <Tabs
+                    value={tab}
+                    onChange={(v) => setSearchParams(v === "import" ? {} : { tab: v ?? "import" }, { replace: true })}
+                >
+                    <Tabs.List>
+                        <Tabs.Tab value="import">Import</Tabs.Tab>
+                        <Tabs.Tab value="allgemeines">Allgemeines</Tabs.Tab>
+                    </Tabs.List>
+                    <Tabs.Panel value="allgemeines" pt="md">
+                        <ChronicleCard>
+                            <Stack gap="md">
+                                <Text fw={600}>Kennzahlen</Text>
+                                <InfraplanKpiSettings />
+                            </Stack>
+                        </ChronicleCard>
+                    </Tabs.Panel>
+                    <Tabs.Panel value="import" pt="md">
+                        <Stack gap="xl">
+                            <ChronicleCard>
+                                <Stack gap="md">
+                                    <Text fw={600}>Neuer Jahrgang</Text>
+                                    <Text size="sm" c="dimmed">
+                                        PDF des Infraplans hochladen. Das Auslesen startet automatisch; danach öffnet sich die
+                                        Prüfansicht. Die Zuordnung kann auch ein KI-Agent über den MCP-Server übernehmen (Skill
+                                        „infraplan-import“).
+                                    </Text>
+                                    <Group align="flex-end" gap="sm" wrap="wrap">
+                                        <NumberInput
+                                            label="Jahrgang"
+                                            value={year}
+                                            onChange={setYear}
+                                            min={2020}
+                                            max={2100}
+                                            allowDecimal={false}
+                                            w={120}
+                                        />
+                                        <FileInput
+                                            label="PDF-Datei"
+                                            placeholder="PDF auswählen..."
+                                            accept="application/pdf"
+                                            value={file}
+                                            onChange={setFile}
+                                            w={{ base: "100%", xs: 320 }}
+                                        />
+                                        <Button
+                                            onClick={handleUpload}
+                                            loading={startImport.isPending || task.isRunning}
+                                            disabled={!file || !yearValid}
+                                        >
+                                            PDF lesen
+                                        </Button>
+                                    </Group>
+                                    {task.isRunning && <TaskProgressIndicator progress={task.progress} warning={task.warning} />}
+                                </Stack>
+                            </ChronicleCard>
+                            <ChronicleCard>
+                                <Stack gap="md">
+                                    <Text fw={600}>Entwürfe</Text>
+                                    {draftsLoading ? <Group justify="center"><Loader /></Group> : <Drafts drafts={drafts ?? []} />}
+                                </Stack>
+                            </ChronicleCard>
+                            <ChronicleCard>
+                                <Stack gap="md">
+                                    <Text fw={600}>Übernommene Jahrgänge</Text>
+                                    {reportsLoading ? <Group justify="center"><Loader /></Group> : <Years reports={reports ?? []} />}
+                                </Stack>
+                            </ChronicleCard>
+                        </Stack>
+                    </Tabs.Panel>
+                </Tabs>
             </Stack>
         </Container>
     );

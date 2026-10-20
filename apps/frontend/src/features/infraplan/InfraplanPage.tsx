@@ -3,10 +3,13 @@ import { Link } from "react-router-dom";
 import {
     Alert,
     Anchor,
+    Button,
     Container,
     Group,
     Loader,
+    Modal,
     Pagination,
+    Progress,
     SegmentedControl,
     Select,
     SimpleGrid,
@@ -16,7 +19,7 @@ import {
     TextInput,
     Title,
 } from "@mantine/core";
-import { CompositeChart } from "@mantine/charts";
+import { ChartTooltip, CompositeChart } from "@mantine/charts";
 import "@mantine/charts/styles.css";
 import { ChronicleCard, ChronicleDataChip, ChronicleHeadline } from "../../components/chronicle";
 import {
@@ -32,6 +35,7 @@ import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import Footnotes from "./Footnotes";
 import {
     KPI_CATEGORY_LABEL,
+    STACK_TOTAL_KEY,
     KPI_KIND_LABEL,
     PARL_LABEL,
     SECTION_SHORT,
@@ -39,53 +43,237 @@ import {
     entryCost,
     formatMio,
     groupKpis,
+    companionKeys,
+    kpiCompanions,
+    kpiFlow,
+    kpiOverview,
+    stackTotal,
+    zoomedDomain,
+    type KpiChartScope,
+    type KpiCompanion,
+    type KpiChartSeries,
 } from "./infraplanFormat";
 
 const PAGE_SIZE = 50;
 
-function KpiCard({ kpi }: { kpi: InfraplanPublicKpi }) {
-    const chart = useMemo(() => buildKpiChart(kpi), [kpi]);
-    const format = (v: number) =>
-        `${v.toLocaleString("de-DE", { maximumFractionDigits: 2 })}${kpi.unit ? ` ${kpi.unit}` : ""}`;
+const formatNumber = (v: number) => v.toLocaleString("de-DE", { maximumFractionDigits: 2 });
+const withUnit = (unit: string | null | undefined) => (v: number) => `${formatNumber(v)}${unit ? ` ${unit}` : ""}`;
+// Longer units ("Mio. Trkm") wrap on the axis; they stand under the title instead.
+const axisUnit = (unit: string | null | undefined) => (unit && unit.length <= 2 ? unit : null);
+
+function KpiChart({ kpi, scope, companion, stacked = true, compact = false, h = 220 }: {
+    kpi: InfraplanPublicKpi;
+    scope: KpiChartScope;
+    companion?: KpiCompanion;
+    stacked?: boolean;
+    /** Small multiple: no caption (the card has one), a plain 0–100 % axis. */
+    compact?: boolean;
+    h?: number;
+}) {
+    const chart = useMemo(() => buildKpiChart(kpi, scope, companion), [kpi, scope, companion]);
+    const hasRight = chart.series.some((s) => s.yAxisId === "right");
+    // Units travel per series into the tooltip, so the shared formatter stays unit-free.
+    const perSeries = (s: KpiChartSeries) => ({
+        stackId: s.yAxisId === "right" ? "right" : stacked ? "ist" : undefined,
+        unit: s.unit ? ` ${s.unit}` : undefined,
+    });
+    const domain = useMemo(() => (kpi.zoomed_axis ? zoomedDomain(chart, kpi.unit) : null), [kpi.zoomed_axis, kpi.unit, chart]);
+    const tooltipSeries = useMemo(
+        () => [...chart.series, { name: STACK_TOTAL_KEY, label: "Summe", color: "transparent" }],
+        [chart.series],
+    );
+    if (chart.data.length === 0) return <Text size="sm" c="dimmed">Keine geprüften Werte.</Text>;
+    return (
+        <>
+            <CompositeChart
+                h={h}
+                data={chart.data}
+                dataKey="year"
+                series={chart.series}
+                valueFormatter={formatNumber}
+                yAxisProps={{
+                    tickFormatter: withUnit(axisUnit(kpi.unit)),
+                    // Room for "1.000 km" without wrapping.
+                    width: axisUnit(kpi.unit) ? 72 : 56,
+                    ...(domain ? { domain, allowDataOverflow: true } : {}),
+                    ...(compact && kpi.unit === "%" ? { domain: [0, 100], ticks: [0, 50, 100] } : {}),
+                }}
+                withRightYAxis={hasRight}
+                rightYAxisProps={{ tickFormatter: withUnit(axisUnit(companion?.unit)), width: 56 }}
+                withLegend={chart.series.length > 1}
+                // Long legends wrap to a second row; leave room so they do not run into the caption.
+                legendProps={{ verticalAlign: "bottom", height: chart.series.length > 3 ? 80 : 50 }}
+                tickLine="y"
+                maxBarWidth={36}
+                barProps={(s) => perSeries(s as KpiChartSeries)}
+                lineProps={(s) => ({ unit: perSeries(s as KpiChartSeries).unit })}
+                connectNulls
+                tooltipProps={{
+                    content: ({ label, payload }) => {
+                        const items = [...(payload ?? [])];
+                        const total = stacked ? stackTotal(items, chart.series) : null;
+                        // Stacked bars get a closing "Summe" row.
+                        const rows =
+                            total === null
+                                ? items
+                                : [
+                                      ...items,
+                                      {
+                                          name: STACK_TOTAL_KEY,
+                                          dataKey: STACK_TOTAL_KEY,
+                                          value: total,
+                                          color: "transparent",
+                                          unit: kpi.unit ? ` ${kpi.unit}` : undefined,
+                                          payload: { [STACK_TOTAL_KEY]: total },
+                                      },
+                                  ];
+                        return (
+                            <ChartTooltip
+                                label={label}
+                                payload={rows}
+                                series={tooltipSeries}
+                                valueFormatter={formatNumber}
+                            />
+                        );
+                    },
+                }}
+            />
+            {chart.istReportYear && !compact && (
+                <Text size="xs" c="dimmed">
+                    Ist-Werte aus dem Infraplan {chart.istReportYear}; Zielwerte je Jahrgang.
+                    {companion && ` ${companion.label} auf der rechten Skala.`}
+                    {domain && ` Skala beginnt bei ${withUnit(kpi.unit)(domain[0])}, nicht bei 0.`}
+                </Text>
+            )}
+        </>
+    );
+}
+
+/** One chart per sub-series, so each category's Ist and targets can be traced on their own. */
+function KpiDetailModal({ kpi, companion, subSeries, opened, onClose }: {
+    kpi: InfraplanPublicKpi;
+    companion?: KpiCompanion;
+    subSeries: string[];
+    opened: boolean;
+    onClose: () => void;
+}) {
+    const isMobile = useIsMobile();
+    return (
+        <Modal opened={opened} onClose={onClose} title={kpi.name} size="xl" fullScreen={isMobile}>
+            <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                {subSeries.map((s) => (
+                    <ChronicleCard key={s}>
+                        <Stack gap="xs">
+                            <Text fw={600} size="sm">{s}</Text>
+                            <KpiChart kpi={kpi} scope={{ series: s }} companion={companion} h={200} />
+                        </Stack>
+                    </ChronicleCard>
+                ))}
+            </SimpleGrid>
+        </Modal>
+    );
+}
+
+/** Herkunft and Einsatz of one year as two ranked lists with share bars. */
+function KpiFlowView({ kpi }: { kpi: InfraplanPublicKpi }) {
+    const flow = useMemo(() => kpiFlow(kpi), [kpi]);
+    if (!flow) return <Text size="sm" c="dimmed">Keine geprüften Werte.</Text>;
+    const format = withUnit(kpi.unit);
+    const side = (title: string, items: { label: string; value: number }[], color: string) => {
+        const total = items.reduce((a, b) => a + b.value, 0);
+        return (
+            <Stack gap={6}>
+                <Group justify="space-between">
+                    <Text fw={600} size="sm">{title}</Text>
+                    <Text fw={600} size="sm">{format(total)}</Text>
+                </Group>
+                {items.map((i) => (
+                    <Stack key={i.label} gap={2}>
+                        <Group justify="space-between" wrap="nowrap" gap="xs">
+                            <Text size="xs">{i.label}</Text>
+                            <Text size="xs" style={{ whiteSpace: "nowrap" }}>{format(i.value)}</Text>
+                        </Group>
+                        <Progress value={total ? (i.value / total) * 100 : 0} color={color} size="sm" />
+                    </Stack>
+                ))}
+            </Stack>
+        );
+    };
+    return (
+        <Stack gap="xs">
+            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
+                {side("Herkunft", flow.herkunft, "blue.6")}
+                {side("Einsatz", flow.einsatz, "teal.6")}
+            </SimpleGrid>
+            <Text size="xs" c="dimmed">Ist {flow.year}; Rundungsdifferenzen möglich.</Text>
+        </Stack>
+    );
+}
+
+function KpiCard({ kpi, companion }: { kpi: InfraplanPublicKpi; companion?: KpiCompanion }) {
+    const overview = useMemo(() => kpiOverview(kpi), [kpi]);
+    const [detailOpen, setDetailOpen] = useState(false);
+    const hasDetails = overview.layout === "chart" && overview.detailSeries.length > 0;
     return (
         <ChronicleCard>
             <Stack gap="xs">
-                <Stack gap={0}>
-                    <Text fw={600} size="sm">{kpi.name}</Text>
-                    {kpi.description && <Text size="xs" c="dimmed">{kpi.description}</Text>}
-                </Stack>
-                {chart.data.length === 0 ? (
-                    <Text size="sm" c="dimmed">Noch keine geprüften Werte.</Text>
-                ) : (
-                    <>
-                        <CompositeChart
-                            h={220}
-                            data={chart.data}
-                            dataKey="year"
-                            series={chart.series}
-                            valueFormatter={format}
-                            withLegend
-                            legendProps={{ verticalAlign: "bottom", height: 50 }}
-                            tickLine="y"
-                            maxBarWidth={36}
-                            barProps={{ stackId: "ist" }}
-                            connectNulls
-                        />
-                        {chart.istReportYear && (
+                <Group justify="space-between" align="flex-start" wrap="nowrap" gap="sm">
+                    <Stack gap={0}>
+                        <Text fw={600} size="sm">{kpi.name}</Text>
+                        {kpi.description && <Text size="xs" c="dimmed">{kpi.description}</Text>}
+                        {(overview.note || (kpi.unit && !axisUnit(kpi.unit))) && (
                             <Text size="xs" c="dimmed">
-                                Ist-Werte aus dem Infraplan {chart.istReportYear}; Zielwerte je Jahrgang.
+                                {[overview.note, kpi.unit && !axisUnit(kpi.unit) ? `in ${kpi.unit}` : null]
+                                    .filter(Boolean)
+                                    .join(" · ")}
                             </Text>
                         )}
-                    </>
+                    </Stack>
+                    {hasDetails && (
+                        <Button size="compact-xs" variant="light" onClick={() => setDetailOpen(true)} style={{ flexShrink: 0 }}>
+                            Details
+                        </Button>
+                    )}
+                </Group>
+                {(kpi.values ?? []).length === 0 ? (
+                    <Text size="sm" c="dimmed">Noch keine geprüften Werte.</Text>
+                ) : overview.layout === "flow" ? (
+                    <KpiFlowView kpi={kpi} />
+                ) : overview.layout === "split" ? (
+                    <Stack gap="xs">
+                        <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
+                            {overview.detailSeries.map((s) => (
+                                <Stack key={s} gap={4}>
+                                    <Text size="xs" fw={600}>{s}</Text>
+                                    <KpiChart kpi={kpi} scope={{ series: s }} compact h={140} />
+                                </Stack>
+                            ))}
+                        </SimpleGrid>
+                        <Text size="xs" c="dimmed">Ist-Werte aus dem Infraplan; je Merkmal ein eigener Anteil.</Text>
+                    </Stack>
+                ) : (
+                    <KpiChart kpi={kpi} scope={overview.scope} companion={companion} stacked={overview.stacked} />
                 )}
             </Stack>
+            {hasDetails && (
+                <KpiDetailModal
+                    kpi={kpi}
+                    companion={companion}
+                    subSeries={overview.detailSeries}
+                    opened={detailOpen}
+                    onClose={() => setDetailOpen(false)}
+                />
+            )}
         </ChronicleCard>
     );
 }
 
 function Kpis({ kpis }: { kpis: InfraplanPublicKpi[] }) {
-    const withValues = kpis.filter((k) => (k.values ?? []).length > 0);
+    // Companion KPIs are drawn inside their main KPI's chart, not on their own.
+    const hidden = companionKeys(kpis);
+    const withValues = kpis.filter((k) => (k.values ?? []).length > 0 && !hidden.has(k.key));
     const groups = groupKpis(withValues);
+    const companions = useMemo(() => kpiCompanions(kpis), [kpis]);
     if (groups.length === 0) {
         return <Text size="sm" c="dimmed">Für die Kennzahlen liegen noch keine geprüften Werte vor.</Text>;
     }
@@ -103,7 +291,10 @@ function Kpis({ kpis }: { kpis: InfraplanPublicKpi[] }) {
                             )}
                             <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                                 {c.kpis.map((k) => (
-                                    <KpiCard key={k.key} kpi={k} />
+                                    // Small multiples and the flow lists need the full row.
+                                    <div key={k.key} style={k.chart_layout === "split" || k.chart_layout === "flow" ? { gridColumn: "1 / -1" } : undefined}>
+                                        <KpiCard kpi={k} companion={companions.get(k.key)} />
+                                    </div>
                                 ))}
                             </SimpleGrid>
                         </Stack>

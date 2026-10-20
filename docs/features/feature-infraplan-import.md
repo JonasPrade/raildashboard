@@ -340,8 +340,34 @@ fehlt, zuvor aber enthalten war. Mobil über `ResponsiveTable`.
 **Öffentliche Seite `/infraplan`:** Kennzahlen gruppiert nach Kategorie, je Kennzahl ein
 Diagramm: Ist-Werte aus dem neuesten Jahrgang als Balken/Linie, Zielwerte **jedes**
 Jahrgangs als eigene Linie („Ziel IP 2026“, „Ziel IP 2027“), sodass Zielverschiebungen
-sichtbar sind. Teilreihen (`series`) als Stapel/Legende. Nur Werte mit Status
+sichtbar sind. Teilreihen (`series`) nur mit Ist-Werten (z. B. Betriebsleistung nach
+SPNV/SPFV/SGV) bleiben ein Stapel; der Tooltip nennt zusätzlich die Summe. Hat eine
+Kennzahl Zielwerte je Teilreihe (z. B. die KMM-Kategorien), zeigt die Übersicht nur
+deren Summe je Jahr; der Button „Details“ öffnet eine Ansicht
+mit einem Diagramm je Teilreihe (Ist und Ziele der Kategorie). Sind die Teilreihen nicht
+additiv, weil eine davon schon das Ganze ist (ETCS: „Gesamtnetz“, die TEN-Netze sind
+Teilmengen), zeigt die Übersicht diese Teilreihe und die Details die übrigen
+(`total_series`). Gehört zu einer Kennzahl eine zweite
+Aussage in anderer Einheit (ETCS-Strecken-km und Ausrüstungsgrad in %), steht die
+Begleitkennzahl als zweiter Balken daneben auf einer eigenen rechten Skala, in der
+Übersicht wie in jedem Detaildiagramm; eine eigene Karte bekommt sie nicht
+(`companion_key`, Bezeichnung `companion_label`; ETCS mit Ausrüstungsgrad,
+Elektrifizierung mit Anteil am Gesamtnetz). Sonderfälle legt `chart_layout` fest: Barrierefreie Bahnsteige
+(überlappende Anteile je Merkmal) als kleine Einzeldiagramme in der Karte,
+Planfeststellungsanträge (Bestand neben Zu- und Abgängen) als Balken nebeneinander,
+Mittelherkunft und -einsatz (ein Jahr, Herkunft/Einsatz je `series`-Präfix) als zwei
+Ranglisten mit Anteilsbalken statt Zeitreihe. Werte nahe 100 % (Stellwerksbesetzungsquote,
+`zoomed_axis`) bekommen eine Achse, die knapp unter dem kleinsten Wert beginnt, mit
+Hinweis unter dem Diagramm. Kurze Einheiten (km, %) stehen an der Achse, längere
+(„Mio. Trkm“) unter dem Titel; der Tooltip nennt die Einheit je Reihe. Nur Werte mit Status
 `GEPRUEFT`. Darunter je Jahrgang die Liste der Maßnahmen mit Link aufs Projekt.
+
+Diese Darstellungsregeln sind Felder der Kennzahl-Definition (`infraplan_kpi`), keine
+Konstanten im Frontend: Admin → Infraplan → Reiter „Allgemeines“ → Kennzahlen zeigt alle
+Definitionen und ändert je Kennzahl Name, Einheit, Kategorie, Beschreibung, Reihenfolge und
+die Darstellung (`PATCH /kpis/{key}`). Änderungen gelten sofort für alle Jahrgänge. Die
+Regeln des Infraplans 2026 setzt die Migration `20261021001` auf die bestehenden Zeilen,
+neue Installationen bekommen sie aus `services/infraplan_kpis.py`.
 Navigationseintrag „Infraplan“. Die Startseite bleibt vorerst unverändert.
 
 **Admin-Ansicht Kennzahlen** (`/admin/infraplan/kpis/:year`): Formular für den
@@ -370,6 +396,7 @@ Prefix `/import/infraplan`, Recht `infraplan.import` (neu, `GROUP_FINANCING`, in
 | DELETE | `/report/{year}` | Jahrgang löschen (Einträge, Zuordnungen, Kennzahlwerte) |
 | PUT | `/report/{year}/kpi-values` | Kennzahlwerte setzen (Status je nach Weg) |
 | POST | `/report/{year}/kpi-values/approve` | Kennzahlwerte freigeben |
+| PATCH | `/kpis/{key}` | Kennzahl-Einstellungen (Name, Einheit, Kategorie, Beschreibung, Reihenfolge, Darstellung); nur gesendete Felder, `null` leert |
 
 Außerdem (Recht `infraplan.import`): `GET /report` (übernommene Jahrgänge mit Zählern),
 `GET /kpis` (Kennzahl-Definitionen), `GET /report/{year}/kpi-values` (alle Werte mit Status).
@@ -386,7 +413,8 @@ Admin: `GET /admin/unassigned-infraplan-entries`,
 
 ## Frontend
 
-- `src/features/infraplan-import/`: `InfraplanImportPage` (Upload + Entwurfsliste),
+- `src/features/infraplan-import/`: `InfraplanImportPage` (Reiter „Import“: Upload +
+  Entwurfsliste; Reiter „Allgemeines“: `InfraplanKpiSettings`, `?tab=allgemeines`),
   `InfraplanReviewPage` (Tabelle je Abschnitt, Warnungen oben, MultiSelect,
   „Teilprojekt anlegen unter …“, Filter „ohne Zuordnung“, Vorjahresabgleich),
   `InfraplanKpiPage` (Formular + Freigabe). Routen `admin/infraplan-import`,
@@ -538,11 +566,11 @@ Stufen 2–5 in einem Zug. Was vom Plan oben abweicht oder ihn präzisiert:
 - **Kosten:** die Kostenprognose rechnet `crud/infraplan.py` (eigene Zeilen des neuesten
   Jahrgangs, sonst Summe über den ganzen Teilprojektbaum; Verweise und Sammel-GWU je
   tragendem Eintrag einmal).
-- **Kennzahlen:** Die 23 Definitionen des Infraplans 2026 liegen in
-  `services/infraplan_kpis.py` und werden beim ersten Zugriff angelegt. Einheiten und
-  Kategorien sind teils geschätzt (Informationskennzahlen ohne Einheit/Kategorie) und
-  lassen sich über `definitions` in `PUT …/kpi-values` bzw. `set_infraplan_kpi_values`
-  berichtigen. Ein Wert `null` löscht den Platz.
+- **Kennzahlen:** Die 25 Definitionen des Infraplans 2026 (23 Kennzahlen plus die beiden
+  Prozent-Begleitkennzahlen) liegen in `services/infraplan_kpis.py` und werden beim ersten
+  Zugriff angelegt. Einheiten sind aus dem PDF abgelesen, Kategorien der
+  Informationskennzahlen fehlen; beides lässt sich in Admin → Infraplan → Allgemeines oder über
+  `definitions` in `PUT …/kpi-values` bzw. `set_infraplan_kpi_values` berichtigen. Ein Wert `null` löscht den Platz.
 - **MCP:** `assign_infraplan_row` wirkt nach der Bestätigung auf den übernommenen Eintrag
   (ersetzt die Projekte), damit der Agent Reste ohne Frontend nacharbeiten kann. Die Tools
   stehen in `mcp/tools/infraplan.py`, der Ablauf im Skill

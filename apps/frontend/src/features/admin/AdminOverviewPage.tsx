@@ -132,8 +132,8 @@ export default function AdminOverviewPage() {
                         <ChronicleCard style={{ textDecoration: "none" }}>
                             <Link to="/admin/infraplan-import" style={{ textDecoration: "none", color: "inherit" }}>
                                 <Stack gap={4}>
-                                    <Text fw={500}>Infraplan-Import</Text>
-                                    <Text size="sm" c="dimmed">Infraplan (Fünfjahresplan Schiene) einlesen, zuordnen, Kennzahlen erfassen und freigeben</Text>
+                                    <Text fw={500}>Infraplan</Text>
+                                    <Text size="sm" c="dimmed">Infraplan (Fünfjahresplan Schiene) einlesen, zuordnen, Kennzahlen erfassen und freigeben; Kennzahl-Einstellungen unter „Allgemeines“</Text>
                                 </Stack>
                             </Link>
                         </ChronicleCard>

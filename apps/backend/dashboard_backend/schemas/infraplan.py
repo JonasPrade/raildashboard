@@ -12,6 +12,7 @@ KpiKind = Literal["STEUERUNG", "INFORMATION"]
 KpiCategory = Literal["AUS_NEUBAU", "BESTANDSNETZ", "UEBERGEORDNET"]
 KpiValueKind = Literal["IST", "ZIEL"]
 KpiStatus = Literal["UNGEPRUEFT", "GEPRUEFT"]
+KpiChartLayout = Literal["split", "grouped", "flow"]
 
 
 class InfraplanEntrySchema(BaseModel):
@@ -107,6 +108,27 @@ class InfraplanKpiSchema(BaseModel):
     category: Optional[str] = None
     description: Optional[str] = None
     sort_order: int = 0
+    chart_layout: Optional[KpiChartLayout] = None
+    total_series: Optional[str] = None
+    companion_key: Optional[str] = None
+    companion_label: Optional[str] = None
+    zoomed_axis: bool = False
+
+
+class InfraplanKpiUpdate(BaseModel):
+    """Admin settings of one KPI; only the fields sent are changed, null
+    clears an optional field."""
+
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    unit: Optional[str] = Field(None, max_length=50)
+    category: Optional[KpiCategory] = None
+    description: Optional[str] = None
+    sort_order: Optional[int] = None
+    chart_layout: Optional[KpiChartLayout] = None
+    total_series: Optional[str] = Field(None, max_length=100)
+    companion_key: Optional[str] = Field(None, max_length=100)
+    companion_label: Optional[str] = Field(None, max_length=100)
+    zoomed_axis: Optional[bool] = None
 
 
 class InfraplanKpiValueSchema(BaseModel):
