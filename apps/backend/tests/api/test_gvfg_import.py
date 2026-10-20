@@ -73,6 +73,9 @@ def test_confirm_annex_and_reads(client, create_user, db_session):
     assert (program.year_from, program.has_annex) == (2025, False)
     created = db_session.query(Project).filter_by(project_number="02 G 4518_A").one()
     assert [g.short_name for g in created.project_groups] == ["GVFG"]
+    assert created.is_draft is True
+    entry = db_session.query(GvfgEntry).filter_by(key="02 G 4518_A").one()
+    assert [p.id for p in entry.projects] == [created.id]
     db_session.refresh(u4)
     assert [g.short_name for g in u4.project_groups] == ["GVFG"]
     assert db_session.query(ChangeLog).filter_by(project_id=created.id, action="CREATE").count() == 1

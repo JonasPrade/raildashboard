@@ -295,3 +295,21 @@ def test_rest_merge_needs_permission(mcp_client, create_user, db_session):  # no
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 403
+
+
+def test_draft_can_be_merged_into_final_survivor(db_session, create_user):
+    admin = create_user("admin", "adminpass", UserRole.admin)
+    survivor = Project(name="Ausbau A", project_number="01 D 1_A", is_draft=False)
+    draft = Project(name="Ausbau A (Import)", project_number="01 D 1_ A", is_draft=True, justification="x")
+    db_session.add_all([survivor, draft])
+    db_session.commit()
+    survivor_id, draft_id = survivor.id, draft.id
+
+    merge_projects(db_session, survivor_id, draft_id, apply=True, user_id=admin.id, username="admin")
+    db_session.expire_all()
+
+    assert db_session.get(Project, draft_id) is None
+    kept = db_session.get(Project, survivor_id)
+    assert kept.is_draft is False
+    assert kept.justification == "x"
+    assert db_session.query(ProjectRedirect).filter_by(old_project_id=draft_id).count() == 1

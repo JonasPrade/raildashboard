@@ -85,7 +85,7 @@ DESTRUCTIVE = ToolAnnotations(read_only_hint=False, destructive_hint=True, open_
 # Never sent to the client: geometry blobs are huge and useless as text.
 _GEOMETRY_FIELDS = {"geojson_representation", "centroid"}
 # Fields update_project may not touch: geometry (no meaningful text edit) and the
-# draft flag (finalizing is a separate workflow in the UI).
+# draft flag (set_project_draft).
 _READONLY_UPDATE_FIELDS = {"geojson_representation", "is_draft"}
 # Changed through set_project_groups, which resolves names and keeps other groups.
 _GROUP_FIELD = "project_group_ids"
@@ -118,6 +118,7 @@ def _project_summary(
         "superior_project_id": project.superior_project_id,
         "project_groups": [g.short_name for g in project.project_groups],
         "phase": phase,
+        "is_draft": bool(project.is_draft),
     }
     if is_known is not None:
         summary["is_known"] = is_known
@@ -569,6 +570,16 @@ def list_project_filters(*, ctx: Context) -> dict[str, Any]:
 
 
 ProjectOrder = Literal["name", "id", "length", "last_change"]
+DraftFilter = Literal["exclude", "only", "include"]
+
+
+def draft_filter(drafts: DraftFilter):
+    """SQL condition on Project.is_draft for a ``drafts`` argument (None = no condition)."""
+    if drafts == "exclude":
+        return Project.is_draft.is_(False)
+    if drafts == "only":
+        return Project.is_draft.is_(True)
+    return None
 
 
 def list_projects(
@@ -583,6 +594,7 @@ def list_projects(
     parl_befassung_relevant: bool | None = None,
     updated_since: date | None = None,
     filters: list[ProjectFilter] | None = None,
+    drafts: DraftFilter = "exclude",
     order_by: ProjectOrder = "name",
     descending: bool = False,
     limit: int = 50,
@@ -590,7 +602,7 @@ def list_projects(
     *,
     ctx: Context,
 ) -> dict[str, Any]:
-    """Search projects (drafts excluded), sorted by name unless ``order_by`` says otherwise.
+    """Search projects (drafts excluded unless ``drafts`` says otherwise), sorted by name unless ``order_by`` says otherwise.
 
     - search: case-insensitive substring of name or project number
     - project_group: id, short name or name of a project group (case-insensitive,
@@ -608,6 +620,9 @@ def list_projects(
       list of ``{field, op, value}`` — e.g. description starts_with
       "Reaktivierung", or closure eq true. Which fields and operators exist
       (also name, project_number, length, …) is answered by list_project_filters
+    - drafts: exclude (default) = finalized projects only, only = drafts only
+      (e.g. created by an import and not yet maintained), include = both; each
+      entry carries ``is_draft``. Finalize or revert with set_project_draft.
     - order_by: name, id, length or last_change (newest change; projects never
       changed come last); descending reverses the order
     Returns ``total`` plus one page of compact entries; use get_project for details.
@@ -621,8 +636,10 @@ def list_projects(
         query = (
             db.query(Project, effective_phase, known)
             .outerjoin(ProjectProgress, ProjectProgress.project_id == Project.id)
-            .filter(Project.is_draft.is_(False))
         )
+        draft_condition = draft_filter(drafts)
+        if draft_condition is not None:
+            query = query.filter(draft_condition)
         if search:
             pattern = f"%{search.strip()}%"
             query = query.filter(
@@ -766,11 +783,14 @@ def create_project(
     description: str | None = None,
     project_groups: list[str] | None = None,
     fields: dict[str, Any] | None = None,
+    final: bool = False,
     *,
     ctx: Context,
 ) -> dict[str, Any]:
     """Create a project, e.g. a subproject (stage) of an existing one (requires
-    ``project.create``). The project is created final, not as a draft.
+    ``project.create``). The project is created as a draft (hidden from the
+    default lists and the map) unless ``final=true``; finalize or revert with
+    set_project_draft.
 
     - superior_project_id: the parent project (see get_project for subprojects)
     - project_groups: ids, short names or names (see list_project_groups)
@@ -803,7 +823,7 @@ def create_project(
         data = ProjectCreate.model_validate(extra).model_dump(exclude_unset=True)
     except ValidationError as exc:
         raise ToolError(f"Ungültige Werte: {exc}") from exc
-    data["is_draft"] = False
+    data["is_draft"] = not final
 
     with tool_session(ctx) as db:
         if "superior_project_id" in data:
@@ -819,7 +839,7 @@ def create_project(
         create_changelog_for_create(
             db,
             project,
-            {k: v for k, v in data.items() if k not in {"is_draft", _GROUP_FIELD}},
+            {k: v for k, v in data.items() if k != _GROUP_FIELD and (k != "is_draft" or v)},
             user.id,
             user.username,
         )
@@ -868,7 +888,8 @@ def update_project(project_id: int, changes: dict[str, Any], *, ctx: Context) ->
     """Change project fields (requires ``project.edit``). ``changes`` maps field
     names to new values, e.g. {"description": "…", "nbs": true}; see get_project
     for the field names. Geometry and the draft flag cannot be changed here
-    (geometry: route_project_geometry / edit_project_geometry); use
+    (geometry: route_project_geometry / edit_project_geometry; draft flag:
+    set_project_draft); use
     set_project_groups for the group assignment. ``length`` comes from the
     geometry: set it with compute_project_length, not from published figures.
     Every change is written to the project changelog and can be reverted in the UI."""
@@ -896,6 +917,23 @@ def update_project(project_id: int, changes: dict[str, Any], *, ctx: Context) ->
                 validate_superior_project(db, project.id, update_data["superior_project_id"])
             except ProjectHierarchyError as exc:
                 raise ToolError(str(exc)) from exc
+        user = load_user(db, principal)
+        create_changelog_for_patch(db, project, update_data, user.id, user.username)
+        updated = update_project_crud(db, project.id, update_data, project=project)
+        return _project_dict(updated)
+
+
+def set_project_draft(project_id: int, is_draft: bool, *, ctx: Context) -> dict[str, Any]:
+    """Turn a project into a draft or finalize a draft (requires ``project.edit``).
+    Drafts are hidden from list_projects (unless ``drafts`` is set), the map and
+    the public lists; their funding data (GVFG, FinVe, …) stays linked. Finalize
+    a draft once its data is maintained. The change is written to the project
+    changelog and can be reverted in the UI. Returns the project."""
+    principal = get_principal(ctx)
+    require(principal, "project.edit")
+    with tool_session(ctx) as db:
+        project = _project_or_error(db, project_id)
+        update_data = {"is_draft": is_draft}
         user = load_user(db, principal)
         create_changelog_for_patch(db, project, update_data, user.id, user.username)
         updated = update_project_crud(db, project.id, update_data, project=project)
@@ -1173,6 +1211,7 @@ def register(server: MCPServer) -> None:
         create_project,
         compute_project_length,
         update_project,
+        set_project_draft,
         set_project_groups,
         add_progress_observation,
         set_phase_override,

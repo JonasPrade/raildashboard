@@ -113,6 +113,18 @@ def test_list_entries_newest_edition_and_filters(mcp_client, admin_token, db_ses
     assert keys(program_id=seed["old"].id) == ["02 G 509_A"]
 
 
+def test_entries_flag_draft_projects(mcp_client, admin_token, db_session):
+    _seed(db_session)
+    project = db_session.query(Project).filter_by(project_number="02 G 509_A").one()
+    project.is_draft = True
+    db_session.commit()
+    entries = _payload(_call(mcp_client, admin_token, "list_gvfg_entries", {"search": "02 G 509"}))["entries"]
+    assert {p["name"]: p["is_draft"] for e in entries for p in e["projects"]} == {
+        "U4 Horner Geest": True,
+        "U4 Horner Geest (Dublette)": False,
+    }
+
+
 def test_unknown_program_is_error(mcp_client, admin_token, db_session):
     result = _call(mcp_client, admin_token, "list_gvfg_entries")
     assert result["isError"] is True

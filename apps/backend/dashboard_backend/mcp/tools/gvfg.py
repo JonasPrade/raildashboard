@@ -72,7 +72,7 @@ def _entry_summary(entry: GvfgEntry, program: GvfgProgram) -> dict[str, Any]:
         "cost_total": _num(line.cost_total) if line else None,
         "aid_total": _num(line.aid_total) if line else None,
         "aid_planned": _planned_aid(entry, program),
-        "projects": [{"id": p.id, "name": p.name} for p in sorted(entry.projects, key=lambda p: p.id)],
+        "projects": [{"id": p.id, "name": p.name, "is_draft": bool(p.is_draft)} for p in sorted(entry.projects, key=lambda p: p.id)],
     }
 
 
@@ -141,7 +141,8 @@ def list_gvfg_entries(
     - has_project: false = Vorhaben without a project (to assign)
     Each entry carries the ∑ line (cost_total, aid_total, aid_planned within
     the edition's years; Mio. €), the categories with aid and the linked
-    projects. Details and the history across editions: get_gvfg_entry.
+    projects (``is_draft`` marks a draft project, e.g. one created by the import
+    and not yet maintained). Details and the history across editions: get_gvfg_entry.
     """
     get_principal(ctx)
     limit = max(1, min(limit, MAX_LIMIT))

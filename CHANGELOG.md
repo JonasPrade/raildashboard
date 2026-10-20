@@ -21,6 +21,13 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   `superior_project_id`, `length`, `is_known`, `has_geometry`, `has_length`,
   `parl_befassung_relevant`, `last_change`. The existing named parameters keep working and
   run through the same registry.
+- **Import-created projects are drafts (#204).** The GVFG import now creates new projects
+  with `is_draft = true` (the review dialog says so); the link to the Vorhaben stays and its
+  funding data keeps counting in GVFG sums. MCP: `create_project` creates drafts unless
+  `final=true`, new tool `set_project_draft(project_id, is_draft)` (`project.edit`, changelog),
+  `list_projects` and `list_data_gaps` take `drafts` (exclude/only/include) and return
+  `is_draft`, `list_gvfg_entries` marks draft projects. One-off correction for the 21 projects
+  of the 2025–2029 import: `scripts/draft_gvfg_2025_projects.py` (idempotent, checks first).
 - **Routing service in the system status.** `/admin/system` now shows whether GraphHopper is
   reachable (status, response time, next step on failure). New endpoint
   `GET /api/v1/system/routing` (`settings.manage`).
