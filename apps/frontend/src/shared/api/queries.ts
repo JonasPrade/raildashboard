@@ -20,12 +20,15 @@ function mergeDefined<T extends object>(entry: T, patch: object): T {
  */
 export const queryKeys = {
     textTypes: ["textTypes"],
+    textCategories: ["textCategories"],
     projects: ["projects"],
     // Nested under `projects` on purpose: every existing
     // invalidateQueries(queryKeys.projects) then refreshes the picker list too.
     projectOptions: ["projects", "options"],
     subprojects: (parentId: number) => ["projects", "subprojects", parentId] as const,
     project: (id: number) => ["project", id] as const,
+    // Prefix of every per-project text list (refetched on login: internal texts).
+    allProjectTexts: ["projectTexts"],
     projectTexts: (projectId: number) => ["projectTexts", projectId] as const,
     projectDrafts: ["projectDrafts"],
     projectGroups: ["projectGroups"],
@@ -186,6 +189,10 @@ export type ProjectUpdatePayload = components["schemas"]["ProjectUpdate"];
 
 export type ProjectTextType = components["schemas"]["ProjectTextTypeSchema"];
 
+export type ProjectTextCategory = components["schemas"]["ProjectTextCategorySchema"];
+
+export type ProjectTextCategoryCreate = components["schemas"]["ProjectTextCategoryCreate"];
+
 export type TextAttachment = components["schemas"]["TextAttachmentSchema"];
 
 export type ProjectText = components["schemas"]["ProjectTextSchema"];
@@ -209,6 +216,24 @@ export function useCreateTextType() {
                 json: { name },
             }),
         [queryKeys.textTypes],
+    );
+}
+
+export function useTextCategories() {
+    return useQuery({
+        queryKey: queryKeys.textCategories,
+        queryFn: () => api<ProjectTextCategory[]>("/api/v1/text_categories"),
+    });
+}
+
+export function useCreateTextCategory() {
+    return useInvalidatingMutation(
+        (payload: ProjectTextCategoryCreate) =>
+            api<ProjectTextCategory>("/api/v1/text_categories", {
+                method: "POST",
+                json: payload,
+            }),
+        [queryKeys.textCategories],
     );
 }
 

@@ -221,7 +221,9 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `get_gvfg_entry` | ein Vorhaben mit ∑/A/B/C-Zeilen und Verlauf desselben Schlüssels über alle Ausgaben | — |
 | `list_project_gvfg` | GVFG-Förderung eines Projekts über alle Ausgaben, optional mit direkten Teilprojekten | — |
 | `assign_gvfg_entry` | Projekte eines Vorhabens setzen (ersetzt die bisherigen), optional für alle Ausgaben; ergänzt die Gruppen „GVFG“/„GVFG BW“ | `assignment.manage` |
-| `get_project_texts` | Projekttexte nach Typ | — |
+| `get_project_texts` | Projekttexte nach Typ, mit Kategorie und Sichtbarkeit | — |
+| `list_text_types` | Texttypen (für `text_type_id`) | — |
+| `list_text_categories` | Textkategorien mit Stil (für `category_id`) | — |
 | `list_todos` | Aufgaben, gefiltert | — |
 | `create_project` | Projekt/Unterprojekt anlegen (final, ohne Geometrie) | `project.create` |
 | `compute_project_length` | Länge aus der Geometrie berechnen, optional übernehmen | — / `project.edit` mit `apply` |
@@ -230,7 +232,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `add_progress_observation` | Planungsstand-Beobachtung ergänzen | `progress.edit` |
 | `delete_progress_observation` | manuelle Beobachtung löschen (abgeleitete nicht) | `progress.edit` |
 | `set_phase_override` | manuellen Phasen-Override setzen (mit Begründung) oder aufheben | `progress.edit` |
-| `upsert_project_text` | Projekttext anlegen/ändern | `projecttext.edit` |
+| `upsert_project_text` | Projekttext anlegen/ändern, inkl. Kategorie (Standard „Info“) und `is_public` | `projecttext.edit` |
 | `merge_projects` | Dublette in ein anderes Projekt überführen (Vorschau, mit `apply` ausführen; destruktiv) | `project.merge` |
 | `search_operational_points` | Betriebsstellen nach Name/op_id suchen (Wegpunkte, Stationen) | — |
 | `get_project_geometry` | Geometrie-Übersicht je Feature (Index, Typ, Länge, Station), GeoJSON auf Wunsch | — |
@@ -434,8 +436,8 @@ Client-seitig (Claude Code, `.mcp.json`):
   ist, baut `McpEndpoint` den Server in jedem App-Lifespan neu. Der
   DNS-Rebinding-Schutz des SDK ist aus, weil ohne Cookies nichts zu holen ist
   (er würde sonst jeden Nicht-localhost-Host ablehnen).
-- **Tool-Katalog** wie oben plus `list_text_types` (nötig, um für
-  `upsert_project_text` die `text_type_id` zu finden). Lese-Tools tragen
+- **Tool-Katalog** wie oben (`list_text_types`/`list_text_categories` liefern
+  die ids für `upsert_project_text`). Lese-Tools tragen
   `readOnlyHint`. `update_project` sperrt `geojson_representation` und
   `is_draft`. Changelog-Einträge entstehen wie bei den REST-Endpunkten: für
   Projektfelder und Projekttexte; Beobachtungen tragen den Nutzernamen,

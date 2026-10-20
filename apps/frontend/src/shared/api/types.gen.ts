@@ -738,6 +738,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/text_categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Text Categories
+         * @description Return all text categories (e.g. Info, Warnung) with their display style.
+         */
+        get: operations["list_text_categories_api_v1_text_categories_get"];
+        put?: never;
+        /**
+         * Create Project Text Category
+         * @description Create a new text category. Requires editor or admin role.
+         */
+        post: operations["create_project_text_category_api_v1_text_categories_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/texts": {
         parameters: {
             query?: never;
@@ -747,13 +771,14 @@ export interface paths {
         };
         /**
          * List Project Texts
-         * @description Return all texts linked to a project.
+         * @description Return the texts linked to a project. Internal texts only for signed-in users.
          */
         get: operations["list_project_texts_api_v1_projects__project_id__texts_get"];
         put?: never;
         /**
          * Create Project Text
          * @description Create a new text and link it to a project. Requires editor or admin role.
+         *     Without ``category_id`` the text gets the default category („Info“).
          */
         post: operations["create_project_text_api_v1_projects__project_id__texts_post"];
         delete?: never;
@@ -815,10 +840,7 @@ export interface paths {
         };
         /**
          * List Attachments
-         * @description List all attachments for a project text.
-         *
-         *     Requires authentication if the parent text belongs to an authenticated-only project.
-         *     For now all texts are publicly readable (mirrors list_project_texts behaviour).
+         * @description List all attachments for a project text (internal texts: signed-in users only).
          */
         get: operations["list_attachments_api_v1_projects_texts__text_id__attachments_get"];
         put?: never;
@@ -873,6 +895,7 @@ export interface paths {
          *     - Pass ?inline=true to serve PDFs inline (for in-browser preview); ignored for other types.
          *     - Filename is RFC 5987-encoded to prevent header injection.
          *     - X-Content-Type-Options: nosniff is set.
+         *     - Attachments of internal texts are only served to signed-in users.
          */
         get: operations["download_attachment_api_v1_projects_texts__text_id__attachments__attachment_id__download_get"];
         put?: never;
@@ -5517,6 +5540,28 @@ export interface components {
              */
             project_groups: components["schemas"]["ProjectGroupRef"][];
         };
+        /** ProjectTextCategoryCreate */
+        ProjectTextCategoryCreate: {
+            /** Name */
+            name: string;
+            /**
+             * Style
+             * @enum {string}
+             */
+            style: "neutral" | "info" | "warning" | "critical";
+        };
+        /** ProjectTextCategorySchema */
+        ProjectTextCategorySchema: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /**
+             * Style
+             * @enum {string}
+             */
+            style: "neutral" | "info" | "warning" | "critical";
+        };
         /** ProjectTextCreate */
         ProjectTextCreate: {
             /** Header */
@@ -5529,6 +5574,13 @@ export interface components {
             type: number;
             /** Logo Url */
             logo_url?: string | null;
+            /** Category Id */
+            category_id?: number | null;
+            /**
+             * Is Public
+             * @default true
+             */
+            is_public: boolean;
         };
         /** ProjectTextSchema */
         ProjectTextSchema: {
@@ -5549,6 +5601,14 @@ export interface components {
             /** Updated At */
             updated_at: number;
             text_type: components["schemas"]["ProjectTextTypeSchema"];
+            /** Category Id */
+            category_id?: number | null;
+            category?: components["schemas"]["ProjectTextCategorySchema"] | null;
+            /**
+             * Is Public
+             * @default true
+             */
+            is_public: boolean;
             /**
              * Attachments
              * @default []
@@ -5579,6 +5639,10 @@ export interface components {
             type?: number | null;
             /** Logo Url */
             logo_url?: string | null;
+            /** Category Id */
+            category_id?: number | null;
+            /** Is Public */
+            is_public?: boolean | null;
         };
         /** ProjectTimelineSchema */
         ProjectTimelineSchema: {
@@ -8433,6 +8497,61 @@ export interface operations {
             };
         };
     };
+    list_text_categories_api_v1_text_categories_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectTextCategorySchema"][];
+                };
+            };
+        };
+    };
+    create_project_text_category_api_v1_text_categories_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectTextCategoryCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectTextCategorySchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_project_texts_api_v1_projects__project_id__texts_get: {
         parameters: {
             query?: never;
@@ -8440,7 +8559,9 @@ export interface operations {
             path: {
                 project_id: number;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -8609,7 +8730,9 @@ export interface operations {
             path: {
                 text_id: number;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -8712,7 +8835,9 @@ export interface operations {
                 text_id: number;
                 attachment_id: number;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {

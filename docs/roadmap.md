@@ -355,7 +355,8 @@ Quelle: `docs/DESIGN.md` (am 2026-04-25 auf Richtung F neu geschrieben). Vollst�
 
 ### Texte & Kommentare
 - [x] Projekttexte anzeigen (über übergeordnetes Projekt), erstellen, bearbeiten
-- [x] Sichtbarkeit von Texten: eingeloggt-only oder öffentlich
+- [x] Sichtbarkeit von Texten: eingeloggt-only oder öffentlich (bis 2026-10 nur abgehakt, tatsächlich umgesetzt mit den Textkategorien)
+- [x] **Textkategorien** (Info, Warnung, erweiterbar) mit festen Darstellungsstilen — See: docs/features/feature-text-categories.md
 - [x] Versionshistorie und Bearbeitungsformular nur für eingeloggte Nutzer sichtbar
 - [x] **Dateianhänge an Projekttexten** — Upload, Download, Delete; PDF-Inline-Preview; MIME-Validierung; Path-Traversal-Guard
 

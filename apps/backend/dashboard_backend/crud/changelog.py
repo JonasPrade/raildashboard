@@ -14,7 +14,7 @@ from dashboard_backend.models.projects.project_text import ProjectText
 _SKIP_FIELDS = {"project_group_ids"}
 
 # Fields tracked for project texts (excludes internal timestamps)
-_TEXT_TRACKED_FIELDS = ("header", "text", "weblink", "logo_url", "type")
+_TEXT_TRACKED_FIELDS = ("header", "text", "weblink", "logo_url", "type", "category_id", "is_public")
 
 
 def diff_to_entries(
@@ -169,7 +169,12 @@ def _make_text_entries(fields: tuple[str, ...], old_obj: ProjectText | None, new
     For DELETE: old_obj holds all field values, new_data is None.
     For PATCH:  both are provided; only changed fields are recorded.
     """
-    data = {f: (new_data.get(f) if new_data else None) for f in fields}
+    # PATCH: fields the caller did not send are unchanged, not cleared.
+    data = {
+        f: (new_data.get(f) if new_data else None)
+        for f in fields
+        if new_data is None or old_obj is None or f in new_data
+    }
     return diff_to_entries(TextChangeLogEntry, old_obj, data)
 
 

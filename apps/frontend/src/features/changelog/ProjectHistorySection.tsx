@@ -121,6 +121,8 @@ const TEXT_FIELD_LABELS: Record<string, string> = {
     weblink: "Weblink",
     logo_url: "Logo-URL",
     type: "Typ",
+    category_id: "Kategorie",
+    is_public: "Öffentlich",
 };
 
 function fieldLabel(fieldName: string, source: "project" | "text"): string {

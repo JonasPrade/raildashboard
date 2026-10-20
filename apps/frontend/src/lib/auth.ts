@@ -9,6 +9,7 @@ import {
 import { createElement } from "react";
 import { api } from "../shared/api/client";
 import { queryClient } from "./query";
+import { queryKeys } from "../shared/api/queries";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -70,6 +71,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     const u = await api<AuthUser>("/api/v1/users/me");
     setUser(u);
+    // Internal texts are only delivered to signed-in users.
+    queryClient.invalidateQueries({ queryKey: queryKeys.allProjectTexts });
   }, []);
 
   const logout = useCallback(async () => {

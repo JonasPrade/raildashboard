@@ -49,7 +49,7 @@ def _make_project(pid: int = 1) -> ProjectSchema:
 
 def test_list_project_texts_returns_list(client, monkeypatch):
     monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
-    monkeypatch.setattr(texts_route, "get_texts_for_project", lambda db, pid: [MOCK_TEXT])
+    monkeypatch.setattr(texts_route, "get_texts_for_project", lambda db, pid, **kw: [MOCK_TEXT])
 
     resp = client.get("/api/v1/projects/1/texts")
     assert resp.status_code == 200
@@ -68,7 +68,7 @@ def test_list_project_texts_project_not_found(client, monkeypatch):
 
 def test_list_project_texts_empty(client, monkeypatch):
     monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
-    monkeypatch.setattr(texts_route, "get_texts_for_project", lambda db, pid: [])
+    monkeypatch.setattr(texts_route, "get_texts_for_project", lambda db, pid, **kw: [])
 
     resp = client.get("/api/v1/projects/1/texts")
     assert resp.status_code == 200

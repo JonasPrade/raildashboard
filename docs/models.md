@@ -43,7 +43,8 @@ See `apps/backend/docs/RINF Railway Infrastructure Data.md` for import details.
 | FinVe | Financial commitments (Verpflichtungsermächtigungen) |
 | finve_to_project | Many-to-many: FinVe ↔ Project |
 | ProjectText | Descriptive or contextual content (sources, explanations) |
-| ProjectTextType | Classification of text content (source, summary, quote) |
+| ProjectTextType | Classification of text content (e.g. Kommentar, Kleine Anfrage) |
+| ProjectTextCategory | Urgency/display of a text (e.g. Info, Warnung) with a fixed style (`neutral`/`info`/`warning`/`critical`); `project_text.category_id`, `project_text.is_public` marks texts visible to signed-in users only — see `docs/features/feature-text-categories.md` |
 | text_to_project | Many-to-many: Text ↔ Project |
 | BvwpData | Extended metadata for projects listed in the Federal Transport Infrastructure Plan (BVWP) |
 | ProjectProgress | Progress state of a project, including date and source |

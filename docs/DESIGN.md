@@ -51,6 +51,21 @@ All hex values are exposed as CSS custom properties (see `tokens.css`).
 | `--signalDim` | `#8a1818` | Signal dunkel | Reduced/border variant.                   |
 | `--go`        | `#058a44` | Go-Grün     | On-plan, on-time, signed.                   |
 | `--goDim`     | `#03602e` | Go dunkel   | Reduced/border variant.                     |
+| `--warn`      | `#b45309` | Warnbernstein | Non-urgent warning (text category „Warnung“). Not Gold: `--led` stays brand/CTA. |
+
+### Semantic tokens — text categories
+Components never colour a text category with a base token directly. They use
+these semantic tokens, mapped once in `tokens.css`; recolouring a category is
+one line there. Icon and left border per style live in
+`apps/frontend/src/features/projects/textCategoryStyles.ts`.
+See `docs/features/feature-text-categories.md`.
+
+| Token                 | Maps to    | Style      | Left border |
+|-----------------------|------------|------------|-------------|
+| `--text-cat-neutral`  | `--ink3`   | `neutral`  | no          |
+| `--text-cat-info`     | `--info`   | `info`     | no          |
+| `--text-cat-warning`  | `--warn`   | `warning`  | yes, 3 px   |
+| `--text-cat-critical` | `--signal` | `critical` | yes, 3 px   |
 
 ### Tafel — Dark Component Surfaces
 The dark palette is **scoped to the Tafel component family** (live boards, tickers, departure-style displays). It does not bleed into general layout.
