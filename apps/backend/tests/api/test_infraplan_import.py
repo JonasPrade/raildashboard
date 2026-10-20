@@ -7,7 +7,6 @@ import io
 import fitz
 import pytest
 
-import dashboard_backend.api.v1.endpoints.infraplan_import as infraplan_route
 import dashboard_backend.database as database
 from dashboard_backend.models.infraplan import InfraplanParseResult
 from dashboard_backend.schemas.users import UserRole
@@ -58,7 +57,7 @@ def launched(monkeypatch):
         calls.append(parse_result_id)
         return _FakeResult(f"task-{len(calls)}")
 
-    monkeypatch.setattr(infraplan_route.parse_infraplan_pdf, "delay", _delay)
+    monkeypatch.setattr(parse_infraplan_pdf, "delay", _delay)
     return calls
 
 
@@ -238,11 +237,18 @@ def worker_db(tmp_path, monkeypatch):
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
+    from dashboard_backend.models.infraplan import (
+        InfraplanEntry,
+        InfraplanEntryProject,
+        InfraplanReport,
+    )
+    from dashboard_backend.models.projects.project import Project
     from dashboard_backend.models.users import User
 
     engine = create_engine(f"sqlite:///{tmp_path / 'worker.db'}")
-    User.__table__.create(engine)
-    InfraplanParseResult.__table__.create(engine)
+    # The task also reads projects and earlier years for its suggestions.
+    for model in (Project, User, InfraplanParseResult, InfraplanReport, InfraplanEntry, InfraplanEntryProject):
+        model.__table__.create(engine)
     factory = sessionmaker(bind=engine)
     monkeypatch.setattr(database, "Session", factory)
     yield factory

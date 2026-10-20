@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from dashboard_backend.crud.projects.progress import (
     _to_inputs,
-    fulda_report_dates,
+    expected_report_dates,
     pfa_forecast_input,
     split_expected,
 )
@@ -129,7 +129,7 @@ def get_group_timeline(
             else:
                 evidence_by_project.setdefault(obs.project_id, []).append(obs)
 
-    fulda_reported = fulda_report_dates(
+    reported = expected_report_dates(
         db, [obs for rows in expected_by_project.values() for obs in rows]
     )
 
@@ -169,19 +169,23 @@ def get_group_timeline(
                 for pfa_id, pfa in pfas_by_project.get(member, {}).items()
                 if pfa_owner.get(pfa_id) == member or pfa_owner.get(pfa_id) not in members
             ]
-            unit_fulda, unit_manual = split_expected(
-                expected_by_project.get(member, []), fulda_reported
-            )
+            unit_split = split_expected(expected_by_project.get(member, []), reported)
             units.append(
-                ConstructionUnitInput(pfas=own_pfas, fulda=unit_fulda, manual_expected=unit_manual)
+                ConstructionUnitInput(
+                    pfas=own_pfas,
+                    fulda=unit_split.fulda,
+                    infraplan=unit_split.infraplan,
+                    manual_expected=unit_split.manual,
+                )
             )
 
-        fulda, manual_expected = split_expected(expected, fulda_reported)
+        split = split_expected(expected, reported)
         result = build_timeline(
             today=today,
             pfas=list(pfas.values()),
-            fulda=fulda,
-            manual_expected=manual_expected,
+            fulda=split.fulda,
+            infraplan=split.infraplan,
+            manual_expected=split.manual,
             observations=_to_inputs(evidence),
             pf_dates=pf_dates,
             parl_dates=parl_dates,

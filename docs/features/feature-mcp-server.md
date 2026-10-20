@@ -221,6 +221,9 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `get_gvfg_entry` | ein Vorhaben mit ∑/A/B/C-Zeilen und Verlauf desselben Schlüssels über alle Ausgaben | — |
 | `list_project_gvfg` | GVFG-Förderung eines Projekts über alle Ausgaben, optional mit direkten Teilprojekten | — |
 | `assign_gvfg_entry` | Projekte eines Vorhabens setzen (ersetzt die bisherigen), optional für alle Ausgaben; ergänzt die Gruppen „GVFG“/„GVFG BW“ | `assignment.manage` |
+| `get_project_infraplan` | Infraplan-Einträge eines Projekts über alle Jahrgänge, Gesamtkostenprognose, „nicht mehr im Infraplan“ | — |
+| `list_infraplan_drafts` · `get_infraplan_draft` · `get_infraplan_page_image` · `list_infraplan_kpis` · `get_infraplan_kpi_values` | Infraplan-Import lesen: Entwürfe mit Warnungen, Zeilen mit Vorschlägen, Seitenbild (Bild-Content), Kennzahlen (siehe `feature-infraplan-import.md` → „MCP & Skill“) | `infraplan.import` |
+| `start_infraplan_parse` · `apply_infraplan_suggestions` · `assign_infraplan_row` · `create_infraplan_subproject` · `confirm_infraplan_import` · `set_infraplan_kpi_values` | Infraplan-Import führen: neu auslesen, Vorschläge übernehmen, begründet zuordnen (`AGENT`), Teilprojekt anlegen, bestätigen (nie bei Parser-Warnungen), Kennzahlen ungeprüft schreiben | `infraplan.import` |
 | `get_project_texts` | Projekttexte nach Typ | — |
 | `list_todos` | Aufgaben, gefiltert | — |
 | `create_project` | Projekt/Unterprojekt anlegen (final, ohne Geometrie) | `project.create` |
@@ -541,7 +544,7 @@ Code; ob claude.ai das Feld auswertet, ist nicht dokumentiert).
 - [x] `make test` baut Test- und Runtime-Image mit Kontext `skills`; `release.yml` und
       `compose.override.yaml` ebenso.
 - [ ] Nach dem nächsten Deploy liefert `list_skills` in claude.ai die markierten Skills
-      (zuerst `fulda-runde`, später `infraplan-import` mit #182).
+      (`fulda-runde`, `infraplan-import`).
 
 ## Umsetzung
 
