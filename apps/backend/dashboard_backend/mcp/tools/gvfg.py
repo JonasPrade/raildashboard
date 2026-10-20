@@ -16,6 +16,7 @@ from sqlalchemy import case, exists, func, or_
 from sqlalchemy.orm import selectinload
 
 from dashboard_backend.crud import gvfg as gvfg_crud
+from dashboard_backend.crud.projects import progress as progress_crud
 from dashboard_backend.mcp.context import get_principal, load_user, require, tool_session
 from dashboard_backend.mcp.tools.projects import MAX_LIMIT, READ_ONLY, WRITE, _project_or_error
 from dashboard_backend.models.gvfg import GvfgEntry, GvfgProgram, gvfg_entry_project
@@ -220,12 +221,21 @@ def list_project_gvfg(
 ) -> dict[str, Any]:
     """GVFG funding of a project across all editions, newest edition first
     (compact; details per entry with get_gvfg_entry). with_subprojects adds the
-    Vorhaben of its direct subprojects — a parent project funds through them."""
+    Vorhaben of its direct subprojects — a parent project funds through them.
+
+    ``ibn_doubt`` (same as in get_project_progress → forecast) is set when the
+    newest edition still plans a relevant part of the aid after the known
+    Inbetriebnahme year: then question that year in your answer and cite the
+    GVFG-Finanzreihe (edition, Mio. € per year after it)."""
     get_principal(ctx)
     with tool_session(ctx) as db:
         _project_or_error(db, project_id)
         entries = gvfg_crud.project_entries(db, project_id, with_subprojects)
-        return {"entries": [_entry_summary(e, e.program) for e in entries]}
+        forecast = progress_crud.get_progress_view(db, project_id)["forecast"] if entries else None
+        return {
+            "entries": [_entry_summary(e, e.program) for e in entries],
+            "ibn_doubt": forecast["ibn_doubt"] if forecast else None,
+        }
 
 
 def assign_gvfg_entry(

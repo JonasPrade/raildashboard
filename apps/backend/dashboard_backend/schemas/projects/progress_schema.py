@@ -165,12 +165,32 @@ class ForecastStepSchema(BaseModel):
     source: str  # "VIB-PFA" | "Fulda-Runde" | "BVWP" | "Schätzung"
 
 
+class IbnDoubtPeriodSchema(BaseModel):
+    label: str
+    aid: float  # Mio. €
+
+
+class IbnDoubtSchema(BaseModel):
+    """The GVFG-Finanzreihe still funds the project after its known
+    commissioning year — that year is doubtful (the forecast stays as is)."""
+
+    ibn_year: int
+    ibn_source: str  # forecast source of the year, or "GVFG" (Inbetriebnahme gepl.)
+    edition: str  # newest GVFG edition, e.g. "2025–2029"
+    program_id: int
+    entry_ids: list[int]
+    aid_after: float  # Mio. € in year columns after ibn_year
+    aid_total: float  # Mio. € in all year columns
+    periods: list[IbnDoubtPeriodSchema] = []
+
+
 class ProgressForecastSchema(BaseModel):
     current_phase: MainPhaseLiteral
     remaining_text: Optional[str] = None
     estimated_phase_end: Optional[date] = None
     next_steps: list[ForecastStepSchema] = []
     has_data: bool = False
+    ibn_doubt: Optional[IbnDoubtSchema] = None
 
 
 # --- Sammel-FinVe phase assignment (admin) -----------------------------------

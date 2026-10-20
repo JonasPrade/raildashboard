@@ -502,6 +502,30 @@ Phasen. `PhaseStepper` und `ProgressMini` lassen sie **ganz weg** (Leiste z. B.
 Start → Bau → Betrieb, Nummerierung fortlaufend); Meilenstein-Rauten (Parl., PFB) rücken
 auf die Verbindung, die ihre Phasengrenze überspannt.
 
+## IBN-Plausibilität aus der GVFG-Finanzreihe
+
+**Ziel:** Plant das GVFG-Bundesprogramm für ein Vorhaben noch nennenswerte
+Finanzhilfen für Jahre **nach** dem bisher bekannten Inbetriebnahmejahr, ist dieses
+Jahr fraglich — wer baut, bekommt noch Geld. Die Prognose zeigt dann einen Hinweis
+„Inbetriebnahme JJJJ fraglich“ mit Verweis auf die GVFG-Finanzreihe; das Datum selbst
+bleibt unverändert (keine Quelle wird übersteuert, der Mensch entscheidet).
+
+- **Bekanntes IBN-Jahr:** die konkrete Inbetriebnahme der Prognose (VIB-PFA,
+  Fulda-Runde, Infraplan, Manuell — nicht BVWP/Schätzung), sonst das größte
+  „Inbetriebnahme gepl.“ der Vorhaben in der neuesten Ausgabe (Quelle „GVFG“).
+  Projekte in Betrieb werden nicht geprüft.
+- **Finanzreihe:** ∑-Zeile aller finanzrelevanten Vorhaben des Projekts und seiner
+  direkten Teilprojekte in der **neuesten** GVFG-Ausgabe, je Jahresspalte summiert.
+  Eine Spalte zählt als „danach“, wenn sie nach dem IBN-Jahr beginnt („ab 2030“ zählt
+  bei IBN 2030 also nicht).
+- **Relevant:** danach ≥ 1 Mio. € **und** ≥ 15 % der Finanzhilfen aller Jahresspalten
+  (`services/gvfg_ibn_check.py`) — Schlusszahlungen ein Jahr nach IBN lösen nichts aus.
+- **API:** `ProgressForecastSchema.ibn_doubt` (Jahr, Quelle, Ausgabe, Mio. € danach und
+  gesamt, Spalten danach); MCP: `get_project_progress` → `forecast.ibn_doubt` und
+  `list_project_gvfg` → `ibn_doubt`. Ein Agent, der den Hinweis sieht, stellt das
+  IBN-Datum in seiner Antwort in Frage und nennt die GVFG-Finanzreihe.
+- **Frontend:** gelber Hinweis unter der Prognose (`ForecastPanel`).
+
 ## Zeitstrahl über mehrere Projekte
 
 Die Gantt-artige Übersicht über eine ganze Projektgruppe ist ein eigenes Feature:

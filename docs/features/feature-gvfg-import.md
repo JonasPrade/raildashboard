@@ -139,6 +139,9 @@ der **neuesten Ausgabe** zählen in der Admin-Übersicht „Nicht zugeordnet“ 
   eigenem Inhaltsverzeichnis-Eintrag: neueste Ausgabe (A/B/C, Fördersatz,
   Fördertatbestand, Lph, Inbetriebnahme), Balkendiagramm Bundesfinanzhilfen je
   Jahr, Tabelle „Entwicklung über die Ausgaben“.
+- Plant die neueste Ausgabe nach dem bekannten Inbetriebnahmejahr noch einen relevanten
+  Teil der Finanzhilfen ein, stellt die Prognose das Jahr in Frage
+  (`feature-project-progress.md` → „IBN-Plausibilität aus der GVFG-Finanzreihe“).
 
 ## Umsetzungsstand (2026-10-15)
 

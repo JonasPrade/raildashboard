@@ -727,7 +727,9 @@ def get_project(project_id: int, *, ctx: Context) -> dict[str, Any]:
 
 def get_project_progress(project_id: int, *, ctx: Context) -> dict[str, Any]:
     """Planning state (Planungsstand): effective phase, parallel tracks (PF,
-    parliament), observations with their weight, subproject span and forecast."""
+    parliament), observations with their weight, subproject span and forecast.
+    ``forecast.ibn_doubt`` set → the GVFG-Finanzreihe still funds the project
+    after the known Inbetriebnahme year; question that year and cite it."""
     get_principal(ctx)
     with tool_session(ctx) as db:
         _project_or_error(db, project_id)
