@@ -38,6 +38,9 @@ from dashboard_backend.crud.projects.projects import (
 )
 from dashboard_backend.crud.projects.texts import (
     create_text_for_project,
+    get_default_text_category,
+    get_text_categories,
+    get_text_category,
     get_text_types,
     get_texts_for_project,
     update_project_text,
@@ -204,9 +207,17 @@ def last_change_expr():
     )
 
 
-def _text_dict(text: ProjectText) -> dict[str, Any]:
+def _text_dict(text: ProjectText, default_category: Any = None) -> dict[str, Any]:
     data = ProjectTextSchema.model_validate(text).model_dump(mode="json")
     data["text_type"] = data["text_type"]["name"]
+    # Texts from before categories carry none; they count as the default.
+    category = data["category"] or (
+        {"name": default_category.name, "style": default_category.style}
+        if default_category
+        else None
+    )
+    data["category"] = category["name"] if category else None
+    data["category_style"] = category["style"] if category else None
     data["attachments"] = [a["filename"] for a in data["attachments"]]
     return data
 
@@ -441,7 +452,8 @@ def get_project_texts(
         if text_type:
             wanted = text_type.strip().lower()
             texts = [t for t in texts if t.text_type and t.text_type.name.lower() == wanted]
-        return [_text_dict(t) for t in texts]
+        default = get_default_text_category(db)
+        return [_text_dict(t, default) for t in texts]
 
 
 def list_text_types(*, ctx: Context) -> list[dict[str, Any]]:
@@ -449,6 +461,17 @@ def list_text_types(*, ctx: Context) -> list[dict[str, Any]]:
     get_principal(ctx)
     with tool_session(ctx) as db:
         return [{"id": t.id, "name": t.name} for t in get_text_types(db)]
+
+
+def list_text_categories(*, ctx: Context) -> list[dict[str, Any]]:
+    """Available text categories (id, name, style), e.g. Info or Warnung, for the
+    ``category_id`` of upsert_project_text. The style decides the display:
+    neutral, info, warning (highlighted) or critical (highlighted)."""
+    get_principal(ctx)
+    with tool_session(ctx) as db:
+        return [
+            {"id": c.id, "name": c.name, "style": c.style} for c in get_text_categories(db)
+        ]
 
 
 def create_project(
@@ -739,19 +762,26 @@ def upsert_project_text(
     text_type_id: int | None = None,
     weblink: str | None = None,
     text_id: int | None = None,
+    category_id: int | None = None,
+    is_public: bool | None = None,
     *,
     ctx: Context,
 ) -> dict[str, Any]:
     """Create a project text, or update one when ``text_id`` is given (requires
     ``projecttext.edit``). Creating needs ``header`` and ``text_type_id`` (see
-    list_text_types); on update only the passed fields change. Changes are
-    written to the text changelog."""
+    list_text_types); on update only the passed fields change. ``category_id``
+    (see list_text_categories) defaults to „Info“ on create. ``is_public=false``
+    shows the text to signed-in users only (default on create: public). The
+    category and visibility apply to every project the text is linked to.
+    Changes are written to the text changelog."""
     principal = get_principal(ctx)
     require(principal, "projecttext.edit")
     with tool_session(ctx) as db:
         _project_or_error(db, project_id)
         if text_type_id is not None and text_type_id not in {t.id for t in get_text_types(db)}:
             raise ToolError(f"Texttyp {text_type_id} existiert nicht.")
+        if category_id is not None and get_text_category(db, category_id) is None:
+            raise ToolError(f"Kategorie {category_id} existiert nicht.")
         user = load_user(db, principal)
 
         if text_id is None:
@@ -760,7 +790,14 @@ def upsert_project_text(
             created = create_text_for_project(
                 db,
                 project_id,
-                {"header": header, "text": text, "weblink": weblink, "type": text_type_id},
+                {
+                    "header": header,
+                    "text": text,
+                    "weblink": weblink,
+                    "type": text_type_id,
+                    "category_id": category_id,
+                    "is_public": True if is_public is None else is_public,
+                },
             )
             create_text_changelog_for_create(db, created, project_id, user.id, user.username)
             db.commit()
@@ -781,6 +818,8 @@ def upsert_project_text(
                 "text": text,
                 "weblink": weblink,
                 "type": text_type_id,
+                "category_id": category_id,
+                "is_public": is_public,
             }.items()
             if value is not None
         }
@@ -789,7 +828,7 @@ def upsert_project_text(
         create_text_changelog_for_patch(
             db, existing, update_data, project_id, user.id, user.username
         )
-        return _text_dict(update_project_text(db, text_id, update_data))
+        return _text_dict(update_project_text(db, text_id, update_data), get_default_text_category(db))
 
 
 def merge_projects(
@@ -841,6 +880,7 @@ def register(server: MCPServer) -> None:
         list_project_finves,
         get_project_texts,
         list_text_types,
+        list_text_categories,
     ):
         server.add_tool(fn, annotations=READ_ONLY)
     for fn in (

@@ -276,6 +276,30 @@ def require_auth(allow_api_key: bool = True):
     return dependency
 
 
+def optional_auth():
+    """FastAPI dependency for public reads that show more to signed-in users:
+    returns the User, or None for anonymous visitors. An expired session counts
+    as anonymous; wrong Basic credentials or an invalid API key still fail."""
+    authenticate = require_auth()
+
+    def dependency(
+        session: Optional[str] = Cookie(default=None, alias=_SESSION_COOKIE),
+        credentials: Optional[HTTPBasicCredentials] = Depends(_optional_security),
+        bearer: Optional[HTTPAuthorizationCredentials] = Depends(_optional_bearer),
+        db: Session = Depends(get_db),
+    ):
+        if bearer is None and credentials is None and not session:
+            return None
+        try:
+            return authenticate(session=session, credentials=credentials, bearer=bearer, db=db)
+        except HTTPException:
+            if bearer is not None or credentials is not None:
+                raise
+            return None
+
+    return dependency
+
+
 def has_role_dependency(dependency) -> bool:
     return getattr(dependency, "__is_role_dependency__", False)
 

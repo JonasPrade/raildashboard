@@ -7,8 +7,10 @@ import {
     Group,
     Loader,
     Modal,
+    Radio,
     Select,
     Stack,
+    Switch,
     Text,
     Textarea,
     TextInput,
@@ -16,20 +18,23 @@ import {
     Tooltip,
 } from "@mantine/core";
 import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
-import { IconEye } from "@tabler/icons-react";
+import { IconEye, IconLock } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
 
 import {
     type ProjectText,
+    type ProjectTextCategory,
     type ProjectTextCreate,
     type ProjectTextUpdate,
     type TextAttachment,
     useCreateProjectText,
+    useCreateTextCategory,
     useCreateTextType,
     useDeleteProjectText,
     useDeleteTextAttachment,
     useProjectTexts,
+    useTextCategories,
     useTextTypes,
     useUpdateProjectText,
     useUploadTextAttachment,
@@ -37,6 +42,13 @@ import {
 import { exceedsUploadLimit, tooLargeMessage } from "../../shared/api/uploads";
 import { FileDropZone } from "../../shared/ui/FileDropZone";
 import { API_BASE } from "../../shared/api/client";
+import {
+    TEXT_CATEGORY_STYLE_ORDER,
+    TEXT_CATEGORY_STYLES,
+    type TextCategoryStyle,
+    categoryOf,
+    defaultCategory,
+} from "./textCategoryStyles";
 
 // Lazy: pulls in react-pdf/pdfjs (~400 KB) only when a preview is opened.
 const PdfPreviewModal = lazy(() => import("./PdfPreviewModal"));
@@ -128,6 +140,120 @@ function CreateTextTypeModal({ opened, onClose, onCreated }: CreateTextTypeModal
     );
 }
 
+// ── Create text category modal ────────────────────────────────────────────────
+
+type CreateTextCategoryModalProps = {
+    opened: boolean;
+    onClose: () => void;
+    onCreated: (newCategoryId: string) => void;
+};
+
+function CreateTextCategoryModal({ opened, onClose, onCreated }: CreateTextCategoryModalProps) {
+    const [name, setName] = useState("");
+    const [style, setStyle] = useState<TextCategoryStyle>("info");
+    const createCategoryMutation = useCreateTextCategory();
+
+    useEffect(() => {
+        if (opened) {
+            setName("");
+            setStyle("info");
+        }
+    }, [opened]);
+
+    function handleSubmit() {
+        const trimmed = name.trim();
+        if (!trimmed) return;
+        createCategoryMutation.mutate({ name: trimmed, style }, {
+            onSuccess: (newCategory) => {
+                notifications.show({
+                    color: "green",
+                    title: "Kategorie erstellt",
+                    message: `Die Kategorie „${newCategory.name}" wurde angelegt.`,
+                });
+                onCreated(String(newCategory.id));
+            },
+            onError: (err) => {
+                const status = (err as { status?: number })?.status;
+                notifications.show({
+                    color: "red",
+                    title: "Erstellen fehlgeschlagen",
+                    message: status === 409
+                        ? "Diese Kategorie gibt es schon."
+                        : "Die Kategorie konnte nicht erstellt werden.",
+                });
+            },
+        });
+    }
+
+    return (
+        <Modal opened={opened} onClose={onClose} title="Neue Kategorie erstellen" size="sm">
+            <Stack gap="md">
+                <TextInput
+                    label="Name"
+                    required
+                    value={name}
+                    onChange={(event) => setName(event.currentTarget.value)}
+                    placeholder="z. B. Hinweis"
+                />
+                <Radio.Group
+                    label="Darstellung"
+                    value={style}
+                    onChange={(value) => setStyle(value as TextCategoryStyle)}
+                >
+                    <Stack gap="xs" mt={4}>
+                        {TEXT_CATEGORY_STYLE_ORDER.map((key) => {
+                            const display = TEXT_CATEGORY_STYLES[key];
+                            const StyleIcon = display.icon;
+                            return (
+                                <Radio
+                                    key={key}
+                                    value={key}
+                                    label={
+                                        <Group gap={6} wrap="nowrap">
+                                            <StyleIcon size={16} color={display.color} aria-hidden />
+                                            <span>{display.label}</span>
+                                            {display.border && (
+                                                <Text span size="xs" c="dimmed">hervorgehoben</Text>
+                                            )}
+                                        </Group>
+                                    }
+                                />
+                            );
+                        })}
+                    </Stack>
+                </Radio.Group>
+                <Group justify="flex-end">
+                    <Button variant="default" onClick={onClose} disabled={createCategoryMutation.isPending}>
+                        Abbrechen
+                    </Button>
+                    <Button
+                        onClick={handleSubmit}
+                        loading={createCategoryMutation.isPending}
+                        disabled={name.trim() === ""}
+                    >
+                        Erstellen
+                    </Button>
+                </Group>
+            </Stack>
+        </Modal>
+    );
+}
+
+// ── Category label (icon + name, colour from the style) ─────────────────────
+
+function CategoryLabel({ category }: { category: ProjectTextCategory }) {
+    const display = TEXT_CATEGORY_STYLES[category.style];
+    const StyleIcon = display.icon;
+    return (
+        <Group gap={4} wrap="nowrap" style={{ color: display.color }}>
+            <StyleIcon size={14} aria-hidden />
+            <Text span size="xs" fw={600} style={{ color: "inherit" }}>
+                {category.name}
+            </Text>
+        </Group>
+    );
+}
+
 // ── Text form (shared for create + edit) ─────────────────────────────────────
 
 type TextFormValues = {
@@ -136,10 +262,13 @@ type TextFormValues = {
     weblink: string;
     logo_url: string;
     type: string | null;
+    /** null in the create form until the categories have loaded → default. */
+    category: string | null;
+    is_public: boolean;
 };
 
 function emptyForm(): TextFormValues {
-    return { header: "", text: "", weblink: "", logo_url: "", type: null };
+    return { header: "", text: "", weblink: "", logo_url: "", type: null, category: null, is_public: true };
 }
 
 function fromText(t: ProjectText): TextFormValues {
@@ -149,6 +278,8 @@ function fromText(t: ProjectText): TextFormValues {
         weblink: t.weblink ?? "",
         logo_url: t.logo_url ?? "",
         type: String(t.type),
+        category: t.category_id != null ? String(t.category_id) : null,
+        is_public: t.is_public ?? true,
     };
 }
 
@@ -166,8 +297,10 @@ function TextFormModal({ opened, onClose, onSubmit, isSubmitting, initialValues,
     const [values, setValues] = useState<TextFormValues>(initialValues);
     const [pendingFiles, setPendingFiles] = useState<File[]>([]);
     const [createTypeOpened, setCreateTypeOpened] = useState(false);
+    const [createCategoryOpened, setCreateCategoryOpened] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { data: textTypes } = useTextTypes();
+    const { data: categories } = useTextCategories();
 
     // Reset form whenever the modal opens
     useEffect(() => {
@@ -195,11 +328,24 @@ function TextFormModal({ opened, onClose, onSubmit, isSubmitting, initialValues,
         label: t.name,
     }));
 
-    const isValid = values.header.trim() !== "" && values.type !== null;
+    const categoryOptions = (categories ?? []).map((c) => ({
+        value: String(c.id),
+        label: c.name,
+    }));
+    // Texts without a category (older code) and the fresh create form show the default.
+    const fallbackCategory = defaultCategory(categories);
+    const categoryValue = values.category ?? (fallbackCategory ? String(fallbackCategory.id) : null);
+
+    const isValid = values.header.trim() !== "" && values.type !== null && categoryValue !== null;
 
     function handleTypeCreated(newTypeId: string) {
         setCreateTypeOpened(false);
         setValues((prev) => ({ ...prev, type: newTypeId }));
+    }
+
+    function handleCategoryCreated(newCategoryId: string) {
+        setCreateCategoryOpened(false);
+        setValues((prev) => ({ ...prev, category: newCategoryId }));
     }
 
     return (
@@ -235,6 +381,28 @@ function TextFormModal({ opened, onClose, onSubmit, isSubmitting, initialValues,
                         </Tooltip>
                     </Group>
 
+                    <Group gap="xs" align="flex-end">
+                        <Select
+                            label="Kategorie"
+                            required
+                            data={categoryOptions}
+                            value={categoryValue}
+                            onChange={(value) => setValues((prev) => ({ ...prev, category: value }))}
+                            placeholder="Kategorie auswählen"
+                            style={{ flex: 1 }}
+                        />
+                        <Tooltip label="Neue Kategorie erstellen">
+                            <ActionIcon
+                                variant="light"
+                                size="lg"
+                                onClick={() => setCreateCategoryOpened(true)}
+                                aria-label="Neue Kategorie erstellen"
+                            >
+                                +
+                            </ActionIcon>
+                        </Tooltip>
+                    </Group>
+
                     <Textarea
                         label="Text"
                         minRows={4}
@@ -255,6 +423,13 @@ function TextFormModal({ opened, onClose, onSubmit, isSubmitting, initialValues,
                         placeholder="https://…"
                         value={values.logo_url}
                         onChange={(event) => { const v = event.currentTarget.value; setValues((prev) => ({ ...prev, logo_url: v })); }}
+                    />
+
+                    <Switch
+                        label="Nur für Eingeloggte sichtbar"
+                        description="Interne Texte und ihre Anhänge sehen Besucher ohne Anmeldung nicht."
+                        checked={!values.is_public}
+                        onChange={(event) => { const internal = event.currentTarget.checked; setValues((prev) => ({ ...prev, is_public: !internal })); }}
                     />
 
                     {showFileUpload && (
@@ -302,7 +477,7 @@ function TextFormModal({ opened, onClose, onSubmit, isSubmitting, initialValues,
                         <Button variant="default" onClick={onClose} disabled={isSubmitting}>
                             Abbrechen
                         </Button>
-                        <Button onClick={() => onSubmit(values, pendingFiles)} loading={isSubmitting} disabled={!isValid}>
+                        <Button onClick={() => onSubmit({ ...values, category: categoryValue }, pendingFiles)} loading={isSubmitting} disabled={!isValid}>
                             Speichern
                         </Button>
                     </Group>
@@ -313,6 +488,12 @@ function TextFormModal({ opened, onClose, onSubmit, isSubmitting, initialValues,
                 opened={createTypeOpened}
                 onClose={() => setCreateTypeOpened(false)}
                 onCreated={handleTypeCreated}
+            />
+
+            <CreateTextCategoryModal
+                opened={createCategoryOpened}
+                onClose={() => setCreateCategoryOpened(false)}
+                onCreated={handleCategoryCreated}
             />
         </>
     );
@@ -520,6 +701,9 @@ type TextCardProps = {
 
 function TextCard({ projectText, canEdit, projectId }: TextCardProps) {
     const [editOpened, setEditOpened] = useState(false);
+    const { data: categories } = useTextCategories();
+    const category = categoryOf(projectText, categories);
+    const display = category ? TEXT_CATEGORY_STYLES[category.style] : null;
     const updateMutation = useUpdateProjectText(projectId);
     const deleteMutation = useDeleteProjectText(projectId);
 
@@ -531,6 +715,8 @@ function TextCard({ projectText, canEdit, projectId }: TextCardProps) {
             weblink: values.weblink.trim() || null,
             logo_url: values.logo_url.trim() || null,
             type: Number(values.type),
+            category_id: values.category ? Number(values.category) : undefined,
+            is_public: values.is_public,
         };
         updateMutation.mutate(
             { textId: projectText.id, payload },
@@ -575,14 +761,24 @@ function TextCard({ projectText, canEdit, projectId }: TextCardProps) {
 
     return (
         <>
-            <ChronicleCard>
+            <ChronicleCard accentColor={display?.border ? display.color : undefined}>
                 <Stack gap="xs">
                     <Group justify="space-between" align="flex-start">
-                        <Stack gap={2}>
+                        <Stack gap={2} style={{ minWidth: 0 }}>
                             <Text fw={600}>{projectText.header}</Text>
-                            <Text size="xs" c="dimmed">
-                                {projectText.text_type.name}
-                            </Text>
+                            <Group gap={6} wrap="wrap">
+                                {category && <CategoryLabel category={category} />}
+                                {category && <Text size="xs" c="dimmed" aria-hidden>·</Text>}
+                                <Text size="xs" c="dimmed">
+                                    {projectText.text_type.name}
+                                </Text>
+                                {projectText.is_public === false && (
+                                    <Group gap={3} wrap="nowrap" c="dimmed">
+                                        <IconLock size={12} aria-hidden />
+                                        <Text size="xs" c="dimmed">Intern</Text>
+                                    </Group>
+                                )}
+                            </Group>
                         </Stack>
                         {canEdit && (
                             <Group gap="xs">
@@ -656,6 +852,8 @@ export default function ProjectTextsSection({ projectId, canEdit }: ProjectTexts
             weblink: values.weblink.trim() || null,
             logo_url: values.logo_url.trim() || null,
             type: Number(values.type),
+            category_id: values.category ? Number(values.category) : null,
+            is_public: values.is_public,
         };
         createMutation.mutate(payload, {
             onSuccess: (createdText) => {

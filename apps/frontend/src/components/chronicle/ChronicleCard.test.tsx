@@ -19,6 +19,18 @@ describe("ChronicleCard", () => {
         expect(el.style.borderLeft).toBeTruthy();
     });
 
+    it("uses accentColor for the left border", () => {
+        const { container } = render(<ChronicleCard accentColor="var(--text-cat-warning)">Warnung</ChronicleCard>);
+        const el = container.firstChild as HTMLElement;
+        expect(el.style.borderLeft).toContain("var(--text-cat-warning)");
+    });
+
+    it("has no left accent border by default", () => {
+        const { container } = render(<ChronicleCard>Normal</ChronicleCard>);
+        const el = container.firstChild as HTMLElement;
+        expect(el.style.borderLeft).toBe("");
+    });
+
     it("applies float shadow when float prop is true", () => {
         const { container } = render(<ChronicleCard float>Float</ChronicleCard>);
         const el = container.firstChild as HTMLElement;

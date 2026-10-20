@@ -13,4 +13,5 @@ from .project_redirect import ProjectRedirect
 from .progress_observation import ProgressObservation
 from .project_text import ProjectText
 from .project_text_type import ProjectTextType
+from .project_text_category import ProjectTextCategory
 from .text_attachment import TextAttachment

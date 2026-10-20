@@ -20,6 +20,8 @@ from dashboard_backend.models.projects.progress_observation import ProgressObser
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.projects.project_group import ProjectGroup
 from dashboard_backend.models.projects.project_progress import ProjectProgress
+from dashboard_backend.models.projects.project_text_category import ProjectTextCategory
+from dashboard_backend.models.projects.project_text_type import ProjectTextType
 from dashboard_backend.models.roles import Role, RolePermission
 from dashboard_backend.models.todos.todo import Todo
 from dashboard_backend.models.users import User
@@ -148,6 +150,7 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
         "get_finve",
         "get_project_texts",
         "list_text_types",
+        "list_text_categories",
         "create_project",
         "compute_project_length",
         "update_project",
@@ -764,3 +767,57 @@ def test_compute_length_apply_needs_capability(mcp_client, create_user, db_sessi
     )
     assert result["isError"] is True
     assert "project.edit" in result["content"][0]["text"]
+
+
+# --- Texts -------------------------------------------------------------------
+
+
+def test_upsert_project_text_category_and_visibility(mcp_client, admin_token, db_session):
+    project = Project(name="Textprojekt")
+    text_type = ProjectTextType(name="Kommentar")
+    info = ProjectTextCategory(name="Info", style="info")
+    warning = ProjectTextCategory(name="Warnung", style="warning")
+    db_session.add_all([project, text_type, info, warning])
+    db_session.commit()
+
+    listed = _call(mcp_client, admin_token, "list_text_categories")
+    # A list result comes as one content block per item; the full list is structured.
+    categories = listed["structuredContent"]["result"]
+    assert [c["name"] for c in categories] == ["Info", "Warnung"]
+
+    created = _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "upsert_project_text",
+            {"project_id": project.id, "header": "Hinweis", "text_type_id": text_type.id},
+        )
+    )
+    assert created["category"] == "Info"
+    assert created["category_style"] == "info"
+    assert created["is_public"] is True
+
+    updated = _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "upsert_project_text",
+            {
+                "project_id": project.id,
+                "text_id": created["id"],
+                "category_id": warning.id,
+                "is_public": False,
+            },
+        )
+    )
+    assert updated["category"] == "Warnung"
+    assert updated["is_public"] is False
+
+    unknown = _call(
+        mcp_client,
+        admin_token,
+        "upsert_project_text",
+        {"project_id": project.id, "text_id": created["id"], "category_id": 999},
+    )
+    assert unknown["isError"] is True
+    assert "Kategorie" in unknown["content"][0]["text"]

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import "react-pdf/dist/Page/AnnotationLayer.css";
@@ -48,6 +48,9 @@ export default function PdfPreviewModal({ opened, onClose, attachmentUrl, filena
     }
 
     const downloadUrl = attachmentUrl.replace("?inline=true", "");
+    // Send the session cookie: attachments of internal texts need a signed-in user.
+    // Memoised — a new object on every render would make react-pdf reload the file.
+    const file = useMemo(() => ({ url: attachmentUrl, withCredentials: true }), [attachmentUrl]);
 
     return (
         <Modal
@@ -61,7 +64,7 @@ export default function PdfPreviewModal({ opened, onClose, attachmentUrl, filena
             {opened && (
                 <Stack gap="sm" align="center">
                     <Document
-                        file={attachmentUrl}
+                        file={file}
                         onLoadSuccess={handleLoadSuccess}
                         onLoadError={handleLoadError}
                         loading={<Loader size="md" />}

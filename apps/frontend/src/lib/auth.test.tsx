@@ -12,7 +12,7 @@ vi.mock("../shared/api/client", () => ({
 }));
 
 vi.mock("./query", () => ({
-    queryClient: { clear: vi.fn() },
+    queryClient: { clear: vi.fn(), invalidateQueries: vi.fn() },
 }));
 
 import { api } from "../shared/api/client";

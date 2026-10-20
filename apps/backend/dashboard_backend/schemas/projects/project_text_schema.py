@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ProjectTextTypeSchema(BaseModel):
@@ -15,6 +15,23 @@ class ProjectTextTypeSchema(BaseModel):
 
 class ProjectTextTypeCreate(BaseModel):
     name: str
+
+
+# Fixed display styles of a text category (docs/features/feature-text-categories.md).
+TextCategoryStyle = Literal["neutral", "info", "warning", "critical"]
+
+
+class ProjectTextCategorySchema(BaseModel):
+    id: int
+    name: str
+    style: TextCategoryStyle
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ProjectTextCategoryCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    style: TextCategoryStyle
 
 
 class TextAttachmentSchema(BaseModel):
@@ -39,6 +56,10 @@ class ProjectTextSchema(BaseModel):
     created_at: int
     updated_at: int
     text_type: ProjectTextTypeSchema
+    category_id: Optional[int] = None
+    # Null only for texts written by code from before categories; shown as the default.
+    category: Optional[ProjectTextCategorySchema] = None
+    is_public: bool = True
     attachments: list[TextAttachmentSchema] = []
 
     model_config = ConfigDict(from_attributes=True)
@@ -50,6 +71,9 @@ class ProjectTextCreate(BaseModel):
     text: Optional[str] = None
     type: int
     logo_url: Optional[str] = None
+    # Omitted → default category („Info“).
+    category_id: Optional[int] = None
+    is_public: bool = True
 
 
 class ProjectTextUpdate(BaseModel):
@@ -58,3 +82,5 @@ class ProjectTextUpdate(BaseModel):
     text: Optional[str] = None
     type: Optional[int] = None
     logo_url: Optional[str] = None
+    category_id: Optional[int] = None
+    is_public: Optional[bool] = None

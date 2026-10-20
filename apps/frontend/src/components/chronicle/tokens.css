@@ -26,6 +26,14 @@
     --signalDim: #8a1818;
     --go:        #058a44;
     --goDim:     #03602e;
+    --warn:      #b45309;
+
+    /* ── Text categories · semantic, switch colours here ────────── */
+    /* Style → colour; icon and border live in textCategoryStyles.ts. */
+    --text-cat-neutral:  var(--ink3);
+    --text-cat-info:     var(--info);
+    --text-cat-warning:  var(--warn);
+    --text-cat-critical: var(--signal);
 
     /* ── Tafel · dark surfaces (component-scoped) ───────────────── */
     --board:     #111418;

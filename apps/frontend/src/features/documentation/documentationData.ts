@@ -263,6 +263,20 @@ export const featureHighlights: FeatureHighlight[] = [
         ]
     },
     {
+        title: "Textkategorien & interne Texte",
+        description:
+            "Jeder Projekttext hat neben dem Typ eine Kategorie (z. B. Info, Warnung), die seine Darstellung bestimmt. " +
+            "Texte können als intern markiert werden und sind dann nur für eingeloggte Nutzer sichtbar.",
+        details: [
+            "Kategorie im Textformular wählen (Standard: Info); „+“ legt eine neue Kategorie mit einem festen Darstellungsstil an (Neutral, Info, Warnung, Kritisch)",
+            "Warnung und Kritisch werden mit farbigem linken Rand hervorgehoben; alle Kategorien zeigen Icon und Namen",
+            "Die Kategorie gehört zum Text und gilt bei allen Projekten, mit denen er verknüpft ist",
+            "Schalter „Nur für Eingeloggte sichtbar“: interne Texte und ihre Anhänge erscheinen für Besucher ohne Anmeldung nicht und sind mit „Intern“ markiert",
+            "Kategorie- und Sichtbarkeitsänderungen stehen in der Versionshistorie",
+            "Details: docs/features/feature-text-categories.md"
+        ]
+    },
+    {
         title: "Projekttexte & Dateianhänge",
         description:
             "Editors können jedem Projekttext Dateien anhängen (PDF, Word, Excel, JPEG, PNG, max. 50 MB). " +

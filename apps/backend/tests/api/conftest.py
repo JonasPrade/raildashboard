@@ -14,6 +14,8 @@ from dashboard_backend.dependencies.routes import get_route_service
 from dashboard_backend.models.api_keys import ApiKey
 from dashboard_backend.models.app_settings import AppSettings
 from dashboard_backend.models.change_tracking import ChangeLog, ChangeLogEntry
+from dashboard_backend.models.change_tracking.change_log import TextChangeLog, TextChangeLogEntry
+from dashboard_backend.models.projects.text_attachment import TextAttachment
 from dashboard_backend.models.associations.project_to_constituency import (
     ProjectToConstituency,
 )
@@ -58,6 +60,7 @@ from dashboard_backend.models.projects.project_progress import ProjectProgress
 from dashboard_backend.models.projects.project_redirect import ProjectRedirect
 from dashboard_backend.models.projects.project_text import ProjectText
 from dashboard_backend.models.projects.project_text_type import ProjectTextType
+from dashboard_backend.models.projects.project_text_category import ProjectTextCategory
 from dashboard_backend.models.roles import Role, RolePermission
 from dashboard_backend.models.todos.todo import Todo, TodoAssignee
 from dashboard_backend.models.users import User
@@ -109,6 +112,7 @@ TABLES = [
     OperationalPoint.__table__,  # MCP geometry tools (waypoints, station points)
     AppSettings.__table__,
     ProjectTextType.__table__,  # must precede ProjectText (FK dependency)
+    ProjectTextCategory.__table__,  # must precede ProjectText (FK dependency)
     ProjectText.__table__,
     Todo.__table__,  # FK to project (absent here) is unenforced in SQLite
     TodoAssignee.__table__,  # must follow Todo (FK dependency)
@@ -133,6 +137,9 @@ TABLES = [
     ChangeLogEntry.__table__,  # must follow ChangeLog (FK dependency)
     ProgressObservation.__table__,  # FKs to imported sources unenforced; MCP observation tools
     TextToProject.__table__,  # must follow project + project_text; moved by the project merge
+    TextAttachment.__table__,  # must follow project_text + users; text visibility
+    TextChangeLog.__table__,  # must follow project_text + users; written on text create/update
+    TextChangeLogEntry.__table__,  # must follow TextChangeLog (FK dependency)
     ProjectRedirect.__table__,  # must follow project + users; written by the project merge
     InfraplanParseResult.__table__,  # must follow users; Infraplan import drafts
     InfraplanReport.__table__,  # confirmed years (must precede entries and KPI values)

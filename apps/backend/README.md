@@ -130,7 +130,7 @@ and check the key's capabilities before writing. Tools: `list_project_groups`, `
 (free FinVe search by number, name or Bedarfsplan number), `list_gvfg_programs`,
 `list_gvfg_entries`, `get_gvfg_entry` (with the key's history across editions),
 `list_project_gvfg` (GVFG-Bundesprogramm), `get_project_texts`,
-`list_text_types`, `list_todos`, `search_operational_points`, `get_project_geometry`,
+`list_text_types`, `list_text_categories`, `list_todos`, `search_operational_points`, `get_project_geometry`,
 `list_data_gaps`, `check_geometry` (data maintenance across many projects), `list_skills`,
 `get_skill` (skills from `.claude/skills` marked `metadata: mcp: true`; the image carries
 them as `/app/skills` via the named build context `skills`) (read)

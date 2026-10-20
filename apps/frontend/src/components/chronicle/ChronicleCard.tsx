@@ -5,6 +5,8 @@ type Tone = "paper" | "board";
 type Props = {
     children: ReactNode;
     accent?: boolean;
+    /** Left accent border in this colour (a CSS value, e.g. a token); implies `accent`. */
+    accentColor?: string;
     float?: boolean;
     tone?: Tone;
     className?: string;
@@ -14,6 +16,7 @@ type Props = {
 export default function ChronicleCard({
     children,
     accent,
+    accentColor,
     float,
     tone = "paper",
     className,
@@ -28,8 +31,12 @@ export default function ChronicleCard({
         // Token instead of a fixed value: cards get tighter on phones.
         padding: "var(--card-pad, 24px)",
         display: "block",
-        ...(accent
-            ? { borderLeft: `3px solid ${isBoard ? "var(--ledHot)" : "var(--info)"}` }
+        ...(accent || accentColor
+            ? {
+                  borderLeft: `3px solid ${
+                      accentColor ?? (isBoard ? "var(--ledHot)" : "var(--info)")
+                  }`,
+              }
             : {}),
         ...(float ? { boxShadow: "var(--shadow-float)" } : {}),
         ...style,

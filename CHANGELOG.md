@@ -12,6 +12,15 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **Text categories and internal texts.** Project texts get a category next to their type
+  (seeded „Info“ and „Warnung“; editors add more with one of the fixed styles neutral, info,
+  warning, critical). Warning and critical texts are highlighted with a left border. Texts can
+  be marked internal: they and their attachments are then delivered to signed-in users only
+  (the roadmap listed this as done, but it was never built). New endpoints
+  `GET/POST /api/v1/text_categories`, MCP tool `list_text_categories`, `upsert_project_text`
+  takes `category_id` and `is_public`. Colours come from semantic tokens `--text-cat-*`
+  (new base token `--warn`). Migration `20261020002` (expand only: `category_id` nullable,
+  `is_public` with server default true; existing texts become „Info“ and stay public).
 - **Infraplan import, stages 2–5 (#180, #181, #184, #182).** Review of a draft: the parse
   task now suggests projects per row (project number of the previous year, GVFG key, fuzzy
   name; subprojects preferred) and preselects hits from 0.85; `PATCH …/rows/{row_key}`,
@@ -204,6 +213,9 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   with short names) and can be reverted like any other project field.
 
 ### Fixed
+- **Text history: partial updates no longer log untouched fields.** A text PATCH that sends
+  only some fields (e.g. via MCP `upsert_project_text`) recorded every other tracked field as
+  cleared; now only the sent fields are compared.
 - **Timeline: separate construction stages of a superior.** A superior whose subprojects
   build in separate stages (e.g. HLK 11 München-Ost – Rosenheim, 2028 and 2031) no longer shows
   one continuous BAU bar across the gap. The timeline items carry `construction_periods`
