@@ -134,7 +134,7 @@ and check the key's capabilities before writing. Tools: `list_project_groups`, `
 `list_data_gaps`, `check_geometry` (data maintenance across many projects), `list_skills`,
 `get_skill` (skills from `.claude/skills` marked `metadata: mcp: true`; the image carries
 them as `/app/skills` via the named build context `skills`) (read)
-and `create_project`, `compute_project_length`, `update_project`, `set_project_groups`,
+and `create_project`, `create_project_group`, `compute_project_length`, `update_project`, `set_project_groups`,
 `add_progress_observation`,
 `delete_progress_observation`, `set_phase_override`, `upsert_project_text`, `create_todo`,
 `update_todo`, `route_project_geometry` (GraphHopper route, preview or apply),
