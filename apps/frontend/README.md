@@ -236,6 +236,17 @@ Multi-step import workflow for federal budget PDFs. The `ReviewTable` shows auto
 
 `HaushaltsGuidePage.tsx` (`/admin/haushalt-import/guide`) provides a step-by-step user guide (accordion format) with troubleshooting FAQ. Linked from both the import page and the review page.
 
+### Infraplan import and display (`features/infraplan-import/`, `features/infraplan/`)
+
+Plan: `docs/features/feature-infraplan-import.md`. Capability `infraplan.import` for the admin pages, `assignment.manage` for the section on `/admin/unassigned`.
+
+- `/admin/infraplan-import` (`InfraplanImportPage`) — upload with the year (`useStartInfraplanImport()` → `POST /import/infraplan/parse`, polled with `useImportTask`), draft list (status, rows, parser warnings, re-parse, discard) and confirmed years (delete, link to the KPI page).
+- `/admin/infraplan-import/review/:parseResultId` (`InfraplanReviewPage`) — rows per section, filter "nur ohne Zuordnung", project MultiSelect per row saved immediately (`usePatchInfraplanRow`, writes the returned row into the cached draft), suggestion badges with confidence, source badge (NUMBER/FUZZY/MANUAL/AGENT, agent note as tooltip), "Vorschläge übernehmen (≥ 85 %)", "Teilprojekt anlegen unter …", previous-year comparison and the confirm block (`published_on` as `<input type="date">`; a 409 about parser warnings offers "Trotzdem übernehmen" = `force: true`).
+- `/admin/infraplan/kpis/:year` (`InfraplanKpiPage`) — manual KPI form (only changed slots are sent, removed slots as `value: null`; logic in `kpiForm.ts`) and the approval view (unchecked values next to the page image `GET /import/infraplan/parse-result/{id}/page/{page}.png`, loaded as `<img>` with the session cookie).
+- `/infraplan` (`InfraplanPage`, public, nav entry "Infraplan") — one `CompositeChart` per KPI: Ist values of the newest year as stacked bars, the targets of every year as their own line (`buildKpiChart` in `infraplanFormat.ts`), below the measures of a year with project links.
+- Project detail: `InfraplanSection` (entries of all years, deltas via `entryDeltas`, "nicht mehr im Infraplan …") and `ProjectCostBlock` (Gesamtkostenprognose next to "Vom Bund zugesichert" = FinVe funds; no coverage ratio).
+- Guide: `/admin/anleitungen/infraplan` (`guides/InfraplanGuidePage.tsx`, slug `infraplan`).
+
 ### Admin: Abgeordnetenstand (`features/admin/ParliamentAdminPage.tsx`)
 
 `/admin/abgeordnete` (capability `parliament.import`) shows the Abrufstand of the people import, the geometry import and the link rebuild plus key figures from `GET /api/v1/parliament/status`, and launches the three Celery jobs via `useStartParliamentImport()` (`POST /parliament/import`), `useStartConstituencyImport()` (GeoJSON upload, `POST /parliament/constituencies/import`, rebuilds the links afterwards) and `useStartConstituencyLinkRebuild()` (`POST /parliament/recompute-links`), polled with `useImportTask`. Without geometries the rebuild button is disabled.

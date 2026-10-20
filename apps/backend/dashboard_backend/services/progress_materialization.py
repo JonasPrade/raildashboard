@@ -1,4 +1,4 @@
-"""Pure mapping from VIB / FinVe records to derived observation specs.
+"""Pure mapping from VIB / FinVe / … / Infraplan records to derived observation specs.
 
 These functions contain **no DB access** so they can be unit-tested directly.
 ``crud.projects.progress.sync_derived_observations`` loads the ORM records,
@@ -74,6 +74,7 @@ class DerivedSpec:
     bauportal_status_id: int | None = None
     media_report_id: int | None = None
     fulda_announcement_id: int | None = None
+    infraplan_entry_id: int | None = None
     # Prognosis: feeds the forecast only, never the phase.
     is_expected: bool = False
 
@@ -409,3 +410,136 @@ def pfa_has_pf_evidence(pfas: list[PfaInput]) -> bool:
     return any(
         (p.nr_pfa or p.abschnitt_label or parse_flexible_date(p.datum_pfb)) for p in pfas
     )
+
+
+# GVFG rows of the Infraplan are Länderangaben, unchecked (Fn. 23): lower trust.
+INFRAPLAN_GVFG_CONFIDENCE = 0.75
+
+
+def infraplan_main_phase(
+    *,
+    section: str,
+    lph_from: int | None,
+    lph_to: int | None,
+    under_construction: bool,
+    baurecht: bool,
+) -> MainPhase | None:
+    """Lower bound of the main phase from a row's Realisierungsstand.
+
+    ``Bau`` → BAU; ``Lph 4 abgeschlossen – durchgängiges Baurecht`` →
+    GENEHMIGUNGSPLANUNG (the PF track is completed separately); Teil D (no
+    Lph yet) → NICHT_GESTARTET; otherwise by the Leistungsphasen: within 1–2 →
+    VORPLANUNG, within 3–4 → GENEHMIGUNGSPLANUNG, from 5 → BAU. Spans across
+    those bounds (``Lph 1 - 4``, ``Lph 1 - 9``) and ``offen`` say nothing.
+    """
+
+    if under_construction:
+        return MainPhase.BAU
+    if baurecht:
+        return MainPhase.GENEHMIGUNGSPLANUNG
+    if section == "BP_D":
+        return MainPhase.NICHT_GESTARTET
+    if lph_from is None:
+        return None
+    upper = lph_to if lph_to is not None else lph_from
+    if lph_from >= 5:
+        return MainPhase.BAU
+    if lph_from >= 3 and upper <= 4:
+        return MainPhase.GENEHMIGUNGSPLANUNG
+    if lph_from >= 1 and upper <= 2:
+        return MainPhase.VORPLANUNG
+    return None
+
+
+def infraplan_entry_to_specs(
+    *,
+    infraplan_entry_id: int,
+    section: str,
+    report_year: int,
+    observed_date: date | None,
+    lph_from: int | None,
+    lph_to: int | None,
+    under_construction: bool,
+    baurecht: bool,
+    ibn_year: int | None,
+    ibn_qualifier: str | None,
+    parl_state: str | None,
+    state_raw: str | None = None,
+    include_phase_and_date: bool = True,
+) -> list[DerivedSpec]:
+    """Derived specs for one Infraplan row linked to a project (trust 0.85,
+    GVFG rows 0.75).
+
+    - MAIN: lower bound from the Realisierungsstand (:func:`infraplan_main_phase`).
+    - PF: ABGESCHLOSSEN for ``durchgängiges Baurecht``.
+    - PARL (Bedarfsplan only): ``abgeschlossen`` → ABGESCHLOSSEN, ``Verfahren
+      läuft`` → LAEUFT; ``vorgesehen`` / ``nicht vereinbart`` assert nothing.
+    - Expected IN_BETRIEB at 31 Dec of the planned commissioning year — not for
+      ``offen`` nor for a year before the report (GVFG remainders).
+
+    ``include_phase_and_date`` is False for a GVFG row whose GVFG edition is
+    more recent (decision 22): that edition then delivers phase and date.
+    """
+
+    is_gvfg = section.startswith("GVFG")
+    confidence = INFRAPLAN_GVFG_CONFIDENCE if is_gvfg else None
+    label = f"Infraplan {report_year}"
+    specs: list[DerivedSpec] = []
+
+    def spec(track: ObservationTrack, state: str, note: str, **extra) -> DerivedSpec:
+        return DerivedSpec(
+            source_type=SourceType.INFRAPLAN,
+            track=track,
+            asserted_state=state,
+            observed_date=extra.pop("observed", observed_date),
+            confidence=confidence,
+            note=note,
+            infraplan_entry_id=infraplan_entry_id,
+            **extra,
+        )
+
+    if include_phase_and_date:
+        phase = infraplan_main_phase(
+            section=section,
+            lph_from=lph_from,
+            lph_to=lph_to,
+            under_construction=under_construction,
+            baurecht=baurecht,
+        )
+        if phase is not None:
+            state = f": {state_raw}" if state_raw else ""
+            specs.append(spec(ObservationTrack.MAIN, phase.value, f"{label}{state}"))
+        if baurecht:
+            specs.append(
+                spec(ObservationTrack.PF, ParallelState.ABGESCHLOSSEN.value, f"{label}: durchgängiges Baurecht")
+            )
+        if ibn_year is not None and ibn_qualifier != "OFFEN" and ibn_year >= report_year:
+            specs.append(
+                spec(
+                    ObservationTrack.MAIN,
+                    MainPhase.IN_BETRIEB.value,
+                    f"{label}: geplante Inbetriebnahme {ibn_year}",
+                    observed=date(ibn_year, 12, 31),
+                    is_expected=True,
+                )
+            )
+
+    if not is_gvfg and parl_state in ("ABGESCHLOSSEN", "LAEUFT"):
+        specs.append(
+            spec(
+                ObservationTrack.PARL,
+                ParallelState(parl_state).value,
+                f"{label}: parlamentarische Befassung "
+                + ("abgeschlossen" if parl_state == "ABGESCHLOSSEN" else "läuft"),
+            )
+        )
+    return specs
+
+
+def infraplan_parl_relevant(parl_state: str | None) -> bool | None:
+    """PaBe relevance "laut Infraplan": ``nicht vereinbart`` → not relevant,
+    any other statement → relevant, no statement (GVFG/InvKG) → None."""
+
+    if not parl_state:
+        return None
+    return parl_state != "NICHT_VEREINBART"

@@ -7,12 +7,13 @@ and confirmation (stage 2) work on these rows.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
 SectionKey = Literal["BP_A", "BP_B", "BP_C", "BP_D", "GVFG_A", "GVFG_C", "INVKG"]
+AssignmentSource = Literal["NUMBER", "FUZZY", "MANUAL", "AGENT"]
 
 
 class InfraplanCostRef(BaseModel):
@@ -23,6 +24,14 @@ class InfraplanCostRef(BaseModel):
     resolved: bool = False
     # Cost of the entry that finally carries it (references are followed).
     cost_mio: Optional[float] = None
+
+
+class InfraplanSuggestion(BaseModel):
+    """A project suggested for a row (``reason``: NUMBER | GVFG_KEY | FUZZY)."""
+
+    project_id: int
+    confidence: float
+    reason: Literal["NUMBER", "GVFG_KEY", "FUZZY"]
 
 
 class InfraplanParsedRow(BaseModel):
@@ -64,6 +73,14 @@ class InfraplanParsedRow(BaseModel):
 
     footnote_refs: list[int] = Field(default_factory=list)
     footnotes: dict[str, str] = Field(default_factory=dict)
+
+    # Review state (stage 2): suggestions from the matcher, the chosen
+    # projects and who/what chose them.
+    suggestions: list[InfraplanSuggestion] = Field(default_factory=list)
+    project_ids: list[int] = Field(default_factory=list)
+    assignment_source: Optional[AssignmentSource] = None
+    assignment_note: Optional[str] = None
+    assigned_by: Optional[str] = None
 
 
 class InfraplanSectionSummary(BaseModel):
@@ -114,15 +131,148 @@ class InfraplanParseResultListItem(BaseModel):
     confirmed_at: Optional[datetime] = None
     confirmed_by_snapshot: Optional[str] = None
     row_count: Optional[int] = None
+    assigned_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 
 
+class InfraplanProjectRef(BaseModel):
+    id: int
+    name: str
+    superior_project_id: Optional[int] = None
+    is_draft: bool = False
+
+
+class InfraplanMissingEntry(BaseModel):
+    section: str
+    lfd_nr: int
+    primary_number: Optional[str] = None
+    massnahme: Optional[str] = None
+
+
+class InfraplanMissingProject(BaseModel):
+    """A project with an entry in the previous year but none in this draft."""
+
+    project_id: int
+    project_name: str
+    previous_year: int
+    entries: list[InfraplanMissingEntry]
+
+
 class InfraplanParseResultSchema(InfraplanParseResultListItem):
-    """A draft with all parsed rows."""
+    """A draft with all parsed rows, the projects they reference and the
+    comparison with the previous year."""
 
     result_json: Optional[InfraplanParseOutput] = None
     has_pdf: bool = False
+    projects: dict[str, InfraplanProjectRef] = Field(default_factory=dict)
+    previous_year: Optional[int] = None
+    missing_from_previous: list[InfraplanMissingProject] = Field(default_factory=list)
+    report_year_exists: bool = False
+
+
+# --- Review (stage 2) ----------------------------------------------------------
+
+EDITABLE_ROW_FIELDS = (
+    "bezeichnung",
+    "massnahme",
+    "laender",
+    "state_raw",
+    "lph_from",
+    "lph_to",
+    "under_construction",
+    "baurecht",
+    "ibn_raw",
+    "ibn_year",
+    "ibn_qualifier",
+    "cost_mio",
+    "parl_raw",
+    "parl_state",
+)
+
+
+class InfraplanRowValues(BaseModel):
+    """Corrections of parsed values; only set fields are applied."""
+
+    bezeichnung: Optional[str] = None
+    massnahme: Optional[str] = None
+    laender: Optional[str] = None
+    state_raw: Optional[str] = None
+    lph_from: Optional[int] = Field(None, ge=0, le=9)
+    lph_to: Optional[int] = Field(None, ge=0, le=9)
+    under_construction: Optional[bool] = None
+    baurecht: Optional[bool] = None
+    ibn_raw: Optional[str] = None
+    ibn_year: Optional[int] = Field(None, ge=1990, le=2100)
+    ibn_qualifier: Optional[Literal["OFFEN", "BIS", "SPANNE"]] = None
+    cost_mio: Optional[float] = None
+    parl_raw: Optional[str] = None
+    parl_state: Optional[
+        Literal["ABGESCHLOSSEN", "LAEUFT", "VORGESEHEN", "NICHT_VEREINBART"]
+    ] = None
+
+
+class InfraplanRowPatch(BaseModel):
+    """Change the assignment and/or values of one draft row. ``project_ids``
+    replaces the assignment (empty list = none); omitted = unchanged."""
+
+    project_ids: Optional[list[int]] = None
+    note: Optional[str] = None
+    values: Optional[InfraplanRowValues] = None
+
+
+class InfraplanApplySuggestions(BaseModel):
+    min_confidence: float = Field(0.85, ge=0.0, le=1.0)
+    # Rows that already carry an assignment are left alone unless False.
+    only_unassigned: bool = True
+
+
+class InfraplanApplyResult(BaseModel):
+    applied: int
+    unassigned: int
+
+
+class InfraplanSubprojectCreate(BaseModel):
+    parent_id: int
+    name: Optional[str] = Field(None, max_length=255)
+
+
+class InfraplanSubprojectResult(BaseModel):
+    project_id: int
+    name: str
+    row: InfraplanParsedRow
+
+
+class InfraplanConfirmRequest(BaseModel):
+    parse_result_id: int
+    published_on: Optional[date] = None
+    title: Optional[str] = Field(None, max_length=255)
+    # Frontend only: confirm despite parser warnings.
+    force: bool = False
+
+
+class InfraplanConfirmResult(BaseModel):
+    report_id: int
+    year: int
+    entries: int
+    links: int
+    unassigned: int
+    projects_updated: int
+
+
+class InfraplanReportSchema(BaseModel):
+    id: int
+    year: int
+    title: Optional[str] = None
+    published_on: Optional[date] = None
+    parse_result_id: Optional[int] = None
+    created_at: datetime
+    entry_count: int = 0
+    assigned_count: int = 0
+    kpi_value_count: int = 0
+    kpi_unchecked_count: int = 0
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class InfraplanParseLaunchResponse(BaseModel):

@@ -57,6 +57,12 @@ const WORKFLOWS: Guide[] = [
             "Verkehrsinvestitionsbericht (Schienenwege) per OCR einlesen, Struktur prüfen und Vorhaben im Review den Projekten (m:n) zuordnen.",
     },
     {
+        to: "/admin/anleitungen/infraplan",
+        title: "Infraplan einlesen",
+        description:
+            "Infraplan-PDF hochladen, Maßnahmen Projekten zuordnen (von Hand oder per KI über MCP), Jahrgang übernehmen, Kennzahlen erfassen und freigeben.",
+    },
+    {
         to: "/admin/anleitungen/medien",
         title: "Medien / Presse auswerten",
         description:

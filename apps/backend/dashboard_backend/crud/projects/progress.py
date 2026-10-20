@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 from datetime import date, datetime
 from enum import Enum
+from typing import NamedTuple
 
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -55,6 +56,8 @@ from dashboard_backend.services.progress_materialization import (
     bauportal_to_spec,
     finve_to_spec,
     fulda_to_spec,
+    infraplan_entry_to_specs,
+    infraplan_parl_relevant,
     media_to_spec,
     pfa_has_pf_evidence,
     pfa_to_specs,
@@ -68,6 +71,13 @@ from dashboard_backend.models.projects.fulda_announcement import FuldaAnnounceme
 from dashboard_backend.models.projects.fulda_document import FuldaDocument
 from dashboard_backend.models.projects.media_report import MediaReport
 from dashboard_backend.models.projects.bvwp_project_data import BvwpProjectData
+from dashboard_backend.models.gvfg import GvfgEntry, GvfgProgram
+from dashboard_backend.models.infraplan import (
+    InfraplanEntry,
+    InfraplanEntryProject,
+    InfraplanReport,
+)
+from dashboard_backend.services.gvfg_parser import normalize_key
 from dashboard_backend.models.vib.vib_pfa_entry import VibPfaEntry
 from dashboard_backend.models.vib.vib_report import VibReport
 
@@ -195,15 +205,49 @@ def get_or_create_progress(db: Session, project_id: int) -> ProjectProgress:
     return progress
 
 
-def resolve_parl_relevant(progress: ProjectProgress, project: Project) -> bool:
-    """Override wins; otherwise default on for BSWAG* group membership."""
+def resolve_parl_relevant(
+    progress: ProjectProgress, project: Project, infraplan_relevant: bool | None = None
+) -> bool:
+    """Override wins; then the newest Infraplan statement on the Befassung
+    (``nicht vereinbart`` → not relevant, see :func:`infraplan_parl_relevance`);
+    otherwise default on for BSWAG* group membership."""
 
     if progress.parl_befassung_relevant is not None:
         return progress.parl_befassung_relevant
+    if infraplan_relevant is not None:
+        return infraplan_relevant
     return any(
         (g.short_name or "").upper().startswith(BEDARFSPLAN_GROUP_SHORT_NAME_PREFIX)
         for g in project.project_groups
     )
+
+
+def infraplan_parl_relevance(db: Session, project_ids: list[int]) -> dict[int, bool]:
+    """PaBe relevance "laut Infraplan" per project: the newest linked
+    Bedarfsplan entry that states the Befassung decides. Projects without
+    such an entry are missing from the result."""
+
+    if not project_ids:
+        return {}
+    rows = (
+        db.query(InfraplanEntryProject.project_id, InfraplanReport.year, InfraplanEntry.parl_state)
+        .join(InfraplanEntry, InfraplanEntry.id == InfraplanEntryProject.entry_id)
+        .join(InfraplanReport, InfraplanReport.id == InfraplanEntry.report_id)
+        .filter(
+            InfraplanEntryProject.project_id.in_(project_ids),
+            InfraplanEntry.parl_state.isnot(None),
+        )
+        .all()
+    )
+    newest: dict[int, int] = {}
+    result: dict[int, bool] = {}
+    for project_id, year, parl_state in sorted(rows, key=lambda r: -r[1]):
+        if newest.setdefault(project_id, year) != year:
+            continue
+        relevant = infraplan_parl_relevant(parl_state)
+        # Several rows of the same year: one statement of relevance suffices.
+        result[project_id] = bool(result.get(project_id)) or bool(relevant)
+    return result
 
 
 def resolve_skipped_phases(project: Project) -> set[MainPhase]:
@@ -276,55 +320,93 @@ def pfa_forecast_input(pfa: VibPfaEntry, report: VibReport | None) -> PfaForecas
     )
 
 
-def fulda_report_dates(
+class ReportedOn(NamedTuple):
+    """Date of the report a derived expected observation comes from."""
+
+    fulda: dict[int, date]  # Fulda announcement id → answer date
+    infraplan: dict[int, date]  # Infraplan entry id → publication date
+
+
+def _infraplan_report_date(report: InfraplanReport) -> date:
+    """Publication date of a year; the import date when none was given."""
+    return report.published_on or report.created_at.date()
+
+
+def expected_report_dates(
     db: Session, observations: list[ProgressObservation]
-) -> dict[int, date]:
-    """Answer date (``fulda_document.document_date``) per Fulda announcement id
-    referenced by ``observations`` — one query for any number of rows."""
+) -> ReportedOn:
+    """Report dates for the derived expected rows in ``observations`` — one
+    query per source for any number of rows."""
 
     announcement_ids = {
         o.fulda_announcement_id
         for o in observations
         if o.is_derived and o.fulda_announcement_id
     }
-    if not announcement_ids:
-        return {}
-    return dict(
-        db.query(FuldaAnnouncement.id, FuldaDocument.document_date)
-        .join(FuldaDocument, FuldaDocument.id == FuldaAnnouncement.document_id)
-        .filter(FuldaAnnouncement.id.in_(announcement_ids))
-        .all()
-    )
+    entry_ids = {
+        o.infraplan_entry_id for o in observations if o.is_derived and o.infraplan_entry_id
+    }
+    fulda: dict[int, date] = {}
+    if announcement_ids:
+        fulda = dict(
+            db.query(FuldaAnnouncement.id, FuldaDocument.document_date)
+            .join(FuldaDocument, FuldaDocument.id == FuldaAnnouncement.document_id)
+            .filter(FuldaAnnouncement.id.in_(announcement_ids))
+            .all()
+        )
+    infraplan: dict[int, date] = {}
+    if entry_ids:
+        infraplan = {
+            entry_id: _infraplan_report_date(report)
+            for entry_id, report in db.query(InfraplanEntry.id, InfraplanReport)
+            .join(InfraplanReport, InfraplanReport.id == InfraplanEntry.report_id)
+            .filter(InfraplanEntry.id.in_(entry_ids))
+        }
+    return ReportedOn(fulda=fulda, infraplan=infraplan)
+
+
+class ExpectedSplit(NamedTuple):
+    fulda: list[ExpectedDate]
+    infraplan: list[ExpectedDate]
+    manual: list[tuple[MainPhase, date]]
 
 
 def split_expected(
-    observations: list[ProgressObservation], reported: dict[int, date]
-) -> tuple[list[ExpectedDate], list[tuple[MainPhase, date]]]:
-    """Split dated expected MAIN observations into Fulda prognoses and manual ones.
+    observations: list[ProgressObservation], reported: ReportedOn
+) -> ExpectedSplit:
+    """Split dated expected MAIN observations into Fulda prognoses, Infraplan
+    commissioning years and manual entries.
 
-    Fulda prognoses carry the date of their answer (``reported``, from
-    :func:`fulda_report_dates`) so the forecast can weigh them against VIB-PFA
-    dates; hand-made entries (any source label) are editorial and always win.
-    Other derived expected observations do not exist and are ignored.
+    Derived claims carry the date of their report (``reported``, from
+    :func:`expected_report_dates`) so the forecast can weigh them against
+    VIB-PFA dates; hand-made entries (any source label) are editorial and
+    always win.
     """
 
-    fulda: list[ExpectedDate] = []
-    manual: list[tuple[MainPhase, date]] = []
+    split = ExpectedSplit([], [], [])
     for obs in observations:
         phase = _enum_or_none(MainPhase, obs.asserted_state)
         if phase is None or obs.observed_date is None:
             continue
         if obs.is_derived and obs.source_type == SourceType.FULDA_RUNDE.value:
-            fulda.append(
+            split.fulda.append(
                 ExpectedDate(
                     phase=phase,
                     date=obs.observed_date,
-                    reported_on=reported.get(obs.fulda_announcement_id),
+                    reported_on=reported.fulda.get(obs.fulda_announcement_id),
+                )
+            )
+        elif obs.is_derived and obs.source_type == SourceType.INFRAPLAN.value:
+            split.infraplan.append(
+                ExpectedDate(
+                    phase=phase,
+                    date=obs.observed_date,
+                    reported_on=reported.infraplan.get(obs.infraplan_entry_id),
                 )
             )
         elif not obs.is_derived:
-            manual.append((phase, obs.observed_date))
-    return fulda, manual
+            split.manual.append((phase, obs.observed_date))
+    return split
 
 
 def derive_for_project(
@@ -335,6 +417,7 @@ def derive_for_project(
     *,
     persist_timestamp: bool = True,
     observations: list[ProgressObservation] | None = None,
+    infraplan_relevance: dict[int, bool] | None = None,
 ) -> DerivationResult:
     """Run the pure derivation for one project and cache the computed values.
 
@@ -343,8 +426,9 @@ def derive_for_project(
     resync happened, so cheap headline recomputes on every GET don't keep the
     cache perpetually "fresh" and starve the resync (see ``_ensure_fresh``).
 
-    ``observations`` may pass pre-loaded non-expected observations (used by the
-    batched superior aggregation); when None they are queried here.
+    ``observations`` may pass pre-loaded non-expected observations and
+    ``infraplan_relevance`` the pre-loaded PaBe relevance per project (both
+    used by the batched superior aggregation); when None they are queried here.
     """
 
     # Expected (future) milestones never contribute to the current headline —
@@ -361,7 +445,15 @@ def derive_for_project(
     result = derive_headline(
         _to_inputs(observations),
         has_pf=bool(progress.has_planfeststellung),
-        parl_relevant=resolve_parl_relevant(progress, project),
+        parl_relevant=resolve_parl_relevant(
+            progress,
+            project,
+            (
+                infraplan_relevance
+                if infraplan_relevance is not None
+                else infraplan_parl_relevance(db, [project.id])
+            ).get(project.id),
+        ),
         lifecycle=_enum_or_none(LifecycleStatus, progress.lifecycle_status)
         or LifecycleStatus.AKTIV,
         manual_phase_override=_enum_or_none(MainPhase, progress.manual_phase_override),
@@ -588,6 +680,9 @@ def sync_derived_observations_bulk(
         if fulda_spec is not None:  # hint-only category → no contribution
             specs_by_project[project_id].append(fulda_spec)
 
+    # --- Infraplan entries linked to these projects (newest year per project) ---
+    pf_evidence_projects |= _add_infraplan_specs(db, project_ids, specs_by_project)
+
     for project_id, specs in specs_by_project.items():
         for spec in specs:
             db.add(
@@ -606,6 +701,7 @@ def sync_derived_observations_bulk(
                     bauportal_status_id=spec.bauportal_status_id,
                     media_report_id=spec.media_report_id,
                     fulda_announcement_id=spec.fulda_announcement_id,
+                    infraplan_entry_id=spec.infraplan_entry_id,
                     is_expected=spec.is_expected,
                 )
             )
@@ -623,6 +719,81 @@ def sync_derived_observations_bulk(
 
     db.flush()
     return {pid: len(specs) for pid, specs in specs_by_project.items()}
+
+
+def _gvfg_stand_by_key(db: Session, keys: set[str]) -> dict[str, date]:
+    """Stand of the newest GVFG edition per key (``stand``, else 1 Jan of its
+    first year) — the rival of an Infraplan GVFG row (decision 22)."""
+
+    if not keys:
+        return {}
+    newest: dict[str, date] = {}
+    for key, stand, year_from in (
+        db.query(GvfgEntry.key, GvfgProgram.stand, GvfgProgram.year_from)
+        .join(GvfgProgram, GvfgProgram.id == GvfgEntry.program_id)
+        .filter(GvfgEntry.key.in_(keys))
+    ):
+        when = stand or date(year_from, 1, 1)
+        if key not in newest or when > newest[key]:
+            newest[key] = when
+    return newest
+
+
+def _add_infraplan_specs(
+    db: Session, project_ids: list[int], specs_by_project: dict[int, list[DerivedSpec]]
+) -> set[int]:
+    """Infraplan rows linked to the projects; only each project's newest year
+    counts. A GVFG row yields phase and date only when the Infraplan is at
+    least as recent as the newest GVFG edition with the same key. Returns the
+    projects with ``durchgängiges Baurecht`` (Planfeststellung evidence)."""
+
+    rows = (
+        db.query(InfraplanEntry, InfraplanReport, InfraplanEntryProject.project_id)
+        .join(InfraplanEntryProject, InfraplanEntryProject.entry_id == InfraplanEntry.id)
+        .join(InfraplanReport, InfraplanReport.id == InfraplanEntry.report_id)
+        .filter(InfraplanEntryProject.project_id.in_(project_ids))
+        .all()
+    )
+    pf_evidence: set[int] = set()
+    if not rows:
+        return pf_evidence
+    newest_year: dict[int, int] = {}
+    for _entry, report, project_id in rows:
+        newest_year[project_id] = max(newest_year.get(project_id, report.year), report.year)
+    gvfg_keys = {
+        key
+        for entry, _report, _pid in rows
+        if entry.section.startswith("GVFG") and (key := normalize_key(entry.primary_number))
+    }
+    gvfg_stand = _gvfg_stand_by_key(db, gvfg_keys)
+    for entry, report, project_id in rows:
+        if report.year != newest_year[project_id]:
+            continue
+        published = _infraplan_report_date(report)
+        include = True
+        if entry.section.startswith("GVFG"):
+            rival = gvfg_stand.get(normalize_key(entry.primary_number) or "")
+            include = rival is None or published >= rival
+        specs_by_project[project_id].extend(
+            infraplan_entry_to_specs(
+                infraplan_entry_id=entry.id,
+                section=entry.section,
+                report_year=report.year,
+                observed_date=published,
+                lph_from=entry.lph_from,
+                lph_to=entry.lph_to,
+                under_construction=bool(entry.under_construction),
+                baurecht=bool(entry.baurecht),
+                ibn_year=entry.ibn_year,
+                ibn_qualifier=entry.ibn_qualifier,
+                parl_state=entry.parl_state,
+                state_raw=entry.state_raw,
+                include_phase_and_date=include,
+            )
+        )
+        if include and entry.baurecht:
+            pf_evidence.add(project_id)
+    return pf_evidence
 
 
 def _ensure_fresh(
@@ -680,8 +851,9 @@ def _build_forecast_for_project(
             operating=bvwp_row.bvwp_duration_operating,
         )
 
-    # Expected MAIN observations with a date: Fulda-Runde prognoses (derived)
-    # compete with VIB-PFA by weight; manual ones are editorial and always win.
+    # Expected MAIN observations with a date: Fulda-Runde prognoses and Infraplan
+    # commissioning years (derived) compete with VIB-PFA by weight; manual ones
+    # are editorial and always win.
     expected_obs = (
         db.query(ProgressObservation)
         .filter(
@@ -692,17 +864,16 @@ def _build_forecast_for_project(
         )
         .all()
     )
-    fulda, manual_expected = split_expected(
-        expected_obs, fulda_report_dates(db, expected_obs)
-    )
+    split = split_expected(expected_obs, expected_report_dates(db, expected_obs))
 
     result = build_forecast(
         effective_phase=effective_phase,
         today=today,
         pfas=pfas,
         bvwp=bvwp,
-        fulda=fulda,
-        manual_expected=manual_expected,
+        fulda=split.fulda,
+        infraplan=split.infraplan,
+        manual_expected=split.manual,
         skipped_phases=skipped_phases or set(),
     )
     return {
@@ -817,6 +988,7 @@ def _build_aggregation_node(db: Session, project: Project, today: date) -> Aggre
             .all()
         ):
             obs_by_project[obs.project_id].append(obs)
+    leaf_relevance = infraplan_parl_relevance(db, leaf_ids)
 
     def build(node_project: Project) -> AggregationNode:
         progress = progress_by_id[node_project.id]
@@ -834,6 +1006,7 @@ def _build_aggregation_node(db: Session, project: Project, today: date) -> Aggre
                 today,
                 persist_timestamp=node_project.id in stale_leaf_ids,
                 observations=obs_by_project.get(node_project.id, []),
+                infraplan_relevance=leaf_relevance,
             )
             return AggregationNode(
                 leaf_phase=result.effective_phase,
@@ -951,7 +1124,9 @@ def get_progress_view(db: Session, project_id: int, today: date | None = None) -
         "manual_override_note": progress.manual_override_note,
         "computed_at": progress.computed_at,
         "has_planfeststellung": bool(progress.has_planfeststellung),
-        "parl_befassung_relevant": resolve_parl_relevant(progress, project),
+        "parl_befassung_relevant": resolve_parl_relevant(
+            progress, project, infraplan_parl_relevance(db, [project.id]).get(project.id)
+        ),
         "parl_befassung_relevant_override": progress.parl_befassung_relevant,
         "lifecycle_status": result.lifecycle.value,
         "pf_state": result.pf_state.value if result.pf_state else None,

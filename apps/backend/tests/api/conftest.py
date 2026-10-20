@@ -25,7 +25,14 @@ from dashboard_backend.models.associations.finve_to_project import FinveToProjec
 from dashboard_backend.models.guides import GuideSectionOverride
 from dashboard_backend.models.haushalt.budget_titel_entry import BudgetTitelEntry
 from dashboard_backend.models.haushalt.haushalt_titel import HaushaltTitel
-from dashboard_backend.models.infraplan import InfraplanParseResult
+from dashboard_backend.models.infraplan import (
+    InfraplanEntry,
+    InfraplanEntryProject,
+    InfraplanKpi,
+    InfraplanKpiValue,
+    InfraplanParseResult,
+    InfraplanReport,
+)
 from dashboard_backend.models.gvfg import (
     GvfgEntry,
     GvfgEntryAmount,
@@ -128,6 +135,11 @@ TABLES = [
     TextToProject.__table__,  # must follow project + project_text; moved by the project merge
     ProjectRedirect.__table__,  # must follow project + users; written by the project merge
     InfraplanParseResult.__table__,  # must follow users; Infraplan import drafts
+    InfraplanReport.__table__,  # confirmed years (must precede entries and KPI values)
+    InfraplanEntry.__table__,
+    InfraplanEntryProject.__table__,
+    InfraplanKpi.__table__,
+    InfraplanKpiValue.__table__,
     GvfgProgram.__table__,  # GVFG import (must precede its entries)
     GvfgEntry.__table__,
     GvfgEntryAmount.__table__,

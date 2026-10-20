@@ -17,6 +17,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from sqlalchemy import and_, exists, func, not_, or_, select
 from sqlalchemy.orm import Session, aliased, selectinload
 
+from dashboard_backend.crud import infraplan_import as infraplan_crud
 from dashboard_backend.crud.projects.projects import extract_features, has_subprojects
 from dashboard_backend.mcp.context import get_principal, tool_session
 from dashboard_backend.mcp.tools.projects import (
@@ -50,8 +51,13 @@ GapLiteral = Literal[
     "no_description",
     "no_project_number",
     "stale_observation",
+    "infraplan_unassigned",
 ]
 ALL_GAPS: tuple[str, ...] = GapLiteral.__args__
+# Not a gap of a project but of the data: rows of the newest Infraplan year
+# without a project. Reported next to the project list.
+ENTRY_GAPS = ("infraplan_unassigned",)
+_MAX_ENTRY_SAMPLE = 50
 DEFAULT_STALE_YEARS = 3
 
 
@@ -90,12 +96,15 @@ def list_data_gaps(
       from their subprojects are skipped), no_length, unknown_phase (planning
       state not backed by an observation or override), no_description,
       no_project_number, stale_observation (newest observation older than
-      ``stale_years``; forecasts are ignored)
+      ``stale_years``; forecasts are ignored), infraplan_unassigned (rows of
+      the newest Infraplan year without a project — returned separately as
+      ``infraplan_unassigned``, fix with assign_infraplan_row)
     Returns ``counts`` per gap over all matches plus one page of projects.
     Follow up with check_geometry, compute_project_length, update_project, …
     """
     get_principal(ctx)
-    wanted = list(dict.fromkeys(gaps or ALL_GAPS))
+    requested = list(dict.fromkeys(gaps or ALL_GAPS))
+    wanted = [g for g in requested if g not in ENTRY_GAPS]
     limit = max(1, min(limit, MAX_LIMIT))
     offset = max(0, offset)
     stale_years = max(1, stale_years)
@@ -132,6 +141,26 @@ def list_data_gaps(
     }
 
     with tool_session(ctx) as db:
+        extra: dict[str, Any] = {}
+        if "infraplan_unassigned" in requested:
+            open_entries = infraplan_crud.unassigned_entries(db)
+            extra["infraplan_unassigned"] = {
+                "year": open_entries[0][1] if open_entries else None,
+                "draft_id": _draft_of_newest_year(db),
+                "count": len(open_entries),
+                "entries": [
+                    {
+                        "entry_id": e.id,
+                        "row_key": f"{e.section}-{e.lfd_nr}",
+                        "primary_number": e.primary_number,
+                        "bezeichnung": e.bezeichnung,
+                        "massnahme": e.massnahme,
+                    }
+                    for e, _year in open_entries[:_MAX_ENTRY_SAMPLE]
+                ],
+            }
+            if not wanted:
+                return {"total": 0, "offset": offset, "limit": limit, "counts": {}, "projects": [], **extra}
         query = (
             db.query(Project.id, *(flags[g].label(g) for g in wanted))
             .outerjoin(ProjectProgress, ProjectProgress.project_id == Project.id)
@@ -170,7 +199,13 @@ def list_data_gaps(
                 }
                 for row in page
             ],
+            **extra,
         }
+
+
+def _draft_of_newest_year(db: Session) -> int | None:
+    report = infraplan_crud.newest_report(db)
+    return report.parse_result_id if report is not None else None
 
 
 class _StationResolver:

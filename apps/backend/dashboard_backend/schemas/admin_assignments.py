@@ -22,5 +22,20 @@ class UnassignedVibEntrySchema(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class UnassignedInfraplanEntrySchema(BaseModel):
+    id: int
+    report_year: int
+    section: str
+    lfd_nr: int
+    page: int | None
+    primary_number: str | None
+    bezeichnung: str | None
+    massnahme: str | None
+    laender: str | None
+    state_raw: str | None
+    ibn_raw: str | None
+    cost_mio: float | None
+
+
 class AssignProjectsInput(BaseModel):
     project_ids: list[int]

@@ -631,12 +631,15 @@ In addition to the parsed data, the admin can set per entry:
 ## Infraplan Import
 
 Yearly import of the federal **Infraplan** (five-year plan for the rail
-infrastructure, BMV). Stage 1 reads the measure tables of chapter 2.3 —
-Bedarfsplan Teil A–D, GVFG Kat. A/C, InvKG — into a draft and notes the pages
-with KPI charts. Review, project matching and confirmation follow in stage 2.
+infrastructure, BMV). The parser reads the measure tables of chapter 2.3 —
+Bedarfsplan Teil A–D, GVFG Kat. A/C, InvKG — into a draft, suggests projects per
+row and notes the pages with KPI charts. After the review the draft is confirmed
+as a year; its rows feed the planning state, forecast and cost forecast, and KPI
+values are entered per year. The same flow runs through the MCP tools
+(`mcp/tools/infraplan.py`, skill `infraplan-import`).
 Concept: `docs/features/feature-infraplan-import.md`.
 
-### Import workflow (stage 1)
+### Import workflow
 
 1. **Upload PDF** — `POST /api/v1/import/infraplan/parse` (multipart: `pdf`, `year`)
    → `{ task_id, parse_result_id }`. The PDF is stored with the draft
@@ -650,8 +653,27 @@ Concept: `docs/features/feature-infraplan-import.md`.
 5. **Page image** — `GET …/parse-result/{id}/page/{page}.png?dpi=110` renders one
    page with pymupdf (KPI review, MCP).
 
-All endpoints require the capability `infraplan.import` (group Finanzierung,
-granted to editors).
+6. **Review** — the parse task stores suggestions per row
+   (`tasks/infraplan_matching.py`: project number of the previous year → GVFG key →
+   fuzzy name, subprojects preferred; ≥ 0.85 preselected). `PATCH
+   …/parse-result/{id}/rows/{row_key}` sets projects/values, `POST
+   …/apply-suggestions` takes over suggestions from a threshold, `POST
+   …/rows/{row_key}/subproject` creates a subproject and assigns the row. The draft
+   lists projects of the previous year that have no row (`missing_from_previous`).
+7. **Confirm** — `POST /api/v1/import/infraplan/confirm`
+   `{parse_result_id, published_on, force}` writes `infraplan_report` /
+   `infraplan_entry` / `infraplan_entry_project` and re-materialises the planning
+   state (source `INFRAPLAN`). 409 when the year exists or warnings are open.
+   `DELETE /api/v1/import/infraplan/report/{year}` removes one year and reopens its draft.
+8. **Open rows** — `GET /api/v1/admin/unassigned-infraplan-entries`, `PATCH
+   …/{id}/assign` (`assignment.manage`).
+9. **KPIs** — `GET …/kpis`, `GET/PUT …/report/{year}/kpi-values` (manual values are
+   checked), `POST …/report/{year}/kpi-values/approve`.
+
+All import endpoints require the capability `infraplan.import` (group Finanzierung,
+granted to editors). Public reads: `GET /api/v1/infraplan/projects/{id}`,
+`/infraplan/reports`, `/infraplan/reports/{year}/entries`, `/infraplan/kpis`
+(checked values only).
 
 ### Parser (`tasks/infraplan.py`, `tasks/infraplan_columns.py`)
 

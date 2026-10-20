@@ -76,6 +76,18 @@ export const queryKeys = {
     adminUnassignedFinves: ["admin-unassigned-finves"],
     adminUnassignedVibEntries: ["admin-unassigned-vib-entries"],
     adminUnassignedGvfgEntries: ["admin-unassigned-gvfg-entries"],
+    adminUnassignedInfraplanEntries: ["admin-unassigned-infraplan-entries"],
+    infraplanParseResults: ["infraplan-parse-results"],
+    infraplanParseResult: (id: number) => ["infraplan-parse-result", id] as const,
+    infraplanReports: ["infraplan-reports"],
+    infraplanKpis: ["infraplan-kpis"],
+    infraplanKpiValues: (year: number) => ["infraplan-kpi-values", year] as const,
+    // Public views: nested under one prefix so a confirm/delete refreshes all.
+    infraplanPublic: ["infraplan-public"],
+    infraplanPublicReports: ["infraplan-public", "reports"],
+    infraplanPublicEntries: (year: number) => ["infraplan-public", "entries", year] as const,
+    infraplanPublicKpis: ["infraplan-public", "kpis"],
+    projectInfraplan: (projectId: number) => ["infraplan-public", "project", projectId] as const,
     bauportalEntries: ["bauportal-entries"],
     bauportalEntriesFor: (onlyUnconfirmed: boolean) => ["bauportal-entries", onlyUnconfirmed] as const,
     mediaEntries: ["media-entries"],
@@ -2044,4 +2056,289 @@ export function useProjectGvfg(projectId: number, withSubprojects = true) {
                 `/api/v1/gvfg/projects/${projectId}/entries?with_subprojects=${withSubprojects}`,
             ),
     });
+}
+
+// ---------------------------------------------------------------------------
+// Infraplan (docs/features/feature-infraplan-import.md)
+// ---------------------------------------------------------------------------
+
+export type InfraplanParseResultListItem = components["schemas"]["InfraplanParseResultListItem"];
+export type InfraplanParseResult = components["schemas"]["InfraplanParseResultSchema"];
+export type InfraplanParsedRow = components["schemas"]["InfraplanParsedRow"];
+export type InfraplanSectionKey = InfraplanParsedRow["section"];
+export type InfraplanWarning = components["schemas"]["InfraplanWarning"];
+export type InfraplanRowPatch = components["schemas"]["InfraplanRowPatch"];
+export type InfraplanConfirmRequest = components["schemas"]["InfraplanConfirmRequest"];
+export type InfraplanConfirmResult = components["schemas"]["InfraplanConfirmResult"];
+export type InfraplanReport = components["schemas"]["InfraplanReportSchema"];
+export type InfraplanKpi = components["schemas"]["InfraplanKpiSchema"];
+export type InfraplanKpiValue = components["schemas"]["InfraplanKpiValueSchema"];
+export type InfraplanKpiValueInput = components["schemas"]["InfraplanKpiValueInput"];
+export type InfraplanKpiValuesUpdate = components["schemas"]["InfraplanKpiValuesUpdate"];
+export type InfraplanPublicReport = components["schemas"]["InfraplanPublicReport"];
+export type InfraplanReportEntry = components["schemas"]["InfraplanReportEntrySchema"];
+export type InfraplanPublicKpi = components["schemas"]["InfraplanPublicKpi"];
+export type InfraplanProjectEntry = components["schemas"]["InfraplanProjectEntrySchema"];
+export type ProjectInfraplan = components["schemas"]["ProjectInfraplanSchema"];
+export type InfraplanCostForecast = components["schemas"]["InfraplanCostForecast"];
+export type UnassignedInfraplanEntry = components["schemas"]["UnassignedInfraplanEntrySchema"];
+
+const INFRAPLAN_IMPORT = "/api/v1/import/infraplan";
+
+/** URL of a rendered PDF page of a draft (cookie auth, usable as <img src>). */
+export function infraplanPageImageUrl(parseResultId: number, page: number, apiBase: string): string {
+    return `${apiBase}${INFRAPLAN_IMPORT}/parse-result/${parseResultId}/page/${page}.png`;
+}
+
+export function useInfraplanParseResults() {
+    return useQuery({
+        queryKey: queryKeys.infraplanParseResults,
+        queryFn: () => api<InfraplanParseResultListItem[]>(`${INFRAPLAN_IMPORT}/parse-result`),
+        // A draft that is still being read updates itself.
+        refetchInterval: (query) =>
+            (query.state.data ?? []).some((d) => d.status === "PENDING" || d.status === "RUNNING") ? 4000 : false,
+    });
+}
+
+export function useInfraplanParseResult(id: number) {
+    return useQuery({
+        queryKey: queryKeys.infraplanParseResult(id),
+        enabled: Number.isFinite(id),
+        queryFn: () => api<InfraplanParseResult>(`${INFRAPLAN_IMPORT}/parse-result/${id}`),
+        refetchInterval: (query) => {
+            const status = query.state.data?.status;
+            return status === "PENDING" || status === "RUNNING" ? 3000 : false;
+        },
+    });
+}
+
+export function useStartInfraplanImport() {
+    return useInvalidatingMutation(
+        ({ pdf, year }: { pdf: File; year: number }) => {
+            const form = new FormData();
+            form.append("pdf", pdf);
+            form.append("year", String(year));
+            return api<components["schemas"]["InfraplanParseLaunchResponse"]>(`${INFRAPLAN_IMPORT}/parse`, {
+                method: "POST",
+                body: form,
+            });
+        },
+        [queryKeys.infraplanParseResults],
+    );
+}
+
+export function useReparseInfraplan() {
+    return useInvalidatingMutation(
+        (id: number) =>
+            api<components["schemas"]["InfraplanParseLaunchResponse"]>(
+                `${INFRAPLAN_IMPORT}/parse-result/${id}/reparse`,
+                { method: "POST" },
+            ),
+        (_data, id) => [queryKeys.infraplanParseResults, queryKeys.infraplanParseResult(id)],
+    );
+}
+
+export function useDeleteInfraplanParseResult() {
+    return useInvalidatingMutation(
+        (id: number) => api<void>(`${INFRAPLAN_IMPORT}/parse-result/${id}`, { method: "DELETE" }),
+        [queryKeys.infraplanParseResults],
+    );
+}
+
+/** Replace one row of a cached draft and keep its assigned count in step. */
+function withRow(draft: InfraplanParseResult, row: InfraplanParsedRow): InfraplanParseResult {
+    if (!draft.result_json) return draft;
+    const rows = draft.result_json.rows.map((r) => (r.row_key === row.row_key ? row : r));
+    return {
+        ...draft,
+        result_json: { ...draft.result_json, rows },
+        assigned_count: rows.filter((r) => (r.project_ids ?? []).length > 0).length,
+    };
+}
+
+/** PATCH a draft row; the answer replaces the row in the cache (no refetch of
+ *  the whole draft, which carries several hundred rows). */
+export function usePatchInfraplanRow(parseResultId: number) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ rowKey, patch }: { rowKey: string; patch: InfraplanRowPatch }) =>
+            api<InfraplanParsedRow>(
+                `${INFRAPLAN_IMPORT}/parse-result/${parseResultId}/rows/${encodeURIComponent(rowKey)}`,
+                { method: "PATCH", json: patch },
+            ),
+        onSuccess: (row) => {
+            queryClient.setQueryData<InfraplanParseResult>(queryKeys.infraplanParseResult(parseResultId), (old) =>
+                old ? withRow(old, row) : old,
+            );
+            queryClient.invalidateQueries({ queryKey: queryKeys.infraplanParseResults });
+        },
+    });
+}
+
+export function useApplyInfraplanSuggestions(parseResultId: number) {
+    return useInvalidatingMutation(
+        (body: components["schemas"]["InfraplanApplySuggestions"]) =>
+            api<components["schemas"]["InfraplanApplyResult"]>(
+                `${INFRAPLAN_IMPORT}/parse-result/${parseResultId}/apply-suggestions`,
+                { method: "POST", json: body },
+            ),
+        [queryKeys.infraplanParseResult(parseResultId), queryKeys.infraplanParseResults],
+    );
+}
+
+export function useCreateInfraplanSubproject(parseResultId: number) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ rowKey, parentId, name }: { rowKey: string; parentId: number; name?: string | null }) =>
+            api<components["schemas"]["InfraplanSubprojectResult"]>(
+                `${INFRAPLAN_IMPORT}/parse-result/${parseResultId}/rows/${encodeURIComponent(rowKey)}/subproject`,
+                { method: "POST", json: { parent_id: parentId, name: name || null } },
+            ),
+        onSuccess: (result) => {
+            queryClient.setQueryData<InfraplanParseResult>(queryKeys.infraplanParseResult(parseResultId), (old) =>
+                old ? withRow(old, result.row) : old,
+            );
+            // The new subproject must show up in every project picker.
+            queryClient.invalidateQueries({ queryKey: queryKeys.projects });
+            queryClient.invalidateQueries({ queryKey: queryKeys.infraplanParseResult(parseResultId) });
+        },
+    });
+}
+
+export function useConfirmInfraplanImport() {
+    return useInvalidatingMutation(
+        (body: InfraplanConfirmRequest) =>
+            api<InfraplanConfirmResult>(`${INFRAPLAN_IMPORT}/confirm`, { method: "POST", json: body }),
+        (_data, body) => [
+            queryKeys.infraplanParseResults,
+            queryKeys.infraplanParseResult(body.parse_result_id),
+            queryKeys.infraplanReports,
+            queryKeys.infraplanPublic,
+            queryKeys.adminUnassignedInfraplanEntries,
+            queryKeys.progress,
+            queryKeys.projects,
+        ],
+    );
+}
+
+export function useInfraplanReports(enabled = true) {
+    return useQuery({
+        queryKey: queryKeys.infraplanReports,
+        queryFn: () => api<InfraplanReport[]>(`${INFRAPLAN_IMPORT}/report`),
+        enabled,
+    });
+}
+
+export function useDeleteInfraplanReport() {
+    return useInvalidatingMutation(
+        (year: number) => api<void>(`${INFRAPLAN_IMPORT}/report/${year}`, { method: "DELETE" }),
+        [
+            queryKeys.infraplanReports,
+            queryKeys.infraplanParseResults,
+            queryKeys.infraplanPublic,
+            queryKeys.adminUnassignedInfraplanEntries,
+            queryKeys.progress,
+        ],
+    );
+}
+
+export function useInfraplanKpis() {
+    return useQuery({
+        queryKey: queryKeys.infraplanKpis,
+        queryFn: () => api<InfraplanKpi[]>(`${INFRAPLAN_IMPORT}/kpis`),
+    });
+}
+
+export function useInfraplanKpiValues(year: number) {
+    return useQuery({
+        queryKey: queryKeys.infraplanKpiValues(year),
+        enabled: Number.isFinite(year),
+        queryFn: () => api<InfraplanKpiValue[]>(`${INFRAPLAN_IMPORT}/report/${year}/kpi-values`),
+    });
+}
+
+export function useSaveInfraplanKpiValues(year: number) {
+    return useInvalidatingMutation(
+        (body: InfraplanKpiValuesUpdate) =>
+            api<components["schemas"]["InfraplanKpiValuesResult"]>(`${INFRAPLAN_IMPORT}/report/${year}/kpi-values`, {
+                method: "PUT",
+                json: body,
+            }),
+        [
+            queryKeys.infraplanKpiValues(year),
+            queryKeys.infraplanKpis,
+            queryKeys.infraplanReports,
+            queryKeys.infraplanPublicKpis,
+        ],
+    );
+}
+
+export function useApproveInfraplanKpiValues(year: number) {
+    return useInvalidatingMutation(
+        () =>
+            api<components["schemas"]["InfraplanKpiApproveResult"]>(
+                `${INFRAPLAN_IMPORT}/report/${year}/kpi-values/approve`,
+                { method: "POST" },
+            ),
+        [queryKeys.infraplanKpiValues(year), queryKeys.infraplanReports, queryKeys.infraplanPublicKpis],
+    );
+}
+
+// --- Public ------------------------------------------------------------------
+
+export function useInfraplanPublicReports() {
+    return useQuery({
+        queryKey: queryKeys.infraplanPublicReports,
+        queryFn: () => api<InfraplanPublicReport[]>("/api/v1/infraplan/reports"),
+    });
+}
+
+export function useInfraplanReportEntries(year: number | null) {
+    return useQuery({
+        queryKey: queryKeys.infraplanPublicEntries(year ?? Number.NaN),
+        enabled: year !== null && Number.isFinite(year),
+        queryFn: () => api<InfraplanReportEntry[]>(`/api/v1/infraplan/reports/${year}/entries`),
+    });
+}
+
+export function useInfraplanPublicKpis() {
+    return useQuery({
+        queryKey: queryKeys.infraplanPublicKpis,
+        queryFn: () => api<InfraplanPublicKpi[]>("/api/v1/infraplan/kpis"),
+    });
+}
+
+export function useProjectInfraplan(projectId: number) {
+    return useQuery({
+        queryKey: queryKeys.projectInfraplan(projectId),
+        enabled: Number.isFinite(projectId),
+        queryFn: () => api<ProjectInfraplan>(`/api/v1/infraplan/projects/${projectId}`),
+    });
+}
+
+// --- Admin: Offene Zuordnungen -----------------------------------------------
+
+/** Infraplan entries of the newest year without a project. */
+export function useUnassignedInfraplanEntries(enabled = true) {
+    return useQuery({
+        queryKey: queryKeys.adminUnassignedInfraplanEntries,
+        queryFn: () => api<UnassignedInfraplanEntry[]>("/api/v1/admin/unassigned-infraplan-entries"),
+        enabled,
+    });
+}
+
+export function useAssignInfraplanEntry() {
+    return useInvalidatingMutation(
+        ({ entryId, projectIds }: { entryId: number; projectIds: number[] }) =>
+            api<void>(`/api/v1/admin/unassigned-infraplan-entries/${entryId}/assign`, {
+                method: "PATCH",
+                json: { project_ids: projectIds },
+            }),
+        [
+            queryKeys.adminUnassignedInfraplanEntries,
+            queryKeys.infraplanReports,
+            queryKeys.infraplanPublic,
+            queryKeys.progress,
+        ],
+    );
 }

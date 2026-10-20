@@ -27,6 +27,7 @@ import {
     useProject,
     useProjectBvwp,
     useProjectGvfg,
+    useProjectInfraplan,
     useSubprojects,
     queryKeys,
 } from "../../shared/api/queries";
@@ -42,6 +43,8 @@ import ProjectTextsSection from "./ProjectTextsSection";
 import { ProjectTableOfContents, type TocSection } from "./ProjectTableOfContents";
 import FinveSection from "./components/FinveSection";
 import GvfgSection from "./components/GvfgSection";
+import InfraplanSection from "./components/InfraplanSection";
+import ProjectCostBlock from "./components/ProjectCostBlock";
 import ProgressSection from "./components/progress/ProgressSection";
 import ProjectConstituencySection from "../abgeordnete/ProjectConstituencySection";
 import TasksSection from "../todos/TasksSection";
@@ -153,6 +156,8 @@ export default function ProjectDetail() {
     const constituenciesRef = useRef<HTMLDivElement>(null);
     const textsRef = useRef<HTMLDivElement>(null);
     const justificationRef = useRef<HTMLDivElement>(null);
+    const costRef = useRef<HTMLDivElement>(null);
+    const infraplanRef = useRef<HTMLDivElement>(null);
     const finveRef = useRef<HTMLDivElement>(null);
     const gvfgRef = useRef<HTMLDivElement>(null);
     const bvwpRef = useRef<HTMLDivElement>(null);
@@ -171,6 +176,7 @@ export default function ProjectDetail() {
 
     const { data, isLoading, isError, error } = useProject(projectId);
     const { data: gvfgEntries } = useProjectGvfg(projectId);
+    const { data: infraplan } = useProjectInfraplan(projectId);
     const { data: bvwpData } = useProjectBvwp(projectId);
 
     const mutation = useMutation({
@@ -407,6 +413,18 @@ export default function ProjectDetail() {
             label: "Begründung",
             ref: justificationRef,
             visible: !!(project.justification?.trim()),
+        },
+        {
+            id: "costs",
+            label: "Kosten",
+            ref: costRef,
+            visible: infraplan?.cost_forecast != null,
+        },
+        {
+            id: "infraplan",
+            label: "Infraplan",
+            ref: infraplanRef,
+            visible: (infraplan?.entries?.length ?? 0) > 0,
         },
         {
             id: "finve",
@@ -702,6 +720,16 @@ export default function ProjectDetail() {
                     </ChronicleCard>
                     </div>
                 )}
+
+                {/* Kosten: Infraplan-Prognose neben den FinVe-Mitteln */}
+                <div ref={costRef}>
+                    <ProjectCostBlock projectId={projectId} />
+                </div>
+
+                {/* Infraplan */}
+                <div ref={infraplanRef}>
+                    <InfraplanSection projectId={projectId} />
+                </div>
 
                 {/* FinVe */}
                 <div ref={finveRef}>

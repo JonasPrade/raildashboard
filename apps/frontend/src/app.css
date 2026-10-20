@@ -31,6 +31,14 @@
     }
 }
 
+/* Same between the burger breakpoint and a wide desktop: with six nav entries
+   plus the auth section the bar would otherwise wrap or overflow. */
+@media (min-width: 62em) and (max-width: 80em) {
+    .header-wordmark {
+        display: none;
+    }
+}
+
 /* Header title link */
 .header-title-link {
     text-decoration: none;

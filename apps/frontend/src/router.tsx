@@ -22,6 +22,10 @@ const HaushaltsUnmatchedPage = lazyWithRetry(() => import("./features/haushalt-i
 const HaushaltsGuidePage = lazyWithRetry(() => import("./features/haushalt-import/HaushaltsGuidePage"));
 const GvfgImportPage = lazyWithRetry(() => import("./features/gvfg-import/GvfgImportPage"));
 const GvfgReviewPage = lazyWithRetry(() => import("./features/gvfg-import/GvfgReviewPage"));
+const InfraplanImportPage = lazyWithRetry(() => import("./features/infraplan-import/InfraplanImportPage"));
+const InfraplanReviewPage = lazyWithRetry(() => import("./features/infraplan-import/InfraplanReviewPage"));
+const InfraplanKpiPage = lazyWithRetry(() => import("./features/infraplan-import/InfraplanKpiPage"));
+const InfraplanPage = lazyWithRetry(() => import("./features/infraplan/InfraplanPage"));
 const FinveOverviewPage = lazyWithRetry(() => import("./features/finves/FinveOverviewPage"));
 const FinanzenLayout = lazyWithRetry(() => import("./features/finanzen/FinanzenLayout"));
 const FinvesRedirect = lazyWithRetry(() => import("./features/finanzen/FinvesRedirect"));
@@ -48,6 +52,7 @@ const VibGuidePage = lazyWithRetry(() => import("./features/guides/VibGuidePage"
 const MedienGuidePage = lazyWithRetry(() => import("./features/guides/MedienGuidePage"));
 const ProjektAnlegenGuidePage = lazyWithRetry(() => import("./features/guides/ProjektAnlegenGuidePage"));
 const GeometrieGuidePage = lazyWithRetry(() => import("./features/guides/GeometrieGuidePage"));
+const InfraplanGuidePage = lazyWithRetry(() => import("./features/guides/InfraplanGuidePage"));
 
 function Layout() {
     return (
@@ -136,6 +141,22 @@ export const router = createBrowserRouter([
             {
                 path: "admin/gvfg-import/review/:parseResultId",
                 element: <GvfgReviewPage />,
+            },
+            {
+                path: "admin/infraplan-import",
+                element: <InfraplanImportPage />,
+            },
+            {
+                path: "admin/infraplan-import/review/:parseResultId",
+                element: <InfraplanReviewPage />,
+            },
+            {
+                path: "admin/infraplan/kpis/:year",
+                element: <InfraplanKpiPage />,
+            },
+            {
+                path: "infraplan",
+                element: <InfraplanPage />,
             },
             {
                 path: "admin/haushalt-unmatched",
@@ -232,6 +253,10 @@ export const router = createBrowserRouter([
             {
                 path: "admin/anleitungen/geometrie",
                 element: <GeometrieGuidePage />,
+            },
+            {
+                path: "admin/anleitungen/infraplan",
+                element: <InfraplanGuidePage />,
             },
         ]
     }
