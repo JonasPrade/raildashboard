@@ -5,7 +5,6 @@ import {
     Anchor,
     Badge,
     Button,
-    Checkbox,
     Container,
     Group,
     List,
@@ -24,6 +23,8 @@ import { notifications } from "@mantine/notifications";
 import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
 import RequirePermission from "../../components/RequirePermission";
 import { filterProjectOption } from "../../lib/filterProjectOption";
+import { IconPlus } from "@tabler/icons-react";
+import CreateDraftProjectModal from "../projects/CreateDraftProjectModal";
 import {
     useConfirmGvfgImport,
     useGvfgParseResult,
@@ -63,6 +64,8 @@ function GvfgReviewPageContent() {
     const [land, setLand] = useState<string | null>(null);
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
+    // Entry whose "project not found" dialog is open (one page-level modal).
+    const [draftFor, setDraftFor] = useState<GvfgParsedEntry | null>(null);
 
     const initial = useMemo(() => {
         const out: Record<string, number[]> = {};
@@ -244,7 +247,6 @@ function GvfgReviewPageContent() {
                                     <Table.Th>Fördertatbestand</Table.Th>
                                     <Table.Th ta="right">Finanzhilfen Mio. €</Table.Th>
                                     <Table.Th style={{ minWidth: 340 }}>Projekt</Table.Th>
-                                    <Table.Th>Neu</Table.Th>
                                 </Table.Tr>
                             </Table.Thead>
                             <Table.Tbody>
@@ -291,14 +293,34 @@ function GvfgReviewPageContent() {
                                                 {suggestion && SOURCE_LABEL[suggestion.source] && (
                                                     <Text size="xs" c="dimmed">Vorschlag: {SOURCE_LABEL[suggestion.source]}</Text>
                                                 )}
-                                            </Table.Td>
-                                            <Table.Td>
-                                                <Checkbox
-                                                    aria-label="Projekt neu anlegen"
-                                                    checked={create.has(entry.key)}
-                                                    onChange={(e) => toggleCreate(entry.key, e.currentTarget.checked)}
-                                                    disabled={confirmed}
-                                                />
+                                                {!confirmed && (
+                                                    <Group gap="xs" mt={2} wrap="wrap">
+                                                        {create.has(entry.key) ? (
+                                                            <>
+                                                                <Badge color="blue" variant="light" size="xs">
+                                                                    wird beim Übernehmen angelegt
+                                                                </Badge>
+                                                                <Anchor
+                                                                    component="button"
+                                                                    type="button"
+                                                                    size="xs"
+                                                                    onClick={() => toggleCreate(entry.key, false)}
+                                                                >
+                                                                    rückgängig
+                                                                </Anchor>
+                                                            </>
+                                                        ) : (
+                                                            <Button
+                                                                variant="light"
+                                                                size="compact-xs"
+                                                                leftSection={<IconPlus size={12} />}
+                                                                onClick={() => setDraftFor(entry)}
+                                                            >
+                                                                Projekt nicht gefunden – neu anlegen
+                                                            </Button>
+                                                        )}
+                                                    </Group>
+                                                )}
                                             </Table.Td>
                                         </Table.Tr>
                                     );
@@ -314,6 +336,16 @@ function GvfgReviewPageContent() {
                     </Stack>
                 </ChronicleCard>
             </Stack>
+            <CreateDraftProjectModal
+                opened={draftFor !== null}
+                onClose={() => setDraftFor(null)}
+                initialName={draftFor ? (draftFor.name ?? draftFor.key) : undefined}
+                sourceLabel="GVFG"
+                onCreated={(project) => {
+                    if (!draftFor || project.id == null) return;
+                    setProjects(draftFor.key, [...(current[draftFor.key] ?? []), project.id]);
+                }}
+            />
         </Container>
     );
 }

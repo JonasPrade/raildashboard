@@ -89,7 +89,7 @@ keine Vergleichsgröße hat. **Zahlenwerte gehören nicht durch ein LLM.**
 
 | Quelle | Stufe 1 (OCR) | Stufe 3 (LLM) | Bewertung |
 |---|---|---|---|
-| VIB | bereits | bereits | Referenzimplementierung — nur Modul verschieben |
+| VIB | bereits | bereits | Referenzimplementierung — nur Modul verschieben. Seit 2026-10-20 ist der Upload der zweite Weg (Vorrang: MCP + Skill, `feature-vib-import.md` → Phase 7); er bleibt bestehen und mit ihm die Referenz. |
 | Fulda | bereits | bereits | nur Import-Pfad korrigieren (`services/` statt `tasks/vib_ocr`) |
 | Medien | **neu: PDF-Upload ermöglichen** | bereits | kleiner Zugewinn: Pressemitteilungen als PDF |
 | Haushalt | **ja, mit pdfplumber als Fallback** | **nein für Werte, ja für das Spalten-Mapping** | siehe unten |

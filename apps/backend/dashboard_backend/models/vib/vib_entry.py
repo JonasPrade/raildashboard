@@ -35,6 +35,12 @@ class VibEntry(Base):
     status_abgeschlossen = Column(Boolean, nullable=False, server_default="false", default=False)
 
     ai_extracted = Column(Boolean, nullable=False, server_default="false", default=False)
+    # Only confirmed entries materialise progress observations
+    # (feature-vib-import.md → Phase 7). The upload confirm and assignments by an
+    # editor in the UI confirm; every MCP write sets False until confirm_vib_report.
+    confirmed = Column(Boolean, nullable=False, server_default="true", default=True)
+    assignment_note = Column(Text, nullable=True)  # why these projects (one note for all links)
+    page = Column(Integer, nullable=True)  # page in the PDF where the Vorhaben starts
     ai_result = Column(Text, nullable=True)  # JSON blob from LLM extraction
 
     report = relationship("VibReport", back_populates="entries")

@@ -5,11 +5,22 @@ const DEF: GuideDef = {
     slug: "vib",
     title: "Anleitung: VIB-Bericht importieren",
     chip: "Schritt für Schritt",
-    intro: `Wie du den Verkehrsinvestitionsbericht (Schienenwege, Abschnitt B) per OCR einliest, die erkannte Struktur prüfst und die Vorhaben im Review den Projekten zuordnest.`,
+    intro: `Wie du den Verkehrsinvestitionsbericht (Schienenwege, Abschnitt B) einliest und die Vorhaben den Projekten zuordnest. Empfohlen ist der Weg über Claude und den MCP-Server; der Upload mit OCR und Review unten bleibt als zweiter Weg.`,
     prerequisites: `- Du bist als **Editor** oder **Admin** eingeloggt (Recht „VIB importieren").
 - Das VIB-PDF (Bundestagsdrucksache) liegt vor.
 - Für Scan-PDFs und KI-Extraktion sind serverseitig OCR- und LLM-Zugang konfiguriert; ohne OCR greift der pymupdf-Fallback für Text-PDFs.`,
     steps: [
+        {
+            key: "mcp",
+            title: "Empfohlen: von Claude einlesen lassen",
+            body: `Voraussetzung: ein **API-Key** mit dem Recht „VIB importieren" und Claude ist mit dem MCP-Server des Dashboards verbunden. Gib Claude das PDF und sag **„VIB 2023 einlesen"** — Claude lädt den Skill \`vib-import\` vom Server, legt den Bericht an, erfasst jedes Vorhaben mit Abschnitten, Kenndaten und PFA-Tabelle und ordnet es mit **Begründung** einem oder mehreren Projekten zu.
+- Für einen vorhandenen Jahrgang: **„VIB 2021 prüfen"** — Claude geht die Zuordnungen und Felder durch und korrigiert sie mit Begründung.
+- Was Claude schreibt, ist zunächst **unbestätigt** und fließt nicht in den Planungsstand ein. Claude bestätigt am Ende, was eindeutig ist, und berichtet, was offen bleibt.
+- Auf der Projektseite trägt ein unbestätigter Eintrag das Kennzeichen \`unbestätigt\` und den Knopf **„Bestätigen"**; die Begründung steht unter „Zuordnung:".
+- Vorhaben ohne Projekt erscheinen unter [Offene Zuordnungen](/admin/unassigned); dort zuordnen bestätigt sie.
+> [!blue] Warum über Claude?
+> Der automatische Upload ordnet Vorhaben nur über Namensähnlichkeit zu und erkennt Abschnitte über Schlüsselwörter — das führte oft zu falschen Zuordnungen und Feldern. Claude liest den Bericht wie ein Mensch, nutzt die Zuordnung aus dem Vorjahr und begründet jede Entscheidung.`,
+        },
         {
             key: "pdf-beschaffen",
             title: "Das richtige PDF beschaffen",
@@ -23,7 +34,7 @@ const DEF: GuideDef = {
             title: "Hochladen und parsen",
             body: `Gehe zu [VIB-Import](/admin/vib-import) und fülle die Karte **„Neuer Import"** aus:
 
-1. **„PDF-Datei (Verkehrsinvestitionsbericht)"** auswählen — darunter erscheint eine PDF-Vorschau zum Blättern.
+1. **„PDF-Datei (Verkehrsinvestitionsbericht)"** auswählen oder die Datei per Drag & Drop auf das Feld ziehen — darunter erscheint eine PDF-Vorschau zum Blättern.
 2. **„Berichtsjahr"** eintragen.
 3. Optional **„OCR: von Seite" / „OCR: bis Seite"** auf die Seiten von Abschnitt B eingrenzen (in der PDF-Vorschau nachschlagen). Das spart OCR-Zeit; leer lassen für automatische Erkennung.
 4. **„Kopf- und Fußzeilen ignorieren"** angehakt lassen — entfernt wiederkehrende Seitenzahlen und Dokumenttitel aus dem Text.

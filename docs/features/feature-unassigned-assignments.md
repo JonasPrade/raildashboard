@@ -7,7 +7,7 @@ Provide editors and admins with a single page (`/admin/unassigned`) that surface
 ## Scope
 
 - **FinVes without a project**: rows in `finve` with no corresponding entry in `finve_to_project`
-- **VIB entries without a project**: rows in `vib_entry` with no corresponding entry in `vib_entry_project`
+- **VIB entries without a project**: rows in `vib_entry` with no corresponding entry in `vib_entry_project` — confirmed or not (entries read in over MCP stay open until they have a project). Assigning here is an editor's decision and confirms the entry (`vib_entry.confirmed = true`, see `feature-vib-import.md` → Phase 7).
 - Inline project assignment (searchable MultiSelect) per row
 - Header badge showing total unassigned count (editor/admin only)
 

@@ -13,7 +13,13 @@ import {
 import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { type VibEntryForProject, type VibEntrySchema, useProjectVibEntries } from "../../../shared/api/queries";
+import { notifications } from "@mantine/notifications";
+import {
+    type VibEntryForProject,
+    type VibEntrySchema,
+    useProjectVibEntries,
+    useUpdateVibEntry,
+} from "../../../shared/api/queries";
 import { ChronicleCard, ChronicleDataChip } from "../../../components/chronicle";
 import { useAuth } from "../../../lib/auth";
 import VibEntryEditDrawer from "../../vib-import/VibEntryEditDrawer";
@@ -41,6 +47,9 @@ function toVibEntrySchema(entry: VibEntryForProject): VibEntrySchema {
         status_bau: entry.status_bau,
         status_abgeschlossen: entry.status_abgeschlossen,
         ai_extracted: entry.ai_extracted,
+        confirmed: entry.confirmed,
+        assignment_note: entry.assignment_note,
+        page: entry.page,
         pfa_entries: entry.pfa_entries,
         project_ids: entry.project_ids,
         report_year: entry.year,
@@ -58,6 +67,16 @@ function VibTabContent({
 }) {
     const [rawExpanded, setRawExpanded] = useState(false);
     const [pfaExpanded, setPfaExpanded] = useState(false);
+    const updateEntry = useUpdateVibEntry();
+
+    const handleConfirm = async () => {
+        try {
+            await updateEntry.mutateAsync({ entryId: entry.id, data: { confirmed: true } });
+            notifications.show({ color: "green", message: "VIB-Eintrag bestätigt." });
+        } catch {
+            notifications.show({ color: "red", message: "VIB-Eintrag konnte nicht bestätigt werden." });
+        }
+    };
 
     return (
         <Stack gap="md">
@@ -72,7 +91,11 @@ function VibTabContent({
                     {entry.drucksache_nr && (
                         <Text size="xs" c="dimmed">
                             Drucksache {entry.drucksache_nr}
+                            {entry.page != null ? `, S. ${entry.page}` : ""}
                         </Text>
+                    )}
+                    {!entry.confirmed && (
+                        <ChronicleDataChip>unbestätigt</ChronicleDataChip>
                     )}
                     {entry.ai_extracted && (
                         <ChronicleDataChip>KI-extrahiert</ChronicleDataChip>
@@ -88,11 +111,29 @@ function VibTabContent({
                     )}
                 </Group>
                 {canEdit && (
-                    <Button size="xs" variant="light" onClick={() => onEdit(entry)}>
-                        Bearbeiten
-                    </Button>
+                    <Group gap="xs">
+                        {!entry.confirmed && (
+                            <Button size="xs" onClick={handleConfirm} loading={updateEntry.isPending}>
+                                Bestätigen
+                            </Button>
+                        )}
+                        <Button size="xs" variant="light" onClick={() => onEdit(entry)}>
+                            Bearbeiten
+                        </Button>
+                    </Group>
                 )}
             </Group>
+
+            {!entry.confirmed && (
+                <Text size="sm" c="dimmed">
+                    Über MCP eingelesen und noch nicht bestätigt — fließt erst nach dem Bestätigen in den Planungsstand ein.
+                </Text>
+            )}
+            {entry.assignment_note && (
+                <Text size="sm" c="dimmed">
+                    Zuordnung: {entry.assignment_note}
+                </Text>
+            )}
 
             {/* Projektkenndaten */}
             {(entry.strecklaenge_km !== null || entry.gesamtkosten_mio_eur !== null || entry.entwurfsgeschwindigkeit) && (
