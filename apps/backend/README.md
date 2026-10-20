@@ -719,8 +719,8 @@ the years confirmed from them — are repaired in place, keeping assignments and
 values:
 
 ```bash
-docker compose --env-file .env exec backend python scripts/repair_infraplan_full_stops.py          # dry run
-docker compose --env-file .env exec backend python scripts/repair_infraplan_full_stops.py --apply
+docker compose --env-file .env exec backend python -m scripts.repair_infraplan_full_stops          # dry run
+docker compose --env-file .env exec backend python -m scripts.repair_infraplan_full_stops --apply
 ```
 
 ### Test fixtures

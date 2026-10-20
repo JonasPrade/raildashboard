@@ -5,8 +5,8 @@ in place from the stored row texts — assignments and KPI values stay, nothing
 is uploaded or parsed again. Without ``--apply`` the changes are only shown.
 
 Usage:
-    python scripts/repair_infraplan_full_stops.py           # dry run
-    python scripts/repair_infraplan_full_stops.py --apply
+    python -m scripts.repair_infraplan_full_stops           # dry run
+    python -m scripts.repair_infraplan_full_stops --apply
 """
 
 from __future__ import annotations

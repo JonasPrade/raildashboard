@@ -207,7 +207,7 @@ unset GHCR_PAT
 ./prod.sh <40-stellige-sha>
 
 # Ersten Admin-User anlegen
-docker compose exec backend python scripts/create_initial_user.py --username admin --role admin
+docker compose exec backend python -m scripts.create_initial_user --username admin --role admin
 ```
 
 Bei einer frischen Datenbank kann der allererste Lauf am Backup scheitern, weil Postgres
@@ -322,7 +322,7 @@ make docker-create-user USERNAME=admin ROLE=admin
 make list-users
 
 # Passwort ändern (läuft im Backend-Container)
-docker compose --env-file .env exec backend python scripts/change_password.py --username <name>
+docker compose --env-file .env exec backend python -m scripts.change_password --username <name>
 ```
 
 ### Logs und Monitoring
