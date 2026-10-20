@@ -19,8 +19,49 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   (the roadmap listed this as done, but it was never built). New endpoints
   `GET/POST /api/v1/text_categories`, MCP tool `list_text_categories`, `upsert_project_text`
   takes `category_id` and `is_public`. Colours come from semantic tokens `--text-cat-*`
-  (new base token `--warn`). Migration `20261020001` (expand only: `category_id` nullable,
+  (new base token `--warn`). Migration `20261020002` (expand only: `category_id` nullable,
   `is_public` with server default true; existing texts become „Info“ and stay public).
+- **Infraplan import, stages 2–5 (#180, #181, #184, #182).** Review of a draft: the parse
+  task now suggests projects per row (project number of the previous year, GVFG key, fuzzy
+  name; subprojects preferred) and preselects hits from 0.85; `PATCH …/rows/{row_key}`,
+  `POST …/apply-suggestions`, `POST …/rows/{row_key}/subproject`, previous-year comparison
+  in the draft, `POST /import/infraplan/confirm` (409 when the year exists or parser warnings
+  are open, `force` overrides warnings only), `GET/DELETE /import/infraplan/report[/{year}]`
+  (deleting reopens the draft), section "Infraplan" in `/admin/unassigned`
+  (`/admin/unassigned-infraplan-entries`). Confirmed rows feed the planning state as source
+  `INFRAPLAN` (trust 0.85, GVFG rows 0.75; phase, Planfeststellung, parliamentary track,
+  expected commissioning in forecast and timeline; only the newest year counts) and a new
+  PaBe-relevance level "laut Infraplan" (manual > Infraplan > project groups). Public reads
+  `GET /infraplan/projects/{id}` (entries of all years, Gesamtkostenprognose with
+  subproject sums, "nicht mehr im Infraplan"), `GET /infraplan/reports[/{year}/entries]`,
+  `GET /infraplan/kpis` (checked values only). KPI values: `GET /import/infraplan/kpis`,
+  `GET/PUT /import/infraplan/report/{year}/kpi-values`, `POST …/kpi-values/approve`; the 23
+  KPI definitions of the Infraplan 2026 are created on first use. MCP tools
+  `list_infraplan_drafts`, `get_infraplan_draft`, `start_infraplan_parse`,
+  `apply_infraplan_suggestions`, `assign_infraplan_row`, `create_infraplan_subproject`,
+  `confirm_infraplan_import` (refuses parser warnings), `get_infraplan_page_image` (image
+  content), `list_infraplan_kpis`, `get_infraplan_kpi_values`, `set_infraplan_kpi_values`
+  (stored unchecked), `get_project_infraplan`; `list_data_gaps` knows
+  `infraplan_unassigned`. Skill `.claude/skills/infraplan-import`. Frontend: import and
+  review pages, KPI form and approval, Infraplan section and cost block in the project
+  detail, public page `/infraplan`. No migration.
+- **VIB via MCP + skill (preferred way in).** An agent reads the Verkehrsinvestitionsbericht
+  itself (skill `.claude/skills/vib-import/SKILL.md`, also a check mode for existing years)
+  and writes it with new MCP tools (`list_vib_reports`, `create_vib_report`,
+  `update_vib_report`, `list_vib_entries`, `get_vib_entry`, `add_vib_entries`,
+  `update_vib_entry`, `set_vib_pfa_entries`, `assign_vib_entry`, `assign_vib_pfa`,
+  `delete_vib_entry`, `confirm_vib_report`), gated by `vib.import`. Suggestions come from the
+  previous year's confirmed assignment, then the VDE number, then the name (the
+  "Lfd. Vorhaben Nr." prefix is ignored); at most one project is pre-assigned. Migration
+  `20261020001` adds `vib_entry.confirmed` (existing rows become confirmed),
+  `assignment_note` and `page`. Only confirmed VIB entries feed the planning state; MCP
+  writes leave an entry unconfirmed, the upload confirm and assignments by an editor in the
+  UI confirm it. The project page marks unconfirmed entries and offers "Bestätigen". The
+  upload stays as a second way. See `docs/features/feature-vib-import.md` → Phase 7.
+- **Drag & Drop für PDF-Uploads.** VIB-, Haushalts- und GVFG-Import sowie die Anhänge an
+  Projekttexten nehmen Dateien jetzt auch per Drag & Drop an, zusätzlich zum Dateidialog
+  (shared `FileDropZone` in `apps/frontend/src/shared/ui/`). Dateien mit falschem Typ werden
+  mit einer Meldung abgewiesen.
 - **MCP: GVFG-Bundesprogramm.** New read tools `list_gvfg_programs` (editions with year
   columns and counts), `list_gvfg_entries` (Vorhaben of an edition, search by key in any
   spelling or by name, filters Land, kind, part, Fördertatbestand, with/without project),

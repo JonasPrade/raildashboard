@@ -84,7 +84,7 @@ migration `20261015002`.
 
 | Table | Description |
 |---|---|
-| infraplan_parse_result | Draft per upload: `year`, `status`, parsed rows (`result_json`), plausibility findings (`warnings_json`), KPI chart pages (`kpi_pages_json`), stored PDF (`pdf_path`, for re-parsing and page images), `confirmed_at` |
+| infraplan_parse_result | Draft per upload: `year`, `status`, parsed rows with suggestions and the review assignment (`result_json`), plausibility findings (`warnings_json`), KPI chart pages (`kpi_pages_json`), stored PDF (`pdf_path`, for re-parsing and page images), `confirmed_at` |
 | infraplan_report | A confirmed year (`year` unique, `published_on`); entries and KPI values cascade with it |
 | infraplan_entry | One row of a measure table: `section` (`BP_A`…`BP_D`, `GVFG_A`, `GVFG_C`, `INVKG`) + `lfd_nr` (unique per report), project numbers (`primary_number` indexed, recognition key across years), Realisierungsstand/Lph, commissioning (`ibn_raw`, `ibn_year`, `ibn_qualifier` `OFFEN`/`BIS`/`SPANNE`), cost (`cost_mio`, `cost_kind` `GWU`/`GESAMTKOSTEN`, or a reference `cost_ref_entry_id` → entry carrying the cost), Befassung (`parl_state`), footnotes |
 | infraplan_entry_project | Many-to-many: entry ↔ project, with `assignment_source` (`NUMBER`/`FUZZY`/`MANUAL`/`AGENT`) and `note` |

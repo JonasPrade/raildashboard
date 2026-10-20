@@ -49,6 +49,11 @@ from dashboard_backend.crud.projects.progress import BEDARFSPLAN_GROUP_SHORT_NAM
 from dashboard_backend.mcp.context import get_principal, load_user, require, tool_session
 from dashboard_backend.models.associations.project_to_project_group import ProjectToProjectGroup
 from dashboard_backend.models.change_tracking import ChangeLog
+from dashboard_backend.models.infraplan import (
+    InfraplanEntry,
+    InfraplanEntryProject,
+    InfraplanReport,
+)
 from dashboard_backend.models.associations.text_to_project import TextToProject
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.projects.project_group import ProjectGroup
@@ -155,13 +160,42 @@ def _bswag_member_expr():
     )
 
 
+def _infraplan_parl_exprs():
+    """(has statement, statement says relevant) of the newest Infraplan year
+    that states the Befassung for the project — twin of
+    ``progress_crud.infraplan_parl_relevance``."""
+    stated = and_(
+        InfraplanEntryProject.project_id == Project.id,
+        InfraplanEntryProject.entry_id == InfraplanEntry.id,
+        InfraplanEntry.report_id == InfraplanReport.id,
+        InfraplanEntry.parl_state.isnot(None),
+    )
+    newest_year = (
+        select(func.max(InfraplanReport.year)).where(stated).correlate(Project).scalar_subquery()
+    )
+    relevant = exists().where(
+        stated,
+        InfraplanReport.year == newest_year,
+        InfraplanEntry.parl_state != "NICHT_VEREINBART",
+    )
+    return newest_year.isnot(None), relevant
+
+
 def parl_relevant_expr(relevant: bool):
-    """SQL twin of ``resolve_parl_relevant``: the override wins, else BSWAG* groups."""
+    """SQL twin of ``resolve_parl_relevant``: the override wins, then the
+    newest Infraplan statement, else BSWAG* groups."""
     override = ProjectProgress.parl_befassung_relevant
     member = _bswag_member_expr()
+    has_infraplan, infraplan_relevant = _infraplan_parl_exprs()
     if relevant:
-        return or_(override.is_(True), and_(override.is_(None), member))
-    return or_(override.is_(False), and_(override.is_(None), not_(member)))
+        default = or_(
+            and_(has_infraplan, infraplan_relevant), and_(not_(has_infraplan), member)
+        )
+        return or_(override.is_(True), and_(override.is_(None), default))
+    default = or_(
+        and_(has_infraplan, not_(infraplan_relevant)), and_(not_(has_infraplan), not_(member))
+    )
+    return or_(override.is_(False), and_(override.is_(None), default))
 
 
 def last_change_expr():

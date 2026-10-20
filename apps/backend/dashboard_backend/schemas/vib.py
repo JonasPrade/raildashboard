@@ -223,6 +223,10 @@ class VibEntryForProjectSchema(VibEntryFieldsBase, _VibEntryForProjectIds):
     vib_section: Optional[str] = None
 
     ai_extracted: bool = False
+    # Phase 7: unconfirmed entries (read in over MCP) do not feed the progress yet.
+    confirmed: bool = True
+    assignment_note: Optional[str] = None
+    page: Optional[int] = None
 
     pfa_entries: list[VibPfaEntrySchema] = []
     project_ids: list[int] = []
@@ -279,6 +283,9 @@ class VibEntryUpdateSchema(VibEntryFieldsBase):
     status_abgeschlossen: Optional[bool] = None
     pfa_entries: Optional[list[VibPfaEntryProposed]] = None
     project_ids: Optional[list[int]] = None
+    # Editor confirms an entry read in over MCP (feature-vib-import.md → Phase 7).
+    # Setting project_ids here confirms as well.
+    confirmed: Optional[bool] = None
 
 
 class VibEntryListItemSchema(BaseModel):
@@ -311,6 +318,9 @@ class VibEntrySchema(VibEntryFieldsBase, _VibEntryIds):
     vib_lfd_nr: Optional[str] = None
 
     ai_extracted: bool = False
+    confirmed: bool = True
+    assignment_note: Optional[str] = None
+    page: Optional[int] = None
     pfa_entries: list[VibPfaEntrySchema] = []
     project_ids: list[int] = []
     report_year: int

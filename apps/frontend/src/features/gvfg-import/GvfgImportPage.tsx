@@ -15,6 +15,7 @@ import { exceedsUploadLimit, tooLargeMessage, uploadErrorMessage } from "../../s
 import { formatDateTime } from "../../shared/format";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { TaskProgressIndicator, useImportTask } from "../import-review/shared";
+import { FileDropZone } from "../../shared/ui/FileDropZone";
 
 function edition(r: GvfgParseResultSummary): string {
     return r.year_from && r.year_to ? `${r.year_from}–${r.year_to}` : "–";
@@ -131,19 +132,21 @@ function GvfgImportPageContent() {
                             Teil (z. B. 2024–2028) wird als eigene Datei hochgeladen und derselben Ausgabe
                             zugeordnet.
                         </Text>
-                        <Group align="flex-end" gap="sm" wrap="wrap">
-                            <FileInput
-                                label="PDF-Datei"
-                                placeholder="PDF auswählen..."
-                                accept="application/pdf"
-                                value={file}
-                                onChange={setFile}
-                                w={320}
-                            />
-                            <Button onClick={handleUpload} loading={startImport.isPending || task.isRunning} disabled={!file}>
-                                PDF lesen
-                            </Button>
-                        </Group>
+                        <FileDropZone accept="application/pdf" onFiles={([dropped]) => setFile(dropped)} label="PDF hier ablegen">
+                            <Group align="flex-end" gap="sm" wrap="wrap">
+                                <FileInput
+                                    label="PDF-Datei"
+                                    placeholder="PDF auswählen oder hierher ziehen…"
+                                    accept="application/pdf"
+                                    value={file}
+                                    onChange={setFile}
+                                    w={320}
+                                />
+                                <Button onClick={handleUpload} loading={startImport.isPending || task.isRunning} disabled={!file}>
+                                    PDF lesen
+                                </Button>
+                            </Group>
+                        </FileDropZone>
                         {task.isRunning && <TaskProgressIndicator progress={task.progress} warning={task.warning} />}
                     </Stack>
                 </ChronicleCard>

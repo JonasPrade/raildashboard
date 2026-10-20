@@ -13,13 +13,16 @@ from dashboard_backend.crud.admin_assignments import (
     list_unassigned_vib_entries,
 )
 from dashboard_backend.crud import gvfg as gvfg_crud
+from dashboard_backend.crud import infraplan_import as infraplan_crud
 from dashboard_backend.database import get_db
 from dashboard_backend.models.gvfg import GvfgEntry
+from dashboard_backend.models.infraplan import InfraplanEntry
 from dashboard_backend.models.users import User
 from dashboard_backend.routing.auth_router import AuthRouter
 from dashboard_backend.schemas.admin_assignments import (
     AssignProjectsInput,
     UnassignedFinveSchema,
+    UnassignedInfraplanEntrySchema,
     UnassignedVibEntrySchema,
 )
 from dashboard_backend.schemas.gvfg import GvfgEntrySchema
@@ -101,3 +104,50 @@ def assign_gvfg_entry(
         gvfg_crud.assign_entry(db, entry, body.project_ids, current_user)
     except gvfg_crud.GvfgConfirmError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/unassigned-infraplan-entries", response_model=list[UnassignedInfraplanEntrySchema])
+def get_unassigned_infraplan_entries(
+    db: Session = Depends(get_db),
+    _current_user: User = _require_editor,
+) -> list[UnassignedInfraplanEntrySchema]:
+    """Infraplan entries of the newest year without a project."""
+    return [
+        UnassignedInfraplanEntrySchema(
+            id=entry.id,
+            report_year=year,
+            section=entry.section,
+            lfd_nr=entry.lfd_nr,
+            page=entry.page,
+            primary_number=entry.primary_number,
+            bezeichnung=entry.bezeichnung,
+            massnahme=entry.massnahme,
+            laender=entry.laender,
+            state_raw=entry.state_raw,
+            ibn_raw=entry.ibn_raw,
+            cost_mio=float(entry.cost_mio) if entry.cost_mio is not None else None,
+        )
+        for entry, year in infraplan_crud.unassigned_entries(db)
+    ]
+
+
+@router.patch(
+    "/unassigned-infraplan-entries/{entry_id}/assign", response_model=None, status_code=204
+)
+def assign_infraplan_entry(
+    entry_id: int,
+    body: AssignProjectsInput,
+    db: Session = Depends(get_db),
+    current_user: User = _require_editor,
+) -> None:
+    entry = db.get(InfraplanEntry, entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Infraplan entry not found")
+    if not body.project_ids:
+        raise HTTPException(status_code=422, detail="project_ids must not be empty")
+    try:
+        infraplan_crud.assign_entry(
+            db, entry, body.project_ids, source="MANUAL", username=current_user.username
+        )
+    except infraplan_crud.InfraplanNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc

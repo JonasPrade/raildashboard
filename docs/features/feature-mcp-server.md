@@ -35,8 +35,9 @@ Rechtemodell — ein Key kann nie mehr als der Nutzer, dem er gehört.
   Zuordnungen mit Begründung, abgeleitete Beobachtungen entstehen erst beim Bestätigen.
   Jeder Import gated über sein eigenes `*.import`-Recht. Umgesetzt bzw. geplant:
   **Fulda-Runde** (Agent liest das PDF selbst, kein Upload, siehe
-  `feature-fulda-import.md`) und **Infraplan** (Tools nach dem Upload, siehe
-  `feature-infraplan-import.md` → „MCP & Skill“). Skills für diese Abläufe liegen in
+  `feature-fulda-import.md`), **VIB** (Agent liest das PDF selbst, der Upload bleibt als
+  zweiter Weg, siehe `feature-vib-import.md` → Phase 7) und **Infraplan** (Tools nach dem
+  Upload, siehe `feature-infraplan-import.md` → „MCP & Skill“). Skills für diese Abläufe liegen in
   `.claude/skills/` und kommen vom Server (nächster Punkt).
 - **Skills kommen vom MCP (2026-10-17):** Skills für die Arbeit über den MCP werden
   nicht mehr von Hand nach claude.ai hochgeladen, sondern vom Server selbst
@@ -96,7 +97,7 @@ konfigurierbaren Headern (Claude Code) funktionieren schon vorher.
 **Out of scope:**
 
 - OAuth / Authentik-Anbindung (eigenes Thema, siehe oben).
-- MCP-Tools für die übrigen Importe (VIB, Haushalt, Bauportal, Medien) — erlaubt
+- MCP-Tools für die übrigen Importe (Haushalt, Bauportal, Medien) — erlaubt
   (siehe oben), aber noch nicht gebaut.
 - Löschen von Projekten oder anderen Stammdaten über MCP (einzelne Geometrie-Features
   schon, siehe `edit_project_geometry`).
@@ -221,6 +222,9 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `get_gvfg_entry` | ein Vorhaben mit ∑/A/B/C-Zeilen und Verlauf desselben Schlüssels über alle Ausgaben | — |
 | `list_project_gvfg` | GVFG-Förderung eines Projekts über alle Ausgaben, optional mit direkten Teilprojekten | — |
 | `assign_gvfg_entry` | Projekte eines Vorhabens setzen (ersetzt die bisherigen), optional für alle Ausgaben; ergänzt die Gruppen „GVFG“/„GVFG BW“ | `assignment.manage` |
+| `get_project_infraplan` | Infraplan-Einträge eines Projekts über alle Jahrgänge, Gesamtkostenprognose, „nicht mehr im Infraplan“ | — |
+| `list_infraplan_drafts` · `get_infraplan_draft` · `get_infraplan_page_image` · `list_infraplan_kpis` · `get_infraplan_kpi_values` | Infraplan-Import lesen: Entwürfe mit Warnungen, Zeilen mit Vorschlägen, Seitenbild (Bild-Content), Kennzahlen (siehe `feature-infraplan-import.md` → „MCP & Skill“) | `infraplan.import` |
+| `start_infraplan_parse` · `apply_infraplan_suggestions` · `assign_infraplan_row` · `create_infraplan_subproject` · `confirm_infraplan_import` · `set_infraplan_kpi_values` | Infraplan-Import führen: neu auslesen, Vorschläge übernehmen, begründet zuordnen (`AGENT`), Teilprojekt anlegen, bestätigen (nie bei Parser-Warnungen), Kennzahlen ungeprüft schreiben | `infraplan.import` |
 | `get_project_texts` | Projekttexte nach Typ, mit Kategorie und Sichtbarkeit | — |
 | `list_text_types` | Texttypen (für `text_type_id`) | — |
 | `list_text_categories` | Textkategorien mit Stil (für `category_id`) | — |
@@ -543,7 +547,7 @@ Code; ob claude.ai das Feld auswertet, ist nicht dokumentiert).
 - [x] `make test` baut Test- und Runtime-Image mit Kontext `skills`; `release.yml` und
       `compose.override.yaml` ebenso.
 - [ ] Nach dem nächsten Deploy liefert `list_skills` in claude.ai die markierten Skills
-      (zuerst `fulda-runde`, später `infraplan-import` mit #182).
+      (`fulda-runde`, `vib-import`, `infraplan-import`).
 
 ## Umsetzung
 

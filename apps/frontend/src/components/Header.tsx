@@ -4,7 +4,12 @@ import { useDisclosure } from "@mantine/hooks";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { LoginModal } from "../features/auth/LoginModal";
-import { useUnassignedFinves, useUnassignedGvfgEntries, useUnassignedVibEntries } from "../shared/api/queries";
+import {
+    useUnassignedFinves,
+    useUnassignedGvfgEntries,
+    useUnassignedInfraplanEntries,
+    useUnassignedVibEntries,
+} from "../shared/api/queries";
 import { useIsCompact } from "../shared/hooks/useBreakpoint";
 import { ChronicleButton } from "./chronicle";
 import { Wordmark, Signet } from "./tafel";
@@ -56,6 +61,7 @@ export function Header() {
         can("assignment.manage") ||
         can("haushalt.import") ||
         can("gvfg.import") ||
+        can("infraplan.import") ||
         can("vib.import") ||
         can("project.create") ||
         can("projectgroup.create") ||
@@ -68,8 +74,12 @@ export function Header() {
     const { data: unassignedFinves } = useUnassignedFinves(canAssignments);
     const { data: unassignedVibEntries } = useUnassignedVibEntries(canAssignments);
     const { data: unassignedGvfgEntries } = useUnassignedGvfgEntries(canAssignments);
+    const { data: unassignedInfraplanEntries } = useUnassignedInfraplanEntries(canAssignments);
     const totalUnassigned = canAssignments
-        ? (unassignedFinves?.length ?? 0) + (unassignedVibEntries?.length ?? 0) + (unassignedGvfgEntries?.length ?? 0)
+        ? (unassignedFinves?.length ?? 0) +
+          (unassignedVibEntries?.length ?? 0) +
+          (unassignedGvfgEntries?.length ?? 0) +
+          (unassignedInfraplanEntries?.length ?? 0)
         : 0;
 
     // One source of truth for both the bar and the drawer — they only differ in
@@ -77,6 +87,7 @@ export function Header() {
     const navItems: Array<{ to: string; label: string; end?: boolean; visible: boolean; badge?: number }> = [
         { to: "/", label: "Projekte", end: true, visible: true },
         { to: "/finanzen", label: "Finanzen", visible: true },
+        { to: "/infraplan", label: "Infraplan", visible: true },
         { to: "/abgeordnete", label: "Abgeordnete", visible: user !== null },
         { to: "/tasks", label: "Aufgaben", visible: user !== null },
         { to: "/admin", label: "Admin", visible: canAdmin, badge: totalUnassigned },

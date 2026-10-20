@@ -63,15 +63,14 @@ def test_parse_accepts_upload_below_the_limit(client, create_user, monkeypatch, 
     class _FakeResult:
         id = "task-1"
 
+    # The tasks are patched where they are defined: the Infraplan endpoint
+    # starts its task through the CRUD layer.
     for module_name, task_name in (
         ("haushalt", "parse_haushalt_pdf"),
         ("vib", "parse_vib_pdf"),
         ("infraplan", "parse_infraplan_pdf"),
     ):
-        module = __import__(
-            f"dashboard_backend.api.v1.endpoints.{module_name}_import",
-            fromlist=[task_name],
-        )
+        module = __import__(f"dashboard_backend.tasks.{module_name}", fromlist=[task_name])
         monkeypatch.setattr(getattr(module, task_name), "delay", lambda *a, **k: _FakeResult())
 
     resp = client.post(

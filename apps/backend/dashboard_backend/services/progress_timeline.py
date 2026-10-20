@@ -83,6 +83,7 @@ class ConstructionUnitInput:
     pfas: list[PfaForecastInput] = field(default_factory=list)
     fulda: list[ExpectedDate] = field(default_factory=list)
     manual_expected: list[tuple[MainPhase, date]] = field(default_factory=list)
+    infraplan: list[ExpectedDate] = field(default_factory=list)
 
 
 @dataclass
@@ -136,6 +137,7 @@ def construction_periods(
         concrete = concrete_milestone_dates(
             pfas=unit.pfas,
             fulda=unit.fulda,
+            infraplan=unit.infraplan,
             manual_expected=_reduce_per_phase(unit.manual_expected),
             # Only weighs VIB-PFA against Fulda dates; any day works for tests.
             today=today or date.today(),
@@ -200,6 +202,7 @@ def build_timeline(
     fulda: list[ExpectedDate] | None = None,
     manual_expected: list[tuple[MainPhase, date]] | None = None,
     observations: list[ObservationInput] | None = None,
+    infraplan: list[ExpectedDate] | None = None,
     pf_dates: list[date] | None = None,
     parl_dates: list[date] | None = None,
     construction_units: list[ConstructionUnitInput] | None = None,
@@ -216,6 +219,7 @@ def build_timeline(
     concrete = concrete_milestone_dates(
         pfas=pfas,
         fulda=fulda or [],
+        infraplan=infraplan or [],
         manual_expected=_reduce_per_phase(manual_expected or []),
         today=today,
         pfb_as_genehmigung=False,

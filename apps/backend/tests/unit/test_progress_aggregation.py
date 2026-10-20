@@ -31,6 +31,13 @@ from dashboard_backend.models.projects.project_progress import ProjectProgress
 from dashboard_backend.models.vib.vib_entry import VibEntry, vib_entry_project
 from dashboard_backend.models.vib.vib_pfa_entry import VibPfaEntry
 from dashboard_backend.models.vib.vib_report import VibReport
+from dashboard_backend.models.infraplan import (
+    InfraplanEntry,
+    InfraplanEntryProject,
+    InfraplanParseResult,
+    InfraplanReport,
+)
+from dashboard_backend.models.users import User
 from dashboard_backend.services.progress_derivation import aggregate_tree
 
 
@@ -50,6 +57,12 @@ _TABLES_BEFORE = [
     FuldaDocument.__table__,
     FuldaAnnouncement.__table__,
     fulda_announcement_to_project,
+    # Infraplan rows feed the derivation (phase, PaBe relevance).
+    User.__table__,
+    InfraplanParseResult.__table__,
+    InfraplanReport.__table__,
+    InfraplanEntry.__table__,
+    InfraplanEntryProject.__table__,
 ]
 
 

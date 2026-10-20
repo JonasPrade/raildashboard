@@ -6,16 +6,16 @@ and ``project_text.is_public``. Expand only: ``category_id`` stays nullable and
 ``is_public`` has a server default, so older code keeps inserting texts.
 Existing texts get „Info“ and stay public.
 
-Revision ID: 20261020001
-Revises: 20261017001
+Revision ID: 20261020002
+Revises: 20261020001
 Create Date: 2026-10-20
 """
 
 from alembic import op
 import sqlalchemy as sa
 
-revision = "20261020001"
-down_revision = "20261017001"
+revision = "20261020002"
+down_revision = "20261020001"
 branch_labels = None
 depends_on = None
 

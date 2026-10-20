@@ -40,6 +40,7 @@ import {
     useUploadTextAttachment,
 } from "../../shared/api/queries";
 import { exceedsUploadLimit, tooLargeMessage } from "../../shared/api/uploads";
+import { FileDropZone } from "../../shared/ui/FileDropZone";
 import { API_BASE } from "../../shared/api/client";
 import {
     TEXT_CATEGORY_STYLE_ORDER,
@@ -310,8 +311,7 @@ function TextFormModal({ opened, onClose, onSubmit, isSubmitting, initialValues,
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [opened]);
 
-    function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-        const selected = Array.from(e.currentTarget.files ?? []);
+    function addFiles(selected: File[]) {
         const valid = selected.filter((f) => {
             if (exceedsUploadLimit(f)) {
                 notifications.show({ color: "red", title: "Datei zu groß", message: tooLargeMessage(f) });
@@ -441,16 +441,19 @@ function TextFormModal({ opened, onClose, onSubmit, isSubmitting, initialValues,
                                 multiple
                                 accept={ACCEPTED_MIME}
                                 style={{ display: "none" }}
-                                onChange={handleFileSelect}
+                                onChange={(e) => addFiles(Array.from(e.currentTarget.files ?? []))}
                             />
-                            <Button
-                                size="xs"
-                                variant="subtle"
-                                leftSection="📎"
-                                onClick={() => fileInputRef.current?.click()}
-                            >
-                                Dateien auswählen
-                            </Button>
+                            <FileDropZone accept={ACCEPTED_MIME} multiple onFiles={addFiles} label="Dateien hier ablegen">
+                                <Button
+                                    size="xs"
+                                    variant="subtle"
+                                    leftSection="📎"
+                                    fullWidth
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    Dateien auswählen oder hierher ziehen
+                                </Button>
+                            </FileDropZone>
                             {pendingFiles.map((f) => (
                                 <Group key={f.name} justify="space-between" align="center" wrap="nowrap">
                                     <Text size="xs" c="dimmed" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -613,10 +616,8 @@ function AttachmentUploadArea({ textId, projectId }: AttachmentUploadAreaProps) 
     const [uploads, setUploads] = useState<UploadState[]>([]);
     const uploadMutation = useUploadTextAttachment(projectId);
 
-    function handleFiles(files: FileList | null) {
-        if (!files || files.length === 0) return;
-
-        Array.from(files).forEach((file) => {
+    function handleFiles(files: File[]) {
+        files.forEach((file) => {
             if (exceedsUploadLimit(file)) {
                 notifications.show({
                     color: "red",
@@ -663,16 +664,19 @@ function AttachmentUploadArea({ textId, projectId }: AttachmentUploadAreaProps) 
                 multiple
                 accept={ACCEPTED_MIME}
                 style={{ display: "none" }}
-                onChange={(e) => handleFiles(e.currentTarget.files)}
+                onChange={(e) => handleFiles(Array.from(e.currentTarget.files ?? []))}
             />
-            <Button
-                size="xs"
-                variant="subtle"
-                leftSection="📎"
-                onClick={() => fileInputRef.current?.click()}
-            >
-                Anhang hinzufügen
-            </Button>
+            <FileDropZone accept={ACCEPTED_MIME} multiple onFiles={handleFiles} label="Anhänge hier ablegen">
+                <Button
+                    size="xs"
+                    variant="subtle"
+                    leftSection="📎"
+                    fullWidth
+                    onClick={() => fileInputRef.current?.click()}
+                >
+                    Anhang hinzufügen oder hierher ziehen
+                </Button>
+            </FileDropZone>
             {uploads.map((u) => (
                 <Group key={u.filename} gap="xs" align="center">
                     {u.status === "uploading" && <Loader size="xs" />}

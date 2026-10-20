@@ -19,7 +19,8 @@ Regeln (siehe `AGENT.md` → „Skills“):
 | [`widerspruchs-check`](widerspruchs-check/SKILL.md) | Findet Widersprüche zwischen Plänen, Grundsätzen und Code und legt sie dem Nutzer zur Entscheidung vor | Claude Code |
 | [`schienendashboard`](schienendashboard/SKILL.md) | Einstieg: verweist auf `list_skills`/`get_skill` des MCP-Servers | claude.ai (einmaliger Upload) |
 | [`fulda-runde`](fulda-runde/SKILL.md) | Liest eine Antwort der Bundesregierung zur Fulda-Runde per MCP ein (Dokument, Einträge, Zuordnung, Bestätigung); braucht `fulda.import` | MCP (`mcp: true`) |
-| `infraplan-import` | Führt einen hochgeladenen Infraplan per MCP bis zur Bestätigung und trägt die Kennzahlen ein (entsteht mit #182) | MCP (`mcp: true`) |
+| [`vib-import`](vib-import/SKILL.md) | Liest einen Verkehrsinvestitionsbericht (Abschnitt Schienenwege) per MCP ein oder prüft einen vorhandenen Jahrgang (Bericht, Vorhaben, PFA-Tabelle, Zuordnung mit Begründung, Bestätigung); braucht `vib.import` | MCP (`mcp: true`) |
+| [`infraplan-import`](infraplan-import/SKILL.md) | Führt einen hochgeladenen Infraplan per MCP bis zur Bestätigung (Vorschläge, begründete Zuordnung, Teilprojekte) und trägt die Kennzahlen ungeprüft ein; braucht `infraplan.import` | MCP (`mcp: true`) |
 
 ## Einen Skill über den MCP ausliefern
 

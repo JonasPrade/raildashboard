@@ -44,7 +44,7 @@ Backend: reuse `assign_finve_to_projects` from `crud/admin_assignments.py`. Expo
 
 ### Step 5 — VIB-Einträge verknüpfen *(optional)*
 
-Searchable list of confirmed VIB entries (name + year). Assigns the new project to the selected entries by adding its id to `project_ids`.
+Searchable list of all stored VIB entries (name + year) — "confirmed" here means "imported", not `vib_entry.confirmed`; linking one in the wizard confirms it (editor decision, `feature-vib-import.md` → Phase 7). Assigns the new project to the selected entries by adding its id to `project_ids`.
 
 Backend: check whether `PATCH /api/v1/import/vib/entries/{id}` already supports `project_ids` update; if not, add it.
 

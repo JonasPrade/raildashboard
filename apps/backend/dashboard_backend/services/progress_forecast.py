@@ -2,9 +2,10 @@
 
 Combines three input kinds into a "remaining duration + next steps" forecast:
 - **Concrete milestone dates** from VIB PFA fields (``baubeginn`` → BAU start,
-  ``inbetriebnahme`` → IN_BETRIEB, ``datum_pfb`` → Genehmigung/PF done) and from
-  Fulda-Runde prognoses (derived expected observations carrying a phase + date).
-  When both name a date for the same phase, the more credible × more recent
+  ``inbetriebnahme`` → IN_BETRIEB, ``datum_pfb`` → Genehmigung/PF done), from
+  Fulda-Runde prognoses and from the planned commissioning year of the
+  Infraplan (derived expected observations carrying a phase + date). When
+  several name a date for the same phase, the more credible × more recent
   report wins (trust of the source × recency of the report it comes from).
 - **BVWP planning/build durations** (years) as a fallback when no concrete date
   exists for an upcoming phase.
@@ -67,7 +68,7 @@ class BvwpDurations:
 class ForecastStep:
     phase: MainPhase
     expected_date: date | None
-    source: str  # "VIB-PFA" | "Fulda-Runde" | "BVWP" | "Schätzung"
+    source: str  # "VIB-PFA" | "Fulda-Runde" | "Infraplan" | "Manuell" | "BVWP" | "Schätzung"
 
 
 @dataclass
@@ -133,13 +134,14 @@ def concrete_milestone_dates(
     manual_expected: list[tuple[MainPhase, date]],
     today: date,
     pfb_as_genehmigung: bool = True,
+    infraplan: list[ExpectedDate] | None = None,
 ) -> dict[MainPhase, tuple[date, str]]:
     """Concrete (non-estimated) milestone date per phase, with its source label.
 
     Shared by the forecast and the multi-project timeline so both apply the same
-    precedence: per phase, the VIB-PFA or Fulda-Runde date with the higher
-    weight wins — trust of the source × recency of its report (tie → earlier
-    date). Manual expected dates are editorial and always win.
+    precedence: per phase, the VIB-PFA, Fulda-Runde or Infraplan date with the
+    higher weight wins — trust of the source × recency of its report (tie →
+    earlier date). Manual expected dates are editorial and always win.
 
     ``pfb_as_genehmigung`` maps the PFA ``datum_pfb`` onto GENEHMIGUNGSPLANUNG
     (the forecast's reading); the timeline shows the PFB as its own milestone
@@ -169,6 +171,11 @@ def concrete_milestone_dates(
         candidates.setdefault(claim.phase, []).append(
             (claim.date, "Fulda-Runde", _weight(SourceType.FULDA_RUNDE, claim.reported_on, today))
         )
+    # Several Infraplan rows per project (or subtree) → latest year (reduce).
+    for claim in reduce_expected(infraplan or []):
+        candidates.setdefault(claim.phase, []).append(
+            (claim.date, "Infraplan", _weight(SourceType.INFRAPLAN, claim.reported_on, today))
+        )
 
     concrete: dict[MainPhase, tuple[date, str]] = {}
     for phase, options in candidates.items():
@@ -191,13 +198,18 @@ def build_forecast(
     fulda: list[ExpectedDate] | None = None,
     manual_expected: list[tuple[MainPhase, date]] | None = None,
     skipped_phases: frozenset[MainPhase] | set[MainPhase] = frozenset(),
+    infraplan: list[ExpectedDate] | None = None,
 ) -> ForecastResult:
     pfas = pfas or []
     fulda = fulda or []
     manual_expected = manual_expected or []
 
     concrete = concrete_milestone_dates(
-        pfas=pfas, fulda=fulda, manual_expected=manual_expected, today=today
+        pfas=pfas,
+        fulda=fulda,
+        manual_expected=manual_expected,
+        today=today,
+        infraplan=infraplan or [],
     )
 
     has_concrete = bool(concrete)

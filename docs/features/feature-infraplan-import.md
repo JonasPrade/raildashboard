@@ -1,7 +1,8 @@
 # Feature: Infraplan-Import
 
-> **Status: Stufe 1 (Parser + Datenmodell, #179) umgesetzt; Stufen 2–5 geplant, mit
-> dem Nutzer abgestimmt (2026-10-15).** Grundlage ist der Infraplan 2026 (BMV,
+> **Status: Stufen 1–5 umgesetzt (#179–#182, #184; Stufen 2–5 am 2026-10-20), mit dem
+> Nutzer abgestimmt (2026-10-15).** Abweichungen und Umsetzungsdetails stehen unter
+> [„Umsetzung (2026-10-20)“](#umsetzung-2026-10-20). Grundlage ist der Infraplan 2026 (BMV,
 > 6. Oktober 2026). Die Zeilenzahlen unten stammen aus dem Parser von Stufe 1 und
 > stimmen mit den laufenden Nummern im Dokument überein (der Prototyp hatte 300 Zeilen
 > gemeldet, weil er Teil C/D und GVFG Kat. A/C falsch abgegrenzt hatte). Das PDF lag
@@ -364,8 +365,13 @@ Prefix `/import/infraplan`, Recht `infraplan.import` (neu, `GROUP_FINANCING`, in
 | PUT | `/report/{year}/kpi-values` | Kennzahlwerte setzen (Status je nach Weg) |
 | POST | `/report/{year}/kpi-values/approve` | Kennzahlwerte freigeben |
 
-Lesend (öffentlich wie die übrigen Projektdaten): `GET /projects/{id}/infraplan`,
-`GET /infraplan/kpis` (nur geprüfte Werte, alle Jahrgänge), `GET /infraplan/reports`.
+Außerdem (Recht `infraplan.import`): `GET /report` (übernommene Jahrgänge mit Zählern),
+`GET /kpis` (Kennzahl-Definitionen), `GET /report/{year}/kpi-values` (alle Werte mit Status).
+
+Lesend (öffentlich wie die übrigen Projektdaten): `GET /infraplan/projects/{id}`
+(Einträge, Kostenprognose, „nicht mehr im Infraplan“), `GET /infraplan/kpis` (nur
+geprüfte Werte, alle Jahrgänge), `GET /infraplan/reports`,
+`GET /infraplan/reports/{year}/entries`.
 
 Admin: `GET /admin/unassigned-infraplan-entries`,
 `PATCH /admin/unassigned-infraplan-entries/{id}/assign` (Recht `assignment.manage`).
@@ -408,9 +414,10 @@ Import so weit abschließen, dass nur unklare Reste übrig bleiben. Alle Tools p
 | `get_infraplan_page_image(id, page)` | lesend | Seitenbild als Bild-Content |
 | `list_infraplan_kpis` / `get_infraplan_kpi_values(year)` | lesend | Definitionen und Werte |
 | `set_infraplan_kpi_values(year, values[])` | schreibend | Werte setzen, Status `UNGEPRUEFT`; neue Kennzahl-Definitionen nur mit stabilem `key` |
-| `get_project_infraplan(project_id)` | lesend | Einträge aller Jahrgänge eines Projekts |
+| `get_project_infraplan(project_id)` | lesend | Einträge aller Jahrgänge eines Projekts (ohne Sonderrecht, öffentliche Daten) |
 
-`list_data_gaps` bekommt die Lücke `infraplan_unassigned`.
+`list_data_gaps` bekommt die Lücke `infraplan_unassigned` (Zeilen des neuesten Jahrgangs
+ohne Projekt, gesondert neben der Projektliste ausgegeben, mit `draft_id` und `row_key`).
 
 **Skill** `.claude/skills/infraplan-import/SKILL.md` mit `metadata:` → `mcp: true`, damit
 der MCP-Server ihn über `list_skills`/`get_skill` ausliefert (alle Dashboard-Skills liegen
@@ -493,3 +500,46 @@ den GVFG-Zeilen des Infraplans (Kat. A/C, 77 Zeilen):
 - [ ] Per MCP + Skill lässt sich der Jahrgang ohne Frontend-Klick bis zur Bestätigung
       führen; Kennzahlen erscheinen erst nach Freigabe auf `/infraplan`.
 - [ ] Alle Ansichten funktionieren bei 360 px Breite.
+
+## Umsetzung (2026-10-20)
+
+Stufen 2–5 in einem Zug. Was vom Plan oben abweicht oder ihn präzisiert:
+
+- **Zuordnung beim Auslesen.** `tasks/infraplan_matching.py` rechnet die Vorschläge im
+  Parse-Task (Projektnummer des Vorjahres → GVFG-Schlüssel → Fuzzy mit Vorfilter auf ein
+  gemeinsames Wort ab 4 Zeichen; ein passendes Teilprojekt verdrängt sein Elternprojekt).
+  Vorschläge ab 0.85 werden gleich als Zuordnung gespeichert (Quelle `NUMBER`/`FUZZY`).
+  Der Review-Zustand liegt in `result_json.rows` (`suggestions`, `project_ids`,
+  `assignment_source`, `assignment_note`, `assigned_by`); ein erneutes Auslesen behält
+  die Zuordnungen je `row_key`.
+- **Bestätigen** nimmt `published_on` (Titelblatt) und optional `title`; ohne Datum gilt
+  das Importdatum für die Aktualität. Danach wird der Planungsstand aller Projekte mit
+  Infraplan-Einträgen neu berechnet.
+- **Jahrgang löschen** entfernt Einträge, Zuordnungen, Kennzahlwerte und die abgeleiteten
+  Beobachtungen und öffnet den Entwurf wieder, sodass er erneut bestätigt werden kann.
+- **Projekt-Endpunkt** heißt `GET /infraplan/projects/{id}` (Muster GVFG) statt
+  `/projects/{id}/infraplan`.
+- **Planungsstand:** `infraplan_entry_to_specs` mappt allgemein über den Stand: `Bau` →
+  BAU, Baurecht → GENEHMIGUNGSPLANUNG + PF abgeschlossen, Teil D → NICHT_GESTARTET, sonst
+  Lph 1–2/3–4/ab 5. Die geplante Inbetriebnahme ist eine erwartete Beobachtung
+  (`is_expected`, 31.12.), die Prognose und Zeitstrahl über den neuen Eingang
+  `infraplan` von `concrete_milestone_dates` erreicht. PaBe-Relevanz: neue Ebene in
+  `resolve_parl_relevant` und im SQL-Zwilling des MCP-Filters `list_projects`.
+- **GVFG-Zeilen (Entscheidung 22):** Ist die neueste GVFG-Ausgabe mit demselben Schlüssel
+  jünger als der Infraplan, liefert die Infraplan-Zeile keine Phase und keinen Termin.
+  Die GVFG-Ausgabe selbst speist den Planungsstand noch nicht — das gehört zum
+  GVFG-Import und ist dort offen.
+- **Kosten:** die Kostenprognose rechnet `crud/infraplan.py` (eigene Zeilen des neuesten
+  Jahrgangs, sonst Summe über den ganzen Teilprojektbaum; Verweise und Sammel-GWU je
+  tragendem Eintrag einmal).
+- **Kennzahlen:** Die 23 Definitionen des Infraplans 2026 liegen in
+  `services/infraplan_kpis.py` und werden beim ersten Zugriff angelegt. Einheiten und
+  Kategorien sind teils geschätzt (Informationskennzahlen ohne Einheit/Kategorie) und
+  lassen sich über `definitions` in `PUT …/kpi-values` bzw. `set_infraplan_kpi_values`
+  berichtigen. Ein Wert `null` löscht den Platz.
+- **MCP:** `assign_infraplan_row` wirkt nach der Bestätigung auf den übernommenen Eintrag
+  (ersetzt die Projekte), damit der Agent Reste ohne Frontend nacharbeiten kann. Die Tools
+  stehen in `mcp/tools/infraplan.py`, der Ablauf im Skill
+  `.claude/skills/infraplan-import/SKILL.md`.
+- **Offen für den Nutzer:** Test-Checklisten der Issues #180–#182, #184 (Upload des echten
+  PDFs, Review, Freigabe der Kennzahlen).

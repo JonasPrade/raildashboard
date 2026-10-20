@@ -124,7 +124,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Hauptteil und – wo getrennt geliefert – Anhang (nachrichtlicher Teil) werden derselben Ausgabe zugeordnet",
             "Die Zahlen werden direkt aus dem PDF gelesen; Summenzeilen werden gegengeprüft und Abweichungen angezeigt",
             "Vorschläge: Projekte der Vorausgabe, dann Projektnummer = GVFG-Schlüssel, dann Name",
-            "Fehlende Projekte lassen sich beim Übernehmen anlegen; zugeordnete Projekte kommen in die Gruppe GVFG (Land 08 zusätzlich GVFG BW)",
+            "Fehlt ein Projekt, legt der Button „Projekt nicht gefunden – neu anlegen“ unter jedem Vorhaben einen Projektentwurf an und ordnet ihn zu; alternativ lassen sich alle Vorhaben ohne Projekt beim Übernehmen anlegen. Zugeordnete Projekte kommen in die Gruppe GVFG (Land 08 zusätzlich GVFG BW)",
             "Vorhaben der neuesten Ausgabe ohne Projekt erscheinen unter Admin → Offene Zuordnungen"
         ]
     },
@@ -138,6 +138,35 @@ export const featureHighlights: FeatureHighlight[] = [
             "Kennzahlen und Summen je Land beziehen sich auf die ∑-Zeile jedes Vorhabens (Mio. €)",
             "Projektseite: neueste Ausgabe mit ∑/A/B/C-Zeilen, Finanzhilfen je Jahr als Diagramm und Entwicklung über die Ausgaben",
             "Elternprojekte verlinken die GVFG-Vorhaben ihrer Unterprojekte, ohne Summe"
+        ]
+    },
+    {
+        title: "Infraplan-Import",
+        description:
+            "Unter Admin → Infraplan-Import lesen Nutzer mit dem Recht infraplan.import den Infraplan des Bundes " +
+            "(Fünfjahresplan Schiene) als PDF ein, ordnen die Maßnahmen Projekten zu und übernehmen den Jahrgang. " +
+            "Zuordnen und Kennzahlen gehen von Hand oder per KI-Agent über den MCP-Server (Skill infraplan-import).",
+        details: [
+            "Prüfansicht je Abschnitt (Bedarfsplan Teil A–D, GVFG Kat. A/C, InvKG) mit Filter „nur ohne Zuordnung“ und Parser-Warnungen oben",
+            "„Vorschläge übernehmen (≥ 85 %)“ ordnet Treffer über Projektnummer, GVFG-Schlüssel oder sehr ähnlichen Namen zu; jede Zuordnung zeigt ihre Herkunft (Projektnummer, Name, manuell, KI-Agent)",
+            "„Teilprojekt anlegen unter …“ legt ein fehlendes Teilprojekt als Entwurf an und ordnet es zu",
+            "Vorjahresabgleich: Projekte mit Eintrag im Vorjahr, aber ohne Zeile im neuen Jahrgang",
+            "Übernehmen nur ohne Parser-Warnungen oder ausdrücklich mit „Trotzdem übernehmen“; ein Jahrgang lässt sich löschen und neu übernehmen",
+            "Kennzahlen je Jahrgang (/admin/infraplan/kpis/:jahr): manuelles Formular (gilt als geprüft) und Freigabe der KI-gelesenen Werte neben dem Seitenbild",
+            "Zeilen ohne Projekt erscheinen unter Admin → Offene Zuordnungen",
+            "Plan: docs/features/feature-infraplan-import.md"
+        ]
+    },
+    {
+        title: "Infraplan (/infraplan) und Projektseite",
+        description:
+            "Die öffentliche Seite Infraplan zeigt die Kennzahlen als Diagramme und je Jahrgang die Liste der Maßnahmen " +
+            "mit Link aufs Projekt. Auf der Projektseite stehen die Infraplan-Einträge aller Jahrgänge und die Gesamtkostenprognose.",
+        details: [
+            "Je Kennzahl ein Diagramm: Ist-Werte des neuesten Jahrgangs als (gestapelte) Balken, Zielwerte jedes Jahrgangs als eigene Linie („Ziel IP 2026“); nur geprüfte Werte",
+            "Projektseite, Abschnitt Infraplan: Abschnitt, Realisierungsstand, geplante Inbetriebnahme, Kosten und Befassung je Jahrgang, ab dem zweiten Jahrgang Veränderungen („GWU +12 %“, „IBN 2028 → 2030“)",
+            "Hinweis „Nicht mehr im Infraplan …“, wenn das Projekt im neuesten Jahrgang fehlt",
+            "Kostenblock: Gesamtkostenprognose laut Infraplan (bei Elternprojekten ohne eigene Zeile die Summe der Teilprojekte) neben den vom Bund zugesicherten FinVe-Mitteln — bewusst ohne Deckungsgrad"
         ]
     },
     {
@@ -303,8 +332,11 @@ export const featureHighlights: FeatureHighlight[] = [
         description:
             "Editors and administrators can upload the annual Verkehrsinvestitionsbericht as PDF and import all Section B rail projects. " +
             "The PDF is parsed asynchronously via a Celery background task. " +
-            "A card-based review step lets users inspect each Vorhaben individually before confirming.",
+            "A card-based review step lets users inspect each Vorhaben individually before confirming. " +
+            "Preferred since 2026-10: Claude reads the report itself over the MCP server (skill vib-import) and records Vorhaben, PFA tables and project assignments with a reason; the upload stays as a second way.",
         details: [
+            "MCP-Weg (empfohlen): Claude liest den VIB mit dem Skill vib-import ein oder prüft einen vorhandenen Jahrgang; jede Zuordnung trägt eine Begründung, ein Vorhaben kann mehreren Projekten zugeordnet sein",
+            "Über MCP geschriebene Einträge sind „unbestätigt“ und fließen erst nach dem Bestätigen (MCP oder Knopf „Bestätigen“ auf der Projektseite) in den Planungsstand ein; Zuordnen in der Oberfläche bestätigt ebenfalls",
             "Upload PDF + Berichtsjahr → background task starts, frontend polls every 2 s",
             "Review: one card per Vorhaben, navigate with ← / → arrows",
             "Each card shows: Kenndaten, Planungsstand, Bauaktivitäten, Teilinbetriebnahmen, PFA-Tabelle, editable Volltext",

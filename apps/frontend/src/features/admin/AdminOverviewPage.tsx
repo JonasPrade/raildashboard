@@ -13,6 +13,8 @@ import { useAuth } from "../../lib/auth";
 import {
     useDraftProjects,
     useUnassignedFinves,
+    useUnassignedGvfgEntries,
+    useUnassignedInfraplanEntries,
     useUnassignedVibEntries,
     useWorkerHealth,
 } from "../../shared/api/queries";
@@ -22,6 +24,7 @@ export default function AdminOverviewPage() {
     const canAssignments = can("assignment.manage");
     const canHaushalt = can("haushalt.import");
     const canGvfg = can("gvfg.import");
+    const canInfraplan = can("infraplan.import");
     const canVib = can("vib.import");
     const canCreateProject = can("project.create");
     const canProjectGroups = can("projectgroup.create") || can("projectgroup.edit");
@@ -36,6 +39,7 @@ export default function AdminOverviewPage() {
         canParliament ||
         canHaushalt ||
         canGvfg ||
+        canInfraplan ||
         canVib ||
         canCreateProject ||
         canProjectGroups ||
@@ -47,8 +51,13 @@ export default function AdminOverviewPage() {
 
     const { data: unassignedFinves } = useUnassignedFinves(canAssignments);
     const { data: unassignedVibEntries } = useUnassignedVibEntries(canAssignments);
+    const { data: unassignedGvfgEntries } = useUnassignedGvfgEntries(canAssignments);
+    const { data: unassignedInfraplanEntries } = useUnassignedInfraplanEntries(canAssignments);
     const totalUnassigned =
-        (unassignedFinves?.length ?? 0) + (unassignedVibEntries?.length ?? 0);
+        (unassignedFinves?.length ?? 0) +
+        (unassignedVibEntries?.length ?? 0) +
+        (unassignedGvfgEntries?.length ?? 0) +
+        (unassignedInfraplanEntries?.length ?? 0);
 
     const { data: drafts } = useDraftProjects(canCreateProject);
     const draftCount = drafts?.length ?? 0;
@@ -94,7 +103,7 @@ export default function AdminOverviewPage() {
                                             </Badge>
                                         )}
                                     </Group>
-                                    <Text size="sm" c="dimmed">FinVes und VIB-Einträge ohne Projektzuordnung</Text>
+                                    <Text size="sm" c="dimmed">FinVes, VIB-, GVFG- und Infraplan-Einträge ohne Projektzuordnung</Text>
                                 </Stack>
                             </Link>
                         </ChronicleCard>
@@ -115,6 +124,16 @@ export default function AdminOverviewPage() {
                                 <Stack gap={4}>
                                     <Text fw={500}>GVFG-Import</Text>
                                     <Text size="sm" c="dimmed">GVFG-Bundesprogramm (ÖPNV-Förderung) importieren</Text>
+                                </Stack>
+                            </Link>
+                        </ChronicleCard>
+                    )}
+                    {canInfraplan && (
+                        <ChronicleCard style={{ textDecoration: "none" }}>
+                            <Link to="/admin/infraplan-import" style={{ textDecoration: "none", color: "inherit" }}>
+                                <Stack gap={4}>
+                                    <Text fw={500}>Infraplan-Import</Text>
+                                    <Text size="sm" c="dimmed">Infraplan (Fünfjahresplan Schiene) einlesen, zuordnen, Kennzahlen erfassen und freigeben</Text>
                                 </Stack>
                             </Link>
                         </ChronicleCard>
