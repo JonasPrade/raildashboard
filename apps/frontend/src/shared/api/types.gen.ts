@@ -5122,7 +5122,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "GAP" | "DUPLICATE" | "UNRESOLVED_REF" | "NO_LAYOUT" | "EMPTY_SECTION";
+            kind: "GAP" | "DUPLICATE" | "UNRESOLVED_REF" | "NO_LAYOUT" | "EMPTY_SECTION" | "UNREADABLE_TEXT" | "UNPARSED_COST";
             /** Section */
             section?: string | null;
             /** Lfd Nr */
