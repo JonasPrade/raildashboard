@@ -25,6 +25,10 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   writes leave an entry unconfirmed, the upload confirm and assignments by an editor in the
   UI confirm it. The project page marks unconfirmed entries and offers "Bestätigen". The
   upload stays as a second way. See `docs/features/feature-vib-import.md` → Phase 7.
+- **Drag & Drop für PDF-Uploads.** VIB-, Haushalts- und GVFG-Import sowie die Anhänge an
+  Projekttexten nehmen Dateien jetzt auch per Drag & Drop an, zusätzlich zum Dateidialog
+  (shared `FileDropZone` in `apps/frontend/src/shared/ui/`). Dateien mit falschem Typ werden
+  mit einer Meldung abgewiesen.
 - **MCP: GVFG-Bundesprogramm.** New read tools `list_gvfg_programs` (editions with year
   columns and counts), `list_gvfg_entries` (Vorhaben of an edition, search by key in any
   spelling or by name, filters Land, kind, part, Fördertatbestand, with/without project),

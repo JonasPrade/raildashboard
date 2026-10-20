@@ -21,6 +21,7 @@ import {
 import { exceedsUploadLimit, tooLargeMessage, uploadErrorMessage } from "../../shared/api/uploads";
 import { TaskProgressIndicator, useImportTask } from "../import-review/shared";
 import { ParseResultList } from "./components/ParseResultList";
+import { FileDropZone } from "../../shared/ui/FileDropZone";
 
 function HaushaltsImportPageContent() {
     const navigate = useNavigate();
@@ -70,31 +71,33 @@ function HaushaltsImportPageContent() {
                 <ChronicleCard>
                     <Stack gap="md">
                         <Text fw={600} size="md">Neuer Import</Text>
-                        <Group align="flex-end" gap="sm" wrap="wrap">
-                            <FileInput
-                                label="PDF-Datei (Anlage VWIB Teil B)"
-                                placeholder="PDF auswählen..."
-                                accept="application/pdf"
-                                value={file}
-                                onChange={setFile}
-                                w={320}
-                            />
-                            <NumberInput
-                                label="Haushaltsjahr"
-                                value={year}
-                                onChange={(v) => setYear(Number(v))}
-                                min={2000}
-                                max={2100}
-                                w={120}
-                            />
-                            <Button
-                                onClick={handleUpload}
-                                loading={startImport.isPending || isParsing}
-                                disabled={!file}
-                            >
-                                PDF parsen
-                            </Button>
-                        </Group>
+                        <FileDropZone accept="application/pdf" onFiles={([dropped]) => setFile(dropped)} label="PDF hier ablegen">
+                            <Group align="flex-end" gap="sm" wrap="wrap">
+                                <FileInput
+                                    label="PDF-Datei (Anlage VWIB Teil B)"
+                                    placeholder="PDF auswählen oder hierher ziehen…"
+                                    accept="application/pdf"
+                                    value={file}
+                                    onChange={setFile}
+                                    w={320}
+                                />
+                                <NumberInput
+                                    label="Haushaltsjahr"
+                                    value={year}
+                                    onChange={(v) => setYear(Number(v))}
+                                    min={2000}
+                                    max={2100}
+                                    w={120}
+                                />
+                                <Button
+                                    onClick={handleUpload}
+                                    loading={startImport.isPending || isParsing}
+                                    disabled={!file}
+                                >
+                                    PDF parsen
+                                </Button>
+                            </Group>
+                        </FileDropZone>
 
                         {isParsing && (
                             // Label and step come from the task itself — the page

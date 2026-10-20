@@ -34,7 +34,7 @@ const DEF: GuideDef = {
             title: "Hochladen und parsen",
             body: `Gehe zu [VIB-Import](/admin/vib-import) und fülle die Karte **„Neuer Import"** aus:
 
-1. **„PDF-Datei (Verkehrsinvestitionsbericht)"** auswählen — darunter erscheint eine PDF-Vorschau zum Blättern.
+1. **„PDF-Datei (Verkehrsinvestitionsbericht)"** auswählen oder die Datei per Drag & Drop auf das Feld ziehen — darunter erscheint eine PDF-Vorschau zum Blättern.
 2. **„Berichtsjahr"** eintragen.
 3. Optional **„OCR: von Seite" / „OCR: bis Seite"** auf die Seiten von Abschnitt B eingrenzen (in der PDF-Vorschau nachschlagen). Das spart OCR-Zeit; leer lassen für automatische Erkennung.
 4. **„Kopf- und Fußzeilen ignorieren"** angehakt lassen — entfernt wiederkehrende Seitenzahlen und Dokumenttitel aus dem Text.
