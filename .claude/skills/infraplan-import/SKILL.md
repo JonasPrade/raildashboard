@@ -44,7 +44,7 @@ Einzel-Tools nur für eine einzelne Korrektur.
 | `NUMBER` | Projektnummer des Vorjahres oder `project_number` des Projekts | 1.0 |
 | `GVFG_KEY` | GVFG-Schlüssel in `project_number` | 1.0 |
 | `PREVIOUS_YEAR` | gleiche Bezeichnung + Maßnahme im Vorjahr (Zeilen ohne Nummer) | 0.95 |
-| `ALIAS` | Deutschlandtakt-Kennung „DT nn“ = Alias des Projekts | 1.0 |
+| `ALIAS` | Deutschlandtakt-Kennung „DT nn“ = Alias des Projekts; nur ein Teil der Zeile („… inkl. DT 2“): 0.8 | 1.0 |
 | `CONTEXT` | Teilprojekt des Elternprojekts aus der Bezeichnung, Abschnittsnummer passt (0.9) oder Name eindeutig | bis 0.9 |
 | `FUZZY` | ähnlicher Name | Wert |
 

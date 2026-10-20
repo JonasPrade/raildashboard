@@ -579,9 +579,11 @@ Reihenfolge je Zeile (`tasks/infraplan_matching.py`), stärkster Vorschlag zuers
 3. **Projektnummer** (`NUMBER`, 1.0) — `primary_number` gleich `project_number`
    (normalisiert; z. B. „InvKG Nr. 6“); bei GVFG-Zeilen wie bisher der Schlüssel
    (`GVFG_KEY`).
-4. **Alias-Kennung** (`ALIAS`, 1.0) — `DT nn`, `PB nn`, `VDE n.n` aus Bezeichnung oder
-   Maßnahme gleich einem Alias des Projekts. Eine Zeile mit mehreren DT-Nummern
-   bekommt alle passenden Projekte.
+4. **Alias-Kennung** (`ALIAS`, 1.0) — `DT nn` aus Bezeichnung oder Maßnahme gleich
+   einem Alias des Projekts. Eine Zeile mit mehreren DT-Nummern bekommt alle passenden
+   Projekte. Nennt die Maßnahme vorher eine eigene Hauptmaßnahme („Elektrifizierung,
+   1gl. Vbk Bad Kleinen inkl. DT 2 …“), ist das DT-Projekt nur ein Teil der Zeile: 0.8,
+   ein Vorschlag neben der Hauptmaßnahme.
 5. **Kontext** (`CONTEXT`) — aus der Bezeichnung das Elternprojekt bestimmen
    („Großknoten München“ → Knoten München, „PB 07: ABS/NBS Karlsruhe – Basel“ → ABS/NBS
    Karlsruhe – Basel): die meisten Wörter seines Namens oder eines freien Alias stehen in
@@ -676,7 +678,15 @@ offline:
 | neu, 2026 als Vorjahr (Simulation 2027) | 270 | 257 (alle) | – | – | 13 |
 
 Die zwei „anders“: Sammelzeilen, die 2026 dem Elternprojekt zugeordnet wurden, das
-Matching wählt die darin benannten DT-Teilprojekte. Die 15: Zeilen, die erst nach der
+Matching wählt die darin benannten DT-Teilprojekte.
+
+**DT-Aliase:** `scripts/set_dt_aliases_2026.py` setzt 76 eindeutige Paare aus den
+Zeilen 2026 (DT-Nummer → D-Projekt, geprüft gegen die Projektnummer). Mit ihnen steigt
+der Lauf ohne Vorjahr auf 162 Zeilen ≥ 0,85 (131 wie 2026, 5 teilweise, 7 anders). Die
+sieben „anders“ sind reine DT-Listen („DT 157 Wustermark, DT 158 Rathenow, …“), die
+2026 dem Bündel bzw. Elternprojekt gehörten und jetzt den genannten DT-Projekten —
+nach der Regel „mehrere benannte Teilmaßnahmen → alle Teilprojekte“. Im Folgejahr gilt
+dort ohnehin die Vorjahreszuordnung. Die 15: Zeilen, die erst nach der
 Bestätigung zugeordnet wurden (Treffer genau auf die dafür angelegten Projekte über
 Projektnummer bzw. GVFG-Schlüssel) oder deren Ziel 2026 neu angelegt wurde. Ohne Aliase
 und Beschreibungen fehlen v. a. die Knoten mit Teilmaßnahmen ohne Namen (Köln,

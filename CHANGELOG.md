@@ -26,7 +26,10 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   search now also covers description and aliases. The KPIs with km and % are two KPIs
   each with clear names. Skill `infraplan-import` rewritten for batch calls and
   subagents. On the 271 rows of the Infraplan 2026, 145 rows reach ≥ 0.85 without a
-  previous year (before: 93).
+  previous year (before: 93), 162 with the DT aliases.
+- **One-off `scripts/set_dt_aliases_2026.py`** (run after the deploy, dry run first):
+  sets 76 Deutschlandtakt aliases read from the Infraplan 2026 rows; a project is only
+  changed while its number is the one the pair was read with. Idempotent.
 - **MCP: generic project filters.** `list_projects` takes a `filters` list of
   `{field, op, value}` conditions (AND), and the new tool `list_project_filters` publishes
   the catalog (fields, types, operators, enum values) from one registry, so the MCP can ask

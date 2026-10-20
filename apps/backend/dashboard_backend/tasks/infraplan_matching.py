@@ -64,6 +64,8 @@ CONF_CONTEXT_PARENT = 0.7
 _CAPPED_BEZEICHNUNG = 0.8
 # A word match among subprojects some of which are only "Teilmaßnahme n".
 CONF_UNNAMED_SIBLINGS = 0.8
+# A DT id that a row names besides its main measure ("… inkl. DT 2 …").
+CONF_ALIAS_PART = 0.8
 
 _PB_PREFIX = re.compile(r"^\s*PB\s*\d+[a-z]?\s*:\s*", re.IGNORECASE)
 
@@ -251,6 +253,17 @@ def identifiers(text: str | None) -> set[str]:
     found.update(f"PB {int(m.group(1))}" for m in _PB_RE.finditer(text))
     found.update(f"VDE {m.group(1).lower()}" for m in _VDE_RE.finditer(text))
     return found
+
+
+def _has_main_measure(massnahme: str | None) -> bool:
+    """True when the Maßnahme names something of its own before its first DT
+    id ("Elektrifizierung, 1gl. Vbk Bad Kleinen inkl DT 2 …"); false for rows
+    that are DT measures ("DT 87 Langes Feld – Stuttgart Hbf")."""
+    match = _DT_RE.search(massnahme or "")
+    if not match:
+        return False
+    before = normalize_text(massnahme[: match.start()])
+    return any(w not in _GENERIC and w not in _STOP and not w.isdigit() for w in _words(before))
 
 
 def split_aliases(aliases: Iterable[str]) -> tuple[set[str], list[str]]:
@@ -766,9 +779,12 @@ def suggest_rows(
             i for i in identifiers(f"{row.get('bezeichnung') or ''} {row.get('massnahme') or ''}")
             if i.startswith("DT")
         }
+        # "Elektrifizierung … inkl. DT 2 …": the DT measure is a part of the row,
+        # not the row — a suggestion next to the main measure, not a match.
+        alias_confidence = CONF_ALIAS_PART if _has_main_measure(row.get("massnahme")) else 1.0
         for ident in sorted(row_ids):
             for project in index.by_identifier.get(ident, []):
-                add(project.id, 1.0, REASON_ALIAS, detail=ident)
+                add(project.id, alias_confidence, REASON_ALIAS, detail=ident)
         context = _context(row, index)
         for confidence, project, detail in context:
             add(project.id, confidence, REASON_CONTEXT, detail=detail)

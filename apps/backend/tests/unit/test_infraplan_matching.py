@@ -239,3 +239,24 @@ def test_project_number_of_a_row_matches_the_project():
     )
 
     assert out["INVKG-1"][0] == {"project_id": 5, "confidence": 1.0, "reason": "NUMBER", "detail": "Projektnummer"}
+
+
+def test_dt_alias_beside_a_main_measure_is_only_a_suggestion():
+    projects = [
+        ProjectRef(1, "ABS Lübeck - Schwerin"),
+        ProjectRef(2, "Bahnhof Lübeck-Hochschulstadtteil", project_number="D-111", aliases=("DT 2",)),
+        ProjectRef(3, "NBS Langes Feld – Stuttgart Hbf", project_number="D-148", aliases=("DT 87",)),
+    ]
+    rows = [
+        _row("BP_A-1", bezeichnung="ABS Lübeck – Schwerin/",
+             massnahme="Elektrifizierung, 1gl� Vbk Bad Kleinen inkl DT 2 Lübeck – Lübeck Hochschulstadt"),
+        _row("BP_D-1", bezeichnung="PB 06: ABS/NBS Mannheim – Stuttgart – Ulm",
+             massnahme="DT 87 Langes Feld-Stuttgart Hbf (NBS)"),
+    ]
+
+    out = suggest_rows(rows, projects, {})
+
+    part = next(s for s in out["BP_A-1"] if s["project_id"] == 2)
+    assert (part["reason"], part["confidence"]) == ("ALIAS", 0.8)
+    assert 2 not in preselection(out["BP_A-1"], 0.85)[0]
+    assert preselection(out["BP_D-1"], 0.85) == ([3], "NUMBER")
