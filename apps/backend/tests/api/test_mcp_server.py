@@ -153,6 +153,7 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
         "list_text_types",
         "list_text_categories",
         "create_project",
+        "create_project_group",
         "compute_project_length",
         "update_project",
         "set_project_draft",
@@ -637,6 +638,54 @@ def test_delete_observation_needs_capability(mcp_client, db_session, monkeypatch
     assert result["isError"] is True
     assert "progress.edit" in result["content"][0]["text"]
     assert called == []
+
+
+def test_create_project_group(mcp_client, admin_token, db_session):
+    created = _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "create_project_group",
+            {"name": "Deutschlandtakt", "short_name": "DT", "color": "#123456"},
+        )
+    )
+    assert created["short_name"] == "DT"
+    assert created["color"] == "#123456"
+    assert created["public"] is False
+    group = db_session.get(ProjectGroup, created["id"])
+    assert group.name == "Deutschlandtakt"
+
+    listed = _payload(_call(mcp_client, admin_token, "list_project_groups", {"search": "DT"}))
+    assert [g["short_name"] for g in listed["groups"]] == ["DT"]
+
+
+def test_create_project_group_errors(mcp_client, admin_token, db_session):
+    _seed_projects(db_session)  # creates BP
+    duplicate = _call(
+        mcp_client, admin_token, "create_project_group", {"name": "Neu", "short_name": "bp"}
+    )
+    assert duplicate["isError"] is True
+    assert "bp" in duplicate["content"][0]["text"]
+
+    too_long = _call(
+        mcp_client, admin_token, "create_project_group", {"name": "Neu", "short_name": "x" * 21}
+    )
+    assert too_long["isError"] is True
+
+    empty = _call(
+        mcp_client, admin_token, "create_project_group", {"name": " ", "short_name": "ZZ"}
+    )
+    assert empty["isError"] is True
+
+
+def test_create_project_group_needs_capability(mcp_client, create_user, db_session):
+    admin = create_user("admin", "adminpass", UserRole.admin)
+    token = _key_for(db_session, admin, scopes=["mcp.access"])
+    result = _call(
+        mcp_client, token, "create_project_group", {"name": "Neu", "short_name": "NEU"}
+    )
+    assert result["isError"] is True
+    assert "projectgroup.create" in result["content"][0]["text"]
 
 
 def test_set_project_groups_logs_and_reverts(mcp_client, admin_token, db_session):

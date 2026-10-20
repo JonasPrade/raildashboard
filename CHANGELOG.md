@@ -12,6 +12,10 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **MCP: create project groups.** New tool `create_project_group` (`projectgroup.create`)
+  creates a group with name, unique short name, colour and visibility flags; duplicate
+  short names/names and over-long values are rejected. Projects are added afterwards with
+  `set_project_groups`.
 - **MCP: generic project filters.** `list_projects` takes a `filters` list of
   `{field, op, value}` conditions (AND), and the new tool `list_project_filters` publishes
   the catalog (fields, types, operators, enum values) from one registry, so the MCP can ask
