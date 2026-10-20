@@ -238,10 +238,28 @@ export const KPI_TOTAL_SERIES: Record<string, string> = {
     etcs_strecken_km: "Gesamtnetz",
 };
 
+/**
+ * How a KPI is laid out on the page, where the generic rules below do not fit:
+ * - "split": the sub-series are separate statements (overlapping shares),
+ *   one small chart each right in the card;
+ * - "grouped": bars side by side, not stacked (a running stock next to its
+ *   annual inflows and outflows is not additive);
+ * - "flow": one year split into Herkunft/Einsatz (Mittelherkunft), shown as
+ *   two ranked lists instead of a time chart.
+ */
+export const KPI_LAYOUT: Record<string, "split" | "grouped" | "flow"> = {
+    barrierefreie_bahnsteige: "split",
+    bp_einreichung_pf_unterlagen: "grouped",
+    mittelherkunft_mitteleinsatz: "flow",
+};
+
 export type KpiOverview = {
+    layout: "chart" | "split" | "flow";
     /** What the overview chart shows. */
     scope: KpiChartScope;
-    /** Sub-series that get their own chart in the detail view. */
+    /** Whether the Ist bars of several sub-series stack. */
+    stacked: boolean;
+    /** Sub-series that get their own chart (detail view, or inline for "split"). */
     detailSeries: string[];
     /** Short hint under the KPI name; null when nothing is collapsed. */
     note: string | null;
@@ -250,16 +268,45 @@ export type KpiOverview = {
 /**
  * With several sub-series the overview shows one line of numbers per year —
  * the series that is the whole (KPI_TOTAL_SERIES) or else their sum — and the
- * split goes to a detail view, one chart per remaining sub-series.
+ * split goes to a detail view, one chart per remaining sub-series. Ist-only
+ * splits stay a stack; KPI_LAYOUT overrides all of this.
  */
 export function kpiOverview(kpi: Pick<InfraplanPublicKpi, "key" | "values">): KpiOverview {
     const sub = kpiSubSeries(kpi);
-    if (sub.length < 2) return { scope: "all", detailSeries: [], note: null };
+    const plain = { layout: "chart" as const, scope: "all" as const, stacked: true, detailSeries: [], note: null };
+    const layout = KPI_LAYOUT[kpi.key];
+    if (layout === "flow") return { ...plain, layout: "flow" };
+    if (sub.length < 2) return plain;
+    if (layout === "split") return { ...plain, layout: "split", detailSeries: sub };
+    if (layout === "grouped") return { ...plain, stacked: false };
     const total = KPI_TOTAL_SERIES[kpi.key];
     if (total && sub.includes(total)) {
-        return { scope: { series: total }, detailSeries: sub.filter((s) => s !== total), note: total };
+        return { ...plain, scope: { series: total }, detailSeries: sub.filter((s) => s !== total), note: total };
     }
-    return { scope: "total", detailSeries: sub, note: `Summe aus ${sub.length} Kategorien` };
+    // Ist-only splits stay readable as a stack (the tooltip adds the sum);
+    // it is one target line per sub-series that clutters the chart.
+    if (!(kpi.values ?? []).some((v) => v.value_kind === "ZIEL" && v.series)) return plain;
+    return { ...plain, scope: "total", detailSeries: sub, note: `Summe aus ${sub.length} Kategorien` };
+}
+
+export type KpiFlowItem = { label: string; value: number };
+export type KpiFlow = { year: number; herkunft: KpiFlowItem[]; einsatz: KpiFlowItem[] };
+
+/**
+ * The newest Ist year of a Herkunft/Einsatz KPI, its series named
+ * "Herkunft: …" and "Einsatz: …", each side sorted by size.
+ */
+export function kpiFlow(kpi: Pick<InfraplanPublicKpi, "values">): KpiFlow | null {
+    const ist = (kpi.values ?? []).filter((v) => v.value_kind === "IST" && v.series);
+    if (ist.length === 0) return null;
+    const year = Math.max(...ist.map((v) => v.year));
+    const reportYear = Math.max(...ist.filter((v) => v.year === year).map((v) => v.report_year));
+    const side = (prefix: string) =>
+        ist
+            .filter((v) => v.year === year && v.report_year === reportYear && v.series!.startsWith(prefix))
+            .map((v) => ({ label: v.series!.slice(prefix.length).trim(), value: v.value }))
+            .sort((a, b) => b.value - a.value);
+    return { year, herkunft: side("Herkunft:"), einsatz: side("Einsatz:") };
 }
 
 /**
@@ -359,6 +406,12 @@ export function buildKpiChart(
         });
     }
 
+    // Without any target the "Ist – " prefix says nothing; name the sub-series only.
+    if (![...seriesMap.values()].some((x) => x.type === "line")) {
+        for (const x of seriesMap.values()) {
+            if (!x.yAxisId && x.label.startsWith("Ist – ")) x.label = x.label.slice("Ist – ".length);
+        }
+    }
     const data = [...rows.entries()].sort(([a], [b]) => a - b).map(([, row]) => row);
     // Bars first (drawn underneath), then lines from newest to oldest target.
     const series = [...seriesMap.values()].sort((a, b) => {
@@ -367,6 +420,46 @@ export function buildKpiChart(
         return a.type === "bar" ? 0 : b.label.localeCompare(a.label, "de");
     });
     return { data, series, istReportYear };
+}
+
+/**
+ * KPIs whose values all sit in a narrow band far from zero (a rate close to
+ * 100 %), where a zero-based axis shows only equal bars. Their left axis
+ * starts near the smallest value instead; the page says so under the chart.
+ */
+export const KPI_ZOOMED_AXIS = new Set(["stellwerksbesetzungsquote"]);
+
+/** Whole-number axis range around the main-axis values, with headroom below. */
+export function zoomedDomain(chart: Pick<KpiChart, "data" | "series">, unit?: string | null): [number, number] | null {
+    const keys = chart.series.filter((s) => s.yAxisId !== "right").map((s) => s.name);
+    const values = chart.data.flatMap((row) =>
+        keys.map((k) => row[k]).filter((v): v is number => typeof v === "number"),
+    );
+    if (values.length === 0) return null;
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const span = max - min || 1;
+    const hi = Math.ceil(max + span / 4);
+    // A rate never exceeds 100 %.
+    return [Math.floor(min - span), unit === "%" ? Math.min(hi, Math.max(100, Math.ceil(max))) : hi];
+}
+
+/** Name of the synthetic tooltip row that carries the stack total. */
+export const STACK_TOTAL_KEY = "__summe";
+
+/**
+ * Sum of the stacked main-axis bars in a tooltip payload; null when fewer
+ * than two of them have a value (a single bar is its own total).
+ */
+export function stackTotal(
+    payload: readonly { name?: string | number; value?: unknown }[],
+    series: Pick<KpiChartSeries, "name" | "type" | "yAxisId">[],
+): number | null {
+    const stacked = new Set(series.filter((s) => s.type === "bar" && s.yAxisId !== "right").map((s) => s.name));
+    const values = payload
+        .filter((p) => stacked.has(String(p.name)) && typeof p.value === "number")
+        .map((p) => p.value as number);
+    return values.length < 2 ? null : values.reduce((a, b) => a + b, 0);
 }
 
 /** KPIs grouped by kind, then category, each list in sort order. */

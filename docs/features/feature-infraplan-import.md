@@ -334,8 +334,10 @@ fehlt, zuvor aber enthalten war. Mobil über `ResponsiveTable`.
 **Öffentliche Seite `/infraplan`:** Kennzahlen gruppiert nach Kategorie, je Kennzahl ein
 Diagramm: Ist-Werte aus dem neuesten Jahrgang als Balken/Linie, Zielwerte **jedes**
 Jahrgangs als eigene Linie („Ziel IP 2026“, „Ziel IP 2027“), sodass Zielverschiebungen
-sichtbar sind. Hat eine Kennzahl mehrere Teilreihen (`series`, z. B. die KMM-Kategorien),
-zeigt die Übersicht nur deren Summe je Jahr; der Button „Details“ öffnet eine Ansicht
+sichtbar sind. Teilreihen (`series`) nur mit Ist-Werten (z. B. Betriebsleistung nach
+SPNV/SPFV/SGV) bleiben ein Stapel; der Tooltip nennt zusätzlich die Summe. Hat eine
+Kennzahl Zielwerte je Teilreihe (z. B. die KMM-Kategorien), zeigt die Übersicht nur
+deren Summe je Jahr; der Button „Details“ öffnet eine Ansicht
 mit einem Diagramm je Teilreihe (Ist und Ziele der Kategorie). Sind die Teilreihen nicht
 additiv, weil eine davon schon das Ganze ist (ETCS: „Gesamtnetz“, die TEN-Netze sind
 Teilmengen), zeigt die Übersicht diese Teilreihe und die Details die übrigen
@@ -343,7 +345,14 @@ Teilmengen), zeigt die Übersicht diese Teilreihe und die Details die übrigen
 Aussage in anderer Einheit (ETCS-Strecken-km und Ausrüstungsgrad in %), steht die
 Begleitkennzahl als zweiter Balken daneben auf einer eigenen rechten Skala, in der
 Übersicht wie in jedem Detaildiagramm; eine eigene Karte bekommt sie nicht
-(`KPI_COMPANION`). Nur Werte mit Status
+(`KPI_COMPANION`). Sonderfälle legt `KPI_LAYOUT` fest: Barrierefreie Bahnsteige
+(überlappende Anteile je Merkmal) als kleine Einzeldiagramme in der Karte,
+Planfeststellungsanträge (Bestand neben Zu- und Abgängen) als Balken nebeneinander,
+Mittelherkunft und -einsatz (ein Jahr, Herkunft/Einsatz je `series`-Präfix) als zwei
+Ranglisten mit Anteilsbalken statt Zeitreihe. Werte nahe 100 % (Stellwerksbesetzungsquote,
+`KPI_ZOOMED_AXIS`) bekommen eine Achse, die knapp unter dem kleinsten Wert beginnt, mit
+Hinweis unter dem Diagramm. Kurze Einheiten (km, %) stehen an der Achse, längere
+(„Mio. Trkm“) unter dem Titel; der Tooltip nennt die Einheit je Reihe. Nur Werte mit Status
 `GEPRUEFT`. Darunter je Jahrgang die Liste der Maßnahmen mit Link aufs Projekt.
 Navigationseintrag „Infraplan“. Die Startseite bleibt vorerst unverändert.
 

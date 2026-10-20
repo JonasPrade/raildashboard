@@ -162,7 +162,8 @@ export const featureHighlights: FeatureHighlight[] = [
         description:
             "Die öffentliche Seite Infraplan zeigt die Kennzahlen als Diagramme (bei Kennzahlen mit Kategorien wie den KMM die Summe bzw. das Gesamtnetz, " +
             "ETCS mit dem Ausrüstungsgrad als zweitem Balken auf eigener Skala, " +
-            "über „Details“ ein Diagramm je Kategorie) und je Jahrgang die Liste der Maßnahmen " +
+            "über „Details“ ein Diagramm je Kategorie; barrierefreie Bahnsteige je Merkmal, Mittelherkunft und -einsatz " +
+            "als Ranglisten, gestapelte Balken mit Summe im Tooltip) und je Jahrgang die Liste der Maßnahmen " +
             "mit Link aufs Projekt. Auf der Projektseite stehen die Infraplan-Einträge aller Jahrgänge und die Gesamtkostenprognose.",
         details: [
             "Je Kennzahl ein Diagramm: Ist-Werte des neuesten Jahrgangs als (gestapelte) Balken, Zielwerte jedes Jahrgangs als eigene Linie („Ziel IP 2026“); nur geprüfte Werte",
