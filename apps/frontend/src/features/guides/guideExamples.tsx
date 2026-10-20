@@ -227,7 +227,7 @@ function VibImportFormExample() {
             <Group align="flex-end" gap="sm" wrap="wrap">
                 <FileInput
                     label="PDF-Datei (Verkehrsinvestitionsbericht)"
-                    placeholder="PDF auswählen..."
+                    placeholder="PDF auswählen oder hierher ziehen…"
                     w={300}
                 />
                 <NumberInput label="Berichtsjahr" defaultValue={2025} w={120} />
