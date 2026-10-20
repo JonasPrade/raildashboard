@@ -27,6 +27,7 @@ import {
 import { exceedsUploadLimit, tooLargeMessage, uploadErrorMessage } from "../../shared/api/uploads";
 import { TaskProgressIndicator, useImportTask } from "../import-review/shared";
 import { formatDateNumeric, formatDateTime } from "../../shared/format";
+import { FileDropZone } from "../../shared/ui/FileDropZone";
 
 function VibImportPageContent() {
     const navigate = useNavigate();
@@ -114,24 +115,26 @@ function VibImportPageContent() {
                             Berichtsjahr XXXX" hochladen. Es wird nur Abschnitt B
                             (Schienenwege) importiert.
                         </Text>
-                        <Group align="flex-end" gap="sm" wrap="wrap">
-                            <FileInput
-                                label="PDF-Datei (Verkehrsinvestitionsbericht)"
-                                placeholder="PDF auswählen..."
-                                accept="application/pdf"
-                                value={file}
-                                onChange={setFile}
-                                w={380}
-                            />
-                            <NumberInput
-                                label="Berichtsjahr"
-                                value={year}
-                                onChange={(v) => setYear(Number(v))}
-                                min={2000}
-                                max={2100}
-                                w={120}
-                            />
-                        </Group>
+                        <FileDropZone accept="application/pdf" onFiles={([dropped]) => setFile(dropped)} label="PDF hier ablegen">
+                            <Group align="flex-end" gap="sm" wrap="wrap">
+                                <FileInput
+                                    label="PDF-Datei (Verkehrsinvestitionsbericht)"
+                                    placeholder="PDF auswählen oder hierher ziehen…"
+                                    accept="application/pdf"
+                                    value={file}
+                                    onChange={setFile}
+                                    w={380}
+                                />
+                                <NumberInput
+                                    label="Berichtsjahr"
+                                    value={year}
+                                    onChange={(v) => setYear(Number(v))}
+                                    min={2000}
+                                    max={2100}
+                                    w={120}
+                                />
+                            </Group>
+                        </FileDropZone>
                         <Group align="flex-end" gap="sm" wrap="wrap">
                             <NumberInput
                                 label="OCR: von Seite (optional)"
