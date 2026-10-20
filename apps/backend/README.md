@@ -125,7 +125,7 @@ A bearer key on these endpoints gets `403` — a key cannot mint or revoke keys.
 `dashboard_backend/mcp/` mounts an MCP server (SDK `mcp`, `MCPServer`) at `/mcp` —
 Streamable HTTP, stateless, JSON responses, disabled with `MCP_ENABLED=false`. Only bearer
 keys holding `mcp.access` get in (admin-only for now); tools call the CRUD layer directly
-and check the key's capabilities before writing. Tools: `list_project_groups`, `list_projects`,
+and check the key's capabilities before writing. Tools: `list_project_groups`, `list_projects` (named filters plus a generic `filters` list), `list_project_filters` (catalog of filterable fields),
 `get_project`, `get_project_progress`, `list_project_finves`, `list_finves`, `get_finve`
 (free FinVe search by number, name or Bedarfsplan number), `list_gvfg_programs`,
 `list_gvfg_entries`, `get_gvfg_entry` (with the key's history across editions),

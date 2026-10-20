@@ -12,6 +12,15 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **MCP: generic project filters.** `list_projects` takes a `filters` list of
+  `{field, op, value}` conditions (AND), and the new tool `list_project_filters` publishes
+  the catalog (fields, types, operators, enum values) from one registry, so the MCP can ask
+  what is filterable instead of the tool signature growing per request. Fields: `name`,
+  `project_number`, `description` (text operators incl. `starts_with`, `contains`,
+  `is_empty`), `closure` (Stilllegung), `phase`, `lifecycle_status`, `project_group`,
+  `superior_project_id`, `length`, `is_known`, `has_geometry`, `has_length`,
+  `parl_befassung_relevant`, `last_change`. The existing named parameters keep working and
+  run through the same registry.
 - **Import-created projects are drafts (#204).** The GVFG import now creates new projects
   with `is_draft = true` (the review dialog says so); the link to the Vorhaben stays and its
   funding data keeps counting in GVFG sums. MCP: `create_project` creates drafts unless
