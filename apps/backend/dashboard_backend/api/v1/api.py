@@ -1,6 +1,6 @@
 # dashboard_backend/api/v1/api.py
 from fastapi import APIRouter
-from .endpoints import auth, health, operational_points, project_routes, project_texts, projects, project_groups, project_progress, users, tasks, todos, haushalt_import, finves, settings, vib_import, bauportal_import, media_import, fulda_import, infraplan_import, infraplan, admin_assignments, roles, permissions, guides, parliament, api_keys, gvfg
+from .endpoints import auth, health, operational_points, project_routes, project_texts, projects, project_groups, project_progress, users, tasks, todos, haushalt_import, finves, settings, vib_import, bauportal_import, media_import, fulda_import, infraplan_import, infraplan, admin_assignments, roles, permissions, guides, parliament, api_keys, gvfg, system
 
 api_router = APIRouter()
 api_router.include_router(health.router, tags=["health"])
@@ -13,6 +13,7 @@ api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(project_routes.router, tags=["routes"])
 api_router.include_router(project_texts.router, tags=["texts"])
 api_router.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
+api_router.include_router(system.router, prefix="/system", tags=["system"])
 api_router.include_router(todos.router, prefix="/todos", tags=["todos"])
 api_router.include_router(haushalt_import.router, prefix="/import/haushalt", tags=["haushalt-import"])
 api_router.include_router(finves.router, prefix="/finves", tags=["finves"])

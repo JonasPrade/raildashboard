@@ -12,6 +12,9 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **Routing service in the system status.** `/admin/system` now shows whether GraphHopper is
+  reachable (status, response time, next step on failure). New endpoint
+  `GET /api/v1/system/routing` (`settings.manage`).
 - **Text categories and internal texts.** Project texts get a category next to their type
   (seeded „Info“ and „Warnung“; editors add more with one of the fixed styles neutral, info,
   warning, critical). Warning and critical texts are highlighted with a left border. Texts can
