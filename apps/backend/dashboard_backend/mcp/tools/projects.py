@@ -7,6 +7,7 @@ window, so lists are paginated and geometries (``geojson_representation``,
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
@@ -16,7 +17,7 @@ from mcp.server.mcpserver import Context, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
 from pydantic import BaseModel, ConfigDict, ValidationError
-from sqlalchemy import and_, exists, func, not_, or_, select
+from sqlalchemy import String, and_, cast, exists, func, not_, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from dashboard_backend.crud.changelog import (
@@ -108,8 +109,23 @@ def _project_dict(project: Project) -> dict[str, Any]:
     return ProjectSchema.model_validate(project).model_dump(mode="json", exclude=_GEOMETRY_FIELDS)
 
 
+_SENTENCE_END = re.compile(r"(?<=[^\s.]{3}[.!?])\s")
+_SHORT_DESCRIPTION = 200
+
+
+def short_description(text: str | None) -> str | None:
+    """First sentence of a description, at most 200 characters."""
+    if not text or not text.strip():
+        return None
+    text = " ".join(text.split())
+    first = _SENTENCE_END.split(text, maxsplit=1)[0]
+    if len(first) > _SHORT_DESCRIPTION:
+        first = first[: _SHORT_DESCRIPTION - 1].rstrip() + "…"
+    return first
+
+
 def _project_summary(
-    project: Project, phase: str | None, is_known: bool | None = None
+    project: Project, phase: str | None, is_known: bool | None = None, with_description: bool = False
 ) -> dict[str, Any]:
     summary = {
         "id": project.id,
@@ -122,6 +138,9 @@ def _project_summary(
     }
     if is_known is not None:
         summary["is_known"] = is_known
+    if with_description:
+        summary["short_description"] = short_description(project.description)
+        summary["aliases"] = list(project.aliases or [])
     return summary
 
 
@@ -599,12 +618,18 @@ def list_projects(
     descending: bool = False,
     limit: int = 50,
     offset: int = 0,
+    with_description: bool = False,
     *,
     ctx: Context,
 ) -> dict[str, Any]:
     """Search projects (drafts excluded unless ``drafts`` says otherwise), sorted by name unless ``order_by`` says otherwise.
 
-    - search: case-insensitive substring of name or project number
+    - search: case-insensitive substring of name, project number, description
+      or an alias ("DT 38", "Gäubahn")
+    - with_description: true adds the first sentence of the description
+      (``short_description``, max. 200 characters) and the ``aliases`` to every
+      entry — e.g. with superior_project_id to tell subprojects named only
+      "Teilmaßnahme 3" apart without get_project per project
     - project_group: id, short name or name of a project group (case-insensitive,
       see list_project_groups); a list matches projects in all of the groups
     - phase: planning phase (cached headline; manual override wins)
@@ -643,7 +668,12 @@ def list_projects(
         if search:
             pattern = f"%{search.strip()}%"
             query = query.filter(
-                or_(Project.name.ilike(pattern), Project.project_number.ilike(pattern))
+                or_(
+                    Project.name.ilike(pattern),
+                    Project.project_number.ilike(pattern),
+                    Project.description.ilike(pattern),
+                    cast(Project.aliases, String).ilike(pattern),
+                )
             )
         groups = [project_group] if isinstance(project_group, str) else project_group or []
         # The named parameters are shortcuts for registry filters; a list of groups
@@ -688,7 +718,7 @@ def list_projects(
             "offset": offset,
             "limit": limit,
             "projects": [
-                _project_summary(project, row_phase, bool(row_known))
+                _project_summary(project, row_phase, bool(row_known), with_description)
                 for project, row_phase, row_known in rows
             ],
         }
@@ -892,6 +922,10 @@ def update_project(project_id: int, changes: dict[str, Any], *, ctx: Context) ->
     set_project_draft); use
     set_project_groups for the group assignment. ``length`` comes from the
     geometry: set it with compute_project_length, not from published figures.
+    ``aliases`` replaces the list of other names and ids, e.g.
+    {"aliases": ["DT 38", "Gäubahn"]} — a Deutschlandtakt id "DT nn" counts as a
+    sure hit when the Infraplan import matches rows, free aliases help the name
+    matching and the search.
     Every change is written to the project changelog and can be reverted in the UI."""
     principal = get_principal(ctx)
     require(principal, "project.edit")

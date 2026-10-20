@@ -326,3 +326,25 @@ def test_check_geometry_needs_exactly_one_target(mcp_client, admin_token, db_ses
     assert _call(
         mcp_client, admin_token, "check_geometry", {"project_id": complete.id, "project_group": "TG"}
     )["isError"]
+
+
+def test_check_project_data_lists_findings(mcp_client, admin_token, db_session):
+    parent = Project(name="Knoten Mannheim")
+    db_session.add(parent)
+    db_session.flush()
+    db_session.add_all(
+        [
+            Project(name="Knoten Mannheim Teilmaßnahme 8", project_number="K-004-V01 TM8", superior_project_id=parent.id),
+            Project(name="Pfaffensteigtunnel", project_number="K-004-V01 TM8", superior_project_id=parent.id),
+            Project(name="S-Bahn S4 Hamburg", project_number="01 D 508_A"),
+        ]
+    )
+    db_session.commit()
+
+    result = _payload(_call(mcp_client, admin_token, "check_project_data", {}))
+
+    assert result["duplicate_number"]["count"] == 1
+    assert result["unnamed_subproject"]["findings"][0]["name"] == "Knoten Mannheim Teilmaßnahme 8"
+    assert result["gvfg_land_mismatch"]["count"] == 0
+    only = _payload(_call(mcp_client, admin_token, "check_project_data", {"checks": ["duplicate_sibling_name"]}))
+    assert list(only) == ["duplicate_sibling_name"]

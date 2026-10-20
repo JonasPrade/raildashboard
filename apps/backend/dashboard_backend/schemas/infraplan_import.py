@@ -27,11 +27,18 @@ class InfraplanCostRef(BaseModel):
 
 
 class InfraplanSuggestion(BaseModel):
-    """A project suggested for a row (``reason``: NUMBER | GVFG_KEY | FUZZY)."""
+    """A project suggested for a row. ``reason``: NUMBER (number of an earlier
+    year or the project's own number), GVFG_KEY, PREVIOUS_YEAR (same text in an
+    earlier year), ALIAS (Deutschlandtakt id), CONTEXT (subproject of the
+    parent named by the Bezeichnung), FUZZY (name). ``detail`` says what
+    matched; ``previous_note`` is the note of the earlier year's assignment."""
 
     project_id: int
     confidence: float
-    reason: Literal["NUMBER", "GVFG_KEY", "FUZZY"]
+    reason: Literal["NUMBER", "GVFG_KEY", "PREVIOUS_YEAR", "ALIAS", "CONTEXT", "FUZZY"]
+    detail: Optional[str] = None
+    previous_year: Optional[int] = None
+    previous_note: Optional[str] = None
 
 
 class InfraplanParsedRow(BaseModel):
@@ -233,7 +240,8 @@ class InfraplanApplyResult(BaseModel):
 
 
 class InfraplanSubprojectCreate(BaseModel):
-    parent_id: int
+    # Without a parent the project is created on its own (draft, no geometry).
+    parent_id: Optional[int] = None
     name: Optional[str] = Field(None, max_length=255)
 
 

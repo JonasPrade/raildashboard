@@ -240,7 +240,7 @@ def ensure_default_kpis(db: Session) -> int:
     for order, kpi in enumerate(DEFAULT_KPIS):
         if kpi["key"] in existing:
             continue
-        db.add(InfraplanKpi(sort_order=order * 10, **kpi))
+        db.add(InfraplanKpi(**{"sort_order": order * 10, **kpi}))
         created += 1
     if created:
         db.flush()

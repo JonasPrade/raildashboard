@@ -313,7 +313,9 @@ def test_reparse_suggests_previous_year_number(db_session):
     crud.save_parse_output(db_session, draft, output, [], [])
 
     saved = draft.result_json["rows"][0]
-    assert saved["suggestions"] == [{"project_id": p.id, "confidence": 1.0, "reason": "NUMBER"}]
+    assert saved["suggestions"] == [
+        {"project_id": p.id, "confidence": 1.0, "reason": "NUMBER", "previous_year": 2026}
+    ]
     assert saved["project_ids"] == [p.id]
     assert saved["assignment_source"] == "NUMBER"
 

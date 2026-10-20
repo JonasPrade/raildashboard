@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Index, String, Float, Boolean, ForeignKey, Text
+from sqlalchemy import Column, Integer, Index, JSON, String, Float, Boolean, ForeignKey, Text
 from sqlalchemy.orm import relationship
 
 from dashboard_backend.models.base import Base
@@ -15,6 +15,9 @@ class Project(Base):
     superior_project_old_id = Column(Integer, nullable=True)  # for old projects that have been migrated
     description = Column(String, nullable=True)
     justification = Column(String, nullable=True)
+    # Other names and ids of the measure ("DT 38", "Gäubahn"): matched by the
+    # Infraplan import and found by the project search.
+    aliases = Column(JSON, nullable=True)
 
     # Draft state: new projects started in the creation wizard are drafts until
     # explicitly finalized. Drafts are hidden from the public list/map (see

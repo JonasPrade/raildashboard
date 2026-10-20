@@ -906,26 +906,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/system/routing": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Routing Health
-         * @description Is GraphHopper reachable right now? Probed on every call (one bounded request).
-         */
-        get: operations["get_routing_health_api_v1_system_routing_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/tasks/workers": {
         parameters: {
             query?: never;
@@ -983,6 +963,26 @@ export interface paths {
          * @description Start the debug add-task and return its task_id for polling.
          */
         post: operations["start_debug_task_api_v1_tasks_debug_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/system/routing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Routing Health
+         * @description Is GraphHopper reachable right now? Probed on every call (one bounded request).
+         */
+        get: operations["get_routing_health_api_v1_system_routing_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2053,8 +2053,9 @@ export interface paths {
         put?: never;
         /**
          * Create Subproject
-         * @description Create a subproject under ``parent_id`` (named after the row unless
-         *     ``name`` is given) and assign the row to it.
+         * @description Create a subproject under ``parent_id`` — or, without, a project of its
+         *     own — named after the row unless ``name`` is given, and assign the row to
+         *     it. Only on an open draft; confirmed years go through „Offene Zuordnungen“.
          */
         post: operations["create_subproject_api_v1_import_infraplan_parse_result__parse_result_id__rows__row_key__subproject_post"];
         delete?: never;
@@ -5086,7 +5087,7 @@ export interface components {
         /** InfraplanSubprojectCreate */
         InfraplanSubprojectCreate: {
             /** Parent Id */
-            parent_id: number;
+            parent_id?: number | null;
             /** Name */
             name?: string | null;
         };
@@ -5100,7 +5101,11 @@ export interface components {
         };
         /**
          * InfraplanSuggestion
-         * @description A project suggested for a row (``reason``: NUMBER | GVFG_KEY | FUZZY).
+         * @description A project suggested for a row. ``reason``: NUMBER (number of an earlier
+         *     year or the project's own number), GVFG_KEY, PREVIOUS_YEAR (same text in an
+         *     earlier year), ALIAS (Deutschlandtakt id), CONTEXT (subproject of the
+         *     parent named by the Bezeichnung), FUZZY (name). ``detail`` says what
+         *     matched; ``previous_note`` is the note of the earlier year's assignment.
          */
         InfraplanSuggestion: {
             /** Project Id */
@@ -5111,7 +5116,13 @@ export interface components {
              * Reason
              * @enum {string}
              */
-            reason: "NUMBER" | "GVFG_KEY" | "FUZZY";
+            reason: "NUMBER" | "GVFG_KEY" | "PREVIOUS_YEAR" | "ALIAS" | "CONTEXT" | "FUZZY";
+            /** Detail */
+            detail?: string | null;
+            /** Previous Year */
+            previous_year?: number | null;
+            /** Previous Note */
+            previous_note?: string | null;
         };
         /**
          * InfraplanWarning
@@ -5656,6 +5667,8 @@ export interface components {
             justification?: string | null;
             /** Superior Project Id */
             superior_project_id?: number | null;
+            /** Aliases */
+            aliases?: string[] | null;
             /** Is Draft */
             is_draft?: boolean | null;
             /** Geojson From Subprojects */
@@ -6214,6 +6227,8 @@ export interface components {
             description?: string | null;
             /** Justification */
             justification?: string | null;
+            /** Aliases */
+            aliases?: string[] | null;
             /**
              * Is Draft
              * @default false
@@ -6612,6 +6627,8 @@ export interface components {
             justification?: string | null;
             /** Superior Project Id */
             superior_project_id?: number | null;
+            /** Aliases */
+            aliases?: string[] | null;
             /** Is Draft */
             is_draft?: boolean | null;
             /** Geojson From Subprojects */
@@ -6903,6 +6920,29 @@ export interface components {
             properties: {
                 [key: string]: unknown;
             };
+        };
+        /**
+         * RoutingHealthSchema
+         * @description The routing service (GraphHopper) at one moment.
+         */
+        RoutingHealthSchema: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "error" | "unreachable";
+            /** Base Url */
+            base_url: string;
+            /** Http Status */
+            http_status?: number | null;
+            /** Latency Ms */
+            latency_ms?: number | null;
+            /** Message */
+            message: string;
+            /** Detail */
+            detail?: string | null;
+            /** Checked At */
+            checked_at: number;
         };
         /** SammelFinveProgressSchema */
         SammelFinveProgressSchema: {
@@ -7907,29 +7947,6 @@ export interface components {
             lat: number;
             /** Lon */
             lon: number;
-        };
-        /**
-         * RoutingHealthSchema
-         * @description The routing service (GraphHopper) at one moment.
-         */
-        RoutingHealthSchema: {
-            /**
-             * Status
-             * @enum {string}
-             */
-            status: "ok" | "error" | "unreachable";
-            /** Base Url */
-            base_url: string;
-            /** Http Status */
-            http_status?: number | null;
-            /** Latency Ms */
-            latency_ms?: number | null;
-            /** Message */
-            message: string;
-            /** Detail */
-            detail?: string | null;
-            /** Checked At */
-            checked_at: number;
         };
         /**
          * WorkerHealthSchema
@@ -9891,28 +9908,6 @@ export interface operations {
             };
         };
     };
-    get_routing_health_api_v1_system_routing_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: {
-                session?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RoutingHealthSchema"];
-                };
-            };
-        };
-    };
     get_task_status_api_v1_tasks__task_id__get: {
         parameters: {
             query?: never;
@@ -9968,6 +9963,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaskLaunchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_routing_health_api_v1_system_routing_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoutingHealthSchema"];
                 };
             };
             /** @description Validation Error */

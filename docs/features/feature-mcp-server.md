@@ -211,7 +211,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | Tool | Wirkung | benötigte Capability |
 |---|---|---|
 | `list_project_groups` | Projektgruppen mit Projektanzahl, optional per Freitext | — (eingeloggt) |
-| `list_projects` | Projekte suchen/filtern (Text, Projektgruppe(n), Phase, Planungsstand bekannt, Geometrie, Länge, Lebenszyklus, Parl. Befassung, geändert seit), sortieren | — (eingeloggt) |
+| `list_projects` | Projekte suchen/filtern (Text in Name, Nummer, Beschreibung und Aliasen; Projektgruppe(n), Phase, Planungsstand bekannt, Geometrie, Länge, Lebenszyklus, Parl. Befassung, geändert seit), sortieren; `with_description` liefert je Eintrag den ersten Satz der Beschreibung und die Aliase | — (eingeloggt) |
 | `list_project_filters` | Katalog der Filter von `list_projects`: Felder, Typen, Operatoren, Enum-Werte | — |
 | `get_project` | Projektdetail inkl. BVWP-Daten und Unterprojekten | — |
 | `get_project_progress` | Planungsstand inkl. Beobachtungen und Prognose | — |
@@ -224,8 +224,8 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `list_project_gvfg` | GVFG-Förderung eines Projekts über alle Ausgaben, optional mit direkten Teilprojekten | — |
 | `assign_gvfg_entry` | Projekte eines Vorhabens setzen (ersetzt die bisherigen), optional für alle Ausgaben; ergänzt die Gruppen „GVFG“/„GVFG BW“ | `assignment.manage` |
 | `get_project_infraplan` | Infraplan-Einträge eines Projekts über alle Jahrgänge, Gesamtkostenprognose, „nicht mehr im Infraplan“ | — |
-| `list_infraplan_drafts` · `get_infraplan_draft` · `get_infraplan_page_image` · `list_infraplan_kpis` · `get_infraplan_kpi_values` | Infraplan-Import lesen: Entwürfe mit Warnungen, Zeilen mit Vorschlägen, Seitenbild (Bild-Content), Kennzahlen (siehe `feature-infraplan-import.md` → „MCP & Skill“) | `infraplan.import` |
-| `start_infraplan_parse` · `apply_infraplan_suggestions` · `assign_infraplan_row` · `create_infraplan_subproject` · `confirm_infraplan_import` · `set_infraplan_kpi_values` | Infraplan-Import führen: neu auslesen, Vorschläge übernehmen, begründet zuordnen (`AGENT`), Teilprojekt anlegen, bestätigen (nie bei Parser-Warnungen), Kennzahlen ungeprüft schreiben | `infraplan.import` |
+| `list_infraplan_drafts` · `get_infraplan_draft` (auch `compact`) · `get_infraplan_page_text` · `suggest_infraplan_kpi_values` · `get_infraplan_page_image` · `list_infraplan_kpis` · `get_infraplan_kpi_values` | Infraplan-Import lesen: Entwürfe mit Warnungen, Zeilen mit Vorschlägen (kompakt über alle Abschnitte), Seitentext mit Positionen, Kennzahl-Vorschläge aus dem Text, Seitenbild (Bild-Content), Kennzahlen (siehe `feature-infraplan-import.md` → „MCP & Skill“, „Ausbau für den Import 2027“) | `infraplan.import` |
+| `start_infraplan_parse` · `apply_infraplan_suggestions` · `assign_infraplan_row(s)` · `create_infraplan_subproject(s)` · `confirm_infraplan_import` · `set_infraplan_kpi_values` | Infraplan-Import führen: neu auslesen, Vorschläge übernehmen, begründet zuordnen (`AGENT`, einzeln oder gesammelt mit Ergebnis je Zeile), Teilprojekt oder eigenständiges Entwurfsprojekt anlegen (auch nach der Bestätigung), bestätigen (nie bei Parser-Warnungen), Kennzahlen ungeprüft schreiben | `infraplan.import` |
 | `get_project_texts` | Projekttexte nach Typ, mit Kategorie und Sichtbarkeit | — |
 | `list_text_types` | Texttypen (für `text_type_id`) | — |
 | `list_text_categories` | Textkategorien mit Stil (für `category_id`) | — |
@@ -246,6 +246,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `edit_project_geometry` | Linien/Punkte aus Koordinaten, Betriebsstellen als Punkte, Features löschen | `project.edit` |
 | `list_data_gaps` | Projekte mit fehlenden/veralteten Daten, Lücken je Projekt und Zählung (siehe *Datenpflege*) | — |
 | `check_geometry` | Geometrie-Plausibilität für ein Projekt oder eine Gruppe (siehe *Datenpflege*) | — |
+| `check_project_data` | Prüfliste Stammdaten: doppelte Projektnummern, namensgleiche Teilprojekte, GVFG-Ländercode ≠ Land, Teilmaßnahmen ohne Namen (siehe `feature-infraplan-import.md` → „Datenqualität“) | — |
 | `list_skills` | Skills für die Arbeit über den MCP (Name, Beschreibung), siehe *Skills über MCP* | — |
 | `get_skill` | Anleitung eines Skills (Text der `SKILL.md`, optional eine Begleitdatei) | — |
 | `create_todo` | Aufgabe anlegen | `todo.create` |
@@ -349,7 +350,7 @@ Client-seitig (Claude Code, `.mcp.json`):
 - **Scopes in der UI**: zwei Presets — „Nur lesen" (Default, `scopes =
   ["mcp.access"]`) und „Wie mein Nutzer" (`scopes = NULL`). Die API nimmt
   weiterhin eine freie Liste gültiger Capability-Keys an.
-- **Filter von `list_projects`**: Freitext (Name/Projektnummer), Projektgruppe
+- **Filter von `list_projects`**: Freitext (Name, Projektnummer, Beschreibung, Aliase), Projektgruppe
   (id, Kurzname oder Name, ohne Groß-/Kleinschreibung; eine Liste verlangt alle
   Gruppen), Planungsphase, übergeordnetes Projekt, Paginierung. Die Gruppen selbst
   findet `list_project_groups`. Weitere Bedingungen über `filters` (siehe *Generische

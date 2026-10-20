@@ -200,3 +200,179 @@ def test_data_gap_lists_open_rows(mcp_client, admin_token, db_session):
     assert gaps["infraplan_unassigned"]["count"] == 1
     assert gaps["infraplan_unassigned"]["draft_id"] == draft.id
     assert gaps["infraplan_unassigned"]["entries"][0]["row_key"] == "BP_D-3"
+
+
+# --- Ausbau 2027: batch calls, compact view, page text ------------------------------
+
+
+def test_assign_rows_in_one_call_with_partial_success(mcp_client, admin_token, db_session):
+    a = project(db_session, "Knoten Hamburg")
+    b = project(db_session, "Knoten Köln")
+    draft = make_draft(db_session, [row("BP_A", 1), row("BP_A", 2), row("BP_A", 3)])
+    db_session.commit()
+
+    result = _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "assign_infraplan_rows",
+            {
+                "draft_id": draft.id,
+                "rows": [
+                    {"row_key": "BP_A-1", "project_ids": [a.id], "note": "Name passt"},
+                    {"row_key": "BP_A-2", "project_ids": [a.id, b.id], "note": "Sammelzeile"},
+                    {"row_key": "BP_A-9", "project_ids": [a.id], "note": "gibt es nicht"},
+                    {"row_key": "BP_A-3", "project_ids": [99999], "note": "falsches Projekt"},
+                    {"row_key": "BP_A-3", "project_ids": [b.id], "note": " "},
+                ],
+            },
+        )
+    )
+
+    assert (result["ok"], result["failed"]) == (2, 3)
+    assert [r["ok"] for r in result["rows"]] == [True, True, False, False, False]
+    assert "BP_A-9" in result["rows"][2]["error"]
+    assert "99999" in result["rows"][3]["error"]
+    assert "Begründung" in result["rows"][4]["error"]
+    db_session.refresh(draft)
+    rows = {r["row_key"]: r for r in draft.result_json["rows"]}
+    assert rows["BP_A-2"]["project_ids"] == [a.id, b.id]
+    assert (rows["BP_A-1"]["assignment_source"], rows["BP_A-1"]["assignment_note"]) == ("AGENT", "Name passt")
+    assert not rows["BP_A-3"].get("project_ids")
+
+
+def test_assign_rows_after_confirmation_changes_the_year(mcp_client, admin_token, db_session):
+    a = project(db_session, "Knoten Hamburg")
+    b = project(db_session, "Knoten Köln")
+    draft = make_draft(db_session, [row("BP_A", 1, project_ids=[a.id]), row("BP_A", 2)])
+    db_session.commit()
+    _payload(_call(mcp_client, admin_token, "confirm_infraplan_import", {"draft_id": draft.id}))
+
+    result = _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "assign_infraplan_rows",
+            {
+                "draft_id": draft.id,
+                "rows": [
+                    {"row_key": "BP_A-1", "project_ids": [b.id], "note": "korrigiert"},
+                    {"row_key": "BP_A-2", "project_ids": [a.id], "note": "nachgetragen"},
+                ],
+            },
+        )
+    )
+
+    assert result["confirmed_year"] == 2026 and result["ok"] == 2
+    links = {(link.project_id, link.note) for link in db_session.query(InfraplanEntryProject)}
+    assert links == {(b.id, "korrigiert"), (a.id, "nachgetragen")}
+
+
+def test_create_subprojects_with_and_without_parent(mcp_client, admin_token, db_session):
+    parent = project(db_session, "ABS/NBS Karlsruhe – Basel")
+    draft = make_draft(
+        db_session,
+        [
+            row("BP_A", 1, massnahme="Abschnitt 9.2 Haltingen – Weil am Rhein", project_ids=[parent.id]),
+            row("GVFG_A", 8, primary_number="07 D 2825_A", massnahme="Elektrifizierung der Ahrtalbahn"),
+        ],
+    )
+    db_session.commit()
+
+    result = _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "create_infraplan_subprojects",
+            {
+                "draft_id": draft.id,
+                "items": [
+                    {"row_key": "BP_A-1", "parent_id": parent.id},
+                    {"row_key": "GVFG_A-8", "note": "GVFG-Vorhaben ohne Elternprojekt"},
+                    {"row_key": "BP_A-1", "parent_id": 99999},
+                ],
+            },
+        )
+    )
+
+    assert (result["ok"], result["failed"]) == (2, 1)
+    sub = db_session.get(Project, result["rows"][0]["project_id"])
+    assert (sub.superior_project_id, sub.is_draft) == (parent.id, True)
+    assert result["rows"][0]["project_ids"] == [sub.id]  # the parent link is replaced
+    own = db_session.get(Project, result["rows"][1]["project_id"])
+    assert (own.superior_project_id, own.project_number, own.name) == (
+        None, "07 D 2825_A", "Elektrifizierung der Ahrtalbahn"
+    )
+
+
+def test_create_subproject_after_confirmation(mcp_client, admin_token, db_session):
+    parent = project(db_session, "Knoten Frankfurt")
+    draft = make_draft(db_session, [row("BP_A", 34, massnahme="Gleis 25", project_ids=[parent.id])])
+    db_session.commit()
+    _payload(_call(mcp_client, admin_token, "confirm_infraplan_import", {"draft_id": draft.id}))
+
+    created = _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "create_infraplan_subproject",
+            {"draft_id": draft.id, "row_key": "BP_A-34", "parent_id": parent.id},
+        )
+    )
+
+    links = [link.project_id for link in db_session.query(InfraplanEntryProject)]
+    assert links == [created["project_id"]]
+
+
+def test_compact_draft_lists_all_sections(mcp_client, admin_token, db_session):
+    hit = project(db_session, "Knoten Hamburg")
+    draft = make_draft(
+        db_session,
+        [
+            row("BP_A", 1, bezeichnung="Großknoten Hamburg", massnahme="Elmshorn",
+                suggestions=[{"project_id": hit.id, "confidence": 0.9, "reason": "CONTEXT", "detail": "Teilprojekt"}]),
+            row("GVFG_A", 1, primary_number="07 D 2825_A", laender="Rheinland-Pfalz", project_ids=[hit.id]),
+        ],
+    )
+    db_session.commit()
+
+    result = _payload(_call(mcp_client, admin_token, "get_infraplan_draft", {"draft_id": draft.id, "compact": True}))
+
+    assert result["total_matching"] == 2
+    first, second = result["rows"]
+    assert first == {
+        "row_key": "BP_A-1",
+        "bezeichnung": "Großknoten Hamburg",
+        "massnahme": "Elmshorn",
+        "best": {"project_id": hit.id, "name": "Knoten Hamburg", "confidence": 0.9, "reason": "CONTEXT", "detail": "Teilprojekt"},
+    }
+    assert (second["number"], second["laender"], second["project_ids"]) == ("07 D 2825_A", "Rheinland-Pfalz", [hit.id])
+    assert result["assigned_projects"] == {str(hit.id): "Knoten Hamburg"}
+    assert "projects" not in result
+
+
+def test_page_text_and_kpi_suggestions(mcp_client, admin_token, db_session):
+    doc = fitz.open()
+    page = doc.new_page()
+    page.insert_text((72, 60), "Neu gebaute Gleiskilometer")
+    for x, year, value in ((100, 2024, "65"), (150, 2025, "67"), (200, 2026, "64")):
+        page.insert_text((x, 200), value)
+        page.insert_text((x - 6, 260), str(year))
+    pdf = doc.tobytes()
+    doc.close()
+    draft = make_draft(db_session, [])
+    draft.pdf_path = save_infraplan_pdf(draft.id, pdf)
+    db_session.commit()
+
+    text = _payload(_call(mcp_client, admin_token, "get_infraplan_page_text", {"draft_id": draft.id, "page": 1}))
+    assert any("2024@" in line and "2026@" in line for line in text["lines"])
+
+    suggested = _payload(
+        _call(mcp_client, admin_token, "suggest_infraplan_kpi_values", {"draft_id": draft.id, "page": 1})
+    )
+    (chart,) = suggested["charts"]
+    assert [(v["year"], v["value"], v["kind_guess"]) for v in chart["values"]] == [
+        (2024, 65.0, "IST"), (2025, 67.0, "IST"), (2026, 64.0, "ZIEL")
+    ]
+    missing = _call(mcp_client, admin_token, "get_infraplan_page_text", {"draft_id": draft.id, "page": 5})
+    assert missing["isError"] is True

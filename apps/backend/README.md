@@ -662,12 +662,18 @@ Concept: `docs/features/feature-infraplan-import.md`.
    page with pymupdf (KPI review, MCP).
 
 6. **Review** — the parse task stores suggestions per row
-   (`tasks/infraplan_matching.py`: project number of the previous year → GVFG key →
-   fuzzy name, subprojects preferred; ≥ 0.85 preselected). `PATCH
+   (`tasks/infraplan_matching.py`: project number / text of the previous year (with its
+   note) → project number / GVFG key → Deutschlandtakt alias (`project.aliases`) →
+   subproject of the parent named by the Bezeichnung (section number or words) → fuzzy
+   name; abbreviations like Ubf, Vbk, 2gl., Mü are written out first; ≥ 0.85
+   preselected). `PATCH
    …/parse-result/{id}/rows/{row_key}` sets projects/values, `POST
    …/apply-suggestions` takes over suggestions from a threshold, `POST
-   …/rows/{row_key}/subproject` creates a subproject and assigns the row. The draft
-   lists projects of the previous year that have no row (`missing_from_previous`).
+   …/rows/{row_key}/subproject` creates a subproject (or, without `parent_id`, a project
+   of its own) and assigns the row. The draft lists projects of the previous year that
+   have no row (`missing_from_previous`). The MCP tools add batch calls
+   (`assign_infraplan_rows`, `create_infraplan_subprojects`), a compact overview and the
+   page text for the KPI charts (`services/infraplan_page_text.py`).
 7. **Confirm** — `POST /api/v1/import/infraplan/confirm`
    `{parse_result_id, published_on, force}` writes `infraplan_report` /
    `infraplan_entry` / `infraplan_entry_project` and re-materialises the planning

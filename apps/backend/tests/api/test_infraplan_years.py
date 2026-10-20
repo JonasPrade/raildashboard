@@ -233,7 +233,7 @@ def test_kpi_defaults_and_manual_values_are_public(client, editor, db_session):
     confirm(client, editor, make_draft(db_session, [row("BP_A", 1)]))
 
     kpis = client.get(f"{BASE}/kpis", headers=editor).json()
-    assert len(kpis) == 23
+    assert len(kpis) == 25
     assert kpis[0]["key"] == "neu_gebaute_gleis_km"
 
     resp = client.put(

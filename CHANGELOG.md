@@ -12,6 +12,21 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **Infraplan import for 2027.** Matching writes out the Infraplan's abbreviations
+  (Ubf, Vbk, Abzw, Ü-BW, 2gl., Bf, Mü, HH, MA, HD, Ffm, …) before comparing, finds the
+  subproject of the parent the Bezeichnung names ("Großknoten München", "PB 07: ABS/NBS
+  Karlsruhe – Basel") by section number or words, takes over the previous year's
+  assignments also by row text (with their note) and treats a project number such as
+  "InvKG Nr. 6" as a sure hit. New column `project.aliases` (migration `20261020003`,
+  expand only): a Deutschlandtakt id "DT 38" counts as a sure hit, free aliases help the
+  name matching and the project search. New MCP tools `assign_infraplan_rows`,
+  `create_infraplan_subprojects` (also without a parent and after the confirmation),
+  `get_infraplan_page_text`, `suggest_infraplan_kpi_values`, `check_project_data`;
+  `get_infraplan_draft(compact=true)` and `list_projects(with_description=true)`, whose
+  search now also covers description and aliases. The KPIs with km and % are two KPIs
+  each with clear names. Skill `infraplan-import` rewritten for batch calls and
+  subagents. On the 271 rows of the Infraplan 2026, 145 rows reach ≥ 0.85 without a
+  previous year (before: 93).
 - **MCP: generic project filters.** `list_projects` takes a `filters` list of
   `{field, op, value}` conditions (AND), and the new tool `list_project_filters` publishes
   the catalog (fields, types, operators, enum values) from one registry, so the MCP can ask
