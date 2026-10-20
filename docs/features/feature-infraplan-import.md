@@ -360,7 +360,17 @@ Ranglisten mit Anteilsbalken statt Zeitreihe. Werte nahe 100 % (Stellwerksbesetz
 `zoomed_axis`) bekommen eine Achse, die knapp unter dem kleinsten Wert beginnt, mit
 Hinweis unter dem Diagramm. Kurze Einheiten (km, %) stehen an der Achse, längere
 („Mio. Trkm“) unter dem Titel; der Tooltip nennt die Einheit je Reihe. Nur Werte mit Status
-`GEPRUEFT`. Darunter je Jahrgang die Liste der Maßnahmen mit Link aufs Projekt.
+`GEPRUEFT`.
+
+Aufbau der Seite: Kopf mit Titel, Info-Symbol (Tooltip mit der Erklärung, was der Infraplan
+ist) und — sobald es mehr als einen Jahrgang gibt — einem Dropdown für den Jahrgang. Darunter
+ein zentraler Umschalter wie auf der Startseite (Karte/Liste/Zeitstrahl) mit den Ansichten
+**Kennzahlen** und **Maßnahmen**; die Wahl steht in der URL (`?view=massnahmen`), damit
+sich die Ansicht teilen lässt. Die Kennzahlen bekommen das Inhaltsverzeichnis der
+Projektseite (Knopf am linken Rand) mit einem Eintrag je Bereich (Kennzahl-Art bzw.
+Kategorie). Die Maßnahmen des gewählten Jahrgangs stehen mit Filter (Abschnitt, Suche) als
+Karten wie in der FinVe-Übersicht: Kopf mit Abschnitt und Nummer, Bezeichnung, rechts
+Stand, Inbetriebnahme, Kosten und Befassung, darunter die verknüpften Projekte als Knöpfe.
 
 Diese Darstellungsregeln sind Felder der Kennzahl-Definition (`infraplan_kpi`), keine
 Konstanten im Frontend: Admin → Infraplan → Reiter „Allgemeines“ → Kennzahlen zeigt alle

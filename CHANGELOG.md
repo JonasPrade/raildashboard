@@ -229,6 +229,12 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   and are revertible; projects aggregating their subprojects' geometry stay protected.
 
 ### Changed
+- **New layout of `/infraplan`.** The explanation moved into a tooltip next to the title,
+  the Jahrgang is picked from a dropdown in the header (once there is more than one), and a
+  central switch (like Karte/Liste/Zeitstrahl on the start page) toggles between
+  „Kennzahlen“ and „Maßnahmen“ (`?view=massnahmen`, `?jahr=`). The Kennzahlen get the
+  project page's table of contents, one entry per kind and category. Maßnahmen are cards
+  like the FinVe overview, with the linked projects as buttons (shared `LinkedProjects`).
 - **Fulda-Runde trust 0.7 → 0.55** (a working-level preview, below VIB 0.6). Forecast and
   timeline no longer let a Fulda date override a VIB-PFA date when earlier: per phase the date
   of the more credible × more recent report wins (VIB report date vs. Fulda answer date);
