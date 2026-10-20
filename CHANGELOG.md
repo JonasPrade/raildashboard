@@ -232,6 +232,11 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   with short names) and can be reverted like any other project field.
 
 ### Fixed
+- **Infraplan: full stops read as "�".** Some prints of the Infraplan 2026 carry no Unicode
+  mapping for the table font's full stop, so every "." came out as U+FFFD ("4gl�",
+  "1�676,02", "E�1637260058") — which also broke costs from 1,000 Mio. € on, the
+  "Ref. Teil …" cost references and the matching by project number. The text extraction now
+  restores the full stop; an already imported year needs a re-parse to pick it up.
 - **Text history: partial updates no longer log untouched fields.** A text PATCH that sends
   only some fields (e.g. via MCP `upsert_project_text`) recorded every other tracked field as
   cleared; now only the sent fields are compared.

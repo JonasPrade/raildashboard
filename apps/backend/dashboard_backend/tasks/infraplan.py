@@ -101,11 +101,19 @@ def _round(value: float) -> float:
     return round(float(value), 2)
 
 
+# Some prints of the Infraplan 2026 (``261002_Infraplan_2026.pdf``) carry no
+# Unicode mapping for the full stop of the table font: pdfplumber returns
+# U+FFFD for every "." ("4gl�", "1�676,02", "E�1637260058"). The glyph is a
+# full stop in every case seen, and without it numbers, cost references and
+# project numbers no longer parse.
+_FULL_STOP_FIXES = str.maketrans({"\ufffd": "."})
+
+
 def extract_page(page, number: int) -> PageData:
     """Words with font size and the header tables of one pdfplumber page."""
     words = [
         {
-            "text": w["text"],
+            "text": w["text"].translate(_FULL_STOP_FIXES),
             "x0": _round(w["x0"]),
             "x1": _round(w["x1"]),
             "top": _round(w["top"]),
