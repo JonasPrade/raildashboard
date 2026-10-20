@@ -147,6 +147,18 @@ def test_list_projects_geometry_length_lifecycle_parl(mcp_client, admin_token, d
     assert paused.id in _ids(_list(mcp_client, admin_token, parl_befassung_relevant=False))
 
 
+def test_list_projects_closure(mcp_client, admin_token, db_session):
+    complete, sketched, bare, paused = _seed(db_session)
+    assert _ids(_list(mcp_client, admin_token, closure=True)) == []
+    db_session.query(Project).filter_by(id=paused.id).update({"closure": True})
+    # An unset flag (NULL) counts as false.
+    db_session.query(Project).filter_by(id=bare.id).update({"closure": None})
+    db_session.commit()
+    assert _ids(_list(mcp_client, admin_token, closure=True)) == [paused.id]
+    others = _ids(_list(mcp_client, admin_token, closure=False))
+    assert paused.id not in others and bare.id in others
+
+
 def test_list_projects_updated_since_and_order(mcp_client, admin_token, db_session):
     complete, sketched, bare, paused = _seed(db_session)
     assert _ids(_list(mcp_client, admin_token, updated_since="2026-09-15")) == [sketched.id]

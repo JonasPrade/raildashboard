@@ -12,6 +12,8 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **MCP `list_projects` filter `closure`.** Finds projects flagged as a line closure
+  (Stilllegung) without fetching each one; an unset flag counts as false.
 - **Routing service in the system status.** `/admin/system` now shows whether GraphHopper is
   reachable (status, response time, next step on failure). New endpoint
   `GET /api/v1/system/routing` (`settings.manage`).

@@ -291,6 +291,7 @@ def list_projects(
     has_length: bool | None = None,
     lifecycle_status: LifecycleStatusLiteral | None = None,
     parl_befassung_relevant: bool | None = None,
+    closure: bool | None = None,
     updated_since: date | None = None,
     order_by: ProjectOrder = "name",
     descending: bool = False,
@@ -312,6 +313,8 @@ def list_projects(
     - lifecycle_status: AKTIV (also projects without planning state), PAUSIERT, ABGEBROCHEN
     - parl_befassung_relevant: parliamentary involvement relevant (override, else
       membership in a BSWAG* group)
+    - closure: true = projects flagged as a line closure (Stilllegung); false =
+      all others (an unset flag counts as false)
     - updated_since: only projects with a changelog entry on or after this date
     - order_by: name, id, length or last_change (newest change; projects never
       changed come last); descending reverses the order
@@ -355,6 +358,8 @@ def list_projects(
             )
         if parl_befassung_relevant is not None:
             query = query.filter(parl_relevant_expr(parl_befassung_relevant))
+        if closure is not None:
+            query = query.filter(func.coalesce(Project.closure, False) == closure)
         if updated_since is not None:
             query = query.filter(
                 exists().where(

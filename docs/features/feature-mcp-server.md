@@ -488,7 +488,8 @@ geprüften, `counts` die Befunde je Art.
 
 **`list_projects`** bekommt dafür die Filter `is_known`, `has_geometry`, `has_length`,
 `lifecycle_status` (ohne `project_progress`-Zeile gilt `AKTIV`), `parl_befassung_relevant`
-(Override, sonst BSWAG*-Gruppe — wie `resolve_parl_relevant`), `updated_since` (Eintrag im
+(Override, sonst BSWAG*-Gruppe — wie `resolve_parl_relevant`), `closure` (Stilllegung;
+ungesetzt zählt als `false`), `updated_since` (Eintrag im
 Projekt-Changelog ab diesem Datum) sowie `order_by` (`name`, `id`, `length`, `last_change`)
 und `descending`; Projekte ohne Länge bzw. ohne Änderung stehen immer am Ende. Jeder Eintrag
 trägt `is_known`. Das Feld `phase` bleibt wie bisher (bei unbekanntem Stand der
