@@ -12,8 +12,15 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
-- **MCP `list_projects` filter `closure`.** Finds projects flagged as a line closure
-  (Stilllegung) without fetching each one; an unset flag counts as false.
+- **MCP: generic project filters.** `list_projects` takes a `filters` list of
+  `{field, op, value}` conditions (AND), and the new tool `list_project_filters` publishes
+  the catalog (fields, types, operators, enum values) from one registry, so the MCP can ask
+  what is filterable instead of the tool signature growing per request. Fields: `name`,
+  `project_number`, `description` (text operators incl. `starts_with`, `contains`,
+  `is_empty`), `closure` (Stilllegung), `phase`, `lifecycle_status`, `project_group`,
+  `superior_project_id`, `length`, `is_known`, `has_geometry`, `has_length`,
+  `parl_befassung_relevant`, `last_change`. The existing named parameters keep working and
+  run through the same registry.
 - **Routing service in the system status.** `/admin/system` now shows whether GraphHopper is
   reachable (status, response time, next step on failure). New endpoint
   `GET /api/v1/system/routing` (`settings.manage`).

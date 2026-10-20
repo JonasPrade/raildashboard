@@ -212,6 +212,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 |---|---|---|
 | `list_project_groups` | Projektgruppen mit Projektanzahl, optional per Freitext | — (eingeloggt) |
 | `list_projects` | Projekte suchen/filtern (Text, Projektgruppe(n), Phase, Planungsstand bekannt, Geometrie, Länge, Lebenszyklus, Parl. Befassung, geändert seit), sortieren | — (eingeloggt) |
+| `list_project_filters` | Katalog der Filter von `list_projects`: Felder, Typen, Operatoren, Enum-Werte | — |
 | `get_project` | Projektdetail inkl. BVWP-Daten und Unterprojekten | — |
 | `get_project_progress` | Planungsstand inkl. Beobachtungen und Prognose | — |
 | `list_project_finves` | Finanzierungsvereinbarungen und Budgets eines Projekts | — |
@@ -350,7 +351,8 @@ Client-seitig (Claude Code, `.mcp.json`):
 - **Filter von `list_projects`**: Freitext (Name/Projektnummer), Projektgruppe
   (id, Kurzname oder Name, ohne Groß-/Kleinschreibung; eine Liste verlangt alle
   Gruppen), Planungsphase, übergeordnetes Projekt, Paginierung. Die Gruppen selbst
-  findet `list_project_groups`.
+  findet `list_project_groups`. Weitere Bedingungen über `filters` (siehe *Generische
+  Projektfilter*).
 - **Planungsstand korrigieren** (2026-10-11): `set_phase_override` setzt den
   manuellen Phasen-Override wie das Formular im Planungsstand-Panel — nur mit
   Begründung (`note` → `manual_override_note`), `phase = null` hebt ihn auf.
@@ -494,6 +496,26 @@ Projekt-Changelog ab diesem Datum) sowie `order_by` (`name`, `id`, `length`, `la
 und `descending`; Projekte ohne Länge bzw. ohne Änderung stehen immer am Ende. Jeder Eintrag
 trägt `is_known`. Das Feld `phase` bleibt wie bisher (bei unbekanntem Stand der
 `NICHT_GESTARTET`-Rückfallwert) — das zu ändern ist Teil von #172.
+
+**Generische Projektfilter** (2026-10-20): Statt für jedes neue Merkmal einen Parameter
+in `list_projects` zu ergänzen, gibt es eine Registry (`FilterField` in
+`mcp/tools/projects.py`: Name, Typ, Operatoren, SQL-Ausdruck, Enum-Werte). Sie speist
+- `list_projects(filters=[{field, op, value}, …])` — Bedingungen per UND, auch mit den
+  benannten Parametern, die intern dieselbe Registry nutzen;
+- `list_project_filters` — liefert den Katalog (Felder, Typen, Operatoren mit Erklärung,
+  erlaubte Enum-Werte), damit das MCP selbst nachfragt statt Filter fest zu kennen.
+
+Felder: `name`, `project_number`, `description` (Text: `eq`, `ne`, `contains`,
+`not_contains`, `starts_with`, `ends_with`, `is_empty`, `not_empty`; ohne Groß-/Kleinschreibung,
+`%`/`_` im Wert sind wörtlich), `closure` (Stilllegung; ungesetzt = `false`), `phase`,
+`lifecycle_status` (Enum: `eq`, `ne`, `in`), `project_group` (`eq` = Mitglied, `ne`, `in` =
+eine der Gruppen), `superior_project_id` (`eq`, `ne`, `is_empty` = oberste Ebene), `length`
+(Zahl: `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `is_empty`), `is_known`, `has_geometry`,
+`has_length`, `parl_befassung_relevant` (Wahrheitswert: `eq`), `last_change` (Datum:
+`gte`, `lte`; nie geänderte Projekte treffen keines). Whitelist statt freier Spalten: Entwürfe
+(`is_draft`) und Geometrie-Blobs sind nie filterbar. Ein neues Feld wird nur in der Registry
+ergänzt. `list_data_gaps` hat weiter feste Lückenarten; sie auf dieselbe Registry zu stützen
+ist ein möglicher Folgeschritt.
 
 **Stufe B und C** (Gruppen-Zusammenfassung, erwartete Meilensteine, Ortssuche,
 Volltextsuche, Änderungs- und Beobachtungsverlauf, Sammel-Längenberechnung) sind noch nicht

@@ -147,16 +147,75 @@ def test_list_projects_geometry_length_lifecycle_parl(mcp_client, admin_token, d
     assert paused.id in _ids(_list(mcp_client, admin_token, parl_befassung_relevant=False))
 
 
-def test_list_projects_closure(mcp_client, admin_token, db_session):
+def _filtered(client, token, *filters, **arguments):
+    return _list(client, token, filters=list(filters), **arguments)
+
+
+def test_list_project_filters_catalog(mcp_client, admin_token):
+    catalog = _payload(_call(mcp_client, admin_token, "list_project_filters"))
+    fields = {f["field"]: f for f in catalog["fields"]}
+    assert {"name", "project_number", "description", "closure", "phase"} <= set(fields)
+    assert fields["phase"]["values"] and "BAU" in fields["phase"]["values"]
+    assert "starts_with" in fields["description"]["operators"]
+    # Every operator offered by a field is explained.
+    assert {op for f in fields.values() for op in f["operators"]} <= set(catalog["operators"])
+
+
+def test_list_projects_filters_closure(mcp_client, admin_token, db_session):
     complete, sketched, bare, paused = _seed(db_session)
-    assert _ids(_list(mcp_client, admin_token, closure=True)) == []
+    closure = {"field": "closure", "op": "eq", "value": True}
+    assert _ids(_filtered(mcp_client, admin_token, closure)) == []
     db_session.query(Project).filter_by(id=paused.id).update({"closure": True})
     # An unset flag (NULL) counts as false.
     db_session.query(Project).filter_by(id=bare.id).update({"closure": None})
     db_session.commit()
-    assert _ids(_list(mcp_client, admin_token, closure=True)) == [paused.id]
-    others = _ids(_list(mcp_client, admin_token, closure=False))
+    assert _ids(_filtered(mcp_client, admin_token, closure)) == [paused.id]
+    others = _ids(_filtered(mcp_client, admin_token, {"field": "closure", "value": False}))
     assert paused.id not in others and bare.id in others
+
+
+def test_list_projects_filters_text_and_number(mcp_client, admin_token, db_session):
+    complete, sketched, bare, paused = _seed(db_session)
+    db_session.query(Project).filter_by(id=sketched.id).update(
+        {"description": "Reaktivierung der Strecke 50%_x"}
+    )
+    db_session.commit()
+    starts = {"field": "description", "op": "starts_with", "value": "reaktivierung"}
+    assert _ids(_filtered(mcp_client, admin_token, starts)) == [sketched.id]
+    # LIKE wildcards in the value are literal.
+    assert _ids(_filtered(mcp_client, admin_token, {"field": "description", "op": "contains", "value": "%_x"})) == [sketched.id]
+    assert _ids(_filtered(mcp_client, admin_token, {"field": "description", "op": "contains", "value": "%x"})) == []
+    assert _ids(_filtered(mcp_client, admin_token, {"field": "description", "op": "is_empty"})) == [bare.id]
+    assert _ids(_filtered(mcp_client, admin_token, {"field": "name", "op": "ends_with", "value": "ULM"})) == [sketched.id]
+    assert _ids(_filtered(mcp_client, admin_token, {"field": "length", "op": "gte", "value": 50})) == [complete.id, sketched.id]
+    top_level = _filtered(mcp_client, admin_token, {"field": "superior_project_id", "op": "is_empty"})
+    assert set(_ids(top_level)) == {bare.id, complete.id, paused.id, sketched.id}
+
+
+def test_list_projects_filters_combine_with_named_parameters(mcp_client, admin_token, db_session):
+    complete, sketched, bare, paused = _seed(db_session)
+    result = _filtered(
+        mcp_client, admin_token,
+        {"field": "phase", "op": "in", "value": ["bau", "VORPLANUNG"]},
+        {"field": "last_change", "op": "lte", "value": "2026-09-01"},
+        project_group="TG",
+    )
+    assert _ids(result) == [complete.id]
+    assert _ids(_filtered(mcp_client, admin_token, {"field": "project_group", "op": "ne", "value": "TG"})) == [paused.id]
+
+
+def test_list_projects_filters_reject_bad_input(mcp_client, admin_token, db_session):
+    _seed(db_session)
+    for bad in (
+        {"field": "nope", "value": 1},
+        {"field": "closure", "op": "contains", "value": True},
+        {"field": "closure", "value": "vielleicht"},
+        {"field": "phase", "value": "KAPUTT"},
+        {"field": "last_change", "op": "gte", "value": "gestern"},
+        {"field": "description", "op": "contains"},
+        {"field": "name", "value": "x", "extra": 1},
+    ):
+        assert _call(mcp_client, admin_token, "list_projects", {"filters": [bad]})["isError"], bad
 
 
 def test_list_projects_updated_since_and_order(mcp_client, admin_token, db_session):

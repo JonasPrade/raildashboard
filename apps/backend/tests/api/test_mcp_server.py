@@ -143,6 +143,7 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
     assert names == {
         "list_project_groups",
         "list_projects",
+        "list_project_filters",
         "get_project",
         "get_project_progress",
         "list_project_finves",

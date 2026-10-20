@@ -7,13 +7,15 @@ window, so lists are paginated and geometries (``geojson_representation``,
 
 from __future__ import annotations
 
-from datetime import date, datetime, time
-from typing import Any, Literal
+from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import date, datetime, time, timedelta
+from typing import Any, Literal, get_args
 
 from mcp.server.mcpserver import Context, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
-from pydantic import ValidationError
+from pydantic import BaseModel, ConfigDict, ValidationError
 from sqlalchemy import and_, exists, func, not_, or_, select
 from sqlalchemy.orm import Session, selectinload
 
@@ -278,6 +280,294 @@ def list_project_groups(search: str | None = None, *, ctx: Context) -> dict[str,
         }
 
 
+# --- Filter registry ---------------------------------------------------------
+# One entry per filterable project property. list_projects applies them (named
+# parameters and the generic ``filters`` list share this code) and
+# list_project_filters publishes the catalog, so a new field is added here only.
+
+_OPERATOR_HELP = {
+    "eq": "equals (text: case-insensitive)",
+    "ne": "does not equal",
+    "contains": "text contains the value (case-insensitive)",
+    "not_contains": "text does not contain the value",
+    "starts_with": "text starts with the value (case-insensitive)",
+    "ends_with": "text ends with the value (case-insensitive)",
+    "gt": "greater than",
+    "gte": "greater than or equal (date: on or after)",
+    "lt": "less than",
+    "lte": "less than or equal (date: on or before)",
+    "in": "equals one of the values in a list",
+    "is_empty": "not set (no value needed)",
+    "not_empty": "set (no value needed)",
+}
+_EMPTY_OPS = {"is_empty", "not_empty"}
+_TEXT_OPS = ("eq", "ne", "contains", "not_contains", "starts_with", "ends_with", *_EMPTY_OPS)
+_NUMBER_OPS = ("eq", "ne", "gt", "gte", "lt", "lte", *_EMPTY_OPS)
+_ENUM_OPS = ("eq", "ne", "in")
+
+
+class ProjectFilter(BaseModel):
+    """One condition of list_projects: ``field`` and ``op`` come from
+    list_project_filters; ``value`` is omitted for is_empty / not_empty."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    field: str
+    op: str = "eq"
+    value: Any = None
+
+
+@dataclass(frozen=True)
+class FilterField:
+    name: str
+    type: str
+    description: str
+    operators: tuple[str, ...]
+    clause: Callable[[str, Any], Any]
+    values: tuple[str, ...] | None = None
+
+    def describe(self) -> dict[str, Any]:
+        entry: dict[str, Any] = {
+            "field": self.name,
+            "type": self.type,
+            "operators": list(self.operators),
+            "description": self.description,
+        }
+        if self.values is not None:
+            entry["values"] = list(self.values)
+        return entry
+
+
+def _as_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str) and value.strip().lower() in {"true", "false"}:
+        return value.strip().lower() == "true"
+    raise ToolError("Erwartet wird ein Wahrheitswert (true oder false).")
+
+
+def _as_number(value: Any, integer: bool) -> int | float:
+    if isinstance(value, bool):
+        raise ToolError("Erwartet wird eine Zahl.")
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        raise ToolError("Erwartet wird eine Zahl.") from None
+    if integer:
+        if number != int(number):
+            raise ToolError("Erwartet wird eine ganze Zahl.")
+        return int(number)
+    return number
+
+
+def _as_date(value: Any) -> date:
+    try:
+        return date.fromisoformat(value.strip()) if isinstance(value, str) else value.date()
+    except (AttributeError, ValueError):
+        raise ToolError("Erwartet wird ein Datum im Format JJJJ-MM-TT.") from None
+
+
+def _as_text(value: Any) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ToolError("Erwartet wird ein nicht-leerer Text.")
+    return value.strip()
+
+
+def _text_field(name: str, column: Any, description: str) -> FilterField:
+    def clause(op: str, value: Any):
+        if op in _EMPTY_OPS:
+            empty = or_(column.is_(None), func.trim(column) == "")
+            return empty if op == "is_empty" else not_(empty)
+        text = _as_text(value)
+        match op:
+            case "eq":
+                return func.lower(column) == text.lower()
+            case "ne":
+                return or_(column.is_(None), func.lower(column) != text.lower())
+            case "contains":
+                return column.icontains(text, autoescape=True)
+            case "not_contains":
+                return or_(column.is_(None), not_(column.icontains(text, autoescape=True)))
+            case "starts_with":
+                return column.istartswith(text, autoescape=True)
+            case _:
+                return column.iendswith(text, autoescape=True)
+
+    return FilterField(name, "text", description, _TEXT_OPS, clause)
+
+
+def _number_field(
+    name: str, column: Any, description: str, *, integer: bool = False, operators=_NUMBER_OPS
+) -> FilterField:
+    def clause(op: str, value: Any):
+        if op in _EMPTY_OPS:
+            return column.is_(None) if op == "is_empty" else column.isnot(None)
+        number = _as_number(value, integer)
+        match op:
+            case "eq":
+                return column == number
+            case "ne":
+                return or_(column.is_(None), column != number)
+            case "gt":
+                return column > number
+            case "gte":
+                return column >= number
+            case "lt":
+                return column < number
+            case _:
+                return column <= number
+
+    return FilterField(name, "integer" if integer else "number", description, operators, clause)
+
+
+def _enum_field(name: str, column: Any, values: tuple[str, ...], description: str) -> FilterField:
+    def normalize(value: Any) -> str:
+        text = _as_text(value).upper()
+        if text not in values:
+            raise ToolError(f"Ungültiger Wert '{value}'. Erlaubt: {', '.join(values)}")
+        return text
+
+    def clause(op: str, value: Any):
+        if op == "in":
+            if not isinstance(value, list) or not value:
+                raise ToolError("Für 'in' wird eine nicht-leere Liste erwartet.")
+            return column.in_([normalize(v) for v in value])
+        chosen = normalize(value)
+        if op == "eq":
+            return column == chosen
+        return or_(column.is_(None), column != chosen)
+
+    return FilterField(name, "enum", description, _ENUM_OPS, clause, values)
+
+
+def _flag_field(name: str, description: str, make: Callable[[bool], Any]) -> FilterField:
+    return FilterField(name, "boolean", description, ("eq",), lambda op, value: make(_as_bool(value)))
+
+
+def _group_clause(op: str, value: Any):
+    values = value if op == "in" else [value]
+    if not isinstance(values, list) or not values:
+        raise ToolError("Für 'in' wird eine nicht-leere Liste erwartet.")
+    member = or_(*(Project.project_groups.any(_group_filter(_as_text(v))) for v in values))
+    return not_(member) if op == "ne" else member
+
+
+def _last_change_clause(op: str, value: Any):
+    day = _as_date(value)
+    changed = last_change_expr()
+    if op == "gte":
+        return changed >= datetime.combine(day, time.min)
+    return changed < datetime.combine(day + timedelta(days=1), time.min)
+
+
+def _build_filter_fields() -> dict[str, FilterField]:
+    effective_phase = effective_phase_expr()
+    fields = [
+        _text_field("name", Project.name, "Project name"),
+        _text_field("project_number", Project.project_number, "Project number"),
+        _text_field("description", Project.description, "Project description"),
+        _flag_field(
+            "closure",
+            "Flagged as a line closure (Stilllegung); an unset flag counts as false",
+            lambda v: func.coalesce(Project.closure, False) == v,
+        ),
+        _enum_field(
+            "phase",
+            effective_phase,
+            get_args(MainPhaseLiteral),
+            "Planning phase (cached headline; manual override wins)",
+        ),
+        _enum_field(
+            "lifecycle_status",
+            func.coalesce(ProjectProgress.lifecycle_status, "AKTIV"),
+            get_args(LifecycleStatusLiteral),
+            "Lifecycle; projects without planning state count as AKTIV",
+        ),
+        FilterField(
+            "project_group",
+            "text",
+            "Member of a project group, given as id, short name or name "
+            "(case-insensitive, see list_project_groups); 'in' = any of the groups",
+            _ENUM_OPS,
+            _group_clause,
+        ),
+        _number_field(
+            "superior_project_id",
+            Project.superior_project_id,
+            "Id of the direct superior project; is_empty = top-level project",
+            integer=True,
+            operators=("eq", "ne", *_EMPTY_OPS),
+        ),
+        _number_field("length", Project.length, "Stored length in km"),
+        _flag_field(
+            "is_known",
+            "Planning state backed by an observation or an override (false = unknown)",
+            lambda v: is_known_expr() if v else not_(is_known_expr()),
+        ),
+        _flag_field(
+            "has_geometry",
+            "A line/point geometry is stored",
+            lambda v: has_geometry_expr() if v else not_(has_geometry_expr()),
+        ),
+        _flag_field(
+            "has_length",
+            "A length greater than zero is stored",
+            lambda v: has_length_expr() if v else not_(has_length_expr()),
+        ),
+        _flag_field(
+            "parl_befassung_relevant",
+            "Parliamentary involvement relevant (override, else newest Infraplan "
+            "statement, else BSWAG* group)",
+            parl_relevant_expr,
+        ),
+        FilterField(
+            "last_change",
+            "date",
+            "Date of the newest changelog entry (JJJJ-MM-TT); never-changed projects match neither",
+            ("gte", "lte"),
+            _last_change_clause,
+        ),
+    ]
+    return {f.name: f for f in fields}
+
+
+_FILTER_FIELDS = _build_filter_fields()
+
+
+def filter_clause(spec: ProjectFilter):
+    """SQL condition for one filter spec; a ToolError names what is wrong."""
+    field = _FILTER_FIELDS.get(spec.field)
+    if field is None:
+        raise ToolError(
+            f"Unbekanntes Filterfeld '{spec.field}'. Verfügbar: {', '.join(_FILTER_FIELDS)} "
+            "(Details: list_project_filters)"
+        )
+    if spec.op not in field.operators:
+        raise ToolError(
+            f"Operator '{spec.op}' passt nicht zu '{spec.field}'. "
+            f"Erlaubt: {', '.join(field.operators)}"
+        )
+    try:
+        return field.clause(spec.op, spec.value)
+    except ToolError as exc:
+        raise ToolError(f"Filter '{spec.field}' {spec.op}: {exc}") from exc
+
+
+def list_project_filters(*, ctx: Context) -> dict[str, Any]:
+    """Catalog of the filters list_projects accepts in its ``filters`` list: per
+    field its type, allowed operators, description and (for enums) the allowed
+    values, plus what each operator means. Conditions are combined with AND."""
+    get_principal(ctx)
+    return {
+        "fields": [f.describe() for f in _FILTER_FIELDS.values()],
+        "operators": _OPERATOR_HELP,
+        "example": [
+            {"field": "description", "op": "starts_with", "value": "Reaktivierung"},
+            {"field": "project_group", "op": "eq", "value": "GVFG"},
+        ],
+    }
+
+
 ProjectOrder = Literal["name", "id", "length", "last_change"]
 
 
@@ -291,8 +581,8 @@ def list_projects(
     has_length: bool | None = None,
     lifecycle_status: LifecycleStatusLiteral | None = None,
     parl_befassung_relevant: bool | None = None,
-    closure: bool | None = None,
     updated_since: date | None = None,
+    filters: list[ProjectFilter] | None = None,
     order_by: ProjectOrder = "name",
     descending: bool = False,
     limit: int = 50,
@@ -313,9 +603,11 @@ def list_projects(
     - lifecycle_status: AKTIV (also projects without planning state), PAUSIERT, ABGEBROCHEN
     - parl_befassung_relevant: parliamentary involvement relevant (override, else
       membership in a BSWAG* group)
-    - closure: true = projects flagged as a line closure (Stilllegung); false =
-      all others (an unset flag counts as false)
     - updated_since: only projects with a changelog entry on or after this date
+    - filters: further conditions, combined with AND with everything above, as a
+      list of ``{field, op, value}`` — e.g. description starts_with
+      "Reaktivierung", or closure eq true. Which fields and operators exist
+      (also name, project_number, length, …) is answered by list_project_filters
     - order_by: name, id, length or last_change (newest change; projects never
       changed come last); descending reverses the order
     Returns ``total`` plus one page of compact entries; use get_project for details.
@@ -337,36 +629,24 @@ def list_projects(
                 or_(Project.name.ilike(pattern), Project.project_number.ilike(pattern))
             )
         groups = [project_group] if isinstance(project_group, str) else project_group or []
-        groups = [g for g in groups if g.strip()]
-        if groups:
-            query = query.filter(
-                and_(*(Project.project_groups.any(_group_filter(g)) for g in groups))
-            )
-        if phase:
-            query = query.filter(effective_phase == phase)
-        if superior_project_id is not None:
-            query = query.filter(Project.superior_project_id == superior_project_id)
-        if is_known is not None:
-            query = query.filter(known if is_known else not_(known))
-        if has_geometry is not None:
-            query = query.filter(has_geometry_expr() if has_geometry else not_(has_geometry_expr()))
-        if has_length is not None:
-            query = query.filter(has_length_expr() if has_length else not_(has_length_expr()))
-        if lifecycle_status:
-            query = query.filter(
-                func.coalesce(ProjectProgress.lifecycle_status, "AKTIV") == lifecycle_status
-            )
-        if parl_befassung_relevant is not None:
-            query = query.filter(parl_relevant_expr(parl_befassung_relevant))
-        if closure is not None:
-            query = query.filter(func.coalesce(Project.closure, False) == closure)
+        # The named parameters are shortcuts for registry filters; a list of groups
+        # means membership in all of them.
+        specs = [ProjectFilter(field="project_group", value=g) for g in groups if g.strip()]
+        named = {
+            "phase": phase,
+            "superior_project_id": superior_project_id,
+            "is_known": is_known,
+            "has_geometry": has_geometry,
+            "has_length": has_length,
+            "lifecycle_status": lifecycle_status,
+            "parl_befassung_relevant": parl_befassung_relevant,
+        }
+        specs += [ProjectFilter(field=k, value=v) for k, v in named.items() if v is not None]
         if updated_since is not None:
-            query = query.filter(
-                exists().where(
-                    ChangeLog.project_id == Project.id,
-                    ChangeLog.timestamp >= datetime.combine(updated_since, time.min),
-                )
-            )
+            specs.append(ProjectFilter(field="last_change", op="gte", value=updated_since.isoformat()))
+        specs += filters or []
+        for spec in specs:
+            query = query.filter(filter_clause(spec))
         total = query.count()
 
         sort_key = {
@@ -880,6 +1160,7 @@ def register(server: MCPServer) -> None:
     for fn in (
         list_project_groups,
         list_projects,
+        list_project_filters,
         get_project,
         get_project_progress,
         list_project_finves,
