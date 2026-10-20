@@ -29,6 +29,7 @@ from dashboard_backend.routing.auth_router import AuthRouter
 from dashboard_backend.schemas.infraplan import (
     InfraplanKpiApproveResult,
     InfraplanKpiSchema,
+    InfraplanKpiUpdate,
     InfraplanKpiValueSchema,
     InfraplanKpiValuesResult,
     InfraplanKpiValuesUpdate,
@@ -359,6 +360,18 @@ def list_kpis(db: Session = Depends(get_db)):
     """All KPI definitions (the defaults of the Infraplan 2026 are created on
     first use)."""
     return infraplan_crud.list_kpis(db)
+
+
+@router.patch("/kpis/{key}", response_model=InfraplanKpiSchema, dependencies=[_require_importer])
+def update_kpi(key: str, body: InfraplanKpiUpdate, db: Session = Depends(get_db)):
+    """Admin settings of one KPI: name, unit, description, order and how
+    /infraplan draws it (layout, total series, companion, zoomed axis)."""
+    try:
+        return infraplan_crud.update_kpi(db, key, body.model_dump(exclude_unset=True))
+    except infraplan_crud.InfraplanKpiNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except infraplan_crud.InfraplanKpiError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.get(

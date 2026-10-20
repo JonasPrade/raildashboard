@@ -7,6 +7,8 @@ import {
     filterRows,
     formatPercentChange,
     groupKpis,
+    companionKeys,
+    kpiCompanions,
     kpiFlow,
     kpiOverview,
     kpiSubSeries,
@@ -145,24 +147,24 @@ describe("buildKpiChart", () => {
     });
 
     it("sums additive sub-series but shows the whole one where configured", () => {
-        expect(kpiOverview({ key: "kmm", ...split })).toMatchObject({
+        expect(kpiOverview(split)).toMatchObject({
             scope: "total",
             detailSeries: ["740-m-Netz", "Stabiles Netz"],
             note: "Summe aus 2 Kategorien",
         });
         const etcs = {
-            key: "etcs_strecken_km",
+            total_series: "Gesamtnetz",
             values: [
                 { report_year: 2026, year: 2025, value_kind: "IST", series: "TEN-Kernnetz bis 2030", value: 600 },
                 { report_year: 2026, year: 2025, value_kind: "IST", series: "Gesamtnetz", value: 1800 },
             ],
-        } as Pick<InfraplanPublicKpi, "key" | "values">;
+        } as Pick<InfraplanPublicKpi, "values" | "total_series">;
         expect(kpiOverview(etcs)).toMatchObject({
             scope: { series: "Gesamtnetz" },
             detailSeries: ["TEN-Kernnetz bis 2030"],
             note: "Gesamtnetz",
         });
-        expect(kpiOverview({ key: "x", values: [] }).detailSeries).toEqual([]);
+        expect(kpiOverview({ values: [] }).detailSeries).toEqual([]);
     });
 
     it("draws a companion KPI on the right axis in its own stack", () => {
@@ -187,8 +189,20 @@ describe("buildKpiChart", () => {
         expect(chart.data).toEqual([{ year: "2025", "ist|": 683, "r:ist|": 2 }]);
     });
 
+    it("pairs each KPI with its configured companion and hides the companion", () => {
+        const kpis = [
+            { key: "km", name: "km", unit: "km", values: kpi.values, companion_key: "rate", companion_label: null },
+            { key: "rate", name: "Ausrüstungsgrad", unit: "%", values: kpi.values, companion_key: null, companion_label: null },
+            { key: "empty", name: "x", unit: null, values: [], companion_key: "rate2", companion_label: null },
+        ] as Parameters<typeof kpiCompanions>[0];
+        const companions = kpiCompanions(kpis);
+        expect([...companions.keys()]).toEqual(["km"]);
+        expect(companions.get("km")).toMatchObject({ label: "Ausrüstungsgrad", unit: "%" });
+        expect([...companionKeys(kpis)]).toEqual(["rate", "rate2"]);
+    });
+
     it("keeps an Ist-only split as a stack", () => {
-        expect(kpiOverview({ key: "betriebsleistung", ...kpi })).toMatchObject({
+        expect(kpiOverview(kpi)).toMatchObject({
             layout: "chart",
             scope: "all",
             stacked: true,
@@ -197,13 +211,13 @@ describe("buildKpiChart", () => {
         });
     });
 
-    it("follows KPI_LAYOUT for non-additive and one-year KPIs", () => {
-        expect(kpiOverview({ key: "bp_einreichung_pf_unterlagen", ...kpi })).toMatchObject({ layout: "chart", stacked: false });
-        expect(kpiOverview({ key: "barrierefreie_bahnsteige", ...kpi })).toMatchObject({
+    it("follows chart_layout for non-additive and one-year KPIs", () => {
+        expect(kpiOverview({ ...kpi, chart_layout: "grouped" })).toMatchObject({ layout: "chart", stacked: false });
+        expect(kpiOverview({ ...kpi, chart_layout: "split" })).toMatchObject({
             layout: "split",
             detailSeries: ["Teil 1", "Teil 2"],
         });
-        expect(kpiOverview({ key: "mittelherkunft_mitteleinsatz", values: [] }).layout).toBe("flow");
+        expect(kpiOverview({ values: [], chart_layout: "flow" }).layout).toBe("flow");
     });
 
     it("splits a Herkunft/Einsatz KPI into two ranked lists", () => {

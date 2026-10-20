@@ -153,6 +153,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Vorjahresabgleich: Projekte mit Eintrag im Vorjahr, aber ohne Zeile im neuen Jahrgang",
             "Übernehmen nur ohne Parser-Warnungen oder ausdrücklich mit „Trotzdem übernehmen“; ein Jahrgang lässt sich löschen und neu übernehmen",
             "Kennzahlen je Jahrgang (/admin/infraplan/kpis/:jahr): manuelles Formular (gilt als geprüft) und Freigabe der KI-gelesenen Werte neben dem Seitenbild",
+            "Admin → Infraplan → Allgemeines: Name, Einheit, Kategorie und Darstellung jeder Kennzahl auf /infraplan (Diagrammart, Teilreihe für die Übersicht, Begleitkennzahl auf rechter Skala, Skala ab Werten)",
             "Zeilen ohne Projekt erscheinen unter Admin → Offene Zuordnungen",
             "Plan: docs/features/feature-infraplan-import.md"
         ]

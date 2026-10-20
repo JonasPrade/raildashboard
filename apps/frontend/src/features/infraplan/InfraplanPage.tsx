@@ -34,12 +34,8 @@ import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import Footnotes from "./Footnotes";
 import {
-    COMPANION_KPI_KEYS,
     KPI_CATEGORY_LABEL,
     STACK_TOTAL_KEY,
-    KPI_COMPANION,
-    KPI_LAYOUT,
-    KPI_ZOOMED_AXIS,
     KPI_KIND_LABEL,
     PARL_LABEL,
     SECTION_SHORT,
@@ -47,17 +43,18 @@ import {
     entryCost,
     formatMio,
     groupKpis,
+    companionKeys,
+    kpiCompanions,
     kpiFlow,
     kpiOverview,
     stackTotal,
     zoomedDomain,
     type KpiChartScope,
+    type KpiCompanion,
     type KpiChartSeries,
 } from "./infraplanFormat";
 
 const PAGE_SIZE = 50;
-
-type Companion = { kpi: InfraplanPublicKpi; label: string; unit: string };
 
 const formatNumber = (v: number) => v.toLocaleString("de-DE", { maximumFractionDigits: 2 });
 const withUnit = (unit: string | null | undefined) => (v: number) => `${formatNumber(v)}${unit ? ` ${unit}` : ""}`;
@@ -67,7 +64,7 @@ const axisUnit = (unit: string | null | undefined) => (unit && unit.length <= 2 
 function KpiChart({ kpi, scope, companion, stacked = true, compact = false, h = 220 }: {
     kpi: InfraplanPublicKpi;
     scope: KpiChartScope;
-    companion?: Companion;
+    companion?: KpiCompanion;
     stacked?: boolean;
     /** Small multiple: no caption (the card has one), a plain 0–100 % axis. */
     compact?: boolean;
@@ -80,7 +77,7 @@ function KpiChart({ kpi, scope, companion, stacked = true, compact = false, h = 
         stackId: s.yAxisId === "right" ? "right" : stacked ? "ist" : undefined,
         unit: s.unit ? ` ${s.unit}` : undefined,
     });
-    const domain = useMemo(() => (KPI_ZOOMED_AXIS.has(kpi.key) ? zoomedDomain(chart, kpi.unit) : null), [kpi.key, kpi.unit, chart]);
+    const domain = useMemo(() => (kpi.zoomed_axis ? zoomedDomain(chart, kpi.unit) : null), [kpi.zoomed_axis, kpi.unit, chart]);
     const tooltipSeries = useMemo(
         () => [...chart.series, { name: STACK_TOTAL_KEY, label: "Summe", color: "transparent" }],
         [chart.series],
@@ -96,11 +93,13 @@ function KpiChart({ kpi, scope, companion, stacked = true, compact = false, h = 
                 valueFormatter={formatNumber}
                 yAxisProps={{
                     tickFormatter: withUnit(axisUnit(kpi.unit)),
+                    // Room for "1.000 km" without wrapping.
+                    width: axisUnit(kpi.unit) ? 72 : 56,
                     ...(domain ? { domain, allowDataOverflow: true } : {}),
                     ...(compact && kpi.unit === "%" ? { domain: [0, 100], ticks: [0, 50, 100] } : {}),
                 }}
                 withRightYAxis={hasRight}
-                rightYAxisProps={{ tickFormatter: withUnit(axisUnit(companion?.unit)) }}
+                rightYAxisProps={{ tickFormatter: withUnit(axisUnit(companion?.unit)), width: 56 }}
                 withLegend={chart.series.length > 1}
                 // Long legends wrap to a second row; leave room so they do not run into the caption.
                 legendProps={{ verticalAlign: "bottom", height: chart.series.length > 3 ? 80 : 50 }}
@@ -153,7 +152,7 @@ function KpiChart({ kpi, scope, companion, stacked = true, compact = false, h = 
 /** One chart per sub-series, so each category's Ist and targets can be traced on their own. */
 function KpiDetailModal({ kpi, companion, subSeries, opened, onClose }: {
     kpi: InfraplanPublicKpi;
-    companion?: Companion;
+    companion?: KpiCompanion;
     subSeries: string[];
     opened: boolean;
     onClose: () => void;
@@ -211,7 +210,7 @@ function KpiFlowView({ kpi }: { kpi: InfraplanPublicKpi }) {
     );
 }
 
-function KpiCard({ kpi, companion }: { kpi: InfraplanPublicKpi; companion?: Companion }) {
+function KpiCard({ kpi, companion }: { kpi: InfraplanPublicKpi; companion?: KpiCompanion }) {
     const overview = useMemo(() => kpiOverview(kpi), [kpi]);
     const [detailOpen, setDetailOpen] = useState(false);
     const hasDetails = overview.layout === "chart" && overview.detailSeries.length > 0;
@@ -271,19 +270,10 @@ function KpiCard({ kpi, companion }: { kpi: InfraplanPublicKpi; companion?: Comp
 
 function Kpis({ kpis }: { kpis: InfraplanPublicKpi[] }) {
     // Companion KPIs are drawn inside their main KPI's chart, not on their own.
-    const withValues = kpis.filter((k) => (k.values ?? []).length > 0 && !COMPANION_KPI_KEYS.has(k.key));
+    const hidden = companionKeys(kpis);
+    const withValues = kpis.filter((k) => (k.values ?? []).length > 0 && !hidden.has(k.key));
     const groups = groupKpis(withValues);
-    const companions = useMemo(() => {
-        const byKey = new Map(kpis.map((k) => [k.key, k]));
-        const out = new Map<string, Companion>();
-        for (const [mainKey, c] of Object.entries(KPI_COMPANION)) {
-            const companionKpi = byKey.get(c.key);
-            if (companionKpi && (companionKpi.values ?? []).length > 0) {
-                out.set(mainKey, { kpi: companionKpi, label: c.label, unit: c.unit });
-            }
-        }
-        return out;
-    }, [kpis]);
+    const companions = useMemo(() => kpiCompanions(kpis), [kpis]);
     if (groups.length === 0) {
         return <Text size="sm" c="dimmed">Für die Kennzahlen liegen noch keine geprüften Werte vor.</Text>;
     }
@@ -302,7 +292,7 @@ function Kpis({ kpis }: { kpis: InfraplanPublicKpi[] }) {
                             <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                                 {c.kpis.map((k) => (
                                     // Small multiples and the flow lists need the full row.
-                                    <div key={k.key} style={KPI_LAYOUT[k.key] && KPI_LAYOUT[k.key] !== "grouped" ? { gridColumn: "1 / -1" } : undefined}>
+                                    <div key={k.key} style={k.chart_layout === "split" || k.chart_layout === "flow" ? { gridColumn: "1 / -1" } : undefined}>
                                         <KpiCard kpi={k} companion={companions.get(k.key)} />
                                     </div>
                                 ))}

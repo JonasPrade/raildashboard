@@ -208,17 +208,31 @@ const COMPANION_ZIEL_COLORS = ["yellow.6", "lime.7"];
 
 /**
  * A second statement drawn into a KPI's chart on its own right-hand scale,
- * e.g. the ETCS equipment rate (%) next to the ETCS route km. The companion
- * KPI has the same sub-series and gets no card of its own.
+ * e.g. the ETCS equipment rate (%) next to the ETCS route km. Set per KPI in
+ * the admin settings (``companion_key``); the companion KPI has the same
+ * sub-series and gets no card of its own.
  */
-export type KpiCompanion = { key: string; label: string; unit: string };
+export type KpiCompanion = { kpi: Pick<InfraplanPublicKpi, "values">; label: string; unit: string };
 
-export const KPI_COMPANION: Record<string, KpiCompanion> = {
-    etcs_strecken_km: { key: "etcs_ausruestungsgrad", label: "Ausrüstungsgrad", unit: "%" },
-};
+type KpiSettings = Pick<InfraplanPublicKpi, "key" | "name" | "unit" | "values" | "companion_key" | "companion_label">;
 
-/** KPI keys that are drawn inside another KPI's chart. */
-export const COMPANION_KPI_KEYS = new Set(Object.values(KPI_COMPANION).map((c) => c.key));
+/** Keys of the KPIs drawn inside another KPI's chart. */
+export function companionKeys(kpis: Pick<InfraplanPublicKpi, "companion_key">[]): Set<string> {
+    return new Set(kpis.map((k) => k.companion_key).filter((k): k is string => !!k));
+}
+
+/** Companion of each KPI that has one with values, keyed by the main KPI. */
+export function kpiCompanions(kpis: KpiSettings[]): Map<string, KpiCompanion> {
+    const byKey = new Map(kpis.map((k) => [k.key, k]));
+    const out = new Map<string, KpiCompanion>();
+    for (const k of kpis) {
+        const c = k.companion_key ? byKey.get(k.companion_key) : undefined;
+        if (c && (c.values ?? []).length > 0) {
+            out.set(k.key, { kpi: c, label: k.companion_label || c.name, unit: c.unit ?? "" });
+        }
+    }
+    return out;
+}
 
 function seriesSuffix(series: string | null | undefined): string {
     return series ? ` – ${series}` : "";
@@ -230,16 +244,7 @@ export function kpiSubSeries(kpi: Pick<InfraplanPublicKpi, "values">): string[] 
 }
 
 /**
- * KPIs whose sub-series are not additive: one of them already is the whole
- * (the others are subsets of it), so the overview shows that one instead of
- * a sum. Keyed by KPI key.
- */
-export const KPI_TOTAL_SERIES: Record<string, string> = {
-    etcs_strecken_km: "Gesamtnetz",
-};
-
-/**
- * How a KPI is laid out on the page, where the generic rules below do not fit:
+ * ``chart_layout`` of a KPI (admin settings), where the generic rules do not fit:
  * - "split": the sub-series are separate statements (overlapping shares),
  *   one small chart each right in the card;
  * - "grouped": bars side by side, not stacked (a running stock next to its
@@ -247,12 +252,6 @@ export const KPI_TOTAL_SERIES: Record<string, string> = {
  * - "flow": one year split into Herkunft/Einsatz (Mittelherkunft), shown as
  *   two ranked lists instead of a time chart.
  */
-export const KPI_LAYOUT: Record<string, "split" | "grouped" | "flow"> = {
-    barrierefreie_bahnsteige: "split",
-    bp_einreichung_pf_unterlagen: "grouped",
-    mittelherkunft_mitteleinsatz: "flow",
-};
-
 export type KpiOverview = {
     layout: "chart" | "split" | "flow";
     /** What the overview chart shows. */
@@ -267,19 +266,21 @@ export type KpiOverview = {
 
 /**
  * With several sub-series the overview shows one line of numbers per year —
- * the series that is the whole (KPI_TOTAL_SERIES) or else their sum — and the
+ * the series that is the whole (``total_series``) or else their sum — and the
  * split goes to a detail view, one chart per remaining sub-series. Ist-only
- * splits stay a stack; KPI_LAYOUT overrides all of this.
+ * splits stay a stack; ``chart_layout`` overrides all of this.
  */
-export function kpiOverview(kpi: Pick<InfraplanPublicKpi, "key" | "values">): KpiOverview {
+export function kpiOverview(
+    kpi: Pick<InfraplanPublicKpi, "values" | "chart_layout" | "total_series">,
+): KpiOverview {
     const sub = kpiSubSeries(kpi);
     const plain = { layout: "chart" as const, scope: "all" as const, stacked: true, detailSeries: [], note: null };
-    const layout = KPI_LAYOUT[kpi.key];
+    const layout = kpi.chart_layout;
     if (layout === "flow") return { ...plain, layout: "flow" };
     if (sub.length < 2) return plain;
     if (layout === "split") return { ...plain, layout: "split", detailSeries: sub };
     if (layout === "grouped") return { ...plain, stacked: false };
-    const total = KPI_TOTAL_SERIES[kpi.key];
+    const total = kpi.total_series;
     if (total && sub.includes(total)) {
         return { ...plain, scope: { series: total }, detailSeries: sub.filter((s) => s !== total), note: total };
     }
@@ -346,7 +347,7 @@ export function buildKpiChart(
 
     const add = (
         values: KpiValue[],
-        opts: { prefix: string; label: string; unit?: string; right: boolean },
+        opts: { prefix: string; label: string; zielSuffix?: string; unit?: string; right: boolean },
     ) => {
         const ist = values.filter((v) => v.value_kind === "IST").map((v) => v.report_year);
         const istYear = ist.length > 0 ? Math.max(...ist) : null;
@@ -377,7 +378,7 @@ export function buildKpiChart(
                     const colors = opts.right ? COMPANION_ZIEL_COLORS : ZIEL_COLORS;
                     seriesMap.set(name, {
                         name,
-                        label: `Ziel${opts.right ? ` ${opts.label}` : ""} IP ${v.report_year}${seriesSuffix(v.series)}`,
+                        label: `Ziel${opts.right ? ` ${opts.label}` : (opts.zielSuffix ?? "")} IP ${v.report_year}${seriesSuffix(v.series)}`,
                         color: colors[i % colors.length],
                         type: "line",
                         // Older targets dashed, the newest solid.
@@ -396,7 +397,8 @@ export function buildKpiChart(
 
     // With two scales the legend names the unit, so each bar maps to its axis.
     const mainLabel = companion && kpi.unit ? `Ist (${kpi.unit})` : "Ist";
-    add(main, { prefix: "", label: mainLabel, unit: kpi.unit ?? undefined, right: false });
+    const zielSuffix = companion && kpi.unit ? ` (${kpi.unit})` : "";
+    add(main, { prefix: "", label: mainLabel, zielSuffix, unit: kpi.unit ?? undefined, right: false });
     if (companion) {
         add(scopeValues(companion.kpi.values, scope), {
             prefix: "r:",
@@ -423,13 +425,10 @@ export function buildKpiChart(
 }
 
 /**
- * KPIs whose values all sit in a narrow band far from zero (a rate close to
- * 100 %), where a zero-based axis shows only equal bars. Their left axis
- * starts near the smallest value instead; the page says so under the chart.
+ * Axis for a KPI with ``zoomed_axis`` (values in a narrow band far from zero,
+ * a rate close to 100 %): whole numbers around the main-axis values, with
+ * headroom below. The page says under the chart where the axis starts.
  */
-export const KPI_ZOOMED_AXIS = new Set(["stellwerksbesetzungsquote"]);
-
-/** Whole-number axis range around the main-axis values, with headroom below. */
 export function zoomedDomain(chart: Pick<KpiChart, "data" | "series">, unit?: string | null): [number, number] | null {
     const keys = chart.series.filter((s) => s.yAxisId !== "right").map((s) => s.name);
     const values = chart.data.flatMap((row) =>
