@@ -350,13 +350,15 @@ def confirm_parse_result(
 
         linked: list[Project] = [projects[pid] for pid in assignments.get(data["key"], [])]
         if data["key"] in to_create:
+            # Imported Vorhaben carry no project data of their own: the project
+            # starts as a draft until someone maintains and finalizes it.
             created = Project(
-                name=data.get("name") or data["key"], project_number=data["key"], is_draft=False
+                name=data.get("name") or data["key"], project_number=data["key"], is_draft=True
             )
             db.add(created)
             db.flush()
             create_changelog_for_create(
-                db, created, {"name": created.name, "project_number": created.project_number},
+                db, created, {"name": created.name, "project_number": created.project_number, "is_draft": True},
                 user.id, user.username,
             )
             linked.append(created)

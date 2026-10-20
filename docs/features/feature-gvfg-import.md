@@ -92,11 +92,21 @@ Leerzeichen.
 
 Mehrfachtreffer, Namensähnlichkeit < 0,45 und widersprüchliche Fördertatbestände
 kommen auf eine Prüfliste statt automatisch übernommen zu werden. Neue Vorhaben:
-Der Button „Projekt nicht gefunden – neu anlegen“ unter jedem Vorhaben legt sofort einen Projektentwurf an (Name vorbelegt,
+Der Button „Projekt nicht gefunden – als Entwurf anlegen“ unter jedem Vorhaben legt sofort einen Projektentwurf an (Name vorbelegt,
 optional Überprojekt) und ordnet ihn zu — wie bei Haushalt, Bauportal und
 Fulda-Runde; die Sammelaktion legt alle Vorhaben ohne Projekt beim Übernehmen an
 (Name, Schlüssel als `project_number`, Gruppe GVFG; Geometrie später per
-MCP-Routing). Offene Vorhaben
+MCP-Routing). **Der Import legt Projekte immer als Entwurf an** (`is_draft = true`,
+der Review-Dialog sagt das): sie haben außer Name und Nummer keine Daten und sollen
+nicht wie gepflegte Projekte in Listen und Karte erscheinen. Fertigstellen: Oberfläche
+oder `set_project_draft`; Entwürfe finden: `list_projects(drafts="only")`.
+
+**Entwürfe in Summen und Gruppen** (festgelegt): Die Förderdaten des Vorhabens bleiben
+sichtbar und zählen in allen GVFG-Summen und -Übersichten mit — sie hängen am Vorhaben,
+nicht am Projekt. Das Projekt selbst ist als Entwurf markiert (`is_draft` in
+`list_gvfg_entries`, `list_project_gvfg`) und fehlt in Projektlisten, Karte und den
+Projektzählern der Gruppen (`list_project_groups`, Gruppenansichten), bis es
+fertiggestellt ist. Offene Vorhaben
 der **neuesten Ausgabe** zählen in der Admin-Übersicht „Nicht zugeordnet“ mit.
 
 ### Rückwirkung auf Projekte

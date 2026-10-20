@@ -154,6 +154,7 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
         "create_project",
         "compute_project_length",
         "update_project",
+        "set_project_draft",
         "set_project_groups",
         "add_progress_observation",
         "delete_progress_observation",
@@ -221,6 +222,59 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
 
 
 # --- Read tools --------------------------------------------------------------
+
+
+def test_create_project_is_draft_by_default(mcp_client, admin_token, db_session):
+    _seed_projects(db_session)
+    created = _payload(_call(mcp_client, admin_token, "create_project", {"name": "Neu"}))
+    assert created["is_draft"] is True
+    listed = _payload(_call(mcp_client, admin_token, "list_projects", {"search": "Neu"}))
+    assert listed["total"] == 0
+    changelog = db_session.query(ChangeLog).filter_by(project_id=created["id"]).one()
+    assert {e.field_name: e.new_value for e in changelog.entries}["is_draft"] == "true"
+
+
+def test_list_projects_drafts_filter(mcp_client, admin_token, db_session):
+    _seed_projects(db_session)
+    by_mode = {
+        mode: _payload(_call(mcp_client, admin_token, "list_projects", {"drafts": mode}))
+        for mode in ("exclude", "only", "include")
+    }
+    assert [p["name"] for p in by_mode["only"]["projects"]] == ["Alpha Entwurf"]
+    assert by_mode["only"]["projects"][0]["is_draft"] is True
+    assert by_mode["exclude"]["total"] == 2
+    assert by_mode["include"]["total"] == 3
+    default = _payload(_call(mcp_client, admin_token, "list_projects"))
+    assert "Alpha Entwurf" not in [p["name"] for p in default["projects"]]
+
+
+def test_set_project_draft_writes_changelog(mcp_client, admin_token, db_session):
+    alpha, _ = _seed_projects(db_session)
+    result = _payload(
+        _call(mcp_client, admin_token, "set_project_draft", {"project_id": alpha.id, "is_draft": True})
+    )
+    assert result["is_draft"] is True
+    log = db_session.query(ChangeLog).filter_by(project_id=alpha.id).one()
+    assert (log.action, log.username_snapshot) == ("PATCH", "admin")
+    assert [(e.field_name, e.old_value, e.new_value) for e in log.entries] == [
+        ("is_draft", "false", "true")
+    ]
+    # Unchanged value: no second entry.
+    _payload(_call(mcp_client, admin_token, "set_project_draft", {"project_id": alpha.id, "is_draft": True}))
+    assert db_session.query(ChangeLog).filter_by(project_id=alpha.id).count() == 1
+    back = _payload(
+        _call(mcp_client, admin_token, "set_project_draft", {"project_id": alpha.id, "is_draft": False})
+    )
+    assert back["is_draft"] is False
+    assert db_session.query(ChangeLog).filter_by(project_id=alpha.id).count() == 2
+
+
+def test_set_project_draft_needs_edit_permission(mcp_client, db_session):
+    alpha, _ = _seed_projects(db_session)
+    token = _key_for(db_session, _role_user(db_session, "reader", ["mcp.access"]))
+    result = _call(mcp_client, token, "set_project_draft", {"project_id": alpha.id, "is_draft": True})
+    assert result["isError"] is True
+    assert "project.edit" in result["content"][0]["text"]
 
 
 def _seed_projects(db):
@@ -673,6 +727,7 @@ def test_create_subproject_writes_changelog(mcp_client, admin_token, db_session)
                 "superior_project_id": alpha.id,
                 "project_groups": ["bp"],
                 "fields": {"length": 12.5},
+                "final": True,
             },
         )
     )

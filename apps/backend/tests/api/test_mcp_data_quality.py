@@ -208,6 +208,20 @@ def test_aggregating_parent_has_no_route_gap(mcp_client, admin_token, db_session
     assert parent.id not in _ids(result)
 
 
+def test_list_data_gaps_drafts_filter(mcp_client, admin_token, db_session):
+    _seed(db_session)
+    draft = Project(name="Import-Entwurf", project_number="02 G 1_A", is_draft=True)
+    db_session.add(draft)
+    db_session.commit()
+    default = _payload(_call(mcp_client, admin_token, "list_data_gaps", {"gaps": ["no_geometry"]}))
+    assert draft.id not in _ids(default)
+    only = _payload(
+        _call(mcp_client, admin_token, "list_data_gaps", {"gaps": ["no_geometry"], "drafts": "only"})
+    )
+    assert _ids(only) == [draft.id] or set(_ids(only)) == {draft.id}
+    assert only["projects"][0]["is_draft"] is True
+
+
 # --- check_geometry ----------------------------------------------------------
 
 

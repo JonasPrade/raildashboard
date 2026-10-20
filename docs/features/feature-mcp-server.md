@@ -232,6 +232,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `create_project` | Projekt/Unterprojekt anlegen (final, ohne Geometrie) | `project.create` |
 | `compute_project_length` | Länge aus der Geometrie berechnen, optional übernehmen | — / `project.edit` mit `apply` |
 | `update_project` | Projektfelder ändern | `project.edit` |
+| `set_project_draft` | Projekt zum Entwurf machen oder Entwurf fertigstellen | `project.edit` |
 | `set_project_groups` | Projekt Gruppen hinzufügen/entfernen (id, Kurzname, Name) | `project.edit` |
 | `add_progress_observation` | Planungsstand-Beobachtung ergänzen | `progress.edit` |
 | `delete_progress_observation` | manuelle Beobachtung löschen (abgeleitete nicht) | `progress.edit` |
@@ -368,10 +369,11 @@ Client-seitig (Claude Code, `.mcp.json`):
   REST/Oberfläche — als Feld `project_group_ids` (sortierte id-Liste) im
   `change_log` und sind über den bestehenden Revert rücknehmbar; die Historie zeigt
   die Kurznamen.
-- **Projekte anlegen** (2026-10-11): `create_project` legt ein Projekt direkt final
-  an (kein Entwurf), typischerweise als Etappe mit `superior_project_id`; Gruppen per
+- **Projekte anlegen** (2026-10-11): `create_project` legt ein Projekt standardmäßig als Entwurf an
+  (`final=true` = direkt fertig; seit #204), typischerweise als Etappe mit `superior_project_id`; Gruppen per
   id/Kurzname/Name, weitere Felder über `fields` wie bei `update_project`. Geometrie
-  und Entwurfs-Flag sind gesperrt. Die Anlage steht als `CREATE`-Eintrag (ein Feld je
+  und Entwurfs-Flag sind in `fields` gesperrt (Flag: `set_project_draft`; `list_projects` und
+  `list_data_gaps` haben den Filter `drafts` = exclude/only/include). Die Anlage steht als `CREATE`-Eintrag (ein Feld je
   gesetztem Wert, Gruppen als id-Liste) im `change_log`; die Historie bietet dafür
   kein „Zurücksetzen“ an.
 - **Länge aus Geometrie** (2026-10-11): `compute_project_length` rechnet wie der

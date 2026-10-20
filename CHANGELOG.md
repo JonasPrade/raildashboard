@@ -12,6 +12,13 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **Import-created projects are drafts (#204).** The GVFG import now creates new projects
+  with `is_draft = true` (the review dialog says so); the link to the Vorhaben stays and its
+  funding data keeps counting in GVFG sums. MCP: `create_project` creates drafts unless
+  `final=true`, new tool `set_project_draft(project_id, is_draft)` (`project.edit`, changelog),
+  `list_projects` and `list_data_gaps` take `drafts` (exclude/only/include) and return
+  `is_draft`, `list_gvfg_entries` marks draft projects. One-off correction for the 21 projects
+  of the 2025–2029 import: `scripts/draft_gvfg_2025_projects.py` (idempotent, checks first).
 - **Text categories and internal texts.** Project texts get a category next to their type
   (seeded „Info“ and „Warnung“; editors add more with one of the fixed styles neutral, info,
   warning, critical). Warning and critical texts are highlighted with a left border. Texts can
