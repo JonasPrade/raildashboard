@@ -141,6 +141,7 @@ def list_drafts(db: Session = Depends(get_db)):
     for record in list_parse_results(db):
         item = InfraplanParseResultListItem.model_validate(record)
         item.row_count = row_count(record)
+        item.assigned_count = crud.assigned_count(record)
         items.append(item)
     return items
 

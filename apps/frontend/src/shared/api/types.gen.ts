@@ -1920,7 +1920,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Draft */
+        /**
+         * Get Draft
+         * @description A draft with its rows, the projects they reference and the projects
+         *     of the previous year that have no row in it.
+         */
         get: operations["get_draft_api_v1_import_infraplan_parse_result__parse_result_id__get"];
         put?: never;
         post?: never;
@@ -1947,6 +1951,274 @@ export interface paths {
          * @description Render one page of the stored PDF as PNG (1-indexed).
          */
         get: operations["page_image_api_v1_import_infraplan_parse_result__parse_result_id__page__page__png_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/infraplan/parse-result/{parse_result_id}/rows/{row_key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Patch Row
+         * @description Change the projects (``project_ids`` replaces) and/or values of a row.
+         */
+        patch: operations["patch_row_api_v1_import_infraplan_parse_result__parse_result_id__rows__row_key__patch"];
+        trace?: never;
+    };
+    "/api/v1/import/infraplan/parse-result/{parse_result_id}/apply-suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply Suggestions
+         * @description Assign the suggested projects from ``min_confidence`` on.
+         */
+        post: operations["apply_suggestions_api_v1_import_infraplan_parse_result__parse_result_id__apply_suggestions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/infraplan/parse-result/{parse_result_id}/rows/{row_key}/subproject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Subproject
+         * @description Create a subproject under ``parent_id`` (named after the row unless
+         *     ``name`` is given) and assign the row to it.
+         */
+        post: operations["create_subproject_api_v1_import_infraplan_parse_result__parse_result_id__rows__row_key__subproject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/infraplan/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm
+         * @description Take over a reviewed draft as its year. 409 when the year exists or the
+         *     parser left warnings (``force`` overrides the warnings only).
+         */
+        post: operations["confirm_api_v1_import_infraplan_confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/infraplan/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Reports */
+        get: operations["list_reports_api_v1_import_infraplan_report_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/infraplan/report/{year}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Report
+         * @description Delete one year (entries, links, KPI values); other years stay. Its
+         *     draft can be confirmed again afterwards.
+         */
+        delete: operations["delete_report_api_v1_import_infraplan_report__year__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/infraplan/kpis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Kpis
+         * @description All KPI definitions (the defaults of the Infraplan 2026 are created on
+         *     first use).
+         */
+        get: operations["list_kpis_api_v1_import_infraplan_kpis_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/infraplan/report/{year}/kpi-values": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Kpi Values
+         * @description Every value of a year, checked or not (form and approval view).
+         */
+        get: operations["get_kpi_values_api_v1_import_infraplan_report__year__kpi_values_get"];
+        /**
+         * Put Kpi Values
+         * @description Set values (value null removes one). Values entered here count as
+         *     checked; the MCP path stores them unchecked.
+         */
+        put: operations["put_kpi_values_api_v1_import_infraplan_report__year__kpi_values_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/infraplan/report/{year}/kpi-values/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve Kpi Values
+         * @description Mark every value of the year as checked — they become public.
+         */
+        post: operations["approve_kpi_values_api_v1_import_infraplan_report__year__kpi_values_approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/infraplan/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Reports
+         * @description Confirmed years, newest first.
+         */
+        get: operations["list_reports_api_v1_infraplan_reports_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/infraplan/reports/{year}/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Report Entries
+         * @description All measures of a year with their projects.
+         */
+        get: operations["report_entries_api_v1_infraplan_reports__year__entries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/infraplan/kpis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Kpis
+         * @description Every KPI with its checked values of all years (unchecked AI values
+         *     stay hidden until the year is approved).
+         */
+        get: operations["kpis_api_v1_infraplan_kpis_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/infraplan/projects/{project_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Project Infraplan
+         * @description Infraplan entries of a project across all years, the cost forecast and
+         *     whether the project is missing from the newest year.
+         */
+        get: operations["project_infraplan_api_v1_infraplan_projects__project_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2058,6 +2330,43 @@ export interface paths {
         head?: never;
         /** Assign Gvfg Entry */
         patch: operations["assign_gvfg_entry_api_v1_admin_unassigned_gvfg_entries__entry_id__assign_patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/unassigned-infraplan-entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Unassigned Infraplan Entries
+         * @description Infraplan entries of the newest year without a project.
+         */
+        get: operations["get_unassigned_infraplan_entries_api_v1_admin_unassigned_infraplan_entries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/unassigned-infraplan-entries/{entry_id}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Assign Infraplan Entry */
+        patch: operations["assign_infraplan_entry_api_v1_admin_unassigned_infraplan_entries__entry_id__assign_patch"];
         trace?: never;
     };
     "/api/v1/roles/": {
@@ -3958,6 +4267,86 @@ export interface components {
             /** Error */
             error?: string | null;
         };
+        /** InfraplanApplyResult */
+        InfraplanApplyResult: {
+            /** Applied */
+            applied: number;
+            /** Unassigned */
+            unassigned: number;
+        };
+        /** InfraplanApplySuggestions */
+        InfraplanApplySuggestions: {
+            /**
+             * Min Confidence
+             * @default 0.85
+             */
+            min_confidence: number;
+            /**
+             * Only Unassigned
+             * @default true
+             */
+            only_unassigned: boolean;
+        };
+        /** InfraplanConfirmRequest */
+        InfraplanConfirmRequest: {
+            /** Parse Result Id */
+            parse_result_id: number;
+            /** Published On */
+            published_on?: string | null;
+            /** Title */
+            title?: string | null;
+            /**
+             * Force
+             * @default false
+             */
+            force: boolean;
+        };
+        /** InfraplanConfirmResult */
+        InfraplanConfirmResult: {
+            /** Report Id */
+            report_id: number;
+            /** Year */
+            year: number;
+            /** Entries */
+            entries: number;
+            /** Links */
+            links: number;
+            /** Unassigned */
+            unassigned: number;
+            /** Projects Updated */
+            projects_updated: number;
+        };
+        /**
+         * InfraplanCostForecast
+         * @description Gesamtkostenprognose of a project from its newest Infraplan year.
+         *
+         *     ``from_subprojects``: the project has no row of its own; the value sums
+         *     its subprojects (collective GWU and references counted once).
+         */
+        InfraplanCostForecast: {
+            /** Year */
+            year: number;
+            /** Total Mio */
+            total_mio: number;
+            /** Label */
+            label: string;
+            /**
+             * From Subprojects
+             * @default false
+             */
+            from_subprojects: boolean;
+            /**
+             * Is Gvfg
+             * @default false
+             */
+            is_gvfg: boolean;
+            /** Entry Ids */
+            entry_ids?: number[];
+            /** Footnotes */
+            footnotes?: {
+                [key: string]: string;
+            };
+        };
         /**
          * InfraplanCostRef
          * @description Target of a cost reference ("Ref. Teil B 20 | E.…").
@@ -3975,6 +4364,32 @@ export interface components {
             /** Cost Mio */
             cost_mio?: number | null;
         };
+        /** InfraplanKpiApproveResult */
+        InfraplanKpiApproveResult: {
+            /** Approved */
+            approved: number;
+        };
+        /**
+         * InfraplanKpiDefinitionInput
+         * @description A new KPI (stable ``key``) or a correction of an existing one.
+         */
+        InfraplanKpiDefinitionInput: {
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Unit */
+            unit?: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "STEUERUNG" | "INFORMATION";
+            /** Category */
+            category?: ("AUS_NEUBAU" | "BESTANDSNETZ" | "UEBERGEORDNET") | null;
+            /** Description */
+            description?: string | null;
+        };
         /** InfraplanKpiPage */
         InfraplanKpiPage: {
             /** Page */
@@ -3986,6 +4401,142 @@ export interface components {
             kind: "STEUERUNG" | "INFORMATION";
             /** Title */
             title: string;
+        };
+        /** InfraplanKpiSchema */
+        InfraplanKpiSchema: {
+            /** Id */
+            id: number;
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Unit */
+            unit?: string | null;
+            /** Kind */
+            kind: string;
+            /** Category */
+            category?: string | null;
+            /** Description */
+            description?: string | null;
+            /**
+             * Sort Order
+             * @default 0
+             */
+            sort_order: number;
+        };
+        /** InfraplanKpiSeriesValue */
+        InfraplanKpiSeriesValue: {
+            /** Report Year */
+            report_year: number;
+            /** Year */
+            year: number;
+            /**
+             * Value Kind
+             * @enum {string}
+             */
+            value_kind: "IST" | "ZIEL";
+            /** Series */
+            series?: string | null;
+            /** Value */
+            value: number;
+        };
+        /**
+         * InfraplanKpiValueInput
+         * @description One value. ``value`` null removes the stored value of this slot.
+         */
+        InfraplanKpiValueInput: {
+            /** Kpi Key */
+            kpi_key: string;
+            /** Year */
+            year: number;
+            /**
+             * Value Kind
+             * @enum {string}
+             */
+            value_kind: "IST" | "ZIEL";
+            /** Series */
+            series?: string | null;
+            /** Value */
+            value?: number | null;
+            /** Source Page */
+            source_page?: number | null;
+        };
+        /** InfraplanKpiValueSchema */
+        InfraplanKpiValueSchema: {
+            /** Id */
+            id: number;
+            /** Kpi Key */
+            kpi_key: string;
+            /** Report Year */
+            report_year: number;
+            /** Year */
+            year: number;
+            /**
+             * Value Kind
+             * @enum {string}
+             */
+            value_kind: "IST" | "ZIEL";
+            /** Series */
+            series?: string | null;
+            /** Value */
+            value: number;
+            /** Source Page */
+            source_page?: number | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "UNGEPRUEFT" | "GEPRUEFT";
+            /** Entered By Snapshot */
+            entered_by_snapshot?: string | null;
+        };
+        /** InfraplanKpiValuesResult */
+        InfraplanKpiValuesResult: {
+            /** Written */
+            written: number;
+            /** Removed */
+            removed: number;
+            /** Definitions Created */
+            definitions_created: number;
+        };
+        /** InfraplanKpiValuesUpdate */
+        InfraplanKpiValuesUpdate: {
+            /** Values */
+            values?: components["schemas"]["InfraplanKpiValueInput"][];
+            /** Definitions */
+            definitions?: components["schemas"]["InfraplanKpiDefinitionInput"][];
+        };
+        /** InfraplanLinkedProject */
+        InfraplanLinkedProject: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+        };
+        /** InfraplanMissingEntry */
+        InfraplanMissingEntry: {
+            /** Section */
+            section: string;
+            /** Lfd Nr */
+            lfd_nr: number;
+            /** Primary Number */
+            primary_number?: string | null;
+            /** Massnahme */
+            massnahme?: string | null;
+        };
+        /**
+         * InfraplanMissingProject
+         * @description A project with an entry in the previous year but none in this draft.
+         */
+        InfraplanMissingProject: {
+            /** Project Id */
+            project_id: number;
+            /** Project Name */
+            project_name: string;
+            /** Previous Year */
+            previous_year: number;
+            /** Entries */
+            entries: components["schemas"]["InfraplanMissingEntry"][];
         };
         /** InfraplanParseLaunchResponse */
         InfraplanParseLaunchResponse: {
@@ -4047,10 +4598,16 @@ export interface components {
             confirmed_by_snapshot?: string | null;
             /** Row Count */
             row_count?: number | null;
+            /**
+             * Assigned Count
+             * @default 0
+             */
+            assigned_count: number;
         };
         /**
          * InfraplanParseResultSchema
-         * @description A draft with all parsed rows.
+         * @description A draft with all parsed rows, the projects they reference and the
+         *     comparison with the previous year.
          */
         InfraplanParseResultSchema: {
             /** Id */
@@ -4082,12 +4639,30 @@ export interface components {
             confirmed_by_snapshot?: string | null;
             /** Row Count */
             row_count?: number | null;
+            /**
+             * Assigned Count
+             * @default 0
+             */
+            assigned_count: number;
             result_json?: components["schemas"]["InfraplanParseOutput"] | null;
             /**
              * Has Pdf
              * @default false
              */
             has_pdf: boolean;
+            /** Projects */
+            projects?: {
+                [key: string]: components["schemas"]["InfraplanProjectRef"];
+            };
+            /** Previous Year */
+            previous_year?: number | null;
+            /** Missing From Previous */
+            missing_from_previous?: components["schemas"]["InfraplanMissingProject"][];
+            /**
+             * Report Year Exists
+             * @default false
+             */
+            report_year_exists: boolean;
         };
         /**
          * InfraplanParsedRow
@@ -4161,6 +4736,295 @@ export interface components {
             footnotes?: {
                 [key: string]: string;
             };
+            /** Suggestions */
+            suggestions?: components["schemas"]["InfraplanSuggestion"][];
+            /** Project Ids */
+            project_ids?: number[];
+            /** Assignment Source */
+            assignment_source?: ("NUMBER" | "FUZZY" | "MANUAL" | "AGENT") | null;
+            /** Assignment Note */
+            assignment_note?: string | null;
+            /** Assigned By */
+            assigned_by?: string | null;
+        };
+        /**
+         * InfraplanProjectEntrySchema
+         * @description An entry as linked to a project: with who linked it and why.
+         */
+        InfraplanProjectEntrySchema: {
+            /** Id */
+            id: number;
+            /** Report Year */
+            report_year: number;
+            /** Section */
+            section: string;
+            /** Section Title */
+            section_title: string;
+            /** Lfd Nr */
+            lfd_nr: number;
+            /** Page */
+            page?: number | null;
+            /** Project Numbers */
+            project_numbers?: string[];
+            /** Primary Number */
+            primary_number?: string | null;
+            /** Bezeichnung */
+            bezeichnung?: string | null;
+            /** Massnahme */
+            massnahme?: string | null;
+            /** Laender */
+            laender?: string | null;
+            /** State Raw */
+            state_raw?: string | null;
+            /** Lph From */
+            lph_from?: number | null;
+            /** Lph To */
+            lph_to?: number | null;
+            /**
+             * Under Construction
+             * @default false
+             */
+            under_construction: boolean;
+            /**
+             * Baurecht
+             * @default false
+             */
+            baurecht: boolean;
+            /** Ibn Raw */
+            ibn_raw?: string | null;
+            /** Ibn Year */
+            ibn_year?: number | null;
+            /** Ibn Qualifier */
+            ibn_qualifier?: string | null;
+            /** Cost Mio */
+            cost_mio?: number | null;
+            /** Cost Kind */
+            cost_kind?: string | null;
+            /** Cost Ref Raw */
+            cost_ref_raw?: string | null;
+            /** Cost Ref Entry Id */
+            cost_ref_entry_id?: number | null;
+            /** Resolved Cost Mio */
+            resolved_cost_mio?: number | null;
+            /** Parl Raw */
+            parl_raw?: string | null;
+            /** Parl State */
+            parl_state?: string | null;
+            /** Footnotes */
+            footnotes?: {
+                [key: string]: string;
+            };
+            /** Project Id */
+            project_id: number;
+            /** Project Name */
+            project_name?: string | null;
+            /** Assignment Source */
+            assignment_source?: string | null;
+            /** Assignment Note */
+            assignment_note?: string | null;
+        };
+        /** InfraplanProjectRef */
+        InfraplanProjectRef: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Superior Project Id */
+            superior_project_id?: number | null;
+            /**
+             * Is Draft
+             * @default false
+             */
+            is_draft: boolean;
+        };
+        /** InfraplanPublicKpi */
+        InfraplanPublicKpi: {
+            /** Id */
+            id: number;
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Unit */
+            unit?: string | null;
+            /** Kind */
+            kind: string;
+            /** Category */
+            category?: string | null;
+            /** Description */
+            description?: string | null;
+            /**
+             * Sort Order
+             * @default 0
+             */
+            sort_order: number;
+            /** Values */
+            values?: components["schemas"]["InfraplanKpiSeriesValue"][];
+        };
+        /** InfraplanPublicReport */
+        InfraplanPublicReport: {
+            /** Year */
+            year: number;
+            /** Title */
+            title?: string | null;
+            /** Published On */
+            published_on?: string | null;
+            /**
+             * Entry Count
+             * @default 0
+             */
+            entry_count: number;
+        };
+        /** InfraplanReportEntrySchema */
+        InfraplanReportEntrySchema: {
+            /** Id */
+            id: number;
+            /** Report Year */
+            report_year: number;
+            /** Section */
+            section: string;
+            /** Section Title */
+            section_title: string;
+            /** Lfd Nr */
+            lfd_nr: number;
+            /** Page */
+            page?: number | null;
+            /** Project Numbers */
+            project_numbers?: string[];
+            /** Primary Number */
+            primary_number?: string | null;
+            /** Bezeichnung */
+            bezeichnung?: string | null;
+            /** Massnahme */
+            massnahme?: string | null;
+            /** Laender */
+            laender?: string | null;
+            /** State Raw */
+            state_raw?: string | null;
+            /** Lph From */
+            lph_from?: number | null;
+            /** Lph To */
+            lph_to?: number | null;
+            /**
+             * Under Construction
+             * @default false
+             */
+            under_construction: boolean;
+            /**
+             * Baurecht
+             * @default false
+             */
+            baurecht: boolean;
+            /** Ibn Raw */
+            ibn_raw?: string | null;
+            /** Ibn Year */
+            ibn_year?: number | null;
+            /** Ibn Qualifier */
+            ibn_qualifier?: string | null;
+            /** Cost Mio */
+            cost_mio?: number | null;
+            /** Cost Kind */
+            cost_kind?: string | null;
+            /** Cost Ref Raw */
+            cost_ref_raw?: string | null;
+            /** Cost Ref Entry Id */
+            cost_ref_entry_id?: number | null;
+            /** Resolved Cost Mio */
+            resolved_cost_mio?: number | null;
+            /** Parl Raw */
+            parl_raw?: string | null;
+            /** Parl State */
+            parl_state?: string | null;
+            /** Footnotes */
+            footnotes?: {
+                [key: string]: string;
+            };
+            /** Projects */
+            projects?: components["schemas"]["InfraplanLinkedProject"][];
+        };
+        /** InfraplanReportSchema */
+        InfraplanReportSchema: {
+            /** Id */
+            id: number;
+            /** Year */
+            year: number;
+            /** Title */
+            title?: string | null;
+            /** Published On */
+            published_on?: string | null;
+            /** Parse Result Id */
+            parse_result_id?: number | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Entry Count
+             * @default 0
+             */
+            entry_count: number;
+            /**
+             * Assigned Count
+             * @default 0
+             */
+            assigned_count: number;
+            /**
+             * Kpi Value Count
+             * @default 0
+             */
+            kpi_value_count: number;
+            /**
+             * Kpi Unchecked Count
+             * @default 0
+             */
+            kpi_unchecked_count: number;
+        };
+        /**
+         * InfraplanRowPatch
+         * @description Change the assignment and/or values of one draft row. ``project_ids``
+         *     replaces the assignment (empty list = none); omitted = unchanged.
+         */
+        InfraplanRowPatch: {
+            /** Project Ids */
+            project_ids?: number[] | null;
+            /** Note */
+            note?: string | null;
+            values?: components["schemas"]["InfraplanRowValues"] | null;
+        };
+        /**
+         * InfraplanRowValues
+         * @description Corrections of parsed values; only set fields are applied.
+         */
+        InfraplanRowValues: {
+            /** Bezeichnung */
+            bezeichnung?: string | null;
+            /** Massnahme */
+            massnahme?: string | null;
+            /** Laender */
+            laender?: string | null;
+            /** State Raw */
+            state_raw?: string | null;
+            /** Lph From */
+            lph_from?: number | null;
+            /** Lph To */
+            lph_to?: number | null;
+            /** Under Construction */
+            under_construction?: boolean | null;
+            /** Baurecht */
+            baurecht?: boolean | null;
+            /** Ibn Raw */
+            ibn_raw?: string | null;
+            /** Ibn Year */
+            ibn_year?: number | null;
+            /** Ibn Qualifier */
+            ibn_qualifier?: ("OFFEN" | "BIS" | "SPANNE") | null;
+            /** Cost Mio */
+            cost_mio?: number | null;
+            /** Parl Raw */
+            parl_raw?: string | null;
+            /** Parl State */
+            parl_state?: ("ABGESCHLOSSEN" | "LAEUFT" | "VORGESEHEN" | "NICHT_VEREINBART") | null;
         };
         /** InfraplanSectionSummary */
         InfraplanSectionSummary: {
@@ -4175,6 +5039,36 @@ export interface components {
             row_count: number;
             /** Pages */
             pages: number[];
+        };
+        /** InfraplanSubprojectCreate */
+        InfraplanSubprojectCreate: {
+            /** Parent Id */
+            parent_id: number;
+            /** Name */
+            name?: string | null;
+        };
+        /** InfraplanSubprojectResult */
+        InfraplanSubprojectResult: {
+            /** Project Id */
+            project_id: number;
+            /** Name */
+            name: string;
+            row: components["schemas"]["InfraplanParsedRow"];
+        };
+        /**
+         * InfraplanSuggestion
+         * @description A project suggested for a row (``reason``: NUMBER | GVFG_KEY | FUZZY).
+         */
+        InfraplanSuggestion: {
+            /** Project Id */
+            project_id: number;
+            /** Confidence */
+            confidence: number;
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "NUMBER" | "GVFG_KEY" | "FUZZY";
         };
         /**
          * InfraplanWarning
@@ -4979,6 +5873,19 @@ export interface components {
             is_default_selected?: boolean | null;
             /** Skipped Phases */
             skipped_phases?: ("VORPLANUNG" | "GENEHMIGUNGSPLANUNG")[] | null;
+        };
+        /** ProjectInfraplanSchema */
+        ProjectInfraplanSchema: {
+            /** Entries */
+            entries?: components["schemas"]["InfraplanProjectEntrySchema"][];
+            /** Latest Year */
+            latest_year?: number | null;
+            /**
+             * Missing In Latest
+             * @default false
+             */
+            missing_in_latest: boolean;
+            cost_forecast?: components["schemas"]["InfraplanCostForecast"] | null;
         };
         /**
          * ProjectListItem
@@ -6274,6 +7181,33 @@ export interface components {
             is_sammel_finve: boolean;
             /** Starting Year */
             starting_year: number | null;
+        };
+        /** UnassignedInfraplanEntrySchema */
+        UnassignedInfraplanEntrySchema: {
+            /** Id */
+            id: number;
+            /** Report Year */
+            report_year: number;
+            /** Section */
+            section: string;
+            /** Lfd Nr */
+            lfd_nr: number;
+            /** Page */
+            page: number | null;
+            /** Primary Number */
+            primary_number: string | null;
+            /** Bezeichnung */
+            bezeichnung: string | null;
+            /** Massnahme */
+            massnahme: string | null;
+            /** Laender */
+            laender: string | null;
+            /** State Raw */
+            state_raw: string | null;
+            /** Ibn Raw */
+            ibn_raw: string | null;
+            /** Cost Mio */
+            cost_mio: number | null;
         };
         /** UnassignedVibEntrySchema */
         UnassignedVibEntrySchema: {
@@ -10684,6 +11618,452 @@ export interface operations {
             };
         };
     };
+    patch_row_api_v1_import_infraplan_parse_result__parse_result_id__rows__row_key__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                parse_result_id: number;
+                row_key: string;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InfraplanRowPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfraplanParsedRow"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    apply_suggestions_api_v1_import_infraplan_parse_result__parse_result_id__apply_suggestions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                parse_result_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InfraplanApplySuggestions"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfraplanApplyResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_subproject_api_v1_import_infraplan_parse_result__parse_result_id__rows__row_key__subproject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                parse_result_id: number;
+                row_key: string;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InfraplanSubprojectCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfraplanSubprojectResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_api_v1_import_infraplan_confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InfraplanConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfraplanConfirmResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_reports_api_v1_import_infraplan_report_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfraplanReportSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_report_api_v1_import_infraplan_report__year__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                year: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_kpis_api_v1_import_infraplan_kpis_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfraplanKpiSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_kpi_values_api_v1_import_infraplan_report__year__kpi_values_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                year: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfraplanKpiValueSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_kpi_values_api_v1_import_infraplan_report__year__kpi_values_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                year: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InfraplanKpiValuesUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfraplanKpiValuesResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_kpi_values_api_v1_import_infraplan_report__year__kpi_values_approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                year: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfraplanKpiApproveResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_reports_api_v1_infraplan_reports_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfraplanPublicReport"][];
+                };
+            };
+        };
+    };
+    report_entries_api_v1_infraplan_reports__year__entries_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                year: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfraplanReportEntrySchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    kpis_api_v1_infraplan_kpis_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfraplanPublicKpi"][];
+                };
+            };
+        };
+    };
+    project_infraplan_api_v1_infraplan_projects__project_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectInfraplanSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_unassigned_finves_api_v1_admin_unassigned_finves_get: {
         parameters: {
             query?: never;
@@ -10848,6 +12228,72 @@ export interface operations {
         };
     };
     assign_gvfg_entry_api_v1_admin_unassigned_gvfg_entries__entry_id__assign_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignProjectsInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_unassigned_infraplan_entries_api_v1_admin_unassigned_infraplan_entries_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnassignedInfraplanEntrySchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assign_infraplan_entry_api_v1_admin_unassigned_infraplan_entries__entry_id__assign_patch: {
         parameters: {
             query?: never;
             header?: never;

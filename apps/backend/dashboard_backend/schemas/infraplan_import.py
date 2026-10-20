@@ -131,6 +131,7 @@ class InfraplanParseResultListItem(BaseModel):
     confirmed_at: Optional[datetime] = None
     confirmed_by_snapshot: Optional[str] = None
     row_count: Optional[int] = None
+    assigned_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -167,7 +168,6 @@ class InfraplanParseResultSchema(InfraplanParseResultListItem):
     projects: dict[str, InfraplanProjectRef] = Field(default_factory=dict)
     previous_year: Optional[int] = None
     missing_from_previous: list[InfraplanMissingProject] = Field(default_factory=list)
-    assigned_count: int = 0
     report_year_exists: bool = False
 
 

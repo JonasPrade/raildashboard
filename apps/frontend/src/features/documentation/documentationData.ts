@@ -141,6 +141,35 @@ export const featureHighlights: FeatureHighlight[] = [
         ]
     },
     {
+        title: "Infraplan-Import",
+        description:
+            "Unter Admin → Infraplan-Import lesen Nutzer mit dem Recht infraplan.import den Infraplan des Bundes " +
+            "(Fünfjahresplan Schiene) als PDF ein, ordnen die Maßnahmen Projekten zu und übernehmen den Jahrgang. " +
+            "Zuordnen und Kennzahlen gehen von Hand oder per KI-Agent über den MCP-Server (Skill infraplan-import).",
+        details: [
+            "Prüfansicht je Abschnitt (Bedarfsplan Teil A–D, GVFG Kat. A/C, InvKG) mit Filter „nur ohne Zuordnung“ und Parser-Warnungen oben",
+            "„Vorschläge übernehmen (≥ 85 %)“ ordnet Treffer über Projektnummer, GVFG-Schlüssel oder sehr ähnlichen Namen zu; jede Zuordnung zeigt ihre Herkunft (Projektnummer, Name, manuell, KI-Agent)",
+            "„Teilprojekt anlegen unter …“ legt ein fehlendes Teilprojekt als Entwurf an und ordnet es zu",
+            "Vorjahresabgleich: Projekte mit Eintrag im Vorjahr, aber ohne Zeile im neuen Jahrgang",
+            "Übernehmen nur ohne Parser-Warnungen oder ausdrücklich mit „Trotzdem übernehmen“; ein Jahrgang lässt sich löschen und neu übernehmen",
+            "Kennzahlen je Jahrgang (/admin/infraplan/kpis/:jahr): manuelles Formular (gilt als geprüft) und Freigabe der KI-gelesenen Werte neben dem Seitenbild",
+            "Zeilen ohne Projekt erscheinen unter Admin → Offene Zuordnungen",
+            "Plan: docs/features/feature-infraplan-import.md"
+        ]
+    },
+    {
+        title: "Infraplan (/infraplan) und Projektseite",
+        description:
+            "Die öffentliche Seite Infraplan zeigt die Kennzahlen als Diagramme und je Jahrgang die Liste der Maßnahmen " +
+            "mit Link aufs Projekt. Auf der Projektseite stehen die Infraplan-Einträge aller Jahrgänge und die Gesamtkostenprognose.",
+        details: [
+            "Je Kennzahl ein Diagramm: Ist-Werte des neuesten Jahrgangs als (gestapelte) Balken, Zielwerte jedes Jahrgangs als eigene Linie („Ziel IP 2026“); nur geprüfte Werte",
+            "Projektseite, Abschnitt Infraplan: Abschnitt, Realisierungsstand, geplante Inbetriebnahme, Kosten und Befassung je Jahrgang, ab dem zweiten Jahrgang Veränderungen („GWU +12 %“, „IBN 2028 → 2030“)",
+            "Hinweis „Nicht mehr im Infraplan …“, wenn das Projekt im neuesten Jahrgang fehlt",
+            "Kostenblock: Gesamtkostenprognose laut Infraplan (bei Elternprojekten ohne eigene Zeile die Summe der Teilprojekte) neben den vom Bund zugesicherten FinVe-Mitteln — bewusst ohne Deckungsgrad"
+        ]
+    },
+    {
         title: "Projekte zusammenführen (Dubletten)",
         description:
             "Doppelt angelegte Projekte lassen sich zu einem Projekt zusammenführen — per MCP-Tool merge_projects " +

@@ -86,8 +86,13 @@ class InfraplanPublicReport(BaseModel):
     entry_count: int = 0
 
 
+class InfraplanLinkedProject(BaseModel):
+    id: int
+    name: str
+
+
 class InfraplanReportEntrySchema(InfraplanEntrySchema):
-    projects: list[dict] = Field(default_factory=list)  # [{id, name}]
+    projects: list[InfraplanLinkedProject] = Field(default_factory=list)
 
 
 # --- KPIs --------------------------------------------------------------------
