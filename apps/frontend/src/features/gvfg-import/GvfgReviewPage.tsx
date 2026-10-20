@@ -5,7 +5,6 @@ import {
     Anchor,
     Badge,
     Button,
-    Checkbox,
     Container,
     Group,
     List,
@@ -24,6 +23,7 @@ import { notifications } from "@mantine/notifications";
 import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
 import RequirePermission from "../../components/RequirePermission";
 import { filterProjectOption } from "../../lib/filterProjectOption";
+import { MissingProjectAnchor } from "../import-review/shared";
 import {
     useConfirmGvfgImport,
     useGvfgParseResult,
@@ -244,7 +244,6 @@ function GvfgReviewPageContent() {
                                     <Table.Th>Fördertatbestand</Table.Th>
                                     <Table.Th ta="right">Finanzhilfen Mio. €</Table.Th>
                                     <Table.Th style={{ minWidth: 340 }}>Projekt</Table.Th>
-                                    <Table.Th>Neu</Table.Th>
                                 </Table.Tr>
                             </Table.Thead>
                             <Table.Tbody>
@@ -291,14 +290,37 @@ function GvfgReviewPageContent() {
                                                 {suggestion && SOURCE_LABEL[suggestion.source] && (
                                                     <Text size="xs" c="dimmed">Vorschlag: {SOURCE_LABEL[suggestion.source]}</Text>
                                                 )}
-                                            </Table.Td>
-                                            <Table.Td>
-                                                <Checkbox
-                                                    aria-label="Projekt neu anlegen"
-                                                    checked={create.has(entry.key)}
-                                                    onChange={(e) => toggleCreate(entry.key, e.currentTarget.checked)}
-                                                    disabled={confirmed}
-                                                />
+                                                {!confirmed && (
+                                                    <Group gap="xs" mt={2} wrap="wrap">
+                                                        {create.has(entry.key) ? (
+                                                            <>
+                                                                <Badge color="blue" variant="light" size="xs">
+                                                                    wird beim Übernehmen angelegt
+                                                                </Badge>
+                                                                <Anchor
+                                                                    component="button"
+                                                                    type="button"
+                                                                    size="xs"
+                                                                    onClick={() => toggleCreate(entry.key, false)}
+                                                                >
+                                                                    rückgängig
+                                                                </Anchor>
+                                                            </>
+                                                        ) : (
+                                                            <MissingProjectAnchor
+                                                                initialName={entry.name ?? entry.key}
+                                                                sourceLabel="GVFG"
+                                                                onCreated={(project) => {
+                                                                    if (project.id == null) return;
+                                                                    setProjects(entry.key, [
+                                                                        ...(current[entry.key] ?? []),
+                                                                        project.id,
+                                                                    ]);
+                                                                }}
+                                                            />
+                                                        )}
+                                                    </Group>
+                                                )}
                                             </Table.Td>
                                         </Table.Tr>
                                     );

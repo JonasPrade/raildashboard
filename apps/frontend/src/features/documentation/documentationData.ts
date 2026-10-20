@@ -124,7 +124,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Hauptteil und – wo getrennt geliefert – Anhang (nachrichtlicher Teil) werden derselben Ausgabe zugeordnet",
             "Die Zahlen werden direkt aus dem PDF gelesen; Summenzeilen werden gegengeprüft und Abweichungen angezeigt",
             "Vorschläge: Projekte der Vorausgabe, dann Projektnummer = GVFG-Schlüssel, dann Name",
-            "Fehlende Projekte lassen sich beim Übernehmen anlegen; zugeordnete Projekte kommen in die Gruppe GVFG (Land 08 zusätzlich GVFG BW)",
+            "Fehlt ein Projekt, legt „Projekt fehlt?“ je Vorhaben einen Projektentwurf an und ordnet ihn zu; alternativ lassen sich alle Vorhaben ohne Projekt beim Übernehmen anlegen. Zugeordnete Projekte kommen in die Gruppe GVFG (Land 08 zusätzlich GVFG BW)",
             "Vorhaben der neuesten Ausgabe ohne Projekt erscheinen unter Admin → Offene Zuordnungen"
         ]
     },
