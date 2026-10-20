@@ -142,6 +142,7 @@ function EditModal({ kpi, kpis, series, onClose }: {
                 </Group>
                 <Textarea
                     label="Beschreibung"
+                    description="Kurze Erklärung der Kennzahl; auf /infraplan als Tooltip hinter dem Info-Symbol neben dem Namen"
                     autosize
                     minRows={2}
                     value={form.description}
