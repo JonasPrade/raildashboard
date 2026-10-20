@@ -3,9 +3,11 @@ import { Link } from "react-router-dom";
 import {
     Alert,
     Anchor,
+    Button,
     Container,
     Group,
     Loader,
+    Modal,
     Pagination,
     SegmentedControl,
     Select,
@@ -39,46 +41,95 @@ import {
     entryCost,
     formatMio,
     groupKpis,
+    kpiSubSeries,
+    type KpiChartScope,
 } from "./infraplanFormat";
 
 const PAGE_SIZE = 50;
 
-function KpiCard({ kpi }: { kpi: InfraplanPublicKpi }) {
-    const chart = useMemo(() => buildKpiChart(kpi), [kpi]);
+function KpiChart({ kpi, scope, h = 220 }: { kpi: InfraplanPublicKpi; scope: KpiChartScope; h?: number }) {
+    const chart = useMemo(() => buildKpiChart(kpi, scope), [kpi, scope]);
     const format = (v: number) =>
         `${v.toLocaleString("de-DE", { maximumFractionDigits: 2 })}${kpi.unit ? ` ${kpi.unit}` : ""}`;
+    if (chart.data.length === 0) return <Text size="sm" c="dimmed">Keine geprüften Werte.</Text>;
+    return (
+        <>
+            <CompositeChart
+                h={h}
+                data={chart.data}
+                dataKey="year"
+                series={chart.series}
+                valueFormatter={format}
+                withLegend
+                legendProps={{ verticalAlign: "bottom", height: 50 }}
+                tickLine="y"
+                maxBarWidth={36}
+                barProps={{ stackId: "ist" }}
+                connectNulls
+            />
+            {chart.istReportYear && (
+                <Text size="xs" c="dimmed">
+                    Ist-Werte aus dem Infraplan {chart.istReportYear}; Zielwerte je Jahrgang.
+                </Text>
+            )}
+        </>
+    );
+}
+
+/** One chart per sub-series, so each category's Ist and targets can be traced on their own. */
+function KpiDetailModal({ kpi, subSeries, opened, onClose }: {
+    kpi: InfraplanPublicKpi;
+    subSeries: string[];
+    opened: boolean;
+    onClose: () => void;
+}) {
+    const isMobile = useIsMobile();
+    return (
+        <Modal opened={opened} onClose={onClose} title={kpi.name} size="xl" fullScreen={isMobile}>
+            <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                {subSeries.map((s) => (
+                    <ChronicleCard key={s}>
+                        <Stack gap="xs">
+                            <Text fw={600} size="sm">{s}</Text>
+                            <KpiChart kpi={kpi} scope={{ series: s }} h={200} />
+                        </Stack>
+                    </ChronicleCard>
+                ))}
+            </SimpleGrid>
+        </Modal>
+    );
+}
+
+function KpiCard({ kpi }: { kpi: InfraplanPublicKpi }) {
+    const subSeries = useMemo(() => kpiSubSeries(kpi), [kpi]);
+    const [detailOpen, setDetailOpen] = useState(false);
+    // With several sub-series the overview shows only their sum; the split
+    // lives in the detail view, one chart per sub-series.
+    const split = subSeries.length > 1;
     return (
         <ChronicleCard>
             <Stack gap="xs">
-                <Stack gap={0}>
-                    <Text fw={600} size="sm">{kpi.name}</Text>
-                    {kpi.description && <Text size="xs" c="dimmed">{kpi.description}</Text>}
-                </Stack>
-                {chart.data.length === 0 ? (
+                <Group justify="space-between" align="flex-start" wrap="nowrap" gap="sm">
+                    <Stack gap={0}>
+                        <Text fw={600} size="sm">{kpi.name}</Text>
+                        {kpi.description && <Text size="xs" c="dimmed">{kpi.description}</Text>}
+                        {split && <Text size="xs" c="dimmed">Summe aus {subSeries.length} Kategorien</Text>}
+                    </Stack>
+                    {split && (
+                        <Button size="compact-xs" variant="light" onClick={() => setDetailOpen(true)} style={{ flexShrink: 0 }}>
+                            Details
+                        </Button>
+                    )}
+                </Group>
+                {(kpi.values ?? []).length === 0 ? (
                     <Text size="sm" c="dimmed">Noch keine geprüften Werte.</Text>
                 ) : (
-                    <>
-                        <CompositeChart
-                            h={220}
-                            data={chart.data}
-                            dataKey="year"
-                            series={chart.series}
-                            valueFormatter={format}
-                            withLegend
-                            legendProps={{ verticalAlign: "bottom", height: 50 }}
-                            tickLine="y"
-                            maxBarWidth={36}
-                            barProps={{ stackId: "ist" }}
-                            connectNulls
-                        />
-                        {chart.istReportYear && (
-                            <Text size="xs" c="dimmed">
-                                Ist-Werte aus dem Infraplan {chart.istReportYear}; Zielwerte je Jahrgang.
-                            </Text>
-                        )}
-                    </>
+                    <KpiChart kpi={kpi} scope={split ? "total" : "all"} />
                 )}
             </Stack>
+            {split && (
+                <KpiDetailModal kpi={kpi} subSeries={subSeries} opened={detailOpen} onClose={() => setDetailOpen(false)} />
+            )}
         </ChronicleCard>
     );
 }

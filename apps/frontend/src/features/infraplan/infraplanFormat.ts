@@ -204,13 +204,30 @@ function seriesSuffix(series: string | null | undefined): string {
     return series ? ` – ${series}` : "";
 }
 
+/** Distinct named sub-series of a KPI (e.g. the KMM categories), in order of appearance. */
+export function kpiSubSeries(kpi: Pick<InfraplanPublicKpi, "values">): string[] {
+    return [...new Set((kpi.values ?? []).map((v) => v.series).filter((s): s is string => !!s))];
+}
+
+/**
+ * Which values a chart shows: all sub-series side by side (default), their sum
+ * per year (`"total"`) or a single sub-series by name.
+ */
+export type KpiChartScope = "all" | "total" | { series: string };
+
 /**
  * Ist values of the newest report year become (stacked) bars, one bar series
  * per sub-series; the targets of every report year become their own line
  * ("Ziel IP 2026"), so shifted targets stay visible.
  */
-export function buildKpiChart(kpi: Pick<InfraplanPublicKpi, "values">): KpiChart {
-    const values = kpi.values ?? [];
+export function buildKpiChart(kpi: Pick<InfraplanPublicKpi, "values">, scope: KpiChartScope = "all"): KpiChart {
+    let values = kpi.values ?? [];
+    if (scope === "total") {
+        // Collapse the sub-series; values of the same key are summed below.
+        values = values.map((v) => ({ ...v, series: null }));
+    } else if (scope !== "all") {
+        values = values.filter((v) => v.series === scope.series).map((v) => ({ ...v, series: null }));
+    }
     const istYears = values.filter((v) => v.value_kind === "IST").map((v) => v.report_year);
     const istReportYear = istYears.length > 0 ? Math.max(...istYears) : null;
 
@@ -251,7 +268,8 @@ export function buildKpiChart(kpi: Pick<InfraplanPublicKpi, "values">): KpiChart
             }
         }
         const row = rows.get(v.year) ?? { year: String(v.year) };
-        row[name] = v.value;
+        const prev = row[name];
+        row[name] = typeof prev === "number" ? prev + v.value : v.value;
         rows.set(v.year, row);
     }
 

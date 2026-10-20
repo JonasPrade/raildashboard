@@ -334,7 +334,9 @@ fehlt, zuvor aber enthalten war. Mobil über `ResponsiveTable`.
 **Öffentliche Seite `/infraplan`:** Kennzahlen gruppiert nach Kategorie, je Kennzahl ein
 Diagramm: Ist-Werte aus dem neuesten Jahrgang als Balken/Linie, Zielwerte **jedes**
 Jahrgangs als eigene Linie („Ziel IP 2026“, „Ziel IP 2027“), sodass Zielverschiebungen
-sichtbar sind. Teilreihen (`series`) als Stapel/Legende. Nur Werte mit Status
+sichtbar sind. Hat eine Kennzahl mehrere Teilreihen (`series`, z. B. die KMM-Kategorien),
+zeigt die Übersicht nur deren Summe je Jahr; der Button „Details“ öffnet eine Ansicht
+mit einem Diagramm je Teilreihe (Ist und Ziele der Kategorie). Nur Werte mit Status
 `GEPRUEFT`. Darunter je Jahrgang die Liste der Maßnahmen mit Link aufs Projekt.
 Navigationseintrag „Infraplan“. Die Startseite bleibt vorerst unverändert.
 

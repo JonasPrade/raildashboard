@@ -7,6 +7,7 @@ import {
     filterRows,
     formatPercentChange,
     groupKpis,
+    kpiSubSeries,
     measureKey,
 } from "./infraplanFormat";
 
@@ -113,6 +114,38 @@ describe("buildKpiChart", () => {
         expect(chart.data).toEqual([
             { year: "2024", "ist|Teil 1": 6, "ist|Teil 2": 5 },
             { year: "2027", "ziel|2026|": 30, "ziel|2027|": 25 },
+        ]);
+    });
+
+    const split = {
+        values: [
+            { report_year: 2026, year: 2025, value_kind: "IST", series: "740-m-Netz", value: 4 },
+            { report_year: 2026, year: 2025, value_kind: "IST", series: "Stabiles Netz", value: 3 },
+            { report_year: 2026, year: 2027, value_kind: "ZIEL", series: "740-m-Netz", value: 2 },
+            { report_year: 2026, year: 2027, value_kind: "ZIEL", series: "Stabiles Netz", value: 5 },
+        ],
+    } as Pick<InfraplanPublicKpi, "values">;
+
+    it("lists the sub-series in order of appearance", () => {
+        expect(kpiSubSeries(split)).toEqual(["740-m-Netz", "Stabiles Netz"]);
+        expect(kpiSubSeries(kpi)).toEqual(["Teil 1", "Teil 2"]);
+    });
+
+    it("sums the sub-series per year for the overview", () => {
+        const chart = buildKpiChart(split, "total");
+        expect(chart.series.map((s) => s.label)).toEqual(["Ist", "Ziel IP 2026"]);
+        expect(chart.data).toEqual([
+            { year: "2025", "ist|": 7 },
+            { year: "2027", "ziel|2026|": 7 },
+        ]);
+    });
+
+    it("shows a single sub-series for the detail view", () => {
+        const chart = buildKpiChart(split, { series: "Stabiles Netz" });
+        expect(chart.series.map((s) => s.label)).toEqual(["Ist", "Ziel IP 2026"]);
+        expect(chart.data).toEqual([
+            { year: "2025", "ist|": 3 },
+            { year: "2027", "ziel|2026|": 5 },
         ]);
     });
 
