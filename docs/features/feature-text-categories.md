@@ -40,11 +40,11 @@ Since 2026-10-21 (IDT design, W5 in `feature-idt-design.md`): the style map is
 Lucide, the edge is 8 px like the design system's callout and the icon stays ink
 except for `critical`, because cyan on paper (1.6:1) cannot carry an icon.
 
-**Colours are switchable in one place.** Components never use a base token
-directly for a category: they use the semantic tokens `--text-cat-*`, which
-`tokens.css` maps to base tokens. Icon, border and token per style live in one
-TypeScript map (`textCategoryStyles.ts`). Changing a colour = one line in
-`tokens.css`; changing icon or border = one line in the map.
+**Colours are switchable in one place.** Components never use a token directly
+for a category: edge and icon colour per style live in `TEXT_CATEGORY_STYLE`
+(`src/shared/theme/semanticColors.ts`); `textCategoryStyles.ts` only adds the
+German label and resolves the Lucide icon. Changing a colour or icon = one line
+there. The former `--text-cat-*` tokens are gone.
 
 Direction F history: `--warn` was a separate base token because `--led` (Gold) was
 the brand accent; with the IDT design the warning colour is `--idt-warning` from
@@ -53,10 +53,9 @@ the design system and `--led` no longer exists.
 ## Desired behaviour
 
 ### Display (project detail page, section „Texte“)
-- Only `warning` and `critical` cards get a 3 px left border in the style colour.
-  `info`/`neutral` cards stay without border — a blue left border already marks
-  highlighted projects and KPI cards (`ChronicleCard accent`).
-- The header row shows the style icon in the style colour and the category name
+- Every card except `neutral` gets an 8 px left edge in the style colour (DS
+  callout: no frame, no fill); `neutral` keeps the same indent without edge.
+- The header row shows the style icon (ink, `critical` red) and the category name
   as a label next to the type („Warnung · Kommentar“). Colour is never the only
   signal (`DESIGN.md` §9).
 - Internal texts carry a chip „Intern“ with a lock icon.
@@ -128,12 +127,12 @@ rollback) is shown with the default category in the UI and in MCP.
 
 ## Acceptance criteria
 
-- [ ] Existing texts show as „Info“ (icon + label, no border) after the migration.
+- [ ] Existing texts show as „Info“ (icon + label, cyan edge) after the migration.
 - [ ] A text set to „Warnung“ shows the amber border, warning icon and label.
 - [ ] A new category with style `critical` can be created from the form and is selectable right away.
 - [ ] Creating a text without a category (API/MCP) assigns „Info“.
 - [ ] An internal text is hidden for anonymous visitors (list and attachment download) and visible after login.
 - [ ] Category and visibility changes appear in the text history.
-- [ ] Changing `--text-cat-warning` in `tokens.css` recolours icon and border of all warnings.
+- [ ] Changing `warning.edge` in `semanticColors.ts` recolours the edge of all warnings.
 - [ ] Layout works at 360 px.
 - [ ] `make test` green.

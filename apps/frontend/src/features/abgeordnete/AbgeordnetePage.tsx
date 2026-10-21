@@ -14,7 +14,6 @@ import {
     Anchor,
     Badge,
     Group,
-    Loader,
     Select,
     Stack,
     Table,
@@ -34,6 +33,7 @@ import {
     usePolitician,
 } from "../../shared/api/queries";
 import { COMMITTEE_LABELS, CommitteeBadges, formatWeight } from "./mandateDisplay";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 const COMMITTEE_OPTIONS = [
     { value: "verkehr", label: "Verkehrsausschuss" },
@@ -43,7 +43,7 @@ const COMMITTEE_OPTIONS = [
 function PoliticianProjects({ mandateId }: { mandateId: number }) {
     const { data, isLoading } = usePolitician(mandateId);
 
-    if (isLoading) return <Loader size="sm" />;
+    if (isLoading) return <LoadingState rows={3} />;
     if (!data) return <Text c="dimmed">Konnte nicht geladen werden.</Text>;
 
     if (data.projects.length === 0) {
@@ -111,7 +111,7 @@ function PoliticianRow({ politician }: { politician: PoliticianListItem }) {
                             <Badge
                                 size="xs"
                                 variant={politician.is_direct_mandate ? "filled" : "outline"}
-                                color={politician.is_direct_mandate ? "preussen" : "gray"}
+                                color={politician.is_direct_mandate ? "violet" : "gray"}
                             >
                                 {politician.is_direct_mandate
                                     ? "Direktmandat"
@@ -209,7 +209,7 @@ function PoliticianWorkingList() {
             )}
 
             {status.data?.is_stale && status.data.period && (
-                <Alert color="gold" variant="light">
+                <Alert color="teal" variant="light">
                     Der Abgeordnetenstand ist älter als {status.data.stale_after_days} Tage
                     {importedAt
                         ? ` (zuletzt am ${new Date(importedAt).toLocaleDateString("de-DE", {
@@ -270,9 +270,7 @@ function PoliticianWorkingList() {
             </Group>
 
             {isLoading ? (
-                <Group justify="center" py="xl">
-                    <Loader />
-                </Group>
+                <LoadingState rows={6} />
             ) : (data?.length ?? 0) === 0 ? (
                 <Text c="dimmed">Keine Abgeordneten gefunden.</Text>
             ) : (

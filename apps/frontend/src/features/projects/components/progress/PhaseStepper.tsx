@@ -12,6 +12,7 @@ import {
     visiblePhases,
 } from "./phaseMeta";
 import { formatDateShort } from "../../../../shared/format";
+import { LANE_STATE_COLOR } from "../../../../shared/theme/semanticColors";
 
 export type StepperChild = { project_id: number; name: string };
 
@@ -51,14 +52,14 @@ type Props = {
     hiddenPhases?: readonly string[] | null;
 };
 
-const ACTIVE = "var(--accent-primary)";
-const DONE = "var(--idt-success)";
-const IDLE = "var(--border)";
+const ACTIVE: string = LANE_STATE_COLOR.active;
+const DONE: string = LANE_STATE_COLOR.done;
+const IDLE: string = LANE_STATE_COLOR.idle;
 
 /**
  * Gate milestone marker rendered on a second tier *below* a timeline connector
  * (linked by a short connector), so the main flow stays intact. Green/filled when
- * abgeschlossen, blue/filled while it läuft, outline when still offen. Used for the
+ * abgeschlossen, violet/filled while it läuft, outline when still offen. Used for the
  * Planfeststellungsbeschluss and the parliamentary involvement.
  */
 function Milestone({

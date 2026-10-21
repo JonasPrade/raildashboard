@@ -6,7 +6,6 @@ import {
     Button,
     Container,
     Group,
-    Loader,
     Stack,
     Text,
 } from "@mantine/core";
@@ -26,6 +25,7 @@ import { ReviewTable } from "./components/ReviewTable";
 import { ColumnMappingPanel } from "./components/ColumnMappingPanel";
 import { ExtractionComparisonPanel } from "./components/ExtractionComparisonPanel";
 import { formatDateTime } from "../../shared/format";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 function HaushaltsReviewPageContent() {
     const { parseResultId } = useParams<{ parseResultId: string }>();
@@ -39,7 +39,7 @@ function HaushaltsReviewPageContent() {
 
     const [rows, setRows] = useState<HaushaltsParseRow[] | null>(null);
 
-    if (isLoading) return <Container py="xl"><Group justify="center"><Loader /></Group></Container>;
+    if (isLoading) return <Container py="xl"><LoadingState rows={6} /></Container>;
     if (isError || !result) {
         return (
             <Container size="sm" py="xl">
@@ -145,7 +145,6 @@ function HaushaltsReviewPageContent() {
                                 Verwerfen
                             </Button>
                             <Button
-                                color="green"
                                 size="sm"
                                 loading={confirm.isPending}
                                 onClick={handleConfirm}

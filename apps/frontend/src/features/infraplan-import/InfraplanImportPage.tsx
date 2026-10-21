@@ -7,7 +7,6 @@ import {
     Container,
     FileInput,
     Group,
-    Loader,
     NumberInput,
     Stack,
     Table,
@@ -33,12 +32,14 @@ import { formatDateShort, formatDateTime } from "../../shared/format";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { TaskProgressIndicator, useImportTask } from "../import-review/shared";
 import InfraplanKpiSettings from "./InfraplanKpiSettings";
+import { LoadingState } from "../../shared/ui/LoadingState";
+import { STATUS_TONE } from "../../shared/theme/semanticColors";
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
-    PENDING: { label: "wartet", color: "gray" },
-    RUNNING: { label: "wird gelesen", color: "blue" },
-    SUCCESS: { label: "gelesen", color: "green" },
-    FAILURE: { label: "Fehler", color: "red" },
+    PENDING: { label: "wartet", color: STATUS_TONE.neutral },
+    RUNNING: { label: "wird gelesen", color: STATUS_TONE.active },
+    SUCCESS: { label: "gelesen", color: STATUS_TONE.done },
+    FAILURE: { label: "Fehler", color: STATUS_TONE.danger },
 };
 
 function errorDetail(error: unknown, fallback: string): string {
@@ -126,7 +127,7 @@ function Drafts({ drafts }: { drafts: InfraplanParseResultListItem[] }) {
                             </Table.Td>
                             <Table.Td ta="right">{d.row_count == null ? "–" : `${d.assigned_count} / ${d.row_count}`}</Table.Td>
                             <Table.Td ta="right">
-                                {warnings > 0 ? <Badge color="yellow" variant="light">{warnings}</Badge> : "–"}
+                                {warnings > 0 ? <Badge color="gray" variant="outline">{warnings}</Badge> : "–"}
                             </Table.Td>
                             <Table.Td>
                                 {d.confirmed_at ? (
@@ -223,7 +224,7 @@ function Years({ reports }: { reports: InfraplanReport[] }) {
                             <Group gap={6} wrap="nowrap">
                                 <Text size="sm">{r.kpi_value_count} Werte</Text>
                                 {r.kpi_unchecked_count > 0 && (
-                                    <Badge color="orange" variant="light" size="sm">
+                                    <Badge color="violet" variant="light" size="sm">
                                         {r.kpi_unchecked_count} ungeprüft
                                     </Badge>
                                 )}
@@ -359,13 +360,13 @@ function InfraplanImportPageContent() {
                             <ChronicleCard>
                                 <Stack gap="md">
                                     <Text fw={600}>Entwürfe</Text>
-                                    {draftsLoading ? <Group justify="center"><Loader /></Group> : <Drafts drafts={drafts ?? []} />}
+                                    {draftsLoading ? <LoadingState rows={6} /> : <Drafts drafts={drafts ?? []} />}
                                 </Stack>
                             </ChronicleCard>
                             <ChronicleCard>
                                 <Stack gap="md">
                                     <Text fw={600}>Übernommene Jahrgänge</Text>
-                                    {reportsLoading ? <Group justify="center"><Loader /></Group> : <Years reports={reports ?? []} />}
+                                    {reportsLoading ? <LoadingState rows={6} /> : <Years reports={reports ?? []} />}
                                 </Stack>
                             </ChronicleCard>
                         </Stack>

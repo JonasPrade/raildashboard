@@ -1,11 +1,9 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-    Alert,
     Anchor,
     Checkbox,
     Group,
-    Loader,
     Pagination,
     SegmentedControl,
     Select,
@@ -19,6 +17,8 @@ import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import { useGvfgProgramEntries, useGvfgPrograms, type GvfgEntry } from "../../shared/api/queries";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { CATEGORY_LABEL, KIND_LABEL, categories, editionLabel, formatMio, num, plannedAid, sumLine } from "./gvfgFormat";
+import { LoadingState } from "../../shared/ui/LoadingState";
+import { ErrorState } from "../../shared/ui/ErrorState";
 
 const PAGE_SIZE = 50;
 
@@ -42,7 +42,7 @@ export default function GvfgOverviewPage() {
     const { data: programs, isLoading: programsLoading } = useGvfgPrograms();
     const [programId, setProgramId] = useState<number | null>(null);
     const program = programs?.find((p) => p.id === programId) ?? programs?.[0] ?? null;
-    const { data: entries, isLoading, isError } = useGvfgProgramEntries(program?.id ?? null);
+    const { data: entries, isLoading, isError, refetch } = useGvfgProgramEntries(program?.id ?? null);
 
     const [land, setLand] = useState<string | null>(null);
     const [kind, setKind] = useState<KindFilter>("all");
@@ -83,7 +83,7 @@ export default function GvfgOverviewPage() {
         setPage(1);
     };
 
-    if (programsLoading) return <Group justify="center" py="xl"><Loader /></Group>;
+    if (programsLoading) return <LoadingState rows={6} />;
     if (!program) {
         return (
             <Text c="dimmed" py="xl">
@@ -158,8 +158,8 @@ export default function GvfgOverviewPage() {
                 />
             </Group>
 
-            {isLoading && <Group justify="center"><Loader /></Group>}
-            {isError && <Alert color="red" variant="light">Vorhaben konnten nicht geladen werden.</Alert>}
+            {isLoading && <LoadingState rows={6} />}
+            {isError && <ErrorState onRetry={() => void refetch()}>Vorhaben konnten nicht geladen werden.</ErrorState>}
 
             {!isLoading && !isError && (
                 <>

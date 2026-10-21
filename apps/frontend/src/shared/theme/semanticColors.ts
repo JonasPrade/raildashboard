@@ -29,6 +29,34 @@ export const LANE_STATE_COLOR = {
     done: "var(--idt-success)",
 } as const;
 
+// Zeitstrahl (W4): segments carry PHASE_COLOR, the planned part is hatched.
+export const TIMELINE_COLOR = {
+    today: "var(--accent-primary)",
+    stagePause: "var(--idt-seq-4)",
+    commissioning: "var(--idt-success)",
+    marker: "var(--text-strong)",
+    track: "var(--surface-alt)",
+} as const;
+
+// Tones for status tags and alerts that take a Mantine `color` prop. The values
+// are the DS scales of theme.ts; only red carries colour (Anwendungsebene),
+// "done" is ink-teal plus a check, never green, and there is no yellow.
+export const STATUS_TONE = {
+    neutral: "gray",
+    active: "violet",
+    done: "teal",
+    danger: "red",
+} as const;
+export type StatusTone = keyof typeof STATUS_TONE;
+
+// Dot of ChronicleDataChip (until stage 4 replaces the chip).
+export const DATA_CHIP_DOT_COLOR = {
+    default: "var(--accent-primary)",
+    go: "var(--text-strong)",
+    signal: "var(--idt-danger)",
+    info: "var(--accent-secondary)",
+} as const;
+
 // Anwendungsebene status rule: only red carries colour.
 export const TODO_STATUS_STYLE = {
     OPEN: { color: "var(--text-muted)", weight: 400 },
@@ -36,6 +64,9 @@ export const TODO_STATUS_STYLE = {
     DONE: { color: "var(--text-muted)", weight: 400, check: true },
     OVERDUE: { color: "var(--text-strong)", weight: 700, underline: "var(--idt-danger)" },
 } as const;
+
+// Priority shows through weight, never colour (Anwendungsebene "Status").
+export const TODO_PRIORITY_WEIGHT = { LOW: 400, MEDIUM: 600, HIGH: 700 } as const;
 
 // W5: edge in the status colour, icon in ink, only critical with a red icon.
 export const TEXT_CATEGORY_STYLE = {

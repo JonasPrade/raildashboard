@@ -14,7 +14,8 @@ export default function LifecycleOverlay({ status }: Props) {
     const isAbort = status === "ABGEBROCHEN";
     return (
         <Alert
-            color={isAbort ? "red" : "orange"}
+            // Lifecycle is no "Versäumnis": neutral alert, the icon tells pause from abort.
+            color="teal"
             variant="light"
             icon={isAbort ? <Ban size={16} /> : <Pause size={16} />}
             title={`Projekt ${LIFECYCLE_LABEL[status]}`}

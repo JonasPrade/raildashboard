@@ -1,11 +1,9 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
     ActionIcon,
-    Alert,
     Anchor,
     Button,
     Group,
-    Loader,
     Modal,
     Radio,
     Select,
@@ -18,7 +16,7 @@ import {
     Tooltip,
 } from "@mantine/core";
 import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
-import { Eye, Lock } from "lucide-react";
+import { Check, Eye, Lock } from "lucide-react";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
 
@@ -45,10 +43,13 @@ import { API_BASE } from "../../shared/api/client";
 import {
     TEXT_CATEGORY_STYLE_ORDER,
     TEXT_CATEGORY_STYLES,
+    textCardStyle,
     type TextCategoryStyle,
     categoryOf,
     defaultCategory,
 } from "./textCategoryStyles";
+import { LoadingState } from "../../shared/ui/LoadingState";
+import { ErrorState } from "../../shared/ui/ErrorState";
 
 // Lazy: pulls in react-pdf/pdfjs (~400 KB) only when a preview is opened.
 const PdfPreviewModal = lazy(() => import("./PdfPreviewModal"));
@@ -210,11 +211,12 @@ function CreateTextCategoryModal({ opened, onClose, onCreated }: CreateTextCateg
                                     value={key}
                                     label={
                                         <Group gap={6} wrap="nowrap">
-                                            <StyleIcon size={16} color={display.color} aria-hidden />
+                                            <span
+                                                aria-hidden
+                                                style={{ width: 8, height: 16, background: display.edge ?? "transparent" }}
+                                            />
+                                            <StyleIcon size={16} color={display.iconColor} aria-hidden />
                                             <span>{display.label}</span>
-                                            {display.border && (
-                                                <Text span size="xs" c="dimmed">hervorgehoben</Text>
-                                            )}
                                         </Group>
                                     }
                                 />
@@ -246,8 +248,8 @@ function CategoryLabel({ category }: { category: ProjectTextCategory }) {
     const StyleIcon = display.icon;
     return (
         <Group gap={4} wrap="nowrap">
-            {/* Status colours carry the icon only — amber and cyan are no text colours. */}
-            <StyleIcon size={14} color={display.color} aria-hidden />
+            {/* Icon in ink (critical red); amber and cyan only on the card edge (W5). */}
+            <StyleIcon size={14} color={display.iconColor} aria-hidden />
             <Text span size="xs" fw={600} style={{ color: "var(--text-body)" }}>
                 {category.name}
             </Text>
@@ -680,8 +682,8 @@ function AttachmentUploadArea({ textId, projectId }: AttachmentUploadAreaProps) 
             </FileDropZone>
             {uploads.map((u) => (
                 <Group key={u.filename} gap="xs" align="center">
-                    {u.status === "uploading" && <Loader size="xs" />}
-                    {u.status === "done" && <Text size="xs" c="green">✓</Text>}
+                    {u.status === "uploading" && <Text size="xs" c="dimmed">…</Text>}
+                    {u.status === "done" && <Check size={12} aria-label="hochgeladen" />}
                     {u.status === "error" && <Text size="xs" c="red">✗</Text>}
                     <Text size="xs" c={u.status === "error" ? "red" : "dimmed"}>
                         {u.filename}{u.status === "error" ? ` — ${u.error}` : ""}
@@ -762,7 +764,8 @@ function TextCard({ projectText, canEdit, projectId }: TextCardProps) {
 
     return (
         <>
-            <ChronicleCard accentColor={display?.border ? display.color : undefined}>
+            {/* DS callout: 8px edge in the category colour, no frame, no fill. */}
+            <div style={{ ...textCardStyle(display?.edge ?? null), paddingTop: 4, paddingBottom: 4 }}>
                 <Stack gap="xs">
                     <Group justify="space-between" align="flex-start">
                         <Stack gap={2} style={{ minWidth: 0 }}>
@@ -818,7 +821,7 @@ function TextCard({ projectText, canEdit, projectId }: TextCardProps) {
                         <AttachmentUploadArea textId={projectText.id} projectId={projectId} />
                     )}
                 </Stack>
-            </ChronicleCard>
+            </div>
 
             <TextFormModal
                 opened={editOpened}
@@ -841,7 +844,7 @@ type ProjectTextsSectionProps = {
 
 export default function ProjectTextsSection({ projectId, canEdit }: ProjectTextsSectionProps) {
     const [createOpened, setCreateOpened] = useState(false);
-    const { data, isLoading, isError } = useProjectTexts(projectId);
+    const { data, isLoading, isError, refetch } = useProjectTexts(projectId);
     const createMutation = useCreateProjectText(projectId);
     const uploadMutation = useUploadTextAttachment(projectId);
 
@@ -893,7 +896,7 @@ export default function ProjectTextsSection({ projectId, canEdit }: ProjectTexts
     if (isLoading) {
         return (
             <ChronicleCard>
-                <Loader size="sm" />
+                <LoadingState rows={3} />
             </ChronicleCard>
         );
     }
@@ -901,9 +904,7 @@ export default function ProjectTextsSection({ projectId, canEdit }: ProjectTexts
     if (isError) {
         return (
             <ChronicleCard>
-                <Alert color="red" variant="light">
-                    Texte konnten nicht geladen werden.
-                </Alert>
+                <ErrorState onRetry={() => void refetch()}>Texte konnten nicht geladen werden.</ErrorState>
             </ChronicleCard>
         );
     }

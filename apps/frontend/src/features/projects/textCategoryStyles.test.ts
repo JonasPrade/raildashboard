@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ProjectText, ProjectTextCategory } from "../../shared/api/queries";
-import { TEXT_CATEGORY_STYLES, categoryOf, defaultCategory } from "./textCategoryStyles";
+import { TEXT_CATEGORY_STYLES, categoryOf, defaultCategory, textCardStyle } from "./textCategoryStyles";
 
 const info: ProjectTextCategory = { id: 1, name: "Info", style: "info" };
 const warning: ProjectTextCategory = { id: 2, name: "Warnung", style: "warning" };
@@ -22,17 +22,33 @@ function text(category: ProjectTextCategory | null): ProjectText {
 }
 
 describe("textCategoryStyles", () => {
-    it("colours every style through a semantic token", () => {
+    it("colours edge and icon of every style through a token", () => {
         for (const display of Object.values(TEXT_CATEGORY_STYLES)) {
-            expect(display.color).toMatch(/^var\(--[a-z0-9-]+\)$/);
+            expect(display.iconColor).toMatch(/^var\(--[a-z0-9-]+\)$/);
+            if (display.edge !== null) expect(display.edge).toMatch(/^var\(--[a-z0-9-]+\)$/);
         }
     });
 
-    it("highlights only warning and critical with a border", () => {
-        const bordered = Object.entries(TEXT_CATEGORY_STYLES)
-            .filter(([, d]) => d.border)
+    it("gives every style but neutral an edge (W5)", () => {
+        const edged = Object.entries(TEXT_CATEGORY_STYLES)
+            .filter(([, d]) => d.edge !== null)
             .map(([style]) => style);
-        expect(bordered).toEqual(["warning", "critical"]);
+        expect(edged).toEqual(["info", "warning", "critical"]);
+        expect(TEXT_CATEGORY_STYLES.info.edge).toBe("var(--idt-cyan)");
+        expect(TEXT_CATEGORY_STYLES.warning.edge).toBe("var(--idt-warning)");
+    });
+
+    it("keeps icons in ink except for critical", () => {
+        const red = Object.entries(TEXT_CATEGORY_STYLES)
+            .filter(([, d]) => d.iconColor === "var(--idt-danger)")
+            .map(([style]) => style);
+        expect(red).toEqual(["critical"]);
+        expect(TEXT_CATEGORY_STYLES.info.iconColor).toBe("var(--text-strong)");
+    });
+
+    it("draws an 8px left edge without frame or fill", () => {
+        expect(textCardStyle("var(--idt-danger)")).toEqual({ borderLeft: "8px solid var(--idt-danger)", paddingLeft: 16 });
+        expect(textCardStyle(null).borderLeft).toBe("8px solid transparent");
     });
 
     it("defaults to Info, else the oldest category", () => {

@@ -2,11 +2,9 @@ import { useMemo, useState } from "react";
 import {
     Alert,
     Anchor,
-    Badge,
     Button,
     Container,
     Group,
-    Loader,
     Select,
     Stack,
     Table,
@@ -35,11 +33,8 @@ import {
     UnconfirmedFilter,
     usePatchWithToast,
 } from "../import-review/shared";
-import {
-    MAIN_PHASE_COLOR,
-    MAIN_PHASE_LABEL,
-    type MainPhase,
-} from "../projects/components/progress/phaseMeta";
+import { PhaseTag } from "../projects/components/progress/PhaseBadge";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 type ProjectOption = { value: string; label: string };
 
@@ -80,9 +75,7 @@ function MatchRow({
             </Table.Td>
             <Table.Td>
                 {entry.mapped_phase ? (
-                    <Badge color={MAIN_PHASE_COLOR[entry.mapped_phase as MainPhase] ?? "gray"} variant="light">
-                        {MAIN_PHASE_LABEL[entry.mapped_phase as MainPhase] ?? entry.mapped_phase}
-                    </Badge>
+                    <PhaseTag phase={entry.mapped_phase} />
                 ) : (
                     <Text size="xs" c="dimmed" title={entry.status_raw ?? undefined}>
                         kein Beitrag
@@ -215,7 +208,6 @@ export default function BauportalImportPage() {
                     </Stack>
                     <Group gap="sm">
                         <Button
-                            color="green"
                             leftSection={<CheckCheck size={16} />}
                             onClick={handleConfirmAll}
                             loading={confirmAll.isPending}
@@ -249,9 +241,7 @@ export default function BauportalImportPage() {
                 </Group>
 
                 {isLoading ? (
-                    <Group justify="center" py="xl">
-                        <Loader />
-                    </Group>
+                    <LoadingState rows={6} />
                 ) : !entries || entries.length === 0 ? (
                     <Alert variant="light" title="Keine Daten">
                         Noch keine Bauportal-Einträge. Klicke auf „Bauportal abrufen", um die Liste

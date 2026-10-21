@@ -25,6 +25,7 @@ import {
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { ChronicleDataChip } from "../../components/chronicle";
 import PhaseStepper from "../projects/components/progress/PhaseStepper";
+import { PhaseTag } from "../projects/components/progress/PhaseBadge";
 
 /**
  * Static, illustrative replicas of the real screens, shown inside guide steps
@@ -67,9 +68,9 @@ function FuldaYearTableExample() {
         <Stack gap={6}>
             <Group gap="xs">
                 <Title order={5}>Aktuell in der Sammel-FinVe Lph 3/4</Title>
-                <Badge variant="outline" color="blue">Ist · setzt Phase</Badge>
-                <Badge variant="light" color="blue">2</Badge>
-                <Badge variant="light" color="green">1 aktiv</Badge>
+                <Badge variant="outline" color="teal">Ist · setzt Phase</Badge>
+                <Badge variant="light" color="teal">2</Badge>
+                <Badge variant="light" color="teal">1 aktiv</Badge>
             </Group>
             <ResponsiveTable minWidth={560} layout="fixed" w="100%" verticalSpacing="sm">
                 <Table.Thead>
@@ -95,7 +96,7 @@ function FuldaYearTableExample() {
                                 <Anchor size="xs">+ Projekt fehlt?</Anchor>
                             </Stack>
                         </Table.Td>
-                        <Table.Td><Badge variant="light" color="green">aktiv</Badge></Table.Td>
+                        <Table.Td><Badge variant="light" color="teal">aktiv</Badge></Table.Td>
                     </Table.Tr>
                     <Table.Tr>
                         <Table.Td><Text size="sm" fw={500}>ABS München–Mühldorf</Text></Table.Td>
@@ -144,7 +145,7 @@ function BauportalTableExample() {
                                 <Anchor size="xs">↗ Bauportal</Anchor>
                             </Stack>
                         </Table.Td>
-                        <Table.Td><Badge color="orange" variant="light">Bau</Badge></Table.Td>
+                        <Table.Td><PhaseTag phase="BAU" /></Table.Td>
                         <Table.Td><Text size="xs" c="dimmed">2024–2027</Text></Table.Td>
                         <Table.Td>
                             <Stack gap={4}>
@@ -153,7 +154,7 @@ function BauportalTableExample() {
                             </Stack>
                         </Table.Td>
                         <Table.Td>
-                            <Button size="compact-xs" color="blue">Übernehmen</Button>
+                            <Button size="compact-xs">Übernehmen</Button>
                         </Table.Td>
                     </Table.Tr>
                     <Table.Tr>
@@ -193,7 +194,7 @@ function HaushaltReviewExample() {
                     <Table.Td>
                         <Text size="sm" fw={500}>B0080 · ABS Hanau–Würzburg/Fulda</Text>
                     </Table.Td>
-                    <Table.Td><Badge variant="light" color="blue">Neu</Badge></Table.Td>
+                    <Table.Td><Badge variant="light" color="violet">Neu</Badge></Table.Td>
                     <Table.Td>
                         <Stack gap={4}>
                             <MultiSelect
@@ -208,7 +209,7 @@ function HaushaltReviewExample() {
                     <Table.Td>
                         <Text size="sm" fw={500}>B0113 · ABS München–Mühldorf–Freilassing</Text>
                     </Table.Td>
-                    <Table.Td><Badge variant="light" color="teal">Änd.</Badge></Table.Td>
+                    <Table.Td><Badge variant="light" color="gray">Änd.</Badge></Table.Td>
                     <Table.Td>
                         <MultiSelect data={PROJECT_OPTIONS} defaultValue={["3"]} />
                     </Table.Td>
@@ -264,7 +265,7 @@ function VibStructureRowExample() {
                 </div>
                 <div>
                     <Text size="xs" c="dimmed">Ohne PFA</Text>
-                    <Text fw={700} size="xl" c="orange">3</Text>
+                    <Text fw={700} size="xl">3</Text>
                 </div>
             </Group>
             <Text size="sm" fw={500} mt="xs">Zeile eines Vorhabens (Rohtext-Qualität &amp; Abschnitte):</Text>
@@ -352,7 +353,7 @@ function VibReviewEntryExample() {
             <Group justify="flex-end" gap="sm">
                 <Button variant="light" size="xs">Entwurf speichern</Button>
                 <Button variant="outline" size="xs">Abbrechen</Button>
-                <Button color="green" size="xs">Import bestätigen</Button>
+                <Button size="xs">Import bestätigen</Button>
             </Group>
         </Stack>
     );

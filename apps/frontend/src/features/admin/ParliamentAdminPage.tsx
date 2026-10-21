@@ -17,7 +17,6 @@ import {
     Container,
     FileInput,
     Group,
-    Loader,
     NumberInput,
     Stack,
     Text,
@@ -38,6 +37,8 @@ import {
     useStartParliamentImport,
 } from "../../shared/api/queries";
 import { useImportTask } from "../import-review/shared";
+import { StatusTag } from "../../shared/ui/SwatchTag";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 type ImportRun = NonNullable<ParliamentStatus["last_politician_import"]>;
 
@@ -57,13 +58,12 @@ function RunLine({ label, run }: { label: string; run: ImportRun | null | undefi
             {run ? (
                 <>
                     <Text size="sm">{formatDateTime(run.finished_at ?? run.started_at)}</Text>
-                    <Badge
+                    <StatusTag
                         size="xs"
-                        variant="light"
-                        color={run.status === "success" ? "green" : run.status === "error" ? "red" : "gray"}
+                        tone={run.status === "success" ? "done" : run.status === "error" ? "danger" : "active"}
                     >
                         {run.status === "success" ? "erfolgreich" : run.status === "error" ? "Fehler" : "läuft"}
-                    </Badge>
+                    </StatusTag>
                 </>
             ) : (
                 <Text size="sm" c="dimmed">noch nie</Text>
@@ -167,7 +167,7 @@ function ParliamentAdminPageContent() {
                 </Stack>
 
                 {isLoading ? (
-                    <Group justify="center" py="md"><Loader /></Group>
+                    <LoadingState rows={3} />
                 ) : status ? (
                     <ChronicleCard>
                         <Stack gap="xs">
@@ -175,7 +175,7 @@ function ParliamentAdminPageContent() {
                                 <Text size="sm" fw={500}>Wahlperiode:</Text>
                                 <Text size="sm">{status.period?.label ?? "noch keine importiert"}</Text>
                                 {status.is_stale && status.period && (
-                                    <Badge size="xs" color="gold" variant="light">
+                                    <Badge size="xs" color="gray" variant="outline">
                                         älter als {status.stale_after_days} Tage
                                     </Badge>
                                 )}

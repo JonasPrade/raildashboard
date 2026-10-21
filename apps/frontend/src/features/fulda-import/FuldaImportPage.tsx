@@ -6,7 +6,6 @@ import {
     Button,
     Container,
     Group,
-    Loader,
     Stack,
     Table,
     Text,
@@ -17,6 +16,7 @@ import { ChevronRight } from "lucide-react";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { useFuldaYearSummaries } from "../../shared/api/queries";
 import { ANSWER_STATUS_LABEL } from "./fuldaShared";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 export default function FuldaImportPage() {
     const navigate = useNavigate();
@@ -44,9 +44,7 @@ export default function FuldaImportPage() {
                 <Stack gap="xs">
                     <Title order={4}>Jahrgänge</Title>
                     {isLoading ? (
-                        <Group justify="center" py="xl">
-                            <Loader />
-                        </Group>
+                        <LoadingState rows={6} />
                     ) : !summaries || summaries.length === 0 ? (
                         <Alert variant="light" title="Keine Jahrgänge">
                             Noch keine Fulda-Antworten eingelesen. Gib Claude das PDF und bitte, es
@@ -82,7 +80,7 @@ export default function FuldaImportPage() {
                                                         <Group key={d.id} gap={6} wrap="nowrap">
                                                             <Text size="sm">Drs. {d.drucksache}</Text>
                                                             {d.answer_status !== "VOLLSTAENDIG" && (
-                                                                <Badge size="xs" variant="light" color="orange">
+                                                                <Badge size="xs" variant="outline" color="gray">
                                                                     {ANSWER_STATUS_LABEL[d.answer_status]}
                                                                 </Badge>
                                                             )}
@@ -93,11 +91,11 @@ export default function FuldaImportPage() {
                                             <Table.Td>{s.total}</Table.Td>
                                             <Table.Td>
                                                 <Group gap="xs">
-                                                    <Badge variant="light" color="green">
+                                                    <Badge variant="light" color="teal">
                                                         {s.confirmed} aktiv
                                                     </Badge>
                                                     {open > 0 && (
-                                                        <Badge variant="light" color="orange">
+                                                        <Badge variant="light" color="violet">
                                                             {open} offen
                                                         </Badge>
                                                     )}

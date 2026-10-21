@@ -15,7 +15,11 @@ type Segment =
     | { type: "md"; text: string }
     | { type: "alert"; color: string; title: string | null; text: string };
 
+// Markup names of "> [!color]" blocks (kept for existing guide texts). "green"
+// renders neutral: success is no green surface (DESIGN.md rule 4); "yellow"
+// gets the amber edge of the global Alert style (W3).
 const ALERT_COLORS = new Set(["blue", "yellow", "green", "red"]);
+const ALERT_RENDER_COLOR: Record<string, string> = { green: "teal" };
 const ALERT_MARKER = /^\[!(\w+)\]\s*(.*)$/;
 
 /** Split markdown into plain segments and blockquote-alert segments. */
@@ -143,7 +147,7 @@ export default function GuideMarkdown({
                 ) : (
                     <Alert
                         key={i}
-                        color={seg.color}
+                        color={ALERT_RENDER_COLOR[seg.color] ?? seg.color}
                         variant="light"
                         title={seg.title ?? undefined}
                         my={6}

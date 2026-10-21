@@ -10,10 +10,11 @@ import {
     type MainPhase,
     visiblePhases,
 } from "./phaseMeta";
+import { LANE_STATE_COLOR } from "../../../../shared/theme/semanticColors";
 
-const ACTIVE = "var(--accent-primary)";
-const DONE = "var(--idt-success)";
-const IDLE = "var(--border)";
+const ACTIVE: string = LANE_STATE_COLOR.active;
+const DONE: string = LANE_STATE_COLOR.done;
+const IDLE: string = LANE_STATE_COLOR.idle;
 
 /**
  * Kompakte Leistungsphasen-Darstellung für die Kurzansicht eines Projekts
@@ -72,7 +73,7 @@ export default function ProgressMini({ projectId }: { projectId: number }) {
                     const isDone = !isUnknownLeaf && !noCompleted && idx < minIdx;
                     // "In Betrieb" is the terminal phase — reaching it means the
                     // project is effectively complete, so colour it green (DONE)
-                    // rather than the in-progress blue.
+                    // rather than the in-progress violet.
                     let color = IDLE;
                     if (inSpan) color = phase === "IN_BETRIEB" ? DONE : ACTIVE;
                     else if (isDone) color = DONE;

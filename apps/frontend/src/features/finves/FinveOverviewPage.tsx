@@ -1,10 +1,8 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
-    Alert,
     Collapse,
     Group,
-    Loader,
     SegmentedControl,
     Stack,
     Text,
@@ -17,6 +15,8 @@ import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { FinveBudgetDetails } from "./shared/FinveBudgetDetails";
 import { formatTEuro } from "../../shared/format";
 import { LinkedProjects } from "../../shared/ui/LinkedProjects";
+import { LoadingState } from "../../shared/ui/LoadingState";
+import { ErrorState } from "../../shared/ui/ErrorState";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -114,7 +114,7 @@ export default function FinveOverviewPage() {
     const [search, setSearch] = useState(searchParams.get("q") ?? "");
     const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
 
-    const { data: finves, isLoading, isError } = useFinves();
+    const { data: finves, isLoading, isError, refetch } = useFinves();
 
     const filtered = useMemo(() => {
         const q = search.trim().toLowerCase();
@@ -154,11 +154,9 @@ export default function FinveOverviewPage() {
                     />
                 </Group>
 
-                {isLoading && <Group justify="center"><Loader /></Group>}
+                {isLoading && <LoadingState rows={6} />}
                 {isError && (
-                    <Alert color="red" variant="light" title="Fehler">
-                        FinVe-Liste konnte nicht geladen werden.
-                    </Alert>
+                    <ErrorState onRetry={() => void refetch()}>FinVe-Liste konnte nicht geladen werden.</ErrorState>
                 )}
 
                 {!isLoading && !isError && (

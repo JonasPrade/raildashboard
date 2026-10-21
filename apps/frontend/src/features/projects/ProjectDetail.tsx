@@ -9,7 +9,6 @@ import {
     Container,
     Grid,
     Group,
-    Loader,
     Menu,
     Stack,
     Text,
@@ -38,9 +37,10 @@ import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 const GeometryManagementModal = lazy(() => import("../routing/GeometryManagementModal"));
 import ProjectSummaryCard from "./ProjectSummaryCard";
 import MapView, { type MapViewProject } from "../map/LazyMapView";
+import { MAP_COLOR } from "../../shared/theme/semanticColors";
 import ProjectHistorySection from "../changelog/ProjectHistorySection";
 import ProjectTextsSection from "./ProjectTextsSection";
-import { ProjectTableOfContents, type TocSection } from "./ProjectTableOfContents";
+import { ProjectRegister, type RegisterSection } from "./ProjectRegister";
 import FinveSection from "./components/FinveSection";
 import GvfgSection from "./components/GvfgSection";
 import InfraplanSection from "./components/InfraplanSection";
@@ -57,6 +57,7 @@ type RouteParams = {
 };
 
 import { trainCategoryLabels, featureGroups } from "./projectFeatureConfig";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 // ── Detail rows (Projektstammdaten) ──────────────────────────────────────────
 // getValue returning null → Zeile wird nicht dargestellt
@@ -304,15 +305,14 @@ export default function ProjectDetail() {
     };
 
     // Projekte für die Detailkarte: Unterprojekte wenn vorhanden, sonst das Projekt selbst
-    const MAP_COLOR = "#2563eb";
     const mapProjects = useMemo((): MapViewProject[] => {
         if (subProjects.length > 0) {
             return subProjects
                 .filter((p): p is typeof p & { id: number } => typeof p.id === "number")
-                .map((p) => ({ ...p, id: p.id, groupColor: MAP_COLOR }));
+                .map((p) => ({ ...p, id: p.id, groupColor: MAP_COLOR.default }));
         }
         if (project && typeof project.id === "number") {
-            return [{ ...project, id: project.id, groupColor: MAP_COLOR }];
+            return [{ ...project, id: project.id, groupColor: MAP_COLOR.default }];
         }
         return [];
     }, [project, subProjects]);
@@ -344,9 +344,7 @@ export default function ProjectDetail() {
     if (isLoading) {
         return (
             <Container size="md" py="xl">
-                <Group justify="center">
-                    <Loader />
-                </Group>
+                <LoadingState rows={8} />
             </Container>
         );
     }
@@ -398,7 +396,7 @@ export default function ProjectDetail() {
         }))
         .filter(({ value }) => value !== null) as Array<{ label: string; value: string }>;
 
-    const tocSections: TocSection[] = [
+    const tocSections: RegisterSection[] = [
         { id: "details", label: "Projektdetails", ref: detailsRef, visible: true },
         { id: "progress", label: "Planungsstand", ref: progressRef, visible: true },
         {
@@ -484,6 +482,11 @@ export default function ProjectDetail() {
 
     return (
         <Container size="lg" py={{ base: "md", sm: "xl" }} px={{ base: 0, sm: "md" }}>
+            <div className="project-register-layout">
+            <ProjectRegister
+                sections={tocSections}
+                onCreateTask={user !== null && canCreateTask ? () => setTaskDrawerOpen(true) : undefined}
+            />
             <Stack gap="xl">
                 <Group justify="space-between" align="flex-start" wrap="wrap" gap="sm">
                     <Stack gap={4} style={{ flex: "1 1 240px", minWidth: 0 }}>
@@ -572,11 +575,12 @@ export default function ProjectDetail() {
                                         )}
                                         <Text size="xs" fw={600} c="dimmed" tt="uppercase" lts={0.5}>Verkehrsarten</Text>
                                         <Group gap="xs">
-                                            {trainCategoryLabels.map(({ key, label }) => {
+                                            {trainCategoryLabels.map(({ key, label, color }) => {
                                                 const isActive = Boolean(project[key]);
                                                 return (
                                                     <ChronicleDataChip
                                                         key={String(key)}
+                                                        dotColor={color}
                                                         style={{ opacity: isActive ? 1 : 0.4 }}
                                                     >
                                                         {label}
@@ -647,11 +651,12 @@ export default function ProjectDetail() {
                                 )}
                                 <Text size="xs" fw={600} c="dimmed" tt="uppercase" lts={0.5}>Verkehrsarten</Text>
                                 <Group gap="xs">
-                                    {trainCategoryLabels.map(({ key, label }) => {
+                                    {trainCategoryLabels.map(({ key, label, color }) => {
                                         const isActive = Boolean(project[key]);
                                         return (
                                             <ChronicleDataChip
                                                 key={String(key)}
+                                                dotColor={color}
                                                 style={{ opacity: isActive ? 1 : 0.4 }}
                                             >
                                                 {label}
@@ -849,11 +854,7 @@ export default function ProjectDetail() {
                 )}
 
             </Stack>
-
-            <ProjectTableOfContents
-                sections={tocSections}
-                onCreateTask={user !== null && canCreateTask ? () => setTaskDrawerOpen(true) : undefined}
-            />
+            </div>
 
             {user !== null && (
                 <TodoEditDrawer

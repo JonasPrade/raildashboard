@@ -6,7 +6,6 @@ import {
     Anchor,
     Container,
     Group,
-    Loader,
     Stack,
     Text,
     Tooltip,
@@ -23,10 +22,12 @@ import {
 import RequirePermission from "../../components/RequirePermission";
 import { useDeleteRole, useRoles, type Role } from "../../shared/api/queries";
 import { RoleFormModal } from "./RoleFormModal";
+import { LoadingState } from "../../shared/ui/LoadingState";
+import { ErrorState } from "../../shared/ui/ErrorState";
 
 function RolesAdminPageContent() {
 
-    const { data: roles, isLoading, isError } = useRoles();
+    const { data: roles, isLoading, isError, refetch } = useRoles();
     const deleteRole = useDeleteRole();
 
     const [modalOpened, setModalOpened] = useState(false);
@@ -95,15 +96,11 @@ function RolesAdminPageContent() {
                 </Group>
 
                 {isError && (
-                    <Alert color="red" variant="light" title="Fehler beim Laden">
-                        Rollen konnten nicht geladen werden.
-                    </Alert>
+                    <ErrorState onRetry={() => void refetch()}>Rollen konnten nicht geladen werden.</ErrorState>
                 )}
 
                 {isLoading ? (
-                    <Group justify="center" py="xl">
-                        <Loader />
-                    </Group>
+                    <LoadingState rows={6} />
                 ) : (
                     <Stack gap="sm">
                         {(roles ?? []).map((role) => (

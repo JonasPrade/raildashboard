@@ -42,8 +42,8 @@ export default function ProjectSummaryCard({ project }: Props) {
                 <Group gap={4} wrap="wrap">
                     {trainCategoryLabels
                         .filter(({ key }) => Boolean(project[key]))
-                        .map(({ key, label }) => (
-                            <ChronicleDataChip key={String(key)}>{label}</ChronicleDataChip>
+                        .map(({ key, label, color }) => (
+                            <ChronicleDataChip key={String(key)} dotColor={color}>{label}</ChronicleDataChip>
                         ))}
                 </Group>
             )}

@@ -4,7 +4,6 @@ import {
     Badge,
     Button,
     Group,
-    Loader,
     Modal,
     NumberInput,
     Select,
@@ -26,6 +25,7 @@ import {
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { KPI_CATEGORY_LABEL, KPI_KIND_LABEL } from "../infraplan/infraplanFormat";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 const LAYOUT_OPTIONS = [
     { value: "", label: "Automatisch" },
@@ -222,7 +222,7 @@ export default function InfraplanKpiSettings() {
         return out;
     }, [publicKpis]);
 
-    if (isLoading) return <Group justify="center"><Loader /></Group>;
+    if (isLoading) return <LoadingState rows={6} />;
     const list = kpis ?? [];
     const current = list.find((k) => k.key === editing);
 

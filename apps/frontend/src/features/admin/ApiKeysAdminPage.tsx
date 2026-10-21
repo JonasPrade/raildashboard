@@ -9,7 +9,6 @@ import {
     Container,
     CopyButton,
     Group,
-    Loader,
     Modal,
     Radio,
     Stack,
@@ -34,6 +33,9 @@ import {
 } from "../../shared/api/queries";
 import { formatDateShort, formatDateTimeShort } from "../../shared/format";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
+import { STATUS_TONE } from "../../shared/theme/semanticColors";
+import { LoadingState } from "../../shared/ui/LoadingState";
+import { ErrorState } from "../../shared/ui/ErrorState";
 
 const MCP_PERMISSION = "mcp.access";
 // A read-only key keeps only the MCP capability: every write tool needs a
@@ -69,11 +71,11 @@ function mcpConfigSnippet(token: string): string {
 }
 
 function keyStatus(key: ApiKey): { label: string; color: string } {
-    if (key.revoked_at) return { label: "Widerrufen", color: "gray" };
+    if (key.revoked_at) return { label: "Widerrufen", color: STATUS_TONE.neutral };
     if (key.expires_at && new Date(asUtc(key.expires_at)) <= new Date()) {
-        return { label: "Abgelaufen", color: "orange" };
+        return { label: "Abgelaufen", color: STATUS_TONE.neutral };
     }
-    return { label: "Aktiv", color: "green" };
+    return { label: "Aktiv", color: STATUS_TONE.done };
 }
 
 function scopeLabel(key: ApiKey): string {
@@ -133,7 +135,7 @@ function CreateApiKeyModal({
                     </Code>
                     <CopyButton value={created.token}>
                         {({ copied, copy }) => (
-                            <Button size="xs" variant="light" color={copied ? "green" : undefined} onClick={copy}>
+                            <Button size="xs" variant="light" color={copied ? "teal" : undefined} onClick={copy}>
                                 {copied ? "Kopiert" : "Key kopieren"}
                             </Button>
                         )}
@@ -147,7 +149,7 @@ function CreateApiKeyModal({
                     </Code>
                     <CopyButton value={snippet}>
                         {({ copied, copy }) => (
-                            <Button size="xs" variant="light" color={copied ? "green" : undefined} onClick={copy}>
+                            <Button size="xs" variant="light" color={copied ? "teal" : undefined} onClick={copy}>
                                 {copied ? "Kopiert" : "Konfiguration kopieren"}
                             </Button>
                         )}
@@ -326,7 +328,7 @@ function ApiKeysPageContent() {
     const { can } = useAuth();
     const canManageUsers = can("user.manage");
     const [createOpened, { open: openCreate, close: closeCreate }] = useDisclosure(false);
-    const { data: ownKeys, isLoading, isError } = useApiKeys();
+    const { data: ownKeys, isLoading, isError, refetch } = useApiKeys();
     const { data: allKeys } = useAllApiKeys(canManageUsers);
 
     return (
@@ -354,13 +356,9 @@ function ApiKeysPageContent() {
                 <Stack gap="xs">
                     <ChronicleHeadline as="h2">Meine Keys</ChronicleHeadline>
                     {isLoading ? (
-                        <Group justify="center" py="md">
-                            <Loader />
-                        </Group>
+                        <LoadingState rows={6} />
                     ) : isError ? (
-                        <Alert color="red" variant="light" title="Fehler">
-                            API-Keys konnten nicht geladen werden.
-                        </Alert>
+                        <ErrorState onRetry={() => void refetch()}>API-Keys konnten nicht geladen werden.</ErrorState>
                     ) : (
                         <KeysTable keys={ownKeys ?? []} />
                     )}

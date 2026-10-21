@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Badge, Button, Group, Loader, Stack, Text } from "@mantine/core";
+import { Badge, Button, Group, Stack, Text } from "@mantine/core";
 import { Pencil } from "lucide-react";
 
 import { ChronicleCard, ChronicleHeadline } from "../../../../components/chronicle";
@@ -21,6 +21,7 @@ import {
     type MainPhase,
     type ParallelState,
 } from "./phaseMeta";
+import { LoadingState } from "../../../../shared/ui/LoadingState";
 
 export default function ProgressSection({ projectId }: { projectId: number }) {
     const { can, user } = useAuth();
@@ -31,12 +32,7 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
     if (isLoading) {
         return (
             <ChronicleCard>
-                <Group gap="sm">
-                    <Loader size="sm" />
-                    <Text size="sm" c="dimmed">
-                        Planungsstand wird geladen …
-                    </Text>
-                </Group>
+                <LoadingState rows={4} label="Planungsstand wird geladen …" />
             </ChronicleCard>
         );
     }
@@ -109,12 +105,12 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
                                 </Text>
                             )}
                             {progress.is_overridden && (
-                                <Badge color="grape" variant="light" title={progress.manual_override_note ?? undefined}>
+                                <Badge color="violet" variant="light" title={progress.manual_override_note ?? undefined}>
                                     übersteuert
                                 </Badge>
                             )}
                             {isDimmed && (
-                                <Badge color={lifecycle === "ABGEBROCHEN" ? "red" : "orange"}>
+                                <Badge variant="outline" color="gray">
                                     {LIFECYCLE_LABEL[lifecycle]}
                                 </Badge>
                             )}

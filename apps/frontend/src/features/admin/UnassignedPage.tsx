@@ -3,7 +3,6 @@ import {
     Button,
     Container,
     Group,
-    Loader,
     MultiSelect,
     Stack,
     Table,
@@ -35,6 +34,7 @@ import { MissingProjectAnchor } from "../import-review/shared";
 import { formatMio, sumLine } from "../gvfg/gvfgFormat";
 import VibEntryEditDrawer from "../vib-import/VibEntryEditDrawer";
 import { SECTION_SHORT, formatMio as formatInfraplanMio } from "../infraplan/infraplanFormat";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 function UnassignedPageContent() {
     const [finveSelections, setFinveSelections] = useState<Record<number, string[]>>({});
@@ -170,7 +170,7 @@ function UnassignedPageContent() {
                         </Title>
                         <ChronicleDataChip>{finves?.length ?? "…"}</ChronicleDataChip>
                     </Group>
-                    {finvesLoading && <Loader size="sm" />}
+                    {finvesLoading && <LoadingState rows={6} />}
                     {!finvesLoading && (
                         <ResponsiveTable minWidth={720} withTableBorder withColumnBorders>
                             <Table.Thead>
@@ -245,7 +245,7 @@ function UnassignedPageContent() {
                         </Title>
                         <ChronicleDataChip>{vibEntries?.length ?? "…"}</ChronicleDataChip>
                     </Group>
-                    {vibLoading && <Loader size="sm" />}
+                    {vibLoading && <LoadingState rows={6} />}
                     {!vibLoading && (
                         <ResponsiveTable minWidth={720} withTableBorder withColumnBorders>
                             <Table.Thead>
@@ -330,7 +330,7 @@ function UnassignedPageContent() {
                         Nur die neueste Ausgabe des Bundesprogramms. Zugewiesene Projekte kommen in die Gruppe „GVFG“
                         (Baden-Württemberg zusätzlich „GVFG BW“).
                     </Text>
-                    {gvfgLoading && <Loader size="sm" />}
+                    {gvfgLoading && <LoadingState rows={6} />}
                     {!gvfgLoading && (
                         <ResponsiveTable minWidth={720} withTableBorder withColumnBorders>
                             <Table.Thead>
@@ -410,7 +410,7 @@ function UnassignedPageContent() {
                         Nur der neueste Jahrgang des Infraplans. Eine Zuordnung aktualisiert den Planungsstand des
                         Projekts sofort.
                     </Text>
-                    {infraplanLoading && <Loader size="sm" />}
+                    {infraplanLoading && <LoadingState rows={6} />}
                     {!infraplanLoading && (
                         <ResponsiveTable minWidth={880} withTableBorder withColumnBorders>
                             <Table.Thead>

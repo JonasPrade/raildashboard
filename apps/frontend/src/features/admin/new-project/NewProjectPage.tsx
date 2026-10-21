@@ -1,4 +1,4 @@
-import { Alert, Button, Container, Group, Loader, Stack, Stepper, Title } from "@mantine/core";
+import { Alert, Button, Container, Group, Stack, Stepper, Title } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -11,6 +11,7 @@ import Step3Properties from "./Step3Properties";
 import Step4Finves from "./Step4Finves";
 import Step5Vib from "./Step5Vib";
 import StepPlanungsstand from "./StepPlanungsstand";
+import { LoadingState } from "../../../shared/ui/LoadingState";
 
 function NewProjectPageContent() {
     const navigate = useNavigate();
@@ -70,7 +71,7 @@ function NewProjectPageContent() {
         }
         return (
             <Container size="sm" py="xl">
-                <Group justify="center"><Loader /></Group>
+                <LoadingState rows={6} />
             </Container>
         );
     }

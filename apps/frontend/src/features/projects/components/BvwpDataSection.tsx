@@ -1,6 +1,5 @@
 import {
     Group,
-    Loader,
     SimpleGrid,
     Stack,
     Table,
@@ -12,6 +11,7 @@ import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
 import { type BvwpProjectData, useProjectBvwp } from "../../../shared/api/queries";
 import { ChronicleCard, ChronicleDataChip } from "../../../components/chronicle";
 import { formatTEuroWithZero } from "../../../shared/format";
+import { LoadingState } from "../../../shared/ui/LoadingState";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -454,10 +454,7 @@ export default function BvwpDataSection({ projectId }: Props) {
     if (isLoading) {
         return (
             <ChronicleCard>
-                <Group>
-                    <Loader size="sm" />
-                    <Text size="sm" c="dimmed">BVWP-Daten werden geladen …</Text>
-                </Group>
+                <LoadingState rows={6} label="BVWP-Daten werden geladen …" />
             </ChronicleCard>
         );
     }

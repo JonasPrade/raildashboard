@@ -1,8 +1,9 @@
-import { Alert, Drawer, Stack, Button, Group, Text, Loader, UnstyledButton } from "@mantine/core";
+import { Alert, Drawer, Stack, Button, Group, Text, UnstyledButton } from "@mantine/core";
 import { ChronicleDataChip } from "../../components/chronicle";
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 export type ProjectGroupOption = {
     id: number;
@@ -68,9 +69,7 @@ export default function GroupFilterDrawer({ opened, onClose, groups = [], loadin
                 )}
 
                 {loading && groups.length === 0 ? (
-                    <Group justify="center" py="xl">
-                        <Loader size="sm" />
-                    </Group>
+                    <LoadingState rows={6} />
                 ) : (
                     groups.map((group) => {
                         const selected = pending.includes(group.id);
@@ -116,7 +115,7 @@ export default function GroupFilterDrawer({ opened, onClose, groups = [], loadin
 
                 <Group justify="space-between" mt="md">
                     <Button variant="default" onClick={onClose}>Abbrechen</Button>
-                    <Button color="preussen" onClick={apply} disabled={loading}>Übernehmen</Button>
+                    <Button onClick={apply} disabled={loading}>Übernehmen</Button>
                 </Group>
             </Stack>
         </Drawer>

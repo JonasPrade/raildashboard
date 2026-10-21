@@ -6,7 +6,6 @@ import {
     Container,
     FileInput,
     Group,
-    Loader,
     NumberInput,
     Stack,
     Text,
@@ -22,6 +21,7 @@ import { exceedsUploadLimit, tooLargeMessage, uploadErrorMessage } from "../../s
 import { TaskProgressIndicator, useImportTask } from "../import-review/shared";
 import { ParseResultList } from "./components/ParseResultList";
 import { FileDropZone } from "../../shared/ui/FileDropZone";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 function HaushaltsImportPageContent() {
     const navigate = useNavigate();
@@ -112,7 +112,7 @@ function HaushaltsImportPageContent() {
                     <Stack gap="md">
                         <Text fw={600} size="md">Vergangene Import-Läufe</Text>
                         {resultsLoading ? (
-                            <Group justify="center"><Loader /></Group>
+                            <LoadingState rows={6} />
                         ) : (
                             <ParseResultList results={results ?? []} />
                         )}

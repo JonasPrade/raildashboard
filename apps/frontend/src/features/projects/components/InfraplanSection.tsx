@@ -1,11 +1,12 @@
 import { useMemo } from "react";
-import { Alert, Anchor, Badge, Group, Loader, Stack, Table, Text, Title } from "@mantine/core";
+import { Alert, Anchor, Badge, Group, Stack, Table, Text, Title } from "@mantine/core";
 import { Link } from "react-router-dom";
 import { ChronicleCard } from "../../../components/chronicle";
 import { useProjectInfraplan, type InfraplanProjectEntry } from "../../../shared/api/queries";
 import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
 import Footnotes from "../../infraplan/Footnotes";
 import { PARL_LABEL, SECTION_SHORT, entryCost, entryDeltas, formatMio } from "../../infraplan/infraplanFormat";
+import { LoadingState } from "../../../shared/ui/LoadingState";
 
 // ---------------------------------------------------------------------------
 // Infraplan on the project page (docs/features/feature-infraplan-import.md →
@@ -24,7 +25,7 @@ export default function InfraplanSection({ projectId }: { projectId: number }) {
     const entries = useMemo(() => sortEntries(data?.entries ?? []), [data]);
     const deltas = useMemo(() => entryDeltas(entries), [entries]);
 
-    if (isLoading) return <Loader size="sm" />;
+    if (isLoading) return <LoadingState rows={3} />;
     if (!data || entries.length === 0) return null;
 
     return (
@@ -95,7 +96,7 @@ export default function InfraplanSection({ projectId }: { projectId: number }) {
                                     <Table.Td>
                                         <Group gap={4} wrap="wrap">
                                             {hints.map((h) => (
-                                                <Badge key={h} size="sm" variant="light" color="orange" style={{ textTransform: "none" }}>
+                                                <Badge key={h} size="sm" variant="outline" color="gray" style={{ textTransform: "none" }}>
                                                     {h}
                                                 </Badge>
                                             ))}

@@ -3,10 +3,11 @@ import { Document, Page, pdfjs } from "react-pdf";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
-import { ActionIcon, Anchor, Group, Loader, Modal, Stack, Text } from "@mantine/core";
+import { ActionIcon, Anchor, Group, Modal, Stack, Text } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 // Worker is bundled locally (no CDN dependency); this module is lazy-loaded,
 // so pdfjs and its worker only load when a PDF preview is opened.
@@ -67,7 +68,7 @@ export default function PdfPreviewModal({ opened, onClose, attachmentUrl, filena
                         file={file}
                         onLoadSuccess={handleLoadSuccess}
                         onLoadError={handleLoadError}
-                        loading={<Loader size="md" />}
+                        loading={<LoadingState height={480} label="PDF wird geladen …" />}
                         error={
                             loadError ? (
                                 <Stack align="center" gap="xs">

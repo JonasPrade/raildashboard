@@ -109,7 +109,7 @@ export default function VibEntryEditForm({
                         <Button
                             size="xs"
                             variant="light"
-                            color={entry.ai_extraction_failed ? "orange" : "violet"}
+                            color={entry.ai_extraction_failed ? "red" : "violet"}
                             loading={isRetryingAi}
                             onClick={onRetryAi}
                         >

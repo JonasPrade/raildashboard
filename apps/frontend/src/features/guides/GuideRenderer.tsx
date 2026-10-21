@@ -56,7 +56,7 @@ export default function GuideRenderer({ def }: { def: GuideDef }) {
                 </Stack>
 
                 {def.prerequisites && (
-                    <Alert color="green" variant="light" title="Voraussetzungen">
+                    <Alert color="teal" variant="light" title="Voraussetzungen">
                         <Box mt="xs">
                             <GuideSectionBody
                                 guideSlug={def.slug}

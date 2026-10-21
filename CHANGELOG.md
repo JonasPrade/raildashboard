@@ -12,9 +12,17 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **Footer with build version.** Every page (also the error page) ends in an ink footer with the IDT inverse logo, „Schienendashboard · Fassung <sha>“ and links to Impressum, Datenschutz and Dokumentation. The version comes from the build arg `VITE_APP_VERSION`, which `release.yml` sets to the short commit SHA (local builds: `dev`). The legal links go to an external URL when one is set in the app settings, else to `/impressum` and `/datenschutz`.
+- **Impressum and Datenschutz pages.** `AppSettings` gains `impressum_url`, `impressum_markdown`, `datenschutz_url` and `datenschutz_markdown` (expand-only migration `20261021004`, all nullable); `GET /api/v1/settings/` returns them publicly, `PATCH` (settings.manage) is now partial and validates http(s) URLs, `""` clears. New routes `/impressum` and `/datenschutz`: a set URL redirects there, else the Markdown is rendered, both empty → empty state with a link to the admin card (settings.manage only). Maintained on `/admin` → card „Impressum und Datenschutz“. Content itself is a human task.
 - **Optional dark map tiles.** `REACT_APP_TILE_LAYER_URL_DARK` (GitHub variable `TILE_LAYER_URL_DARK`, baked in by `release.yml`) is used in the dark colour scheme; the basemap source is swapped in place on scheme change. Empty → the light tiles stay.
 
 ### Changed
+- **Header in the IDT design.** 72px (64px on phones) on paper with a 2px ink line, brand mark plus „Schienendashboard“, plain text links with a violet underline on the active entry, counters in an ink frame on violet-soft. „Aufgaben“ now counts the open tasks and turns red only when one is overdue; the Admin counter (open assignments) lost its filled violet badge. Direction-F `Signet`/`Wordmark` removed.
+- **New default group colour `#6E50FA` (IDT violet).** New project groups (API schema,
+  ORM default, MCP `create_project_group`, admin form) and projects without a group colour
+  on the maps now use the violet of the IDT design instead of `#FF0000`/`#2563eb`; the
+  admin colour picker offers six DS swatches, free input stays. ORM/schema defaults only,
+  no migration: existing groups keep their stored colour.
 - **New layout of `/infraplan`.** The explanation moved into a tooltip next to the title,
   the Jahrgang is picked from a dropdown in the header (once there is more than one), and a
   central switch (like Karte/Liste/Zeitstrahl on the start page) toggles between

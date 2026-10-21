@@ -9,7 +9,6 @@ import {
     Container,
     Group,
     Image,
-    Loader,
     NumberInput,
     Select,
     SimpleGrid,
@@ -38,6 +37,7 @@ import {
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { KPI_KIND_LABEL } from "../infraplan/infraplanFormat";
 import { buildKpiPayload, invalidRows, newUid, slotKey, toFormRows, type KpiFormRow } from "./kpiForm";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 const KIND_DATA = [
     { value: "IST", label: "Ist" },
@@ -189,9 +189,9 @@ function KpiEditor({
                                 </Table.Td>
                                 <Table.Td>
                                     {status === "UNGEPRUEFT" ? (
-                                        <Badge size="xs" color="orange" variant="light">ungeprüft</Badge>
+                                        <Badge size="xs" color="violet" variant="light">ungeprüft</Badge>
                                     ) : status === "GEPRUEFT" ? (
-                                        <Badge size="xs" color="green" variant="light">geprüft</Badge>
+                                        <Badge size="xs" color="teal" variant="light">geprüft</Badge>
                                     ) : (
                                         <Badge size="xs" color="gray" variant="light">neu</Badge>
                                     )}
@@ -286,7 +286,7 @@ function Approval({
 
     if (unchecked.length === 0) {
         return (
-            <Alert color="green" variant="light">
+            <Alert color="teal" variant="light">
                 Alle Kennzahlwerte dieses Jahrgangs sind geprüft.
             </Alert>
         );
@@ -389,7 +389,7 @@ function InfraplanKpiPageContent() {
         return [...groups.entries()].map(([group, items]) => ({ group, items }));
     }, [kpis, counts]);
 
-    if (kpisLoading || valuesLoading) return <Container py="xl"><Group justify="center"><Loader /></Group></Container>;
+    if (kpisLoading || valuesLoading) return <Container py="xl"><LoadingState rows={6} /></Container>;
     if (isError || !values) {
         return (
             <Container size="sm" py="xl">

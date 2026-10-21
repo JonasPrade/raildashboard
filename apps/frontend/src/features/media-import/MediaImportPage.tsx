@@ -8,7 +8,6 @@ import {
     Card,
     Container,
     Group,
-    Loader,
     Select,
     Stack,
     Switch,
@@ -31,6 +30,7 @@ import {
 import { UnconfirmedFilter, usePatchWithToast } from "../import-review/shared";
 import { mainPhaseOptions } from "../projects/components/progress/phaseMeta";
 import { formatDate } from "../../shared/format";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 const PHASE_OPTIONS = mainPhaseOptions();
 
@@ -61,7 +61,7 @@ function MediaCard({
                                 </Text>
                             )}
                             {entry.confirmed && (
-                                <Badge color="green" variant="light">
+                                <Badge color="teal" variant="light">
                                     bestätigt
                                 </Badge>
                             )}
@@ -224,9 +224,7 @@ export default function MediaImportPage() {
                 </Group>
 
                 {isLoading ? (
-                    <Group justify="center" py="xl">
-                        <Loader />
-                    </Group>
+                    <LoadingState rows={6} />
                 ) : !entries || entries.length === 0 ? (
                     <Alert variant="light" title="Keine Berichte">
                         Noch keine Medienberichte. Füge oben eine URL oder Text ein.

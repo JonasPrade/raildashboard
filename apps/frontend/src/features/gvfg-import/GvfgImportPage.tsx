@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, Container, FileInput, Group, Loader, Stack, Table, Text } from "@mantine/core";
+import { Button, Container, FileInput, Group, Stack, Table, Text } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
 import { ChronicleCard, ChronicleDataChip, ChronicleHeadline } from "../../components/chronicle";
@@ -16,6 +16,7 @@ import { formatDateTime } from "../../shared/format";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { TaskProgressIndicator, useImportTask } from "../import-review/shared";
 import { FileDropZone } from "../../shared/ui/FileDropZone";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 function edition(r: GvfgParseResultSummary): string {
     return r.year_from && r.year_to ? `${r.year_from}–${r.year_to}` : "–";
@@ -153,7 +154,7 @@ function GvfgImportPageContent() {
                 <ChronicleCard>
                     <Stack gap="md">
                         <Text fw={600}>Import-Läufe</Text>
-                        {isLoading ? <Group justify="center"><Loader /></Group> : <ParseRuns results={results ?? []} />}
+                        {isLoading ? <LoadingState rows={6} /> : <ParseRuns results={results ?? []} />}
                     </Stack>
                 </ChronicleCard>
             </Stack>

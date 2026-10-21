@@ -6,7 +6,6 @@ import {
     Container,
     FileInput,
     Group,
-    Loader,
     NumberInput,
     Stack,
     Table,
@@ -28,6 +27,7 @@ import { exceedsUploadLimit, tooLargeMessage, uploadErrorMessage } from "../../s
 import { TaskProgressIndicator, useImportTask } from "../import-review/shared";
 import { formatDateNumeric, formatDateTime } from "../../shared/format";
 import { FileDropZone } from "../../shared/ui/FileDropZone";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 function VibImportPageContent() {
     const navigate = useNavigate();
@@ -205,7 +205,7 @@ function VibImportPageContent() {
                                 Geparste PDFs, die noch nicht bestätigt wurden. Entwürfe können weiterbearbeitet werden.
                             </Text>
                             {draftsLoading ? (
-                                <Group justify="center"><Loader /></Group>
+                                <LoadingState rows={6} />
                             ) : (
                                 <ResponsiveTable minWidth={720} striped highlightOnHover withTableBorder>
                                     <Table.Thead>
@@ -276,9 +276,7 @@ function VibImportPageContent() {
                     <Stack gap="md">
                         <Text fw={600} size="md">Importierte Berichte</Text>
                         {reportsLoading ? (
-                            <Group justify="center">
-                                <Loader />
-                            </Group>
+                            <LoadingState rows={6} />
                         ) : reports && reports.length > 0 ? (
                             <ResponsiveTable minWidth={720} striped highlightOnHover withTableBorder>
                                 <Table.Thead>

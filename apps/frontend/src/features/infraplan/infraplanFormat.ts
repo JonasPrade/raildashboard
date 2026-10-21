@@ -4,7 +4,7 @@
  * of KPI values into chart rows. No React here, so everything is unit-tested.
  */
 
-import { CHART_SERIES } from "../../shared/theme/semanticColors";
+import { CHART_SERIES, STATUS_TONE } from "../../shared/theme/semanticColors";
 import type {
     InfraplanParsedRow,
     InfraplanProjectEntry,
@@ -36,10 +36,10 @@ export const SOURCE_LABEL: Record<string, string> = {
 };
 
 export const SOURCE_COLOR: Record<string, string> = {
-    NUMBER: "green",
-    FUZZY: "yellow",
-    MANUAL: "blue",
-    AGENT: "grape",
+    NUMBER: STATUS_TONE.done,
+    FUZZY: STATUS_TONE.neutral,
+    MANUAL: STATUS_TONE.active,
+    AGENT: STATUS_TONE.active,
 };
 
 export const REASON_LABEL: Record<string, string> = {

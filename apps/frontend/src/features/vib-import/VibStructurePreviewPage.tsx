@@ -6,7 +6,6 @@ import {
     Button,
     Container,
     Group,
-    Loader,
     ScrollArea,
     Stack,
     Table,
@@ -22,6 +21,7 @@ import {
     useVibParseResult,
     type VibEntryProposed,
 } from "../../shared/api/queries";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 // Sub-sections we look for in raw_text
 const SUBSECTIONS: { key: string; label: string; pattern: RegExp }[] = [
@@ -100,7 +100,7 @@ function ExpandedRawText({ entry }: { entry: VibEntryProposed }) {
                     </div>
                     <div>
                         <Text size="xs" c="dimmed">PFA-Zeilen</Text>
-                        <Text fw={600} size="sm" c={entry.pfa_entries.length === 0 ? "orange" : undefined}>
+                        <Text fw={entry.pfa_entries.length === 0 ? 700 : 600} size="sm">
                             {entry.pfa_entries.length}
                         </Text>
                     </div>
@@ -183,7 +183,7 @@ function VibStructurePreviewPageContent() {
     if (isLoading) {
         return (
             <Container py="xl">
-                <Group justify="center"><Loader /></Group>
+                <LoadingState rows={6} />
             </Container>
         );
     }
@@ -228,7 +228,7 @@ function VibStructurePreviewPageContent() {
                         </div>
                         <div>
                             <Text size="xs" c="dimmed">Ohne PFA</Text>
-                            <Text fw={700} size="xl" c={withoutPfa.length > 0 ? "orange" : "green"}>
+                            <Text fw={700} size="xl">
                                 {withoutPfa.length}
                             </Text>
                         </div>

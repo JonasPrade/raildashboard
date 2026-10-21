@@ -1,16 +1,17 @@
-import { Badge, Card, Group, Select, Stack, Text, Tooltip, ActionIcon, Avatar } from "@mantine/core";
-import { Pencil, Trash2, Calendar } from "lucide-react";
+import { Card, Group, Select, Stack, Text, Tooltip, ActionIcon, Avatar } from "@mantine/core";
+import { Pencil, Trash2, Calendar, Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Todo, TodoStatus } from "../../shared/api/queries";
 import {
-    PRIORITY_COLORS,
     PRIORITY_LABELS,
-    STATUS_COLORS,
+    PRIORITY_WEIGHT,
     STATUS_LABELS,
     STATUS_ORDER,
+    displayStatus,
     formatDate,
+    hasCheck,
     initials,
-    isOverdue,
+    todoStatusTextStyle,
 } from "./todoConstants";
 
 type Props = {
@@ -33,25 +34,24 @@ export default function TodoCard({
     onChangeStatus,
     onDelete,
 }: Props) {
-    const overdue = todo.status !== "DONE" && isOverdue(todo.due_date);
+    const status = displayStatus(todo.status, todo.due_date);
+    const overdue = status === "OVERDUE";
     const done = todo.status === "DONE";
 
     return (
-        <Card withBorder padding="sm" radius="md" style={done ? { opacity: 0.7 } : undefined}>
+        <Card withBorder padding="sm" radius="md">
             <Stack gap={8}>
                 <Group justify="space-between" align="flex-start" wrap="nowrap">
-                    <Text
-                        fw={600}
-                        style={done ? { textDecoration: "line-through" } : undefined}
-                        lineClamp={2}
-                    >
-                        {todo.title}
-                    </Text>
-                    <Group gap={4} wrap="nowrap">
-                        <Badge color={PRIORITY_COLORS[todo.priority]} variant="light" size="sm">
-                            {PRIORITY_LABELS[todo.priority]}
-                        </Badge>
+                    <Group gap={6} wrap="nowrap" align="flex-start" style={{ minWidth: 0 }}>
+                        {done && <Check size={16} aria-label="Erledigt" style={{ flexShrink: 0, marginTop: 4, color: "var(--text-muted)" }} />}
+                        <Text fw={600} lineClamp={2} style={done ? { color: "var(--text-muted)" } : undefined}>
+                            {todo.title}
+                        </Text>
                     </Group>
+                    {/* Priority through weight, never colour (Anwendungsebene). */}
+                    <Text size="xs" fw={PRIORITY_WEIGHT[todo.priority]} style={{ flexShrink: 0, color: "var(--text-strong)" }}>
+                        {PRIORITY_LABELS[todo.priority]}
+                    </Text>
                 </Group>
 
                 {todo.description && (
@@ -63,8 +63,8 @@ export default function TodoCard({
                 <Group gap="xs" wrap="wrap">
                     {todo.due_date && (
                         <Group gap={4} wrap="nowrap">
-                            <Calendar size={16} style={{ color: overdue ? "var(--mantine-color-red-6)" : undefined }} />
-                            <Text size="xs" c={overdue ? "red" : "dimmed"} fw={overdue ? 700 : 400}>
+                            <Calendar size={16} />
+                            <Text size="xs" c={overdue ? undefined : "dimmed"} style={overdue ? todoStatusTextStyle("OVERDUE") : undefined}>
                                 {formatDate(todo.due_date)}
                                 {overdue ? " · überfällig" : ""}
                             </Text>
@@ -73,7 +73,7 @@ export default function TodoCard({
                     {showProject && todo.project && (
                         <Text size="xs" c="dimmed">
                             ▸{" "}
-                            <Text component={Link} to={`/projects/${todo.project.id}`} size="xs" c="blue" inherit>
+                            <Text component={Link} to={`/projects/${todo.project.id}`} size="xs" c="var(--accent-primary)" inherit>
                                 {todo.project.project_number
                                     ? `${todo.project.project_number} – ${todo.project.name}`
                                     : todo.project.name}
@@ -95,14 +95,17 @@ export default function TodoCard({
                                 aria-label="Status ändern"
                             />
                         ) : (
-                            <Badge color={STATUS_COLORS[todo.status]} variant="light" size="sm">
-                                {STATUS_LABELS[todo.status]}
-                            </Badge>
+                            <Group gap={4} wrap="nowrap">
+                                {hasCheck(todo.status) && <Check size={14} aria-hidden style={{ color: "var(--text-muted)" }} />}
+                                <Text size="sm" style={todoStatusTextStyle(todo.status)}>
+                                    {STATUS_LABELS[todo.status]}
+                                </Text>
+                            </Group>
                         )}
                         <Avatar.Group spacing="xs">
                             {todo.assignees.map((a) => (
                                 <Tooltip key={a.id} label={a.username} withArrow>
-                                    <Avatar size={24} radius="xl" color="blue">
+                                    <Avatar size={24} radius="xl" color="teal">
                                         {initials(a.username)}
                                     </Avatar>
                                 </Tooltip>

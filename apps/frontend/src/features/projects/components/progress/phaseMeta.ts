@@ -1,6 +1,8 @@
 // German UI labels and ordering for the planning-state enums.
 // Mirrors backend models.projects.progress_enums.
 
+import { PHASE_COLOR } from "../../../../shared/theme/semanticColors";
+
 export type MainPhase =
     | "NICHT_GESTARTET"
     | "VORPLANUNG"
@@ -48,15 +50,13 @@ export const MAIN_PHASE_LABEL: Record<MainPhase, string> = {
     IN_BETRIEB: "In Betrieb",
 };
 
-// Canonical badge palette for the main phases (kept in sync with the
-// SubprojectsTable, which originally defined it).
-export const MAIN_PHASE_COLOR: Record<MainPhase, string> = {
-    NICHT_GESTARTET: "gray",
-    VORPLANUNG: "blue",
-    GENEHMIGUNGSPLANUNG: "indigo",
-    BAU: "orange",
-    IN_BETRIEB: "green",
-};
+// Phase colours live in shared/theme/semanticColors.ts (Q11/W6): the teal ramp
+// for the planning phases, --idt-success for "In Betrieb". CSS values, not
+// Mantine colour names — use them as `background`/`color`, not as `color=` props.
+export const MAIN_PHASE_COLOR: Record<MainPhase, string> = PHASE_COLOR;
+
+/** Colour for "Unbekannt" (no phase information). */
+export const UNKNOWN_PHASE_COLOR = PHASE_COLOR.UNBEKANNT;
 
 /** Select options for the main phases: { value, label } pairs. */
 export const mainPhaseOptions = () =>

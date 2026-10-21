@@ -4,7 +4,6 @@ import {
     Alert,
     Button,
     Group,
-    Loader,
     Stack,
     Table,
     Text,
@@ -24,6 +23,7 @@ import {
     type TextChangeLogEntry,
 } from "../../shared/api/queries";
 import { formatDateTimeShort } from "../../shared/format";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 // German labels for all tracked project fields
 const PROJECT_FIELD_LABELS: Record<string, string> = {
@@ -269,7 +269,7 @@ function ChangeLogItem({ log, canEdit, revertingEntryId, onRevert, groupNames }:
                                         <Button
                                             size="xs"
                                             variant="subtle"
-                                            color="orange"
+                                            color="violet"
                                             loading={revertingEntryId === entry.id}
                                             disabled={
                                                 revertingEntryId !== null &&
@@ -422,7 +422,7 @@ export default function ProjectHistorySection({ projectId, canEdit }: ProjectHis
     }
 
     if (isLoading) {
-        return <Loader size="sm" />;
+        return <LoadingState rows={6} />;
     }
 
     if (isError) {

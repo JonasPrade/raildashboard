@@ -1,11 +1,12 @@
 import type { Project, ProjectListItem, ProjectOverview } from "../../shared/api/queries";
+import { TRAFFIC_COLOR } from "../../shared/theme/semanticColors";
 
 export type TrainCategoryLabel = { key: keyof Project; label: string; color: string };
 
 export const trainCategoryLabels: TrainCategoryLabel[] = [
-    { key: "effects_passenger_long_rail", label: "Fernverkehr", color: "blue" },
-    { key: "effects_passenger_local_rail", label: "Nahverkehr", color: "teal" },
-    { key: "effects_cargo_rail", label: "Güterverkehr", color: "orange" },
+    { key: "effects_passenger_long_rail", label: "Fernverkehr", color: TRAFFIC_COLOR.FERNVERKEHR },
+    { key: "effects_passenger_local_rail", label: "Nahverkehr", color: TRAFFIC_COLOR.NAHVERKEHR },
+    { key: "effects_cargo_rail", label: "Güterverkehr", color: TRAFFIC_COLOR.GUETERVERKEHR },
 ];
 
 export type FeatureItem = { key: keyof Project; label: string };

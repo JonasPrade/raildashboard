@@ -6,7 +6,6 @@ import {
     Button,
     Container,
     Group,
-    Loader,
     Paper,
     Stack,
     Text,
@@ -23,6 +22,7 @@ import {
     useProjectOptions,
 } from "../../shared/api/queries";
 import { ANSWER_STATUS_LABEL, CATEGORY_ORDER, PhaseTable, bucketByCategory } from "./fuldaShared";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 export default function FuldaYearDetailPage() {
     const navigate = useNavigate();
@@ -122,7 +122,6 @@ export default function FuldaYearDetailPage() {
                     </Stack>
                     <Group gap="sm">
                         <Button
-                            color="green"
                             leftSection={<CheckCheck size={16} />}
                             onClick={handleConfirmAll}
                             loading={confirmYear.isPending}
@@ -148,9 +147,7 @@ export default function FuldaYearDetailPage() {
                 </Group>
 
                 {isLoading ? (
-                    <Group justify="center" py="xl">
-                        <Loader />
-                    </Group>
+                    <LoadingState rows={6} />
                 ) : null}
 
                 {documents.map((d) => (
@@ -165,7 +162,7 @@ export default function FuldaYearDetailPage() {
                                 </Text>
                                 <Badge
                                     variant="light"
-                                    color={d.answer_status === "VOLLSTAENDIG" ? "green" : "orange"}
+                                    color={d.answer_status === "VOLLSTAENDIG" ? "teal" : "gray"}
                                 >
                                     {ANSWER_STATUS_LABEL[d.answer_status]}
                                 </Badge>

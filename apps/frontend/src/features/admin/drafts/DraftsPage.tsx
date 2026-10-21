@@ -4,7 +4,6 @@ import {
     Button,
     Container,
     Group,
-    Loader,
     Modal,
     Stack,
     Text,
@@ -22,6 +21,7 @@ import {
     useFinalizeProject,
     type Project,
 } from "../../../shared/api/queries";
+import { LoadingState } from "../../../shared/ui/LoadingState";
 
 function DraftsPageContent() {
     const { can } = useAuth();
@@ -75,7 +75,7 @@ function DraftsPageContent() {
                 </Text>
 
                 {isLoading ? (
-                    <Group justify="center" py="xl"><Loader /></Group>
+                    <LoadingState rows={6} />
                 ) : !drafts || drafts.length === 0 ? (
                     <Alert color="gray" variant="light">Keine Entwürfe vorhanden.</Alert>
                 ) : (
@@ -107,7 +107,6 @@ function DraftsPageContent() {
                                         </Button>
                                         <Button
                                             size="xs"
-                                            color="green"
                                             loading={finalize.isPending}
                                             onClick={() => handleFinalize(p)}
                                         >

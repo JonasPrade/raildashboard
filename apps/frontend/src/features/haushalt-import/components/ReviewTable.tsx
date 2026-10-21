@@ -13,6 +13,7 @@ import {
     Tooltip,
 } from "@mantine/core";
 import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
+import { STATUS_TONE } from "../../../shared/theme/semanticColors";
 import { useState } from "react";
 import type { HaushaltsParseRow, Project, ProjectOption } from "../../../shared/api/queries";
 import { filterProjectOption } from "../../../lib/filterProjectOption";
@@ -26,7 +27,7 @@ function fmtPct(val: number | null) {
 }
 
 function StatusBadge({ status }: { status: HaushaltsParseRow["status"] }) {
-    const map = { new: "green", update: "yellow", unmatched: "red" } as const;
+    const map = { new: STATUS_TONE.active, update: STATUS_TONE.neutral, unmatched: STATUS_TONE.danger } as const;
     const label = { new: "Neu", update: "Änd.", unmatched: "Unbek." } as const;
     return <Badge color={map[status]} variant="light" size="xs">{label[status]}</Badge>;
 }

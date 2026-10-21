@@ -1,22 +1,19 @@
 import type { ReactNode, CSSProperties } from "react";
 
-type Status = "default" | "go" | "signal" | "info";
+import { DATA_CHIP_DOT_COLOR } from "../../shared/theme/semanticColors";
+
+type Status = keyof typeof DATA_CHIP_DOT_COLOR;
 
 type Props = {
     children: ReactNode;
     status?: Status;
+    /** Dot in a data-category colour from semanticColors.ts (e.g. TRAFFIC_COLOR); overrides `status`. */
+    dotColor?: string;
     className?: string;
     style?: CSSProperties;
 };
 
-const dotColor: Record<Status, string> = {
-    default: "var(--accent-primary)",
-    go: "var(--idt-success)",
-    signal: "var(--idt-danger)",
-    info: "var(--idt-info)",
-};
-
-export default function ChronicleDataChip({ children, status = "default", className, style }: Props) {
+export default function ChronicleDataChip({ children, status = "default", dotColor, className, style }: Props) {
     return (
         <span
             className={className}
@@ -43,7 +40,7 @@ export default function ChronicleDataChip({ children, status = "default", classN
                     display: "inline-block",
                     width: 8,
                     height: 8,
-                    background: dotColor[status],
+                    background: dotColor ?? DATA_CHIP_DOT_COLOR[status],
                     borderRadius: "50%",
                     flex: "0 0 auto",
                 }}

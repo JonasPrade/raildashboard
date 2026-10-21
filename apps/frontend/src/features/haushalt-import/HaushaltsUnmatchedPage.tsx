@@ -1,10 +1,8 @@
 import { useState } from "react";
 import {
-    Alert,
     Button,
     Container,
     Group,
-    Loader,
     NumberInput,
     Stack,
     Switch,
@@ -16,12 +14,14 @@ import { ChronicleHeadline, ChronicleDataChip } from "../../components/chronicle
 import { notifications } from "@mantine/notifications";
 import RequirePermission from "../../components/RequirePermission";
 import { useUnmatchedRows, useResolveUnmatchedRow } from "../../shared/api/queries";
+import { LoadingState } from "../../shared/ui/LoadingState";
+import { ErrorState } from "../../shared/ui/ErrorState";
 
 function HaushaltsUnmatchedPageContent() {
     const [showResolved, setShowResolved] = useState(false);
     const [resolveValues, setResolveValues] = useState<Record<number, number | "">>({});
 
-    const { data: rows, isLoading, isError } = useUnmatchedRows(showResolved ? undefined : false);
+    const { data: rows, isLoading, isError, refetch } = useUnmatchedRows(showResolved ? undefined : false);
     const resolve = useResolveUnmatchedRow();
 
     const handleResolve = async (rowId: number) => {
@@ -48,11 +48,9 @@ function HaushaltsUnmatchedPageContent() {
                     />
                 </Group>
 
-                {isLoading && <Group justify="center"><Loader /></Group>}
+                {isLoading && <LoadingState rows={6} />}
                 {isError && (
-                    <Alert color="red" variant="light" title="Fehler">
-                        Liste konnte nicht geladen werden.
-                    </Alert>
+                    <ErrorState onRetry={() => void refetch()}>Liste konnte nicht geladen werden.</ErrorState>
                 )}
 
                 {!isLoading && !isError && (

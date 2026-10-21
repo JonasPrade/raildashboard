@@ -6,7 +6,6 @@ import {
     Button,
     Container,
     Group,
-    Loader,
     Select,
     Stack,
     Text,
@@ -28,6 +27,7 @@ import {
     type VibConfirmEntryInput,
 } from "../../shared/api/queries";
 import VibEntryEditForm from "./VibEntryEditForm";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 function VibReviewPageContent() {
     const { taskId } = useParams<{ taskId: string }>();
@@ -48,9 +48,7 @@ function VibReviewPageContent() {
     if (isLoading) {
         return (
             <Container py="xl">
-                <Group justify="center">
-                    <Loader />
-                </Group>
+                <LoadingState rows={6} />
             </Container>
         );
     }
@@ -184,7 +182,7 @@ function VibReviewPageContent() {
                         <Button variant="outline" onClick={() => navigate("/admin/vib-import")}>
                             Abbrechen
                         </Button>
-                        <Button onClick={handleConfirm} loading={confirm.isPending} color="green">
+                        <Button onClick={handleConfirm} loading={confirm.isPending}>
                             Import bestätigen
                         </Button>
                     </Group>

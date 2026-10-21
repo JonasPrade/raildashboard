@@ -3,7 +3,6 @@ import {
     Button,
     Collapse,
     Group,
-    Loader,
     Stack,
     Table,
     Tabs,
@@ -23,6 +22,7 @@ import {
 import { ChronicleCard, ChronicleDataChip } from "../../../components/chronicle";
 import { useAuth } from "../../../lib/auth";
 import VibEntryEditDrawer from "../../vib-import/VibEntryEditDrawer";
+import { LoadingState } from "../../../shared/ui/LoadingState";
 
 function toVibEntrySchema(entry: VibEntryForProject): VibEntrySchema {
     return {
@@ -294,9 +294,7 @@ export default function VibSection({ projectId }: { projectId: number }) {
             <ChronicleCard>
                 <Stack gap="sm">
                     <Title order={4}>Verkehrsinvestitionsberichte</Title>
-                    <Group justify="center">
-                        <Loader size="sm" />
-                    </Group>
+                    <LoadingState rows={3} />
                 </Stack>
             </ChronicleCard>
         );

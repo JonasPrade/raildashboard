@@ -4,7 +4,6 @@ import {
     Alert,
     Container,
     Group,
-    Loader,
     SegmentedControl,
     Stack,
     Switch,
@@ -26,6 +25,8 @@ import {
     type ProjectGroup,
 } from "../../shared/api/queries";
 import { ProjectGroupFormModal } from "./ProjectGroupFormModal";
+import { LoadingState } from "../../shared/ui/LoadingState";
+import { ErrorState } from "../../shared/ui/ErrorState";
 
 const MODE_DATA: { value: MapGroupMode; label: string; description: string }[] = [
     {
@@ -41,7 +42,7 @@ const MODE_DATA: { value: MapGroupMode; label: string; description: string }[] =
 ];
 
 export default function ProjectGroupsAdminPage() {
-    const { data: groups, isLoading, isError } = useProjectGroups();
+    const { data: groups, isLoading, isError, refetch } = useProjectGroups();
     const { data: appSettings } = useAppSettings();
     const updateGroup = useUpdateProjectGroup();
     const deleteGroup = useDeleteProjectGroup();
@@ -64,7 +65,7 @@ export default function ProjectGroupsAdminPage() {
     };
 
     const handleModeChange = (value: string) => {
-        updateSettings.mutate(value as MapGroupMode, {
+        updateSettings.mutate({ map_group_mode: value as MapGroupMode }, {
             onError: () =>
                 notifications.show({
                     color: "red",
@@ -181,15 +182,11 @@ export default function ProjectGroupsAdminPage() {
                 </ChronicleCard>
 
                 {isError && (
-                    <Alert color="red" variant="light" title="Fehler beim Laden">
-                        Projektgruppen konnten nicht geladen werden.
-                    </Alert>
+                    <ErrorState onRetry={() => void refetch()}>Projektgruppen konnten nicht geladen werden.</ErrorState>
                 )}
 
                 {isLoading ? (
-                    <Group justify="center" py="xl">
-                        <Loader />
-                    </Group>
+                    <LoadingState rows={6} />
                 ) : (
                     <Stack gap="sm">
                         {sortedGroups.length > 0 && (

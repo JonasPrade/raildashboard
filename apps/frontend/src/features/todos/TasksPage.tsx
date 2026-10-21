@@ -5,7 +5,6 @@ import {
     Checkbox,
     Container,
     Group,
-    Loader,
     SegmentedControl,
     Select,
     SimpleGrid,
@@ -29,6 +28,8 @@ import TodoCard from "./TodoCard";
 import TodoEditDrawer from "./TodoEditDrawer";
 import { useTodoActions } from "./useTodoActions";
 import { STATUS_LABELS, STATUS_ORDER } from "./todoConstants";
+import { LoadingState } from "../../shared/ui/LoadingState";
+import { ErrorState } from "../../shared/ui/ErrorState";
 
 export default function TasksPage() {
     const { user, can } = useAuth();
@@ -50,7 +51,7 @@ export default function TasksPage() {
         [onlyMine, user, assigneeFilter, projectFilter, includeDone],
     );
 
-    const { data: todos, isLoading, isError } = useTodos(filters, user !== null);
+    const { data: todos, isLoading, isError, refetch } = useTodos(filters, user !== null);
     const { data: projects } = useProjectOptions();
     const { data: users } = useUserOptions(user !== null);
     const createTodo = useCreateTodo();
@@ -167,11 +168,9 @@ export default function TasksPage() {
                 </Group>
 
                 {isLoading && (
-                    <Group justify="center" py="xl">
-                        <Loader />
-                    </Group>
+                    <LoadingState rows={6} />
                 )}
-                {isError && <Alert color="red">Aufgaben konnten nicht geladen werden.</Alert>}
+                {isError && <ErrorState onRetry={() => void refetch()}>Aufgaben konnten nicht geladen werden.</ErrorState>}
 
                 {!isLoading && !isError && (
                     <SimpleGrid cols={{ base: 1, sm: visibleStatuses.length }} spacing="md">

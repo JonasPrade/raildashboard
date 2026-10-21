@@ -10,7 +10,6 @@ import {
     Container,
     Group,
     List,
-    Loader,
     Menu,
     Modal,
     MultiSelect,
@@ -55,6 +54,7 @@ import {
     formatMio,
     isAssigned,
 } from "../infraplan/infraplanFormat";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 const PAGE_SIZE = 50;
 
@@ -147,7 +147,7 @@ function AssignCell({
                                     <Badge
                                         size="xs"
                                         variant="outline"
-                                        color={s.confidence >= 0.85 ? "green" : "gray"}
+                                        color={s.confidence >= 0.85 ? "violet" : "gray"}
                                         style={{ cursor: "pointer", textTransform: "none", maxWidth: 260 }}
                                         onClick={() => onChange([...current, s.project_id])}
                                     >
@@ -264,7 +264,7 @@ function ConfirmBlock({ record }: { record: InfraplanParseResult }) {
                         </Text>
                     ),
                     labels: { confirm: "Trotzdem übernehmen", cancel: "Abbrechen" },
-                    confirmProps: { color: "orange" },
+                    confirmProps: { color: "red" },
                     onConfirm: () => void run(true),
                 });
                 return;
@@ -348,7 +348,7 @@ function InfraplanReviewPageContent() {
         [rows, section, onlyUnassigned, search],
     );
 
-    if (isLoading) return <Container py="xl"><Group justify="center"><Loader /></Group></Container>;
+    if (isLoading) return <Container py="xl"><LoadingState rows={6} /></Container>;
     if (isError || !record) {
         return (
             <Container size="sm" py="xl">
@@ -359,7 +359,7 @@ function InfraplanReviewPageContent() {
     if (record.status === "PENDING" || record.status === "RUNNING") {
         return (
             <Container size="sm" py="xl">
-                <Group gap="sm"><Loader size="sm" /><Text>Der Infraplan {record.year} wird ausgelesen …</Text></Group>
+                <Stack gap="sm"><Text>Der Infraplan {record.year} wird ausgelesen …</Text><LoadingState rows={3} label="Wird ausgelesen …" /></Stack>
             </Container>
         );
     }
@@ -430,7 +430,7 @@ function InfraplanReviewPageContent() {
                 </Group>
 
                 {confirmed && (
-                    <Alert color="green" variant="light">
+                    <Alert color="teal" variant="light">
                         Übernommen am {formatDateTime(record.confirmed_at as string)}
                         {record.confirmed_by_snapshot ? ` von ${record.confirmed_by_snapshot}` : ""}. Der Entwurf ist
                         nur noch lesbar; Zuordnungen pflegst du jetzt unter{" "}

@@ -8,7 +8,6 @@ import {
     Container,
     Group,
     List,
-    Loader,
     MultiSelect,
     Pagination,
     SegmentedControl,
@@ -34,6 +33,7 @@ import {
 } from "../../shared/api/queries";
 import { formatNumberDe } from "../../shared/format";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 const PAGE_SIZE = 50;
 
@@ -85,7 +85,7 @@ function GvfgReviewPageContent() {
         [projectOptions],
     );
 
-    if (isLoading) return <Container py="xl"><Group justify="center"><Loader /></Group></Container>;
+    if (isLoading) return <Container py="xl"><LoadingState rows={6} /></Container>;
     if (isError || !record || !result) {
         return (
             <Container size="sm" py="xl">
@@ -178,7 +178,7 @@ function GvfgReviewPageContent() {
                 </Group>
 
                 {confirmed && (
-                    <Alert color="green" variant="light">
+                    <Alert color="teal" variant="light">
                         Übernommen am {new Date(record.confirmed_at as string).toLocaleString("de-DE")}
                         {record.confirmed_by_snapshot ? ` von ${record.confirmed_by_snapshot}` : ""}.
                     </Alert>
@@ -276,7 +276,7 @@ function GvfgReviewPageContent() {
                                             <Table.Td>
                                                 <Text size="sm">{entry.name}</Text>
                                                 {suggestion?.flags.map((flag) => (
-                                                    <Badge key={flag} color="yellow" variant="light" size="xs" mr={4}>
+                                                    <Badge key={flag} color="gray" variant="outline" size="xs" mr={4}>
                                                         {flag}
                                                     </Badge>
                                                 ))}

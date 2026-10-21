@@ -3,7 +3,6 @@ import {
     Badge,
     Container,
     Group,
-    Loader,
     Select,
     Stack,
     Table,
@@ -19,10 +18,11 @@ import {
     useSetFinveProgressPhase,
 } from "../../shared/api/queries";
 import {
-    MAIN_PHASE_LABEL,
     mainPhaseOptions,
     type MainPhase,
 } from "../projects/components/progress/phaseMeta";
+import { PhaseTag } from "../projects/components/progress/PhaseBadge";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 const AUTO = "__auto__";
 
@@ -39,17 +39,13 @@ function PhaseBadge({ value, dimmed }: { value: string | null | undefined; dimme
             </Badge>
         );
     }
-    return (
-        <Badge variant={dimmed ? "outline" : "light"} color={dimmed ? "gray" : "indigo"}>
-            {MAIN_PHASE_LABEL[value as MainPhase] ?? value}
-        </Badge>
-    );
+    return <PhaseTag phase={value as MainPhase} dimmed={dimmed} />;
 }
 
 function Row({ finve }: { finve: SammelFinveProgress }) {
     const setPhase = useSetFinveProgressPhase();
     return (
-        <Table.Tr style={finve.needs_assignment ? { backgroundColor: "rgba(250, 176, 5, 0.08)" } : undefined}>
+        <Table.Tr style={finve.needs_assignment ? { backgroundColor: "var(--idt-violet-soft)" } : undefined}>
             <Table.Td>
                 <Group gap={6}>
                     <Badge variant="light">FinVe {finve.finve_id}</Badge>
@@ -120,9 +116,7 @@ function FinveProgressAdminPageContent() {
 
                 <ChronicleCard>
                     {isLoading ? (
-                        <Group justify="center" py="md">
-                            <Loader size="sm" />
-                        </Group>
+                        <LoadingState rows={6} />
                     ) : (
                         <ResponsiveTable minWidth={720} striped highlightOnHover>
                             <Table.Thead>

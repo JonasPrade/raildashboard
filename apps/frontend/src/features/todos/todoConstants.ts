@@ -1,7 +1,12 @@
 import type { TodoPriority, TodoStatus } from "../../shared/api/queries";
-import { formatDateShort } from "../../shared/format";
+import type { CSSProperties } from "react";
 
-// German user-facing labels and Mantine colours for the to-do (Aufgaben) feature.
+import { formatDateShort } from "../../shared/format";
+import { TODO_PRIORITY_WEIGHT, TODO_STATUS_STYLE } from "../../shared/theme/semanticColors";
+
+// German user-facing labels and the status display of the to-do (Aufgaben)
+// feature. Anwendungsebene "Status": only overdue carries colour (a red
+// underline), done is muted with a check, priority shows through weight.
 
 export const STATUS_LABELS: Record<TodoStatus, string> = {
     OPEN: "Offen",
@@ -11,11 +16,6 @@ export const STATUS_LABELS: Record<TodoStatus, string> = {
 
 export const STATUS_ORDER: TodoStatus[] = ["OPEN", "IN_PROGRESS", "DONE"];
 
-export const STATUS_COLORS: Record<TodoStatus, string> = {
-    OPEN: "gray",
-    IN_PROGRESS: "blue",
-    DONE: "teal",
-};
 
 export const PRIORITY_LABELS: Record<TodoPriority, string> = {
     LOW: "Niedrig",
@@ -25,11 +25,30 @@ export const PRIORITY_LABELS: Record<TodoPriority, string> = {
 
 export const PRIORITY_ORDER: TodoPriority[] = ["HIGH", "MEDIUM", "LOW"];
 
-export const PRIORITY_COLORS: Record<TodoPriority, string> = {
-    LOW: "gray",
-    MEDIUM: "yellow",
-    HIGH: "red",
-};
+export const PRIORITY_WEIGHT: Record<TodoPriority, number> = TODO_PRIORITY_WEIGHT;
+
+export type TodoDisplayStatus = keyof typeof TODO_STATUS_STYLE;
+
+/** Status as displayed: an unfinished task past its due date shows as overdue. */
+export function displayStatus(status: TodoStatus, dueDate: string | null | undefined): TodoDisplayStatus {
+    if (status !== "DONE" && isOverdue(dueDate)) return "OVERDUE";
+    return status;
+}
+
+/** Text style of a display status (colour, weight, overdue underline). */
+export function todoStatusTextStyle(status: TodoDisplayStatus): CSSProperties {
+    const def: { color: string; weight: number; underline?: string } = TODO_STATUS_STYLE[status];
+    return {
+        color: def.color,
+        fontWeight: def.weight,
+        ...(def.underline ? { borderBottom: `3px solid ${def.underline}`, paddingBottom: 1 } : {}),
+    };
+}
+
+/** Whether a display status is drawn with a check in front (done). */
+export function hasCheck(status: TodoDisplayStatus): boolean {
+    return "check" in TODO_STATUS_STYLE[status];
+}
 
 /** A due date is overdue when it is strictly before today (local date). */
 export function isOverdue(dueDate: string | null | undefined): boolean {

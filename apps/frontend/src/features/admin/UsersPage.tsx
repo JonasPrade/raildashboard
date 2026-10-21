@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
-    Alert,
     Anchor,
     Button,
     Container,
     Group,
-    Loader,
     Select,
     Stack,
     Table,
@@ -29,6 +27,8 @@ import { formatDateNumeric } from "../../shared/format";
 import { CreateUserModal } from "./CreateUserModal";
 import { EditUserModal } from "./EditUserModal";
 import { SetPasswordModal } from "./SetPasswordModal";
+import { LoadingState } from "../../shared/ui/LoadingState";
+import { ErrorState } from "../../shared/ui/ErrorState";
 
 function UsersPageContent() {
     const { user: currentUser } = useAuth();
@@ -37,7 +37,7 @@ function UsersPageContent() {
     const [passwordUserId, setPasswordUserId] = useState<number | null>(null);
     const [editUserId, setEditUserId] = useState<number | null>(null);
 
-    const { data: users, isLoading: usersLoading, isError: usersError } = useUsers();
+    const { data: users, isLoading: usersLoading, isError: usersError, refetch: refetchUsers } = useUsers();
     const { data: roles } = useRoles();
     const roleOptions = (roles ?? []).map((r) => ({ value: r.name, label: r.name }));
 
@@ -77,13 +77,11 @@ function UsersPageContent() {
 
     const renderUsersTable = () => {
         if (usersLoading) {
-            return <Group justify="center" py="md"><Loader /></Group>;
+            return <LoadingState rows={6} />;
         }
         if (usersError) {
             return (
-                <Alert color="red" variant="light" title="Fehler">
-                    Nutzerliste konnte nicht geladen werden.
-                </Alert>
+                <ErrorState onRetry={() => void refetchUsers()}>Nutzerliste konnte nicht geladen werden.</ErrorState>
             );
         }
         return (

@@ -15,7 +15,6 @@ import {
     Code,
     Container,
     Group,
-    Loader,
     Stack,
     Table,
     Text,
@@ -32,17 +31,19 @@ import {
     type WorkerHealth,
 } from "../../shared/api/queries";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
+import { STATUS_TONE } from "../../shared/theme/semanticColors";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 const STATUS_DISPLAY: Record<WorkerHealth["status"], { color: string; label: string }> = {
-    ok: { color: "green", label: "Worker laufen" },
-    no_workers: { color: "red", label: "Kein Worker online" },
-    broker_unreachable: { color: "red", label: "Warteschlange nicht erreichbar" },
+    ok: { color: STATUS_TONE.done, label: "Worker laufen" },
+    no_workers: { color: STATUS_TONE.danger, label: "Kein Worker online" },
+    broker_unreachable: { color: STATUS_TONE.danger, label: "Warteschlange nicht erreichbar" },
 };
 
 const ROUTING_STATUS_DISPLAY: Record<RoutingHealth["status"], { color: string; label: string }> = {
-    ok: { color: "green", label: "Routing erreichbar" },
-    error: { color: "red", label: "Routing meldet Fehler" },
-    unreachable: { color: "red", label: "Routing nicht erreichbar" },
+    ok: { color: STATUS_TONE.done, label: "Routing erreichbar" },
+    error: { color: STATUS_TONE.danger, label: "Routing meldet Fehler" },
+    unreachable: { color: STATUS_TONE.danger, label: "Routing nicht erreichbar" },
 };
 
 function formatCheckedAt(checkedAt: number): string {
@@ -112,7 +113,7 @@ function SystemStatusPageContent() {
                 <ChronicleCard>
                     <Stack gap="md">
                         {isLoading && (
-                            <Group gap="xs"><Loader size="xs" /><Text size="sm">Prüfung läuft…</Text></Group>
+                            <LoadingState rows={2} label="Prüfung läuft …" />
                         )}
 
                         {isError && (
@@ -134,7 +135,7 @@ function SystemStatusPageContent() {
                                 </Group>
 
                                 <Alert
-                                    color={health.status === "ok" ? "green" : "orange"}
+                                    color={health.status === "ok" ? "teal" : "red"}
                                     variant="light"
                                 >
                                     {health.message}
@@ -179,7 +180,7 @@ function SystemStatusPageContent() {
                         </Text>
 
                         {routingLoading && (
-                            <Group gap="xs"><Loader size="xs" /><Text size="sm">Prüfung läuft…</Text></Group>
+                            <LoadingState rows={2} label="Prüfung läuft …" />
                         )}
 
                         {routingError && (
@@ -199,7 +200,7 @@ function SystemStatusPageContent() {
                                     </Text>
                                 </Group>
 
-                                <Alert color={routing.status === "ok" ? "green" : "orange"} variant="light">
+                                <Alert color={routing.status === "ok" ? "teal" : "red"} variant="light">
                                     {routing.message}
                                 </Alert>
 

@@ -6,13 +6,14 @@
  * 51 km and 3 km are not the same argument.
  */
 import { useState } from "react";
-import { Alert, Anchor, Divider, Group, Loader, Stack, Text } from "@mantine/core";
+import { Alert, Anchor, Divider, Group, Stack, Text } from "@mantine/core";
 import { Link } from "react-router-dom";
 
 import { ChronicleCard, ChronicleDataChip, ChronicleHeadline } from "../../components/chronicle";
 import { useAuth } from "../../lib/auth";
 import { type ProjectConstituency, useProjectConstituencies } from "../../shared/api/queries";
 import { MandateGroup, formatShare, formatWeight } from "./mandateDisplay";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 function ConstituencyBlock({ constituency }: { constituency: ProjectConstituency }) {
     return (
@@ -72,9 +73,7 @@ export default function ProjectConstituencySection({ projectId }: { projectId: n
     if (isLoading) {
         return (
             <ChronicleCard>
-                <Group justify="center" py="md">
-                    <Loader size="sm" />
-                </Group>
+                <LoadingState rows={3} />
             </ChronicleCard>
         );
     }
