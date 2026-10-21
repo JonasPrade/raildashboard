@@ -33,6 +33,12 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   migration `20261021002`. The Mittelherkunft card names the shown year in its title.
 
 ### Added
+- **GVFG funding questions the commissioning year.** When the newest GVFG edition still
+  plans at least 1 Mio. € and 15 % of a project's aid for years after its known
+  Inbetriebnahme (the edition's „Inbetriebnahme gepl.“ or the Infraplan's year, equal
+  weight, the more recent statement wins), the forecast panel shows „Inbetriebnahme JJJJ fraglich“ with
+  the amounts per year. The date itself is unchanged. API: `forecast.ibn_doubt`; MCP:
+  `get_project_progress` and `list_project_gvfg`.
 - **Infraplan import for 2027.** Matching writes out the Infraplan's abbreviations
   (Ubf, Vbk, Abzw, Ü-BW, 2gl., Bf, Mü, HH, MA, HD, Ffm, …) before comparing, finds the
   subproject of the parent the Bezeichnung names ("Großknoten München", "PB 07: ABS/NBS

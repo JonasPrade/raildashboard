@@ -215,3 +215,30 @@ def test_assign_requires_assignment_manage(mcp_client, create_user, db_session):
                    {"entry_id": seed["u4_new"].id, "project_ids": [seed["u4"].id]})
     assert result["isError"] is True
     assert "assignment.manage" in result["content"][0]["text"]
+
+
+def test_aid_after_commissioning_questions_it(mcp_client, admin_token, db_session):
+    seed = _seed(db_session)
+    # Planned commissioning 2025, but the edition still plans 50 of 120 Mio. € for 2026.
+    entry = _entry(seed["new"], "02 G 600_A", "Stadtbahn Steilshoop", lines=[
+        ("SUM", "160", "120", {"1967–2023": "30", "2025": "40", "2026": "50"}),
+    ])
+    entry.commissioning_planned = 2025
+    project = Project(name="Stadtbahn Steilshoop", project_number="02 G 600_A", is_draft=False)
+    entry.projects = [project]
+    db_session.add_all([entry, project])
+    db_session.commit()
+
+    payload = _payload(_call(mcp_client, admin_token, "list_project_gvfg", {"project_id": project.id}))
+    doubt = payload["ibn_doubt"]
+    assert (doubt["ibn_year"], doubt["ibn_source"], doubt["edition"]) == (2025, "GVFG 2025–2029", "2025–2029")
+    assert (doubt["aid_after"], doubt["aid_total"]) == (50.0, 120.0)
+    assert doubt["periods"] == [{"label": "2026", "aid": 50.0}]
+    assert doubt["entry_ids"] == [entry.id]
+
+    progress = _payload(_call(mcp_client, admin_token, "get_project_progress", {"project_id": project.id}))
+    assert progress["forecast"]["ibn_doubt"] == doubt
+
+    # U4: commissioning 2030, no aid after it.
+    u4 = _payload(_call(mcp_client, admin_token, "list_project_gvfg", {"project_id": seed["u4"].id}))
+    assert u4["ibn_doubt"] is None

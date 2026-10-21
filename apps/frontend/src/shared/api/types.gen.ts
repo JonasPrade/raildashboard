@@ -4315,6 +4315,39 @@ export interface components {
              */
             project_ids: number[];
         };
+        /** IbnDoubtPeriodSchema */
+        IbnDoubtPeriodSchema: {
+            /** Label */
+            label: string;
+            /** Aid */
+            aid: number;
+        };
+        /**
+         * IbnDoubtSchema
+         * @description The GVFG-Finanzreihe still funds the project after its known
+         *     commissioning year — that year is doubtful (the forecast stays as is).
+         */
+        IbnDoubtSchema: {
+            /** Ibn Year */
+            ibn_year: number;
+            /** Ibn Source */
+            ibn_source: string;
+            /** Edition */
+            edition: string;
+            /** Program Id */
+            program_id: number;
+            /** Entry Ids */
+            entry_ids: number[];
+            /** Aid After */
+            aid_after: number;
+            /** Aid Total */
+            aid_total: number;
+            /**
+             * Periods
+             * @default []
+             */
+            periods: components["schemas"]["IbnDoubtPeriodSchema"][];
+        };
         /** ImportRunSchema */
         ImportRunSchema: {
             /** Id */
@@ -5614,6 +5647,7 @@ export interface components {
              * @default false
              */
             has_data: boolean;
+            ibn_doubt?: components["schemas"]["IbnDoubtSchema"] | null;
         };
         /** ProgressObservationCreate */
         ProgressObservationCreate: {

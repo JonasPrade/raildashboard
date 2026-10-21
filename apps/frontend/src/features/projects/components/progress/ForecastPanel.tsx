@@ -1,7 +1,8 @@
-import { Badge, Group, Stack, Text, ThemeIcon, Timeline } from "@mantine/core";
-import { IconClockHour4, IconFlag } from "@tabler/icons-react";
+import { Alert, Badge, Group, Stack, Text, ThemeIcon, Timeline } from "@mantine/core";
+import { IconAlertTriangle, IconClockHour4, IconFlag } from "@tabler/icons-react";
 
 import type { ProgressForecast } from "../../../../shared/api/queries";
+import { formatMio } from "../../../gvfg/gvfgFormat";
 import { MAIN_PHASE_LABEL, MILESTONE_LABEL, type MainPhase } from "./phaseMeta";
 
 const SOURCE_COLOR: Record<string, string> = {
@@ -19,6 +20,28 @@ function formatExpected(dateStr: string | null | undefined): string {
     return `voraussichtlich ${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 }
 
+type IbnDoubt = NonNullable<ProgressForecast["ibn_doubt"]>;
+
+/** The GVFG-Finanzreihe still funds the project after its known commissioning. */
+function IbnDoubtAlert({ doubt }: { doubt: IbnDoubt }) {
+    const share = doubt.aid_total > 0 ? Math.round((doubt.aid_after / doubt.aid_total) * 100) : null;
+    const years = doubt.periods.map((p) => `${p.label}: ${formatMio(p.aid)}`).join(" · ");
+    return (
+        <Alert color="gold" variant="light" icon={<IconAlertTriangle size={16} />} title={`Inbetriebnahme ${doubt.ibn_year} fraglich`}>
+            <Text size="sm">
+                Die GVFG-Finanzreihe (Ausgabe {doubt.edition}, Abschnitt GVFG) sieht nach {doubt.ibn_year} noch {formatMio(doubt.aid_after)} Mio. € Finanzhilfen vor
+                {share !== null && ` (${share} % der Finanzhilfen)`}. Quelle des Inbetriebnahmejahrs:{" "}
+                {doubt.ibn_source.startsWith("GVFG") ? `${doubt.ibn_source} (Inbetriebnahme gepl.)` : doubt.ibn_source}.
+            </Text>
+            {years && (
+                <Text size="xs" c="dimmed" mt={4}>
+                    {years} (Mio. €)
+                </Text>
+            )}
+        </Alert>
+    );
+}
+
 export default function ForecastPanel({
     forecast,
 }: {
@@ -26,9 +49,12 @@ export default function ForecastPanel({
 }) {
     if (!forecast || !forecast.has_data) {
         return (
-            <Text size="sm" c="dimmed">
-                Keine Prognosedaten verfügbar (weder BVWP-Dauern noch VIB-/Fulda-Termine).
-            </Text>
+            <Stack gap="sm">
+                <Text size="sm" c="dimmed">
+                    Keine Prognosedaten verfügbar (weder BVWP-Dauern noch VIB-/Fulda-Termine).
+                </Text>
+                {forecast?.ibn_doubt && <IbnDoubtAlert doubt={forecast.ibn_doubt} />}
+            </Stack>
         );
     }
 
@@ -74,6 +100,8 @@ export default function ForecastPanel({
                     Projekt hat die letzte erfasste Phase erreicht.
                 </Text>
             )}
+
+            {forecast.ibn_doubt && <IbnDoubtAlert doubt={forecast.ibn_doubt} />}
         </Stack>
     );
 }
