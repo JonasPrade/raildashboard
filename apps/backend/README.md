@@ -154,6 +154,25 @@ like the DB session. Claude Code config:
 
 See `docs/features/feature-mcp-server.md`.
 
+## App settings
+
+```
+GET   /api/v1/settings/     # public
+PATCH /api/v1/settings/     # capability: settings.manage
+```
+
+Singleton row `app_settings` (id 1, created on first read). Fields:
+
+| Field | Meaning |
+|---|---|
+| `map_group_mode` | `preconfigured` (pre-select the groups marked `is_default_selected`) or `all` |
+| `impressum_url`, `datenschutz_url` | Optional external page (http/https only, max. 500 chars). Set → the footer link and `/impressum` / `/datenschutz` go there |
+| `impressum_markdown`, `datenschutz_markdown` | Optional Markdown, rendered on `/impressum` / `/datenschutz` when no URL is set |
+
+`PATCH` is partial: only the fields sent change; `""` or `null` clears a legal-page field
+(migration `20261021004`). Maintained in the admin UI on `/admin` → card „Impressum und
+Datenschutz“; see `docs/features/feature-idt-design.md` → „Impressum und Datenschutz (W8)“.
+
 ## Celery Worker
 
 Long-running tasks (PDF parsing, route computation) run asynchronously via Celery with Redis as broker and result backend.
