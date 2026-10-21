@@ -93,7 +93,7 @@ export function MandateGroup({
     return (
         <Stack gap={6}>
             <Group gap="xs" align="baseline">
-                <Text size="sm" fw={700} tt="uppercase" c="dimmed">
+                <Text component="div" className="idt-eyebrow">
                     {title}
                 </Text>
                 {hint && (

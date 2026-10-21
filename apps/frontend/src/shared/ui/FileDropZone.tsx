@@ -86,9 +86,8 @@ export function FileDropZone({ accept, multiple = false, onFiles, label = "Datei
                     pos="absolute"
                     inset={-6}
                     style={{
-                        border: "2px dashed var(--mantine-color-blue-6)",
-                        borderRadius: "var(--mantine-radius-md)",
-                        background: "color-mix(in srgb, var(--mantine-color-blue-6) 10%, var(--mantine-color-body))",
+                        border: "2px dashed var(--accent-primary)",
+                        background: "var(--idt-violet-soft)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -96,7 +95,7 @@ export function FileDropZone({ accept, multiple = false, onFiles, label = "Datei
                         zIndex: 10,
                     }}
                 >
-                    <Text size="sm" fw={600} c="blue.7">{label}</Text>
+                    <Text size="sm" fw={600} c="var(--text-strong)">{label}</Text>
                 </Box>
             )}
         </Box>

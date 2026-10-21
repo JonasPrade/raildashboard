@@ -240,6 +240,19 @@ body {
     text-transform: uppercase;
     color: var(--text-muted);
 }
+/* Kicker above a view title (opt-in): "→ " in cyan-active, as in the prototype.
+   The arrow is decoration only — 2.6:1 on paper is below text contrast, so it
+   carries empty alt text and screen readers skip it. */
+.idt-eyebrow--arrow::before {
+    content: "→ ";
+    content: "→ " / "";
+    color: var(--idt-cyan-active);
+}
+
+/* Identifiers and codes: Inter with tabular figures (no mono face in the DS). */
+.idt-tnum {
+    font-variant-numeric: tabular-nums;
+}
 
 p { line-height: 1.65; }
 

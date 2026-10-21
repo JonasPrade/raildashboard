@@ -89,7 +89,7 @@ export default function ProgressMini({ projectId }: { projectId: number }) {
                                     flex: 1,
                                     height: 6,
                                     minWidth: 12,
-                                    borderRadius: 3,
+                                    borderRadius: 0,
                                     backgroundColor: color,
                                     cursor: "default",
                                 }}
@@ -99,7 +99,7 @@ export default function ProgressMini({ projectId }: { projectId: number }) {
                 })}
             </Group>
             <Group gap={6} wrap="nowrap" align="baseline">
-                <Text size="xs" c="dimmed" fw={700} tt="uppercase" style={{ letterSpacing: 0.4, flexShrink: 0 }}>
+                <Text component="div" className="idt-eyebrow" style={{ flexShrink: 0 }}>
                     Planungsstand
                 </Text>
                 <Text size="xs" c={dimmed ? "dimmed" : undefined} style={{ lineHeight: 1.2 }}>

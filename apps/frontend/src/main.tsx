@@ -23,7 +23,7 @@ const root = document.getElementById("app");
 if (!root) throw new Error("Root element #app not found");
 
 // Default follows the system setting; the header toggle stores an explicit choice.
-// index.html sets data-theme / data-mantine-color-scheme before first paint.
+// index.html sets data-theme and Mantine's colour-scheme attribute before first paint.
 const colorSchemeManager = localStorageColorSchemeManager({ key: COLOR_SCHEME_STORAGE_KEY });
 
 createRoot(root).render(

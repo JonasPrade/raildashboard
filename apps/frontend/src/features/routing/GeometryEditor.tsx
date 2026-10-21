@@ -15,7 +15,7 @@ import {
     Text,
 } from "@mantine/core";
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
-import { modals } from "@mantine/modals";
+import { openConfirmModal } from "../../shared/ui/confirmModal";
 import { notifications } from "@mantine/notifications";
 
 import type { OperationalPointRef, Project, RoutePreviewFeature } from "../../shared/api/queries";
@@ -190,7 +190,7 @@ export default function GeometryEditor({
             applyGeojsonSource(false);
             return;
         }
-        modals.openConfirmModal({
+        openConfirmModal({
             title: "Geometrie aus Unterprojekten zusammensetzen?",
             children: (
                 <Text size="sm">
@@ -392,12 +392,12 @@ export default function GeometryEditor({
                               width: "100%",
                               flex: "0 1 auto",
                               maxHeight: "50%",
-                              borderBottom: "1px solid var(--mantine-color-default-border)",
+                              borderBottom: "2px solid var(--border-frame)",
                           }
                         : {
                               width: 380,
                               minWidth: 320,
-                              borderRight: "1px solid var(--mantine-color-default-border)",
+                              borderRight: "2px solid var(--border-frame)",
                           }),
                 }}
             >
@@ -405,7 +405,7 @@ export default function GeometryEditor({
                     <Stack gap="md">
                         {/* Current status */}
                         <div>
-                            <Text size="xs" fw={600} c="dimmed" tt="uppercase" mb={6}>
+                            <Text className="idt-eyebrow" mb={6}>
                                 Aktuelle Geometrie
                             </Text>
                             <Badge variant="outline" color="var(--text-strong)" tt="none">
@@ -681,26 +681,32 @@ export default function GeometryEditor({
                     </Stack>
                 </ScrollArea>
 
-                {/* Footer buttons */}
-                <Box p="md" style={{ borderTop: "1px solid var(--mantine-color-default-border)" }}>
-                    <Stack gap="xs">
-                        {!isAggregated && (
-                            <Button
-                                onClick={handleAccept}
-                                loading={isPending}
-                                disabled={!canAccept}
-                                color={isDeleteOnly ? "red" : undefined}
-                            >
-                                {isDeleteOnly ? "Geometrie löschen" : saveLabel}
-                            </Button>
-                        )}
-                        {showCancel && (
-                            <Button variant="default" onClick={onCancel} disabled={isPending}>
-                                {cancelLabel}
-                            </Button>
-                        )}
-                    </Stack>
-                </Box>
+                {/* Foot of the dialog: cancel framed on the left, confirm (or the red
+                    delete) filled on the right — two actions at most. */}
+                <Group
+                    p="md"
+                    justify="flex-end"
+                    gap={10}
+                    grow={isMobile}
+                    style={{ borderTop: "2px solid var(--border-frame)" }}
+                >
+                    {showCancel && (
+                        <Button variant="default" onClick={onCancel} disabled={isPending}>
+                            {cancelLabel}
+                        </Button>
+                    )}
+                    {!isAggregated && (
+                        <Button
+                            onClick={handleAccept}
+                            loading={isPending}
+                            disabled={!canAccept}
+                            variant="filled"
+                            color={isDeleteOnly ? "red" : undefined}
+                        >
+                            {isDeleteOnly ? "Geometrie löschen" : saveLabel}
+                        </Button>
+                    )}
+                </Group>
             </Box>
 
             {/* ── Right panel (below on phones): map ──────────────────── */}

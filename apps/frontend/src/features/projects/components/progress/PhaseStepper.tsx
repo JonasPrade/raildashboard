@@ -1,5 +1,5 @@
 import { Box, Group, Stack, Text, Tooltip } from "@mantine/core";
-import { ChevronRight } from "lucide-react";
+import { Check, ChevronRight } from "lucide-react";
 
 import {
     MAIN_PHASE_LABEL,
@@ -54,7 +54,10 @@ type Props = {
 
 const ACTIVE: string = LANE_STATE_COLOR.active;
 const DONE: string = LANE_STATE_COLOR.done;
-const IDLE: string = LANE_STATE_COLOR.idle;
+const DONE_FILL: string = LANE_STATE_COLOR.doneFill;
+// Open steps, chevrons and open milestones are graphics: --text-muted reaches 3:1
+// in both schemes, the hairline token (--idt-line-strong) only 1.8:1.
+const IDLE: string = LANE_STATE_COLOR.idleLine;
 
 /**
  * Gate milestone marker rendered on a second tier *below* a timeline connector
@@ -146,7 +149,8 @@ export default function PhaseStepper({
             gap={4}
             wrap="nowrap"
             align="flex-start"
-            style={{ opacity: dimmed ? 0.45 : 1, overflowX: "auto" }}
+            // Paused: phase colours go grey, text keeps its contrast (no opacity).
+            style={{ filter: dimmed ? "grayscale(1)" : undefined, overflowX: "auto" }}
         >
             {phases.map((phase, pos) => {
                 const idx = mainPhaseIndex(phase);
@@ -157,7 +161,7 @@ export default function PhaseStepper({
 
                 let circleColor = IDLE;
                 if (inSpan || isCurrent) circleColor = ACTIVE;
-                else if (isDone) circleColor = DONE;
+                else if (isDone) circleColor = DONE_FILL;
 
                 const phaseChildren = childrenByPhase?.[phase] ?? [];
                 const tooltipLabel =
@@ -201,7 +205,12 @@ export default function PhaseStepper({
                                         fontWeight: 700,
                                     }}
                                 >
-                                    {pos + 1}
+                                    {isDone && !inSpan && !isCurrent ? (
+                                        // Done = check on the darkened green (Anwendungsebene → Status).
+                                        <Check size={16} strokeWidth={3} aria-label="abgeschlossen" />
+                                    ) : (
+                                        pos + 1
+                                    )}
                                     {phaseChildren.length > 0 && (
                                         <Box
                                             style={{
@@ -211,7 +220,7 @@ export default function PhaseStepper({
                                                 minWidth: 16,
                                                 height: 16,
                                                 padding: "0 4px",
-                                                borderRadius: 8,
+                                                borderRadius: 0,
                                                 backgroundColor: "var(--surface-inverse)",
                                                 color: "var(--text-on-inverse)",
                                                 fontSize: 10,

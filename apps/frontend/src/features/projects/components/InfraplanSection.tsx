@@ -30,8 +30,8 @@ export default function InfraplanSection({ projectId }: { projectId: number }) {
     return (
         <Paper withBorder p="var(--card-pad)">
             <Stack gap="md">
-                <Group justify="space-between" wrap="wrap">
-                    <Title order={4}>Infraplan</Title>
+                <Group className="idt-section-head" justify="space-between" wrap="wrap">
+                    <Title order={2} className="idt-title-plain">Infraplan</Title>
                     <Anchor component={Link} to="/infraplan" size="sm">Infraplan-Übersicht →</Anchor>
                 </Group>
                 {data.missing_in_latest && data.latest_year != null && (

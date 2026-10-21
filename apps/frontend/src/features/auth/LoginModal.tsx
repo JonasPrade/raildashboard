@@ -68,9 +68,14 @@ export function LoginModal({ opened, onClose }: Props) {
                             }
                         }}
                     />
-                    <Button type="submit" disabled={loading} style={{ width: "100%", marginTop: "0.5rem" }}>
-                        {loading ? "…" : "Anmelden"}
-                    </Button>
+                    <div className="idt-modal-footer">
+                        <Button variant="default" onClick={handleClose}>
+                            Abbrechen
+                        </Button>
+                        <Button type="submit" loading={loading}>
+                            Anmelden
+                        </Button>
+                    </div>
                 </Stack>
             </form>
         </Modal>

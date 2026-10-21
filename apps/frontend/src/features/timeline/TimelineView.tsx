@@ -84,10 +84,19 @@ function TimelineRow({
     const summary = row.milestones.map(milestoneLabel).join("; ");
 
     return (
-        <Box py={8} style={{ borderBottom: "1px solid var(--border)", opacity: lifecycle === "AKTIV" ? 1 : 0.55 }}>
+        // Paused/aborted rows: the lifecycle tag plus a muted name, no opacity
+        // (text would fall below 4.5:1).
+        <Box py={8} style={{ borderBottom: "1px solid var(--border)" }}>
             <Group justify="space-between" gap="xs" wrap="nowrap" mb={6}>
                 <Group gap={6} wrap="nowrap" style={{ minWidth: 0 }}>
-                    <Anchor component={Link} to={`/projects/${row.project_id}`} size="sm" fw={600} truncate>
+                    <Anchor
+                        component={Link}
+                        to={`/projects/${row.project_id}`}
+                        size="sm"
+                        fw={600}
+                        truncate
+                        style={lifecycle === "AKTIV" ? undefined : { color: "var(--text-muted)" }}
+                    >
                         {row.name}
                     </Anchor>
                     {lifecycle !== "AKTIV" && (
@@ -96,7 +105,7 @@ function TimelineRow({
                         </Badge>
                     )}
                 </Group>
-                <Text size="xs" c="dimmed" style={{ flexShrink: 0, fontFamily: "var(--font-mono)" }}>
+                <Text size="xs" c="dimmed" className="idt-tnum" style={{ flexShrink: 0 }}>
                     {opening ? `IB ${formatMonth(opening.date)}` : row.project_number ?? ""}
                 </Text>
             </Group>
@@ -321,7 +330,7 @@ export default function TimelineView({
                                     left: `${percent(Date.UTC(year, 0, 1), range)}%`,
                                     // Keep the first/last label inside the track.
                                     translate: year === ticks[0] ? "0 0" : year === ticks.at(-1) ? "-100% 0" : "-50% 0",
-                                    fontFamily: "var(--font-mono)",
+                                    fontVariantNumeric: "tabular-nums",
                                     whiteSpace: "nowrap",
                                 }}
                             >

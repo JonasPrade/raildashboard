@@ -294,7 +294,7 @@ export default function VibSection({ projectId }: { projectId: number }) {
         return (
             <Paper withBorder p="var(--card-pad)">
                 <Stack gap="sm">
-                    <Title order={4}>Verkehrsinvestitionsberichte</Title>
+                    <Title order={2}>Verkehrsinvestitionsberichte</Title>
                     <LoadingState rows={3} />
                 </Stack>
             </Paper>
@@ -312,7 +312,7 @@ export default function VibSection({ projectId }: { projectId: number }) {
         <>
             <Paper withBorder p="var(--card-pad)">
                 <Stack gap="md">
-                    <Title order={4}>Verkehrsinvestitionsberichte</Title>
+                    <Title order={2}>Verkehrsinvestitionsberichte</Title>
                     <Tabs defaultValue={String(years[0])}>
                         <Tabs.List>
                             {years.map((year) => (

@@ -19,7 +19,7 @@ import {
     TextInput,
     Title,
 } from "@mantine/core";
-import { modals } from "@mantine/modals";
+import { openConfirmModal } from "../../shared/ui/confirmModal";
 import { notifications } from "@mantine/notifications";
 import RequirePermission from "../../components/RequirePermission";
 import { filterProjectOption } from "../../lib/filterProjectOption";
@@ -120,7 +120,7 @@ function GvfgReviewPageContent() {
     };
 
     const handleConfirm = () =>
-        modals.openConfirmModal({
+        openConfirmModal({
             title: `${result.title ?? "GVFG-Programm"} übernehmen?`,
             children: (
                 <Text size="sm">

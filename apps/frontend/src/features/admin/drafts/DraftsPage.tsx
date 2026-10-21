@@ -135,14 +135,14 @@ function DraftsPageContent() {
                         Soll der Entwurf „{toDelete?.name}" endgültig gelöscht werden? Diese Aktion
                         kann nicht rückgängig gemacht werden.
                     </Text>
-                    <Group justify="flex-end">
+                    <div className="idt-modal-footer">
                         <Button variant="default" onClick={() => setToDelete(null)} disabled={del.isPending}>
                             Abbrechen
                         </Button>
-                        <Button color="red" onClick={handleDelete} loading={del.isPending}>
+                        <Button color="red" variant="filled" onClick={handleDelete} loading={del.isPending}>
                             Verwerfen
                         </Button>
-                    </Group>
+                    </div>
                 </Stack>
             </Modal>
         </Container>

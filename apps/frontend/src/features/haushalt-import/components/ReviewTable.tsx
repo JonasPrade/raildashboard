@@ -252,7 +252,7 @@ function DataRow({
             {hasSvSubrows && !readonly && erlaeuterungProjects.map((projectName, idx) => (
                 <Table.Tr
                     key={`sv-sub-${idx}`}
-                    style={{ background: "var(--mantine-color-violet-0)" }}
+                    style={{ background: "var(--idt-violet-soft)" }}
                 >
                     <Table.Td />
                     <Table.Td />
@@ -298,7 +298,7 @@ function DataRow({
 
             {/* Extra projects row: allows adding projects not mentioned in Erläuterung */}
             {hasSvSubrows && !readonly && (
-                <Table.Tr style={{ background: "var(--mantine-color-violet-0)" }}>
+                <Table.Tr style={{ background: "var(--idt-violet-soft)" }}>
                     <Table.Td />
                     <Table.Td />
                     <Table.Td />
@@ -326,7 +326,7 @@ function DataRow({
                 <Table.Tr>
                     <Table.Td colSpan={span} p={0}>
                         <Collapse in={expanded}>
-                            <Box p="xs" style={{ background: "var(--mantine-color-gray-0)" }}>
+                            <Box p="xs" style={{ background: "var(--surface-alt)" }}>
                                 {regularTitel.length > 0 && (
                                     <Stack gap={4} mb={nachrichtlich.length > 0 ? "xs" : 0}>
                                         <Text size="xs" fw={600} c="dimmed">

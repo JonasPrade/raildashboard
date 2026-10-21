@@ -39,7 +39,7 @@
 
 /* ── Cards (DS Card variants) ─────────────────────────────────────────────
    Paper withBorder = DS `soft`; .karte--frame = 2px ink; .karte--inverse = ink panel
-   (replaces ChronicleCard tone="board"); --card-accent = 6px top stripe. */
+   (the former inverse card tone); --card-accent = 6px top stripe. */
 .karte--frame {
     border: 2px solid var(--border-frame) !important;
     box-shadow: none !important;
@@ -660,6 +660,40 @@
     border-top: 2px solid var(--border-frame);
     background: var(--surface);
 }
+/* Confirm dialogs (shared/ui/confirmModal.ts): the text box above already ends
+   with a 16px margin. */
+.idt-modal-body > * + .idt-modal-footer { margin-top: 2px; }
+
+/* A dialog with a foot: head and foot stay put, only the body scrolls — on a
+   tall desktop dialog as well as in the phone's full-screen view. */
+.idt-modal-content:has(.idt-modal-footer) {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.idt-modal-content:has(.idt-modal-footer) > .idt-modal-header { flex: none; }
+.idt-modal-content > .idt-modal-body:has(.idt-modal-footer) {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    /* A sticky child stops at the padding edge: the foot closes the body. */
+    padding-bottom: 0;
+}
+/* The foot often sits inside a <form> or Stack: every wrapper between body
+   and foot stretches, so a short dialog still has its foot at the bottom. */
+.idt-modal-content > .idt-modal-body :has(.idt-modal-footer) {
+    display: flex;
+    flex-direction: column;
+    flex: 1 0 auto;
+}
+.idt-modal-content .idt-modal-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin-bottom: 0;
+}
 
 @media (max-width: 48em) {
     .idt-modal-inner { padding: 0; }
@@ -683,14 +717,8 @@
         min-height: 0;
         overflow-y: auto;
     }
-    /* The foot stays at the bottom edge while the body scrolls. */
-    .idt-modal-footer {
-        position: sticky;
-        bottom: 0;
-        z-index: 2;
-        margin-top: auto;
-        padding-top: 14px;
-    }
+    /* Full screen: the foot sits on the bottom edge even when the body is short. */
+    .idt-modal-footer { margin-top: auto !important; }
     .idt-modal-footer > *,
     .idt-modal-footer .mantine-Group-root { flex: 1 1 0; }
     .idt-modal-footer .idt-button {
@@ -842,6 +870,13 @@
     border-bottom: 2px solid var(--border-frame);
 }
 .karte--inverse .idt-title[data-order="2"] { border-bottom-color: var(--text-on-inverse-muted); }
+/* Section head row: an h2 beside buttons or tags. The Title opts out
+   (.idt-title-plain) and the line runs under the whole row instead. */
+.idt-section-head {
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--border-frame);
+}
+.karte--inverse .idt-section-head { border-bottom-color: var(--text-on-inverse-muted); }
 
 /* ── Menu / Popover / HoverCard / Tooltip ──────────────────────────────── */
 :root .idt-popover {

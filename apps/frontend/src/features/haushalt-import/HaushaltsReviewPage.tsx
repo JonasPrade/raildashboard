@@ -11,7 +11,7 @@ import {
     Text,
     Title,
 } from "@mantine/core";
-import { modals } from "@mantine/modals";
+import { openConfirmModal } from "../../shared/ui/confirmModal";
 import { notifications } from "@mantine/notifications";
 import RequirePermission from "../../components/RequirePermission";
 import {
@@ -66,7 +66,7 @@ function HaushaltsReviewPageContent() {
     };
 
     const handleDiscard = () => {
-        modals.openConfirmModal({
+        openConfirmModal({
             title: "Parse-Ergebnis verwerfen?",
             children: (
                 <Text size="sm">
@@ -75,7 +75,7 @@ function HaushaltsReviewPageContent() {
                 </Text>
             ),
             labels: { confirm: "Verwerfen", cancel: "Abbrechen" },
-            confirmProps: { color: "red" },
+            danger: true,
             onConfirm: async () => {
                 try {
                     await deleteResult.mutateAsync(id);

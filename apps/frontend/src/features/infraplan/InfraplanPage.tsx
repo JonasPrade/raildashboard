@@ -163,9 +163,8 @@ function KpiDetailModal({ kpi, companion, subSeries, opened, onClose }: {
     opened: boolean;
     onClose: () => void;
 }) {
-    const isMobile = useIsMobile();
     return (
-        <Modal opened={opened} onClose={onClose} title={kpi.name} size="xl" fullScreen={isMobile}>
+        <Modal opened={opened} onClose={onClose} title={kpi.name} size="xl">
             <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                 {subSeries.map((s) => (
                     <Paper withBorder p="var(--card-pad)" key={s}>

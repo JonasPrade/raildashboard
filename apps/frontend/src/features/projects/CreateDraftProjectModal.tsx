@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Alert, Button, Group, Modal, Stack, TextInput } from "@mantine/core";
+import { Alert, Button, Modal, Stack, TextInput } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { Info } from "lucide-react";
 
@@ -96,14 +96,14 @@ export default function CreateDraftProjectModal({
                     onChange={setSuperiorId}
                 />
 
-                <Group justify="flex-end" gap="sm">
-                    <Button variant="subtle" color="gray" onClick={onClose}>
+                <div className="idt-modal-footer">
+                    <Button variant="default" onClick={onClose}>
                         Abbrechen
                     </Button>
                     <Button onClick={handleSubmit} loading={create.isPending} disabled={!name.trim()}>
                         Entwurf anlegen & verknüpfen
                     </Button>
-                </Group>
+                </div>
             </Stack>
         </Modal>
     );

@@ -468,8 +468,8 @@ export default function BvwpDataSection({ projectId }: Props) {
     return (
         <Paper withBorder p="var(--card-pad)">
             <Stack gap="md">
-                <Group gap="md" align="center">
-                    <Title order={4}>BVWP-Bewertung</Title>
+                <Group className="idt-section-head" gap="md" align="center">
+                    <Title order={2} className="idt-title-plain">BVWP-Bewertung</Title>
                     {data.nkv != null && (
                         <Badge variant="outline">NKV {fmtFloat(data.nkv)}</Badge>
                     )}

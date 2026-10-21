@@ -1,6 +1,6 @@
 import { Badge, Button, Group, Table, Text } from "@mantine/core";
 import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
-import { modals } from "@mantine/modals";
+import { openConfirmModal } from "../../../shared/ui/confirmModal";
 import { notifications } from "@mantine/notifications";
 import { useNavigate } from "react-router-dom";
 import type { ParseResultPublic } from "../../../shared/api/queries";
@@ -21,7 +21,7 @@ export function ParseResultList({ results }: Props) {
 
     const handleDelete = (r: ParseResultPublic) => {
         const hasConfirmedData = r.confirmed_at !== null;
-        modals.openConfirmModal({
+        openConfirmModal({
             title: `Import ${r.haushalt_year} löschen?`,
             children: (
                 <Text size="sm">
@@ -31,7 +31,7 @@ export function ParseResultList({ results }: Props) {
                 </Text>
             ),
             labels: { confirm: "Löschen", cancel: "Abbrechen" },
-            confirmProps: { color: "red" },
+            danger: true,
             onConfirm: async () => {
                 try {
                     await deleteResult.mutateAsync(r.id);

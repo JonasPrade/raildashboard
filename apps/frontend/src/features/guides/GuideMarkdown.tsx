@@ -109,10 +109,9 @@ function MarkdownBlock({ text, dimmed }: { text: string; dimmed?: boolean }) {
                                 p="xs"
                                 my={6}
                                 style={{
-                                    fontFamily: "var(--mantine-font-family-monospace)",
                                     fontSize: 12,
-                                    background: "var(--mantine-color-gray-0)",
-                                    borderRadius: 4,
+                                    fontVariantNumeric: "tabular-nums",
+                                    background: "var(--surface-alt)",
                                     overflowX: "auto",
                                 }}
                             >

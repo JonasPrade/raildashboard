@@ -157,9 +157,9 @@ function CreateApiKeyModal({
                     <Text size="sm" c="dimmed">
                         Gültig bis {created.expires_at ? formatDateShort(asUtc(created.expires_at)) : "unbegrenzt"}.
                     </Text>
-                    <Group justify="flex-end">
+                    <div className="idt-modal-footer">
                         <Button onClick={handleClose}>Fertig</Button>
-                    </Group>
+                    </div>
                 </Stack>
             </Modal>
         );
@@ -204,14 +204,14 @@ function CreateApiKeyModal({
                     <Text size="xs" c="dimmed">
                         Der Key läuft nach 90 Tagen ab und lässt sich jederzeit widerrufen.
                     </Text>
-                    <Group justify="flex-end">
+                    <div className="idt-modal-footer">
                         <Button variant="default" onClick={handleClose}>
                             Abbrechen
                         </Button>
                         <Button type="submit" loading={createKey.isPending} disabled={!name.trim()}>
                             Key erstellen
                         </Button>
-                    </Group>
+                    </div>
                 </Stack>
             </form>
         </Modal>

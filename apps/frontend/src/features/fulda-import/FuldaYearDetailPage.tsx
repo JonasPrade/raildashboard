@@ -115,8 +115,8 @@ export default function FuldaYearDetailPage() {
                                 Übersicht
                             </Button>
                         </Group>
-                        <Group gap="xs">
-                            <Title order={2}>Fulda-Runde {year}</Title>
+                        <Group className="idt-section-head" gap="xs">
+                            <Title order={2} className="idt-title-plain">Fulda-Runde {year}</Title>
                             <Badge variant="light">{total} Einträge</Badge>
                         </Group>
                     </Stack>

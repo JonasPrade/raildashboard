@@ -85,10 +85,10 @@ export default function GroupFilterDrawer({ opened, onClose, groups = [], loadin
                                     boxSizing: "border-box",
                                     gap: 10,
                                     padding: "10px 12px",
-                                    borderRadius: 8,
+                                    borderRadius: 0,
                                     border: selected ? `2px solid ${group.color}` : "2px solid transparent",
-                                    background: selected ? `${group.color}18` : "var(--mantine-color-default)",
-                                    outline: "1px solid var(--mantine-color-default-border)",
+                                    background: selected ? `${group.color}18` : "var(--surface)",
+                                    outline: "1px solid var(--border)",
                                     cursor: "pointer",
                                     transition: "background 120ms, border-color 120ms",
                                 }}

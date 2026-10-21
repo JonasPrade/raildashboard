@@ -18,7 +18,7 @@ import {
 } from "@mantine/core";
 import { EllipsisVertical } from "lucide-react";
 import { SwatchTag } from "../../shared/ui/SwatchTag";
-import { modals } from "@mantine/modals";
+import { openConfirmModal } from "../../shared/ui/confirmModal";
 import { notifications } from "@mantine/notifications";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -268,7 +268,7 @@ export default function ProjectDetail() {
                 },
             });
 
-        modals.openConfirmModal({
+        openConfirmModal({
             title: "Projekt löschen",
             children: (
                 <Stack gap="xs">
@@ -289,10 +289,10 @@ export default function ProjectDetail() {
                 </Stack>
             ),
             labels: { confirm: "Löschen", cancel: "Abbrechen" },
-            confirmProps: { color: "red" },
+            danger: true,
             // Zweite Rückfrage — erst danach wird tatsächlich gelöscht.
             onConfirm: () =>
-                modals.openConfirmModal({
+                openConfirmModal({
                     title: "Wirklich endgültig löschen?",
                     children: (
                         <Text size="sm">
@@ -301,7 +301,7 @@ export default function ProjectDetail() {
                         </Text>
                     ),
                     labels: { confirm: "Endgültig löschen", cancel: "Abbrechen" },
-                    confirmProps: { color: "red" },
+                    danger: true,
                     onConfirm: runDelete,
                 }),
         });
@@ -581,7 +581,7 @@ export default function ProjectDetail() {
                                             {trainCategoryLabels.map(({ key, label, color }) => {
                                                 const isActive = Boolean(project[key]);
                                                 return (
-                                                    <SwatchTag key={String(key)} color={color} style={{ opacity: isActive ? 1 : 0.4 }}>
+                                                    <SwatchTag key={String(key)} color={color} inactive={!isActive}>
                                                         {label}
                                                     </SwatchTag>
                                                 );
@@ -653,7 +653,7 @@ export default function ProjectDetail() {
                                     {trainCategoryLabels.map(({ key, label, color }) => {
                                         const isActive = Boolean(project[key]);
                                         return (
-                                            <SwatchTag key={String(key)} color={color} style={{ opacity: isActive ? 1 : 0.4 }}>
+                                            <SwatchTag key={String(key)} color={color} inactive={!isActive}>
                                                 {label}
                                             </SwatchTag>
                                         );
@@ -782,8 +782,8 @@ export default function ProjectDetail() {
                     <div ref={subProjectsRef}>
                     <Paper withBorder p="var(--card-pad)">
                         <Stack gap="sm">
-                            <Group justify="space-between" align="center">
-                                <Title order={2}>Unterprojekte ({subProjects.length})</Title>
+                            <Group className="idt-section-head" justify="space-between" align="center">
+                                <Title order={2} className="idt-title-plain">Unterprojekte ({subProjects.length})</Title>
                                 <Button
                                     size="xs"
                                     variant="subtle"
@@ -829,8 +829,8 @@ export default function ProjectDetail() {
                     <div ref={historyRef}>
                     <Paper withBorder p="var(--card-pad)">
                         <Stack gap="sm">
-                            <Group justify="space-between" align="center">
-                                <Title order={2}>Versionshistorie</Title>
+                            <Group className="idt-section-head" justify="space-between" align="center">
+                                <Title order={2} className="idt-title-plain">Versionshistorie</Title>
                                 <Button
                                     size="xs"
                                     variant="subtle"

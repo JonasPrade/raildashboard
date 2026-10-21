@@ -15,8 +15,8 @@ export default function DocumentationPage() {
 
             <Paper withBorder p="var(--card-pad)">
                 <Stack gap="sm">
-                    <Group justify="space-between" align="flex-start">
-                        <Title order={2}>Technology stack</Title>
+                    <Group className="idt-section-head" justify="space-between" align="center">
+                        <Title order={2} className="idt-title-plain">Technology stack</Title>
                         <Badge variant="outline">Updated: {new Date().getFullYear()}</Badge>
                     </Group>
                     <List spacing="xs">

@@ -15,7 +15,7 @@ import {
     Text,
     Title,
 } from "@mantine/core";
-import { modals } from "@mantine/modals";
+import { openConfirmModal } from "../../shared/ui/confirmModal";
 import { notifications } from "@mantine/notifications";
 import RequirePermission from "../../components/RequirePermission";
 import {
@@ -53,7 +53,7 @@ function Drafts({ drafts }: { drafts: InfraplanParseResultListItem[] }) {
     const reparse = useReparseInfraplan();
 
     const handleDelete = (d: InfraplanParseResultListItem) =>
-        modals.openConfirmModal({
+        openConfirmModal({
             title: "Entwurf verwerfen?",
             children: (
                 <Text size="sm">
@@ -62,7 +62,7 @@ function Drafts({ drafts }: { drafts: InfraplanParseResultListItem[] }) {
                 </Text>
             ),
             labels: { confirm: "Verwerfen", cancel: "Abbrechen" },
-            confirmProps: { color: "red" },
+            danger: true,
             onConfirm: async () => {
                 try {
                     await deleteDraft.mutateAsync(d.id);
@@ -73,7 +73,7 @@ function Drafts({ drafts }: { drafts: InfraplanParseResultListItem[] }) {
         });
 
     const handleReparse = (d: InfraplanParseResultListItem) =>
-        modals.openConfirmModal({
+        openConfirmModal({
             title: "Erneut auslesen?",
             children: (
                 <Text size="sm">
@@ -175,7 +175,7 @@ function Years({ reports }: { reports: InfraplanReport[] }) {
     const deleteReport = useDeleteInfraplanReport();
 
     const handleDelete = (r: InfraplanReport) =>
-        modals.openConfirmModal({
+        openConfirmModal({
             title: `Infraplan ${r.year} löschen?`,
             children: (
                 <Text size="sm">
@@ -185,7 +185,7 @@ function Years({ reports }: { reports: InfraplanReport[] }) {
                 </Text>
             ),
             labels: { confirm: "Jahrgang löschen", cancel: "Abbrechen" },
-            confirmProps: { color: "red" },
+            danger: true,
             onConfirm: async () => {
                 try {
                     await deleteReport.mutateAsync(r.year);

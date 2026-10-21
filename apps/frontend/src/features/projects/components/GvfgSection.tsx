@@ -240,8 +240,8 @@ export default function GvfgSection({ projectId }: { projectId: number }) {
     return (
         <Paper withBorder p="var(--card-pad)">
             <Stack gap="md">
-                <Group justify="space-between" wrap="wrap">
-                    <Title order={4}>GVFG-Bundesprogramm</Title>
+                <Group className="idt-section-head" justify="space-between" wrap="wrap">
+                    <Title order={2} className="idt-title-plain">GVFG-Bundesprogramm</Title>
                     <Anchor component={Link} to="/finanzen/gvfg" size="sm">Alle GVFG-Vorhaben →</Anchor>
                 </Group>
                 {own.map((editions) => (

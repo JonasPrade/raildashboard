@@ -69,63 +69,63 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
     return (
         <Paper withBorder p="var(--card-pad)">
             <Stack gap="lg">
-                <Group justify="space-between" align="flex-start">
-                    <Stack gap={2}>
-                        <Title order={2}>
+                <Stack gap="xs">
+                    <Group className="idt-section-head" justify="space-between" align="center" wrap="nowrap">
+                        <Title order={2} className="idt-title-plain">
                             Planungsstand
                         </Title>
-                        <Group gap="sm">
-                            {progress.is_superior ? (
-                                hasSpan ? (
-                                    <Text size="sm" c="dimmed">
-                                        Spanne der Unterprojekte:{" "}
-                                        {MAIN_PHASE_LABEL[progress.span_min_phase as MainPhase]} –{" "}
-                                        {MAIN_PHASE_LABEL[progress.span_max_phase as MainPhase]}
-                                    </Text>
-                                ) : progress.is_overridden ? (
-                                    // Editorial override pins the whole project to one phase.
-                                    <Text size="sm" c="dimmed">
-                                        Gesamter Abschnitt: {MAIN_PHASE_LABEL[effectivePhase]}
-                                    </Text>
-                                ) : (
-                                    <Text size="sm" c="dimmed">
-                                        Status der Unterprojekte unbekannt
-                                    </Text>
-                                )
-                            ) : isUnknownLeaf ? (
+                        {canEdit && (
+                            <Button
+                                variant="light"
+                                size="xs"
+                                leftSection={<Pencil size={16} />}
+                                onClick={() => setEditing(true)}
+                            >
+                                Bearbeiten
+                            </Button>
+                        )}
+                    </Group>
+                    <Group gap="sm">
+                        {progress.is_superior ? (
+                            hasSpan ? (
                                 <Text size="sm" c="dimmed">
-                                    Aktuelle Phase: {UNKNOWN_LABEL} (keine Datengrundlage)
+                                    Spanne der Unterprojekte:{" "}
+                                    {MAIN_PHASE_LABEL[progress.span_min_phase as MainPhase]} –{" "}
+                                    {MAIN_PHASE_LABEL[progress.span_max_phase as MainPhase]}
+                                </Text>
+                            ) : progress.is_overridden ? (
+                                // Editorial override pins the whole project to one phase.
+                                <Text size="sm" c="dimmed">
+                                    Gesamter Abschnitt: {MAIN_PHASE_LABEL[effectivePhase]}
                                 </Text>
                             ) : (
                                 <Text size="sm" c="dimmed">
-                                    Aktuelle Phase: {MAIN_PHASE_LABEL[effectivePhase]}
-                                    {user?.role === "admin" &&
-                                        ` · ${(progress.computed_confidence * 100).toFixed(0)} % Vertrauen`}
+                                    Status der Unterprojekte unbekannt
                                 </Text>
-                            )}
-                            {progress.is_overridden && (
-                                <Badge color="violet" variant="light" title={progress.manual_override_note ?? undefined}>
-                                    übersteuert
-                                </Badge>
-                            )}
-                            {isDimmed && (
-                                <Badge variant="outline" color="gray">
-                                    {LIFECYCLE_LABEL[lifecycle]}
-                                </Badge>
-                            )}
-                        </Group>
-                    </Stack>
-                    {canEdit && (
-                        <Button
-                            variant="light"
-                            size="xs"
-                            leftSection={<Pencil size={16} />}
-                            onClick={() => setEditing(true)}
-                        >
-                            Bearbeiten
-                        </Button>
-                    )}
-                </Group>
+                            )
+                        ) : isUnknownLeaf ? (
+                            <Text size="sm" c="dimmed">
+                                Aktuelle Phase: {UNKNOWN_LABEL} (keine Datengrundlage)
+                            </Text>
+                        ) : (
+                            <Text size="sm" c="dimmed">
+                                Aktuelle Phase: {MAIN_PHASE_LABEL[effectivePhase]}
+                                {user?.role === "admin" &&
+                                    ` · ${(progress.computed_confidence * 100).toFixed(0)} % Vertrauen`}
+                            </Text>
+                        )}
+                        {progress.is_overridden && (
+                            <Badge color="violet" variant="light" title={progress.manual_override_note ?? undefined}>
+                                übersteuert
+                            </Badge>
+                        )}
+                        {isDimmed && (
+                            <Badge variant="outline" color="gray">
+                                {LIFECYCLE_LABEL[lifecycle]}
+                            </Badge>
+                        )}
+                    </Group>
+                </Stack>
 
                 <LifecycleOverlay status={lifecycle} />
 

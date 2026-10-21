@@ -125,7 +125,7 @@ export function ProjectEdit({
                 />
             </ScrollArea>
 
-            <Box p="md" style={{ borderTop: "1px solid var(--mantine-color-default-border)" }}>
+            <Box p="md" style={{ borderTop: "2px solid var(--border-frame)" }}>
                 {errorMessage && (
                     <Alert color="red" variant="light" title="Speichern fehlgeschlagen" mb="sm">
                         {errorMessage}

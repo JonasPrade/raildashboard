@@ -106,7 +106,7 @@ export default function FinveSection({ projectId }: { projectId: number }) {
     return (
         <Paper withBorder p="var(--card-pad)">
             <Stack gap="md">
-                <Title order={4}>Finanzierungsvereinbarungen (FinVe)</Title>
+                <Title order={2}>Finanzierungsvereinbarungen (FinVe)</Title>
                 {finves.map((finve) => (
                     <FinveCard key={finve.id} finve={finve} />
                 ))}

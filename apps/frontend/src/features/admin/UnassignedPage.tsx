@@ -152,8 +152,8 @@ function UnassignedPageContent() {
 
                 {/* FinVe section */}
                 <Stack gap="sm">
-                    <Group gap="xs" align="center">
-                        <Title order={2}>
+                    <Group className="idt-section-head" gap="xs" align="center">
+                        <Title order={2} className="idt-title-plain">
                             FinVes ohne Projektzuordnung
                         </Title>
                         <Badge variant="outline">{finves?.length ?? "…"}</Badge>
@@ -226,8 +226,8 @@ function UnassignedPageContent() {
 
                 {/* VIB section */}
                 <Stack gap="sm">
-                    <Group gap="xs" align="center">
-                        <Title order={2}>
+                    <Group className="idt-section-head" gap="xs" align="center">
+                        <Title order={2} className="idt-title-plain">
                             VIB-Einträge ohne Projektzuordnung
                         </Title>
                         <Badge variant="outline">{vibEntries?.length ?? "…"}</Badge>
@@ -306,8 +306,8 @@ function UnassignedPageContent() {
 
                 {/* GVFG section — newest edition only */}
                 <Stack gap="sm">
-                    <Group gap="xs" align="center">
-                        <Title order={2}>
+                    <Group className="idt-section-head" gap="xs" align="center">
+                        <Title order={2} className="idt-title-plain">
                             GVFG-Vorhaben ohne Projektzuordnung
                         </Title>
                         <Badge variant="outline">{gvfgEntries?.length ?? "…"}</Badge>
@@ -385,8 +385,8 @@ function UnassignedPageContent() {
 
                 {/* Infraplan section — newest year only */}
                 <Stack gap="sm">
-                    <Group gap="xs" align="center">
-                        <Title order={2}>
+                    <Group className="idt-section-head" gap="xs" align="center">
+                        <Title order={2} className="idt-title-plain">
                             Infraplan-Einträge ohne Projektzuordnung
                         </Title>
                         <Badge variant="outline">{infraplanEntries?.length ?? "…"}</Badge>

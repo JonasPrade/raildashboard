@@ -44,7 +44,7 @@ export function PhaseTag({
         <SwatchTag
             size={size}
             color={known ? MAIN_PHASE_COLOR[phase] : UNKNOWN_PHASE_COLOR}
-            style={dimmed ? { opacity: 0.6 } : undefined}
+            muted={dimmed}
         >
             {children ?? label}
         </SwatchTag>

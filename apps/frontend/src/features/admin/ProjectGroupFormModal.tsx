@@ -3,7 +3,6 @@ import {
     Alert,
     Button,
     ColorInput,
-    Group,
     Modal,
     MultiSelect,
     Stack,
@@ -212,14 +211,14 @@ export function ProjectGroupFormModal({ opened, onClose, group }: Props) {
                         }
                         clearable
                     />
-                    <Group justify="flex-end" mt="sm">
+                    <div className="idt-modal-footer">
                         <Button variant="default" onClick={onClose} disabled={isPending}>
                             Abbrechen
                         </Button>
                         <Button type="submit" loading={isPending}>
                             {isEdit ? "Speichern" : "Anlegen"}
                         </Button>
-                    </Group>
+                    </div>
                 </Stack>
             </form>
         </Modal>

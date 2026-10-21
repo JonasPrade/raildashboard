@@ -75,9 +75,14 @@ export function SetPasswordModal({ opened, onClose, userId, username }: Props) {
                         onChange={(e) => setPasswordConfirm(e.target.value)}
                         required
                     />
-                    <Button type="submit" loading={setUserPassword.isPending} fullWidth mt="xs">
-                        Passwort setzen
-                    </Button>
+                    <div className="idt-modal-footer">
+                        <Button variant="default" onClick={handleClose}>
+                            Abbrechen
+                        </Button>
+                        <Button type="submit" loading={setUserPassword.isPending}>
+                            Passwort setzen
+                        </Button>
+                    </div>
                 </Stack>
             </form>
         </Modal>

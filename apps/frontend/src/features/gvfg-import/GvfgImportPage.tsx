@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Container, FileInput, Group, Paper, Stack, Table, Text, Title } from "@mantine/core";
-import { modals } from "@mantine/modals";
+import { openConfirmModal } from "../../shared/ui/confirmModal";
 import { notifications } from "@mantine/notifications";
 import { StatusTag } from "../../shared/ui/SwatchTag";
 import RequirePermission from "../../components/RequirePermission";
@@ -27,7 +27,7 @@ function ParseRuns({ results }: { results: GvfgParseResultSummary[] }) {
     const deleteResult = useDeleteGvfgParseResult();
 
     const handleDelete = (r: GvfgParseResultSummary) =>
-        modals.openConfirmModal({
+        openConfirmModal({
             title: "Import-Lauf löschen?",
             children: (
                 <Text size="sm">
@@ -36,7 +36,7 @@ function ParseRuns({ results }: { results: GvfgParseResultSummary[] }) {
                 </Text>
             ),
             labels: { confirm: "Löschen", cancel: "Abbrechen" },
-            confirmProps: { color: "red" },
+            danger: true,
             onConfirm: async () => {
                 try {
                     await deleteResult.mutateAsync(r.id);

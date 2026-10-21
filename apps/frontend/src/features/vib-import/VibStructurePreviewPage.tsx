@@ -93,7 +93,7 @@ function ExpandedRawText({ entry }: { entry: VibEntryProposed }) {
     const missing = SUBSECTIONS.filter((s) => !s.pattern.test(raw));
 
     return (
-        <Box p="md" bg="gray.0" style={{ borderTop: "1px solid var(--mantine-color-gray-2)" }}>
+        <Box p="md" style={{ background: "var(--surface-alt)", borderTop: "1px solid var(--border)" }}>
             <Stack gap="xs">
                 <Group gap="xl">
                     <div>
@@ -149,9 +149,8 @@ function ExpandedRawText({ entry }: { entry: VibEntryProposed }) {
                             style={{
                                 fontSize: 12,
                                 lineHeight: 1.5,
-                                fontFamily: "var(--mantine-font-family-monospace)",
-                                background: "var(--mantine-color-gray-0)",
-                                borderRadius: 4,
+                                fontVariantNumeric: "tabular-nums",
+                                background: "var(--surface-alt)",
                             }}
                             className="vib-raw-markdown"
                         >
@@ -254,12 +253,12 @@ function VibStructurePreviewPageContent() {
                                         key={`row-${idx}`}
                                         style={{
                                             backgroundColor: expandedRows.has(idx)
-                                                ? "var(--mantine-color-blue-0)"
+                                                ? "var(--surface-alt)"
                                                 : undefined,
                                         }}
                                     >
                                         <Table.Td>
-                                            <Text size="xs" ff="monospace">{e.vib_section ?? "–"}</Text>
+                                            <Text size="xs" className="idt-tnum">{e.vib_section ?? "–"}</Text>
                                         </Table.Td>
                                         <Table.Td>
                                             <Text size="sm" lineClamp={2}>{e.vib_name_raw}</Text>

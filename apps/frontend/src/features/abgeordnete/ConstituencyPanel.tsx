@@ -60,7 +60,7 @@ export default function ConstituencyPanel({
                         <Stack gap="md" pr="xs">
                             <Stack gap={4}>
                                 <Group gap="xs" align="baseline">
-                                    <Text size="sm" fw={700} tt="uppercase" c="dimmed">
+                                    <Text component="div" className="idt-eyebrow">
                                         Projekte
                                     </Text>
                                     <Badge variant="outline">{data.projects.length}</Badge>

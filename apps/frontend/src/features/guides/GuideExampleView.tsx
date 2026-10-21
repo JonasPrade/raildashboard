@@ -25,8 +25,7 @@ export default function GuideExampleView({
                 p="md"
                 aria-hidden
                 style={{
-                    border: "1px dashed var(--mantine-color-gray-4)",
-                    borderRadius: 8,
+                    border: "1px dashed var(--border-strong)",
                     pointerEvents: "none",
                     userSelect: "none",
                     overflowX: "auto",

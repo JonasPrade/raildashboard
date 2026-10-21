@@ -17,8 +17,8 @@ import {
     Title,
     Tooltip,
 } from "@mantine/core";
-import { Check, Eye, Lock } from "lucide-react";
-import { modals } from "@mantine/modals";
+import { Check, Eye, FileImage, FileSpreadsheet, FileText, Lock, Paperclip } from "lucide-react";
+import { openConfirmModal } from "../../shared/ui/confirmModal";
 import { notifications } from "@mantine/notifications";
 
 import {
@@ -63,12 +63,14 @@ function formatBytes(bytes: number): string {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function fileTypeIcon(mimeType: string): string {
-    if (mimeType === "application/pdf") return "📄";
-    if (mimeType.startsWith("image/")) return "🖼️";
-    if (mimeType.includes("word") || mimeType.includes("msword")) return "📝";
-    if (mimeType.includes("excel") || mimeType.includes("spreadsheet")) return "📊";
-    return "📎";
+/** Lucide icon for an attachment's file type (no emoji, DESIGN.md). */
+function FileTypeIcon({ mimeType }: { mimeType: string }) {
+    const props = { size: 16, "aria-hidden": true, style: { flex: "none" } } as const;
+    if (mimeType === "application/pdf") return <FileText {...props} />;
+    if (mimeType.startsWith("image/")) return <FileImage {...props} />;
+    if (mimeType.includes("word") || mimeType.includes("msword")) return <FileText {...props} />;
+    if (mimeType.includes("excel") || mimeType.includes("spreadsheet")) return <FileSpreadsheet {...props} />;
+    return <Paperclip {...props} />;
 }
 
 const ACCEPTED_MIME = [
@@ -125,7 +127,7 @@ function CreateTextTypeModal({ opened, onClose, onCreated }: CreateTextTypeModal
                     onChange={(event) => setName(event.currentTarget.value)}
                     placeholder="z. B. Pressemitteilung"
                 />
-                <Group justify="flex-end">
+                <div className="idt-modal-footer">
                     <Button variant="default" onClick={onClose} disabled={createTypeMutation.isPending}>
                         Abbrechen
                     </Button>
@@ -136,7 +138,7 @@ function CreateTextTypeModal({ opened, onClose, onCreated }: CreateTextTypeModal
                     >
                         Erstellen
                     </Button>
-                </Group>
+                </div>
             </Stack>
         </Modal>
     );
@@ -225,7 +227,7 @@ function CreateTextCategoryModal({ opened, onClose, onCreated }: CreateTextCateg
                         })}
                     </Stack>
                 </Radio.Group>
-                <Group justify="flex-end">
+                <div className="idt-modal-footer">
                     <Button variant="default" onClick={onClose} disabled={createCategoryMutation.isPending}>
                         Abbrechen
                     </Button>
@@ -236,7 +238,7 @@ function CreateTextCategoryModal({ opened, onClose, onCreated }: CreateTextCateg
                     >
                         Erstellen
                     </Button>
-                </Group>
+                </div>
             </Stack>
         </Modal>
     );
@@ -451,7 +453,7 @@ function TextFormModal({ opened, onClose, onSubmit, isSubmitting, initialValues,
                                 <Button
                                     size="xs"
                                     variant="subtle"
-                                    leftSection="📎"
+                                    leftSection={<Paperclip size={16} aria-hidden />}
                                     fullWidth
                                     onClick={() => fileInputRef.current?.click()}
                                 >
@@ -461,7 +463,7 @@ function TextFormModal({ opened, onClose, onSubmit, isSubmitting, initialValues,
                             {pendingFiles.map((f) => (
                                 <Group key={f.name} justify="space-between" align="center" wrap="nowrap">
                                     <Text size="xs" c="dimmed" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                        📎 {f.name} ({formatBytes(f.size)})
+                                        {f.name} ({formatBytes(f.size)})
                                     </Text>
                                     <ActionIcon
                                         size="xs"
@@ -477,14 +479,14 @@ function TextFormModal({ opened, onClose, onSubmit, isSubmitting, initialValues,
                         </Stack>
                     )}
 
-                    <Group justify="flex-end">
+                    <div className="idt-modal-footer">
                         <Button variant="default" onClick={onClose} disabled={isSubmitting}>
                             Abbrechen
                         </Button>
                         <Button onClick={() => onSubmit({ ...values, category: categoryValue }, pendingFiles)} loading={isSubmitting} disabled={!isValid}>
                             Speichern
                         </Button>
-                    </Group>
+                    </div>
                 </Stack>
             </Modal>
 
@@ -519,7 +521,7 @@ function AttachmentList({ attachments, textId, projectId, canEdit }: AttachmentL
     if (attachments.length === 0) return null;
 
     function handleDelete(attachment: TextAttachment) {
-        modals.openConfirmModal({
+        openConfirmModal({
             title: "Anhang löschen",
             children: (
                 <Text size="sm">
@@ -527,7 +529,7 @@ function AttachmentList({ attachments, textId, projectId, canEdit }: AttachmentL
                 </Text>
             ),
             labels: { confirm: "Löschen", cancel: "Abbrechen" },
-            confirmProps: { color: "red" },
+            danger: true,
             onConfirm: () => {
                 deleteMutation.mutate(
                     { textId, attachmentId: attachment.id },
@@ -551,7 +553,7 @@ function AttachmentList({ attachments, textId, projectId, canEdit }: AttachmentL
                 {attachments.map((a) => (
                     <Group key={a.id} justify="space-between" align="center" wrap="nowrap">
                         <Group gap="xs" align="center" style={{ minWidth: 0 }}>
-                            <Text size="sm">{fileTypeIcon(a.mime_type)}</Text>
+                            <FileTypeIcon mimeType={a.mime_type} />
                             <Anchor
                                 href={`${API_BASE}/api/v1/projects/texts/${textId}/attachments/${a.id}/download`}
                                 size="sm"
@@ -674,7 +676,7 @@ function AttachmentUploadArea({ textId, projectId }: AttachmentUploadAreaProps) 
                 <Button
                     size="xs"
                     variant="subtle"
-                    leftSection="📎"
+                    leftSection={<Paperclip size={16} aria-hidden />}
                     fullWidth
                     onClick={() => fileInputRef.current?.click()}
                 >
@@ -920,8 +922,8 @@ export default function ProjectTextsSection({ projectId, canEdit }: ProjectTexts
         <>
             <Paper withBorder p="var(--card-pad)">
                 <Stack gap="sm">
-                    <Group justify="space-between" align="center">
-                        <Title order={4}>Texte</Title>
+                    <Group className="idt-section-head" justify="space-between" align="center">
+                        <Title order={2} className="idt-title-plain">Texte</Title>
                         {canEdit && (
                             <Button size="xs" variant="light" onClick={() => setCreateOpened(true)}>
                                 Text hinzufügen

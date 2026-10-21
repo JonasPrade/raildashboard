@@ -23,7 +23,7 @@ import {
     Title,
     Tooltip,
 } from "@mantine/core";
-import { modals } from "@mantine/modals";
+import { openConfirmModal } from "../../shared/ui/confirmModal";
 import { notifications } from "@mantine/notifications";
 import { EllipsisVertical } from "lucide-react";
 import RequirePermission from "../../components/RequirePermission";
@@ -220,12 +220,12 @@ function SubprojectModal({
                     value={name}
                     onChange={(e) => setName(e.currentTarget.value)}
                 />
-                <Group justify="flex-end">
+                <div className="idt-modal-footer">
                     <Button variant="default" onClick={onClose}>Abbrechen</Button>
                     <Button onClick={submit} loading={create.isPending} disabled={parentId === null}>
                         Anlegen und zuordnen
                     </Button>
-                </Group>
+                </div>
             </Stack>
         </Modal>
     );
@@ -256,7 +256,7 @@ function ConfirmBlock({ record }: { record: InfraplanParseResult }) {
             const status = (error as { status?: number } | undefined)?.status;
             // Only parser warnings may be overridden — an existing year never.
             if (status === 409 && !force && detail.includes("Warnung")) {
-                modals.openConfirmModal({
+                openConfirmModal({
                     title: "Trotzdem übernehmen?",
                     children: (
                         <Text size="sm">
@@ -265,7 +265,6 @@ function ConfirmBlock({ record }: { record: InfraplanParseResult }) {
                         </Text>
                     ),
                     labels: { confirm: "Trotzdem übernehmen", cancel: "Abbrechen" },
-                    confirmProps: { color: "red" },
                     onConfirm: () => void run(true),
                 });
                 return;

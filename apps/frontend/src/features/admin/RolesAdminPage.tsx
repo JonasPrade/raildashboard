@@ -15,7 +15,7 @@ import {
     Tooltip,
 } from "@mantine/core";
 import { ChevronLeft, Pencil, Plus, Trash2 } from "lucide-react";
-import { modals } from "@mantine/modals";
+import { openConfirmModal } from "../../shared/ui/confirmModal";
 import { notifications } from "@mantine/notifications";
 import RequirePermission from "../../components/RequirePermission";
 import { useDeleteRole, useRoles, type Role } from "../../shared/api/queries";
@@ -42,7 +42,7 @@ function RolesAdminPageContent() {
     };
 
     const handleDelete = (role: Role) => {
-        modals.openConfirmModal({
+        openConfirmModal({
             title: "Rolle löschen",
             children: (
                 <Text size="sm">
@@ -51,7 +51,7 @@ function RolesAdminPageContent() {
                 </Text>
             ),
             labels: { confirm: "Löschen", cancel: "Abbrechen" },
-            confirmProps: { color: "red" },
+            danger: true,
             onConfirm: () => {
                 deleteRole.mutate(role.id, {
                     onSuccess: () =>

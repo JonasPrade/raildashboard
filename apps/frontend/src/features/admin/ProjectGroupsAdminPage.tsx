@@ -16,7 +16,7 @@ import {
     Tooltip,
 } from "@mantine/core";
 import { Pencil, Plus, Search, Trash2 } from "lucide-react";
-import { modals } from "@mantine/modals";
+import { openConfirmModal } from "../../shared/ui/confirmModal";
 import { notifications } from "@mantine/notifications";
 import {
     useProjectGroups,
@@ -101,7 +101,7 @@ export default function ProjectGroupsAdminPage() {
     };
 
     const handleDelete = (group: ProjectGroup) => {
-        modals.openConfirmModal({
+        openConfirmModal({
             title: "Projektgruppe löschen",
             children: (
                 <Text size="sm">
@@ -111,7 +111,7 @@ export default function ProjectGroupsAdminPage() {
                 </Text>
             ),
             labels: { confirm: "Löschen", cancel: "Abbrechen" },
-            confirmProps: { color: "red" },
+            danger: true,
             onConfirm: () => {
                 deleteGroup.mutate(group.id!, {
                     onSuccess: () =>

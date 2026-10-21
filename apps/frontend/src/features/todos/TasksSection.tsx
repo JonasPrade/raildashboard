@@ -34,8 +34,8 @@ export default function TasksSection({ projectId }: { projectId: number }) {
     return (
         <Paper withBorder p="var(--card-pad)">
             <Stack gap="sm">
-                <Group justify="space-between" align="center">
-                    <Title order={2}>Aufgaben</Title>
+                <Group className="idt-section-head" justify="space-between" align="center">
+                    <Title order={2} className="idt-title-plain">Aufgaben</Title>
                     {canCreate && (
                         <Button size="xs" variant="light" leftSection={<Plus size={16} />} onClick={openCreate}>
                             Aufgabe

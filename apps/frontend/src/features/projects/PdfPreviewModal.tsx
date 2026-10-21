@@ -6,7 +6,6 @@ import "react-pdf/dist/Page/TextLayer.css";
 import { ActionIcon, Anchor, Group, Modal, Stack, Text } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { LoadingState } from "../../shared/ui/LoadingState";
 
 // Worker is bundled locally (no CDN dependency); this module is lazy-loaded,
@@ -22,7 +21,6 @@ type PdfPreviewModalProps = {
 };
 
 export default function PdfPreviewModal({ opened, onClose, attachmentUrl, filename }: PdfPreviewModalProps) {
-    const isMobile = useIsMobile();
     const { width: viewportWidth } = useViewportSize();
     // A 720px page would need pinch-zoom on a phone — render it at screen width.
     const pageWidth = Math.min(720, Math.max(280, viewportWidth - 40));
@@ -60,7 +58,6 @@ export default function PdfPreviewModal({ opened, onClose, attachmentUrl, filena
             title={filename}
             size="xl"
             centered
-            fullScreen={isMobile}
         >
             {opened && (
                 <Stack gap="sm" align="center">

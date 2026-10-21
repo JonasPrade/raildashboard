@@ -14,7 +14,7 @@ import {
     Title,
 } from "@mantine/core";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
-import { modals } from "@mantine/modals";
+import { openConfirmModal } from "../../shared/ui/confirmModal";
 import { notifications } from "@mantine/notifications";
 import RequirePermission from "../../components/RequirePermission";
 import {
@@ -82,7 +82,7 @@ function VibImportPageContent() {
     const progress = task.progress;
 
     const handleDeleteReport = (id: number, reportYear: number) => {
-        modals.openConfirmModal({
+        openConfirmModal({
             title: "VIB-Bericht löschen?",
             children: (
                 <Text size="sm">
@@ -91,7 +91,7 @@ function VibImportPageContent() {
                 </Text>
             ),
             labels: { confirm: "Löschen", cancel: "Abbrechen" },
-            confirmProps: { color: "red" },
+            danger: true,
             onConfirm: () =>
                 deleteReport.mutate(id, {
                     onSuccess: () =>
@@ -239,7 +239,7 @@ function VibImportPageContent() {
                                                             variant="subtle"
                                                             color="red"
                                                             onClick={() =>
-                                                                modals.openConfirmModal({
+                                                                openConfirmModal({
                                                                     title: "Entwurf verwerfen?",
                                                                     children: (
                                                                         <Text size="sm">
@@ -247,7 +247,7 @@ function VibImportPageContent() {
                                                                         </Text>
                                                                     ),
                                                                     labels: { confirm: "Verwerfen", cancel: "Abbrechen" },
-                                                                    confirmProps: { color: "red" },
+                                                                    danger: true,
                                                                     onConfirm: () =>
                                                                         deleteDraft.mutate(d.task_id, {
                                                                             onError: () =>

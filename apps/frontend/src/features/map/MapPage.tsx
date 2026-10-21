@@ -343,7 +343,7 @@ export default function MapPage() {
                 <Stack gap="xl">
                     {viewToggle}
                     <Stack gap={6}>
-                        <Text className="idt-eyebrow" component="div">Schienenprojekte · {isTimeline ? "Zeitstrahl" : "Liste"}</Text>
+                        <Text className="idt-eyebrow idt-eyebrow--arrow" component="div">Schienenprojekte · {isTimeline ? "Zeitstrahl" : "Liste"}</Text>
                         <Title order={2}>Projekte nach Projektgruppen</Title>
                         <Text size="sm" c="dimmed" style={{ maxWidth: 540 }}>
                             {isTimeline

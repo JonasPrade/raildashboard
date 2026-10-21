@@ -29,22 +29,28 @@ type SwatchTagProps = {
     size?: BadgeProps["size"];
     title?: string;
     style?: CSSProperties;
+    /** Paused/aborted context: muted text, the square keeps its colour. */
+    muted?: boolean;
+    /** Category does not apply: muted text and an empty square. Both replace
+     *  fading the tag — opacity would drop the text below 4.5:1. */
+    inactive?: boolean;
 };
 
 /**
  * Tag for a data category: outline badge in ink with a square in the category
- * colour and the label — colour is never the only signal (DESIGN.md).
+ * colour and the label — colour is never the only signal (DESIGN.md). Caps like
+ * every Badge (11.5/600, .06em; theme → components.css).
  */
-export function SwatchTag({ color, children, size = "sm", title, style }: SwatchTagProps) {
+export function SwatchTag({ color, children, size = "sm", title, style, muted = false, inactive = false }: SwatchTagProps) {
     return (
         <Badge
             size={size}
             variant="outline"
             radius={0}
-            color="var(--text-strong)"
-            leftSection={<Swatch color={color} />}
+            color={muted || inactive ? "var(--text-muted)" : "var(--text-strong)"}
+            leftSection={<Swatch color={inactive ? "transparent" : color} />}
             title={title}
-            style={{ textTransform: "none", ...style }}
+            style={style}
         >
             {children}
         </Badge>

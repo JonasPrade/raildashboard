@@ -96,9 +96,14 @@ export function EditUserModal({ opened, onClose, user, isSelf }: Props) {
                         disabled={isSelf}
                         description={isSelf ? "Die eigene Rolle kann nicht geändert werden." : undefined}
                     />
-                    <Button type="submit" loading={updateUser.isPending} fullWidth mt="xs">
-                        Speichern
-                    </Button>
+                    <div className="idt-modal-footer">
+                        <Button variant="default" onClick={onClose}>
+                            Abbrechen
+                        </Button>
+                        <Button type="submit" loading={updateUser.isPending}>
+                            Speichern
+                        </Button>
+                    </div>
                 </Stack>
             </form>
         </Modal>

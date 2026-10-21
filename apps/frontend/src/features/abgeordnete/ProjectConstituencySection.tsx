@@ -101,8 +101,8 @@ export default function ProjectConstituencySection({ projectId }: { projectId: n
     return (
         <Paper withBorder p="var(--card-pad)">
             <Stack gap="md">
-                <Group justify="space-between" align="baseline">
-                    <Title order={2}>Wahlkreise und Abgeordnete</Title>
+                <Group className="idt-section-head" justify="space-between" align="baseline">
+                    <Title order={2} className="idt-title-plain">Wahlkreise und Abgeordnete</Title>
                     {data.last_import?.finished_at && (
                         <Text size="xs" c="dimmed">
                             Abgeordnetenstand:{" "}

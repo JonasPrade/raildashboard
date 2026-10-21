@@ -94,7 +94,7 @@ export default function VibEntryEditForm({
                 {/* Section label + AI status badges */}
                 <Group gap="xs" align="center">
                     {entry.vib_section && (
-                        <Text size="xs" c="dimmed" ff="monospace">
+                        <Text size="xs" c="dimmed" className="idt-tnum">
                             {entry.vib_section}
                         </Text>
                     )}
@@ -349,9 +349,8 @@ export default function VibEntryEditForm({
                                 p="xs"
                                 style={{
                                     fontSize: 12,
-                                    fontFamily: "var(--mantine-font-family-monospace)",
-                                    background: "var(--mantine-color-gray-0)",
-                                    borderRadius: 4,
+                                    fontVariantNumeric: "tabular-nums",
+                                    background: "var(--surface-alt)",
                                     overflowX: "auto",
                                 }}
                                 className="vib-raw-markdown"

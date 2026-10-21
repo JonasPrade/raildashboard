@@ -27,6 +27,11 @@ export const LANE_STATE_COLOR = {
     idle: "var(--idt-line-strong)",
     active: "var(--accent-primary)",
     done: "var(--idt-success)",
+    /** Surface behind text-on-accent for a done step: the DS green reaches only
+     *  4.1:1 against paper, the derived fill (components.css) ≥ 5:1. */
+    doneFill: "var(--idt-success-fill)",
+    /** Lines and outlines that must read as graphics (3:1): chevrons, open steps. */
+    idleLine: "var(--text-muted)",
 } as const;
 
 // Zeitstrahl (W4): segments carry PHASE_COLOR, the planned part is hatched.
