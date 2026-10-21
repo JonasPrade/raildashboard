@@ -1,0 +1,221 @@
+/* Vendored from the Initiative Deutschlandtakt Design System.
+   Source: artifact https://claude.ai/artifact/14Xq8ZVdYasy3EUQ8bLhGh, file project/tokens.css,
+   artifact version 1792616258-d020 (DS version 9), fetched 2026-10-21.
+   Everything below the end of this comment is the DS file byte for byte, with one addition:
+   the published tokens.css of this version lacks the `[data-theme="dark"]` block although
+   project/tokens.json carries theme `dark`. The block at the end is generated from
+   tokens.json (every token with a `dark` value, in tokens.json order) and matches the
+   table in docs/features/feature-idt-design.md → "Dunkelfassung". Drop it once the DS ships
+   it. Fonts: way (a) of the feature file — the woff2 files sit in ./fonts/ next to this
+   file, so the DS url('fonts/…') resolves and Vite bundles them.
+   Do not edit by hand; replace the file when the DS changes (docs/DESIGN.md → Pflege). */
+/* Initiative Deutschlandtakt Design System — generated from tokens.json */
+@font-face { font-family: 'InterVariable'; src: url('fonts/InterVariable.woff2') format('woff2'); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: 'InterVariable'; src: url('fonts/InterVariable-Italic.woff2') format('woff2'); font-weight: 100 900; font-style: italic; font-display: swap; }
+:root, [data-theme="light"] {
+  --idt-paper: #fff6f0;
+  --idt-ink: #00373c;
+  --idt-yellow: #ffff96;
+  --idt-cyan: #00dcfa;
+  --idt-violet: #6e50fa;
+  --idt-gray: #585857;
+  --idt-paper-print: #fef2ec;
+  --idt-yellow-print: #fff58e;
+  --idt-cyan-print: #00bbee;
+  --idt-violet-print: #82338b;
+  --idt-ink-print: #00353f;
+  --idt-paper-2: #fbede6;
+  --idt-paper-3: #f3e2da;
+  --idt-line: #e2d3cb;
+  --idt-line-strong: #c9b6ac;
+  --idt-ink-70: #3a6068;
+  --idt-ink-50: #6e9097;
+  --idt-on-ink-muted: #8fb4bc;
+  --idt-violet-soft: #e8e3ff;
+  --idt-cyan-soft: #d6f8ff;
+  --idt-yellow-soft: #fffddb;
+  --idt-violet-hover: #5a3de6;
+  --idt-violet-active: #4a2fcc;
+  --idt-cyan-hover: #00c2dd;
+  --idt-cyan-active: #00a6be;
+  --idt-ink-hover: #073f49;
+  --idt-gradient-accent-from: #00dcfa;
+  --idt-gradient-accent-to: #6e50fa;
+  --idt-success: #1f8a5b;
+  --idt-warning: #e8a100;
+  --idt-danger: #d64545;
+  --idt-info: var(--idt-cyan);
+  --idt-chart-1: #6e50fa;
+  --idt-chart-2: #00dcfa;
+  --idt-chart-3: #00373c;
+  --idt-chart-4: #3a6068;
+  --idt-chart-5: #b3a6ff;
+  --idt-chart-6: #7fe9fb;
+  --idt-seq-1: #d3e7e8;
+  --idt-seq-2: #a8c7c9;
+  --idt-seq-3: #6e9097;
+  --idt-seq-4: #3a6068;
+  --idt-seq-5: #00373c;
+  --idt-diverge-neg: #d64545;
+  --idt-diverge-mid: #e2d3cb;
+  --idt-diverge-pos: #1f8a5b;
+  --idt-highlight: #ffff96;
+  --idt-highlight-line: #00373c;
+  --idt-chart-grid: #e2d3cb;
+  --idt-chart-axis: #6e9097;
+  --idt-chart-track: #fbede6;
+  --surface: var(--idt-paper);
+  --surface-alt: var(--idt-paper-2);
+  --surface-sunken: var(--idt-paper-3);
+  --surface-inverse: var(--idt-ink);
+  --surface-card: var(--idt-paper);
+  --text-strong: var(--idt-ink);
+  --text-body: var(--idt-ink);
+  --text-muted: var(--idt-gray);
+  --text-faint: var(--idt-ink-50);
+  --text-on-inverse: var(--idt-paper);
+  --text-on-inverse-muted: var(--idt-on-ink-muted);
+  --text-on-accent: var(--idt-paper);
+  --text-link: var(--idt-violet);
+  --border: var(--idt-line);
+  --border-strong: var(--idt-line-strong);
+  --border-frame: var(--idt-ink);
+  --accent-primary: var(--idt-violet);
+  --accent-primary-hover: var(--idt-violet-hover);
+  --accent-primary-active: var(--idt-violet-active);
+  --accent-secondary: var(--idt-cyan);
+  --accent-highlight: var(--idt-yellow);
+  --focus-ring: var(--idt-violet);
+  --shadow-none: none;
+  --shadow-sm: 0 1px 2px rgba(0, 50, 60, 0.06);
+  --shadow-md: 0 4px 16px rgba(0, 50, 60, 0.08);
+  --shadow-lg: 0 12px 40px rgba(0, 50, 60, 0.12);
+  --shadow-block: 6px 6px 0 #00373c;
+  --shadow-block-sm: 4px 4px 0 #00373c;
+}
+:root {
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 6rem;
+  --space-10: 8rem;
+  --radius-none: 0;
+  --radius-xs: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-pill: 0;
+  --radius-card: 0;
+  --bw-hair: 1px;
+  --bw-base: 1.5px;
+  --bw-frame: 2px;
+  --bw-frame-bold: 3px;
+  --container-max: 1200px;
+  --container-wide: 1400px;
+  --content-measure: 68ch;
+  --z-base: 1;
+  --z-sticky: 100;
+  --z-overlay: 1000;
+  --z-modal: 1100;
+  --z-toast: 1200;
+  --idt-gradient-accent: linear-gradient(90deg, #00DCFA 0%, #6E50FA 100%);
+  --idt-gradient-band: linear-gradient(96deg, #00DCFA 0%, #6E50FA 100%);
+  --fs-display-2xl: 5.5rem;
+  --fs-display-xl: 4rem;
+  --fs-display-lg: 3rem;
+  --fs-display-md: 2.25rem;
+  --fs-h1: 2rem;
+  --fs-h2: 1.5rem;
+  --fs-h3: 1.25rem;
+  --fs-lead: 1.375rem;
+  --fs-body: 1.0625rem;
+  --fs-sm: 0.9375rem;
+  --fs-xs: 0.8125rem;
+  --fs-mono-sm: 0.8125rem;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --fw-extrabold: 800;
+  --lh-tight: 1.04;
+  --lh-snug: 1.18;
+  --lh-normal: 1.55;
+  --lh-relaxed: 1.7;
+  --ls-tighter: -0.03em;
+  --ls-tight: -0.015em;
+  --ls-normal: 0em;
+  --ls-wide: 0.04em;
+  --ls-label: 0.12em;
+  --font-display: 'InterVariable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'InterVariable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'InterVariable', 'Inter', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
+.display-2xl { font-family: var(--font-display); font-size: 5.5rem; line-height: 1.04; font-weight: 800; letter-spacing: -0.03em; }
+.display-xl { font-family: var(--font-display); font-size: 4rem; line-height: 1.04; font-weight: 800; letter-spacing: -0.03em; }
+.display-lg { font-family: var(--font-display); font-size: 3rem; line-height: 1.04; font-weight: 700; letter-spacing: -0.03em; }
+.display-md { font-family: var(--font-display); font-size: 2.25rem; line-height: 1.18; font-weight: 700; letter-spacing: -0.015em; }
+.heading-1 { font-family: var(--font-display); font-size: 2rem; line-height: 1.18; font-weight: 700; letter-spacing: -0.015em; }
+.heading-2 { font-family: var(--font-display); font-size: 1.5rem; line-height: 1.18; font-weight: 700; letter-spacing: -0.015em; }
+.heading-3 { font-family: var(--font-display); font-size: 1.25rem; line-height: 1.18; font-weight: 700; letter-spacing: -0.015em; }
+.lead { font-family: var(--font-sans); font-size: 1.375rem; line-height: 1.7; font-weight: 400; }
+.body { font-family: var(--font-sans); font-size: 1.0625rem; line-height: 1.55; font-weight: 400; }
+.small { font-family: var(--font-sans); font-size: 0.9375rem; line-height: 1.55; font-weight: 400; }
+.eyebrow { font-family: var(--font-mono); font-size: 0.8125rem; font-weight: 400; letter-spacing: 0.12em; }
+.mono-sm { font-family: var(--font-mono); font-size: 0.8125rem; font-weight: 400; }
+/* ── generated from tokens.json, theme "dark" ── */
+[data-theme="dark"] {
+  --idt-violet-soft: #1d485d;
+  --idt-cyan-soft: #00535c;
+  --idt-yellow-soft: #2b594b;
+  --idt-success: #4fbf8b;
+  --idt-danger: #f08585;
+  --idt-chart-1: #ad9bff;
+  --idt-chart-2: #00dcfa;
+  --idt-chart-3: #fff6f0;
+  --idt-chart-4: #8fb4bc;
+  --idt-chart-5: #d8d0ff;
+  --idt-chart-6: #c4f5fd;
+  --idt-seq-1: #2e6670;
+  --idt-seq-2: #4c7f88;
+  --idt-seq-3: #6e9097;
+  --idt-seq-4: #a8c7c9;
+  --idt-seq-5: #d3e7e8;
+  --idt-diverge-neg: #f08585;
+  --idt-diverge-mid: #4c7072;
+  --idt-diverge-pos: #4fbf8b;
+  --idt-highlight-line: #fff6f0;
+  --idt-chart-grid: #215053;
+  --idt-chart-axis: #8fb4bc;
+  --idt-chart-track: #0b4650;
+  --surface: #00373c;
+  --surface-alt: #002a2e;
+  --surface-sunken: #002326;
+  --surface-inverse: #fff6f0;
+  --surface-card: #00373c;
+  --text-strong: #fff6f0;
+  --text-body: #fff6f0;
+  --text-muted: #8fb4bc;
+  --text-faint: #6e9097;
+  --text-on-inverse: #00373c;
+  --text-on-inverse-muted: #585857;
+  --text-on-accent: #00373c;
+  --text-link: #ad9bff;
+  --border: #295659;
+  --border-strong: #4c7072;
+  --border-frame: #8ca09f;
+  --accent-primary: #ad9bff;
+  --accent-primary-hover: #c7bcff;
+  --accent-primary-active: #9684f5;
+  --focus-ring: #ad9bff;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.40);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.55);
+  --shadow-block: 6px 6px 0 #001a1d;
+  --shadow-block-sm: 4px 4px 0 #001a1d;
+}
