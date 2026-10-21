@@ -1,11 +1,13 @@
 import { useState } from "react";
 import {
+    Badge,
     Box,
     Button,
     Checkbox,
     Group,
     MultiSelect,
     NumberInput,
+    Paper,
     Select,
     Stack,
     Table,
@@ -17,7 +19,6 @@ import {
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import { filterProjectOption } from "../../lib/filterProjectOption";
 import type { VibEntryProposed } from "../../shared/api/queries";
 
@@ -88,7 +89,7 @@ export default function VibEntryEditForm({
     }
 
     return (
-        <ChronicleCard>
+        <Paper withBorder p="var(--card-pad)">
             <Stack gap="md">
                 {/* Section label + AI status badges */}
                 <Group gap="xs" align="center">
@@ -98,11 +99,11 @@ export default function VibEntryEditForm({
                         </Text>
                     )}
                     {entry.ai_extracted && (
-                        <ChronicleDataChip>KI</ChronicleDataChip>
+                        <Badge variant="outline" color="var(--text-strong)" tt="none">KI</Badge>
                     )}
                     {entry.ai_extraction_failed && (
                         <Tooltip label={entry.ai_extraction_error ?? "KI-Extraktion fehlgeschlagen"} withArrow>
-                            <ChronicleDataChip>KI fehlgeschlagen</ChronicleDataChip>
+                            <Badge variant="outline" color="var(--text-strong)" tt="none">KI fehlgeschlagen</Badge>
                         </Tooltip>
                     )}
                     {onRetryAi && (
@@ -171,9 +172,9 @@ export default function VibEntryEditForm({
                     />
                     {hasSuggestion && (
                         <Tooltip label={`KI-Vorschlag: ${entry.suggested_project_ids.map(id => projectOptions.find(o => o.value === String(id))?.label ?? String(id)).join(", ")}`}>
-                            <ChronicleDataChip style={{ cursor: "default", marginBottom: 6 }}>
+                            <Badge variant="outline" color="var(--text-strong)" tt="none" style={{ cursor: "default", marginBottom: 6 }}>
                                 {confidence === "high" ? "✓" : confidence === "manual" ? "~" : "?"}
-                            </ChronicleDataChip>
+                            </Badge>
                         </Tooltip>
                     )}
                 </Group>
@@ -264,7 +265,7 @@ export default function VibEntryEditForm({
                         </Button>
                     </Group>
                     {entry.pfa_entries.length > 0 ? (
-                        <ChronicleCard style={{ overflow: "auto", padding: 0 }}>
+                        <Paper withBorder p={0} style={{ overflow: "auto" }}>
                             <ResponsiveTable minWidth={720} withTableBorder withColumnBorders fz="xs" style={{ fontSize: 11 }}>
                                 <Table.Thead>
                                     <Table.Tr>
@@ -326,7 +327,7 @@ export default function VibEntryEditForm({
                                     ))}
                                 </Table.Tbody>
                             </ResponsiveTable>
-                        </ChronicleCard>
+                        </Paper>
                     ) : (
                         <Text size="xs" c="dimmed">Keine PFA-Einträge.</Text>
                     )}
@@ -393,6 +394,6 @@ export default function VibEntryEditForm({
                     />
                 )}
             </Stack>
-        </ChronicleCard>
+        </Paper>
     );
 }

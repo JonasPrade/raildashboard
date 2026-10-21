@@ -2,18 +2,20 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
     Alert,
+    Badge,
     Box,
     Button,
     Container,
     Group,
+    Paper,
     ScrollArea,
     Stack,
     Table,
     Text,
+    Title,
     Tooltip,
 } from "@mantine/core";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
-import { ChronicleHeadline, ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import RequirePermission from "../../components/RequirePermission";
@@ -52,30 +54,30 @@ function RawTextCell({
         <Stack gap={4} style={{ cursor: "pointer" }} onClick={onToggle}>
             <Group gap={6} wrap="nowrap">
                 <Tooltip label={`${len} Zeichen`} withArrow>
-                    <ChronicleDataChip>
+                    <Badge variant="outline" color="var(--text-strong)" tt="none">
                         {len > 0 ? `${(len / 1000).toFixed(1)}k` : "leer"}
-                    </ChronicleDataChip>
+                    </Badge>
                 </Tooltip>
                 {entry.pfa_entries.length > 0 ? (
-                    <ChronicleDataChip>
+                    <Badge variant="outline" color="var(--text-strong)" tt="none">
                         {entry.pfa_entries.length} PFA
-                    </ChronicleDataChip>
+                    </Badge>
                 ) : (
-                    <ChronicleDataChip>
+                    <Badge variant="outline" color="var(--text-strong)" tt="none">
                         0 PFA
-                    </ChronicleDataChip>
+                    </Badge>
                 )}
             </Group>
             <Group gap={4} wrap="wrap">
                 {detected.map((s) => (
-                    <ChronicleDataChip key={s.key}>
+                    <Badge variant="outline" color="var(--text-strong)" tt="none" key={s.key}>
                         {s.label}
-                    </ChronicleDataChip>
+                    </Badge>
                 ))}
                 {missing.map((s) => (
-                    <ChronicleDataChip key={s.key}>
+                    <Badge variant="outline" color="var(--text-strong)" tt="none" key={s.key}>
                         {s.label}
-                    </ChronicleDataChip>
+                    </Badge>
                 ))}
             </Group>
             <Text size="xs" c="blue">
@@ -122,9 +124,9 @@ function ExpandedRawText({ entry }: { entry: VibEntryProposed }) {
                     <Text size="xs" c="dimmed">Erkannt:</Text>
                     {detected.length > 0
                         ? detected.map((s) => (
-                              <ChronicleDataChip key={s.key}>
+                              <Badge variant="outline" color="var(--text-strong)" tt="none" key={s.key}>
                                   ✓ {s.label}
-                              </ChronicleDataChip>
+                              </Badge>
                           ))
                         : <Text size="xs" c="dimmed">–</Text>}
                 </Group>
@@ -132,9 +134,9 @@ function ExpandedRawText({ entry }: { entry: VibEntryProposed }) {
                     <Group gap={6}>
                         <Text size="xs" c="dimmed">Nicht gefunden:</Text>
                         {missing.map((s) => (
-                            <ChronicleDataChip key={s.key}>
+                            <Badge variant="outline" color="var(--text-strong)" tt="none" key={s.key}>
                                 ✗ {s.label}
-                            </ChronicleDataChip>
+                            </Badge>
                         ))}
                     </Group>
                 )}
@@ -205,14 +207,14 @@ function VibStructurePreviewPageContent() {
         <Container size="lg" py="xl">
             <Stack gap="xl">
                 <div>
-                    <ChronicleHeadline as="h1">VIB-Import — Strukturvorschau</ChronicleHeadline>
+                    <Title order={1}>VIB-Import — Strukturvorschau</Title>
                     <Text c="dimmed" size="sm" mt={4}>
                         Struktur erkannt. Prüfen Sie die Vorhaben und wechseln Sie zum Review.
                         KI-Extraktion ist pro Vorhaben im Review verfügbar.
                     </Text>
                 </div>
 
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Group gap="xl">
                         <div>
                             <Text size="xs" c="dimmed">Projekte erkannt</Text>
@@ -233,9 +235,9 @@ function VibStructurePreviewPageContent() {
                             </Text>
                         </div>
                     </Group>
-                </ChronicleCard>
+                </Paper>
 
-                <ChronicleCard style={{ padding: 0 }}>
+                <Paper withBorder p={0}>
                     <ResponsiveTable minWidth={720} withTableBorder>
                         <Table.Thead>
                             <Table.Tr>
@@ -263,9 +265,9 @@ function VibStructurePreviewPageContent() {
                                             <Text size="sm" lineClamp={2}>{e.vib_name_raw}</Text>
                                         </Table.Td>
                                         <Table.Td>
-                                            <ChronicleDataChip>
+                                            <Badge variant="outline" color="var(--text-strong)" tt="none">
                                                 {e.category}
-                                            </ChronicleDataChip>
+                                            </Badge>
                                         </Table.Td>
                                         <Table.Td>
                                             <RawTextCell
@@ -286,7 +288,7 @@ function VibStructurePreviewPageContent() {
                             ))}
                         </Table.Tbody>
                     </ResponsiveTable>
-                </ChronicleCard>
+                </Paper>
 
                 <Group justify="flex-end" gap="sm">
                     <Button variant="subtle" onClick={() => navigate("/admin/vib-import")}>

@@ -72,7 +72,6 @@ export default function TodoCard({
                     )}
                     {showProject && todo.project && (
                         <Text size="xs" c="dimmed">
-                            ▸{" "}
                             <Text component={Link} to={`/projects/${todo.project.id}`} size="xs" c="var(--accent-primary)" inherit>
                                 {todo.project.project_number
                                     ? `${todo.project.project_number} – ${todo.project.name}`

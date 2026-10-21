@@ -5,12 +5,14 @@ import {
     Checkbox,
     Container,
     Group,
+    Paper,
     SegmentedControl,
     Select,
     SimpleGrid,
     Stack,
     Text,
     TextInput,
+    Title,
 } from "@mantine/core";
 import { Plus } from "lucide-react";
 import { notifications } from "@mantine/notifications";
@@ -23,7 +25,6 @@ import {
     type Todo,
     type TodoStatus,
 } from "../../shared/api/queries";
-import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
 import TodoCard from "./TodoCard";
 import TodoEditDrawer from "./TodoEditDrawer";
 import { useTodoActions } from "./useTodoActions";
@@ -102,7 +103,7 @@ export default function TasksPage() {
         <Container size="xl" py={{ base: "md", sm: "lg" }} px={{ base: 0, sm: "md" }}>
             <Stack gap="lg">
                 <Group justify="space-between" align="center" wrap="wrap" gap="sm">
-                    <ChronicleHeadline as="h1">Aufgaben</ChronicleHeadline>
+                    <Title order={1}>Aufgaben</Title>
                     {canCreate && (
                         <Button leftSection={<Plus size={16} />} onClick={openCreate}>
                             Neue Aufgabe
@@ -177,7 +178,7 @@ export default function TasksPage() {
                         {visibleStatuses.map((status) => (
                             <Stack key={status} gap="sm">
                                 <Group gap="xs">
-                                    <ChronicleHeadline as="h3">{STATUS_LABELS[status]}</ChronicleHeadline>
+                                    <Title order={3}>{STATUS_LABELS[status]}</Title>
                                     <Text c="dimmed" size="sm">
                                         ({grouped[status].length})
                                     </Text>
@@ -205,9 +206,9 @@ export default function TasksPage() {
                 )}
 
                 {(todos?.length ?? 0) === 0 && !isLoading && !isError && (
-                    <ChronicleCard>
+                    <Paper withBorder p="var(--card-pad)">
                         <Text c="dimmed">Noch keine Aufgaben. Lege oben deine erste an.</Text>
-                    </ChronicleCard>
+                    </Paper>
                 )}
             </Stack>
 

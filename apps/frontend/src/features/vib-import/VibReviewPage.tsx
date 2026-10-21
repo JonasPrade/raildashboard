@@ -3,15 +3,16 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
     ActionIcon,
     Alert,
+    Badge,
     Button,
     Container,
     Group,
     Select,
     Stack,
     Text,
+    Title,
     Tooltip,
 } from "@mantine/core";
-import { ChronicleHeadline, ChronicleDataChip } from "../../components/chronicle";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { notifications } from "@mantine/notifications";
 import RequirePermission from "../../components/RequirePermission";
@@ -148,7 +149,7 @@ function VibReviewPageContent() {
                 {/* Header */}
                 <Group justify="space-between" align="flex-start">
                     <Stack gap={2}>
-                        <ChronicleHeadline as="h1">VIB-Review — Berichtsjahr {parseResult.year}</ChronicleHeadline>
+                        <Title order={1}>VIB-Review — Berichtsjahr {parseResult.year}</Title>
                         <Text size="sm" c="dimmed">
                             {parseResult.drucksache_nr
                                 ? `Drucksache ${parseResult.drucksache_nr}`
@@ -162,15 +163,15 @@ function VibReviewPageContent() {
                         </Text>
                         {failedAiCount > 0 && (
                             <Tooltip label={`${failedAiCount} Einträge: KI-Extraktion fehlgeschlagen`} withArrow>
-                                <ChronicleDataChip>
+                                <Badge variant="outline" color="var(--text-strong)" tt="none">
                                     {failedAiCount} KI ✗
-                                </ChronicleDataChip>
+                                </Badge>
                             </Tooltip>
                         )}
                         <Tooltip label={ocrAvailable?.available ? `OCR: ${ocrAvailable.model}` : "Texterkennung: pymupdf"}>
-                            <ChronicleDataChip>
+                            <Badge variant="outline" color="var(--text-strong)" tt="none">
                                 {ocrAvailable?.available ? "Mistral OCR" : "pymupdf"}
-                            </ChronicleDataChip>
+                            </Badge>
                         </Tooltip>
                         <Button
                             variant="light"
@@ -220,12 +221,12 @@ function VibReviewPageContent() {
                     <Text fw={600} lineClamp={1} style={{ maxWidth: 500 }}>
                         {currentEntry.vib_name_raw}
                     </Text>
-                    <ChronicleDataChip>
+                    <Badge variant="outline" color="var(--text-strong)" tt="none">
                         {currentEntry.category}
-                    </ChronicleDataChip>
+                    </Badge>
                     {currentEntry.ai_extraction_failed && (
                         <Tooltip label={currentEntry.ai_extraction_error ?? "KI-Extraktion fehlgeschlagen – Wiederholen im Eintrag möglich"} withArrow>
-                            <ChronicleDataChip>KI ✗</ChronicleDataChip>
+                            <Badge variant="outline" color="var(--text-strong)" tt="none">KI ✗</Badge>
                         </Tooltip>
                     )}
                 </Group>

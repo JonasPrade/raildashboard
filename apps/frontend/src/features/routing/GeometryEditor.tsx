@@ -2,11 +2,13 @@ import { useMemo, useState } from "react";
 import {
     ActionIcon,
     Alert,
+    Badge,
     Box,
     Button,
     Divider,
     FileInput,
     Group,
+    Paper,
     ScrollArea,
     Stack,
     Switch,
@@ -16,7 +18,6 @@ import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
 
-import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import type { OperationalPointRef, Project, RoutePreviewFeature } from "../../shared/api/queries";
 import {
     useConfirmRoute,
@@ -407,9 +408,9 @@ export default function GeometryEditor({
                             <Text size="xs" fw={600} c="dimmed" tt="uppercase" mb={6}>
                                 Aktuelle Geometrie
                             </Text>
-                            <ChronicleDataChip>
+                            <Badge variant="outline" color="var(--text-strong)" tt="none">
                                 {hasExisting ? "Geometrie vorhanden" : "Keine Geometrie"}
-                            </ChronicleDataChip>
+                            </Badge>
                         </div>
 
                         {isSuperiorProject && (
@@ -463,9 +464,9 @@ export default function GeometryEditor({
                                                     löscht ihn. Gespeichert wird erst mit „{saveLabel}".
                                                 </Text>
                                                 <Group justify="space-between" align="center">
-                                                    <ChronicleDataChip>
+                                                    <Badge variant="outline" color="var(--text-strong)" tt="none">
                                                         {hasEditedExisting ? "Geändert" : "Unverändert"}
-                                                    </ChronicleDataChip>
+                                                    </Badge>
                                                     {hasEditedExisting && (
                                                         <Button
                                                             size="xs"
@@ -501,9 +502,9 @@ export default function GeometryEditor({
                                                     Ausgewählte Features erscheinen rot.
                                                 </Text>
                                                 <Group justify="space-between" align="center">
-                                                    <ChronicleDataChip>
+                                                    <Badge variant="outline" color="var(--text-strong)" tt="none">
                                                         {selectedFeatureIndices.size} ausgewählt
-                                                    </ChronicleDataChip>
+                                                    </Badge>
                                                     {selectedFeatureIndices.size > 0 && (
                                                         <Button
                                                             size="xs"
@@ -571,10 +572,10 @@ export default function GeometryEditor({
                                         </Button>
                                     </Button.Group>
                                     <Group justify="space-between" align="center">
-                                        <ChronicleDataChip>
+                                        <Badge variant="outline" color="var(--text-strong)" tt="none">
                                             {drawnFeatures.length} gezeichnet
                                             {drawnLengthKm != null ? ` · ${drawnLengthKm.toLocaleString("de-DE")} km` : ""}
-                                        </ChronicleDataChip>
+                                        </Badge>
                                         {hasDrawn && (
                                             <Button
                                                 size="xs"
@@ -657,7 +658,7 @@ export default function GeometryEditor({
 
                                 {/* Preview info */}
                                 {previewFeature && (
-                                    <ChronicleCard>
+                                    <Paper withBorder p="var(--card-pad)">
                                         <Stack gap={4}>
                                             <Text size="sm" fw={600}>Berechnete Route</Text>
                                             <Text size="sm" c="dimmed">
@@ -667,13 +668,13 @@ export default function GeometryEditor({
                                                 Dauer: {Math.round(previewFeature.properties.duration_ms / 60_000)} min
                                             </Text>
                                         </Stack>
-                                    </ChronicleCard>
+                                    </Paper>
                                 )}
 
                                 {uploadedGeojson && !previewFeature && (
-                                    <ChronicleCard>
+                                    <Paper withBorder p="var(--card-pad)">
                                         <Text size="sm" fw={600}>GeoJSON geladen — bitte prüfen</Text>
-                                    </ChronicleCard>
+                                    </Paper>
                                 )}
                             </>
                         )}

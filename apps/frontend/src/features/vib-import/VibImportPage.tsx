@@ -7,12 +7,13 @@ import {
     FileInput,
     Group,
     NumberInput,
+    Paper,
     Stack,
     Table,
     Text,
+    Title,
 } from "@mantine/core";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
-import { ChronicleHeadline, ChronicleCard } from "../../components/chronicle";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
 import RequirePermission from "../../components/RequirePermission";
@@ -104,10 +105,10 @@ function VibImportPageContent() {
     return (
         <Container size="lg" py="xl">
             <Stack gap="xl">
-                <ChronicleHeadline as="h1">VIB-Import (Verkehrsinvestitionsbericht)</ChronicleHeadline>
+                <Title order={1}>VIB-Import (Verkehrsinvestitionsbericht)</Title>
 
                 {/* A — New import */}
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="md">
                         <Text fw={600} size="md">Neuer Import</Text>
                         <Text size="sm" c="dimmed">
@@ -183,22 +184,22 @@ function VibImportPageContent() {
                             />
                         )}
                     </Stack>
-                </ChronicleCard>
+                </Paper>
 
                 {/* PDF preview — shown when a file is selected */}
                 {pdfUrl && (
-                    <ChronicleCard style={{ overflow: "hidden", padding: 0 }}>
+                    <Paper withBorder p={0} style={{ overflow: "hidden" }}>
                         <iframe
                             src={pdfUrl}
                             title="PDF-Vorschau"
                             style={{ width: "100%", height: "75vh", border: "none", display: "block" }}
                         />
-                    </ChronicleCard>
+                    </Paper>
                 )}
 
                 {/* B — Open drafts */}
                 {(draftsLoading || (drafts && drafts.length > 0)) && (
-                    <ChronicleCard>
+                    <Paper withBorder p="var(--card-pad)">
                         <Stack gap="md">
                             <Text fw={600} size="md">Offene Entwürfe</Text>
                             <Text size="sm" c="dimmed">
@@ -268,11 +269,11 @@ function VibImportPageContent() {
                                 </ResponsiveTable>
                             )}
                         </Stack>
-                    </ChronicleCard>
+                    </Paper>
                 )}
 
                 {/* C — Imported reports */}
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="md">
                         <Text fw={600} size="md">Importierte Berichte</Text>
                         {reportsLoading ? (
@@ -319,7 +320,7 @@ function VibImportPageContent() {
                             </Text>
                         )}
                     </Stack>
-                </ChronicleCard>
+                </Paper>
             </Stack>
         </Container>
     );

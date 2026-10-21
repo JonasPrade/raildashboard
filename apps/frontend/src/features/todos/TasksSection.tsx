@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { Button, Group, Stack, Text } from "@mantine/core";
+import { Button, Group, Paper, Stack, Text, Title } from "@mantine/core";
 import { Plus } from "lucide-react";
 import { useAuth } from "../../lib/auth";
 import { useTodos, type Todo } from "../../shared/api/queries";
-import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
 import TodoCard from "./TodoCard";
 import TodoEditDrawer from "./TodoEditDrawer";
 import { useTodoActions } from "./useTodoActions";
@@ -33,10 +32,10 @@ export default function TasksSection({ projectId }: { projectId: number }) {
     };
 
     return (
-        <ChronicleCard>
+        <Paper withBorder p="var(--card-pad)">
             <Stack gap="sm">
                 <Group justify="space-between" align="center">
-                    <ChronicleHeadline as="h2">Aufgaben</ChronicleHeadline>
+                    <Title order={2}>Aufgaben</Title>
                     {canCreate && (
                         <Button size="xs" variant="light" leftSection={<Plus size={16} />} onClick={openCreate}>
                             Aufgabe
@@ -78,6 +77,6 @@ export default function TasksSection({ projectId }: { projectId: number }) {
                 defaultProjectId={projectId}
                 lockProject
             />
-        </ChronicleCard>
+        </Paper>
     );
 }
