@@ -31,7 +31,7 @@ für Code.
 | Quelle | Was | Wo |
 |---|---|---|
 | Design System (DS) | Tokens, Komponenten, Datenviz, Markenregeln | Artefakt `https://claude.ai/artifact/14Xq8ZVdYasy3EUQ8bLhGh`, Dateien unter `project/` (`README.md`, `tokens.json`, `tokens.css`, `components/*`, `guidelines/cards/*`, `assets/favicons/*`, `fonts/*`) |
-| Anwendungsebene | Tabellen, Felder, Dialoge, Datum, Status, Zustände, Navigation, Icons, Dunkelfassung | DS-Abschnitt `project/anwendungsebene.md` (sobald veröffentlicht); bis dahin `JonasPrade/ini_strategy` → `docs/design/anwendungsebene/README.md` |
+| Anwendungsebene | Tabellen, Felder, Dialoge, Datum, Status, Zustände, Navigation, Icons, Dunkelfassung | DS-Abschnitt `project/anwendungsebene.md` (seit DS-Version 9, 2026-10-21); Ursprung `JonasPrade/ini_strategy` → `docs/design/anwendungsebene/README.md` mit den Entwurfsdateien |
 | Strategie-Tool | Referenzumsetzung, besonders die Dunkelfassung | `JonasPrade/ini_strategy` → `stakeholder/static/stil.css` (Abschnitte 2–4), `app.js` („Hell- und Dunkelfassung“) |
 | WordPress-Theme | zweiter Konsument derselben Tokens, kein Vorbild für Werkzeuge | `initiative-deutschlandtakt/wordpress-theme-initiative-deutschlandtakt-` |
 | Dieses Dokument | Entscheidungen, Zuordnungen, Stufen | – |
@@ -74,7 +74,7 @@ Widerspruchs-Check W1–W8 und fünf vorab aufgelöste Widersprüche).
 | Q12 | Gruppenfarbe bleibt frei; Farbwähler bietet `chart-1…6` als Swatches; Defaults (Backend, Frontend, Projektdetail) auf `#6E50FA`; Bestandsdaten unverändert. |
 | Q13 | Mantine-Standardpaletten durch DS-Skalen ersetzen; `dimmed` → `--text-muted`. Zuordnungstabellen und `--mantine-color-*`-Stellen werden auf Namen umgeschrieben, der Rest zieht über die Skalen mit. |
 | Q14 | Anwendungsebene ist verbindlich; Strategie-Tool ist Referenzumsetzung. |
-| Q17/Q29 | Dunkelfassung: Token des Strategie-Tools plus aufgehellte Diagrammfarben (Tabelle unten); dieselben Werte werden als Theme `dark` ins DS nachgetragen. |
+| Q17/Q29 | Dunkelfassung: Token des Strategie-Tools plus aufgehellte Diagrammfarben (Tabelle unten); dieselben Werte stehen seit 2026-10-21 als Theme `dark` im DS (Version 9). |
 | Q18 | Dunkelfassung: Vorgabe System, Knopf im Kopf (Mond/Sonne, Wort als `aria-label`, im Mobilmenü mit Wort), Speicher-Schlüssel `schienendashboard.thema`, über Mantines `defaultColorScheme="auto"` und `useMantineColorScheme`. |
 | Q19 | Karte dunkel: optionale zweite Kachel-URL `REACT_APP_TILE_LAYER_URL_DARK`, Rückfall auf die helle. |
 | Q21/Q31/W8 | Schmale Fußzeile (Ink, 3px Violett-Kante, Inverse-Logo, Fassung, Links). Impressum und Datenschutz als Felder in `AppSettings` (URL oder Markdown), gepflegt in der Admin-Einstellungsmaske; URL gesetzt → Link nach außen, sonst eigene Route. Inhalte: Human Task. |
@@ -130,8 +130,8 @@ apps/frontend/
         └── index.ts                   # export { theme }
 ```
 
-`tokens.css` enthält nach dem DS-Nachtrag die Blöcke `:root, [data-theme="light"]`
-und `[data-theme="dark"]`. Mantine setzt `data-mantine-color-scheme`, nicht
+`tokens.css` enthält seit DS-Version 9 (2026-10-21) die Blöcke `:root, [data-theme="light"]`
+und `[data-theme="dark"]`; die Dunkelwerte stehen zur Kontrolle auch in der Tabelle unten. Mantine setzt `data-mantine-color-scheme`, nicht
 `data-theme`; `mantine-bridge.css` übersetzt:
 
 ```css
@@ -162,10 +162,8 @@ und `[data-theme="dark"]`. Mantine setzt `data-mantine-color-scheme`, nicht
 }
 ```
 
-Fällt die Dunkelfassung im DS noch nicht (Artefakt nicht nachgetragen), wird
-der `[data-theme="dark"]`-Block aus der Tabelle „Dunkelfassung“ unten in eine
-Datei `shared/theme/dark.css` geschrieben und nach `tokens.css` geladen; sobald
-das DS ihn liefert, entfällt die Datei.
+Weicht die vendorte `tokens.css` von der Tabelle „Dunkelfassung“ ab, gilt das DS;
+die Tabelle wird dann nachgezogen, nicht umgekehrt.
 
 ### Mantine-Theme (`shared/theme/theme.ts`)
 
