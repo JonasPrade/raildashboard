@@ -58,3 +58,19 @@
   --mantine-font-family-headings: var(--font-display);
   --mantine-font-family-monospace: var(--font-sans);
 }
+
+/* Dark scheme: Mantine paints inputs, cards, badges and dividers from its `dark-*`
+   scale (theme.ts maps `dark` to the teal scale). Point that scale at the DS dark
+   aliases so every surface and line comes from tokens.css (Stufe-1 review). */
+:root:root[data-mantine-color-scheme="dark"] {
+  --mantine-color-dark-0: var(--text-body);
+  --mantine-color-dark-1: var(--text-muted);
+  --mantine-color-dark-2: var(--text-muted);
+  --mantine-color-dark-3: var(--text-muted);
+  --mantine-color-dark-4: var(--border-strong);
+  --mantine-color-dark-5: var(--border);
+  --mantine-color-dark-6: var(--surface);
+  --mantine-color-dark-7: var(--surface);
+  --mantine-color-dark-8: var(--surface-alt);
+  --mantine-color-dark-9: var(--surface-sunken);
+}

@@ -64,11 +64,18 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      # Footer version of the frontend ("Fassung <sha>"): the short commit SHA,
+      # the same anchor deploy.yml rolls out by.
+      - name: Kurze Commit-SHA
+        id: version
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
       - uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
           target: ${{ matrix.target }}
-          build-args: ${{ matrix.build_args }}
+          build-args: |
+            ${{ matrix.build_args }}
+            ${{ matrix.service == 'frontend' && format('VITE_APP_VERSION={0}', steps.version.outputs.short) || '' }}
           build-contexts: ${{ matrix.build_contexts }}
           push: true
           # The commit SHA is the only immutable anchor; `latest` additionally

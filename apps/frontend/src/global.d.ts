@@ -11,3 +11,7 @@ interface ImportMetaEnv {
 interface ImportMeta {
     readonly env: ImportMetaEnv;
 }
+
+// Build version shown in the footer ("Fassung"); vite.config.ts defines it from
+// VITE_APP_VERSION (short commit SHA in release builds, "dev" locally).
+declare const __APP_VERSION__: string;

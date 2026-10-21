@@ -51,3 +51,5 @@ services:
         VITE_API_BASE_URL: ""
         REACT_APP_TILE_LAYER_URL: ${REACT_APP_TILE_LAYER_URL:-}
         REACT_APP_TILE_LAYER_URL_DARK: ${REACT_APP_TILE_LAYER_URL_DARK:-}
+        # Footer version ("Fassung"); release images carry the short commit SHA.
+        VITE_APP_VERSION: ${VITE_APP_VERSION:-dev}

@@ -9,6 +9,7 @@ Copy `.env.example` to `.env` and fill in values. Required variables:
 | `REACT_APP_TILE_LAYER_URL` | Frontend | Raster tile URL for map background |
 | `REACT_APP_TILE_LAYER_URL_DARK` | Frontend | Optional raster tile URL for the dark colour scheme; empty → light tiles in both |
 | `VITE_API_BASE_URL` | Frontend | Defaults to `http://localhost:8000` |
+| `VITE_APP_VERSION` | Frontend (build) | Optional. Version shown in the footer („Fassung …“), read by `vite.config.ts` from the build environment (not from `.env`). `release.yml` passes the short commit SHA; unset → `dev` |
 | `ROUTING_BASE_URL` | Backend | GraphHopper instance URL |
 | `CELERY_BROKER_URL` | Backend | Dev: `redis://:devpassword@localhost:6379/0` (password set in `docker-compose.dev.yml`) |
 | `CELERY_RESULT_BACKEND` | Backend | Same as `CELERY_BROKER_URL` |

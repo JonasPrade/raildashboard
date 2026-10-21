@@ -92,6 +92,9 @@ Standard „Caddy über Netz `web`": `docs/workflow.md`, Ausnahmen.
 - **Repo-Variable** `TILE_LAYER_URL`: wird in `release.yml` ins Frontend-Bundle gebacken.
   Optional `TILE_LAYER_URL_DARK`: Kachel-URL für die dunkle Fassung, ebenso gebacken;
   leer = die helle Karte bleibt auch dunkel.
+- **Fassung in der Fußzeile:** `release.yml` übergibt dem Frontend-Image die kurze
+  Commit-SHA als Build-Arg `VITE_APP_VERSION` („Fassung 1a2b3c4“). Damit zeigt die
+  Fußzeile, welche SHA ausgerollt ist; kein Secret, keine Variable nötig.
 - **Branch Protection: nicht verfügbar.** GitHub setzt Branch Protection und Rulesets
   in privaten Repositories erst mit einem bezahlten Plan durch. Ein Merge an einer
   roten PR-Prüfung vorbei ist deshalb möglich. **In Produktion kommt trotzdem nichts

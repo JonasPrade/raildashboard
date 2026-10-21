@@ -8,7 +8,8 @@
    See docs/features/feature-mobile-usability.md. */
 
 :root {
-    --header-height: 60px;
+    /* Header of the Anwendungsebene: 72px, 64px under 48em. */
+    --header-height: 72px;
     --page-pad:      16px;
     --card-pad:      24px;
     /* Table row height of the Anwendungsebene. */
@@ -28,6 +29,7 @@
 
 @media (max-width: 48em) {
     :root {
+        --header-height:     64px;
         --page-pad:          10px;
         --card-pad:          16px;
         --map-height:        calc(100vh - var(--header-height) - 104px);

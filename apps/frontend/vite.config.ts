@@ -2,8 +2,15 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+// Footer version ("Fassung"): release.yml passes the short commit SHA as the
+// build arg VITE_APP_VERSION; local builds and the dev server show "dev".
+const appVersion = process.env.VITE_APP_VERSION?.trim() || "dev";
+
 export default defineConfig({
     plugins: [react()],
+    define: {
+        __APP_VERSION__: JSON.stringify(appVersion),
+    },
     envPrefix: ["VITE_", "REACT_APP_"],
     envDir: "../../",
     build: {

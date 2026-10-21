@@ -24,14 +24,190 @@
     margin: 8px 0 4px;
 }
 
-/* Header title link */
-.header-title-link {
-    text-decoration: none;
-    color: inherit;
-    cursor: pointer;
+/* ---- Shell: Kopfzeile (docs/DESIGN.md → Shell) ------------------------------
+   Height comes from --header-height (72px, 64px under 48em) via AppShell. The
+   2px ink line sits on .app-header-shell (the AppShell.Header element); the
+   active link's 3px underline overlaps it so it ends flush with the bottom. */
+.app-header-shell {
+    background: var(--surface);
+    border-bottom: 2px solid var(--border-frame);
 }
-.header-title-link:hover {
-    opacity: 0.75;
+.app-header {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    height: 100%;
+    padding: 0 var(--page-pad);
+}
+.app-header__brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    color: var(--text-strong);
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    white-space: nowrap;
+    text-decoration: none;
+}
+.app-header__brand img {
+    display: block;
+    width: 40px;
+    height: 40px;
+    flex: none;
+}
+.app-header__brand span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.app-header__brand:hover {
+    color: var(--accent-primary);
+}
+.app-header__nav {
+    display: flex;
+    flex: 1;
+    gap: 4px;
+    align-self: stretch;
+    margin-left: 8px;
+    min-width: 0;
+}
+.app-header__link {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 12px;
+    margin-bottom: -2px;
+    border-bottom: 3px solid transparent;
+    color: var(--text-strong);
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+    text-decoration: none;
+}
+.app-header__link:hover {
+    color: var(--accent-primary);
+}
+.app-header__link.is-active {
+    border-bottom-color: var(--accent-primary);
+}
+.app-header__count {
+    margin-left: 6px;
+    padding: 0 6px;
+    border: 1px solid var(--border-frame);
+    background: var(--idt-violet-soft);
+    color: var(--text-strong);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 18px;
+    font-variant-numeric: tabular-nums;
+}
+.app-header__count.is-overdue {
+    border-color: var(--idt-danger);
+    color: var(--idt-danger);
+    font-weight: 700;
+}
+.app-header__right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    flex: none;
+}
+.app-header__user {
+    color: var(--text-muted);
+    font-size: 14.5px;
+    white-space: nowrap;
+}
+/* Drawer entries are thumb targets: full width, 44px tall. */
+.app-drawer__link {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--border);
+    box-shadow: none;
+    color: var(--text-strong);
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+}
+.app-drawer__link:hover {
+    color: var(--accent-primary);
+}
+.app-drawer__link.is-active {
+    box-shadow: inset 3px 0 0 var(--accent-primary);
+}
+/* 62em–80em: six entries plus auth and toggle must fit without wrapping
+   (checked at 993px with every entry and both counters). Tighter gaps and
+   link padding; Header.tsx shows the logout as an icon here. */
+@media (max-width: 80em) {
+    .app-header {
+        gap: 16px;
+    }
+    .app-header__nav {
+        gap: 0;
+        margin-left: 0;
+    }
+    .app-header__link {
+        padding: 0 8px;
+    }
+}
+@media (max-width: 48em) {
+    .app-header {
+        gap: 12px;
+    }
+    .app-header__brand {
+        font-size: 17px;
+    }
+    .app-header__brand img {
+        width: 36px;
+        height: 36px;
+    }
+}
+
+/* ---- Shell: Fußzeile -------------------------------------------------------
+   Ink in both schemes (brand surface): the core tokens, not --surface-inverse,
+   which turns into paper in the dark scheme. */
+.app-footer {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    min-height: 56px;
+    padding: 0 var(--page-pad);
+    background: var(--idt-ink);
+    border-top: 3px solid var(--idt-violet);
+    color: var(--idt-on-ink-muted);
+    font-size: 13.5px;
+}
+.app-footer__logo {
+    display: block;
+    height: 26px;
+    width: auto;
+    flex: none;
+}
+.app-footer__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-left: auto;
+}
+.app-footer__links a {
+    color: var(--idt-paper);
+    font-weight: 600;
+    text-decoration: none;
+}
+.app-footer__links a:hover {
+    color: var(--idt-cyan);
+}
+@media (max-width: 48em) {
+    .app-footer {
+        flex-wrap: wrap;
+        gap: 10px 20px;
+        padding: 14px var(--page-pad);
+    }
+    .app-footer__links {
+        margin-left: 0;
+    }
 }
 
 /* Global base */

@@ -1,0 +1,219 @@
+/* Register of the project page — feature-idt-design.md → Stufe 2 → Register (Q26).
+   Breakpoint 62em only (feature-mobile-usability.md); the JS side uses useIsCompact(). */
+
+.project-register-layout {
+    display: grid;
+    /* The register decides its own width: 240px open, 26px as a tab. */
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 36px;
+}
+
+.project-register-layout > :last-child {
+    min-width: 0;
+}
+
+/* Grid item that stretches to the full content height so the register inside
+   can stick while the page scrolls. */
+.project-register-slot {
+    min-width: 0;
+}
+
+.project-register {
+    width: 240px;
+    position: sticky;
+    top: calc(var(--header-height) + 24px);
+    max-height: calc(100vh - var(--header-height) - 48px);
+    max-height: calc(100dvh - var(--header-height) - 48px);
+    overflow-y: auto;
+    background: var(--surface);
+    border: 2px solid var(--border-frame);
+}
+
+.project-register__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 44px;
+    padding: 4px 6px 4px 14px;
+    border-bottom: 1px solid var(--border);
+}
+
+.project-register__collapse {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.project-register__collapse:hover {
+    background: var(--surface-alt);
+    color: var(--text-strong);
+}
+
+.project-register__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.project-register__list li + li {
+    border-top: 1px solid var(--border);
+}
+
+.project-register__entry,
+.project-register__action {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 40px;
+    padding: 10px 14px 10px 11px;
+    border: 0;
+    border-left: 3px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    font: inherit;
+    font-size: 14.5px;
+    font-weight: 500;
+    line-height: 1.35;
+    color: var(--text-strong);
+    text-align: left;
+    cursor: pointer;
+}
+
+.project-register__entry[data-level="2"] {
+    padding-left: 27px;
+}
+
+.project-register__entry:hover,
+.project-register__action:hover {
+    background: var(--surface-alt);
+}
+
+.project-register__entry[data-active] {
+    border-left-color: var(--accent-primary);
+    font-weight: 700;
+}
+
+/* Inside the scrolling frame an outside ring would be clipped. */
+.project-register__entry:focus-visible,
+.project-register__action:focus-visible,
+.project-register__collapse:focus-visible {
+    outline-offset: -4px;
+}
+
+.project-register__action {
+    border-top: 2px solid var(--border-frame);
+    font-weight: 600;
+    color: var(--accent-primary);
+}
+
+/* Closed: a 26px tab in ink. --border-frame is ink in light and #8ca09f in dark;
+   --surface (paper / ink) stays legible on both. */
+.project-register-tab {
+    position: sticky;
+    top: calc(var(--header-height) + 24px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 26px;
+    padding: 10px 0 14px;
+    border: 0;
+    border-radius: 0;
+    background: var(--border-frame);
+    color: var(--surface);
+    font: inherit;
+    cursor: pointer;
+}
+
+.project-register-tab:hover {
+    background: var(--accent-primary);
+}
+
+.project-register-tab__label {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: var(--ls-label);
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+/* Below 62em: fixed button at the bottom, the register opens as a sheet. */
+.project-register-button {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--z-sticky);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: calc(44px + env(safe-area-inset-bottom, 0px));
+    padding: 0 16px env(safe-area-inset-bottom, 0px);
+    border: 0;
+    border-radius: 0;
+    background: var(--border-frame);
+    color: var(--surface);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.project-register-button:hover {
+    background: var(--accent-primary);
+}
+
+.project-register-button:focus-visible {
+    outline-offset: -4px;
+    outline-color: var(--surface);
+}
+
+.project-register-drawer {
+    /* Mantine sizes a bottom drawer by --drawer-size; the sheet fits its list instead. */
+    width: 100%;
+    height: auto;
+    max-height: 85vh;
+    max-height: 85dvh;
+    border-top: 2px solid var(--border-frame);
+    background: var(--surface);
+}
+
+.project-register-drawer__body {
+    padding: 0 0 env(safe-area-inset-bottom, 0px);
+}
+
+.project-register--sheet {
+    width: auto;
+    position: static;
+    max-height: none;
+    overflow: visible;
+    border: 0;
+    border-top: 1px solid var(--border);
+}
+
+.project-register--sheet .project-register__entry,
+.project-register--sheet .project-register__action {
+    min-height: 44px;
+    padding-left: 13px;
+}
+
+@media (max-width: 62em) {
+    .project-register-layout {
+        display: block;
+        /* Keep the end of the page clear of the fixed button. */
+        padding-bottom: calc(44px + env(safe-area-inset-bottom, 0px));
+    }
+}

@@ -9,6 +9,7 @@ import {
     Text,
 } from "@mantine/core";
 import { ChronicleHeadline, ChronicleCard } from "../../components/chronicle";
+import { LegalSettingsCard } from "./LegalSettingsCard";
 import { useAuth } from "../../lib/auth";
 import {
     useDraftProjects,
@@ -215,7 +216,7 @@ export default function AdminOverviewPage() {
                                     <Group gap={6} align="center">
                                         <Text fw={500}>Projekt-Entwürfe</Text>
                                         {draftCount > 0 && (
-                                            <Badge color="orange" size="xs" variant="filled" circle>
+                                            <Badge color="violet" size="xs" variant="filled" circle>
                                                 {draftCount}
                                             </Badge>
                                         )}
@@ -242,7 +243,7 @@ export default function AdminOverviewPage() {
                                     <Group gap={6} align="center">
                                         <Text fw={500}>Systemstatus</Text>
                                         <Badge
-                                            color={workersDown ? "red" : "green"}
+                                            color={workersDown ? "red" : "teal"}
                                             size="xs"
                                             variant={workersDown ? "filled" : "light"}
                                         >
@@ -288,6 +289,8 @@ export default function AdminOverviewPage() {
                         </ChronicleCard>
                     )}
                 </SimpleGrid>
+
+                {canSettings && <LegalSettingsCard />}
             </Stack>
         </Container>
     );

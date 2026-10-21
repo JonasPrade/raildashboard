@@ -1,60 +1,46 @@
-import React from "react";
-import { ActionIcon, Badge, Burger, Button, Drawer, Group, Stack, useComputedColorScheme, useMantineColorScheme } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
-import { NavLink } from "react-router-dom";
-import { Moon, Sun } from "lucide-react";
+import { useMemo } from "react";
+import { ActionIcon, Button, Drawer, Group, Stack, useComputedColorScheme, useMantineColorScheme } from "@mantine/core";
+import { useDisclosure, useMediaQuery } from "@mantine/hooks";
+import { Link, NavLink } from "react-router-dom";
+import { LogOut, Menu, Moon, Sun } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { LoginModal } from "../features/auth/LoginModal";
 import {
+    useTodos,
     useUnassignedFinves,
     useUnassignedGvfgEntries,
     useUnassignedInfraplanEntries,
     useUnassignedVibEntries,
 } from "../shared/api/queries";
+import { isOverdue } from "../features/todos/todoConstants";
 import { useIsCompact } from "../shared/hooks/useBreakpoint";
-import { ChronicleButton } from "./chronicle";
-import { Wordmark, Signet } from "./tafel";
 
-const navLinkBase: React.CSSProperties = {
-    textDecoration: "none",
-    color: "var(--text-body)",
-    padding: "8px 12px",
-    fontFamily: "var(--font-mono)",
-    fontWeight: 700,
-    fontSize: "12px",
-    letterSpacing: "0.08em",
-    textTransform: "uppercase",
+// Same value as the 80em block for .app-header in app.css.
+const NARROW_BAR_QUERY = "(max-width: 80em)";
+
+type NavItem = {
+    to: string;
+    label: string;
+    end?: boolean;
+    visible: boolean;
+    count?: number;
+    // Red frame on the counter — only when the list holds something overdue
+    // (status rule of the Anwendungsebene, W7 in feature-idt-design.md).
+    overdue?: boolean;
 };
 
-const navLinkActive: React.CSSProperties = {
-    ...navLinkBase,
-    color: "var(--text-strong)",
-    borderBottom: "2px solid var(--accent-primary)",
-};
-
-// Drawer entries are thumb targets, not pointer targets: full width, 48px tall.
-const drawerNavBase: React.CSSProperties = {
-    ...navLinkBase,
-    display: "flex",
-    alignItems: "center",
-    minHeight: 48,
-    fontSize: "13px",
-    padding: "12px",
-    borderBottom: "1px solid var(--border)",
-};
-
-const drawerNavActive: React.CSSProperties = {
-    ...drawerNavBase,
-    color: "var(--text-strong)",
-    borderBottom: "2px solid var(--accent-primary)",
-};
-
+/**
+ * App bar of the IDT design (docs/DESIGN.md → Shell): paper surface, 2px ink
+ * line, brand mark plus product name, text links with a violet underline on
+ * the active entry, counters in an ink frame on violet-soft. Styles live in
+ * app.css (`.app-header*`) so hover and the breakpoints stay in CSS.
+ */
 export function Header() {
     const { user, logout, can } = useAuth();
     const [loginOpened, { open: openLogin, close: closeLogin }] = useDisclosure(false);
     const [drawerOpened, { open: openDrawer, close: closeDrawer }] = useDisclosure(false);
     // Phones and small tablets navigate through the drawer; from 62em up the
-    // five entries plus the auth section fit into the bar.
+    // entries plus the auth section fit into the bar.
     const isCompact = useIsCompact();
 
     // The Admin entry is shown when the user holds any admin-area capability.
@@ -83,18 +69,28 @@ export function Header() {
           (unassignedInfraplanEntries?.length ?? 0)
         : 0;
 
+    // Aufgaben counter: every task that is not done — the same list the
+    // tasks page shows without the done column. Red frame once one of them is
+    // past its due date.
+    const { data: openTodos } = useTodos({ include_done: false }, user !== null);
+    const openTodoList = useMemo(
+        () => (openTodos ?? []).filter((t) => t.status !== "DONE"),
+        [openTodos],
+    );
+    const todosOverdue = openTodoList.some((t) => isOverdue(t.due_date));
+
     // One source of truth for both the bar and the drawer — they only differ in
-    // the style they render with.
-    const navItems: Array<{ to: string; label: string; end?: boolean; visible: boolean; badge?: number }> = [
+    // the class they render with.
+    const navItems: NavItem[] = [
         { to: "/", label: "Projekte", end: true, visible: true },
         { to: "/finanzen", label: "Finanzen", visible: true },
         { to: "/infraplan", label: "Infraplan", visible: true },
         { to: "/abgeordnete", label: "Abgeordnete", visible: user !== null },
-        { to: "/tasks", label: "Aufgaben", visible: user !== null },
-        { to: "/admin", label: "Admin", visible: canAdmin, badge: totalUnassigned },
+        { to: "/tasks", label: "Aufgaben", visible: user !== null, count: openTodoList.length, overdue: todosOverdue },
+        { to: "/admin", label: "Admin", visible: canAdmin, count: totalUnassigned },
     ];
 
-    const renderNavLinks = (base: React.CSSProperties, active: React.CSSProperties) =>
+    const renderNavLinks = (className: string) =>
         navItems
             .filter((item) => item.visible)
             .map((item) => (
@@ -102,47 +98,45 @@ export function Header() {
                     key={item.to}
                     to={item.to}
                     end={item.end}
-                    style={({ isActive }) => (isActive ? active : base)}
+                    className={({ isActive }) => (isActive ? `${className} is-active` : className)}
                     onClick={closeDrawer}
                 >
-                    <Group gap={6} align="center" wrap="nowrap">
-                        <span>▸ {item.label}</span>
-                        {item.badge !== undefined && item.badge > 0 && (
-                            <Badge color="violet" size="xs" variant="filled" circle>
-                                {item.badge}
-                            </Badge>
-                        )}
-                    </Group>
+                    {item.label}
+                    {item.count !== undefined && item.count > 0 && (
+                        <span
+                            className={item.overdue ? "app-header__count is-overdue" : "app-header__count"}
+                            aria-label={item.overdue ? `${item.count}, davon überfällige` : String(item.count)}
+                        >
+                            {item.count}
+                        </span>
+                    )}
                 </NavLink>
             ));
 
-    const userBadge = user && (
-        <span
-            style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: "10.5px",
-                letterSpacing: "var(--ls-label)",
-                textTransform: "uppercase",
-                color: "var(--text-muted)",
-                fontWeight: 700,
-            }}
-        >
-            ▸ {user.username}
-        </span>
-    );
-
-    const authSection = user ? (
-        <Group gap="xs">
-            {userBadge}
-            <ChronicleButton variant="ghost" size="sm" onClick={logout}>
-                Abmelden
-            </ChronicleButton>
-        </Group>
-    ) : (
-        <ChronicleButton variant="primary" size="sm" onClick={() => { closeDrawer(); openLogin(); }}>
-            Anmelden
-        </ChronicleButton>
-    );
+    // Between 62em and 80em six entries, the auth section and the toggle only
+    // fit when the logout shrinks to an icon (name in its label) — see the
+    // 80em rule for .app-header in app.css.
+    const isNarrowBar = useMediaQuery(NARROW_BAR_QUERY, false, { getInitialValueInEffect: false }) ?? false;
+    const logoutLabel = user ? `Abmelden (${user.username})` : "Abmelden";
+    const authSection = (inDrawer: boolean) =>
+        user ? (
+            !inDrawer && isNarrowBar ? (
+                <ActionIcon variant="default" size={40} onClick={logout} aria-label={logoutLabel} title={logoutLabel}>
+                    <LogOut size={20} aria-hidden />
+                </ActionIcon>
+            ) : (
+                <Group gap="xs" wrap="nowrap">
+                    <span className="app-header__user">{user.username}</span>
+                    <Button variant="default" h={40} onClick={logout}>
+                        Abmelden
+                    </Button>
+                </Group>
+            )
+        ) : (
+            <Button h={40} onClick={() => { closeDrawer(); openLogin(); }}>
+                Anmelden
+            </Button>
+        );
 
     // Dark mode: default follows the system, the toggle stores an explicit choice
     // (docs/DESIGN.md → Dunkelfassung).
@@ -164,49 +158,37 @@ export function Header() {
 
     return (
         <>
-            <Group
-                justify="space-between"
-                px="var(--page-pad)"
-                py={6}
-                wrap="nowrap"
-                style={{
-                    backgroundColor: "var(--surface)",
-                    height: "100%",
-                    borderTop: "2px solid var(--border-frame)",
-                    borderBottom: "1px solid var(--border)",
-                }}
-            >
-                <NavLink
-                    to="/"
-                    className="header-title-link"
-                    style={{ display: "inline-flex", alignItems: "center", gap: 12, minWidth: 0 }}
-                >
-                    <Signet size={36} title="Schienendashboard" />
-                    {/* Below 30em the wordmark would push the burger off screen —
-                        the signet carries the brand there. */}
-                    <span className="header-wordmark">
-                        <Wordmark size="sm">Schienendashboard</Wordmark>
-                    </span>
-                </NavLink>
+            <div className="app-header">
+                <Link to="/" className="app-header__brand">
+                    <img src="/bildmarke.png" width={40} height={40} alt="" />
+                    <span>Schienendashboard</span>
+                </Link>
                 {isCompact ? (
-                    <Group gap="xs" wrap="nowrap">
+                    <div className="app-header__right">
                         {themeToggle}
-                        <Burger
-                            opened={drawerOpened}
+                        <ActionIcon
+                            variant="default"
+                            size={40}
                             onClick={openDrawer}
                             aria-label="Navigation öffnen"
-                            color="var(--text-strong)"
-                            size="md"
-                        />
-                    </Group>
+                            aria-expanded={drawerOpened}
+                            title="Navigation öffnen"
+                        >
+                            <Menu size={20} aria-hidden />
+                        </ActionIcon>
+                    </div>
                 ) : (
-                    <Group gap="xs" wrap="nowrap">
-                        {renderNavLinks(navLinkBase, navLinkActive)}
-                        {authSection}
-                        {themeToggle}
-                    </Group>
+                    <>
+                        <nav className="app-header__nav" aria-label="Hauptnavigation">
+                            {renderNavLinks("app-header__link")}
+                        </nav>
+                        <div className="app-header__right">
+                            {authSection(false)}
+                            {themeToggle}
+                        </div>
+                    </>
                 )}
-            </Group>
+            </div>
 
             <Drawer
                 opened={drawerOpened}
@@ -215,10 +197,10 @@ export function Header() {
                 position="right"
                 size={isCompact ? "80%" : "xs"}
             >
-                <Stack gap={0}>
-                    {renderNavLinks(drawerNavBase, drawerNavActive)}
+                <Stack gap={0} component="nav" aria-label="Hauptnavigation">
+                    {renderNavLinks("app-drawer__link")}
                 </Stack>
-                <Group pt="md">{authSection}</Group>
+                <Group pt="md">{authSection(true)}</Group>
                 <Button
                     mt="md"
                     variant="default"
