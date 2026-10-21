@@ -15,13 +15,14 @@ import {
     Code,
     Container,
     Group,
+    Paper,
     Stack,
     Table,
     Text,
+    Title,
 } from "@mantine/core";
 import { RefreshCw } from "lucide-react";
 
-import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
 import RequirePermission from "../../components/RequirePermission";
 import {
     useRecheckWorkerHealth,
@@ -88,7 +89,7 @@ function SystemStatusPageContent() {
         <Container size="md" py="xl">
             <Stack gap="lg">
                 <Group justify="space-between" align="center">
-                    <ChronicleHeadline as="h1">Systemstatus</ChronicleHeadline>
+                    <Title order={1}>Systemstatus</Title>
                     <Button
                         variant="light"
                         leftSection={<RefreshCw size={16} />}
@@ -110,7 +111,7 @@ function SystemStatusPageContent() {
                     „wird verarbeitet".
                 </Text>
 
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="md">
                         {isLoading && (
                             <LoadingState rows={2} label="Prüfung läuft …" />
@@ -169,9 +170,9 @@ function SystemStatusPageContent() {
                             </>
                         )}
                     </Stack>
-                </ChronicleCard>
+                </Paper>
 
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="md">
                         <Text fw={600} size="md">Routing-Dienst</Text>
                         <Text size="sm" c="dimmed">
@@ -227,9 +228,9 @@ function SystemStatusPageContent() {
                             </>
                         )}
                     </Stack>
-                </ChronicleCard>
+                </Paper>
 
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="xs">
                         <Text fw={600} size="md">Wenn kein Worker läuft</Text>
                         <Text size="sm">
@@ -245,7 +246,7 @@ function SystemStatusPageContent() {
                             verloren — die Datei danach einfach erneut hochladen.
                         </Text>
                     </Stack>
-                </ChronicleCard>
+                </Paper>
             </Stack>
         </Container>
     );

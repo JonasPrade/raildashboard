@@ -1,6 +1,5 @@
-import { Container, SegmentedControl, Stack } from "@mantine/core";
+import { Container, SegmentedControl, Stack, Title } from "@mantine/core";
 import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ChronicleHeadline } from "../../components/chronicle";
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 
 /** Funding sources in the "Finanzen" menu; more can follow. */
@@ -21,7 +20,7 @@ export default function FinanzenLayout() {
     return (
         <Container size="xl" pt={{ base: "md", sm: "xl" }} px={{ base: 0, sm: "md" }}>
             <Stack gap="xs">
-                <ChronicleHeadline as="h1">Finanzen</ChronicleHeadline>
+                <Title order={1}>Finanzen</Title>
                 <SegmentedControl
                     data={SECTIONS}
                     value={current}

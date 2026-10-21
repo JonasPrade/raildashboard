@@ -1,15 +1,17 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
+    Badge,
     Collapse,
     Group,
+    Paper,
     SegmentedControl,
     Stack,
     Text,
     TextInput,
+    Title,
     UnstyledButton,
 } from "@mantine/core";
-import { ChronicleHeadline, ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import { useFinves, type FinveListItem } from "../../shared/api/queries";
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { FinveBudgetDetails } from "./shared/FinveBudgetDetails";
@@ -36,20 +38,18 @@ function FinveCard({ finve }: { finve: FinveListItem }) {
     const lastBudget = finve.budgets.at(-1);
 
     return (
-        <ChronicleCard>
+        <Paper withBorder p="var(--card-pad)">
             <Stack gap="md">
                 {/* ── Header row ─────────────────────────────────────────── */}
                 <Group justify="space-between" align="flex-start" wrap="wrap" gap="sm">
                     <Stack gap={4}>
                         <Group gap="sm" align="center">
-                            <ChronicleDataChip>
-                                {finve.id}
-                            </ChronicleDataChip>
+                            <Badge variant="outline">{finve.id}</Badge>
                             {finve.is_sammel_finve && (
-                                <ChronicleDataChip>Sammel-FinVe</ChronicleDataChip>
+                                <Badge variant="outline">Sammel-FinVe</Badge>
                             )}
                             {finve.temporary_finve_number && (
-                                <ChronicleDataChip>vorläufig</ChronicleDataChip>
+                                <Badge variant="outline">vorläufig</Badge>
                             )}
                         </Group>
                         <Text fw={600} size="md" lh={1.3}>
@@ -100,7 +100,7 @@ function FinveCard({ finve }: { finve: FinveListItem }) {
                     </>
                 )}
             </Stack>
-        </ChronicleCard>
+        </Paper>
     );
 }
 
@@ -132,7 +132,7 @@ export default function FinveOverviewPage() {
 
     return (
         <Stack gap="lg" py="lg">
-                <ChronicleHeadline as="h2">Finanzierungsvereinbarungen</ChronicleHeadline>
+                <Title order={2}>Finanzierungsvereinbarungen</Title>
 
                 <Group wrap="wrap" gap="sm">
                     <TextInput

@@ -9,10 +9,10 @@ import {
     Stack,
     Table,
     Text,
+    Title,
 } from "@mantine/core";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { ChevronLeft, Pencil } from "lucide-react";
-import { ChronicleHeadline, ChronicleButton } from "../../components/chronicle";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { useAuth } from "../../lib/auth";
@@ -192,8 +192,8 @@ function UsersPageContent() {
                 </Anchor>
 
                 <Group justify="space-between">
-                    <ChronicleHeadline as="h1">Benutzerverwaltung</ChronicleHeadline>
-                    <ChronicleButton onClick={openCreate}>Neuen Nutzer anlegen</ChronicleButton>
+                    <Title order={1}>Benutzerverwaltung</Title>
+                    <Button onClick={openCreate}>Neuen Nutzer anlegen</Button>
                 </Group>
                 {renderUsersTable()}
             </Stack>

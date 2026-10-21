@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+    Badge,
     Button,
     Container,
     Group,
@@ -11,8 +12,7 @@ import {
 } from "@mantine/core";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { Link } from "react-router-dom";
-import { ChronicleButton, ChronicleDataChip } from "../../components/chronicle";
-import { SectionHead, FlapNumber, Eyebrow } from "../../components/tafel";
+import { Stat } from "../../shared/ui/Stat";
 import { notifications } from "@mantine/notifications";
 import RequirePermission from "../../components/RequirePermission";
 import { filterProjectOption } from "../../lib/filterProjectOption";
@@ -138,24 +138,13 @@ function UnassignedPageContent() {
     return (
         <Container size="xl" py="xl">
             <Stack gap="xl">
-                <SectionHead
-                    n={1}
-                    eyebrow="Admin · Reform-Tafel"
-                    description={
-                        <span>
-                            Importierte Datensätze ohne Projektzuordnung. Editor / Admin können hier inline zuweisen
-                            oder ein neues Projekt anlegen.
-                        </span>
-                    }
-                >
-                    Offene <em style={{ fontStyle: "normal", color: "var(--accent-primary)" }}>Zuordnungen</em>
-                </SectionHead>
+                <div>
+                    <Text className="idt-eyebrow" component="div">Admin</Text>
+                    <Title order={1}>Offene Zuordnungen</Title>
+                </div>
 
                 <Group justify="space-between" align="center" wrap="nowrap">
-                    <Group gap="md" align="center" wrap="nowrap">
-                        <FlapNumber n={totalOpen} digits={String(totalOpen).length > 2 ? String(totalOpen).length : 2} width={48} height={56} fontSize={36} />
-                        <Eyebrow>{totalOpen === 1 ? "1 offene Zuordnung" : `${totalOpen} offene Zuordnungen`}</Eyebrow>
-                    </Group>
+                    <Stat value={totalOpen} title={totalOpen === 1 ? "offene Zuordnung" : "offene Zuordnungen"} />
                     <Button component={Link} to="/admin/projects/new">
                         Neues Projekt anlegen
                     </Button>
@@ -164,11 +153,10 @@ function UnassignedPageContent() {
                 {/* FinVe section */}
                 <Stack gap="sm">
                     <Group gap="xs" align="center">
-                        <FlapNumber n={2} digits={2} width={32} height={36} fontSize={22} />
-                        <Title order={4} style={{ fontFamily: "var(--font-display)", textTransform: "uppercase", margin: 0 }}>
+                        <Title order={2}>
                             FinVes ohne Projektzuordnung
                         </Title>
-                        <ChronicleDataChip>{finves?.length ?? "…"}</ChronicleDataChip>
+                        <Badge variant="outline">{finves?.length ?? "…"}</Badge>
                     </Group>
                     {finvesLoading && <LoadingState rows={6} />}
                     {!finvesLoading && (
@@ -195,9 +183,9 @@ function UnassignedPageContent() {
                                         <Table.Td>{f.id}</Table.Td>
                                         <Table.Td>{f.name ?? "–"}</Table.Td>
                                         <Table.Td>
-                                            <ChronicleDataChip>
+                                            <Badge variant="outline">
                                                 {f.is_sammel_finve ? "SV-FinVe" : "FinVe"}
-                                            </ChronicleDataChip>
+                                            </Badge>
                                         </Table.Td>
                                         <Table.Td>{f.starting_year ?? "–"}</Table.Td>
                                         <Table.Td>
@@ -215,12 +203,12 @@ function UnassignedPageContent() {
                                                         size="xs"
                                                         w={300}
                                                     />
-                                                    <ChronicleButton
+                                                    <Button
                                                         disabled={!(finveSelections[f.id]?.length)}
                                                         onClick={() => handleAssignFinve(f.id)}
                                                     >
                                                         Zuweisen
-                                                    </ChronicleButton>
+                                                    </Button>
                                                 </Group>
                                                 <MissingProjectAnchor
                                                     onClick={() =>
@@ -239,11 +227,10 @@ function UnassignedPageContent() {
                 {/* VIB section */}
                 <Stack gap="sm">
                     <Group gap="xs" align="center">
-                        <FlapNumber n={3} digits={2} width={32} height={36} fontSize={22} />
-                        <Title order={4} style={{ fontFamily: "var(--font-display)", textTransform: "uppercase", margin: 0 }}>
+                        <Title order={2}>
                             VIB-Einträge ohne Projektzuordnung
                         </Title>
-                        <ChronicleDataChip>{vibEntries?.length ?? "…"}</ChronicleDataChip>
+                        <Badge variant="outline">{vibEntries?.length ?? "…"}</Badge>
                     </Group>
                     {vibLoading && <LoadingState rows={6} />}
                     {!vibLoading && (
@@ -273,7 +260,7 @@ function UnassignedPageContent() {
                                         <Table.Td style={{ maxWidth: 300 }}>{e.vib_name_raw}</Table.Td>
                                         <Table.Td>{e.vib_section ?? "–"}</Table.Td>
                                         <Table.Td>
-                                            <ChronicleDataChip>{e.category}</ChronicleDataChip>
+                                            <Badge variant="outline">{e.category}</Badge>
                                         </Table.Td>
                                         <Table.Td>{e.report_year}</Table.Td>
                                         <Table.Td>
@@ -291,12 +278,12 @@ function UnassignedPageContent() {
                                                         size="xs"
                                                         w={300}
                                                     />
-                                                    <ChronicleButton
+                                                    <Button
                                                         disabled={!(vibSelections[e.id]?.length)}
                                                         onClick={() => handleAssignVib(e.id)}
                                                     >
                                                         Zuweisen
-                                                    </ChronicleButton>
+                                                    </Button>
                                                 </Group>
                                                 <MissingProjectAnchor
                                                     onClick={() =>
@@ -320,11 +307,10 @@ function UnassignedPageContent() {
                 {/* GVFG section — newest edition only */}
                 <Stack gap="sm">
                     <Group gap="xs" align="center">
-                        <FlapNumber n={4} digits={2} width={32} height={36} fontSize={22} />
-                        <Title order={4} style={{ fontFamily: "var(--font-display)", textTransform: "uppercase", margin: 0 }}>
+                        <Title order={2}>
                             GVFG-Vorhaben ohne Projektzuordnung
                         </Title>
-                        <ChronicleDataChip>{gvfgEntries?.length ?? "…"}</ChronicleDataChip>
+                        <Badge variant="outline">{gvfgEntries?.length ?? "…"}</Badge>
                     </Group>
                     <Text size="xs" c="dimmed">
                         Nur die neueste Ausgabe des Bundesprogramms. Zugewiesene Projekte kommen in die Gruppe „GVFG“
@@ -376,12 +362,12 @@ function UnassignedPageContent() {
                                                         size="xs"
                                                         w={300}
                                                     />
-                                                    <ChronicleButton
+                                                    <Button
                                                         disabled={!(gvfgSelections[e.id]?.length)}
                                                         onClick={() => handleAssignGvfg(e.id)}
                                                     >
                                                         Zuweisen
-                                                    </ChronicleButton>
+                                                    </Button>
                                                 </Group>
                                                 <MissingProjectAnchor
                                                     onClick={() =>
@@ -400,11 +386,10 @@ function UnassignedPageContent() {
                 {/* Infraplan section — newest year only */}
                 <Stack gap="sm">
                     <Group gap="xs" align="center">
-                        <FlapNumber n={5} digits={2} width={32} height={36} fontSize={22} />
-                        <Title order={4} style={{ fontFamily: "var(--font-display)", textTransform: "uppercase", margin: 0 }}>
+                        <Title order={2}>
                             Infraplan-Einträge ohne Projektzuordnung
                         </Title>
-                        <ChronicleDataChip>{infraplanEntries?.length ?? "…"}</ChronicleDataChip>
+                        <Badge variant="outline">{infraplanEntries?.length ?? "…"}</Badge>
                     </Group>
                     <Text size="xs" c="dimmed">
                         Nur der neueste Jahrgang des Infraplans. Eine Zuordnung aktualisiert den Planungsstand des
@@ -467,12 +452,12 @@ function UnassignedPageContent() {
                                                         size="xs"
                                                         w={300}
                                                     />
-                                                    <ChronicleButton
+                                                    <Button
                                                         disabled={!(infraplanSelections[e.id]?.length)}
                                                         onClick={() => handleAssignInfraplan(e.id)}
                                                     >
                                                         Zuweisen
-                                                    </ChronicleButton>
+                                                    </Button>
                                                 </Group>
                                                 <MissingProjectAnchor
                                                     onClick={() =>

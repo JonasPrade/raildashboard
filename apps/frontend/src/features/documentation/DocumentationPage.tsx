@@ -1,12 +1,11 @@
-import { Anchor, Group, List, Stack, Text } from "@mantine/core";
-import { ChronicleHeadline, ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
+import { Anchor, Badge, Group, List, Paper, Stack, Text, Title } from "@mantine/core";
 import { featureHighlights, qualityGates, techStack, workflows } from "./documentationData";
 
 export default function DocumentationPage() {
     return (
         <Stack gap="xl" p={{ base: "xs", sm: "xl" }} maw={960} mx="auto">
             <Stack gap="xs">
-                <ChronicleHeadline as="h1">Railway dashboard – feature & developer documentation</ChronicleHeadline>
+                <Title order={1}>Railway dashboard – feature & developer documentation</Title>
                 <Text c="dimmed">
                     This page complements the <Anchor component="a" href="/README.md" target="_blank">README</Anchor> and
                     outlines the currently available features, workflows, and quality requirements of the frontend.
@@ -14,11 +13,11 @@ export default function DocumentationPage() {
                 </Text>
             </Stack>
 
-            <ChronicleCard>
+            <Paper withBorder p="var(--card-pad)">
                 <Stack gap="sm">
                     <Group justify="space-between" align="flex-start">
-                        <ChronicleHeadline as="h2">Technology stack</ChronicleHeadline>
-                        <ChronicleDataChip>Updated: {new Date().getFullYear()}</ChronicleDataChip>
+                        <Title order={2}>Technology stack</Title>
+                        <Badge variant="outline">Updated: {new Date().getFullYear()}</Badge>
                     </Group>
                     <List spacing="xs">
                         {techStack.map((entry) => (
@@ -26,12 +25,12 @@ export default function DocumentationPage() {
                         ))}
                     </List>
                 </Stack>
-            </ChronicleCard>
+            </Paper>
 
             <Stack gap="md">
-                <ChronicleHeadline as="h2">Feature highlights</ChronicleHeadline>
+                <Title order={2}>Feature highlights</Title>
                 {featureHighlights.map((feature) => (
-                    <ChronicleCard key={feature.title}>
+                    <Paper withBorder p="var(--card-pad)" key={feature.title}>
                         <Stack gap="xs">
                             <Group gap="xs">
                                 <Text fw={600} size="lg">{feature.title}</Text>
@@ -45,13 +44,13 @@ export default function DocumentationPage() {
                                 </List>
                             )}
                         </Stack>
-                    </ChronicleCard>
+                    </Paper>
                 ))}
             </Stack>
 
             <Stack gap="lg">
                 {workflows.map((workflow) => (
-                    <ChronicleCard key={workflow.title}>
+                    <Paper withBorder p="var(--card-pad)" key={workflow.title}>
                         <Stack gap="xs">
                             <Text fw={600} size="lg">{workflow.title}</Text>
                             <List spacing="xs" type="ordered">
@@ -60,16 +59,14 @@ export default function DocumentationPage() {
                                 ))}
                             </List>
                         </Stack>
-                    </ChronicleCard>
+                    </Paper>
                 ))}
 
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="xs">
                         <Group gap="xs">
                             <Text fw={600} size="lg">Quality requirements</Text>
-                            <ChronicleDataChip>
-                                mandatory
-                            </ChronicleDataChip>
+                            <Badge variant="outline">mandatory</Badge>
                         </Group>
                         <List spacing="xs">
                             {qualityGates.map((gate) => (
@@ -77,10 +74,10 @@ export default function DocumentationPage() {
                             ))}
                         </List>
                     </Stack>
-                </ChronicleCard>
+                </Paper>
             </Stack>
 
-            <ChronicleCard>
+            <Paper withBorder p="var(--card-pad)">
                 <Stack gap="xs">
                     <Text fw={600} size="lg">Further resources</Text>
                     <List spacing="xs">
@@ -103,7 +100,7 @@ export default function DocumentationPage() {
                         </List.Item>
                     </List>
                 </Stack>
-            </ChronicleCard>
+            </Paper>
         </Stack>
     );
 }

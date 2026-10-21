@@ -5,14 +5,15 @@ import {
     Container,
     Group,
     Modal,
+    Paper,
     Stack,
     Text,
+    Title,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { ChronicleCard, ChronicleHeadline } from "../../../components/chronicle";
 import { useAuth } from "../../../lib/auth";
 import RequirePermission from "../../../components/RequirePermission";
 import {
@@ -63,7 +64,7 @@ function DraftsPageContent() {
         <Container size="lg" py="xl">
             <Stack gap="lg">
                 <Group justify="space-between" align="center">
-                    <ChronicleHeadline as="h1">Projekt-Entwürfe</ChronicleHeadline>
+                    <Title order={1}>Projekt-Entwürfe</Title>
                     <Button component={Link} to="/admin/projects/new" variant="light">
                         Neues Projekt
                     </Button>
@@ -81,7 +82,7 @@ function DraftsPageContent() {
                 ) : (
                     <Stack gap="sm">
                         {drafts.map((p) => (
-                            <ChronicleCard key={p.id}>
+                            <Paper withBorder p="var(--card-pad)" key={p.id}>
                                 <Group justify="space-between" align="center" wrap="nowrap">
                                     <Stack gap={2} style={{ minWidth: 0 }}>
                                         <Group gap={8} align="center">
@@ -122,7 +123,7 @@ function DraftsPageContent() {
                                         </Button>
                                     </Group>
                                 </Group>
-                            </ChronicleCard>
+                            </Paper>
                         ))}
                     </Stack>
                 )}
