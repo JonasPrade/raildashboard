@@ -18,15 +18,16 @@ import {
     FileInput,
     Group,
     NumberInput,
+    Paper,
     Stack,
     Text,
+    Title,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { Map as MapIcon, RefreshCw, Route } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
 import RequirePermission from "../../components/RequirePermission";
 import {
     type ParliamentStatus,
@@ -158,7 +159,7 @@ function ParliamentAdminPageContent() {
         <Container size="md" py="xl">
             <Stack gap="lg">
                 <Stack gap={4}>
-                    <ChronicleHeadline as="h1">Abgeordnetenstand</ChronicleHeadline>
+                    <Title order={1}>Abgeordnetenstand</Title>
                     <Text c="dimmed" size="sm">
                         Abgeordnete, Mandate und Ausschussmitgliedschaften kommen von
                         abgeordnetenwatch.de (API v2, CC0). Die Wahlkreisgeometrien werden einmal je
@@ -169,7 +170,7 @@ function ParliamentAdminPageContent() {
                 {isLoading ? (
                     <LoadingState rows={3} />
                 ) : status ? (
-                    <ChronicleCard>
+                    <Paper withBorder p="var(--card-pad)">
                         <Stack gap="xs">
                             <Group gap="xs">
                                 <Text size="sm" fw={500}>Wahlperiode:</Text>
@@ -205,10 +206,10 @@ function ParliamentAdminPageContent() {
                                     </Text>
                                 )}
                         </Stack>
-                    </ChronicleCard>
+                    </Paper>
                 ) : null}
 
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="sm">
                         <Text fw={500}>Abgeordnetenstand aktualisieren</Text>
                         <Text size="sm" c="dimmed">
@@ -228,9 +229,9 @@ function ParliamentAdminPageContent() {
                             <Alert color="orange" variant="light">{importTask.warning}</Alert>
                         )}
                     </Stack>
-                </ChronicleCard>
+                </Paper>
 
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="sm">
                         <Text fw={500}>Wahlkreisgeometrien importieren</Text>
                         <Text size="sm" c="dimmed">
@@ -274,9 +275,9 @@ function ParliamentAdminPageContent() {
                             <Alert color="orange" variant="light">{geometryTask.warning}</Alert>
                         )}
                     </Stack>
-                </ChronicleCard>
+                </Paper>
 
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="sm">
                         <Text fw={500}>Projekt-Wahlkreis-Zuordnung neu berechnen</Text>
                         <Text size="sm" c="dimmed">
@@ -306,7 +307,7 @@ function ParliamentAdminPageContent() {
                             <Alert color="orange" variant="light">{linkTask.warning}</Alert>
                         )}
                     </Stack>
-                </ChronicleCard>
+                </Paper>
             </Stack>
         </Container>
     );

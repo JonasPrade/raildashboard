@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Button, Group, SimpleGrid, Stack, Text, TextInput, Textarea } from "@mantine/core";
+import {
+    Button,
+    Group,
+    Paper,
+    SimpleGrid,
+    Stack,
+    Text,
+    Textarea,
+    TextInput,
+} from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 
-import { ChronicleCard } from "../../components/chronicle";
 import {
     useAppSettings,
     useUpdateAppSettings,
@@ -107,7 +115,7 @@ export function LegalSettingsCard() {
     };
 
     return (
-        <ChronicleCard>
+        <Paper withBorder p="var(--card-pad)">
             <Stack gap="md" id={LEGAL_SETTINGS_ANCHOR} ref={ref} style={{ scrollMarginTop: 80 }}>
                 <Stack gap={4}>
                     <Text component="h2" fw={700} m={0} size="lg">
@@ -167,6 +175,6 @@ export function LegalSettingsCard() {
                     </Button>
                 </Group>
             </Stack>
-        </ChronicleCard>
+        </Paper>
     );
 }

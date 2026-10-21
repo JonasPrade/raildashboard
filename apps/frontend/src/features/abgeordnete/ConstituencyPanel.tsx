@@ -2,10 +2,9 @@
  * Selection panel for the constituency map layer: which projects lie in this
  * constituency, and who is responsible for them.
  */
-import { Anchor, CloseButton, Group, ScrollArea, Stack, Text } from "@mantine/core";
+import { Anchor, Badge, CloseButton, Group, ScrollArea, Stack, Text } from "@mantine/core";
 import { Link } from "react-router-dom";
 
-import { ChronicleDataChip } from "../../components/chronicle";
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { useConstituency } from "../../shared/api/queries";
 import { MandateGroup, formatWeight } from "./mandateDisplay";
@@ -64,7 +63,7 @@ export default function ConstituencyPanel({
                                     <Text size="sm" fw={700} tt="uppercase" c="dimmed">
                                         Projekte
                                     </Text>
-                                    <ChronicleDataChip>{data.projects.length}</ChronicleDataChip>
+                                    <Badge variant="outline">{data.projects.length}</Badge>
                                 </Group>
                                 {data.projects.length === 0 ? (
                                     <Text size="sm" c="dimmed" fs="italic">

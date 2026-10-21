@@ -3,14 +3,15 @@ import {
     Badge,
     Container,
     Group,
+    Paper,
     Select,
     Stack,
     Table,
     Text,
+    Title,
 } from "@mantine/core";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 
-import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
 import RequirePermission from "../../components/RequirePermission";
 import {
     type SammelFinveProgress,
@@ -98,7 +99,7 @@ function FinveProgressAdminPageContent() {
         <Container size="lg" py="xl">
             <Stack gap="lg">
                 <Stack gap={4}>
-                    <ChronicleHeadline as="h1">Sammel-FinVe · Phasen-Zuordnung</ChronicleHeadline>
+                    <Title order={1}>Sammel-FinVe · Phasen-Zuordnung</Title>
                     <Text size="sm" c="dimmed">
                         Sammel-FinVes treiben den Planungsstand verknüpfter Projekte. Die Phase wird
                         aus der Leistungsphase im Namen erkannt (Lph 1/2 → Vorplanung, Lph 3/4 →
@@ -114,7 +115,7 @@ function FinveProgressAdminPageContent() {
                     </Alert>
                 )}
 
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     {isLoading ? (
                         <LoadingState rows={6} />
                     ) : (
@@ -135,7 +136,7 @@ function FinveProgressAdminPageContent() {
                             </Table.Tbody>
                         </ResponsiveTable>
                     )}
-                </ChronicleCard>
+                </Paper>
             </Stack>
         </Container>
     );

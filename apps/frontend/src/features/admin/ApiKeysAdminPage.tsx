@@ -15,11 +15,11 @@ import {
     Table,
     Text,
     TextInput,
+    Title,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { ChevronLeft } from "lucide-react";
-import { ChronicleButton, ChronicleHeadline } from "../../components/chronicle";
 import RequirePermission from "../../components/RequirePermission";
 import { useAuth } from "../../lib/auth";
 import { API_BASE } from "../../shared/api/client";
@@ -342,8 +342,8 @@ function ApiKeysPageContent() {
                 </Anchor>
 
                 <Group justify="space-between">
-                    <ChronicleHeadline as="h1">API-Keys & MCP</ChronicleHeadline>
-                    <ChronicleButton onClick={openCreate}>Neuen Key anlegen</ChronicleButton>
+                    <Title order={1}>API-Keys & MCP</Title>
+                    <Button onClick={openCreate}>Neuen Key anlegen</Button>
                 </Group>
 
                 <Text size="sm">
@@ -354,7 +354,7 @@ function ApiKeysPageContent() {
                 </Text>
 
                 <Stack gap="xs">
-                    <ChronicleHeadline as="h2">Meine Keys</ChronicleHeadline>
+                    <Title order={2}>Meine Keys</Title>
                     {isLoading ? (
                         <LoadingState rows={6} />
                     ) : isError ? (
@@ -366,7 +366,7 @@ function ApiKeysPageContent() {
 
                 {canManageUsers && (
                     <Stack gap="xs">
-                        <ChronicleHeadline as="h2">Alle Keys</ChronicleHeadline>
+                        <Title order={2}>Alle Keys</Title>
                         <Text size="sm" c="dimmed">
                             Keys aller Nutzer — als Benutzerverwalter können Sie fremde Keys widerrufen.
                         </Text>

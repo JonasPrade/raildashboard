@@ -4,21 +4,19 @@ import {
     ActionIcon,
     Alert,
     Anchor,
+    Badge,
+    Button,
     Container,
     Group,
+    Paper,
     Stack,
     Text,
+    Title,
     Tooltip,
 } from "@mantine/core";
 import { ChevronLeft, Pencil, Plus, Trash2 } from "lucide-react";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
-import {
-    ChronicleHeadline,
-    ChronicleCard,
-    ChronicleDataChip,
-    ChronicleButton,
-} from "../../components/chronicle";
 import RequirePermission from "../../components/RequirePermission";
 import { useDeleteRole, useRoles, type Role } from "../../shared/api/queries";
 import { RoleFormModal } from "./RoleFormModal";
@@ -85,14 +83,14 @@ function RolesAdminPageContent() {
 
                 <Group justify="space-between" align="flex-start">
                     <Stack gap="xs">
-                        <ChronicleHeadline as="h1">Rollen & Berechtigungen</ChronicleHeadline>
+                        <Title order={1}>Rollen & Berechtigungen</Title>
                         <Text c="dimmed" size="sm">
                             Rollen anlegen und ihnen granulare Bearbeitungsrechte zuweisen.
                         </Text>
                     </Stack>
-                    <ChronicleButton onClick={openCreate}>
+                    <Button onClick={openCreate}>
                         <Plus size={16} /> Neue Rolle
-                    </ChronicleButton>
+                    </Button>
                 </Group>
 
                 {isError && (
@@ -104,12 +102,12 @@ function RolesAdminPageContent() {
                 ) : (
                     <Stack gap="sm">
                         {(roles ?? []).map((role) => (
-                            <ChronicleCard key={role.id}>
+                            <Paper withBorder p="var(--card-pad)" key={role.id}>
                                 <Group justify="space-between" align="center">
                                     <Stack gap={2}>
                                         <Group gap="xs" align="center">
                                             <Text size="sm" fw={500}>{role.name}</Text>
-                                            {role.is_system && <ChronicleDataChip>System</ChronicleDataChip>}
+                                            {role.is_system && <Badge variant="outline">System</Badge>}
                                         </Group>
                                         <Text size="xs" c="dimmed">
                                             {role.description || "Keine Beschreibung"}
@@ -146,7 +144,7 @@ function RolesAdminPageContent() {
                                         </Tooltip>
                                     </Group>
                                 </Group>
-                            </ChronicleCard>
+                            </Paper>
                         ))}
 
                         {(roles ?? []).length === 0 && (

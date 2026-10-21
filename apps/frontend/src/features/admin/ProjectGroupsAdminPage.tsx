@@ -2,18 +2,21 @@ import { useMemo, useState } from "react";
 import {
     ActionIcon,
     Alert,
+    Badge,
+    Button,
     Container,
     Group,
+    Paper,
     SegmentedControl,
     Stack,
     Switch,
     Text,
     TextInput,
+    Title,
     Tooltip,
 } from "@mantine/core";
 import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { modals } from "@mantine/modals";
-import { ChronicleHeadline, ChronicleCard, ChronicleDataChip, ChronicleButton } from "../../components/chronicle";
 import { notifications } from "@mantine/notifications";
 import {
     useProjectGroups,
@@ -153,7 +156,7 @@ export default function ProjectGroupsAdminPage() {
             <Stack gap="xl">
                 <Group justify="space-between" align="flex-start">
                     <Stack gap="xs">
-                        <ChronicleHeadline as="h1">Projektgruppen – Kartenansicht</ChronicleHeadline>
+                        <Title order={1}>Projektgruppen – Kartenansicht</Title>
                         <Text c="dimmed" size="sm">
                             Projektgruppen verwalten sowie Standardauswahl auf Karte
                         </Text>
@@ -161,12 +164,12 @@ export default function ProjectGroupsAdminPage() {
                             Lege fest, welche Projektgruppen auf der Karte angezeigt und vorausgewählt werden.
                         </Text>
                     </Stack>
-                    <ChronicleButton onClick={openCreate}>
+                    <Button onClick={openCreate}>
                         <Plus size={16} /> Neue Gruppe
-                    </ChronicleButton>
+                    </Button>
                 </Group>
 
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="sm">
                         <Text size="sm" fw={500}>Anzeigemodus</Text>
                         <SegmentedControl
@@ -179,7 +182,7 @@ export default function ProjectGroupsAdminPage() {
                             <Text size="xs" c="dimmed">{activeMode.description}</Text>
                         )}
                     </Stack>
-                </ChronicleCard>
+                </Paper>
 
                 {isError && (
                     <ErrorState onRetry={() => void refetch()}>Projektgruppen konnten nicht geladen werden.</ErrorState>
@@ -215,7 +218,7 @@ export default function ProjectGroupsAdminPage() {
                         )}
 
                         {filteredGroups.map((group) => (
-                            <ChronicleCard key={group.id}>
+                            <Paper withBorder p="var(--card-pad)" key={group.id}>
                                 <Group justify="space-between" align="center">
                                     <Group gap="sm" align="center" style={{ opacity: group.is_visible ? 1 : 0.4 }}>
                                         <span
@@ -236,10 +239,10 @@ export default function ProjectGroupsAdminPage() {
                                             </Text>
                                         </Stack>
                                         {!group.is_visible && (
-                                            <ChronicleDataChip>Ausgeblendet</ChronicleDataChip>
+                                            <Badge variant="outline">Ausgeblendet</Badge>
                                         )}
                                         {group.is_visible && group.is_default_selected && (
-                                            <ChronicleDataChip>Vorausgewählt</ChronicleDataChip>
+                                            <Badge variant="outline">Vorausgewählt</Badge>
                                         )}
                                     </Group>
 
@@ -283,7 +286,7 @@ export default function ProjectGroupsAdminPage() {
                                         </Group>
                                     </Group>
                                 </Group>
-                            </ChronicleCard>
+                            </Paper>
                         ))}
 
                         {sortedGroups.length === 0 && (

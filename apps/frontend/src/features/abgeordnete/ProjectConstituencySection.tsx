@@ -6,10 +6,19 @@
  * 51 km and 3 km are not the same argument.
  */
 import { useState } from "react";
-import { Alert, Anchor, Divider, Group, Stack, Text } from "@mantine/core";
+import {
+    Alert,
+    Anchor,
+    Badge,
+    Divider,
+    Group,
+    Paper,
+    Stack,
+    Text,
+    Title,
+} from "@mantine/core";
 import { Link } from "react-router-dom";
 
-import { ChronicleCard, ChronicleDataChip, ChronicleHeadline } from "../../components/chronicle";
 import { useAuth } from "../../lib/auth";
 import { type ProjectConstituency, useProjectConstituencies } from "../../shared/api/queries";
 import { MandateGroup, formatShare, formatWeight } from "./mandateDisplay";
@@ -30,13 +39,13 @@ function ConstituencyBlock({ constituency }: { constituency: ProjectConstituency
                     )}
                 </Stack>
                 <Group gap="xs">
-                    <ChronicleDataChip>
+                    <Badge variant="outline">
                         {formatWeight(constituency.length_km, constituency.overlap_kind)}
-                    </ChronicleDataChip>
+                    </Badge>
                     {constituency.overlap_kind !== "point" && (
-                        <ChronicleDataChip>
+                        <Badge variant="outline">
                             {formatShare(constituency.share)} des Projekts
-                        </ChronicleDataChip>
+                        </Badge>
                     )}
                 </Group>
             </Group>
@@ -72,16 +81,16 @@ export default function ProjectConstituencySection({ projectId }: { projectId: n
 
     if (isLoading) {
         return (
-            <ChronicleCard>
+            <Paper withBorder p="var(--card-pad)">
                 <LoadingState rows={3} />
-            </ChronicleCard>
+            </Paper>
         );
     }
     if (isError || !data) {
         return (
-            <ChronicleCard>
+            <Paper withBorder p="var(--card-pad)">
                 <Text c="dimmed">Wahlkreiszuordnung konnte nicht geladen werden.</Text>
-            </ChronicleCard>
+            </Paper>
         );
     }
 
@@ -90,10 +99,10 @@ export default function ProjectConstituencySection({ projectId }: { projectId: n
     const canEdit = can("project.edit");
 
     return (
-        <ChronicleCard>
+        <Paper withBorder p="var(--card-pad)">
             <Stack gap="md">
                 <Group justify="space-between" align="baseline">
-                    <ChronicleHeadline as="h2">Wahlkreise und Abgeordnete</ChronicleHeadline>
+                    <Title order={2}>Wahlkreise und Abgeordnete</Title>
                     {data.last_import?.finished_at && (
                         <Text size="xs" c="dimmed">
                             Abgeordnetenstand:{" "}
@@ -142,6 +151,6 @@ export default function ProjectConstituencySection({ projectId }: { projectId: n
                     </Text>
                 )}
             </Stack>
-        </ChronicleCard>
+        </Paper>
     );
 }

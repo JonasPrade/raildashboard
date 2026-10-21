@@ -10,21 +10,22 @@ import { useMemo, useState } from "react";
 import {
     Accordion,
     Alert,
-    Container,
     Anchor,
     Badge,
+    Container,
     Group,
+    Paper,
     Select,
     Stack,
     Table,
     Text,
     TextInput,
+    Title,
 } from "@mantine/core";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { Search } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 
-import { ChronicleCard, ChronicleDataChip, ChronicleHeadline } from "../../components/chronicle";
 import { useAuth } from "../../lib/auth";
 import {
     type PoliticianListItem,
@@ -121,10 +122,10 @@ function PoliticianRow({ politician }: { politician: PoliticianListItem }) {
                     </Stack>
                     <Group gap="xs" wrap="nowrap">
                         <CommitteeBadges committees={politician.committees} />
-                        <ChronicleDataChip>
+                        <Badge variant="outline">
                             {politician.project_count}{" "}
                             {politician.project_count === 1 ? "Projekt" : "Projekte"}
-                        </ChronicleDataChip>
+                        </Badge>
                     </Group>
                 </Group>
             </Accordion.Control>
@@ -191,7 +192,7 @@ function PoliticianWorkingList() {
     return (
         <Stack gap="lg" p={{ base: "xs", sm: "xl" }} maw={1100} mx="auto">
             <Stack gap="xs">
-                <ChronicleHeadline as="h1">Abgeordnete</ChronicleHeadline>
+                <Title order={1}>Abgeordnete</Title>
                 <Text c="dimmed">
                     Wer ist für welches Projekt zuständig? Namen suchen, auf Verkehrs- oder
                     Haushaltsausschuss filtern und die Projekte im jeweiligen Wahlkreis lesen.
@@ -220,7 +221,7 @@ function PoliticianWorkingList() {
                 </Alert>
             )}
 
-            <ChronicleCard>
+            <Paper withBorder p="var(--card-pad)">
                 <Group align="flex-end" gap="md" wrap="wrap">
                     <TextInput
                         label="Name"
@@ -250,7 +251,7 @@ function PoliticianWorkingList() {
                         style={{ flex: "0 1 260px" }}
                     />
                 </Group>
-            </ChronicleCard>
+            </Paper>
 
             <Group justify="space-between" align="baseline" wrap="wrap" gap="xs">
                 <Text size="sm" c="dimmed">

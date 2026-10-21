@@ -4,11 +4,12 @@ import {
     Badge,
     Container,
     Group,
+    Paper,
     SimpleGrid,
     Stack,
     Text,
+    Title,
 } from "@mantine/core";
-import { ChronicleHeadline, ChronicleCard } from "../../components/chronicle";
 import { LegalSettingsCard } from "./LegalSettingsCard";
 import { useAuth } from "../../lib/auth";
 import {
@@ -81,19 +82,19 @@ export default function AdminOverviewPage() {
     return (
         <Container size="lg" py="xl">
             <Stack gap="lg">
-                <ChronicleHeadline as="h1">Administration</ChronicleHeadline>
+                <Title order={1}>Administration</Title>
 
                 <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="sm">
-                    <ChronicleCard style={{ textDecoration: "none" }}>
+                    <Paper withBorder p="var(--card-pad)">
                         <Link to="/admin/anleitungen" style={{ textDecoration: "none", color: "inherit" }}>
                             <Stack gap={4}>
                                 <Text fw={500}>Anleitungen</Text>
                                 <Text size="sm" c="dimmed">Workflows für die Datenpflege: Projektfortschritt, Haushalt, Fulda-Runde, Bauportal</Text>
                             </Stack>
                         </Link>
-                    </ChronicleCard>
+                    </Paper>
                     {canAssignments && (
-                        <ChronicleCard style={{ textDecoration: "none" }}>
+                        <Paper withBorder p="var(--card-pad)">
                             <Link to="/admin/unassigned" style={{ textDecoration: "none", color: "inherit" }}>
                                 <Stack gap={4}>
                                     <Group gap={6} align="center">
@@ -107,110 +108,110 @@ export default function AdminOverviewPage() {
                                     <Text size="sm" c="dimmed">FinVes, VIB-, GVFG- und Infraplan-Einträge ohne Projektzuordnung</Text>
                                 </Stack>
                             </Link>
-                        </ChronicleCard>
+                        </Paper>
                     )}
                     {canHaushalt && (
-                        <ChronicleCard style={{ textDecoration: "none" }}>
+                        <Paper withBorder p="var(--card-pad)">
                             <Link to="/admin/haushalt-import" style={{ textDecoration: "none", color: "inherit" }}>
                                 <Stack gap={4}>
                                     <Text fw={500}>Haushalts-Import</Text>
                                     <Text size="sm" c="dimmed">Jährlichen VWIB-Bundeshaushalt importieren</Text>
                                 </Stack>
                             </Link>
-                        </ChronicleCard>
+                        </Paper>
                     )}
                     {canGvfg && (
-                        <ChronicleCard style={{ textDecoration: "none" }}>
+                        <Paper withBorder p="var(--card-pad)">
                             <Link to="/admin/gvfg-import" style={{ textDecoration: "none", color: "inherit" }}>
                                 <Stack gap={4}>
                                     <Text fw={500}>GVFG-Import</Text>
                                     <Text size="sm" c="dimmed">GVFG-Bundesprogramm (ÖPNV-Förderung) importieren</Text>
                                 </Stack>
                             </Link>
-                        </ChronicleCard>
+                        </Paper>
                     )}
                     {canInfraplan && (
-                        <ChronicleCard style={{ textDecoration: "none" }}>
+                        <Paper withBorder p="var(--card-pad)">
                             <Link to="/admin/infraplan-import" style={{ textDecoration: "none", color: "inherit" }}>
                                 <Stack gap={4}>
                                     <Text fw={500}>Infraplan</Text>
                                     <Text size="sm" c="dimmed">Infraplan (Fünfjahresplan Schiene) einlesen, zuordnen, Kennzahlen erfassen und freigeben; Kennzahl-Einstellungen unter „Allgemeines“</Text>
                                 </Stack>
                             </Link>
-                        </ChronicleCard>
+                        </Paper>
                     )}
                     {canVib && (
-                        <ChronicleCard style={{ textDecoration: "none" }}>
+                        <Paper withBorder p="var(--card-pad)">
                             <Link to="/admin/vib-import" style={{ textDecoration: "none", color: "inherit" }}>
                                 <Stack gap={4}>
                                     <Text fw={500}>VIB-Import</Text>
                                     <Text size="sm" c="dimmed">Verkehrsinvestitionsbericht (Schienenwege) importieren</Text>
                                 </Stack>
                             </Link>
-                        </ChronicleCard>
+                        </Paper>
                     )}
                     {canProgress && (
-                        <ChronicleCard style={{ textDecoration: "none" }}>
+                        <Paper withBorder p="var(--card-pad)">
                             <Link to="/admin/finve-progress" style={{ textDecoration: "none", color: "inherit" }}>
                                 <Stack gap={4}>
                                     <Text fw={500}>Sammel-FinVe Phasen</Text>
                                     <Text size="sm" c="dimmed">Planungsphase von Sammel-FinVes zuordnen (Lph/EKrG)</Text>
                                 </Stack>
                             </Link>
-                        </ChronicleCard>
+                        </Paper>
                     )}
                     {canProgress && (
-                        <ChronicleCard style={{ textDecoration: "none" }}>
+                        <Paper withBorder p="var(--card-pad)">
                             <Link to="/admin/bauportal-import" style={{ textDecoration: "none", color: "inherit" }}>
                                 <Stack gap={4}>
                                     <Text fw={500}>DB-Bauportal</Text>
                                     <Text size="sm" c="dimmed">Bau-/Planungsstand aus der Bauportal-API abrufen & zuordnen</Text>
                                 </Stack>
                             </Link>
-                        </ChronicleCard>
+                        </Paper>
                     )}
                     {canProgress && (
-                        <ChronicleCard style={{ textDecoration: "none" }}>
+                        <Paper withBorder p="var(--card-pad)">
                             <Link to="/admin/media-import" style={{ textDecoration: "none", color: "inherit" }}>
                                 <Stack gap={4}>
                                     <Text fw={500}>Medien / Presse</Text>
                                     <Text size="sm" c="dimmed">Presseartikel (URL/Text) per KI auswerten & als Beobachtung übernehmen</Text>
                                 </Stack>
                             </Link>
-                        </ChronicleCard>
+                        </Paper>
                     )}
                     {canProgress && (
-                        <ChronicleCard style={{ textDecoration: "none" }}>
+                        <Paper withBorder p="var(--card-pad)">
                             <Link to="/admin/fulda-import" style={{ textDecoration: "none", color: "inherit" }}>
                                 <Stack gap={4}>
                                     <Text fw={500}>Fulda-Runde</Text>
                                     <Text size="sm" c="dimmed">Kleine Anfrage (PDF) per OCR+KI nach Leistungsphase auswerten</Text>
                                 </Stack>
                             </Link>
-                        </ChronicleCard>
+                        </Paper>
                     )}
                     {canParliament && (
-                        <ChronicleCard style={{ textDecoration: "none" }}>
+                        <Paper withBorder p="var(--card-pad)">
                             <Link to="/admin/abgeordnete" style={{ textDecoration: "none", color: "inherit" }}>
                                 <Stack gap={4}>
                                     <Text fw={500}>Abgeordnetenstand</Text>
                                     <Text size="sm" c="dimmed">Abgeordnete aus abgeordnetenwatch aktualisieren, Wahlkreis-Zuordnung neu berechnen</Text>
                                 </Stack>
                             </Link>
-                        </ChronicleCard>
+                        </Paper>
                     )}
                     {canCreateProject && (
-                        <ChronicleCard style={{ textDecoration: "none" }}>
+                        <Paper withBorder p="var(--card-pad)">
                             <Link to="/admin/projects/new" style={{ textDecoration: "none", color: "inherit" }}>
                                 <Stack gap={4}>
                                     <Text fw={500}>Neues Projekt anlegen</Text>
                                     <Text size="sm" c="dimmed">Wizard: Stammdaten, Geometrie, Eigenschaften, FinVes, VIB</Text>
                                 </Stack>
                             </Link>
-                        </ChronicleCard>
+                        </Paper>
                     )}
                     {canCreateProject && (
-                        <ChronicleCard style={{ textDecoration: "none" }}>
+                        <Paper withBorder p="var(--card-pad)">
                             <Link to="/admin/drafts" style={{ textDecoration: "none", color: "inherit" }}>
                                 <Stack gap={4}>
                                     <Group gap={6} align="center">
@@ -224,20 +225,20 @@ export default function AdminOverviewPage() {
                                     <Text size="sm" c="dimmed">Begonnene, noch nicht finalisierte Projekte fertigstellen</Text>
                                 </Stack>
                             </Link>
-                        </ChronicleCard>
+                        </Paper>
                     )}
                     {canProjectGroups && (
-                        <ChronicleCard style={{ textDecoration: "none" }}>
+                        <Paper withBorder p="var(--card-pad)">
                             <Link to="/admin/project-groups" style={{ textDecoration: "none", color: "inherit" }}>
                                 <Stack gap={4}>
                                     <Text fw={500}>Projektgruppen</Text>
                                     <Text size="sm" c="dimmed">Standardauswahl auf der Karte konfigurieren</Text>
                                 </Stack>
                             </Link>
-                        </ChronicleCard>
+                        </Paper>
                     )}
                     {canSettings && (
-                        <ChronicleCard style={{ textDecoration: "none" }}>
+                        <Paper withBorder p="var(--card-pad)">
                             <Link to="/admin/system" style={{ textDecoration: "none", color: "inherit" }}>
                                 <Stack gap={4}>
                                     <Group gap={6} align="center">
@@ -256,37 +257,37 @@ export default function AdminOverviewPage() {
                                     </Text>
                                 </Stack>
                             </Link>
-                        </ChronicleCard>
+                        </Paper>
                     )}
                     {canUsers && (
-                        <ChronicleCard style={{ textDecoration: "none" }}>
+                        <Paper withBorder p="var(--card-pad)">
                             <Link to="/admin/users" style={{ textDecoration: "none", color: "inherit" }}>
                                 <Stack gap={4}>
                                     <Text fw={500}>Benutzerverwaltung</Text>
                                     <Text size="sm" c="dimmed">Nutzer anlegen, Rollen ändern, Passwörter setzen</Text>
                                 </Stack>
                             </Link>
-                        </ChronicleCard>
+                        </Paper>
                     )}
                     {canMcp && (
-                        <ChronicleCard style={{ textDecoration: "none" }}>
+                        <Paper withBorder p="var(--card-pad)">
                             <Link to="/admin/api-keys" style={{ textDecoration: "none", color: "inherit" }}>
                                 <Stack gap={4}>
                                     <Text fw={500}>API-Keys & MCP</Text>
                                     <Text size="sm" c="dimmed">Persönliche Keys für KI-Assistenten (Claude Code) anlegen und widerrufen</Text>
                                 </Stack>
                             </Link>
-                        </ChronicleCard>
+                        </Paper>
                     )}
                     {canRoles && (
-                        <ChronicleCard style={{ textDecoration: "none" }}>
+                        <Paper withBorder p="var(--card-pad)">
                             <Link to="/admin/roles" style={{ textDecoration: "none", color: "inherit" }}>
                                 <Stack gap={4}>
                                     <Text fw={500}>Rollen & Berechtigungen</Text>
                                     <Text size="sm" c="dimmed">Rollen anlegen und granulare Rechte zuweisen</Text>
                                 </Stack>
                             </Link>
-                        </ChronicleCard>
+                        </Paper>
                     )}
                 </SimpleGrid>
 
