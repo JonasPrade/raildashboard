@@ -1,5 +1,5 @@
-import { Badge, Group, SimpleGrid, Stack, Text, Tooltip } from "@mantine/core";
-import { ChronicleCard } from "../../../components/chronicle";
+import { Badge, Group, Stack, Tooltip } from "@mantine/core";
+import { Stat, StatBand } from "../../../shared/ui/Stat";
 import { useProjectFinves, useProjectInfraplan } from "../../../shared/api/queries";
 import { formatMio } from "../../infraplan/infraplanFormat";
 import { committedFinveMio } from "./projectCost";
@@ -23,56 +23,50 @@ export default function ProjectCostBlock({ projectId }: { projectId: number }) {
 
     const footnotes = Object.entries(forecast.footnotes ?? {});
 
+    const forecastValue = (
+        <Tooltip
+            disabled={footnotes.length === 0}
+            label={footnotes.map(([nr, text]) => `${nr}) ${text}`).join("\n")}
+            multiline
+            w={320}
+            withArrow
+            style={{ whiteSpace: "pre-line" }}
+            events={{ hover: true, focus: true, touch: true }}
+        >
+            <span tabIndex={footnotes.length > 0 ? 0 : undefined}>
+                {formatMio(forecast.total_mio)}
+                {footnotes.length > 0 && <sup style={{ marginLeft: 2 }}>{footnotes.map(([nr]) => nr).join(",")}</sup>}
+            </span>
+        </Tooltip>
+    );
+
     return (
-        <ChronicleCard>
-            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
-                <Stack gap={2}>
-                    <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
-                        {forecast.label}
-                    </Text>
-                    <Group gap="xs" align="baseline" wrap="wrap">
-                        <Tooltip
-                            disabled={footnotes.length === 0}
-                            label={footnotes.map(([nr, text]) => `${nr}) ${text}`).join("\n")}
-                            multiline
-                            w={320}
-                            withArrow
-                            style={{ whiteSpace: "pre-line" }}
-                            events={{ hover: true, focus: true, touch: true }}
-                        >
-                            <Text fw={700} size="xl" tabIndex={footnotes.length > 0 ? 0 : undefined}>
-                                {formatMio(forecast.total_mio)} Mio. €
-                                {footnotes.length > 0 && (
-                                    <sup style={{ color: "var(--mantine-color-blue-6)", marginLeft: 2 }}>
-                                        {footnotes.map(([nr]) => nr).join(",")}
-                                    </sup>
-                                )}
-                            </Text>
-                        </Tooltip>
-                        {forecast.from_subprojects && (
-                            <Badge size="sm" variant="light" color="gray">Summe der Teilprojekte</Badge>
-                        )}
-                    </Group>
-                    <Text size="xs" c="dimmed">
-                        Laut Infraplan {forecast.year}
-                        {forecast.is_gvfg ? " — Angabe des Landes, nicht plausibilisiert" : ""}.
-                    </Text>
-                </Stack>
-                <Stack gap={2}>
-                    <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Vom Bund zugesichert</Text>
-                    {committed ? (
-                        <>
-                            <Text fw={700} size="xl">{formatMio(committed.total)} Mio. €</Text>
-                            <Text size="xs" c="dimmed">
-                                {committed.count === 1 ? "Eine Finanzierungsvereinbarung" : `${committed.count} Finanzierungsvereinbarungen`}{" "}
-                                (FinVe, aktuelle Kosten laut Haushalt).
-                            </Text>
-                        </>
-                    ) : (
-                        <Text size="sm" c="dimmed">Keine projektbezogene FinVe.</Text>
-                    )}
-                </Stack>
-            </SimpleGrid>
-        </ChronicleCard>
+        <Stack gap="xs">
+            <StatBand columns={2}>
+                <Stat
+                    value={forecastValue}
+                    unit="Mio. €"
+                    title={
+                        <Group gap="xs" wrap="wrap">
+                            <span>{forecast.label}</span>
+                            {forecast.from_subprojects && (
+                                <Badge size="sm" variant="outline">Summe der Teilprojekte</Badge>
+                            )}
+                        </Group>
+                    }
+                    label={`Laut Infraplan ${forecast.year}${forecast.is_gvfg ? " — Angabe des Landes, nicht plausibilisiert" : ""}`}
+                />
+                {committed ? (
+                    <Stat
+                        value={formatMio(committed.total)}
+                        unit="Mio. €"
+                        title="Vom Bund zugesichert"
+                        label={`${committed.count === 1 ? "Eine Finanzierungsvereinbarung" : `${committed.count} Finanzierungsvereinbarungen`} (FinVe, aktuelle Kosten laut Haushalt)`}
+                    />
+                ) : (
+                    <Stat value="–" title="Vom Bund zugesichert" label="Keine projektbezogene FinVe" />
+                )}
+            </StatBand>
+        </Stack>
     );
 }

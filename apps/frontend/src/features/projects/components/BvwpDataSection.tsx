@@ -1,5 +1,7 @@
 import {
+    Badge,
     Group,
+    Paper,
     SimpleGrid,
     Stack,
     Table,
@@ -9,7 +11,6 @@ import {
 } from "@mantine/core";
 import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
 import { type BvwpProjectData, useProjectBvwp } from "../../../shared/api/queries";
-import { ChronicleCard, ChronicleDataChip } from "../../../components/chronicle";
 import { formatTEuroWithZero } from "../../../shared/format";
 import { LoadingState } from "../../../shared/ui/LoadingState";
 
@@ -307,7 +308,7 @@ function KapazitaetTab({ data }: { data: BvwpProjectData }) {
         <Stack gap="md">
             {hasTable && (
                 <Stack gap="xs">
-                    <Text size="sm" fw={600} c="dimmed" tt="uppercase" lts={0.5}>Streckenauslastung (überlastet)</Text>
+                    <Text component="div" className="idt-eyebrow">Streckenauslastung (überlastet)</Text>
                     <ResponsiveTable minWidth={640} withTableBorder withColumnBorders fz="sm">
                         <Table.Thead>
                             <Table.Tr>
@@ -453,9 +454,9 @@ export default function BvwpDataSection({ projectId }: Props) {
 
     if (isLoading) {
         return (
-            <ChronicleCard>
+            <Paper withBorder p="var(--card-pad)">
                 <LoadingState rows={6} label="BVWP-Daten werden geladen …" />
-            </ChronicleCard>
+            </Paper>
         );
     }
 
@@ -465,15 +466,15 @@ export default function BvwpDataSection({ projectId }: Props) {
     const visibleTabs = TABS.filter((t) => t.hasData(data));
 
     return (
-        <ChronicleCard>
+        <Paper withBorder p="var(--card-pad)">
             <Stack gap="md">
                 <Group gap="md" align="center">
                     <Title order={4}>BVWP-Bewertung</Title>
                     {data.nkv != null && (
-                        <ChronicleDataChip>NKV {fmtFloat(data.nkv)}</ChronicleDataChip>
+                        <Badge variant="outline">NKV {fmtFloat(data.nkv)}</Badge>
                     )}
                     {data.priority && (
-                        <ChronicleDataChip>{data.priority}</ChronicleDataChip>
+                        <Badge variant="outline">{data.priority}</Badge>
                     )}
                 </Group>
 
@@ -496,6 +497,6 @@ export default function BvwpDataSection({ projectId }: Props) {
                     </Tabs>
                 )}
             </Stack>
-        </ChronicleCard>
+        </Paper>
     );
 }

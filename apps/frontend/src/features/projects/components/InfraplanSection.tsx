@@ -1,7 +1,6 @@
 import { useMemo } from "react";
-import { Alert, Anchor, Badge, Group, Stack, Table, Text, Title } from "@mantine/core";
+import { Alert, Anchor, Badge, Group, Paper, Stack, Table, Text, Title } from "@mantine/core";
 import { Link } from "react-router-dom";
-import { ChronicleCard } from "../../../components/chronicle";
 import { useProjectInfraplan, type InfraplanProjectEntry } from "../../../shared/api/queries";
 import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
 import Footnotes from "../../infraplan/Footnotes";
@@ -29,7 +28,7 @@ export default function InfraplanSection({ projectId }: { projectId: number }) {
     if (!data || entries.length === 0) return null;
 
     return (
-        <ChronicleCard>
+        <Paper withBorder p="var(--card-pad)">
             <Stack gap="md">
                 <Group justify="space-between" wrap="wrap">
                     <Title order={4}>Infraplan</Title>
@@ -96,7 +95,7 @@ export default function InfraplanSection({ projectId }: { projectId: number }) {
                                     <Table.Td>
                                         <Group gap={4} wrap="wrap">
                                             {hints.map((h) => (
-                                                <Badge key={h} size="sm" variant="outline" color="gray" style={{ textTransform: "none" }}>
+                                                <Badge key={h} size="sm" variant="outline">
                                                     {h}
                                                 </Badge>
                                             ))}
@@ -112,6 +111,6 @@ export default function InfraplanSection({ projectId }: { projectId: number }) {
                     vorherigen Jahrgang derselben Maßnahme.
                 </Text>
             </Stack>
-        </ChronicleCard>
+        </Paper>
     );
 }

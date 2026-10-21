@@ -2,9 +2,11 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
     ActionIcon,
     Anchor,
+    Badge,
     Button,
     Group,
     Modal,
+    Paper,
     Radio,
     Select,
     Stack,
@@ -15,7 +17,6 @@ import {
     Title,
     Tooltip,
 } from "@mantine/core";
-import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import { Check, Eye, Lock } from "lucide-react";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
@@ -558,7 +559,7 @@ function AttachmentList({ attachments, textId, projectId, canEdit }: AttachmentL
                             >
                                 {a.filename}
                             </Anchor>
-                            <ChronicleDataChip>{formatBytes(a.file_size)}</ChronicleDataChip>
+                            <Badge variant="outline">{formatBytes(a.file_size)}</Badge>
                         </Group>
                         <Group gap={4} wrap="nowrap">
                             {a.mime_type === "application/pdf" && (
@@ -895,17 +896,17 @@ export default function ProjectTextsSection({ projectId, canEdit }: ProjectTexts
 
     if (isLoading) {
         return (
-            <ChronicleCard>
+            <Paper withBorder p="var(--card-pad)">
                 <LoadingState rows={3} />
-            </ChronicleCard>
+            </Paper>
         );
     }
 
     if (isError) {
         return (
-            <ChronicleCard>
+            <Paper withBorder p="var(--card-pad)">
                 <ErrorState onRetry={() => void refetch()}>Texte konnten nicht geladen werden.</ErrorState>
-            </ChronicleCard>
+            </Paper>
         );
     }
 
@@ -917,7 +918,7 @@ export default function ProjectTextsSection({ projectId, canEdit }: ProjectTexts
 
     return (
         <>
-            <ChronicleCard>
+            <Paper withBorder p="var(--card-pad)">
                 <Stack gap="sm">
                     <Group justify="space-between" align="center">
                         <Title order={4}>Texte</Title>
@@ -939,7 +940,7 @@ export default function ProjectTextsSection({ projectId, canEdit }: ProjectTexts
                         </Text>
                     )}
                 </Stack>
-            </ChronicleCard>
+            </Paper>
 
             <TextFormModal
                 opened={createOpened}

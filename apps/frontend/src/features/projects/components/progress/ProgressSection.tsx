@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { Badge, Button, Group, Stack, Text } from "@mantine/core";
+import { Badge, Button, Group, Paper, Stack, Text, Title } from "@mantine/core";
 import { Pencil } from "lucide-react";
 
-import { ChronicleCard, ChronicleHeadline } from "../../../../components/chronicle";
 import { useAuth } from "../../../../lib/auth";
 import { useProjectProgress } from "../../../../shared/api/queries";
 import ForecastPanel from "./ForecastPanel";
@@ -31,18 +30,18 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
 
     if (isLoading) {
         return (
-            <ChronicleCard>
+            <Paper withBorder p="var(--card-pad)">
                 <LoadingState rows={4} label="Planungsstand wird geladen …" />
-            </ChronicleCard>
+            </Paper>
         );
     }
     if (isError || !progress) {
         return (
-            <ChronicleCard>
+            <Paper withBorder p="var(--card-pad)">
                 <Text size="sm" c="dimmed">
                     Planungsstand konnte nicht geladen werden.
                 </Text>
-            </ChronicleCard>
+            </Paper>
         );
     }
 
@@ -68,13 +67,13 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
     });
 
     return (
-        <ChronicleCard>
+        <Paper withBorder p="var(--card-pad)">
             <Stack gap="lg">
                 <Group justify="space-between" align="flex-start">
                     <Stack gap={2}>
-                        <ChronicleHeadline as="h2" style={{ fontSize: "1.15rem" }}>
+                        <Title order={2}>
                             Planungsstand
-                        </ChronicleHeadline>
+                        </Title>
                         <Group gap="sm">
                             {progress.is_superior ? (
                                 hasSpan ? (
@@ -168,7 +167,7 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
 
                 {!isDimmed && (
                     <Stack gap="xs">
-                        <Text size="sm" fw={700} c="dimmed" tt="uppercase" style={{ letterSpacing: 0.5 }}>
+                        <Text component="div" className="idt-eyebrow">
                             Prognose
                         </Text>
                         <ForecastPanel forecast={progress.forecast} />
@@ -189,6 +188,6 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
                     onClose={() => setEditing(false)}
                 />
             )}
-        </ChronicleCard>
+        </Paper>
     );
 }

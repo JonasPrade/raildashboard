@@ -9,12 +9,15 @@ import {
     Container,
     Grid,
     Group,
+    Badge,
     Menu,
+    Paper,
     Stack,
     Text,
+    Title,
 } from "@mantine/core";
 import { EllipsisVertical } from "lucide-react";
-import { ChronicleCard, ChronicleDataChip, ChronicleHeadline } from "../../components/chronicle";
+import { SwatchTag } from "../../shared/ui/SwatchTag";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -491,9 +494,9 @@ export default function ProjectDetail() {
                 <Group justify="space-between" align="flex-start" wrap="wrap" gap="sm">
                     <Stack gap={4} style={{ flex: "1 1 240px", minWidth: 0 }}>
                         <Group gap="sm" align="baseline">
-                            <ChronicleHeadline as="h1" style={{ fontSize: "1.5rem" }}>{project.name}</ChronicleHeadline>
+                            <Title order={1}>{project.name}</Title>
                             {project.project_number && (
-                                <ChronicleDataChip>{project.project_number}</ChronicleDataChip>
+                                <Badge variant="outline">{project.project_number}</Badge>
                             )}
                         </Group>
                         <Text size="sm" c="dimmed">
@@ -563,9 +566,9 @@ export default function ProjectDetail() {
                     <Grid gutter="md" align="stretch">
                         <Grid.Col span={{ base: 12, md: 4 }}>
                             <Stack gap="md" style={{ height: "100%" }}>
-                                <ChronicleCard>
+                                <Paper withBorder p="var(--card-pad)">
                                     <Stack gap="sm">
-                                        <ChronicleHeadline as="h2">Projektdetails</ChronicleHeadline>
+                                        <Title order={2}>Projektdetails</Title>
                                         {visibleDetailRows.length > 0 && (
                                             <Stack gap={8}>
                                                 {visibleDetailRows.map(({ label, value }) => (
@@ -573,33 +576,29 @@ export default function ProjectDetail() {
                                                 ))}
                                             </Stack>
                                         )}
-                                        <Text size="xs" fw={600} c="dimmed" tt="uppercase" lts={0.5}>Verkehrsarten</Text>
+                                        <Text component="div" className="idt-eyebrow">Verkehrsarten</Text>
                                         <Group gap="xs">
                                             {trainCategoryLabels.map(({ key, label, color }) => {
                                                 const isActive = Boolean(project[key]);
                                                 return (
-                                                    <ChronicleDataChip
-                                                        key={String(key)}
-                                                        dotColor={color}
-                                                        style={{ opacity: isActive ? 1 : 0.4 }}
-                                                    >
+                                                    <SwatchTag key={String(key)} color={color} style={{ opacity: isActive ? 1 : 0.4 }}>
                                                         {label}
-                                                    </ChronicleDataChip>
+                                                    </SwatchTag>
                                                 );
                                             })}
                                         </Group>
                                         {activeFeatureGroups.length > 0 && (
                                             <>
-                                                <Text size="xs" fw={600} c="dimmed" tt="uppercase" lts={0.5}>Merkmale</Text>
+                                                <Text component="div" className="idt-eyebrow">Merkmale</Text>
                                                 <Stack gap="md">
                                                     {activeFeatureGroups.map(({ groupLabel, activeFeatures }) => (
                                                         <Stack key={groupLabel} gap={6}>
                                                             <Text size="xs" fw={600} c="dimmed">{groupLabel}</Text>
                                                             <Group gap="xs">
                                                                 {activeFeatures.map(({ key, label }) => (
-                                                                    <ChronicleDataChip key={String(key)}>
+                                                                    <Badge key={String(key)} variant="outline">
                                                                         {label}
-                                                                    </ChronicleDataChip>
+                                                                    </Badge>
                                                                 ))}
                                                             </Group>
                                                         </Stack>
@@ -608,23 +607,23 @@ export default function ProjectDetail() {
                                             </>
                                         )}
                                     </Stack>
-                                </ChronicleCard>
+                                </Paper>
                                 {project.description && project.description.trim() !== "" && (
-                                    <ChronicleCard>
+                                    <Paper withBorder p="var(--card-pad)">
                                         <Stack gap="sm">
-                                            <ChronicleHeadline as="h2">Beschreibung</ChronicleHeadline>
+                                            <Title order={2}>Beschreibung</Title>
                                             <Text size="sm">{project.description}</Text>
                                         </Stack>
-                                    </ChronicleCard>
+                                    </Paper>
                                 )}
                             </Stack>
                         </Grid.Col>
                         <Grid.Col span={{ base: 12, md: 8 }}>
-                            <ChronicleCard style={{ height: "100%" }}>
+                            <Paper withBorder p="var(--card-pad)" style={{ height: "100%" }}>
                                 <Stack gap="sm" style={{ height: "100%" }}>
-                                    <ChronicleHeadline as="h2">
+                                    <Title order={2}>
                                         {subProjects.length > 0 ? "Karte – Unterprojekte" : "Karte"}
-                                    </ChronicleHeadline>
+                                    </Title>
                                     <div style={{ flex: 1, minHeight: 0 }}>
                                         <MapView
                                             projects={mapProjects}
@@ -634,14 +633,14 @@ export default function ProjectDetail() {
                                         />
                                     </div>
                                 </Stack>
-                            </ChronicleCard>
+                            </Paper>
                         </Grid.Col>
                     </Grid>
                 ) : (
                     <>
-                        <ChronicleCard>
+                        <Paper withBorder p="var(--card-pad)">
                             <Stack gap="sm">
-                                <ChronicleHeadline as="h2">Projektdetails</ChronicleHeadline>
+                                <Title order={2}>Projektdetails</Title>
                                 {visibleDetailRows.length > 0 && (
                                     <Stack gap={8}>
                                         {visibleDetailRows.map(({ label, value }) => (
@@ -649,33 +648,29 @@ export default function ProjectDetail() {
                                         ))}
                                     </Stack>
                                 )}
-                                <Text size="xs" fw={600} c="dimmed" tt="uppercase" lts={0.5}>Verkehrsarten</Text>
+                                <Text component="div" className="idt-eyebrow">Verkehrsarten</Text>
                                 <Group gap="xs">
                                     {trainCategoryLabels.map(({ key, label, color }) => {
                                         const isActive = Boolean(project[key]);
                                         return (
-                                            <ChronicleDataChip
-                                                key={String(key)}
-                                                dotColor={color}
-                                                style={{ opacity: isActive ? 1 : 0.4 }}
-                                            >
+                                            <SwatchTag key={String(key)} color={color} style={{ opacity: isActive ? 1 : 0.4 }}>
                                                 {label}
-                                            </ChronicleDataChip>
+                                            </SwatchTag>
                                         );
                                     })}
                                 </Group>
                                 {activeFeatureGroups.length > 0 && (
                                     <>
-                                        <Text size="xs" fw={600} c="dimmed" tt="uppercase" lts={0.5}>Merkmale</Text>
+                                        <Text component="div" className="idt-eyebrow">Merkmale</Text>
                                         <Stack gap="md">
                                             {activeFeatureGroups.map(({ groupLabel, activeFeatures }) => (
                                                 <Stack key={groupLabel} gap={6}>
                                                     <Text size="xs" fw={600} c="dimmed">{groupLabel}</Text>
                                                     <Group gap="xs">
                                                         {activeFeatures.map(({ key, label }) => (
-                                                            <ChronicleDataChip key={String(key)}>
+                                                            <Badge key={String(key)} variant="outline">
                                                                 {label}
-                                                            </ChronicleDataChip>
+                                                            </Badge>
                                                         ))}
                                                     </Group>
                                                 </Stack>
@@ -684,14 +679,14 @@ export default function ProjectDetail() {
                                     </>
                                 )}
                             </Stack>
-                        </ChronicleCard>
+                        </Paper>
                         {project.description && project.description.trim() !== "" && (
-                            <ChronicleCard>
+                            <Paper withBorder p="var(--card-pad)">
                                 <Stack gap="sm">
-                                    <ChronicleHeadline as="h2">Beschreibung</ChronicleHeadline>
+                                    <Title order={2}>Beschreibung</Title>
                                     <Text size="sm">{project.description}</Text>
                                 </Stack>
-                            </ChronicleCard>
+                            </Paper>
                         )}
                     </>
                 )}
@@ -717,12 +712,12 @@ export default function ProjectDetail() {
                 {/* Begründung */}
                 {project.justification && project.justification.trim() !== "" && (
                     <div ref={justificationRef}>
-                    <ChronicleCard>
+                    <Paper withBorder p="var(--card-pad)">
                         <Stack gap="sm">
-                            <ChronicleHeadline as="h2">Begründung</ChronicleHeadline>
+                            <Title order={2}>Begründung</Title>
                             <Text size="sm">{project.justification}</Text>
                         </Stack>
-                    </ChronicleCard>
+                    </Paper>
                     </div>
                 )}
 
@@ -761,10 +756,10 @@ export default function ProjectDetail() {
                 {/* Übergeordnetes Projekt */}
                 {superiorProject && (
                     <div ref={superiorRef}>
-                    <ChronicleCard>
+                    <Paper withBorder p="var(--card-pad)">
                         <Stack gap="sm">
-                            <ChronicleHeadline as="h2">Übergeordnetes Projekt</ChronicleHeadline>
-                            <ChronicleCard>
+                            <Title order={2}>Übergeordnetes Projekt</Title>
+                            <Paper withBorder p="var(--card-pad)">
                                 <Stack gap="sm">
                                     <ProjectSummaryCard project={superiorProject} />
                                     <Button
@@ -776,19 +771,19 @@ export default function ProjectDetail() {
                                         Zum Projekt
                                     </Button>
                                 </Stack>
-                            </ChronicleCard>
+                            </Paper>
                         </Stack>
-                    </ChronicleCard>
+                    </Paper>
                     </div>
                 )}
 
                 {/* Unterprojekte */}
                 {subProjects.length > 0 && (
                     <div ref={subProjectsRef}>
-                    <ChronicleCard>
+                    <Paper withBorder p="var(--card-pad)">
                         <Stack gap="sm">
                             <Group justify="space-between" align="center">
-                                <ChronicleHeadline as="h2">Unterprojekte ({subProjects.length})</ChronicleHeadline>
+                                <Title order={2}>Unterprojekte ({subProjects.length})</Title>
                                 <Button
                                     size="xs"
                                     variant="subtle"
@@ -801,7 +796,7 @@ export default function ProjectDetail() {
                             <Collapse in={subProjectsOpen}>
                                 <Stack gap="sm">
                                     {subProjects.map((sub) => (
-                                        <ChronicleCard key={sub.id}>
+                                        <Paper key={sub.id} withBorder p="var(--card-pad)">
                                             <Stack gap="sm">
                                                 <ProjectSummaryCard project={sub} />
                                                 <Button
@@ -813,12 +808,12 @@ export default function ProjectDetail() {
                                                     Zum Projekt
                                                 </Button>
                                             </Stack>
-                                        </ChronicleCard>
+                                        </Paper>
                                     ))}
                                 </Stack>
                             </Collapse>
                         </Stack>
-                    </ChronicleCard>
+                    </Paper>
                     </div>
                 )}
 
@@ -832,10 +827,10 @@ export default function ProjectDetail() {
                 {/* Versionshistorie – nur für eingeloggte Nutzer sichtbar */}
                 {user !== null && (
                     <div ref={historyRef}>
-                    <ChronicleCard>
+                    <Paper withBorder p="var(--card-pad)">
                         <Stack gap="sm">
                             <Group justify="space-between" align="center">
-                                <ChronicleHeadline as="h2">Versionshistorie</ChronicleHeadline>
+                                <Title order={2}>Versionshistorie</Title>
                                 <Button
                                     size="xs"
                                     variant="subtle"
@@ -849,7 +844,7 @@ export default function ProjectDetail() {
                                 <ProjectHistorySection projectId={projectId} canEdit={canEdit} />
                             </Collapse>
                         </Stack>
-                    </ChronicleCard>
+                    </Paper>
                     </div>
                 )}
 

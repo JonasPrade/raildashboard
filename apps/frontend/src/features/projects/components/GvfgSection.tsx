@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { Anchor, Collapse, Group, Stack, Table, Text, Title } from "@mantine/core";
+import { Anchor, Badge, Collapse, Group, Paper, Stack, Table, Text, Title } from "@mantine/core";
 import { BarChart } from "@mantine/charts";
 import "../../../shared/ui/charts.css";
 import { CHART_SERIES } from "../../../shared/theme/semanticColors";
 import "@mantine/charts/styles.css";
 import { Link } from "react-router-dom";
-import { ChronicleCard, ChronicleDataChip } from "../../../components/chronicle";
 import { type GvfgProjectEntry, useProjectGvfg } from "../../../shared/api/queries";
 import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
 import { CATEGORY_LABEL, KIND_LABEL, editionLabel, formatMio, num, sumLine } from "../../gvfg/gvfgFormat";
@@ -138,14 +137,14 @@ function EntryCard({ editions }: { editions: GvfgProjectEntry[] }) {
     const entry = editions[0];
     const total = sumLine(entry);
     return (
-        <ChronicleCard>
+        <Paper withBorder p="var(--card-pad)">
             <Stack gap="sm">
                 <Group justify="space-between" align="flex-start" wrap="wrap">
                     <Stack gap={4}>
                         <Group gap="xs">
-                            <ChronicleDataChip>{entry.key}</ChronicleDataChip>
-                            <ChronicleDataChip>Ausgabe {editionLabel(entry.program)}</ChronicleDataChip>
-                            {entry.part === "nachrichtlich" && <ChronicleDataChip>nachrichtlich</ChronicleDataChip>}
+                            <Badge variant="outline">{entry.key}</Badge>
+                            <Badge variant="outline">Ausgabe {editionLabel(entry.program)}</Badge>
+                            {entry.part === "nachrichtlich" && <Badge variant="outline">nachrichtlich</Badge>}
                         </Group>
                         <Text size="sm" fw={500}>{entry.name ?? "–"}</Text>
                         <Text size="xs" c="dimmed">
@@ -187,7 +186,7 @@ function EntryCard({ editions }: { editions: GvfgProjectEntry[] }) {
                     </Stack>
                 </Collapse>
             </Stack>
-        </ChronicleCard>
+        </Paper>
     );
 }
 
@@ -239,7 +238,7 @@ export default function GvfgSection({ projectId }: { projectId: number }) {
     const children = byKey(entries.filter((e) => !e.projects.some((p) => p.id === projectId)));
 
     return (
-        <ChronicleCard>
+        <Paper withBorder p="var(--card-pad)">
             <Stack gap="md">
                 <Group justify="space-between" wrap="wrap">
                     <Title order={4}>GVFG-Bundesprogramm</Title>
@@ -254,6 +253,6 @@ export default function GvfgSection({ projectId }: { projectId: number }) {
                     {CATEGORY_LABEL.C}: bedingt aufgenommen.
                 </Text>
             </Stack>
-        </ChronicleCard>
+        </Paper>
     );
 }
