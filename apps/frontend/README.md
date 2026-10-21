@@ -35,11 +35,11 @@ The map view expects a raster tile URL provided via `REACT_APP_TILE_LAYER_URL`. 
 │   ├── shared/            # Modules shared across features
 │   │   ├── api/           # Generated types + react-query hooks (queries.ts)
 │   │   ├── hooks/         # Cross-feature hooks (useBreakpoint: useIsMobile/useIsCompact)
-│   │   ├── theme/         # IDT design: tokens.css (DS), mantine-bridge.css, theme.ts (Mantine theme), fonts/
-│   │   └── ui/            # Cross-feature UI primitives (ResponsiveTable)
+│   │   ├── theme/         # IDT design: tokens.css (DS), mantine-bridge.css, theme.ts, components.css, layout.css, semanticColors.ts, fonts/
+│   │   └── ui/            # Cross-feature UI building blocks (ResponsiveTable, EmptyState/LoadingState/ErrorState, SaveStatus, Stat/StatBand, SwatchTag)
 │   └── router.tsx         # Route definitions
 ├── README.md              # This document
-├── AGENT.MD               # Contribution guidelines
+├── AGENT.md               # Contribution guidelines
 └── package.json           # npm scripts and dependencies
 ```
 
@@ -53,6 +53,7 @@ The map view expects a raster tile URL provided via `REACT_APP_TILE_LAYER_URL`. 
 | `react-router-dom` | Client-side routing |
 | `maplibre-gl` | Map rendering for the map view and the geometry editor preview |
 | `terra-draw` + `terra-draw-maplibre-gl-adapter` | Interactive hand-drawing of lines/points in the geometry editor (`GeometryPreviewMap`) |
+| `lucide-react` | The only icon set (stroke 1.75, sizes 16/20/24 from the design system); there is no other icon package |
 | `axios` | HTTP client (configured in `shared/api/client.gen.ts`) — note: manual API calls use the custom `fetch`-based wrapper in `shared/api/client.ts` |
 
 ## Responsive layout (smartphone support)
@@ -62,21 +63,59 @@ Every route has to work on a 360 px screen. The rules — plan and per-surface b
 
 - **Two breakpoints, no more.** `useIsMobile()` (< 48em, phone) and `useIsCompact()` (< 62em, phone
   or small tablet) from `shared/hooks/useBreakpoint.ts`; the same two values are used in
-  `app.css` and `tokens.css`. Prefer Mantine's responsive props (`SimpleGrid cols={{ base, sm }}`,
+  `app.css` and `shared/theme/layout.css`. Prefer Mantine's responsive props (`SimpleGrid cols={{ base, sm }}`,
   `Grid.Col span={{ … }}`, `visibleFrom`/`hiddenFrom`) for pure layout and the hooks only when the
   rendered tree itself differs (bottom sheet vs. floating panel).
 - **Layout tokens instead of pixels.** `--page-pad`, `--card-pad`, `--map-height` and
-  `--map-height-detail` (in `components/chronicle/tokens.css`) shrink on phones; read the token
+  `--map-height-detail` (in `shared/theme/layout.css`) shrink on phones; read the token
   rather than hard-coding a value.
-- **Data tables use `shared/ui/ResponsiveTable`**, never a bare `<Table>`: it wraps the table in a
-  `Table.ScrollContainer`, so a wide table scrolls inside its card instead of widening the page.
-  `Table.Thead`/`Tbody`/`Tr`/`Td` children stay unchanged.
+- **Data tables use `shared/ui/ResponsiveTable`**, never a bare `<Table>`: from 48em up it is a
+  table inside a `Table.ScrollContainer` (a wide table scrolls inside its card instead of widening
+  the page); under 48em every row becomes a card of label/value pairs (the header cells give the
+  labels). `Table.Thead`/`Tbody`/`Tr`/`Td` children stay unchanged.
+- **The project page has a register**, not a table of contents: `features/projects/ProjectRegister`
+  is a sticky column at the left edge on desktop and the button „Abschnitte“ (drawer) on phones.
 - **Drawers pass `size={isMobile ? "100%" : …}`**; modals become full-width through the mobile CSS
   layer in `app.css` — no per-modal change needed.
 - **Filter rows wrap**, they never scroll: `Group … wrap="wrap"` with `flex="1 1 <basis>"` on the
   inputs.
 - The mobile CSS layer in `src/app.css` also keeps form controls at 16 px (iOS zoom), guarantees
   touch targets on coarse pointers, and hyphenates long German headings.
+
+## Design
+
+The look follows the design system of the Initiative Deutschlandtakt and the studio's
+Anwendungsebene. The rules are in [`docs/DESIGN.md`](../../docs/DESIGN.md), the plan and decisions
+in [`docs/features/feature-idt-design.md`](../../docs/features/feature-idt-design.md). Never
+hard-code a colour, size or font in a component — take a token or a mapping.
+
+`src/shared/theme/`:
+
+| File | Purpose |
+|---|---|
+| `tokens.css` | The design system's tokens, vendored (do not edit by hand; replace the file when the DS changes). Ends in a `[data-theme="dark"]` block generated from `tokens.json` (#224) |
+| `fonts/` | Self-hosted `InterVariable` (woff2), the only typeface; bundled by Vite through the `@font-face` rules in `tokens.css` |
+| `theme.ts` | Mantine theme: colour scales mixed from the DS colours, radius 0, component defaults |
+| `mantine-bridge.css` | Maps Mantine CSS variables onto the DS semantic aliases, in both colour schemes |
+| `components.css` | Mantine components (buttons, fields, tables, dialogs, badges, alerts, notifications, tabs, card variants) after the Anwendungsebene |
+| `layout.css` | Layout tokens only: header height, `--page-pad`, `--card-pad`, map heights, row height |
+| `semanticColors.ts` | The one place that maps domain terms to colours (planning phases, `STATUS_TONE`, traffic types, sources, chart and map colours) |
+| `ThemeAttributeSync.tsx` | Mirrors Mantine's computed colour scheme into `<html data-theme>` for the dark tokens |
+
+**Dark scheme:** `MantineProvider defaultColorScheme="auto"` follows the system setting; the toggle
+in the header stores the explicit choice under `schienendashboard.thema`. An inline script in
+`index.html` sets the scheme before the first paint (same key, keep both in sync). Maps use
+`REACT_APP_TILE_LAYER_URL_DARK` in the dark scheme when it is set.
+
+**Building blocks in `src/shared/ui/`:**
+
+- `EmptyState`, `LoadingState`, `ErrorState` — empty, loading and failed data views; no spinners
+  (loading shows flat placeholder bars).
+- `SaveStatus` — „Gespeichert · 14:32“ / „Speichern …“ / failed with retry, for inline editing.
+- `Stat` / `StatBand` — key figures (36 px, 56 px in a band) with unit and label.
+- `SwatchTag` / `Swatch` — badge with a 9 px square in the data-category colour; tones from `STATUS_TONE`.
+- `ResponsiveTable` — see *Responsive layout*.
+- `charts.css` — shared axes, grid, legend and tooltip for Mantine/recharts charts.
 
 ## Notable features and components
 

@@ -1,6 +1,6 @@
 # Feature: Design der Initiative Deutschlandtakt (IDT-Design)
 
-Stand: 2026-10-21. Status: **geplant**, noch kein Code. Ersetzt „Richtung F ·
+Stand: 2026-10-21. Status: **umgesetzt (Stufen 1–4), Abnahme offen**. Ersetzt „Richtung F ·
 Bahnhofshalle Tag“ (`feature-rebrand-direction-f.md`, abgelöst) vollständig.
 
 Dieses Dokument ist für die Umsetzung durch ein Sprachmodell geschrieben: Es
@@ -22,7 +22,7 @@ Sichtreferenz: `docs/features/idt-design/01-projektliste.png` bis
 `05-mobil-projektdetail.png`, erzeugt aus dem statischen Prototyp
 `docs/features/idt-design/prototyp/` (`liste.html`, `detail.html`,
 `dialog.html`, `proto.css`; die Schrift `InterVariable.woff2` liegt nach
-Stufe 1 unter `apps/frontend/public/fonts/` und wird für den Prototyp nach
+Stufe 1 unter `apps/frontend/src/shared/theme/fonts/` und wird für den Prototyp nach
 `prototyp/fonts/` kopiert). Der Prototyp ist Vorgabe für Maße und Bild, nicht
 für Code.
 
@@ -224,6 +224,13 @@ Der „Nebentext“ 14,5px hat keine Mantine-Stufe: Tabellen und Karten-Paare se
 `fz={rem(14.5)}` bzw. die Klasse `.idt-neben` aus `app.css`.
 
 ### Dunkelfassung
+
+**Umgesetzt (Stufe 1):** Das veröffentlichte `tokens.css` des DS (Version 9) enthält keinen
+`[data-theme="dark"]`-Block, obwohl `tokens.json` das Theme `dark` führt (#224). Der Block am
+Ende der vendorten `tokens.css` ist deshalb aus `tokens.json` erzeugt und entfällt, sobald das
+DS ihn ausliefert. Ein Inline-Skript in `index.html` setzt `data-theme` vor dem ersten Paint
+(liest `localStorage` `schienendashboard.thema`, sonst `prefers-color-scheme`), damit es kein
+Aufblitzen gibt; `ThemeAttributeSync` hält das Attribut danach mit Mantine synchron.
 
 Mechanik: `MantineProvider defaultColorScheme="auto"` mit
 `localStorageColorSchemeManager({ key: "schienendashboard.thema" })`. Ein
@@ -647,13 +654,22 @@ Die Regel „kein dritter Breakpoint“ aus `feature-mobile-usability.md` bleibt
 - Dunkle Kacheln: gibt es beim BKG eine dunkle Variante? Bis dahin bleibt die
   Karte hell.
 - Vektor-Logo und Schutzraum liegen dem DS nicht vor; die Bildmarke bleibt PNG.
-- Inhalte Impressum und Datenschutz (Human Task).
+- Inhalte Impressum und Datenschutz (Human Task, #222).
+- #224 — Das veröffentlichte DS-`tokens.css` enthält keinen Dunkel-Block; bis zur Auslieferung
+  durch das DS steht ein aus `tokens.json` erzeugter Block in der vendorten Datei.
+- #225 — Roter Kleintext erreicht auf Papier nur 4,1:1 und verfehlt damit die
+  Anwendungsebene (4,5:1); Farbe oder Größe klären.
+- #226 — Inline-Bearbeitung: wo `SaveStatus` eingesetzt wird und wie Speichern/Fehler dort
+  angezeigt werden.
+- #227 — Erklärtexte auf Seiten (Regel 10 in `docs/DESIGN.md`) in die Dokumentation
+  verschieben.
 
 ## Issues (angelegt am 2026-10-21)
 
 Epic #217; Stufe 1 #218; Stufe 2 #219 (depends on #218); Stufe 3 #220 (depends on
 #218); Stufe 4 #221 (depends on #219, #220); Human Task Impressum/Datenschutz #222
-(depends on #219). Alle `area:design`, `bot:claude-code`, ohne Milestone, bis der
+(depends on #219). Während der Umsetzung kamen hinzu: #224 (DS-`tokens.css` ohne Dunkel-Block),
+#225 (roter Kleintext 4,1:1), #226 (Inline-Bearbeitung / `SaveStatus`), #227 (Erklärtexte → Doku). Alle `area:design`, `bot:claude-code`, ohne Milestone, bis der
 Nutzer eine Version zuweist. Die Texte unten sind der Stand beim Anlegen.
 
 **Epic — IDT-Design: Dashboard auf das Design der Initiative Deutschlandtakt umstellen** (`type:ui`)

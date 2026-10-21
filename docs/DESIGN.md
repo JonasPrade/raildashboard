@@ -123,7 +123,9 @@ Bedienhöhe 44px und Vollbild-Dialoge unter 48em.
 
 Ändert sich das DS, wird `tokens.css` ausgetauscht (Kopfkommentar mit
 Artefakt-Version und Datum) und die Mantine-Skalen in `theme.ts` werden aus den
-neuen Werten neu gemischt. Neue fachliche Farbzuordnungen kommen nur nach
+neuen Werten neu gemischt. Der Dunkel-Block am Ende der vendorten `tokens.css` ist aus
+`tokens.json` erzeugt, weil das veröffentlichte DS ihn nicht enthält (#224); beim
+Austausch prüfen, ob er nun mitkommt. Neue fachliche Farbzuordnungen kommen nur nach
 `semanticColors.ts`. Das WordPress-Theme der Initiative und das Strategie-Tool
 konsumieren dieselben Tokens; eine Abweichung in einem der drei Werkzeuge wird
 im DS geklärt, nicht lokal.

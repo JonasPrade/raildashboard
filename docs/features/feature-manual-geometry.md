@@ -125,7 +125,7 @@ Umsetzung:
 Datei: `apps/frontend/src/features/routing/GeometryEditor.tsx`
 - Neuer State: `drawMode` und `drawnFeatures: GeoJSON.Feature[]`.
 - Neue Sektion (`<Divider label="Zeichnen" />`): SegmentedControl/Buttons „Linie zeichnen",
-  „Punkt setzen", „Bearbeiten", „Fertig"; Hinweistext; `ChronicleDataChip` mit Feature-Anzahl;
+  „Punkt setzen", „Bearbeiten", „Fertig"; Hinweistext; `Badge` mit Feature-Anzahl;
   „Zurücksetzen"-Button (leert `drawnFeatures`).
 - Gegenseitiger Ausschluss: bestehende `disabled`-Logik (`selectionMode`/`deleteExisting`) erweitern.
 - `buildFinalGeometry()`: `drawnFeatures` an die `features`-Liste anhängen (gleiches Merge-/

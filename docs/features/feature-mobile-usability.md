@@ -23,9 +23,9 @@ In scope — every route the router serves, grouped by how far the redesign goes
 | Map view (`/`) | Map fills the visible viewport, controls collapse into a bottom sheet |
 | List view (`/?view=list`) | Filters stack, one project card per row |
 | Project detail | Single column, stacked detail rows, map below the data, actions in a menu |
-| Haushalt / FinVe, Abgeordnete, Aufgaben | Stacked filters, horizontally scrollable tables |
-| Admin & import pages | Reachable and operable; wide tables scroll horizontally inside their card |
-| Guides & documentation | Reflow to one column, tables scroll |
+| Haushalt / FinVe, Abgeordnete, Aufgaben | Stacked filters, tables as cards |
+| Admin & import pages | Reachable and operable; tables become cards under 48em |
+| Guides & documentation | Reflow to one column, tables become cards |
 
 Out of scope (explicitly): native app packaging, offline mode, service worker,
 push notifications, and a redesign of the import wizards beyond making them

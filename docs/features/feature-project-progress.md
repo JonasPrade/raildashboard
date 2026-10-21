@@ -239,7 +239,7 @@ Enums als `Literal[...]`/str für saubere TS-Unions via `make gen-api`).
 
 Neuer Komponentenbaum `features/projects/components/progress/`, eingehängt in
 `ProjectDetail.tsx` (neue Sektion oben + TOC-Eintrag „Planungsstand"):
-- `ProgressSection.tsx` — Wrapper (ChronicleCard/Headline), `useProjectProgress(projectId)`.
+- `ProgressSection.tsx` — Wrapper (`Paper`/`Title`), `useProjectProgress(projectId)`.
 - `PhaseStepper.tsx` — horizontaler Custom-Stepper (5 Kreise + Pfeile/Chevrons), aktuelle =
   effektive Headline; bei Superior Spanne hervorheben. (Mantine `Stepper` ist für
   Custom-Pfeile unpraktisch → Flex-Row im Stil der vorhandenen Chips/Cards.)

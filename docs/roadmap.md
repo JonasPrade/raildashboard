@@ -19,11 +19,13 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
   (Design-System-Tokens, Anwendungsebene des Studios, Inter, Lucide, optionale Dunkelfassung,
   Kopf mit Bildmarke, Fußzeile mit Impressum/Datenschutz, Register auf der Projektseite); löst
   Richtung F vollständig ab. Vier Stufen als Issues: Fundament · Shell und Zustände ·
-  Farbzuordnungen, Diagramme, Karte · Bausteine und Sweep. See: `docs/features/feature-idt-design.md`
-  - [ ] **IDT-Design Stufe 1** — Tokens, Schrift, Theme, Dunkelfassung, Icons
-  - [ ] **IDT-Design Stufe 2** — Kopf, Fuß, Impressum/Datenschutz, Register, Zustände
-  - [ ] **IDT-Design Stufe 3** — Farbzuordnungen, Diagramme, Karte
-  - [ ] **IDT-Design Stufe 4** — Bausteine nach Anwendungsebene, Chronicle löschen, Sweep
+  Farbzuordnungen, Diagramme, Karte · Bausteine und Sweep. Stufen 1–4 umgesetzt; offen: Abnahme sowie
+  Folgearbeiten (Seitenlayouts, dunkle BKG-Kacheln, Vektorlogo, Impressum-/Datenschutztexte als Human Task).
+  See: `docs/features/feature-idt-design.md`
+  - [x] **IDT-Design Stufe 1** — Tokens, Schrift, Theme, Dunkelfassung, Icons
+  - [x] **IDT-Design Stufe 2** — Kopf, Fuß, Impressum/Datenschutz, Register, Zustände
+  - [x] **IDT-Design Stufe 3** — Farbzuordnungen, Diagramme, Karte
+  - [x] **IDT-Design Stufe 4** — Bausteine nach Anwendungsebene, Chronicle löschen, Sweep
 
 This tasks must be done by human:
 - [ ] Import of the Haushalt Berichte 2020 - 2025

@@ -55,7 +55,7 @@ Keine Änderung. `short_name` ist `unique` — Duplikate müssen abgefangen werd
 2. **ProjectGroupsAdminPage.tsx**:
    - „Neue Gruppe anlegen"-Button → Formular (Mantine `useForm`): `name`, `short_name`, `description`, `color` (ColorInput), `public`, `plot_only_superior_projects`, `is_visible`, `is_default_selected`.
    - Pro Gruppe: „Bearbeiten" (gleiches Formular, vorbefüllt) und „Löschen" (Confirm-Modal).
-   - Direction-F-Komponenten (`ChronicleCard`/`ChronicleButton`), Erfolgs-/Fehler-Toast via `@mantine/notifications`; 409 als verständliche Meldung („Kürzel bereits vergeben").
+   - Mantine-Komponenten (`Paper`/`Button`, IDT-Design), Erfolgs-/Fehler-Toast via `@mantine/notifications`; 409 als verständliche Meldung („Kürzel bereits vergeben").
    - UI-Strings auf Deutsch.
 
 ## Akzeptanzkriterien

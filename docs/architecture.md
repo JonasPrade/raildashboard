@@ -193,7 +193,7 @@ The frontend is a feature-oriented React application.
 ```
 src/
 ├── features/     # Domain-specific modules (map, projects, documentation …)
-├── components/   # Shared UI building blocks (header, error boundary)
+├── components/   # App shell (header, footer, frame, error boundary)
 ├── shared/       # Cross-feature utilities, generated API client, theme/ (IDT tokens + Mantine theme)
 ├── lib/          # Infrastructure (API client config, React Query setup, auth)
 └── router.tsx    # Central route definitions
@@ -202,28 +202,30 @@ src/
 ### Key technology choices
 | Concern | Library |
 |---|---|
-| UI framework | Mantine |
+| UI framework | Mantine, styled after the studio's Anwendungsebene (`src/shared/theme/components.css`) |
 | Design tokens | Design system of the Initiative Deutschlandtakt (`src/shared/theme/tokens.css`), see `docs/DESIGN.md` |
-| Icons | lucide-react (planned, replaces `@tabler/icons-react` with the IDT design) |
+| Icons | lucide-react (the only icon set) |
+| Typeface | Inter (InterVariable, self-hosted woff2 in `src/shared/theme/fonts/`; no Google Fonts) |
+| Colour scheme | Light and dark (system default, toggle in the header, choice in `localStorage` key `schienendashboard.thema`; `data-theme` set before first paint by an inline script in `index.html`) |
 | Map rendering | MapLibre GL |
 | Server state | TanStack React Query |
 | Routing | React Router |
 | Build tool | Vite |
 | Type safety | TypeScript strict mode |
 
-New functional areas go into `src/features/<name>/`. Shared UI components used by two or more features go into `src/components/`.
+New functional areas go into `src/features/<name>/`. Shared UI components used by two or more features go into `src/shared/ui/`; only the app shell (header, footer, frame, error boundary) lives in `src/components/`.
 
 ```
 src/
 ├── features/     # Domain-specific feature modules (map, projects, documentation …)
-├── components/   # Shared UI building blocks (header, error boundary)
+├── components/   # App shell (header, footer, frame, error boundary)
 ├── shared/       # Cross-feature utilities and generated API client
 ├── lib/          # Infrastructure (API client config, React Query setup, auth)
 └── router.tsx    # Central route definitions
 ```
 
 - New functional areas go into `src/features/<name>/`.
-- Shared UI components (used by two or more features) go into `src/components/`.
+- Shared UI components (used by two or more features) go into `src/shared/ui/`.
 - Global types go into `src/types/` or `shared/`. Feature-specific types stay local.
 
 ### TypeScript
@@ -234,7 +236,8 @@ src/
 ### UI components
 
 - Use **Mantine** for layout and UI work. Keep theme overrides in `src/shared/theme/theme.ts`; Mantine CSS variables map onto the DS tokens in `src/shared/theme/mantine-bridge.css`. The primary colour is the brand violet (`--accent-primary`); never hard-code a hex value in a component, take tokens or `semanticColors.ts` (`docs/DESIGN.md`).
-- Extract recurring patterns into custom components under `src/components/`.
+- Extract recurring patterns into shared building blocks under `src/shared/ui/`: `EmptyState`, `LoadingState`, `ErrorState`, `SaveStatus`, `Stat`/`StatBand`, `SwatchTag`, `ResponsiveTable` (cards under 48em), `FileDropZone`. Icons come from `lucide-react` only.
+- Every mapping from a domain term to a colour goes into `src/shared/theme/semanticColors.ts`; layout tokens live in `src/shared/theme/layout.css`, chart furniture in `src/shared/ui/charts.css`.
 
 ### Routing
 
@@ -261,6 +264,7 @@ Do **not** introduce Zustand or Redux. The project intentionally avoids client-s
 
 - Use Mantine `Alert` (color `"red"`) for inline error states in forms and data views. Its look is set once in the theme after the Anwendungsebene (2 px frame, red inset edge, no red fill; decided 2026-10-21, W3 in `feature-idt-design.md`), so call sites do not style it.
 - Use React Query's `isError` / `error` fields — do not catch fetch errors manually.
+- Show data states with the shared blocks, not ad-hoc markup: `LoadingState` (flat placeholder bars, never a spinner), `EmptyState` (title, one sentence, the one helping action), `ErrorState` (what failed, retry), and `SaveStatus` for inline saving (saved at HH:MM / saving / failed with retry). Route-level errors are caught by `RouteErrorBoundary`.
 - Do not use `console.error` in production code paths.
 
 ### Map (MapLibre)

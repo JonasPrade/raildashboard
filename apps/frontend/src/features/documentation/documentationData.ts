@@ -14,7 +14,7 @@ export const featureHighlights: FeatureHighlight[] = [
         title: "Smartphone-taugliche Oberfläche",
         description:
             "Alle Ansichten sind für Bildschirme ab 360 px ausgelegt: Die Seite selbst lässt sich nie seitwärts schieben," +
-            " Tabellen scrollen innerhalb ihrer Karte, Dialoge und Seitenleisten nutzen auf dem Telefon die volle Breite.",
+            " Tabellen erscheinen auf dem Telefon als Karten, Dialoge und Seitenleisten nutzen die volle Breite.",
         details: [
             "Breakpoints: < 768 px = Telefon (einspaltig, Bottom-Sheets), < 992 px = Telefon/kleines Tablet (Burger-Navigation, gestapelte Filter)",
             "Karte füllt auf dem Telefon den sichtbaren Bereich; Suche liegt als schmaler Streifen darüber, alle weiteren Einstellungen im Bottom-Sheet („Karte einstellen“)",
@@ -22,6 +22,39 @@ export const featureHighlights: FeatureHighlight[] = [
             "Projektdetail: Aktionen im ⋮-Menü, Detailzeilen als Label/Wert untereinander, Karte in kompakter Höhe",
             "Eingabefelder rendern auf dem Telefon mit 16 px, damit iOS Safari beim Fokus nicht in die Seite zoomt",
             "Plan und Testfälle: docs/features/feature-mobile-usability.md"
+        ]
+    },
+    {
+        title: "Dunkelfassung",
+        description:
+            "Die Oberfläche gibt es in einer hellen und einer dunklen Fassung. Beim ersten Besuch gilt die Einstellung des Geräts; mit dem Knopf in der Kopfzeile schaltest du ausdrücklich um.",
+        details: [
+            "Knopf (Mond bzw. Sonne) rechts in der Kopfzeile, auf dem Telefon im Burger-Menü: „Dunkelfassung einschalten“ / „Hellfassung einschalten“",
+            "Ohne eigene Wahl folgt die Seite der Systemeinstellung (hell/dunkel) deines Geräts, auch wenn sie sich später ändert",
+            "Deine Wahl bleibt im Browser gespeichert und gilt beim nächsten Besuch sofort, ohne kurzes Aufblitzen der anderen Fassung",
+            "Diagramme, Karten-Farben und Status-Markierungen passen sich an; die Kartenkacheln wechseln nur, wenn für die Dunkelfassung eine eigene Kachelquelle eingerichtet ist (sonst bleibt die Karte hell)"
+        ]
+    },
+    {
+        title: "Register der Projektseite",
+        description:
+            "Die Projektseite ist in Abschnitte gegliedert (Stammdaten, Planungsstand, Finanzierung, Texte …). Das Register zeigt alle vorhandenen Abschnitte und springt per Klick dorthin.",
+        details: [
+            "Am Computer: Spalte am linken Rand, die beim Scrollen mitläuft und den aktuellen Abschnitt hervorhebt; über den Pfeil lässt sie sich zu einem schmalen Reiter einklappen (die Wahl bleibt im Browser gespeichert)",
+            "Auf dem Telefon und kleinen Tablets: Knopf „Abschnitte“ am unteren Bildrand, er öffnet das Register als Fenster von unten",
+            "Abschnitte ohne Inhalt (z. B. ohne BVWP-Daten) erscheinen im Register nicht",
+            "Mit Berechtigung führt das Register am Ende zu „Aufgabe erstellen“; auch /infraplan nutzt das Register für die Kennzahlen"
+        ]
+    },
+    {
+        title: "Tabellen als Karten auf dem Handy",
+        description:
+            "Auf schmalen Bildschirmen (unter 768 px) werden Tabellen zu Karten: Jede Zeile ist eine Karte, die Spaltenüberschriften stehen als Beschriftung vor den Werten.",
+        details: [
+            "Die erste Spalte ist die Überschrift der Karte, alle weiteren Werte stehen als Beschriftung/Wert-Paare darunter",
+            "Die Sortierung bleibt erhalten; die Reihenfolge der Karten entspricht der Tabelle",
+            "Gilt für alle Tabellen der Anwendung, auch für breite (Haushalt, Admin, Importe) – seitliches Scrollen ist nicht nötig",
+            "Ab 768 px erscheint wieder die gewohnte Tabelle"
         ]
     },
     {
@@ -412,7 +445,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Mehrfachzuweisung an Nutzer (m:n); Zugewiesene als Avatar-Initialen auf der Karte",
             "Status Offen / In Arbeit / Erledigt (Erledigt setzt completed_at), Priorität Niedrig / Mittel / Hoch, optionales Fälligkeitsdatum (überfällig rot hervorgehoben)",
             "Projektdetailseite zeigt für angemeldete Nutzer den Abschnitt „Aufgaben“ mit den Aufgaben des Projekts und „+ Aufgabe“ (Projekt vorbelegt)",
-            "Schnell-Einstieg: zweites Icon am linken Bildschirmrand (unter dem Inhaltsverzeichnis) öffnet direkt das Formular für eine neue Aufgabe (Projekt vorbelegt)",
+            "Schnell-Einstieg: „Aufgabe erstellen“ am Ende des Registers der Projektseite öffnet direkt das Formular für eine neue Aufgabe (Projekt vorbelegt)",
             "Beim Löschen eines Projekts bleibt die Aufgabe erhalten (project_id wird auf NULL gesetzt)"
         ]
     },

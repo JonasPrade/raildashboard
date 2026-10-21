@@ -113,6 +113,8 @@ npm run dev
 
 The dev server runs on `http://localhost:5173`. The app expects the backend at `http://localhost:8000` (override with `VITE_API_BASE_URL`).
 
+The interface uses the design system of the Initiative Deutschlandtakt (Inter, Lucide icons, a light and a dark scheme that follows the system setting and can be switched in the header); rules in `docs/DESIGN.md`, files in `apps/frontend/src/shared/theme/`.
+
 The interface is responsive: every route is laid out for screens from 360 px up (phone) to desktop.
 New UI has to keep that — see `apps/frontend/README.md` → *Responsive layout* and
 `docs/features/feature-mobile-usability.md`.
