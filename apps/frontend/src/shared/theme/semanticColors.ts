@@ -49,14 +49,6 @@ export const STATUS_TONE = {
 } as const;
 export type StatusTone = keyof typeof STATUS_TONE;
 
-// Dot of ChronicleDataChip (until stage 4 replaces the chip).
-export const DATA_CHIP_DOT_COLOR = {
-    default: "var(--accent-primary)",
-    go: "var(--text-strong)",
-    signal: "var(--idt-danger)",
-    info: "var(--accent-secondary)",
-} as const;
-
 // Anwendungsebene status rule: only red carries colour.
 export const TODO_STATUS_STYLE = {
     OPEN: { color: "var(--text-muted)", weight: 400 },
