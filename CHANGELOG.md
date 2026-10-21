@@ -33,6 +33,24 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   migration `20261021002`. The Mittelherkunft card names the shown year in its title.
 
 ### Added
+- **Infraplan import for 2027.** Matching writes out the Infraplan's abbreviations
+  (Ubf, Vbk, Abzw, Ü-BW, 2gl., Bf, Mü, HH, MA, HD, Ffm, …) before comparing, finds the
+  subproject of the parent the Bezeichnung names ("Großknoten München", "PB 07: ABS/NBS
+  Karlsruhe – Basel") by section number or words, takes over the previous year's
+  assignments also by row text (with their note) and treats a project number such as
+  "InvKG Nr. 6" as a sure hit. New column `project.aliases` (migration `20261021003`,
+  expand only): a Deutschlandtakt id "DT 38" counts as a sure hit, free aliases help the
+  name matching and the project search. New MCP tools `assign_infraplan_rows`,
+  `create_infraplan_subprojects` (also without a parent and after the confirmation),
+  `get_infraplan_page_text`, `suggest_infraplan_kpi_values`, `check_project_data`;
+  `get_infraplan_draft(compact=true)` and `list_projects(with_description=true)`, whose
+  search now also covers description and aliases. Skill `infraplan-import` rewritten for
+  batch calls and
+  subagents. On the 271 rows of the Infraplan 2026, 145 rows reach ≥ 0.85 without a
+  previous year (before: 93), 162 with the DT aliases.
+- **One-off `scripts/set_dt_aliases_2026.py`** (run after the deploy, dry run first):
+  sets 76 Deutschlandtakt aliases read from the Infraplan 2026 rows; a project is only
+  changed while its number is the one the pair was read with. Idempotent.
 - **Infraplan KPI settings in the admin area.** Admin → Infraplan gets the tabs „Import“
   and „Allgemeines“; the latter lists every KPI and edits name, unit, category,
   description, order and how `/infraplan` draws it (`PATCH /import/infraplan/kpis/{key}`).

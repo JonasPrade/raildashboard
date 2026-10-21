@@ -43,6 +43,7 @@ from dashboard_backend.schemas.infraplan_import import (
 from dashboard_backend.tasks.infraplan_matching import (
     PRESELECT_CONFIDENCE,
     preselection,
+    preselection_note,
     suggestions_for_draft,
 )
 
@@ -139,6 +140,7 @@ def save_parse_output(
         if ids:
             row["project_ids"] = ids
             row["assignment_source"] = source
+            row["assignment_note"] = preselection_note(row["suggestions"], ids)
     record.status = "SUCCESS"
     record.error_message = None
     record.result_json = result
@@ -233,6 +235,29 @@ def _set_assignment(
     row["assigned_by"] = username if ids else None
 
 
+def _apply_patch(
+    db: Session,
+    rows: list[dict[str, Any]],
+    row_key: str,
+    patch: InfraplanRowPatch,
+    *,
+    source: str,
+    username: str | None,
+) -> dict[str, Any]:
+    row = _find_row(rows, row_key)
+    if patch.project_ids is not None:
+        _check_projects(db, patch.project_ids)
+    if patch.values is not None:
+        for key, value in patch.values.model_dump(exclude_unset=True).items():
+            if key in EDITABLE_ROW_FIELDS:
+                row[key] = value
+    if patch.project_ids is not None:
+        _set_assignment(row, patch.project_ids, source, (patch.note or "").strip() or None, username)
+    elif patch.note is not None and row.get("project_ids"):
+        row["assignment_note"] = patch.note.strip() or None
+    return row
+
+
 def patch_row(
     db: Session,
     record: InfraplanParseResult,
@@ -245,19 +270,92 @@ def patch_row(
     """Change the assignment and/or values of one row; returns the row."""
     _require_open(record)
     rows = _rows(record)
-    row = _find_row(rows, row_key)
-    if patch.values is not None:
-        for key, value in patch.values.model_dump(exclude_unset=True).items():
-            if key in EDITABLE_ROW_FIELDS:
-                row[key] = value
-    if patch.project_ids is not None:
-        _check_projects(db, patch.project_ids)
-        _set_assignment(row, patch.project_ids, source, (patch.note or "").strip() or None, username)
-    elif patch.note is not None and row.get("project_ids"):
-        row["assignment_note"] = patch.note.strip() or None
+    row = _apply_patch(db, rows, row_key, patch, source=source, username=username)
     _store_rows(record, rows)
     db.commit()
     return row
+
+
+def assign_rows(
+    db: Session,
+    record: InfraplanParseResult,
+    items: list[tuple[str, list[int], str | None]],
+    *,
+    source: str,
+    username: str | None,
+) -> list[dict[str, Any]]:
+    """Set the projects of many rows at once — ``(row_key, project_ids, note)``
+    each, replacing what is there. Works on an open draft and, after the
+    confirmation, on the confirmed entries of its year. A failing row does not
+    stop the others; the result has ``ok`` and ``project_ids`` or ``error``
+    per row. One commit, and the planning state is re-materialised once."""
+    if record.confirmed_at is not None:
+        return _assign_confirmed_rows(db, record, items, source=source, username=username)
+    _require_open(record)
+    rows = _rows(record)
+    results: list[dict[str, Any]] = []
+    for row_key, project_ids, note in items:
+        try:
+            row = _apply_patch(
+                db, rows, row_key, InfraplanRowPatch(project_ids=project_ids, note=note),
+                source=source, username=username,
+            )
+        except (InfraplanNotFoundError, InfraplanConflictError) as exc:
+            results.append({"row_key": row_key, "ok": False, "error": str(exc)})
+            continue
+        results.append({"row_key": row_key, "ok": True, "project_ids": row["project_ids"]})
+    _store_rows(record, rows)
+    db.commit()
+    return results
+
+
+def confirmed_report(db: Session, record: InfraplanParseResult) -> InfraplanReport:
+    """The year a confirmed draft was taken over as."""
+    report = get_report_by_year(db, record.year)
+    if report is None or report.parse_result_id != record.id:
+        raise InfraplanConflictError("Zu diesem Entwurf gehört kein übernommener Jahrgang.")
+    return report
+
+
+def entry_for_row(db: Session, report: InfraplanReport, row_key: str) -> InfraplanEntry:
+    """The confirmed entry of a draft row (``row_key`` = ``<section>-<lfd_nr>``)."""
+    section, _, number = row_key.rpartition("-")
+    entry = (
+        db.query(InfraplanEntry)
+        .filter_by(report_id=report.id, section=section, lfd_nr=int(number) if number.isdigit() else -1)
+        .one_or_none()
+    )
+    if entry is None:
+        raise InfraplanNotFoundError(f"Zeile {row_key} gibt es im Infraplan {report.year} nicht.")
+    return entry
+
+
+def _assign_confirmed_rows(
+    db: Session,
+    record: InfraplanParseResult,
+    items: list[tuple[str, list[int], str | None]],
+    *,
+    source: str,
+    username: str | None,
+) -> list[dict[str, Any]]:
+    report = confirmed_report(db, record)
+    results: list[dict[str, Any]] = []
+    affected: set[int] = set()
+    for row_key, project_ids, note in items:
+        try:
+            entry = entry_for_row(db, report, row_key)
+            _check_projects(db, project_ids)
+        except (InfraplanNotFoundError, InfraplanConflictError) as exc:
+            results.append({"row_key": row_key, "ok": False, "error": str(exc)})
+            continue
+        ids, touched = _link_entry(
+            db, entry, project_ids, source=source, username=username, note=note, replace=True
+        )
+        affected |= touched
+        results.append({"row_key": row_key, "ok": True, "project_ids": ids, "entry_id": entry.id})
+    db.commit()
+    recompute_for(db, affected)
+    return results
 
 
 def apply_suggestions(
@@ -280,55 +378,125 @@ def apply_suggestions(
         suggestions = [s for s in row.get("suggestions") or [] if s["project_id"] in known]
         ids, source = preselection(suggestions, min_confidence)
         if ids and ids != row.get("project_ids"):
-            _set_assignment(row, ids, source, None, username)
+            _set_assignment(row, ids, source, preselection_note(suggestions, ids), username)
             applied += 1
     _store_rows(record, rows)
     db.commit()
     return applied, sum(1 for r in rows if not r.get("project_ids"))
 
 
+def _new_row_project(
+    db: Session, row: dict[str, Any], parent: Project | None, name: str | None, user: Any
+) -> Project:
+    """A draft project without geometry for a row: under ``parent``, or on its
+    own (then it also takes the row's number, so next year finds it)."""
+    title = (name or row.get("massnahme") or row.get("bezeichnung") or row["row_key"]).strip()
+    project = Project(
+        name=title[:255],
+        superior_project_id=parent.id if parent else None,
+        project_number=None if parent else row.get("primary_number"),
+        is_draft=True,
+    )
+    db.add(project)
+    db.flush()
+    create_changelog_for_create(
+        db,
+        project,
+        {
+            "name": project.name,
+            "superior_project_id": project.superior_project_id,
+            "project_number": project.project_number,
+            "is_draft": True,
+        },
+        getattr(user, "id", None),
+        getattr(user, "username", None),
+    )
+    return project
+
+
+def _default_note(parent: Project | None) -> str:
+    if parent is None:
+        return "Eigenständiges Projekt aus der Infraplan-Zeile angelegt"
+    return f"Teilprojekt unter „{parent.name}“ angelegt"
+
+
 def create_subproject(
     db: Session,
     record: InfraplanParseResult,
     row_key: str,
-    parent_id: int,
+    parent_id: int | None,
     name: str | None,
     *,
     source: str,
     user: Any,
     note: str | None = None,
 ) -> tuple[Project, dict[str, Any]]:
-    """Create a subproject (draft, no geometry) under ``parent_id`` named after
-    the row and add it to the row's assignment (the parent link is replaced)."""
-    _require_open(record)
+    """Create a draft project (no geometry) named after the row — under
+    ``parent_id``, or on its own without — and add it to the row's assignment
+    (a link to the parent is replaced). After the confirmation the confirmed
+    entry is changed instead. Returns the project and the row/entry state."""
+    results = create_subprojects(
+        db, record, [(row_key, parent_id, name, note)], source=source, user=user
+    )
+    result = results[0]
+    if not result["ok"]:
+        raise result["exception"]
+    return db.get(Project, result["project_id"]), result["row"]
+
+
+def create_subprojects(
+    db: Session,
+    record: InfraplanParseResult,
+    items: list[tuple[str, int | None, str | None, str | None]],
+    *,
+    source: str,
+    user: Any,
+) -> list[dict[str, Any]]:
+    """Many of :func:`create_subproject` at once — ``(row_key, parent_id,
+    name, note)`` each; a failing row does not stop the others. One commit."""
+    username = getattr(user, "username", None)
+    confirmed = record.confirmed_at is not None
+    report = confirmed_report(db, record) if confirmed else None
+    if not confirmed:
+        _require_open(record)
     rows = _rows(record)
-    row = _find_row(rows, row_key)
-    parent = db.get(Project, parent_id)
-    if parent is None:
-        raise InfraplanNotFoundError(f"Projekt {parent_id} gibt es nicht.")
-    title = (name or row.get("massnahme") or row.get("bezeichnung") or row_key).strip()
-    project = Project(name=title[:255], superior_project_id=parent.id, is_draft=True)
-    db.add(project)
-    db.flush()
-    create_changelog_for_create(
-        db,
-        project,
-        {"name": project.name, "superior_project_id": parent.id, "is_draft": True},
-        getattr(user, "id", None),
-        getattr(user, "username", None),
-    )
-    ids = [pid for pid in row.get("project_ids") or [] if pid != parent.id] + [project.id]
-    _set_assignment(
-        row,
-        ids,
-        source,
-        note or f"Teilprojekt unter „{parent.name}“ angelegt",
-        getattr(user, "username", None),
-    )
-    _store_rows(record, rows)
+    results: list[dict[str, Any]] = []
+    affected: set[int] = set()
+    for row_key, parent_id, name, note in items:
+        try:
+            row = _find_row(rows, row_key)
+            entry = entry_for_row(db, report, row_key) if report else None
+            parent = db.get(Project, parent_id) if parent_id is not None else None
+            if parent_id is not None and parent is None:
+                raise InfraplanNotFoundError(f"Projekt {parent_id} gibt es nicht.")
+        except (InfraplanNotFoundError, InfraplanConflictError) as exc:
+            results.append({"row_key": row_key, "ok": False, "error": str(exc), "exception": exc})
+            continue
+        project = _new_row_project(db, row, parent, name, user)
+        note = note or _default_note(parent)
+        if entry is not None:
+            current = [
+                link.project_id
+                for link in db.query(InfraplanEntryProject).filter(InfraplanEntryProject.entry_id == entry.id)
+            ]
+            ids = [pid for pid in current if pid != getattr(parent, "id", None)] + [project.id]
+            ids, touched = _link_entry(
+                db, entry, ids, source=source, username=username, note=note, replace=True
+            )
+            affected |= touched
+            state: dict[str, Any] = {"row_key": row_key, "entry_id": entry.id, "project_ids": ids}
+        else:
+            ids = [pid for pid in row.get("project_ids") or [] if pid != getattr(parent, "id", None)]
+            _set_assignment(row, ids + [project.id], source, note, username)
+            state = row
+        results.append(
+            {"row_key": row_key, "ok": True, "project_id": project.id, "name": project.name, "row": state}
+        )
+    if not confirmed:
+        _store_rows(record, rows)
     db.commit()
-    db.refresh(project)
-    return project, row
+    recompute_for(db, affected)
+    return results
 
 
 def draft_projects(db: Session, record: InfraplanParseResult) -> dict[str, InfraplanProjectRef]:
@@ -634,6 +802,46 @@ def unassigned_entries(db: Session) -> list[tuple[InfraplanEntry, int]]:
     return [(entry, report.year) for entry in rows]
 
 
+def _link_entry(
+    db: Session,
+    entry: InfraplanEntry,
+    project_ids: list[int],
+    *,
+    source: str,
+    username: str | None,
+    note: str | None,
+    replace: bool,
+) -> tuple[list[int], set[int]]:
+    """Link a confirmed entry without committing. Returns (linked ids,
+    projects whose planning state changes)."""
+    existing = {
+        link.project_id: link
+        for link in db.query(InfraplanEntryProject).filter(InfraplanEntryProject.entry_id == entry.id)
+    }
+    affected = set(project_ids)
+    if replace:
+        for project_id, link in existing.items():
+            if project_id not in project_ids:
+                db.delete(link)
+                affected.add(project_id)
+    for project_id in dict.fromkeys(project_ids):
+        if project_id in existing:
+            if replace and note is not None:
+                existing[project_id].note = note
+            continue
+        db.add(
+            InfraplanEntryProject(
+                entry_id=entry.id,
+                project_id=project_id,
+                assigned_by_snapshot=username,
+                assignment_source=source,
+                note=note,
+            )
+        )
+    db.flush()
+    return sorted(set(project_ids) | (set() if replace else set(existing))), affected
+
+
 def assign_entry(
     db: Session,
     entry: InfraplanEntry,
@@ -647,31 +855,12 @@ def assign_entry(
     """Link a confirmed entry to projects (existing links are kept unless
     ``replace``); re-materialises the affected projects. Returns the ids."""
     _check_projects(db, project_ids)
-    existing = {
-        link.project_id: link
-        for link in db.query(InfraplanEntryProject).filter(InfraplanEntryProject.entry_id == entry.id)
-    }
-    affected = set(project_ids)
-    if replace:
-        for project_id, link in existing.items():
-            if project_id not in project_ids:
-                db.delete(link)
-                affected.add(project_id)
-    for project_id in dict.fromkeys(project_ids):
-        if project_id in existing:
-            continue
-        db.add(
-            InfraplanEntryProject(
-                entry_id=entry.id,
-                project_id=project_id,
-                assigned_by_snapshot=username,
-                assignment_source=source,
-                note=note,
-            )
-        )
+    ids, affected = _link_entry(
+        db, entry, project_ids, source=source, username=username, note=note, replace=replace
+    )
     db.commit()
     recompute_for(db, affected)
-    return sorted(set(project_ids) | (set() if replace else set(existing)))
+    return ids
 
 
 # ---------------------------------------------------------------------------
@@ -693,6 +882,24 @@ def render_page(record: InfraplanParseResult, page: int, dpi: int = 110) -> byte
         if not 1 <= page <= doc.page_count:
             raise InfraplanNotFoundError(f"Seite {page} gibt es nicht (1–{doc.page_count}).")
         return doc[page - 1].get_pixmap(dpi=dpi).tobytes("png")
+
+
+def page_words(record: InfraplanParseResult, page: int) -> list[dict]:
+    """Words of one page of the draft's stored PDF with their position."""
+    import fitz  # pymupdf
+
+    from dashboard_backend.tasks.infraplan import extract_pages
+    from dashboard_backend.utils.file_storage import read_infraplan_pdf
+
+    try:
+        pdf_bytes = read_infraplan_pdf(record.pdf_path)
+    except FileNotFoundError as exc:
+        raise InfraplanNotFoundError("Zu diesem Entwurf ist kein PDF gespeichert.") from exc
+    with fitz.open(stream=pdf_bytes, filetype="pdf") as doc:
+        count = doc.page_count
+    if not 1 <= page <= count:
+        raise InfraplanNotFoundError(f"Seite {page} gibt es nicht (1–{count}).")
+    return extract_pages(pdf_bytes, [page])[0].words
 
 
 # ---------------------------------------------------------------------------

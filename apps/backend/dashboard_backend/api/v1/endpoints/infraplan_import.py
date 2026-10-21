@@ -284,9 +284,12 @@ def create_subproject(
     current_user: User = Depends(require_permission("infraplan.import")),
     db: Session = Depends(get_db),
 ):
-    """Create a subproject under ``parent_id`` (named after the row unless
-    ``name`` is given) and assign the row to it."""
+    """Create a subproject under ``parent_id`` — or, without, a project of its
+    own — named after the row unless ``name`` is given, and assign the row to
+    it. Only on an open draft; confirmed years go through „Offene Zuordnungen“."""
     record = _get_or_404(db, parse_result_id)
+    if record.confirmed_at is not None:
+        raise _errors(InfraplanConflictError("Der Entwurf ist bereits übernommen."))
     try:
         project, row = crud.create_subproject(
             db, record, row_key, body.parent_id, body.name, source="MANUAL", user=current_user

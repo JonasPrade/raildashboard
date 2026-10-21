@@ -129,6 +129,8 @@ class ProjectSchema(BaseModel):
     superior_project_id: Optional[int] = None
     description: Optional[str] = None
     justification: Optional[str] = None
+    # Other names and ids ("DT 38", "Gäubahn") — matched by the Infraplan import.
+    aliases: Optional[list[str]] = None
     is_draft: bool = False
 
     effects_passenger_long_rail: Optional[bool] = False

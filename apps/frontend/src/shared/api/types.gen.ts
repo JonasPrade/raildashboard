@@ -2053,8 +2053,9 @@ export interface paths {
         put?: never;
         /**
          * Create Subproject
-         * @description Create a subproject under ``parent_id`` (named after the row unless
-         *     ``name`` is given) and assign the row to it.
+         * @description Create a subproject under ``parent_id`` — or, without, a project of its
+         *     own — named after the row unless ``name`` is given, and assign the row to
+         *     it. Only on an open draft; confirmed years go through „Offene Zuordnungen“.
          */
         post: operations["create_subproject_api_v1_import_infraplan_parse_result__parse_result_id__rows__row_key__subproject_post"];
         delete?: never;
@@ -5160,7 +5161,7 @@ export interface components {
         /** InfraplanSubprojectCreate */
         InfraplanSubprojectCreate: {
             /** Parent Id */
-            parent_id: number;
+            parent_id?: number | null;
             /** Name */
             name?: string | null;
         };
@@ -5174,7 +5175,11 @@ export interface components {
         };
         /**
          * InfraplanSuggestion
-         * @description A project suggested for a row (``reason``: NUMBER | GVFG_KEY | FUZZY).
+         * @description A project suggested for a row. ``reason``: NUMBER (number of an earlier
+         *     year or the project's own number), GVFG_KEY, PREVIOUS_YEAR (same text in an
+         *     earlier year), ALIAS (Deutschlandtakt id), CONTEXT (subproject of the
+         *     parent named by the Bezeichnung), FUZZY (name). ``detail`` says what
+         *     matched; ``previous_note`` is the note of the earlier year's assignment.
          */
         InfraplanSuggestion: {
             /** Project Id */
@@ -5185,7 +5190,13 @@ export interface components {
              * Reason
              * @enum {string}
              */
-            reason: "NUMBER" | "GVFG_KEY" | "FUZZY";
+            reason: "NUMBER" | "GVFG_KEY" | "PREVIOUS_YEAR" | "ALIAS" | "CONTEXT" | "FUZZY";
+            /** Detail */
+            detail?: string | null;
+            /** Previous Year */
+            previous_year?: number | null;
+            /** Previous Note */
+            previous_note?: string | null;
         };
         /**
          * InfraplanWarning
@@ -5730,6 +5741,8 @@ export interface components {
             justification?: string | null;
             /** Superior Project Id */
             superior_project_id?: number | null;
+            /** Aliases */
+            aliases?: string[] | null;
             /** Is Draft */
             is_draft?: boolean | null;
             /** Geojson From Subprojects */
@@ -6288,6 +6301,8 @@ export interface components {
             description?: string | null;
             /** Justification */
             justification?: string | null;
+            /** Aliases */
+            aliases?: string[] | null;
             /**
              * Is Draft
              * @default false
@@ -6686,6 +6701,8 @@ export interface components {
             justification?: string | null;
             /** Superior Project Id */
             superior_project_id?: number | null;
+            /** Aliases */
+            aliases?: string[] | null;
             /** Is Draft */
             is_draft?: boolean | null;
             /** Geojson From Subprojects */

@@ -44,6 +44,9 @@ export const SOURCE_COLOR: Record<string, string> = {
 export const REASON_LABEL: Record<string, string> = {
     NUMBER: "Nummer",
     GVFG_KEY: "GVFG-Schlüssel",
+    PREVIOUS_YEAR: "Vorjahr",
+    ALIAS: "Alias",
+    CONTEXT: "Teilprojekt",
     FUZZY: "Name",
 };
 
