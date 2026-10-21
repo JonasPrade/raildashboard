@@ -70,7 +70,8 @@ eines Oberprojekts ist die Spanne über die Blätter — während der Pause steh
 - Sortierung: Inbetriebnahme (Standard), Baubeginn, Name. Projekte ohne Sortierdatum ans Ende.
 - Je Projekt eine Zeile: Name (Link zur Detailseite), darunter der Balken. Segmente in den
   Phasenfarben (`MAIN_PHASE_COLOR`) vom Phasenbeginn bis zum nächsten datierten Phasenbeginn;
-  der Teil nach heute ist heller gezeichnet (geplant). Inbetriebnahme als grüner Punkt,
+  der Teil nach heute ist schraffiert gezeichnet (geplant; seit 2026-10-21, W4 in
+  `feature-idt-design.md` — auf der Teal-Rampe des IDT-Designs wäre „heller“ unsichtbar). Inbetriebnahme als grüner Punkt,
   PFB und Parl. Befassung als Rauten, Belege als hohle Punkte. Tooltip je Marke: Meilenstein,
   Datum, Quelle.
 - „Heute"-Linie über alle Zeilen; Jahresachse mit Schrittweite nach Spanne (1/2/5 Jahre).

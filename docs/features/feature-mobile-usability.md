@@ -19,7 +19,7 @@ In scope — every route the router serves, grouped by how far the redesign goes
 
 | Surface | Target on a phone |
 |---|---|
-| Header / navigation | Burger drawer with large tap targets, wordmark shrinks to the signet |
+| Header / navigation | Burger drawer with large tap targets, product name shrinks next to the brand mark |
 | Map view (`/`) | Map fills the visible viewport, controls collapse into a bottom sheet |
 | List view (`/?view=list`) | Filters stack, one project card per row |
 | Project detail | Single column, stacked detail rows, map below the data, actions in a menu |
@@ -45,6 +45,11 @@ Mantine defaults so CSS and JS agree:
 CSS uses the same two values (`48em` / `62em`). Never introduce a third
 breakpoint in a component without adding it here first.
 
+The studio's Anwendungsebene names 720 px (tables become cards) and 900 px (the
+left-edge register). They are mapped onto these two values — cards below `48em`,
+register from `62em` — rather than added (decided 2026-10-21,
+`docs/features/feature-idt-design.md` Q32).
+
 ## Desired behaviour
 
 ### Foundation
@@ -66,11 +71,17 @@ breakpoint in a component without adding it here first.
 ### Tables
 
 Data tables are the main source of horizontal page scroll. A shared
-`ResponsiveTable` (`src/shared/ui/ResponsiveTable.tsx`) wraps Mantine's `Table`
-in a `Table.ScrollContainer`: the table keeps a sensible minimum width and
-scrolls **inside its card** instead of pushing the page sideways. Every data
-table in the app uses it; `Table.Thead`/`Tbody`/`Tr`/`Td` stay untouched, so the
-change is a one-line swap per table.
+`ResponsiveTable` (`src/shared/ui/ResponsiveTable.tsx`) wraps Mantine's `Table`.
+Above `48em` it uses a `Table.ScrollContainer`: the table keeps a sensible minimum
+width and scrolls **inside its card** instead of pushing the page sideways.
+Below `48em` every data table turns into **cards**, one per row, following the
+Anwendungsebene (decided 2026-10-21, W2 in `feature-idt-design.md`): a 2 px ink
+frame, the first cell as the heading (checkbox in front of it), the other cells as
+label/value pairs (label taken from the `<th>` text), a status cell alone in the
+footer above a hairline, the sort order as a line above the list. This applies to
+wide tables too. Every data table in the app uses `ResponsiveTable`;
+`Table.Thead`/`Tbody`/`Tr`/`Td` stay untouched, so the change is a one-line swap
+per table.
 
 ### Map
 
@@ -97,8 +108,10 @@ change is a one-line swap per table.
 - `DetailRow` stacks label above value below `48em` (no 200 px label column).
 - The two-column details/map grid collapses to one column (already `base: 12`),
   and the map block uses the shorter mobile height.
-- The floating table of contents keeps its left-edge button but the panel is
-  capped to `calc(100vw − 64px)`.
+- The table of contents is the left-edge **register** of the Anwendungsebene
+  (`feature-idt-design.md` Q26): a sticky column from `62em`, below that a fixed
+  44 px button „Abschnitte“ at the bottom edge that opens the same register as a
+  bottom drawer.
 
 ### Drawers and modals
 
@@ -121,7 +134,8 @@ horizontally, it wraps.
   `/abgeordnete`, `/tasks`, `/admin` — no horizontal page scroll.
 - The map on `/` shows at least ~60 % of the viewport height and its controls
   are reachable without covering more than a slim strip of the map.
-- Every data table either fits or scrolls within its own container.
+- Every data table either fits, scrolls within its own container (above `48em`)
+  or is rendered as cards (below `48em`).
 - All primary actions (navigate, search, filter, open a project, create a task)
   are operable with touch, with targets ≥ 44 px.
 - No route renders content underneath the fixed header or the iOS home

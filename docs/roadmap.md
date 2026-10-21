@@ -15,6 +15,15 @@ Architecture overview: see `docs/architecture.md`, data models: `docs/models.md`
   geteilte Breakpoints + Layout-Tokens, Burger-Navigation ab 62em, Karte im Vollbild mit
   Bottom-Sheet für Filter/Ebenen, Tabellen scrollen in ihrer Karte statt die Seite zu verbreitern,
   Dialoge und Seitenleisten in voller Breite. See: `docs/features/feature-mobile-usability.md`
+- [ ] **IDT-Design** — Umstellung des Dashboards auf das Design der Initiative Deutschlandtakt
+  (Design-System-Tokens, Anwendungsebene des Studios, Inter, Lucide, optionale Dunkelfassung,
+  Kopf mit Bildmarke, Fußzeile mit Impressum/Datenschutz, Register auf der Projektseite); löst
+  Richtung F vollständig ab. Vier Stufen als Issues: Fundament · Shell und Zustände ·
+  Farbzuordnungen, Diagramme, Karte · Bausteine und Sweep. See: `docs/features/feature-idt-design.md`
+  - [ ] **IDT-Design Stufe 1** — Tokens, Schrift, Theme, Dunkelfassung, Icons
+  - [ ] **IDT-Design Stufe 2** — Kopf, Fuß, Impressum/Datenschutz, Register, Zustände
+  - [ ] **IDT-Design Stufe 3** — Farbzuordnungen, Diagramme, Karte
+  - [ ] **IDT-Design Stufe 4** — Bausteine nach Anwendungsebene, Chronicle löschen, Sweep
 
 This tasks must be done by human:
 - [ ] Import of the Haushalt Berichte 2020 - 2025
@@ -332,6 +341,7 @@ Siehe: `docs/features/feature-vib-import.md`
 Brand-Wechsel weg vom FAZ-/Chronicle-Editorial hin zum Bahnsteig-Tafel-Idiom: warmweiße Flächen, Anthrazit, **Gold (#c98a00)** als Akzent, **Preußenblau (#0f2347)** als Gewicht, Archivo Narrow + IBM Plex Sans/Mono, scharfe Kanten, kein globaler Dark-Mode (dunkle Flächen nur in der `Tafel`-Komponentenfamilie). Ausgeliefert in v0.0.4.
 
 Quelle: `docs/DESIGN.md` (am 2026-04-25 auf Richtung F neu geschrieben). Vollständiger Plan: `docs/features/feature-rebrand-direction-f.md`.
+**Abgelöst am 2026-10-21** durch das IDT-Design (`docs/features/feature-idt-design.md`); `docs/DESIGN.md` beschreibt seitdem das IDT-Design.
 
 - [x] **Phase 1 — Foundations**: Archivo Narrow + IBM Plex Sans/Mono via Google Fonts, `tokens.css` neu geschrieben, `theme.ts` auf `preussen` als primary umgestellt.
 - [x] **Phase 2 — Chronicle-Komponenten umbauen**: `ChronicleHeadline`/`Card`/`Button`/`DataChip` an F angepasst (Public Props erhalten).

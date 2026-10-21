@@ -169,7 +169,9 @@ user-admin scripts and dump scripts (wired into Makefile/docs),
 `formatDate`, `formatDateTime` with Berlin TZ baked in); a
 `<RequirePermission perm="…">` wrapper component; move phase color/options
 into `features/projects/components/progress/phaseMeta.ts` (canonical module)
-and delete local copies. Bauportal badge colors change to the canonical
+and delete local copies. Since 2026-10-21 the canonical source is
+`src/shared/theme/semanticColors.ts`; `phaseMeta.ts` re-exports `MAIN_PHASE_COLOR`
+from there (W6 in `feature-idt-design.md`). Bauportal badge colors change to the canonical
 palette — that is the fix, not a regression.
 
 ---

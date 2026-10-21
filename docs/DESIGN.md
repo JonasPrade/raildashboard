@@ -1,248 +1,129 @@
-# Design System: Bahnhofshalle Tag (Direction F)
-
-## 1. Overview & Creative North Star
-
-### The Creative North Star: "Bahnhofshalle Tag"
-The system translates the typographic clarity of a German railway departure board into a daylit, paper-like interface. Information is rendered like a printed timetable: gridded, ordered, functional. Every row earns its place. No decorative filler.
-
-The persona replaces the prior "Architectural Chronicle" (FAZ editorial, dark teal, Noto Serif) with a station-hall idiom: warm white surfaces, Anthracite ink, Gold accent, Prussian-Blue weight, sharp-cornered components, no gradients, no glow in daylight.
-
-Three principles:
-
-1. **Tafel-Denken** — Information is a timetable: gridded, typographic, functional.
-2. **Hell mit Kontrast** — Warm-white as hall, Anthracite as ink, Gold as accent. Dark surfaces are reserved for the "Tafel" component, where status, times, and live info live.
-3. **Seriös, nicht steril** — Prussian-Blue gives weight, Gold gives warmth. Signal-Red and Go-Green mark *states*, not mood. No neon, no gradients, no glow.
-
----
-
-## 2. Colors
-
-All hex values are exposed as CSS custom properties (see `tokens.css`).
-
-### Surfaces — "Hallenlicht"
-| Token       | Hex       | Name        | Usage                                            |
-|-------------|-----------|-------------|--------------------------------------------------|
-| `--bg`      | `#ffffff` | Halle       | Main canvas, side background, cards.             |
-| `--bg2`     | `#f3f1ec` | Wartehalle  | Warm section surfaces, KPI cards, alt rows.      |
-| `--bg3`     | `#e9e6df` | Schiefer    | Alternating rows in tables/lists.                |
-| `--bg4`     | `#dedad0` | Sandstein   | Separator bands, footer strip, hover state.      |
-| `--rule`    | `#d6d2c6` | Hairline    | All 1px separators, table grid, card borders.    |
-| `--ruleHot` | `#b8b2a3` | Raster hot  | Accented separator under headlines.              |
-
-### Ink — Typography
-| Token    | Hex       | Name      | Usage                                          |
-|----------|-----------|-----------|------------------------------------------------|
-| `--ink`  | `#0d1013` | Anthrazit | Headlines, primary text, buttons, signet.      |
-| `--ink2` | `#3d4550` | Fließtext | Body copy, descriptions, secondary text.       |
-| `--ink3` | `#7a8390` | Meta      | Labels, timestamps, hairline-text.             |
-
-### Accents
-| Token       | Hex       | Name             | Usage                                               |
-|-------------|-----------|------------------|-----------------------------------------------------|
-| `--led`     | `#c98a00` | Gold · Tag       | Primary accent on light: `<em>`, signet dot, CTA.   |
-| `--ledHot`  | `#e8a417` | Gold · Tafel     | Tafel component, status LEDs on dark.               |
-| `--ledDim`  | `#7a5300` | Gold dunkel      | Inactive state, hover contrast on gold.             |
-| `--info`    | `#0f2347` | Preußenblau      | KPIs, infographics, links. Weight, not warmth.      |
-
-### Status — Signals
-| Token         | Hex       | Name        | Usage                                       |
-|---------------|-----------|-------------|---------------------------------------------|
-| `--signal`    | `#c41a1a` | Signalrot   | Delay, cancellation, urgent warning.        |
-| `--signalDim` | `#8a1818` | Signal dunkel | Reduced/border variant.                   |
-| `--go`        | `#058a44` | Go-Grün     | On-plan, on-time, signed.                   |
-| `--goDim`     | `#03602e` | Go dunkel   | Reduced/border variant.                     |
-| `--warn`      | `#b45309` | Warnbernstein | Non-urgent warning (text category „Warnung“). Not Gold: `--led` stays brand/CTA. |
-
-### Semantic tokens — text categories
-Components never colour a text category with a base token directly. They use
-these semantic tokens, mapped once in `tokens.css`; recolouring a category is
-one line there. Icon and left border per style live in
-`apps/frontend/src/features/projects/textCategoryStyles.ts`.
-See `docs/features/feature-text-categories.md`.
-
-| Token                 | Maps to    | Style      | Left border |
-|-----------------------|------------|------------|-------------|
-| `--text-cat-neutral`  | `--ink3`   | `neutral`  | no          |
-| `--text-cat-info`     | `--info`   | `info`     | no          |
-| `--text-cat-warning`  | `--warn`   | `warning`  | yes, 3 px   |
-| `--text-cat-critical` | `--signal` | `critical` | yes, 3 px   |
-
-### Tafel — Dark Component Surfaces
-The dark palette is **scoped to the Tafel component family** (live boards, tickers, departure-style displays). It does not bleed into general layout.
-
-| Token         | Hex       | Name      | Usage                                |
-|---------------|-----------|-----------|--------------------------------------|
-| `--board`     | `#111418` | Tafel     | Tafel base surface.                  |
-| `--board2`    | `#1b2028` | Tafel 2   | Tafel inner panels.                  |
-| `--boardRule` | `#2a323b` | Tafel-rule | Separators inside Tafel.            |
-
-### Forbidden / Avoid
-- DB red (`#ec0016`) — political/brand collision with Deutsche Bahn.
-- Party colors (any saturated political flag color).
-- Gradients (`linear-gradient`, `radial-gradient`) — flat surfaces only.
-- Gold "glow" (`box-shadow` halos) in day mode.
-- Rounded corners on data containers — corners are sharp like a board.
-
----
-
-## 3. Typography
-
-Three families. No serifs.
-
-### Display & Headlines: **Archivo Narrow** (700)
-- Compressed sans, station-board feel. Always **uppercase** for display sizes.
-- Variable letter-spacing tightens at larger sizes.
-- Fallbacks: `'Oswald', Impact, sans-serif`.
-
-| Class               | Size / Line | Tracking  | Use                                  |
-|---------------------|-------------|-----------|--------------------------------------|
-| `.type-display-xl`  | 96 / 86     | −0.03em   | Hero, page-title.                    |
-| `.type-display-l`   | 64 / 59     | −0.02em   | Page H1.                             |
-| `.type-display-m`   | 40 / 38     | −0.015em  | Section H2.                          |
-| `.type-display-s`   | 24 / 24     | −0.005em  | Card headline, modal title.          |
-
-### Mono: **IBM Plex Mono**
-- Labels, timestamps, eyebrows, KPI legends, table meta.
-- Wider apertures than Space Mono — more legible at 10–12 px.
-- Always uppercase + 0.06–0.18em letter-spacing for eyebrows (looser at small sizes since IBM Plex Mono is naturally wider).
-- Fallbacks: `'JetBrains Mono', ui-monospace, monospace`.
-
-| Class             | Size / Line | Tracking | Use                                  |
-|-------------------|-------------|----------|--------------------------------------|
-| `.type-mono-eye`  | 11 / —      | 0.18em   | Eyebrow above headlines, breadcrumbs. |
-| `.type-mono-body` | 13 / 20     | 0.02em   | Mono body, code-like blocks.         |
-
-### Body: **IBM Plex Sans**
-- Long-form copy. 400/500/600/700.
-- Wide x-height, neutral German rendering, pairs cleanly with IBM Plex Mono — single type family for body + labels.
-- Body baseline: 15 px / line-height 1.6 (paragraphs 1.65). Smaller is squished; do not go below 14 px for prose.
-- Fallbacks: `'Inter', -apple-system, BlinkMacSystemFont, sans-serif`.
-
-| Class         | Size / Line | Tracking | Use                              |
-|---------------|-------------|----------|----------------------------------|
-| `.type-body`  | 15 / 25     | 0em      | Body text.                       |
-| `.type-small` | 13 / 20     | 0em      | Captions, meta, datestamps.      |
-
-### Em-highlight rule
-Inside any display/heading, `<em>` switches to **non-italic, color `--led`** (Gold). It is the brand's punctuation: it carries the dot.
-
-```html
-<h1>Vernetzt. <em>Bewegt.</em></h1>
-```
-
----
-
-## 4. Spacing & Grid
-
-Base unit **4 px**. Standard scale: **8 / 16 / 24 / 32 / 48 / 72 / 96 / 120**.
-
-| Token  | Px  | Use                          |
-|--------|-----|------------------------------|
-| `xs`   | 8   | Inline, icon-text gap.       |
-| `s`    | 16  | Small gap.                   |
-| `m`    | 24  | Card padding.                |
-| `l`    | 32  | Component gap.               |
-| `xl`   | 48  | Section gap (vertical).      |
-| `2xl`  | 72  | Hero breathing room.         |
-| `3xl`  | 96  | Hero padding.                |
-| `4xl`  | 120 | Full-bleed.                  |
-
-- Page max-width: `1320px`, page padding `48px 40px 120px`.
-- Section vertical padding ≥ 48 px, horizontal page gutter 40 px.
-- **Border-radius is `0`** for data containers, cards, buttons, inputs.
-
-### Responsive layout tokens
-
-The station-hall grid has to survive a 360 px screen. Four layout tokens in
-`tokens.css` carry that; components read the token instead of a pixel value, so
-one media query moves the whole system. Implementation and per-surface
-behaviour: `docs/features/feature-mobile-usability.md`.
-
-| Token                  | Desktop | ≤ 48em (phone) | Use                                   |
-|------------------------|---------|----------------|---------------------------------------|
-| `--page-pad`           | 16 px   | 10 px          | Page gutter (AppShell, Container).    |
-| `--card-pad`           | 24 px   | 16 px          | Card padding (`ChronicleCard`).       |
-| `--map-height`         | 800 px  | viewport-fill  | Map on the map page.                  |
-| `--map-height-detail`  | 500 px  | 300 px         | Map inside the project detail card.   |
-
-Breakpoints are Mantine's: **48em** (phone) and **62em** (phone or small
-tablet), mirrored in JS by `useIsMobile()` / `useIsCompact()`
-(`src/shared/hooks/useBreakpoint.ts`). Display headlines scale with `clamp()`
-rather than a fixed px size, so a long German compound still fits one line.
-
----
-
-## 5. Components
-
-### Buttons (`.btn`)
-- Mono uppercase label, 0.12em tracking, sharp corners.
-- Default: solid Anthracite on white text. Hover: Gold background, Anthracite text.
-- Variants: `.primary` (Preußenblau bg), `.outline` (Preußenblau text on white), `.ghost` (transparent).
-- Size variant: `.small` (10.5px label, tighter padding).
-
-### LED-Dots (`.led-dot`)
-8 px circles for inline status. Variants: default (Gold), `.go`, `.sig`, `.info`. Always paired with mono label.
-
-### Section-Head
-A three-column grid: **flap-number** (left, 112×120, sharp, `--bg2` background, hairline separator across middle) + eyebrow + H2 (Archivo Narrow uppercase) + right-aligned descr (Work Sans, max-w 320, `--ink2`).
-
-### Tafel · Live-Board (Mini-Board)
-The signature dark component. Header row: status LED + bold label + right-aligned mono context. Body rows: `60px t (Preußenblau bold) | 1fr d (Display, uppercase) | 28px g (Gold, right) | 90px s (status with LED-dot)`. Dashed hairline between rows.
-
-### Split-Flap
-Inline 38×48 chips with `--bg2` fill, `--ruleHot` border, Display 30 px, sharp 1-px hairline across middle (mimics flap seam). Used for digits *and* letters.
-
-### Ticker
-Mono 11.5 px uppercase 0.1em on **Amber background `#fcecb3`**, Gold border. No animation by default (CSS-driven scroll optional).
-
-### KPI Card
-`--bg2` background, 3-px Preußenblau left border. Mono eyebrow → 56-px Display value in Preußenblau (with 28-px secondary unit in `--ink3`) → mono description.
-
-### Wordmark + Signet
-- Wordmark: Archivo Narrow uppercase, baseline-aligned `<span class="dot">.</span>` in Gold. Sizes `.lg` 48px / `.md` 28px / `.sm` 18px / `.inv` (white text on `--ink` block).
-- Signet: 44×44 Anthracite square containing a 14×14 Gold inner square (with double-shadow). Used as favicon, app-icon, mark-block in slide headers.
-
-### Do / Don't
-- ✅ Punkt am Markenende in Gold. Narrow-Display für Headlines. Hellfläche mit Tafel als Gegenpol.
-- ❌ Keine Verläufe. Kein Gold-Glow im Tag. Keine Emoji. Keine abgerundeten Ecken.
-
----
-
-## 6. Logo & Wordmark
-
-The wordmark **always ends with a Gold dot**. The dot is *the arriving train, the set goal, the departure*. It is the only Gold element in many compositions and must never be desaturated.
-
-Clearzone: 1× wordmark height around the mark. Print min-width 20 mm. Digital min-width 100 px. Never rotated, never on a busy photo without an underlying Anthracite plate.
-
-A finalized logo file does **not yet exist** — the design-system bundle reserves a section for it. Until then, the wordmark + signet pair acts as the brand mark.
-
----
-
-## 7. Motion & Interaction
-
-- Transitions: `0.12s` linear on hover state changes (button, link).
-- No spring, no bouncy easing.
-- Animated tickers and flap rolls are reserved for the Tafel component family. Outside Tafel, motion is absent.
-
----
-
-## 8. Dark Mode
-
-There is **no global dark mode**. Dark surfaces appear only inside the Tafel family (mini-board, ticker on dark, departure displays). The rest of the application stays in daylight. This is intentional: dark = live data, light = editorial context.
-
----
-
-## 9. Accessibility
-
-- Body text contrast ≥ 7:1 (`--ink2` on `--bg`).
-- Display contrast ≥ 12:1 (`--ink` on `--bg`).
-- Status colors must always carry a textual label (`Verspätung +12 Min`), never color-alone.
-- Focus state: 2-px solid `--led` outline, 2-px offset.
-
----
-
-## 10. Tokens Reference
-
-The complete token list lives in `apps/frontend/src/components/chronicle/tokens.css` (file path retained for migration, content rewritten). Mantine theme exposes the same tokens via `theme.other.*` for components that need JS access.
-
-See `docs/features/feature-rebrand-direction-f.md` for the rollout plan.
+# Gestaltung: Design der Initiative Deutschlandtakt
+
+Stand 2026-10-21. Ersetzt „Bahnhofshalle Tag (Direction F)“ vollständig. Dieses
+Dokument ist die Kurzfassung mit den Regeln, die im Dashboard gelten; die
+Werte stehen in den Quellen, der Umstellungsplan in
+`docs/features/feature-idt-design.md`.
+
+## Quellen
+
+| Quelle | Rolle |
+|---|---|
+| Design System der Initiative (Artefakt `https://claude.ai/artifact/14Xq8ZVdYasy3EUQ8bLhGh`) | Tokens (`project/tokens.json` → `tokens.css`), Komponenten, Datenviz-Palette, Markenregeln, Favicons, Logo, Schrift |
+| Anwendungsebene (DS-Abschnitt `anwendungsebene.md`; Ursprung `JonasPrade/ini_strategy` → `docs/design/anwendungsebene/README.md`) | Werkzeug-Bausteine: Tabellen, Felder, Dialoge, Datum, Status, Zustände, Navigation, Icons, Dunkelfassung |
+| Strategie-Tool (`JonasPrade/ini_strategy`, `stakeholder/static/stil.css`) | Referenzumsetzung derselben Regeln, besonders die Dunkelfassung |
+| Prototyp `docs/features/idt-design/` | Sichtreferenz für das Dashboard (Projektliste, Projektseite, Dialog, Handy) |
+
+Bei Widerspruch: für Werkzeug-Bausteine gilt die Anwendungsebene vor dem DS;
+Abweichungen des Dashboards stehen in der Entscheidungstabelle der Feature-Datei.
+
+## Die Regeln in Kürze
+
+1. **Nur Tokens.** Jede Farbe, Größe, jeder Abstand und Rahmen kommt aus
+   `src/shared/theme/tokens.css` (DS, verbatim) oder den daraus gemischten
+   Mantine-Skalen in `src/shared/theme/theme.ts`. Fachliche Zuordnungen
+   (Phase → Farbe, Verkehrsart → Farbe, …) stehen ausschließlich in
+   `src/shared/theme/semanticColors.ts`.
+2. **Semantische Aliasse, nicht Markenkerne.** Oberflächen schreiben
+   `--surface`, `--text-muted`, `--accent-primary`, `--border-frame`; nie
+   `--idt-paper` oder `--idt-ink` direkt. Nur so trägt die Dunkelfassung.
+3. **Papier und Ink.** Papier `#FFF6F0` ist die Fläche, Ink `#00373C` die
+   Schrift und der Rahmen. Violett `#6E50FA` ist die Aktionsfarbe (Knöpfe,
+   Links, Fokus, aktive Navigation), Cyan `#00DCFA` sekundär und als Fläche.
+   **Gelb kommt im Dashboard nicht vor** (Anwendungsebene); die einzige
+   Ausnahme ist die eine Hervorhebungszahl je Ansicht mit Ink-Kontur.
+4. **Nur ein Status trägt Farbe.** Rot `#D64545` steht für Versäumnis
+   (überfällig) und Löschen, sonst nichts. Erfolg ist ein Haken, kein Grün.
+   Datenkategorien (Phasen, Verkehrsarten, Diagrammreihen) sind keine Status
+   und tragen die Datenviz-Palette: kategorial `chart-1…6` in fester Reihenfolge,
+   ordinal die Teal-Rampe `seq-1…5`, Abweichung `diverge-neg/mid/pos`.
+   „In Betrieb“ ist `--idt-success`.
+5. **Eckig und gerahmt.** Radius 0 überall. Rahmen 2px Ink (`--border-frame`),
+   Haarlinien 1px (`--border`) nur innerhalb von Inhalt. Keine Blockschatten im
+   Dashboard; weiche Schatten nur bei Karten der Variante `soft` und beim Dialog
+   (`8px 8px 0 rgba(0,55,60,.18)`).
+6. **Eine Schrift.** InterVariable, selbst gehostet (`public/fonts/`). Keine
+   Mono-Schrift: Versal-Etiketten in Inter mit `letter-spacing: .12em`, Zahlen
+   mit `font-variant-numeric: tabular-nums`. Grundschrift 16px, Stufen
+   13 (Marke) · 13,5 (Etikett, Spaltenkopf) · 14,5 (Nebentext, Tabellen) ·
+   16 · 19 (Abschnitt) · 21 (Ansichtstitel); Kennzahlen 36px, Band 56px.
+7. **Maße der Anwendungsebene.** Bedienhöhe 40px (44 mobil), Tabellenzeile
+   48px (`--row-h`), Kopfzeile 72px, Felder `2px` Rahmen mit `8px 11px`
+   Polsterung, Fokus 2px Violett mit 2px Abstand. Hover ist ein Farbwechsel,
+   nie ein Anheben.
+8. **Lucide-Icons.** Nur Kontur, Strich 2, runde Enden, `currentColor`. 16px in
+   Zeilen und Feldern, 20px in Leisten, 22–26px als Merkzeichen. Fehlt ein
+   Zeichen, wird es aus Lucide nachgezogen, nicht gezeichnet.
+9. **Zustände statt Kreisel.** Leer (Überschrift, Satz, eine Aktion), Lädt
+   (Platzhalterbalken, kein Kreisel, kein Schimmern), Fehler (rote Innenkante,
+   „Erneut versuchen“). Rückmeldung beim Speichern im Kopf der Ansicht.
+10. **Keine Erklärtexte in der Oberfläche.** Ein Fragezeichen an der
+    Überschrift verweist auf die Dokumentation.
+11. **Dunkelfassung.** Vorgabe ist die Systemeinstellung, der Knopf im Kopf
+    schaltet ausdrücklich um, die Wahl bleibt im Browser
+    (`schienendashboard.thema`). Ink wird Fläche, Papier Schrift, Akzente hellen
+    bis 4,5:1 auf (`--accent-primary` → `#ad9bff`). Violett selbst ist auf Ink
+    kein Text. Rahmen werden `#8ca09f`, nicht Papier.
+12. **Marke.** Bildmarke aus dem DS-Favicon-Set (Ink-Quadrat mit Gleisbalken)
+    neben „Schienendashboard“ im Kopf; Inverse-Logo in der Fußzeile; Favicon-Set
+    des DS im Tab. Das Logo wird nie neu gesetzt oder nachgezeichnet.
+
+## Shell
+
+- **Kopfzeile:** Papier, 2px Ink-Linie unten, 72px, Bildmarke 40px, Produktname
+  19/700, Hauptbereiche als Textlinks 15/600 mit 3px violetter Unterkante am
+  aktiven Punkt, Zähler im Ink-Rahmen auf Violett-Soft (rot gerahmt nur mit
+  Überfälligem), Dunkel-Knopf rechts, Burger unter 62em.
+- **Fußzeile:** Ink, 3px violette Oberkante, Inverse-Logo 26px, Fassung,
+  Links Impressum · Datenschutz · Dokumentation.
+- **Register** an der linken Kante der Projektseite (ab 62em Spalte, sonst
+  Knopf „Abschnitte“ unten), aktiver Abschnitt mit 3px violetter Kante.
+
+## Bausteine (Kurzliste, Werte in der Feature-Datei)
+
+Button (bestätigend violett, abbrechend gerahmt, löschend rot gefüllt nur im
+Dialog) · Felder (2px, Fokus violett, gesperrt Paper-3) · Checkbox 18px ·
+Tabelle (Filterleiste, Auswahlleiste mit violetter Innenkante, Kopf 13,5/600 mit
+2px Ink-Linie, 48px-Zeilen mit Haarlinie, kein Zebra, Karten unter 48em) ·
+Dialog (2px Rahmen, harter Schatten, höchstens zwei Aktionen, mobil Vollbild) ·
+Tag/Badge (22px, Versalien 11,5/600, kantig) · Callout (8px Linkskante in der
+Statusfarbe, kein Rahmen, keine Fläche) · Kennzahl (36/56px, tabellarisch) ·
+Karte `soft` (1px + Schatten) / `frame` (2px) / `inverse` (Ink) · Zustände ·
+Rückmeldung.
+
+## Mobil
+
+Zwei Breakpoints, 48em und 62em (`feature-mobile-usability.md`). Die
+Anwendungsebene wird darauf abgebildet: Karten unter 48em, Register ab 62em,
+Bedienhöhe 44px und Vollbild-Dialoge unter 48em.
+
+## Verboten
+
+- Richtung-F-Elemente: Gold, Preußischblau, Anthrazit, Archivo Narrow, IBM
+  Plex, Fallblatt, Goldpunkt, Signet-Quadrat, Tafel-Flächen.
+- Gelb als Status oder Datenreihe; Grün als Erfolgsfläche; Rot für irgendetwas
+  außer Versäumnis und Löschen.
+- Verläufe als Flächen, Blockschatten, Hover-Anheben, Radien.
+- Google Fonts oder andere externe Schrift- und Script-Quellen.
+- DB-Rot `#ec0016` und Parteifarben (politische Kollision, gilt weiter).
+- Emoji.
+
+## Barrierefreiheit
+
+- Fließtext 4,5:1, Icons und Rahmen 3:1 auf ihrem Grund, in beiden Fassungen.
+  Die Kontrastgrenzen des DS gelten: `text-faint` (3,2:1) und `idt-success`/
+  `idt-danger` (4,1:1) nicht für kleine Schrift auf Papier; `idt-warning` nie
+  als Schrift; nie Papier auf Cyan; kein Violett-Text auf Ink.
+- Farbe ist nie das einzige Signal: Status trägt Gewicht, Haken oder
+  Unterkante; Phasen tragen Text und Quadrat.
+- Tabulator in Lesereihenfolge, Fokusring 2px Violett; keine eigenen
+  Tastenkürzel; Touch-Ziele 44px.
+
+## Pflege
+
+Ändert sich das DS, wird `tokens.css` ausgetauscht (Kopfkommentar mit
+Artefakt-Version und Datum) und die Mantine-Skalen in `theme.ts` werden aus den
+neuen Werten neu gemischt. Neue fachliche Farbzuordnungen kommen nur nach
+`semanticColors.ts`. Das WordPress-Theme der Initiative und das Strategie-Tool
+konsumieren dieselben Tokens; eine Abweichung in einem der drei Werkzeuge wird
+im DS geklärt, nicht lokal.

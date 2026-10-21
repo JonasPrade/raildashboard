@@ -19,7 +19,7 @@ Out of scope: creating new projects from this page (future roadmap item).
 2. Two table sections are shown: FinVes and VIB entries, each with a count badge.
 3. Each row has a searchable MultiSelect for project(s) and a "Zuweisen" button.
 4. After successful assignment the row disappears from the table; counts update immediately.
-5. The header shows a "Offene Zuordnungen" link with a red badge when there are unassigned items.
+5. The header shows a "Offene Zuordnungen" link with a counter badge when there are unassigned items (ink frame on violet-soft; red only when something is overdue — IDT design, W7 in `feature-idt-design.md`, 2026-10-21).
 6. All four new API endpoints require editor/admin auth.
 
 ## Backend
@@ -83,7 +83,7 @@ Project search reuses the existing project search endpoint already available in 
     └── Table: id | Name | Abschnitt | Kategorie | Jahr | Projekte zuweisen [MultiSelect + Button]
 ```
 
-Header link "Offene Zuordnungen" visible for editor/admin; red badge = sum of both counts (hidden when 0).
+Header link "Offene Zuordnungen" visible for editor/admin; counter badge = sum of both counts (hidden when 0; neutral badge, red only for overdue items since the IDT design).
 
 ## Technical Notes
 
