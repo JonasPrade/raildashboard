@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import {
     Badge,
     Button,
@@ -223,8 +224,9 @@ function VibTabContent({
                         <Text size="sm" fw={600}>
                             PFA-Tabelle ({entry.pfa_entries.length} Einträge)
                         </Text>
-                        <Text size="xs" c="dimmed">
-                            {pfaExpanded ? "▲ ausblenden" : "▼ anzeigen"}
+                        <Text size="xs" c="dimmed" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                            {pfaExpanded ? <ChevronUp size={16} aria-hidden /> : <ChevronDown size={16} aria-hidden />}
+                            {pfaExpanded ? "ausblenden" : "anzeigen"}
                         </Text>
                     </Group>
                     <Collapse in={pfaExpanded}>
@@ -268,8 +270,9 @@ function VibTabContent({
                         <Text size="sm" fw={600}>
                             Volltext
                         </Text>
-                        <Text size="xs" c="dimmed">
-                            {rawExpanded ? "▲ ausblenden" : "▼ anzeigen"}
+                        <Text size="xs" c="dimmed" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                            {rawExpanded ? <ChevronUp size={16} aria-hidden /> : <ChevronDown size={16} aria-hidden />}
+                            {rawExpanded ? "ausblenden" : "anzeigen"}
                         </Text>
                     </Group>
                     <Collapse in={rawExpanded}>

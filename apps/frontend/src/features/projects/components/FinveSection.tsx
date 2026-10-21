@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import {
     Anchor,
     Badge,
@@ -74,10 +75,11 @@ function FinveCard({ finve }: { finve: FinveWithBudgets }) {
                             <Text
                                 size="xs"
                                 c="blue"
-                                style={{ cursor: "pointer", userSelect: "none" }}
+                                style={{ display: "inline-flex", alignItems: "center", gap: 4, cursor: "pointer", userSelect: "none" }}
                                 onClick={() => setOpen((o) => !o)}
                             >
-                                {open ? "Ausblenden ▲" : "Details & Diagramme ▼"}
+                                {open ? "Ausblenden" : "Details & Diagramme"}
+                                {open ? <ChevronUp size={16} aria-hidden /> : <ChevronDown size={16} aria-hidden />}
                             </Text>
                         )}
                     </Group>

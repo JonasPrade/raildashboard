@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { ChevronDown } from "lucide-react";
 import {
     Anchor,
     Badge,
@@ -276,7 +277,10 @@ function VibStructureRowExample() {
                 <Badge variant="outline">✓ Projektkenndaten</Badge>
                 <Badge variant="outline">✗ Teilinbetriebnahmen</Badge>
             </Group>
-            <Text size="xs" c="blue">▼ Rohtext anzeigen</Text>
+            <Text size="xs" c="blue" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <ChevronDown size={16} aria-hidden />
+                Rohtext anzeigen
+            </Text>
         </Stack>
     );
 }

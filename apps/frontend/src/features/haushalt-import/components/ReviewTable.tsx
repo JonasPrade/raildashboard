@@ -12,6 +12,7 @@ import {
     Title,
     Tooltip,
 } from "@mantine/core";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
 import { STATUS_TONE } from "../../../shared/theme/semanticColors";
 import { useState } from "react";
@@ -135,7 +136,7 @@ function DataRow({
                             onClick={() => setExpanded((o) => !o)}
                             title="Mittelverteilung ein-/ausklappen"
                         >
-                            {expanded ? "▲" : "▼"}
+                            {expanded ? <ChevronUp size={16} aria-hidden /> : <ChevronDown size={16} aria-hidden />}
                         </ActionIcon>
                     ) : null}
                 </Table.Td>

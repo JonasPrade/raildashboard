@@ -207,7 +207,6 @@ export default function VibEntryEditForm({
                     maxRows={12}
                     value={entry.bauaktivitaeten ?? ""}
                     onChange={(e) => onChange({ bauaktivitaeten: e.currentTarget.value || null })}
-                    styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
                 />
 
                 {/* Teilinbetriebnahmen */}
@@ -218,7 +217,6 @@ export default function VibEntryEditForm({
                     maxRows={12}
                     value={entry.teilinbetriebnahmen ?? ""}
                     onChange={(e) => onChange({ teilinbetriebnahmen: e.currentTarget.value || null })}
-                    styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
                 />
 
                 {/* Verkehrliche Zielsetzung */}
@@ -229,7 +227,6 @@ export default function VibEntryEditForm({
                     maxRows={12}
                     value={entry.verkehrliche_zielsetzung ?? ""}
                     onChange={(e) => onChange({ verkehrliche_zielsetzung: e.currentTarget.value || null })}
-                    styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
                 />
 
                 {/* Durchgeführte Maßnahmen */}
@@ -240,7 +237,6 @@ export default function VibEntryEditForm({
                     maxRows={12}
                     value={entry.durchgefuehrte_massnahmen ?? ""}
                     onChange={(e) => onChange({ durchgefuehrte_massnahmen: e.currentTarget.value || null })}
-                    styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
                 />
 
                 {/* Noch umzusetzende Maßnahmen */}
@@ -251,7 +247,6 @@ export default function VibEntryEditForm({
                     maxRows={12}
                     value={entry.noch_umzusetzende_massnahmen ?? ""}
                     onChange={(e) => onChange({ noch_umzusetzende_massnahmen: e.currentTarget.value || null })}
-                    styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
                 />
 
                 {/* PFA-Tabelle */}
@@ -371,7 +366,6 @@ export default function VibEntryEditForm({
                     maxRows={12}
                     value={entry.sonstiges ?? ""}
                     onChange={(e) => onChange({ sonstiges: e.currentTarget.value || null })}
-                    styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
                 />
 
                 {/* Volltext */}
@@ -383,13 +377,7 @@ export default function VibEntryEditForm({
                         maxRows={24}
                         value={entry.raw_text}
                         onChange={(e) => onChange({ raw_text: e.currentTarget.value })}
-                        styles={{
-                            input: {
-                                fontFamily: "monospace",
-                                fontSize: 12,
-                                lineHeight: 1.6,
-                            },
-                        }}
+                        styles={{ input: { lineHeight: 1.6 } }}
                     />
                 )}
             </Stack>

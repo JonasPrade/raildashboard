@@ -747,6 +747,20 @@ function TextCard({ projectText, canEdit, projectId }: TextCardProps) {
     }
 
     function handleDelete() {
+        openConfirmModal({
+            title: "Text löschen?",
+            children: (
+                <Text size="sm" mb="md">
+                    „{projectText.header}" wird dauerhaft entfernt.
+                </Text>
+            ),
+            labels: { confirm: "Löschen", cancel: "Abbrechen" },
+            danger: true,
+            onConfirm: () => deleteText(),
+        });
+    }
+
+    function deleteText() {
         deleteMutation.mutate(projectText.id, {
             onSuccess: () => {
                 notifications.show({

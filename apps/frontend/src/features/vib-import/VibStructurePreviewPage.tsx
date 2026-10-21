@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
     Alert,
@@ -80,8 +81,9 @@ function RawTextCell({
                     </Badge>
                 ))}
             </Group>
-            <Text size="xs" c="blue">
-                {expanded ? "▲ einklappen" : "▼ Rohtext anzeigen"}
+            <Text size="xs" c="blue" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                {expanded ? <ChevronUp size={16} aria-hidden /> : <ChevronDown size={16} aria-hidden />}
+                {expanded ? "einklappen" : "Rohtext anzeigen"}
             </Text>
         </Stack>
     );

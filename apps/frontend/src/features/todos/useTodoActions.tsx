@@ -1,6 +1,7 @@
-import { modals } from "@mantine/modals";
+import { Text } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useDeleteTodo, useUpdateTodo, type Todo, type TodoStatus } from "../../shared/api/queries";
+import { openConfirmModal } from "../../shared/ui/confirmModal";
 
 /** Shared status-change and delete handlers for the to-do cards. */
 export function useTodoActions() {
@@ -16,11 +17,15 @@ export function useTodoActions() {
     };
 
     const confirmDelete = (todo: Todo) => {
-        modals.openConfirmModal({
-            title: "Aufgabe löschen",
-            children: `„${todo.title}" wirklich löschen?`,
+        openConfirmModal({
+            title: "Aufgabe löschen?",
+            children: (
+                <Text size="sm" mb="md">
+                    „{todo.title}" wird dauerhaft entfernt.
+                </Text>
+            ),
             labels: { confirm: "Löschen", cancel: "Abbrechen" },
-            confirmProps: { color: "red" },
+            danger: true,
             onConfirm: async () => {
                 try {
                     await deleteTodo.mutateAsync(todo.id);

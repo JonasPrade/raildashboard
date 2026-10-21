@@ -647,6 +647,17 @@
     color: var(--text-strong);
 }
 .idt-modal-close { color: var(--text-strong); }
+/* Touch target 44px under 48em (DESIGN.md → Barrierefreiheit); Modal and Drawer
+   share the class (theme.ts). */
+@media (max-width: 48em) {
+    .idt-modal-close {
+        --cb-size: 44px;
+        width: 44px;
+        min-width: 44px;
+        height: 44px;
+        min-height: 44px;
+    }
+}
 .idt-modal-body,
 .idt-drawer-body { padding: 18px; }
 .idt-modal-footer {

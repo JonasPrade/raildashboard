@@ -570,7 +570,7 @@ export default function ProjectDetail() {
                                     <Stack gap="sm">
                                         <Title order={2}>Projektdetails</Title>
                                         {visibleDetailRows.length > 0 && (
-                                            <Stack gap={8}>
+                                            <Stack gap={18}>
                                                 {visibleDetailRows.map(({ label, value }) => (
                                                     <DetailRow key={label} label={label} value={value} />
                                                 ))}
@@ -593,7 +593,7 @@ export default function ProjectDetail() {
                                                 <Stack gap="md">
                                                     {activeFeatureGroups.map(({ groupLabel, activeFeatures }) => (
                                                         <Stack key={groupLabel} gap={6}>
-                                                            <Text size="xs" fw={600} c="dimmed">{groupLabel}</Text>
+                                                            <Text component="div" size="sm" fw={600} c="var(--text-muted)">{groupLabel}</Text>
                                                             <Group gap="xs">
                                                                 {activeFeatures.map(({ key, label }) => (
                                                                     <Badge key={String(key)} variant="outline">
@@ -642,7 +642,7 @@ export default function ProjectDetail() {
                             <Stack gap="sm">
                                 <Title order={2}>Projektdetails</Title>
                                 {visibleDetailRows.length > 0 && (
-                                    <Stack gap={8}>
+                                    <Stack gap={18}>
                                         {visibleDetailRows.map(({ label, value }) => (
                                             <DetailRow key={label} label={label} value={value} />
                                         ))}
@@ -665,7 +665,7 @@ export default function ProjectDetail() {
                                         <Stack gap="md">
                                             {activeFeatureGroups.map(({ groupLabel, activeFeatures }) => (
                                                 <Stack key={groupLabel} gap={6}>
-                                                    <Text size="xs" fw={600} c="dimmed">{groupLabel}</Text>
+                                                    <Text component="div" size="sm" fw={600} c="var(--text-muted)">{groupLabel}</Text>
                                                     <Group gap="xs">
                                                         {activeFeatures.map(({ key, label }) => (
                                                             <Badge key={String(key)} variant="outline">
@@ -890,28 +890,16 @@ type DetailRowProps = {
 };
 
 function DetailRow({ label, value }: DetailRowProps) {
-    // A 200px label column leaves nothing for the value on a phone — stack instead.
-    const isMobile = useIsMobile();
-
-    if (isMobile) {
-        return (
-            <Stack gap={2}>
-                <Text fw={500} size="sm">
-                    {label}
-                </Text>
-                <Text size="sm" c="dimmed">
-                    {value}
-                </Text>
-            </Stack>
-        );
-    }
-
+    // Read-only field pair after the prototype's `.feldzeile`: label 13.5/600 muted
+    // above the value 16px body. Stacked at every width (the card is a narrow column).
     return (
-        <Group gap="md" align="flex-start">
-            <Text fw={500} style={{ minWidth: 200 }}>
+        <Stack gap={4}>
+            <Text component="div" size="sm" fw={600} c="var(--text-muted)">
                 {label}
             </Text>
-            <Text size="sm">{value}</Text>
-        </Group>
+            <Text size="md" c="var(--text-body)">
+                {value}
+            </Text>
+        </Stack>
     );
 }

@@ -72,8 +72,8 @@ export default function ProgressMini({ projectId }: { projectId: number }) {
                     const inSpan = !isUnknownLeaf && idx >= minIdx && idx <= maxIdx;
                     const isDone = !isUnknownLeaf && !noCompleted && idx < minIdx;
                     // "In Betrieb" is the terminal phase — reaching it means the
-                    // project is effectively complete, so colour it green (DONE)
-                    // rather than the in-progress violet.
+                    // project is effectively complete, so it takes the done ink
+                    // (status, never green) rather than the in-progress violet.
                     let color = IDLE;
                     if (inSpan) color = phase === "IN_BETRIEB" ? DONE : ACTIVE;
                     else if (isDone) color = DONE;

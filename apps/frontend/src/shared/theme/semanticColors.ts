@@ -23,13 +23,16 @@ export const FORECAST_SOURCE_COLOR = {
     "Schätzung": "var(--idt-chart-4)",
 } as const;
 
+// Planning state of the stepper, milestones and parallel lanes. These are status,
+// not data categories: done is ink plus a check (never green), running is violet.
 export const LANE_STATE_COLOR = {
     idle: "var(--idt-line-strong)",
     active: "var(--accent-primary)",
-    done: "var(--idt-success)",
-    /** Surface behind text-on-accent for a done step: the DS green reaches only
-     *  4.1:1 against paper, the derived fill (components.css) ≥ 5:1. */
-    doneFill: "var(--idt-success-fill)",
+    /** Background of the running step (prototype `.step.aktiv`). */
+    activeFill: "var(--idt-violet-soft)",
+    done: "var(--text-strong)",
+    /** Frame of a done step (prototype `.step.erledigt`). */
+    doneFrame: "var(--border-frame)",
     /** Lines and outlines that must read as graphics (3:1): chevrons, open steps. */
     idleLine: "var(--text-muted)",
 } as const;

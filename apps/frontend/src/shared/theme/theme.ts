@@ -5,6 +5,7 @@ import {
     Autocomplete,
     Avatar,
     Badge,
+    type BadgeProps,
     Button,
     Card,
     Checkbox,
@@ -346,6 +347,9 @@ export const theme = createTheme({
             }),
         }),
         Badge: Badge.extend({
+            // Inline element: badges sit inside <p> (Text, markdown) where a <div>
+            // is invalid HTML. Badge is polymorphic; the root is display: inline-grid.
+            defaultProps: { component: "span" } as Partial<BadgeProps>,
             classNames: (_theme, props) => ({ root: `idt-badge ${tone(props.color)}`, section: "idt-badge-section" }),
         }),
         // notifications.show({ color }) → green/teal get an ink check instead of a

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import {
     Badge,
@@ -89,8 +90,9 @@ function FinveCard({ finve }: { finve: FinveListItem }) {
                             onClick={() => setOpen((o) => !o)}
                             style={{ alignSelf: "flex-start" }}
                         >
-                            <Text size="sm" c="blue" style={{ userSelect: "none" }}>
-                                {open ? "▲ Diagramme ausblenden" : "▼ Details & Diagramme"}
+                            <Text size="sm" c="blue" style={{ display: "inline-flex", alignItems: "center", gap: 4, userSelect: "none" }}>
+                                {open ? <ChevronUp size={16} aria-hidden /> : <ChevronDown size={16} aria-hidden />}
+                                {open ? "Diagramme ausblenden" : "Details & Diagramme"}
                             </Text>
                         </UnstyledButton>
 
