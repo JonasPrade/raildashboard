@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
-import { Box, Group, Text } from "@mantine/core";
-import { ChronicleDataChip } from "../../components/chronicle";
+import { Badge, Box, Group, Text } from "@mantine/core";
 
 /**
  * Frame for an illustrative UI mock inside a guide step. The content is a
@@ -17,7 +16,7 @@ export default function GuideExampleView({
     return (
         <Box mt="sm">
             <Group gap={6} mb={6} align="center">
-                <ChronicleDataChip>Beispielansicht</ChronicleDataChip>
+                <Badge variant="outline">Beispielansicht</Badge>
                 <Text size="xs" c="dimmed">
                     {caption ?? "vereinfachte, nicht interaktive Darstellung"}
                 </Text>

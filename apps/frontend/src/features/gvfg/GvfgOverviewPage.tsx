@@ -2,18 +2,19 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
     Anchor,
+    Badge,
     Checkbox,
     Group,
     Pagination,
+    Paper,
     SegmentedControl,
     Select,
-    SimpleGrid,
     Stack,
     Table,
     Text,
     TextInput,
 } from "@mantine/core";
-import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
+import { Stat, StatBand } from "../../shared/ui/Stat";
 import { useGvfgProgramEntries, useGvfgPrograms, type GvfgEntry } from "../../shared/api/queries";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { CATEGORY_LABEL, KIND_LABEL, categories, editionLabel, formatMio, num, plannedAid, sumLine } from "./gvfgFormat";
@@ -24,15 +25,6 @@ const PAGE_SIZE = 50;
 
 type KindFilter = "all" | "kommunal" | "db";
 type PartFilter = "all" | "finanzrelevant" | "nachrichtlich";
-
-function Stat({ label, value }: { label: string; value: string }) {
-    return (
-        <ChronicleCard>
-            <Text size="xs" c="dimmed">{label}</Text>
-            <Text fw={600} size="lg">{value}</Text>
-        </ChronicleCard>
-    );
-}
 
 function sum(entries: GvfgEntry[], field: "cost_total" | "aid_total"): number {
     return entries.reduce((acc, e) => acc + (num(sumLine(e)?.[field]) ?? 0), 0);
@@ -163,17 +155,17 @@ export default function GvfgOverviewPage() {
 
             {!isLoading && !isError && (
                 <>
-                    <SimpleGrid cols={{ base: 2, sm: 4 }}>
-                        <Stat label="Vorhaben" value={String(filtered.length)} />
-                        <Stat label="Gesamtkosten (Mio. €)" value={formatMio(sum(filtered, "cost_total"))} />
-                        <Stat label="Bundesfinanzhilfen (Mio. €)" value={formatMio(sum(filtered, "aid_total"))} />
+                    <StatBand columns={4}>
+                        <Stat title="Vorhaben" value={String(filtered.length)} />
+                        <Stat title="Gesamtkosten (Mio. €)" value={formatMio(sum(filtered, "cost_total"))} />
+                        <Stat title="Bundesfinanzhilfen (Mio. €)" value={formatMio(sum(filtered, "aid_total"))} />
                         <Stat
-                            label={planned.length ? `davon ${planned[0]}–${planned[planned.length - 1]}` : "davon geplant"}
+                            title={planned.length ? `davon ${planned[0]}–${planned[planned.length - 1]}` : "davon geplant"}
                             value={formatMio(plannedSum)}
                         />
-                    </SimpleGrid>
+                    </StatBand>
 
-                    <ChronicleCard>
+                    <Paper withBorder p="var(--card-pad)">
                         <ResponsiveTable minWidth={1000} striped highlightOnHover verticalSpacing="xs">
                             <Table.Thead>
                                 <Table.Tr>
@@ -237,9 +229,9 @@ export default function GvfgOverviewPage() {
                                 <Pagination total={Math.ceil(filtered.length / PAGE_SIZE)} value={page} onChange={setPage} />
                             </Group>
                         )}
-                    </ChronicleCard>
+                    </Paper>
 
-                    <ChronicleCard>
+                    <Paper withBorder p="var(--card-pad)">
                         <Stack gap="xs">
                             <Text fw={600}>Summen je Land</Text>
                             <ResponsiveTable minWidth={560} striped verticalSpacing="xs">
@@ -264,11 +256,11 @@ export default function GvfgOverviewPage() {
                             </ResponsiveTable>
                             <Text size="xs" c="dimmed">
                                 Beträge in Mio. € (∑-Zeile je Vorhaben). {CATEGORY_LABEL.A}: endgültig, {CATEGORY_LABEL.B}:
-                                vorläufig, {CATEGORY_LABEL.C}: bedingt aufgenommen. <ChronicleDataChip>nachr.</ChronicleDataChip>{" "}
+                                vorläufig, {CATEGORY_LABEL.C}: bedingt aufgenommen. <Badge variant="outline">nachr.</Badge>{" "}
                                 = nachrichtlicher Teil ohne eingeplante Finanzhilfen.
                             </Text>
                         </Stack>
-                    </ChronicleCard>
+                    </Paper>
                 </>
             )}
         </Stack>

@@ -1,13 +1,12 @@
 import type { ReactNode } from "react";
-import { Alert, Anchor, Box, List, Text } from "@mantine/core";
+import { Alert, Anchor, Badge, Box, List, Text } from "@mantine/core";
 import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ChronicleDataChip } from "../../components/chronicle";
 
 /**
  * Renders guide markdown in the guide look: paragraphs as small Text, inline
- * code as ChronicleDataChip, internal links as router links, and "> [!color]"
+ * code as outline Badge, internal links as router links, and "> [!color]"
  * blockquote blocks as Mantine Alerts (see guideContent.ts for the syntax).
  */
 
@@ -121,7 +120,11 @@ function MarkdownBlock({ text, dimmed }: { text: string; dimmed?: boolean }) {
                             </Box>
                         );
                     }
-                    return <ChronicleDataChip>{raw}</ChronicleDataChip>;
+                    return (
+                        <Badge variant="outline" tt="none">
+                            {raw}
+                        </Badge>
+                    );
                 },
                 pre: ({ children }) => <>{children}</>,
             }}

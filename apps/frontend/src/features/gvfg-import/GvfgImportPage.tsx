@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, Container, FileInput, Group, Stack, Table, Text } from "@mantine/core";
+import { Button, Container, FileInput, Group, Paper, Stack, Table, Text, Title } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
-import { ChronicleCard, ChronicleDataChip, ChronicleHeadline } from "../../components/chronicle";
+import { StatusTag } from "../../shared/ui/SwatchTag";
 import RequirePermission from "../../components/RequirePermission";
 import {
     useDeleteGvfgParseResult,
@@ -73,7 +73,7 @@ function ParseRuns({ results }: { results: GvfgParseResultSummary[] }) {
                             {r.username_snapshot ? ` · ${r.username_snapshot}` : ""}
                         </Table.Td>
                         <Table.Td>
-                            <ChronicleDataChip>{r.status === "SUCCESS" ? "gelesen" : "Fehler"}</ChronicleDataChip>
+                            <StatusTag tone={r.status === "SUCCESS" ? "done" : "danger"}>{r.status === "SUCCESS" ? "gelesen" : "Fehler"}</StatusTag>
                         </Table.Td>
                         <Table.Td>{r.confirmed_at ? formatDateTime(r.confirmed_at) : "–"}</Table.Td>
                         <Table.Td>
@@ -124,8 +124,8 @@ function GvfgImportPageContent() {
     return (
         <Container size="lg" py="xl">
             <Stack gap="xl">
-                <ChronicleHeadline as="h1">GVFG-Import</ChronicleHeadline>
-                <ChronicleCard>
+                <Title order={1}>GVFG-Import</Title>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="md">
                         <Text fw={600}>Neuer Import</Text>
                         <Text size="sm" c="dimmed">
@@ -150,13 +150,13 @@ function GvfgImportPageContent() {
                         </FileDropZone>
                         {task.isRunning && <TaskProgressIndicator progress={task.progress} warning={task.warning} />}
                     </Stack>
-                </ChronicleCard>
-                <ChronicleCard>
+                </Paper>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="md">
                         <Text fw={600}>Import-Läufe</Text>
                         {isLoading ? <LoadingState rows={6} /> : <ParseRuns results={results ?? []} />}
                     </Stack>
-                </ChronicleCard>
+                </Paper>
             </Stack>
         </Container>
     );

@@ -7,10 +7,11 @@ import {
     FileInput,
     Group,
     NumberInput,
+    Paper,
     Stack,
     Text,
+    Title,
 } from "@mantine/core";
-import { ChronicleHeadline, ChronicleCard } from "../../components/chronicle";
 import { notifications } from "@mantine/notifications";
 import RequirePermission from "../../components/RequirePermission";
 import {
@@ -61,14 +62,14 @@ function HaushaltsImportPageContent() {
         <Container size="lg" py="xl">
             <Stack gap="xl">
                 <Group justify="space-between" align="center">
-                    <ChronicleHeadline as="h1">Haushalts-Import</ChronicleHeadline>
+                    <Title order={1}>Haushalts-Import</Title>
                     <Anchor component={Link} to="/admin/haushalt-import/guide" size="sm">
                         Anleitung anzeigen →
                     </Anchor>
                 </Group>
 
                 {/* A — New import */}
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="md">
                         <Text fw={600} size="md">Neuer Import</Text>
                         <FileDropZone accept="application/pdf" onFiles={([dropped]) => setFile(dropped)} label="PDF hier ablegen">
@@ -105,10 +106,10 @@ function HaushaltsImportPageContent() {
                             <TaskProgressIndicator progress={progress} warning={task.warning} />
                         )}
                     </Stack>
-                </ChronicleCard>
+                </Paper>
 
                 {/* B — Existing results */}
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="md">
                         <Text fw={600} size="md">Vergangene Import-Läufe</Text>
                         {resultsLoading ? (
@@ -117,7 +118,7 @@ function HaushaltsImportPageContent() {
                             <ParseResultList results={results ?? []} />
                         )}
                     </Stack>
-                </ChronicleCard>
+                </Paper>
             </Stack>
         </Container>
     );

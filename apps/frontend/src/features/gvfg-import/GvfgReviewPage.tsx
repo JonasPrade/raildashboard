@@ -10,16 +10,17 @@ import {
     List,
     MultiSelect,
     Pagination,
+    Paper,
     SegmentedControl,
     Select,
     Stack,
     Table,
     Text,
     TextInput,
+    Title,
 } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
-import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
 import RequirePermission from "../../components/RequirePermission";
 import { filterProjectOption } from "../../lib/filterProjectOption";
 import { Plus } from "lucide-react";
@@ -162,9 +163,9 @@ function GvfgReviewPageContent() {
                 <Group justify="space-between" align="flex-end" wrap="wrap">
                     <Stack gap={2}>
                         <Anchor component={Link} to="/admin/gvfg-import" size="sm">← GVFG-Import</Anchor>
-                        <ChronicleHeadline as="h1">
+                        <Title order={1}>
                             {result.title ?? "GVFG-Programm"} {record.is_annex ? "· Anhang" : ""}
-                        </ChronicleHeadline>
+                        </Title>
                         <Text size="sm" c="dimmed">
                             Stand {result.stand ?? "–"} · {result.entries.length} Vorhaben · Spalten{" "}
                             {result.periods.map((p) => p.label).join(", ") || "–"}
@@ -202,7 +203,7 @@ function GvfgReviewPageContent() {
                     </Alert>
                 )}
 
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="sm">
                         <Group gap="sm" wrap="wrap" align="flex-end">
                             <SegmentedControl
@@ -342,7 +343,7 @@ function GvfgReviewPageContent() {
                             </Group>
                         )}
                     </Stack>
-                </ChronicleCard>
+                </Paper>
             </Stack>
             <CreateDraftProjectModal
                 opened={draftFor !== null}

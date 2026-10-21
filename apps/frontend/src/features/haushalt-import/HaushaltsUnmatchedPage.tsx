@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+    Badge,
     Button,
     Container,
     Group,
@@ -8,9 +9,9 @@ import {
     Switch,
     Table,
     Text,
+    Title,
 } from "@mantine/core";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
-import { ChronicleHeadline, ChronicleDataChip } from "../../components/chronicle";
 import { notifications } from "@mantine/notifications";
 import RequirePermission from "../../components/RequirePermission";
 import { useUnmatchedRows, useResolveUnmatchedRow } from "../../shared/api/queries";
@@ -40,7 +41,7 @@ function HaushaltsUnmatchedPageContent() {
         <Container size="xl" py="xl">
             <Stack gap="lg">
                 <Group justify="space-between">
-                    <ChronicleHeadline as="h1">Unbekannte Haushaltszeilen</ChronicleHeadline>
+                    <Title order={1}>Unbekannte Haushaltszeilen</Title>
                     <Switch
                         label="Erledigte anzeigen"
                         checked={showResolved}
@@ -81,11 +82,11 @@ function HaushaltsUnmatchedPageContent() {
                                     <Table.Td>{row.raw_name}</Table.Td>
                                     <Table.Td>
                                         {row.resolved ? (
-                                            <ChronicleDataChip>
+                                            <Badge variant="outline" tt="none">
                                                 Erledigt (FinVe {row.resolved_finve_id})
-                                            </ChronicleDataChip>
+                                            </Badge>
                                         ) : (
-                                            <ChronicleDataChip>Offen</ChronicleDataChip>
+                                            <Badge variant="outline">Offen</Badge>
                                         )}
                                     </Table.Td>
                                     <Table.Td>

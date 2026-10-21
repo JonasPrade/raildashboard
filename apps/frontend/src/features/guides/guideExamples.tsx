@@ -23,7 +23,6 @@ import {
     Title,
 } from "@mantine/core";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
-import { ChronicleDataChip } from "../../components/chronicle";
 import PhaseStepper from "../projects/components/progress/PhaseStepper";
 import { PhaseTag } from "../projects/components/progress/PhaseBadge";
 
@@ -270,12 +269,12 @@ function VibStructureRowExample() {
             </Group>
             <Text size="sm" fw={500} mt="xs">Zeile eines Vorhabens (Rohtext-Qualität &amp; Abschnitte):</Text>
             <Group gap={6} wrap="wrap">
-                <ChronicleDataChip>3.2k</ChronicleDataChip>
-                <ChronicleDataChip>4 PFA</ChronicleDataChip>
-                <ChronicleDataChip>✓ Verk. Zielsetzung</ChronicleDataChip>
-                <ChronicleDataChip>✓ Bauaktivitäten</ChronicleDataChip>
-                <ChronicleDataChip>✓ Projektkenndaten</ChronicleDataChip>
-                <ChronicleDataChip>✗ Teilinbetriebnahmen</ChronicleDataChip>
+                <Badge variant="outline">3.2k</Badge>
+                <Badge variant="outline">4 PFA</Badge>
+                <Badge variant="outline">✓ Verk. Zielsetzung</Badge>
+                <Badge variant="outline">✓ Bauaktivitäten</Badge>
+                <Badge variant="outline">✓ Projektkenndaten</Badge>
+                <Badge variant="outline">✗ Teilinbetriebnahmen</Badge>
             </Group>
             <Text size="xs" c="blue">▼ Rohtext anzeigen</Text>
         </Stack>
@@ -290,8 +289,8 @@ function VibReviewEntryExample() {
                 <Text size="sm" fw={500}>12 / 78</Text>
                 <Button variant="default" size="compact-xs">›</Button>
                 <Text fw={600} size="sm">ABS/NBS Hanau–Würzburg/Fulda–Erfurt</Text>
-                <ChronicleDataChip>ABS</ChronicleDataChip>
-                <ChronicleDataChip>KI</ChronicleDataChip>
+                <Badge variant="outline">ABS</Badge>
+                <Badge variant="outline">KI</Badge>
             </Group>
             <Group gap="sm" align="flex-end">
                 <MultiSelect
@@ -300,7 +299,7 @@ function VibReviewEntryExample() {
                     defaultValue={["1"]}
                     style={{ flex: 1, minWidth: 200 }}
                 />
-                <ChronicleDataChip style={{ marginBottom: 6 }}>✓</ChronicleDataChip>
+                <Badge variant="outline" style={{ marginBottom: 6 }}>✓</Badge>
             </Group>
             <Group gap="lg">
                 <Text size="sm" fw={500}>Projektstatus</Text>

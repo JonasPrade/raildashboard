@@ -1,6 +1,5 @@
-import { Button, Group, Table, Text } from "@mantine/core";
+import { Badge, Button, Group, Table, Text } from "@mantine/core";
 import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
-import { ChronicleDataChip } from "../../../components/chronicle";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
 import { useNavigate } from "react-router-dom";
@@ -9,7 +8,7 @@ import { useDeleteParseResult } from "../../../shared/api/queries";
 import { formatDateTime } from "../../../shared/format";
 
 function StatusBadge({ status }: { status: ParseResultPublic["status"] }) {
-    return <ChronicleDataChip>{status}</ChronicleDataChip>;
+    return <Badge variant="outline">{status}</Badge>;
 }
 
 type Props = {
