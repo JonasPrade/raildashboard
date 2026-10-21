@@ -63,7 +63,7 @@ function PoliticianProjects({ mandateId }: { mandateId: number }) {
                 <Table.Tr>
                     <Table.Th>Projekt</Table.Th>
                     <Table.Th>Nummer</Table.Th>
-                    <Table.Th ta="right">Im Wahlkreis</Table.Th>
+                    <Table.Th className="num">Im Wahlkreis</Table.Th>
                 </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -79,7 +79,7 @@ function PoliticianProjects({ mandateId }: { mandateId: number }) {
                                 {project.project_number ?? "—"}
                             </Text>
                         </Table.Td>
-                        <Table.Td ta="right">
+                        <Table.Td className="num">
                             {formatWeight(project.length_km, project.overlap_kind)}
                         </Table.Td>
                     </Table.Tr>

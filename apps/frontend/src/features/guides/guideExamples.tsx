@@ -130,7 +130,7 @@ function BauportalTableExample() {
                 <Table.Thead>
                     <Table.Tr>
                         <Table.Th>Bauportal-Projekt</Table.Th>
-                        <Table.Th>Phase</Table.Th>
+                        <Table.Th data-role="status">Phase</Table.Th>
                         <Table.Th>Bauzeitraum</Table.Th>
                         <Table.Th style={{ width: "30%" }}>Zuordnung</Table.Th>
                         <Table.Th>Übernehmen</Table.Th>
@@ -184,7 +184,7 @@ function HaushaltReviewExample() {
             <Table.Thead>
                 <Table.Tr>
                     <Table.Th>FinVe</Table.Th>
-                    <Table.Th>Status</Table.Th>
+                    <Table.Th data-role="status">Status</Table.Th>
                     <Table.Th style={{ width: "40%" }}>Projekte zuordnen</Table.Th>
                 </Table.Tr>
             </Table.Thead>

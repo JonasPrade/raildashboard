@@ -101,9 +101,9 @@ function Drafts({ drafts }: { drafts: InfraplanParseResultListItem[] }) {
                     <Table.Th>Jahrgang</Table.Th>
                     <Table.Th>Datei</Table.Th>
                     <Table.Th>Hochgeladen</Table.Th>
-                    <Table.Th>Status</Table.Th>
-                    <Table.Th ta="right">Zugeordnet / Zeilen</Table.Th>
-                    <Table.Th ta="right">Warnungen</Table.Th>
+                    <Table.Th data-role="status">Status</Table.Th>
+                    <Table.Th className="num">Zugeordnet / Zeilen</Table.Th>
+                    <Table.Th className="num">Warnungen</Table.Th>
                     <Table.Th>Übernommen</Table.Th>
                     <Table.Th />
                 </Table.Tr>
@@ -126,8 +126,8 @@ function Drafts({ drafts }: { drafts: InfraplanParseResultListItem[] }) {
                                     <Text size="xs" c="red" style={{ maxWidth: 220 }}>{d.error_message}</Text>
                                 )}
                             </Table.Td>
-                            <Table.Td ta="right">{d.row_count == null ? "–" : `${d.assigned_count} / ${d.row_count}`}</Table.Td>
-                            <Table.Td ta="right">
+                            <Table.Td className="num">{d.row_count == null ? "–" : `${d.assigned_count} / ${d.row_count}`}</Table.Td>
+                            <Table.Td className="num">
                                 {warnings > 0 ? <Badge color="gray" variant="outline">{warnings}</Badge> : "–"}
                             </Table.Td>
                             <Table.Td>
@@ -205,8 +205,8 @@ function Years({ reports }: { reports: InfraplanReport[] }) {
                 <Table.Tr>
                     <Table.Th>Jahrgang</Table.Th>
                     <Table.Th>Veröffentlicht</Table.Th>
-                    <Table.Th ta="right">Einträge</Table.Th>
-                    <Table.Th ta="right">zugeordnet</Table.Th>
+                    <Table.Th className="num">Einträge</Table.Th>
+                    <Table.Th className="num">zugeordnet</Table.Th>
                     <Table.Th>Kennzahlen</Table.Th>
                     <Table.Th />
                 </Table.Tr>
@@ -219,8 +219,8 @@ function Years({ reports }: { reports: InfraplanReport[] }) {
                             {r.title && <Text size="xs" c="dimmed">{r.title}</Text>}
                         </Table.Td>
                         <Table.Td>{r.published_on ? formatDateShort(r.published_on) : "–"}</Table.Td>
-                        <Table.Td ta="right">{r.entry_count}</Table.Td>
-                        <Table.Td ta="right">{r.assigned_count}</Table.Td>
+                        <Table.Td className="num">{r.entry_count}</Table.Td>
+                        <Table.Td className="num">{r.assigned_count}</Table.Td>
                         <Table.Td>
                             <Group gap={6} wrap="nowrap">
                                 <Text size="sm">{r.kpi_value_count} Werte</Text>

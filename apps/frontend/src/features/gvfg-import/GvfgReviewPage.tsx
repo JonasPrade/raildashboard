@@ -254,7 +254,7 @@ function GvfgReviewPageContent() {
                                     <Table.Th>Schlüssel</Table.Th>
                                     <Table.Th>Bezeichnung</Table.Th>
                                     <Table.Th>Fördertatbestand</Table.Th>
-                                    <Table.Th ta="right">Finanzhilfen Mio. €</Table.Th>
+                                    <Table.Th className="num">Finanzhilfen Mio. €</Table.Th>
                                     <Table.Th style={{ minWidth: 340 }}>Projekt</Table.Th>
                                 </Table.Tr>
                             </Table.Thead>
@@ -286,7 +286,7 @@ function GvfgReviewPageContent() {
                                                 <Text size="sm">{entry.funding_type ?? "–"}</Text>
                                                 <Text size="xs" c="dimmed">{entry.funding_rate != null ? `${entry.funding_rate} %` : ""}</Text>
                                             </Table.Td>
-                                            <Table.Td ta="right">{formatNumberDe(aidTotal(entry))}</Table.Td>
+                                            <Table.Td className="num">{formatNumberDe(aidTotal(entry))}</Table.Td>
                                             <Table.Td>
                                                 <MultiSelect
                                                     data={data}

@@ -509,7 +509,7 @@ function InfraplanReviewPageContent() {
                                     <Table.Th>Bezeichnung / Maßnahme</Table.Th>
                                     <Table.Th>Stand</Table.Th>
                                     <Table.Th>IBN</Table.Th>
-                                    <Table.Th ta="right">Kosten Mio. €</Table.Th>
+                                    <Table.Th className="num">Kosten Mio. €</Table.Th>
                                     <Table.Th>Befassung</Table.Th>
                                     <Table.Th style={{ minWidth: 320 }}>Zuordnung</Table.Th>
                                     <Table.Th />
@@ -554,7 +554,7 @@ function InfraplanReviewPageContent() {
                                             <Text size="sm">{row.state_raw ?? "–"}</Text>
                                         </Table.Td>
                                         <Table.Td style={{ whiteSpace: "nowrap" }}>{row.ibn_raw ?? "–"}</Table.Td>
-                                        <Table.Td ta="right"><CostCell row={row} /></Table.Td>
+                                        <Table.Td className="num"><CostCell row={row} /></Table.Td>
                                         <Table.Td style={{ maxWidth: 160 }}>
                                             <Text size="sm">
                                                 {row.parl_state ? PARL_LABEL[row.parl_state] : (row.parl_raw ?? "–")}

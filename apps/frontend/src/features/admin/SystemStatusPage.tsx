@@ -58,7 +58,7 @@ function WorkerTable({ health }: { health: WorkerHealth }) {
             <Table.Thead>
                 <Table.Tr>
                     <Table.Th>Worker</Table.Th>
-                    <Table.Th>Parallelität</Table.Th>
+                    <Table.Th className="num">Parallelität</Table.Th>
                     <Table.Th>Aufträge in Arbeit</Table.Th>
                 </Table.Tr>
             </Table.Thead>
@@ -66,7 +66,7 @@ function WorkerTable({ health }: { health: WorkerHealth }) {
                 {health.workers.map((worker) => (
                     <Table.Tr key={worker.name}>
                         <Table.Td><Code>{worker.name}</Code></Table.Td>
-                        <Table.Td>{worker.concurrency ?? "—"}</Table.Td>
+                        <Table.Td className="num">{worker.concurrency ?? "—"}</Table.Td>
                         <Table.Td>
                             {worker.active_tasks === 0
                                 ? "bereit (nichts in Arbeit)"

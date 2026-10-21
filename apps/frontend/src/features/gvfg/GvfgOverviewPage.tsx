@@ -173,9 +173,9 @@ export default function GvfgOverviewPage() {
                                     <Table.Th>Vorhaben</Table.Th>
                                     <Table.Th>Fördertatbestand</Table.Th>
                                     <Table.Th>Kat.</Table.Th>
-                                    <Table.Th ta="right">Gesamtkosten</Table.Th>
-                                    <Table.Th ta="right">Finanzhilfen</Table.Th>
-                                    <Table.Th ta="right">davon geplant</Table.Th>
+                                    <Table.Th className="num">Gesamtkosten</Table.Th>
+                                    <Table.Th className="num">Finanzhilfen</Table.Th>
+                                    <Table.Th className="num">davon geplant</Table.Th>
                                     <Table.Th>Projekt</Table.Th>
                                 </Table.Tr>
                             </Table.Thead>
@@ -200,9 +200,9 @@ export default function GvfgOverviewPage() {
                                                 <Text size="xs" c="dimmed">{e.funding_rate != null ? `${e.funding_rate} %` : ""}</Text>
                                             </Table.Td>
                                             <Table.Td>{e.part === "finanzrelevant" ? categories(e) : "–"}</Table.Td>
-                                            <Table.Td ta="right">{formatMio(total?.cost_total)}</Table.Td>
-                                            <Table.Td ta="right">{formatMio(total?.aid_total)}</Table.Td>
-                                            <Table.Td ta="right">
+                                            <Table.Td className="num">{formatMio(total?.cost_total)}</Table.Td>
+                                            <Table.Td className="num">{formatMio(total?.aid_total)}</Table.Td>
+                                            <Table.Td className="num">
                                                 {e.part === "finanzrelevant" ? formatMio(plannedAid(e, program)) : "–"}
                                             </Table.Td>
                                             <Table.Td>
@@ -238,18 +238,18 @@ export default function GvfgOverviewPage() {
                                 <Table.Thead>
                                     <Table.Tr>
                                         <Table.Th>Land</Table.Th>
-                                        <Table.Th ta="right">Vorhaben</Table.Th>
-                                        <Table.Th ta="right">Gesamtkosten</Table.Th>
-                                        <Table.Th ta="right">Finanzhilfen</Table.Th>
+                                        <Table.Th className="num">Vorhaben</Table.Th>
+                                        <Table.Th className="num">Gesamtkosten</Table.Th>
+                                        <Table.Th className="num">Finanzhilfen</Table.Th>
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
                                     {byLand.map(([name, rows]) => (
                                         <Table.Tr key={name}>
                                             <Table.Td>{name}</Table.Td>
-                                            <Table.Td ta="right">{rows.length}</Table.Td>
-                                            <Table.Td ta="right">{formatMio(sum(rows, "cost_total"))}</Table.Td>
-                                            <Table.Td ta="right">{formatMio(sum(rows, "aid_total"))}</Table.Td>
+                                            <Table.Td className="num">{rows.length}</Table.Td>
+                                            <Table.Td className="num">{formatMio(sum(rows, "cost_total"))}</Table.Td>
+                                            <Table.Td className="num">{formatMio(sum(rows, "aid_total"))}</Table.Td>
                                         </Table.Tr>
                                     ))}
                                 </Table.Tbody>

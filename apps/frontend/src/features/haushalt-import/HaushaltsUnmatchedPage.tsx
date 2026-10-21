@@ -61,7 +61,7 @@ function HaushaltsUnmatchedPageContent() {
                                 <Table.Th>Jahr</Table.Th>
                                 <Table.Th>FinVe-Nr. (roh)</Table.Th>
                                 <Table.Th>Bezeichnung (roh)</Table.Th>
-                                <Table.Th>Status</Table.Th>
+                                <Table.Th data-role="status">Status</Table.Th>
                                 <Table.Th>FinVe-ID zuweisen</Table.Th>
                             </Table.Tr>
                         </Table.Thead>

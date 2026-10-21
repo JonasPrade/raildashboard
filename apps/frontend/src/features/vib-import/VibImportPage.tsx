@@ -285,7 +285,7 @@ function VibImportPageContent() {
                                         <Table.Th>Jahr</Table.Th>
                                         <Table.Th>Drucksache</Table.Th>
                                         <Table.Th>Importiert</Table.Th>
-                                        <Table.Th>Vorhaben</Table.Th>
+                                        <Table.Th className="num">Vorhaben</Table.Th>
                                         <Table.Th />
                                     </Table.Tr>
                                 </Table.Thead>
@@ -297,7 +297,7 @@ function VibImportPageContent() {
                                             <Table.Td>
                                                 {formatDateNumeric(r.imported_at)}
                                             </Table.Td>
-                                            <Table.Td>{r.entry_count}</Table.Td>
+                                            <Table.Td className="num">{r.entry_count}</Table.Td>
                                             <Table.Td>
                                                 <Button
                                                     size="xs"

@@ -46,7 +46,7 @@ export default function InfraplanSection({ projectId }: { projectId: number }) {
                             <Table.Th>Abschnitt</Table.Th>
                             <Table.Th>Realisierungsstand</Table.Th>
                             <Table.Th>Inbetriebnahme gepl.</Table.Th>
-                            <Table.Th ta="right">Kosten Mio. €</Table.Th>
+                            <Table.Th className="num">Kosten Mio. €</Table.Th>
                             <Table.Th>Befassung</Table.Th>
                             <Table.Th>Veränderung</Table.Th>
                         </Table.Tr>
@@ -75,7 +75,7 @@ export default function InfraplanSection({ projectId }: { projectId: number }) {
                                     </Table.Td>
                                     <Table.Td style={{ maxWidth: 200 }}>{e.state_raw ?? "–"}</Table.Td>
                                     <Table.Td style={{ whiteSpace: "nowrap" }}>{e.ibn_raw ?? "–"}</Table.Td>
-                                    <Table.Td ta="right" style={{ whiteSpace: "nowrap" }}>
+                                    <Table.Td className="num" style={{ whiteSpace: "nowrap" }}>
                                         {cost !== null ? (
                                             <>
                                                 {formatMio(cost)}

@@ -57,7 +57,7 @@ export default function FuldaImportPage() {
                                     <Table.Th>Jahr</Table.Th>
                                     <Table.Th>Drucksache</Table.Th>
                                     <Table.Th>Einträge</Table.Th>
-                                    <Table.Th>Status</Table.Th>
+                                    <Table.Th data-role="status">Status</Table.Th>
                                     <Table.Th />
                                 </Table.Tr>
                             </Table.Thead>

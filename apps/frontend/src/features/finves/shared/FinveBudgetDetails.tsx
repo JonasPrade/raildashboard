@@ -68,13 +68,13 @@ export function TitelTable({ entries, year }: { entries: TitelEntry[]; year: num
         rows.map((e, i) => (
             <Table.Tr key={i}>
                 <Table.Td><Text size="xs">{e.label}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{formatTEuro(e.cost_estimate_last_year)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{formatTEuro(e.cost_estimate_aktuell)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{formatTEuro(e.verausgabt_bis)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{formatTEuro(e.bewilligt)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{formatTEuro(e.ausgabereste_transferred)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs" fw={600}>{formatTEuro(e.veranschlagt)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{formatTEuro(e.vorhalten_future)}</Text></Table.Td>
+                <Table.Td className="num"><Text size="xs">{formatTEuro(e.cost_estimate_last_year)}</Text></Table.Td>
+                <Table.Td className="num"><Text size="xs">{formatTEuro(e.cost_estimate_aktuell)}</Text></Table.Td>
+                <Table.Td className="num"><Text size="xs">{formatTEuro(e.verausgabt_bis)}</Text></Table.Td>
+                <Table.Td className="num"><Text size="xs">{formatTEuro(e.bewilligt)}</Text></Table.Td>
+                <Table.Td className="num"><Text size="xs">{formatTEuro(e.ausgabereste_transferred)}</Text></Table.Td>
+                <Table.Td className="num"><Text size="xs" fw={600}>{formatTEuro(e.veranschlagt)}</Text></Table.Td>
+                <Table.Td className="num"><Text size="xs">{formatTEuro(e.vorhalten_future)}</Text></Table.Td>
             </Table.Tr>
         ));
 
@@ -82,13 +82,13 @@ export function TitelTable({ entries, year }: { entries: TitelEntry[]; year: num
         <Table.Thead>
             <Table.Tr>
                 <Table.Th>Kapitel / Titel</Table.Th>
-                <Table.Th ta="right">Vorjahr</Table.Th>
-                <Table.Th ta="right">Aktuell</Table.Th>
-                <Table.Th ta="right">Verausgabt bis {year - 1}</Table.Th>
-                <Table.Th ta="right">Bewilligt {year}</Table.Th>
-                <Table.Th ta="right">Ausgabereste</Table.Th>
-                <Table.Th ta="right">Veranschlagt {year}</Table.Th>
-                <Table.Th ta="right">Vorhalten {year + 1} ff.</Table.Th>
+                <Table.Th className="num">Vorjahr</Table.Th>
+                <Table.Th className="num">Aktuell</Table.Th>
+                <Table.Th className="num">Verausgabt bis {year - 1}</Table.Th>
+                <Table.Th className="num">Bewilligt {year}</Table.Th>
+                <Table.Th className="num">Ausgabereste</Table.Th>
+                <Table.Th className="num">Veranschlagt {year}</Table.Th>
+                <Table.Th className="num">Vorhalten {year + 1} ff.</Table.Th>
             </Table.Tr>
         </Table.Thead>
     );

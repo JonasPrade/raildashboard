@@ -3,32 +3,27 @@ import {
     ActionIcon,
     Alert,
     Box,
-    Button,
     Container,
     Group,
     List,
     Paper,
     Popover,
     SegmentedControl,
-    Select,
-    SimpleGrid,
     Stack,
-    Switch,
     Text,
-    TextInput,
     Title,
 } from "@mantine/core";
 import { Stat } from "../../shared/ui/Stat";
 import { SwatchTag } from "../../shared/ui/SwatchTag";
 import { useDisclosure } from "@mantine/hooks";
-import { CircleHelp, Search, X } from "lucide-react";
+import { CircleHelp } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../lib/auth";
 
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import GroupFilterDrawer, { type ProjectGroupOption } from "../projects/GroupFilterDrawer";
-import { ProjectCard } from "../projects/ProjectCard";
-import PhaseFilterSelect from "../projects/PhaseFilterSelect";
+import { ProjectFilterBar } from "../projects/ProjectFilterBar";
+import { ProjectListTable } from "../projects/ProjectListTable";
 import {
     PHASE_PARAM,
     filterProjectsByPhase,
@@ -357,57 +352,6 @@ export default function MapPage() {
                         </Text>
                     </Stack>
 
-                    <Stack gap="sm">
-                        <Group align="flex-end" gap="md" wrap="wrap">
-                            <Select
-                                label="Projektgruppe"
-                                placeholder="Projektgruppe wählen"
-                                data={selectData}
-                                value={selectedGroupId !== null ? String(selectedGroupId) : null}
-                                onChange={handleGroupChange}
-                                disabled={isLoading && groups.length === 0}
-                                                                nothingFoundMessage={isLoading ? "Lade…" : "Keine Projektgruppen gefunden"}
-                                searchable
-                                clearable
-                                style={{ flex: "1 1 220px", minWidth: 0 }}
-                            />
-                            <TextInput
-                                label="Suche"
-                                placeholder="Name, Nr., Beschreibung…"
-                                leftSection={<Search size={16} />}
-                                rightSection={
-                                    localSearch ? (
-                                        <ActionIcon variant="subtle" size="xs" onClick={() => setLocalSearch("")}>
-                                            <X size={12} />
-                                        </ActionIcon>
-                                    ) : undefined
-                                }
-                                value={localSearch}
-                                onChange={(e) => setLocalSearch(e.currentTarget.value)}
-                                style={{ flex: "1 1 220px", minWidth: 0 }}
-                            />
-                            <PhaseFilterSelect
-                                label="Planungsphase"
-                                value={selectedPhases}
-                                onChange={handlePhaseFilterChange}
-                                style={{ flex: "1 1 220px", minWidth: 0 }}
-                            />
-                            <Switch
-                                label="Nur Hauptprojekte"
-                                checked={onlySuperior}
-                                onChange={(e) => handleOnlySuperiorChange(e.currentTarget.checked)}
-                                size="sm"
-                                pb={6}
-                                style={{ flex: "0 0 auto" }}
-                            />
-                        </Group>
-                        {errorMessage && (
-                            <Alert color="red" variant="light" title="Projektgruppen konnten nicht geladen werden">
-                                {errorMessage}
-                            </Alert>
-                        )}
-                    </Stack>
-
                     {selectedGroup && (
                         <Paper withBorder p="var(--card-pad)">
                             <Stack gap="xs">
@@ -442,6 +386,28 @@ export default function MapPage() {
                             Sobald Projektgruppen vorhanden sind, werden sie hier angezeigt.
                         </Alert>
                     )}
+
+                    <Stack gap={0}>
+                        <ProjectFilterBar
+                            groups={selectData}
+                            groupId={selectedGroupId}
+                            onGroupChange={handleGroupChange}
+                            groupsLoading={isLoading}
+                            search={localSearch}
+                            onSearchChange={setLocalSearch}
+                            phases={selectedPhases}
+                            onPhasesChange={handlePhaseFilterChange}
+                            onlySuperior={onlySuperior}
+                            onOnlySuperiorChange={handleOnlySuperiorChange}
+                            shown={projects.length}
+                            total={selectedGroup ? rawProjects.length : null}
+                        />
+                        {errorMessage && (
+                            <Alert color="red" variant="light" title="Projektgruppen konnten nicht geladen werden">
+                                {errorMessage}
+                            </Alert>
+                        )}
+                    </Stack>
 
                     {isLoading && groups.length === 0 ? (
                         <LoadingState rows={6} />
@@ -486,24 +452,12 @@ export default function MapPage() {
                                         : "Diese Projektgruppe enthält aktuell keine Projekte."}
                                 </Alert>
                             ) : (
-                                <Stack gap="lg">
-                                    <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="lg">
-                                        {projects.slice(0, listLimit).map((project) => (
-                                            <ProjectCard key={project.id ?? project.name} project={project} />
-                                        ))}
-                                    </SimpleGrid>
-                                    {projects.length > listLimit && (
-                                        <Group justify="center">
-                                            <Button
-                                                variant="default"
-                                                onClick={() => setListLimit((limit) => limit + LIST_PAGE_SIZE)}
-                                            >
-                                                Weitere {Math.min(LIST_PAGE_SIZE, projects.length - listLimit)} von{" "}
-                                                {projects.length - listLimit} Projekten anzeigen
-                                            </Button>
-                                        </Group>
-                                    )}
-                                </Stack>
+                                <ProjectListTable
+                                    projects={projects}
+                                    limit={listLimit}
+                                    pageSize={LIST_PAGE_SIZE}
+                                    onShowMore={() => setListLimit((limit) => limit + LIST_PAGE_SIZE)}
+                                />
                             )}
                         </Stack>
                     ) : groups.length > 0 ? (

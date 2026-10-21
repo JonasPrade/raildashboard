@@ -256,7 +256,7 @@ function KeysTable({
                     <Table.Th>Rechte</Table.Th>
                     <Table.Th>Zuletzt genutzt</Table.Th>
                     <Table.Th>Gültig bis</Table.Th>
-                    <Table.Th>Status</Table.Th>
+                    <Table.Th data-role="status">Status</Table.Th>
                     <Table.Th />
                 </Table.Tr>
             </Table.Thead>

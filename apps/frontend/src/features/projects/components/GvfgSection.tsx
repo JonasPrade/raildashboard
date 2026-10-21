@@ -42,10 +42,10 @@ function AmountTable({ entry }: { entry: GvfgProjectEntry }) {
             <Table.Thead>
                 <Table.Tr>
                     <Table.Th>Kat.</Table.Th>
-                    <Table.Th ta="right">Gesamtkosten</Table.Th>
-                    <Table.Th ta="right">zwf. Kosten</Table.Th>
-                    <Table.Th ta="right">Finanzhilfen</Table.Th>
-                    {!informational && periods.map((p) => <Table.Th key={p.label} ta="right">{p.label}</Table.Th>)}
+                    <Table.Th className="num">Gesamtkosten</Table.Th>
+                    <Table.Th className="num">zwf. Kosten</Table.Th>
+                    <Table.Th className="num">Finanzhilfen</Table.Th>
+                    {!informational && periods.map((p) => <Table.Th key={p.label} className="num">{p.label}</Table.Th>)}
                 </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -59,12 +59,12 @@ function AmountTable({ entry }: { entry: GvfgProjectEntry }) {
                                 </Text>
                             )}
                         </Table.Td>
-                        <Table.Td ta="right">{formatMio(a.cost_total)}</Table.Td>
-                        <Table.Td ta="right">{formatMio(a.cost_eligible)}</Table.Td>
-                        <Table.Td ta="right">{formatMio(a.aid_total)}</Table.Td>
+                        <Table.Td className="num">{formatMio(a.cost_total)}</Table.Td>
+                        <Table.Td className="num">{formatMio(a.cost_eligible)}</Table.Td>
+                        <Table.Td className="num">{formatMio(a.aid_total)}</Table.Td>
                         {!informational &&
                             periods.map((p) => (
-                                <Table.Td key={p.label} ta="right">
+                                <Table.Td key={p.label} className="num">
                                     {a.periods[p.label] != null ? formatMio(a.periods[p.label]) : ""}
                                 </Table.Td>
                             ))}
@@ -110,8 +110,8 @@ function EditionHistory({ editions }: { editions: GvfgProjectEntry[] }) {
             <Table.Thead>
                 <Table.Tr>
                     <Table.Th>Ausgabe</Table.Th>
-                    <Table.Th ta="right">Gesamtkosten</Table.Th>
-                    <Table.Th ta="right">Finanzhilfen</Table.Th>
+                    <Table.Th className="num">Gesamtkosten</Table.Th>
+                    <Table.Th className="num">Finanzhilfen</Table.Th>
                     <Table.Th>Inbetriebnahme gepl.</Table.Th>
                 </Table.Tr>
             </Table.Thead>
@@ -122,8 +122,8 @@ function EditionHistory({ editions }: { editions: GvfgProjectEntry[] }) {
                             {editionLabel(e.program)}
                             {e.part === "nachrichtlich" ? " (nachr.)" : ""}
                         </Table.Td>
-                        <Table.Td ta="right">{formatMio(sumLine(e)?.cost_total)}</Table.Td>
-                        <Table.Td ta="right">{formatMio(sumLine(e)?.aid_total)}</Table.Td>
+                        <Table.Td className="num">{formatMio(sumLine(e)?.cost_total)}</Table.Td>
+                        <Table.Td className="num">{formatMio(sumLine(e)?.aid_total)}</Table.Td>
                         <Table.Td>{e.commissioning_planned ?? "–"}</Table.Td>
                     </Table.Tr>
                 ))}
@@ -200,7 +200,7 @@ function SubprojectEntries({ groups, projectId }: { groups: GvfgProjectEntry[][]
                         <Table.Th>Teilprojekt</Table.Th>
                         <Table.Th>Schlüssel</Table.Th>
                         <Table.Th>Ausgabe</Table.Th>
-                        <Table.Th ta="right">Finanzhilfen (Mio. €)</Table.Th>
+                        <Table.Th className="num">Finanzhilfen (Mio. €)</Table.Th>
                     </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
@@ -219,7 +219,7 @@ function SubprojectEntries({ groups, projectId }: { groups: GvfgProjectEntry[][]
                             </Table.Td>
                             <Table.Td style={{ whiteSpace: "nowrap" }}>{entry.key}</Table.Td>
                             <Table.Td>{editionLabel(entry.program)}</Table.Td>
-                            <Table.Td ta="right">{formatMio(sumLine(entry)?.aid_total)}</Table.Td>
+                            <Table.Td className="num">{formatMio(sumLine(entry)?.aid_total)}</Table.Td>
                         </Table.Tr>
                     ))}
                 </Table.Tbody>

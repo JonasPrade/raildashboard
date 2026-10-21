@@ -313,10 +313,10 @@ function KapazitaetTab({ data }: { data: BvwpProjectData }) {
                         <Table.Thead>
                             <Table.Tr>
                                 <Table.Th>Zeitraum</Table.Th>
-                                <Table.Th>Ref.-fall km</Table.Th>
-                                <Table.Th>Ref.-fall %</Table.Th>
-                                <Table.Th>Planfall km</Table.Th>
-                                <Table.Th>Planfall %</Table.Th>
+                                <Table.Th className="num">Ref.-fall km</Table.Th>
+                                <Table.Th className="num">Ref.-fall %</Table.Th>
+                                <Table.Th className="num">Planfall km</Table.Th>
+                                <Table.Th className="num">Planfall %</Table.Th>
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
@@ -326,10 +326,10 @@ function KapazitaetTab({ data }: { data: BvwpProjectData }) {
                                 return (
                                     <Table.Tr key={p.key}>
                                         <Table.Td>{p.label}</Table.Td>
-                                        <Table.Td>{fmtFloat(r.km) ?? "–"}</Table.Td>
-                                        <Table.Td>{fmtFloat(r.perc) ?? "–"}</Table.Td>
-                                        <Table.Td>{fmtFloat(pl.km) ?? "–"}</Table.Td>
-                                        <Table.Td>{fmtFloat(pl.perc) ?? "–"}</Table.Td>
+                                        <Table.Td className="num">{fmtFloat(r.km) ?? "–"}</Table.Td>
+                                        <Table.Td className="num">{fmtFloat(r.perc) ?? "–"}</Table.Td>
+                                        <Table.Td className="num">{fmtFloat(pl.km) ?? "–"}</Table.Td>
+                                        <Table.Td className="num">{fmtFloat(pl.perc) ?? "–"}</Table.Td>
                                     </Table.Tr>
                                 );
                             })}

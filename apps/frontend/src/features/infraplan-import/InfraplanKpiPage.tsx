@@ -123,7 +123,7 @@ function KpiEditor({
                         <Table.Th>Teilreihe</Table.Th>
                         <Table.Th>Wert{kpi.unit ? ` (${kpi.unit})` : ""}</Table.Th>
                         <Table.Th>Quellseite</Table.Th>
-                        <Table.Th>Status</Table.Th>
+                        <Table.Th data-role="status">Status</Table.Th>
                         <Table.Th />
                     </Table.Tr>
                 </Table.Thead>
@@ -333,7 +333,7 @@ function Approval({
                                     <Table.Th>Kennzahl</Table.Th>
                                     <Table.Th>Jahr</Table.Th>
                                     <Table.Th>Art</Table.Th>
-                                    <Table.Th ta="right">Wert</Table.Th>
+                                    <Table.Th className="num">Wert</Table.Th>
                                 </Table.Tr>
                             </Table.Thead>
                             <Table.Tbody>
@@ -349,7 +349,7 @@ function Approval({
                                                 </Table.Td>
                                                 <Table.Td>{v.year}</Table.Td>
                                                 <Table.Td>{v.value_kind === "IST" ? "Ist" : "Ziel"}</Table.Td>
-                                                <Table.Td ta="right" style={{ whiteSpace: "nowrap" }}>
+                                                <Table.Td className="num" style={{ whiteSpace: "nowrap" }}>
                                                     {formatValue(v.value, kpi?.unit)}
                                                 </Table.Td>
                                             </Table.Tr>

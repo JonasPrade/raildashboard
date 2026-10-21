@@ -252,7 +252,7 @@ export default function BauportalImportPage() {
                         <Table.Thead>
                             <Table.Tr>
                                 <Table.Th>Bauportal-Projekt</Table.Th>
-                                <Table.Th>Phase</Table.Th>
+                                <Table.Th data-role="status">Phase</Table.Th>
                                 <Table.Th>Bauzeitraum</Table.Th>
                                 <Table.Th>Zuordnung</Table.Th>
                                 <Table.Th>Übernehmen</Table.Th>

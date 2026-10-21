@@ -226,25 +226,25 @@ function DataRow({
                 )}
 
                 {/* Aufnahme Jahr */}
-                <Table.Td ta="right">
+                <Table.Td className="num">
                     <Text size="xs">{row.proposed_finve?.starting_year ?? "–"}</Text>
                 </Table.Td>
 
                 {/* Voraussichtliche Gesamtausgaben */}
-                <Table.Td ta="right"><Text size="xs">{formatNumberDe(b?.cost_estimate_original ?? null)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{formatNumberDe(b?.cost_estimate_last_year ?? null)}</Text></Table.Td>
-                <Table.Td ta="right" fw={600}><Text size="xs" fw={600}>{formatNumberDe(b?.cost_estimate_actual ?? null)}</Text></Table.Td>
+                <Table.Td className="num"><Text size="xs">{formatNumberDe(b?.cost_estimate_original ?? null)}</Text></Table.Td>
+                <Table.Td className="num"><Text size="xs">{formatNumberDe(b?.cost_estimate_last_year ?? null)}</Text></Table.Td>
+                <Table.Td className="num" fw={600}><Text size="xs" fw={600}>{formatNumberDe(b?.cost_estimate_actual ?? null)}</Text></Table.Td>
 
                 {/* Gesamtausgabenentwicklung */}
-                <Table.Td ta="right"><Text size="xs">{formatNumberDe(b?.delta_previous_year ?? null)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{fmtPct(b?.delta_previous_year_relativ ?? null)}</Text></Table.Td>
+                <Table.Td className="num"><Text size="xs">{formatNumberDe(b?.delta_previous_year ?? null)}</Text></Table.Td>
+                <Table.Td className="num"><Text size="xs">{fmtPct(b?.delta_previous_year_relativ ?? null)}</Text></Table.Td>
 
                 {/* Ausgaben */}
-                <Table.Td ta="right"><Text size="xs">{formatNumberDe(b?.spent_two_years_previous ?? null)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{formatNumberDe(b?.allowed_previous_year ?? null)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{formatNumberDe(b?.spending_residues ?? null)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{formatNumberDe(b?.year_planned ?? null)}</Text></Table.Td>
-                <Table.Td ta="right"><Text size="xs">{formatNumberDe(b?.next_years ?? null)}</Text></Table.Td>
+                <Table.Td className="num"><Text size="xs">{formatNumberDe(b?.spent_two_years_previous ?? null)}</Text></Table.Td>
+                <Table.Td className="num"><Text size="xs">{formatNumberDe(b?.allowed_previous_year ?? null)}</Text></Table.Td>
+                <Table.Td className="num"><Text size="xs">{formatNumberDe(b?.spending_residues ?? null)}</Text></Table.Td>
+                <Table.Td className="num"><Text size="xs">{formatNumberDe(b?.year_planned ?? null)}</Text></Table.Td>
+                <Table.Td className="num"><Text size="xs">{formatNumberDe(b?.next_years ?? null)}</Text></Table.Td>
             </Table.Tr>
 
             {/* Collapsible detail row: Haushaltstiteln + nachrichtlich (EVU/Dritte) */}
@@ -336,13 +336,13 @@ function DataRow({
                                             <Table.Thead>
                                                 <Table.Tr>
                                                     <Table.Th>Kapitel / Titel</Table.Th>
-                                                    <Table.Th ta="right">Vorjahr</Table.Th>
-                                                    <Table.Th ta="right">Aktuell</Table.Th>
-                                                    <Table.Th ta="right">Verausgabt bis {year - 1}</Table.Th>
-                                                    <Table.Th ta="right">Bewilligt {year}</Table.Th>
-                                                    <Table.Th ta="right">Ausgabereste</Table.Th>
-                                                    <Table.Th ta="right">Veranschlagt {year}</Table.Th>
-                                                    <Table.Th ta="right">Vorhalten {year + 1} ff.</Table.Th>
+                                                    <Table.Th className="num">Vorjahr</Table.Th>
+                                                    <Table.Th className="num">Aktuell</Table.Th>
+                                                    <Table.Th className="num">Verausgabt bis {year - 1}</Table.Th>
+                                                    <Table.Th className="num">Bewilligt {year}</Table.Th>
+                                                    <Table.Th className="num">Ausgabereste</Table.Th>
+                                                    <Table.Th className="num">Veranschlagt {year}</Table.Th>
+                                                    <Table.Th className="num">Vorhalten {year + 1} ff.</Table.Th>
                                                 </Table.Tr>
                                             </Table.Thead>
                                             <Table.Tbody>
@@ -355,13 +355,13 @@ function DataRow({
                                                                     : e.label}
                                                             </Text>
                                                         </Table.Td>
-                                                        <Table.Td ta="right">{formatNumberDe(e.cost_estimate_last_year)}</Table.Td>
-                                                        <Table.Td ta="right">{formatNumberDe(e.cost_estimate_aktuell)}</Table.Td>
-                                                        <Table.Td ta="right">{formatNumberDe(e.verausgabt_bis)}</Table.Td>
-                                                        <Table.Td ta="right">{formatNumberDe(e.bewilligt)}</Table.Td>
-                                                        <Table.Td ta="right">{formatNumberDe(e.ausgabereste_transferred)}</Table.Td>
-                                                        <Table.Td ta="right">{formatNumberDe(e.veranschlagt)}</Table.Td>
-                                                        <Table.Td ta="right">{formatNumberDe(e.vorhalten_future)}</Table.Td>
+                                                        <Table.Td className="num">{formatNumberDe(e.cost_estimate_last_year)}</Table.Td>
+                                                        <Table.Td className="num">{formatNumberDe(e.cost_estimate_aktuell)}</Table.Td>
+                                                        <Table.Td className="num">{formatNumberDe(e.verausgabt_bis)}</Table.Td>
+                                                        <Table.Td className="num">{formatNumberDe(e.bewilligt)}</Table.Td>
+                                                        <Table.Td className="num">{formatNumberDe(e.ausgabereste_transferred)}</Table.Td>
+                                                        <Table.Td className="num">{formatNumberDe(e.veranschlagt)}</Table.Td>
+                                                        <Table.Td className="num">{formatNumberDe(e.vorhalten_future)}</Table.Td>
                                                     </Table.Tr>
                                                 ))}
                                             </Table.Tbody>
@@ -378,13 +378,13 @@ function DataRow({
                                             <Table.Thead>
                                                 <Table.Tr>
                                                     <Table.Th>Bezeichnung</Table.Th>
-                                                    <Table.Th ta="right">Vorjahr</Table.Th>
-                                                    <Table.Th ta="right">Aktuell</Table.Th>
-                                                    <Table.Th ta="right">Verausgabt bis {year - 1}</Table.Th>
-                                                    <Table.Th ta="right">Bewilligt {year}</Table.Th>
-                                                    <Table.Th ta="right">Ausgabereste</Table.Th>
-                                                    <Table.Th ta="right">Veranschlagt {year}</Table.Th>
-                                                    <Table.Th ta="right">Vorhalten {year + 1} ff.</Table.Th>
+                                                    <Table.Th className="num">Vorjahr</Table.Th>
+                                                    <Table.Th className="num">Aktuell</Table.Th>
+                                                    <Table.Th className="num">Verausgabt bis {year - 1}</Table.Th>
+                                                    <Table.Th className="num">Bewilligt {year}</Table.Th>
+                                                    <Table.Th className="num">Ausgabereste</Table.Th>
+                                                    <Table.Th className="num">Veranschlagt {year}</Table.Th>
+                                                    <Table.Th className="num">Vorhalten {year + 1} ff.</Table.Th>
                                                 </Table.Tr>
                                             </Table.Thead>
                                             <Table.Tbody>
@@ -393,13 +393,13 @@ function DataRow({
                                                         <Table.Td>
                                                             <Text size="xs">{e.label}</Text>
                                                         </Table.Td>
-                                                        <Table.Td ta="right">{formatNumberDe(e.cost_estimate_last_year)}</Table.Td>
-                                                        <Table.Td ta="right">{formatNumberDe(e.cost_estimate_aktuell)}</Table.Td>
-                                                        <Table.Td ta="right">{formatNumberDe(e.verausgabt_bis)}</Table.Td>
-                                                        <Table.Td ta="right">{formatNumberDe(e.bewilligt)}</Table.Td>
-                                                        <Table.Td ta="right">{formatNumberDe(e.ausgabereste_transferred)}</Table.Td>
-                                                        <Table.Td ta="right">{formatNumberDe(e.veranschlagt)}</Table.Td>
-                                                        <Table.Td ta="right">{formatNumberDe(e.vorhalten_future)}</Table.Td>
+                                                        <Table.Td className="num">{formatNumberDe(e.cost_estimate_last_year)}</Table.Td>
+                                                        <Table.Td className="num">{formatNumberDe(e.cost_estimate_aktuell)}</Table.Td>
+                                                        <Table.Td className="num">{formatNumberDe(e.verausgabt_bis)}</Table.Td>
+                                                        <Table.Td className="num">{formatNumberDe(e.bewilligt)}</Table.Td>
+                                                        <Table.Td className="num">{formatNumberDe(e.ausgabereste_transferred)}</Table.Td>
+                                                        <Table.Td className="num">{formatNumberDe(e.veranschlagt)}</Table.Td>
+                                                        <Table.Td className="num">{formatNumberDe(e.vorhalten_future)}</Table.Td>
                                                     </Table.Tr>
                                                 ))}
                                             </Table.Tbody>
@@ -460,7 +460,7 @@ function RowGroup({
                         {/* Group header */}
                         <Table.Tr>
                             <Table.Th rowSpan={2} />
-                            <Table.Th rowSpan={2}>Status</Table.Th>
+                            <Table.Th data-role="status" rowSpan={2}>Status</Table.Th>
                             <Table.Th rowSpan={2}>Lfd.Nr. / FinVe / BP</Table.Th>
                             <Table.Th rowSpan={2}>Bezeichnung</Table.Th>
                             {!readonly && <Table.Th rowSpan={2}>Projektzuordnung</Table.Th>}
@@ -476,16 +476,16 @@ function RowGroup({
                             </Table.Th>
                         </Table.Tr>
                         <Table.Tr>
-                            <Table.Th ta="right">Ursprüngl.</Table.Th>
-                            <Table.Th ta="right">Vorjahr</Table.Th>
-                            <Table.Th ta="right">Aktuell</Table.Th>
-                            <Table.Th ta="right">Δ (T€)</Table.Th>
-                            <Table.Th ta="right">Δ %</Table.Th>
-                            <Table.Th ta="right">Verausgabt bis {year - 1}</Table.Th>
-                            <Table.Th ta="right">Bewilligt {year}</Table.Th>
-                            <Table.Th ta="right">Ausgabereste</Table.Th>
-                            <Table.Th ta="right">Veranschl. {year}</Table.Th>
-                            <Table.Th ta="right">Vorhalten {year + 1} ff.</Table.Th>
+                            <Table.Th className="num">Ursprüngl.</Table.Th>
+                            <Table.Th className="num">Vorjahr</Table.Th>
+                            <Table.Th className="num">Aktuell</Table.Th>
+                            <Table.Th className="num">Δ (T€)</Table.Th>
+                            <Table.Th className="num">Δ %</Table.Th>
+                            <Table.Th className="num">Verausgabt bis {year - 1}</Table.Th>
+                            <Table.Th className="num">Bewilligt {year}</Table.Th>
+                            <Table.Th className="num">Ausgabereste</Table.Th>
+                            <Table.Th className="num">Veranschl. {year}</Table.Th>
+                            <Table.Th className="num">Vorhalten {year + 1} ff.</Table.Th>
                         </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>

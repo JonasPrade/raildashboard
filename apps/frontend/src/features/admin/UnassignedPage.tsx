@@ -324,7 +324,7 @@ function UnassignedPageContent() {
                                     <Table.Th>Schlüssel</Table.Th>
                                     <Table.Th>Bezeichnung</Table.Th>
                                     <Table.Th>Land</Table.Th>
-                                    <Table.Th ta="right">Finanzhilfen Mio. €</Table.Th>
+                                    <Table.Th className="num">Finanzhilfen Mio. €</Table.Th>
                                     <Table.Th>Projekte zuweisen</Table.Th>
                                 </Table.Tr>
                             </Table.Thead>
@@ -346,7 +346,7 @@ function UnassignedPageContent() {
                                             )}
                                         </Table.Td>
                                         <Table.Td>{e.land}</Table.Td>
-                                        <Table.Td ta="right">{formatMio(sumLine(e)?.aid_total)}</Table.Td>
+                                        <Table.Td className="num">{formatMio(sumLine(e)?.aid_total)}</Table.Td>
                                         <Table.Td>
                                             <Stack gap={4}>
                                                 <Group gap="xs" wrap="nowrap">
@@ -403,7 +403,7 @@ function UnassignedPageContent() {
                                     <Table.Th>Abschnitt</Table.Th>
                                     <Table.Th>Bezeichnung / Maßnahme</Table.Th>
                                     <Table.Th>Stand · IBN</Table.Th>
-                                    <Table.Th ta="right">Kosten Mio. €</Table.Th>
+                                    <Table.Th className="num">Kosten Mio. €</Table.Th>
                                     <Table.Th>Projekte zuweisen</Table.Th>
                                 </Table.Tr>
                             </Table.Thead>
@@ -436,7 +436,7 @@ function UnassignedPageContent() {
                                             <Text size="sm">{e.state_raw ?? "–"}</Text>
                                             {e.ibn_raw && <Text size="xs" c="dimmed">IBN {e.ibn_raw}</Text>}
                                         </Table.Td>
-                                        <Table.Td ta="right">{formatInfraplanMio(e.cost_mio)}</Table.Td>
+                                        <Table.Td className="num">{formatInfraplanMio(e.cost_mio)}</Table.Td>
                                         <Table.Td>
                                             <Stack gap={4}>
                                                 <Group gap="xs" wrap="nowrap">

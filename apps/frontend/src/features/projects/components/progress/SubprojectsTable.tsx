@@ -87,7 +87,7 @@ export default function SubprojectsTable({ children }: { children: ProgressChild
                 <Table.Thead>
                     <Table.Tr>
                         <Table.Th>Projekt</Table.Th>
-                        <Table.Th>Planungsstand</Table.Th>
+                        <Table.Th data-role="status">Planungsstand</Table.Th>
                         <Table.Th>Lebenszyklus</Table.Th>
                     </Table.Tr>
                 </Table.Thead>

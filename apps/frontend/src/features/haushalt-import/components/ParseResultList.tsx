@@ -55,7 +55,7 @@ export function ParseResultList({ results }: Props) {
                     <Table.Th>Dateiname</Table.Th>
                     <Table.Th>Datum</Table.Th>
                     <Table.Th>Nutzer</Table.Th>
-                    <Table.Th>Status</Table.Th>
+                    <Table.Th data-role="status">Status</Table.Th>
                     <Table.Th>Importiert am</Table.Th>
                     <Table.Th />
                 </Table.Tr>

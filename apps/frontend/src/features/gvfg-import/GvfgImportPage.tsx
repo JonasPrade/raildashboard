@@ -57,7 +57,7 @@ function ParseRuns({ results }: { results: GvfgParseResultSummary[] }) {
                     <Table.Th>Teil</Table.Th>
                     <Table.Th>Datei</Table.Th>
                     <Table.Th>Gelesen</Table.Th>
-                    <Table.Th>Status</Table.Th>
+                    <Table.Th data-role="status">Status</Table.Th>
                     <Table.Th>Übernommen</Table.Th>
                     <Table.Th />
                 </Table.Tr>
