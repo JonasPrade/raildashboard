@@ -39,7 +39,7 @@ Keine Änderung. `short_name` ist `unique` — Duplikate müssen abgefangen werd
 ## Backend
 
 1. **Schema** `schemas/projects/project_group_schema.py`:
-   - `ProjectGroupCreate` — `name` (required), `short_name` (required), optional `description`, `public`, `color` (default `#FF0000`), `plot_only_superior_projects`, `is_visible`, `is_default_selected`.
+   - `ProjectGroupCreate` — `name` (required), `short_name` (required), optional `description`, `public`, `color` (default `#6E50FA`, IDT violet; existing groups keep their colour), `plot_only_superior_projects`, `is_visible`, `is_default_selected`.
    - `ProjectGroupUpdate` (im Endpoint) um alle editierbaren Felder erweitern, alle `Optional`.
 2. **CRUD** `crud/projects/project_groups.py`: `create_project_group(db, data)` und `delete_project_group(db, group_id)` aktivieren/ausimplementieren.
 3. **Endpoints** `api/v1/endpoints/project_groups.py`:

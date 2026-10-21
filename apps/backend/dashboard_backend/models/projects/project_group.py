@@ -11,7 +11,7 @@ class ProjectGroup(Base):
     short_name = Column(String(20), unique=True)
     description = Column(Text)
     public = Column(Boolean, default=False)
-    color = Column(String(10), default="#FF0000")
+    color = Column(String(10), default="#6E50FA")
     plot_only_superior_projects = Column(Boolean, default=True,
         comment='if true, only projects that have no superior project is plotted in frontend')
     is_visible = Column(Boolean, default=True,

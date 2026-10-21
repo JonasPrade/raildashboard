@@ -25,6 +25,15 @@ type Props = {
     onShowConstituenciesChange?: (value: boolean) => void;
 };
 
+// Panels over the map: opaque surface in the frame colour, legible on the light
+// basemap in both schemes (feature-idt-design.md → Karte).
+const PANEL_STYLE = {
+    background: "var(--surface)",
+    color: "var(--text-body)",
+    border: "2px solid var(--border-frame)",
+    borderRadius: 0,
+} as const;
+
 export default function MapControls({
     onOpenFilters,
     lineWidth,
@@ -52,7 +61,7 @@ export default function MapControls({
             rightSection={
                 searchTerm ? (
                     <ActionIcon variant="subtle" size="xs" onClick={() => onSearchChange("")} aria-label="Suche leeren">
-                        <X size={12} />
+                        <X size={16} />
                     </ActionIcon>
                 ) : undefined
             }
@@ -148,28 +157,24 @@ export default function MapControls({
                         style={{
                             flex: 1,
                             minWidth: 0,
-                            background: "rgba(255, 255, 255, 0.92)",
-                            border: "1px solid var(--border)",
-                            boxShadow: "var(--shadow-sm)",
-                            padding: 4,
+                            // The field brings its own 2px frame; the strip only gives it ground.
+                            background: "var(--surface)",
                         }}
                     >
                         {searchField}
                     </Box>
                     {/* The phase filter lives in the sheet — flag an active one on its button. */}
-                    <Indicator disabled={phaseFilter.length === 0} color="orange" size={10} offset={3}>
+                    <Indicator disabled={phaseFilter.length === 0} color="violet" size={10} offset={3}>
                         <ActionIcon
                             onClick={openSheet}
-                            size={42}
-                            radius={0}
-                            variant="filled"
-                            color="preussen"
+                            size={44}
+                            variant="default"
                             aria-label={
                                 phaseFilter.length > 0
                                     ? "Karteneinstellungen öffnen (Phasenfilter aktiv)"
                                     : "Karteneinstellungen öffnen"
                             }
-                            style={{ boxShadow: "var(--shadow-sm)" }}
+                            style={{ border: "2px solid var(--border-frame)", color: "var(--text-strong)" }}
                         >
                             <SlidersHorizontal size={20} />
                         </ActionIcon>
@@ -183,8 +188,7 @@ export default function MapControls({
                             top: 60,
                             left: 8,
                             zIndex: 10,
-                            background: "rgba(255, 255, 255, 0.92)",
-                            border: "1px solid var(--border)",
+                            ...PANEL_STYLE,
                             padding: "2px 6px",
                         }}
                     >
@@ -236,13 +240,8 @@ export default function MapControls({
         >
             <div
                 style={{
-                    background: "rgba(255, 255, 255, 0.92)",
-                    backdropFilter: "blur(20px)",
-                    WebkitBackdropFilter: "blur(20px)",
-                    borderRadius: 0,
-                    boxShadow: "var(--shadow-sm)",
+                    ...PANEL_STYLE,
                     padding: "12px",
-                    border: "1px solid var(--border)",
                 }}
             >
                 <Stack gap="sm">

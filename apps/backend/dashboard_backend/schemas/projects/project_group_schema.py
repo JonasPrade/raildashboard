@@ -9,7 +9,7 @@ class ProjectGroupSchema(BaseModel):
     short_name: str
     description: Optional[str] = None
     public: bool = False
-    color: str = "#FF0000"
+    color: str = "#6E50FA"
     plot_only_superior_projects: bool = True
     is_visible: bool = True
     is_default_selected: bool = False
@@ -39,7 +39,7 @@ class ProjectGroupCreate(BaseModel):
     short_name: str
     description: Optional[str] = None
     public: bool = False
-    color: str = "#FF0000"
+    color: str = "#6E50FA"
     plot_only_superior_projects: bool = True
     is_visible: bool = True
     is_default_selected: bool = False

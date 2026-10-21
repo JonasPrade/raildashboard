@@ -7,7 +7,6 @@ import {
     Container,
     Group,
     List,
-    Loader,
     Popover,
     SegmentedControl,
     Select,
@@ -48,8 +47,10 @@ import {
     useProjectGroups,
     type ProjectGroup,
 } from "../../shared/api/queries";
+import { MAP_COLOR } from "../../shared/theme/semanticColors";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
-const DEFAULT_GROUP_COLOR = "#2563eb";
+const DEFAULT_GROUP_COLOR = MAP_COLOR.default;
 const hasNumericId = (
     group: ProjectGroup,
 ): group is ProjectGroup & { id: number } => typeof group.id === "number";
@@ -375,8 +376,7 @@ export default function MapPage() {
                                 value={selectedGroupId !== null ? String(selectedGroupId) : null}
                                 onChange={handleGroupChange}
                                 disabled={isLoading && groups.length === 0}
-                                rightSection={isLoading ? <Loader size="xs" /> : undefined}
-                                nothingFoundMessage={isLoading ? "Lade…" : "Keine Projektgruppen gefunden"}
+                                                                nothingFoundMessage={isLoading ? "Lade…" : "Keine Projektgruppen gefunden"}
                                 searchable
                                 clearable
                                 style={{ flex: "1 1 220px", minWidth: 0 }}
@@ -436,7 +436,6 @@ export default function MapPage() {
                                                     display: "inline-block",
                                                     width: 8,
                                                     height: 8,
-                                                    borderRadius: "50%",
                                                     backgroundColor: selectedGroup.color,
                                                     marginRight: 6,
                                                     verticalAlign: "middle",
@@ -466,9 +465,7 @@ export default function MapPage() {
                     )}
 
                     {isLoading && groups.length === 0 ? (
-                        <Group justify="center" py="xl">
-                            <Loader />
-                        </Group>
+                        <LoadingState rows={6} />
                     ) : selectedGroup && isTimeline ? (
                         <TimelineView
                             // Remount per group so the row paging starts over.
@@ -603,7 +600,7 @@ export default function MapPage() {
                                 bottom: 6,
                                 left: 12,
                                 zIndex: 5,
-                                background: "rgba(255,255,255,0.85)",
+                                background: "var(--surface)",
                                 padding: "2px 6px",
                             }}
                         >
@@ -618,7 +615,7 @@ export default function MapPage() {
                                 left: 0,
                                 width: "100%",
                                 height: "100%",
-                                background: "rgba(255,255,255,0.7)",
+                                background: "color-mix(in srgb, var(--surface) 70%, transparent)",
                                 display: "flex",
                                 flexDirection: "column",
                                 alignItems: "center",
@@ -627,7 +624,6 @@ export default function MapPage() {
                                 zIndex: 4,
                             }}
                         >
-                            <Loader size="lg" />
                             <Text size="sm" c="dimmed">Projektgruppen werden geladen…</Text>
                         </Box>
                     )}
@@ -642,9 +638,10 @@ export default function MapPage() {
                                 left: "50%",
                                 transform: "translateX(-50%)",
                                 zIndex: 5,
-                                background: "rgba(255,255,255,0.9)",
+                                background: "var(--surface)",
+                                border: "2px solid var(--border-frame)",
                                 padding: "4px 10px",
-                                borderRadius: 6,
+                                borderRadius: 0,
                                 pointerEvents: "none",
                             }}
                         >
@@ -668,10 +665,10 @@ export default function MapPage() {
                                 size="sm"
                                 c="dimmed"
                                 style={{
-                                    background: "rgba(255,255,255,0.9)",
+                                    background: "var(--surface)",
                                     padding: "8px 14px",
-                                    borderRadius: 8,
-                                    border: "1px solid #e0e0e0",
+                                    borderRadius: 0,
+                                    border: "2px solid var(--border-frame)",
                                 }}
                             >
                                 {noMatchMessage}

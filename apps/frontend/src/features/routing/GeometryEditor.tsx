@@ -672,7 +672,7 @@ export default function GeometryEditor({
 
                                 {uploadedGeojson && !previewFeature && (
                                     <ChronicleCard>
-                                        <Text size="sm" fw={600} c="green">GeoJSON geladen — bitte prüfen</Text>
+                                        <Text size="sm" fw={600}>GeoJSON geladen — bitte prüfen</Text>
                                     </ChronicleCard>
                                 )}
                             </>
@@ -741,7 +741,7 @@ function parseFeatures(raw: string): object[] {
 
 /**
  * Wrap an uploaded GeoJSON string into a minimal RoutePreviewFeature-like object
- * so the map can display it as a preview (dashed orange). Only used for display.
+ * so the map can display it as a preview (dashed cyan). Only used for display.
  */
 function buildUploadPreview(geojsonStr: string): RoutePreviewFeature | null {
     try {

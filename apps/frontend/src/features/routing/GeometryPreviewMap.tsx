@@ -11,6 +11,7 @@ import { TerraDrawMapLibreGLAdapter } from "terra-draw-maplibre-gl-adapter";
 import type { OperationalPointRef, RoutePreviewFeature } from "../../shared/api/queries";
 import type { EditablePart } from "./editExisting";
 import { LIGHT_TILE_URL as tileLayerUrl, swapRasterTiles, useTileUrl } from "../../shared/geo/useTileUrl";
+import { MAP_COLOR } from "../../shared/theme/semanticColors";
 
 
 /** Active hand-drawing mode (null = off, terra-draw sits in its neutral "static" mode). */
@@ -24,13 +25,13 @@ const TERRA_MODE: Record<NonNullable<DrawMode>, string> = {
 };
 
 type Props = {
-    /** Existing project geojson_representation (JSON string). Shown as solid blue line/circles. */
+    /** Existing project geojson_representation (JSON string). Shown as solid violet line/circles. */
     existingGeojson: string | null;
-    /** Calculated route preview. Shown as dashed orange line. */
+    /** Calculated route preview. Shown as dashed cyan line. */
     previewFeature: RoutePreviewFeature | null;
     /** Whether to render the existing geometry (toggled off when user wants to delete it). */
     showExisting: boolean;
-    /** Newly selected operational points to preview as orange circles. */
+    /** Newly selected operational points to preview as cyan circles. */
     previewPoints?: OperationalPointRef[];
     /**
      * Selection mode: when active, existing features become clickable and selected
@@ -199,10 +200,10 @@ export default function GeometryPreviewMap({ existingGeojson, previewFeature, sh
         if (!containerRef.current || !tileLayerUrl) return;
 
         // In selection mode, existing features colour by feature property `__selected`.
-        // The expression resolves to blue/red statically when not in mode (no __selected
-        // property → false branch → blue), so it's safe to use always.
-        const selectionLineColor: maplibregl.ExpressionSpecification = ["case", ["==", ["get", "__selected"], true], "#dc2626", "#2563eb"];
-        const selectionCircleColor: maplibregl.ExpressionSpecification = ["case", ["==", ["get", "__selected"], true], "#dc2626", "#2563eb"];
+        // The expression resolves to violet/red statically when not in mode (no __selected
+        // property → false branch → violet), so it's safe to use always. Red marks the
+        // features picked for deletion (DESIGN.md: red only for deleting and overdue).
+        const selectionColor: maplibregl.ExpressionSpecification = ["case", ["==", ["get", "__selected"], true], MAP_COLOR.danger, MAP_COLOR.selected];
 
         const map = new maplibregl.Map({
             container: containerRef.current,
@@ -222,7 +223,7 @@ export default function GeometryPreviewMap({ existingGeojson, previewFeature, sh
                         type: "line",
                         source: "existing",
                         layout: { "line-cap": "round", "line-join": "round" },
-                        paint: { "line-color": selectionLineColor, "line-width": 4 },
+                        paint: { "line-color": selectionColor, "line-width": 5 },
                     },
                     {
                         id: "preview-line",
@@ -230,7 +231,7 @@ export default function GeometryPreviewMap({ existingGeojson, previewFeature, sh
                         source: "preview",
                         layout: { "line-cap": "round", "line-join": "round" },
                         paint: {
-                            "line-color": "#ea580c",
+                            "line-color": MAP_COLOR.alternative,
                             "line-width": 4,
                             "line-dasharray": [6, 3],
                         },
@@ -239,13 +240,13 @@ export default function GeometryPreviewMap({ existingGeojson, previewFeature, sh
                         id: "existing-points-circle",
                         type: "circle",
                         source: "existing-points",
-                        paint: { "circle-color": selectionCircleColor, "circle-radius": 7, "circle-stroke-width": 2, "circle-stroke-color": "#fff" },
+                        paint: { "circle-color": selectionColor, "circle-radius": 7, "circle-stroke-width": 2, "circle-stroke-color": MAP_COLOR.stroke },
                     },
                     {
                         id: "preview-points-circle",
                         type: "circle",
                         source: "preview-points",
-                        paint: { "circle-color": "#ea580c", "circle-radius": 7, "circle-stroke-width": 2, "circle-stroke-color": "#fff" },
+                        paint: { "circle-color": MAP_COLOR.alternative, "circle-radius": 7, "circle-stroke-width": 2, "circle-stroke-color": MAP_COLOR.stroke },
                     },
                 ],
             },
@@ -455,5 +456,41 @@ export default function GeometryPreviewMap({ existingGeojson, previewFeature, sh
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [previewFeature, previewPoints, isReady]);
 
-    return <div ref={containerRef} style={{ width: "100%", height: height ?? "100%" }} />;
+    const frameStyle = {
+        width: "100%",
+        height: height ?? "100%",
+        // The map sits "im Rahmen" (feature-idt-design.md → Karte).
+        border: "2px solid var(--border-frame)",
+        borderRadius: 0,
+        boxSizing: "border-box",
+    } as const;
+
+    if (!tileLayerUrl) {
+        return (
+            <div
+                role="alert"
+                style={{
+                    ...frameStyle,
+                    background: "var(--surface-sunken)",
+                    color: "var(--text-body)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: 24,
+                    textAlign: "center",
+                }}
+            >
+                <p>
+                    Kartenkachel-URL fehlt. Bitte die Umgebungsvariable
+                    <strong> REACT_APP_TILE_LAYER_URL</strong> setzen.
+                </p>
+            </div>
+        );
+    }
+
+    return (
+        <div style={frameStyle}>
+            <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
+        </div>
+    );
 }

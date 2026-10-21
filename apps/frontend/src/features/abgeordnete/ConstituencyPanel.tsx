@@ -2,13 +2,14 @@
  * Selection panel for the constituency map layer: which projects lie in this
  * constituency, and who is responsible for them.
  */
-import { Anchor, CloseButton, Group, Loader, ScrollArea, Stack, Text } from "@mantine/core";
+import { Anchor, CloseButton, Group, ScrollArea, Stack, Text } from "@mantine/core";
 import { Link } from "react-router-dom";
 
 import { ChronicleDataChip } from "../../components/chronicle";
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { useConstituency } from "../../shared/api/queries";
 import { MandateGroup, formatWeight } from "./mandateDisplay";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 export default function ConstituencyPanel({
     constituencyId,
@@ -31,18 +32,15 @@ export default function ConstituencyPanel({
                     : { top: 12, left: 12, width: 340, maxHeight: "calc(100% - 24px)" }),
                 zIndex: 10,
                 overflowY: "auto",
-                background: "rgba(255, 255, 255, 0.95)",
-                backdropFilter: "blur(20px)",
-                WebkitBackdropFilter: "blur(20px)",
-                boxShadow: "var(--shadow-sm)",
-                border: "1px solid var(--border)",
+                background: "var(--surface)",
+                color: "var(--text-body)",
+                border: "2px solid var(--border-frame)",
+                borderRadius: 0,
                 padding: 12,
             }}
         >
             {isLoading || !data ? (
-                <Group justify="center" py="md">
-                    <Loader size="sm" />
-                </Group>
+                <LoadingState rows={4} />
             ) : (
                 <Stack gap="sm">
                     <Group justify="space-between" align="flex-start" wrap="nowrap">

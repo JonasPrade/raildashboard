@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Combobox, InputBase, Loader, Text, useCombobox } from "@mantine/core";
+import { Combobox, InputBase, Text, useCombobox } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import type { OperationalPointRef } from "../../shared/api/queries";
 import { useOperationalPointSearch } from "../../shared/api/queries";
@@ -43,7 +43,7 @@ export default function StationSelect({ label, value, onChange }: Props) {
                         combobox.closeDropdown();
                         if (!value) setQuery("");
                     }}
-                    rightSection={isFetching ? <Loader size="xs" /> : <Combobox.Chevron />}
+                    rightSection={<Combobox.Chevron />}
                     rightSectionPointerEvents="none"
                 />
             </Combobox.Target>

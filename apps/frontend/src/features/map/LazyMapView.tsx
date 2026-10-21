@@ -1,5 +1,5 @@
 import { Suspense, type ComponentProps } from "react";
-import { Loader, Stack, Text } from "@mantine/core";
+import { Stack, Text } from "@mantine/core";
 
 import { lazyWithRetry } from "../../lib/lazyWithRetry";
 import type MapViewComponent from "./MapView";
@@ -23,10 +23,14 @@ export default function LazyMapView(props: MapViewProps) {
                     align="center"
                     justify="center"
                     gap="xs"
-                    style={{ height, background: "var(--surface-alt)" }}
+                    style={{
+                        height,
+                        background: "var(--surface-sunken)",
+                        border: "2px solid var(--border-frame)",
+                        boxSizing: "border-box",
+                    }}
                     role="status"
                 >
-                    <Loader />
                     <Text size="sm" c="dimmed">Karte wird geladen…</Text>
                 </Stack>
             }

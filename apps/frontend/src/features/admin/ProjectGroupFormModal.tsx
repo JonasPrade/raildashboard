@@ -21,6 +21,7 @@ import {
     MAIN_PHASE_LABEL,
     SKIPPABLE_PHASES,
 } from "../projects/components/progress/phaseMeta";
+import { GROUP_COLOR_SWATCHES, MAP_COLOR } from "../../shared/theme/semanticColors";
 
 type SkippablePhase = NonNullable<ProjectGroup["skipped_phases"]>[number];
 
@@ -33,7 +34,8 @@ type Props = {
     group: ProjectGroup | null;
 };
 
-const DEFAULT_COLOR = "#FF0000";
+// Q12: the colour stays free; new groups start in the map default (violet).
+const DEFAULT_COLOR: string = MAP_COLOR.default;
 
 type FormState = {
     name: string;
@@ -171,6 +173,8 @@ export function ProjectGroupFormModal({ opened, onClose, group }: Props) {
                         value={form.color}
                         onChange={(value) => set("color", value)}
                         format="hex"
+                        swatches={[...GROUP_COLOR_SWATCHES]}
+                        swatchesPerRow={6}
                     />
                     <Switch
                         label="Öffentlich sichtbar"
