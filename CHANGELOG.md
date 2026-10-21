@@ -12,6 +12,14 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Changed
+- **New layout of `/infraplan`.** The explanation moved into a tooltip next to the title,
+  the Jahrgang is picked from a dropdown in the header (once there is more than one), and a
+  central switch (like Karte/Liste/Zeitstrahl on the start page) toggles between
+  „Kennzahlen“ and „Maßnahmen“ (`?view=massnahmen`, `?jahr=`). The Kennzahlen get the
+  project page's table of contents, one entry per kind and category. Maßnahmen are cards
+  like the FinVe overview, with the linked projects as buttons (shared `LinkedProjects`).
+  The Jahrgang also drives the Kennzahlen: Ist and Ziel of the chosen Infraplan, compared
+  with the targets of the previous Jahrgang (dashed); later Jahrgänge are left out.
 - **Elektrifizierungsgrad as two charts on `/infraplan`.** The share of the network (%)
   no longer sits inside the km chart on a right axis but gets its own card right next to
   it: the km are an annual figure, the share a cumulative stock, and one chart for both
@@ -31,6 +39,24 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   weight, the more recent statement wins), the forecast panel shows „Inbetriebnahme JJJJ fraglich“ with
   the amounts per year. The date itself is unchanged. API: `forecast.ibn_doubt`; MCP:
   `get_project_progress` and `list_project_gvfg`.
+- **Infraplan import for 2027.** Matching writes out the Infraplan's abbreviations
+  (Ubf, Vbk, Abzw, Ü-BW, 2gl., Bf, Mü, HH, MA, HD, Ffm, …) before comparing, finds the
+  subproject of the parent the Bezeichnung names ("Großknoten München", "PB 07: ABS/NBS
+  Karlsruhe – Basel") by section number or words, takes over the previous year's
+  assignments also by row text (with their note) and treats a project number such as
+  "InvKG Nr. 6" as a sure hit. New column `project.aliases` (migration `20261021003`,
+  expand only): a Deutschlandtakt id "DT 38" counts as a sure hit, free aliases help the
+  name matching and the project search. New MCP tools `assign_infraplan_rows`,
+  `create_infraplan_subprojects` (also without a parent and after the confirmation),
+  `get_infraplan_page_text`, `suggest_infraplan_kpi_values`, `check_project_data`;
+  `get_infraplan_draft(compact=true)` and `list_projects(with_description=true)`, whose
+  search now also covers description and aliases. Skill `infraplan-import` rewritten for
+  batch calls and
+  subagents. On the 271 rows of the Infraplan 2026, 145 rows reach ≥ 0.85 without a
+  previous year (before: 93), 162 with the DT aliases.
+- **One-off `scripts/set_dt_aliases_2026.py`** (run after the deploy, dry run first):
+  sets 76 Deutschlandtakt aliases read from the Infraplan 2026 rows; a project is only
+  changed while its number is the one the pair was read with. Idempotent.
 - **Infraplan KPI settings in the admin area.** Admin → Infraplan gets the tabs „Import“
   and „Allgemeines“; the latter lists every KPI and edits name, unit, category,
   description, order and how `/infraplan` draws it (`PATCH /import/infraplan/kpis/{key}`).

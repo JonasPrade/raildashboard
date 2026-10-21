@@ -11,6 +11,8 @@ export interface TocSection {
     isCollapsible?: boolean;
     isOpen?: boolean;
     onOpen?: () => void;
+    /** 2 = indented sub-entry under the preceding section. */
+    level?: 1 | 2;
 }
 
 interface Props {
@@ -165,7 +167,7 @@ export function ProjectTableOfContents({ sections, onCreateTask }: Props) {
                                 key={section.id}
                                 onClick={() => handleClick(section)}
                                 style={{
-                                    padding: "5px 8px",
+                                    padding: section.level === 2 ? "5px 8px 5px 20px" : "5px 8px",
                                     borderRadius: 0,
                                     backgroundColor:
                                         activeId === section.id

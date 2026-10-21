@@ -2,9 +2,11 @@
 
 ``list_data_gaps`` finds missing data in one query instead of one get_* call per
 project; ``check_geometry`` runs the plausibility checks from
-``services/geometry_check.py`` for one project or a whole group. Both are
-read-only: fixes go through the existing write tools (route_project_geometry,
-edit_project_geometry, compute_project_length, update_project, …).
+``services/geometry_check.py`` for one project or a whole group;
+``check_project_data`` lists inconsistent master data
+(``services/project_data_checks.py``). All are read-only: fixes go through the
+existing write tools (route_project_geometry, edit_project_geometry,
+compute_project_length, update_project, merge_projects, …).
 """
 
 from __future__ import annotations
@@ -31,12 +33,15 @@ from dashboard_backend.mcp.tools.projects import (
     has_length_expr,
     is_known_expr,
 )
+from dashboard_backend.models.gvfg import GvfgEntry, gvfg_entry_project
+from dashboard_backend.models.infraplan import InfraplanEntry, InfraplanEntryProject, InfraplanReport
 from dashboard_backend.models.projects.progress_observation import ProgressObservation
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.projects.project_group import ProjectGroup
 from dashboard_backend.models.projects.project_progress import ProjectProgress
 from dashboard_backend.models.railway_infrastructure.operational_point import OperationalPoint
 from dashboard_backend.models.routes import Route
+from dashboard_backend.services.project_data_checks import CHECKS, ProjectRecord, run_checks
 from dashboard_backend.services.geometry_check import (
     DEFAULT_GAP_TOLERANCE_KM,
     DEFAULT_STATION_DISTANCE_KM,
@@ -373,6 +378,80 @@ def check_geometry(
         }
 
 
+CheckLiteral = Literal["duplicate_number", "duplicate_sibling_name", "gvfg_land_mismatch", "unnamed_subproject"]
+
+
+def _project_records(db: Session, drafts: DraftFilter) -> list[ProjectRecord]:
+    query = db.query(Project).options(selectinload(Project.project_groups))
+    condition = draft_filter(drafts)
+    if condition is not None:
+        query = query.filter(condition)
+    records = {
+        p.id: ProjectRecord(
+            id=p.id,
+            name=p.name or "",
+            project_number=p.project_number,
+            superior_project_id=p.superior_project_id,
+            description=p.description,
+            is_draft=bool(p.is_draft),
+            groups=[g.short_name or g.name for g in p.project_groups],
+        )
+        for p in query.all()
+    }
+    for project_id, key, land in db.query(
+        gvfg_entry_project.c.project_id, GvfgEntry.key, GvfgEntry.land
+    ).join(GvfgEntry, GvfgEntry.id == gvfg_entry_project.c.entry_id):
+        if project_id in records:
+            records[project_id].gvfg_entries.append((key, land))
+    for project_id, year, section, lfd_nr, number, laender in (
+        db.query(
+            InfraplanEntryProject.project_id,
+            InfraplanReport.year,
+            InfraplanEntry.section,
+            InfraplanEntry.lfd_nr,
+            InfraplanEntry.primary_number,
+            InfraplanEntry.laender,
+        )
+        .join(InfraplanEntry, InfraplanEntry.id == InfraplanEntryProject.entry_id)
+        .join(InfraplanReport, InfraplanReport.id == InfraplanEntry.report_id)
+    ):
+        if project_id in records:
+            records[project_id].infraplan_entries.append((year, f"{section}-{lfd_nr}", number, laender))
+    return list(records.values())
+
+
+def check_project_data(
+    checks: list[CheckLiteral] | None = None,
+    drafts: DraftFilter = "include",
+    limit: int = 100,
+    *,
+    ctx: Context,
+) -> dict[str, Any]:
+    """Inconsistent master data across all projects — a review list, nothing
+    is changed (drafts included unless ``drafts`` says otherwise).
+
+    - duplicate_number: the same project_number on several projects
+      (collective numbers like "L 27" show up too)
+    - duplicate_sibling_name: projects with the same name under the same
+      superior project
+    - gvfg_land_mismatch: a GVFG key in project_number whose Land code does
+      not fit the project's group "GVFG <Land>", its GVFG Vorhaben or a linked
+      Infraplan row that differs only in the Land code
+    - unnamed_subproject: subprojects named only "Teilmaßnahme n" beyond their
+      superior's name (``has_description`` says whether a description helps)
+    Returns per check ``count`` and up to ``limit`` findings. Fix with
+    update_project or merge_projects after checking each case."""
+    get_principal(ctx)
+    limit = max(1, min(limit, MAX_LIMIT))
+    with tool_session(ctx) as db:
+        results = run_checks(_project_records(db, drafts), list(dict.fromkeys(checks or CHECKS)))
+    return {
+        check: {"count": len(findings), "findings": findings[:limit]}
+        for check, findings in results.items()
+    }
+
+
 def register(server: MCPServer) -> None:
     server.add_tool(list_data_gaps, annotations=READ_ONLY)
     server.add_tool(check_geometry, annotations=READ_ONLY)
+    server.add_tool(check_project_data, annotations=READ_ONLY)

@@ -338,9 +338,11 @@ Kosten, Befassung; ab dem zweiten Jahrgang Delta-Spalten („GWU +12 %“, „IB
 fehlt, zuvor aber enthalten war. Mobil über `ResponsiveTable`.
 
 **Öffentliche Seite `/infraplan`:** Kennzahlen gruppiert nach Kategorie, je Kennzahl ein
-Diagramm: Ist-Werte aus dem neuesten Jahrgang als Balken/Linie, Zielwerte **jedes**
-Jahrgangs als eigene Linie („Ziel IP 2026“, „Ziel IP 2027“), sodass Zielverschiebungen
-sichtbar sind. Teilreihen (`series`) nur mit Ist-Werten (z. B. Betriebsleistung nach
+Diagramm für den gewählten Jahrgang: Ist-Werte aus diesem Jahrgang (fehlen sie dort, aus dem
+jüngsten älteren) als Balken, seine Zielwerte als durchgezogene Linie und die Zielwerte des
+**Vorjahrgangs** gestrichelt daneben („Ziel IP 2027“ gegen „Ziel IP 2026“), sodass
+Zielverschiebungen sichtbar sind. Spätere Jahrgänge blendet die Auswahl aus
+(`kpisAsOf` in `infraplanFormat.ts`). Teilreihen (`series`) nur mit Ist-Werten (z. B. Betriebsleistung nach
 SPNV/SPFV/SGV) bleiben ein Stapel; der Tooltip nennt zusätzlich die Summe. Hat eine
 Kennzahl Zielwerte je Teilreihe (z. B. die KMM-Kategorien), zeigt die Übersicht nur
 deren Summe je Jahr; der Button „Details“ öffnet eine Ansicht
@@ -370,7 +372,19 @@ Info-Symbol neben dem Namen — für Kennzahlen, deren Name allein nicht sagt, w
 wird (Kapazitätsauslastung: Anteil der gefahrenen Trassenkilometer in überausgelasteten
 Netzabschnitten, Infraplan 2026 Anhang I; der Seed und Migration `20261021002` tragen
 diese Erklärung ein). Nur Werte mit Status
-`GEPRUEFT`. Darunter je Jahrgang die Liste der Maßnahmen mit Link aufs Projekt.
+`GEPRUEFT`.
+
+Aufbau der Seite: Kopf mit Titel, Info-Symbol (Tooltip mit der Erklärung, was der Infraplan
+ist) und — sobald es mehr als einen Jahrgang gibt — einem Dropdown für den Jahrgang; er
+gilt für beide Ansichten (Kennzahlen: Ist und Ziel des Jahrgangs gegen die Ziele des
+Vorjahrgangs; Maßnahmen: Einträge des Jahrgangs). Darunter
+ein zentraler Umschalter wie auf der Startseite (Karte/Liste/Zeitstrahl) mit den Ansichten
+**Kennzahlen** und **Maßnahmen**; die Wahl steht in der URL (`?view=massnahmen`), damit
+sich die Ansicht teilen lässt. Die Kennzahlen bekommen das Inhaltsverzeichnis der
+Projektseite (Knopf am linken Rand) mit einem Eintrag je Bereich (Kennzahl-Art bzw.
+Kategorie). Die Maßnahmen des gewählten Jahrgangs stehen mit Filter (Abschnitt, Suche) als
+Karten wie in der FinVe-Übersicht: Kopf mit Abschnitt und Nummer, Bezeichnung, rechts
+Stand, Inbetriebnahme, Kosten und Befassung, darunter die verknüpften Projekte als Knöpfe.
 
 Diese Darstellungsregeln sind Felder der Kennzahl-Definition (`infraplan_kpi`), keine
 Konstanten im Frontend: Admin → Infraplan → Reiter „Allgemeines“ → Kennzahlen zeigt alle
@@ -587,3 +601,149 @@ Stufen 2–5 in einem Zug. Was vom Plan oben abweicht oder ihn präzisiert:
   `.claude/skills/infraplan-import/SKILL.md`.
 - **Offen für den Nutzer:** Test-Checklisten der Issues #180–#182, #184 (Upload des echten
   PDFs, Review, Freigabe der Kennzahlen).
+
+## Ausbau für den Import 2027 (2026-10-20)
+
+Erfahrung aus dem MCP-Import 2026: Die automatische Zuordnung traf 93 von 271 Zeilen,
+rund 180 Zeilen wurden einzeln nachgeschlagen und zugeordnet, 29 Teilprojekte neu
+angelegt, 14 Zeilen blieben offen. Teuer waren Einzelaufrufe, Listen ohne
+Beschreibung und schwaches Matching. Ziel: der Infraplan 2027 in einer Sitzung mit
+deutlich weniger Aufrufen. Entscheidungen des Nutzers (2026-10-20):
+
+| # | Thema | Entscheidung |
+|---|---|---|
+| A1 | Aliase | Ein **allgemeines Alias-Feld** am Projekt, **mehrere Werte** (`project.aliases`, JSON-Liste). Eine Deutschlandtakt-Kennung `DT 38` zählt beim Matching als sicherer Treffer; `PB 07`/`VDE 8.1` bestimmen nur den Kontext (Elternprojekt), weil eine Zeile meist einen Teil davon meint; freie Aliase („Gäubahn“) fließen in den Namensvergleich und die Suche. Kein eigenes Feld `infraplan_dt`. |
+| A2 | Pflege der Aliase | vorerst nur per MCP (`update_project`) und API, kein Frontend-Feld |
+| A3 | Teilprojekt nach Bestätigung | `create_infraplan_subproject(s)` wirkt auch auf bestätigte Jahrgänge |
+| A4 | %-Kennzahlen | Keys bleiben (`elektrifizierungsgrad` + `elektrifizierungsgrad_prozent`, `etcs_strecken_km` + `etcs_ausruestungsgrad`); Namen, Einheiten und Darstellung regeln die Kennzahl-Einstellungen (Migrationen `20261021001`/`20261021002`, Admin → Infraplan → Allgemeines) |
+| A5 | Konfidenzen | Alias und Vorjahresnummer 1.0, Vorjahrestext 0.95, Kontext mit passender Abschnittsnummer 0.9; ab 0.85 vorausgewählt |
+
+Verhältnis zu „Eine Projektnummer-Spalte am `Project` gibt es nicht“ (oben): Die
+Wiedererkennung im Folgejahr läuft weiter über die bestätigten Zuordnungen. Aliase
+ergänzen das für Kennungen, die in anderen Quellen anders nummeriert sind
+(Deutschlandtakt: „DT 38“ im Infraplan, D-Nummern im Dashboard stimmen nur teilweise
+überein — D-38, D-151, D-154, D-167/168 passen, D-37, D-76 nicht). Deshalb wird nie
+blind gleichgesetzt, sondern nur über ein gepflegtes Alias.
+
+### Matching
+
+Reihenfolge je Zeile (`tasks/infraplan_matching.py`), stärkster Vorschlag zuerst:
+
+1. **Vorjahr über die Nummer** (`NUMBER`, 1.0) — wie bisher, jetzt mit der Notiz der
+   Vorjahreszuordnung (`previous_note`, `previous_year`).
+2. **Vorjahr über den Text** (`PREVIOUS_YEAR`, 0.95) — gleiche Abschnittsart und
+   gleiche normalisierte Bezeichnung + Maßnahme im neuesten bestätigten Jahrgang, für
+   Zeilen ohne `primary_number` (Bedarfsplan). Ebenfalls mit Notiz.
+3. **Projektnummer** (`NUMBER`, 1.0) — `primary_number` gleich `project_number`
+   (normalisiert; z. B. „InvKG Nr. 6“); bei GVFG-Zeilen wie bisher der Schlüssel
+   (`GVFG_KEY`).
+4. **Alias-Kennung** (`ALIAS`, 1.0) — `DT nn` aus Bezeichnung oder Maßnahme gleich
+   einem Alias des Projekts. Eine Zeile mit mehreren DT-Nummern bekommt alle passenden
+   Projekte. Nennt die Maßnahme vorher eine eigene Hauptmaßnahme („Elektrifizierung,
+   1gl. Vbk Bad Kleinen inkl. DT 2 …“), ist das DT-Projekt nur ein Teil der Zeile: 0.8,
+   ein Vorschlag neben der Hauptmaßnahme.
+5. **Kontext** (`CONTEXT`) — aus der Bezeichnung das Elternprojekt bestimmen
+   („Großknoten München“ → Knoten München, „PB 07: ABS/NBS Karlsruhe – Basel“ → ABS/NBS
+   Karlsruhe – Basel): die meisten Wörter seines Namens oder eines freien Alias stehen in
+   der Bezeichnung; ohne Treffer über `PB nn` (Bündel tragen es in `project_number`,
+   „BSWAG_2023_PB_7“) oder `VDE n`. Passt ein Projekt *ohne* Teilprojekte besser zur
+   Bezeichnung, meint die Zeile dieses Projekt und es gibt keinen Kontext. Dann nur unter
+   den Teilprojekten (zwei Ebenen) suchen:
+   - gleiche Abschnittsnummer derselben Art (Abschnitt/PFA/StA/PFB/Bauabschnitt,
+     Teilmaßnahme/TM, Baustufe/BS; „Abschnitt 2-6“ ist ein Bereich, „PFA 9.2“ fällt ohne
+     eigenes Teilprojekt in „Abschnitt 9“) → 0.9. Hat die Stufe selbst Teilprojekte und
+     nennt die Maßnahme eines davon, wird es das („3. Baustufe: Knoten Riesa …“);
+   - sonst die Wörter des Teilprojekts ohne den Namen des Elternprojekts: Alle vollständig
+     genannten Teilprojekte zählen (Sammelzeile mit benannten Teilen), ein einzelnes nur,
+     wenn kein anderes nahekommt; Wörter, die mehrere Teilprojekte tragen, zählen
+     weniger, allgemeine Wörter („Elektrifizierung“, „Ausbau“) allein nie. 0.6 + 0.3 ×
+     Abdeckung.
+   - Gibt es unter dem Elternprojekt Teilmaßnahmen ohne Namen und ohne Beschreibung
+     („Knoten Mannheim Teilmaßnahme 8“), bleibt ein Worttreffer unter 0.85 — die Zeile
+     könnte eine von ihnen meinen.
+   - Passt kein Teilprojekt, ist das Elternprojekt ein Hinweis (0.7), nie vorausgewählt.
+     Probelauf 2026: „Sammelzeile → Elternprojekt“ automatisch lag 3:9 daneben, weil
+     gleiche Zeilen mal dem Elternprojekt, mal einem neuen Teilprojekt gehörten.
+6. **Namensvergleich** (`FUZZY`) — wie bisher, aber auf normalisierten Texten und mit
+   freien Aliasen als weiteren Namen.
+
+**Normalisierung vor jedem Vergleich:** Abkürzungen werden auf beiden Seiten
+ausgeschrieben — Ubf → Umschlagbahnhof, Vbk → Verbindungskurve, Abzw/Bzw → Abzweig,
+Ü-BW → Überwerfungsbauwerk, Krbw → Kreuzungsbauwerk, Krzbf/Krzbhf → Kreuzungsbahnhof,
+Bf/Bhf → Bahnhof, Hbf → Hauptbahnhof, Gbf → Güterbahnhof, Rbf → Rangierbahnhof,
+`2gl.` → zweigleisig, TM → Teilmaßnahme, BS → Baustufe, Großknoten → Knoten; Orte: Mü/MU
+→ München, HH → Hamburg, MA → Mannheim, HD → Heidelberg, Ffm → Frankfurt, B → Berlin
+(nur vor Bindestrich). Das Ersatzzeichen „�“, das der Parser für Punkte im PDF liefert,
+wird zum Punkt.
+
+### MCP
+
+| Tool | Art | Zweck |
+|---|---|---|
+| `assign_infraplan_rows(id, rows[{row_key, project_ids, note}])` | schreibend | Sammelzuordnung, Ergebnis je Zeile (`ok`/`error`), Teilerfolg erlaubt; Entwurf und bestätigter Jahrgang; Planungsstand einmal am Ende neu berechnet |
+| `create_infraplan_subprojects(id, items[{row_key, parent_id?, name?, note?}])` | schreibend | mehrere Teilprojekte samt Zuordnung, Ergebnis je Zeile |
+| `create_infraplan_subproject(…, parent_id?)` | schreibend | ohne `parent_id`: eigenständiges Entwurfsprojekt (z. B. GVFG-Vorhaben ohne Elternprojekt); wirkt auch nach der Bestätigung |
+| `get_infraplan_draft(…, compact=true)` | lesend | alle Abschnitte in einer Antwort, je Zeile nur `row_key`, Bezeichnung, Maßnahme, Länder, Zuordnung, bester Vorschlag (Projekt, Konfidenz, Grund) |
+| `get_infraplan_page_text(id, page)` | lesend | Text einer PDF-Seite als Zeilen mit x-Positionen der Wörter (Diagrammbeschriftungen ohne Bildfreigabe) |
+| `suggest_infraplan_kpi_values(id, page)` | lesend | beschriftete Werte je Diagramm über die x-Position den Jahren der Achse zugeordnet, als ungeprüfte Vorschläge; gestapelte Werte werden markiert, nicht zugeordnet |
+| `check_project_data(checks?)` | lesend | Prüfliste: doppelte Projektnummern, namensgleiche Geschwister, GVFG-Ländercode ≠ Land, Teilmaßnahmen ohne sprechenden Namen; keine Korrektur |
+| `list_projects(…, with_description=true)` | lesend | je Projekt der erste Satz der Beschreibung (gekürzt) und die Aliase; `search` sucht auch in Beschreibung und Aliasen |
+
+Die bestehenden Tools bleiben unverändert nutzbar.
+
+### Datenqualität (`check_project_data`)
+
+- `duplicate_number`: dieselbe `project_number` an mehreren Projekten (Fall 2221/1829
+  „2-040-V01 TM8“). Sammelkennungen wie `L 27` werden mitgemeldet; die Liste ist eine
+  Prüfliste, keine Fehlerliste.
+- `duplicate_sibling_name`: namensgleiche Projekte unter demselben Elternprojekt
+  (Fall 1781/1782).
+- `gvfg_land_mismatch`: der Ländercode des GVFG-Schlüssels in `project_number` passt
+  nicht zum Land — Land aus der Projektgruppe „GVFG <Land>“, den zugeordneten
+  GVFG-Vorhaben oder den Ländern der zugeordneten Infraplan-Zeilen; außerdem
+  zugeordnete Infraplan-Zeilen, deren Schlüssel sich nur im Ländercode unterscheidet
+  (Fall S4 Hamburg: Projekt „01 D 508_A“, Zeile „02 D 508_A“).
+- `unnamed_subproject`: Teilprojekte, deren Name nach Abzug des Elternnamens nur aus
+  „Teilmaßnahme n“/„TMn“ besteht (Fall Knoten Mannheim TM1–TM9).
+
+### Kennzahlen
+
+- Diagramme mit km und % sind zwei Kennzahlen: `elektrifizierungsgrad` (km) +
+  `elektrifizierungsgrad_prozent` (%), `etcs_strecken_km` (km) + `etcs_ausruestungsgrad`
+  (%, als Begleitwert im ETCS-Diagramm). Namen, Einheiten und Darstellung kommen aus den
+  Kennzahl-Einstellungen in `services/infraplan_kpis.py` bzw. der Admin-Ansicht.
+
+### Abnahme
+
+- Tests für Sammelzuordnung, Abkürzungsnormalisierung, Kontextmatching und das Prüftool.
+- Probelauf: Matching auf den 271 Zeilen des Entwurfs 2026 gegen den heutigen
+  Projektbestand (ohne die beim Import angelegten Entwurfsprojekte, ohne Vorjahr); Zahl
+  der Zeilen ≥ 0,85 (vorher 93) und Anteil, der mit der bestätigten Zuordnung
+  übereinstimmt. Der Entwurf 1 selbst bleibt unverändert.
+
+### Probelauf (2026-10-20)
+
+Zeilen und Projektliste lesend per MCP aus der Produktion (1.329 Projekte ohne
+Entwürfe, ohne Beschreibungen — die liefert `list_projects` dort noch nicht), Matching
+offline:
+
+| Lauf | ≥ 0,85 | = Zuordnung 2026 | teilweise | anders | Zeile 2026 offen bzw. neues Projekt |
+|---|---|---|---|---|---|
+| vorher | 93 | 93 | – | – | – |
+| neu, ohne Vorjahr | 145 | 125 | 3 | 2 | 15 |
+| neu, 2026 als Vorjahr (Simulation 2027) | 270 | 257 (alle) | – | – | 13 |
+
+Die zwei „anders“: Sammelzeilen, die 2026 dem Elternprojekt zugeordnet wurden, das
+Matching wählt die darin benannten DT-Teilprojekte.
+
+**DT-Aliase:** `scripts/set_dt_aliases_2026.py` setzt 76 eindeutige Paare aus den
+Zeilen 2026 (DT-Nummer → D-Projekt, geprüft gegen die Projektnummer). Mit ihnen steigt
+der Lauf ohne Vorjahr auf 162 Zeilen ≥ 0,85 (131 wie 2026, 5 teilweise, 7 anders). Die
+sieben „anders“ sind reine DT-Listen („DT 157 Wustermark, DT 158 Rathenow, …“), die
+2026 dem Bündel bzw. Elternprojekt gehörten und jetzt den genannten DT-Projekten —
+nach der Regel „mehrere benannte Teilmaßnahmen → alle Teilprojekte“. Im Folgejahr gilt
+dort ohnehin die Vorjahreszuordnung. Die 15: Zeilen, die erst nach der
+Bestätigung zugeordnet wurden (Treffer genau auf die dafür angelegten Projekte über
+Projektnummer bzw. GVFG-Schlüssel) oder deren Ziel 2026 neu angelegt wurde. Ohne Aliase
+und Beschreibungen fehlen v. a. die Knoten mit Teilmaßnahmen ohne Namen (Köln,
+Mannheim, München, Mühldorf) — die liefert die Datenpflege nach `check_project_data`.

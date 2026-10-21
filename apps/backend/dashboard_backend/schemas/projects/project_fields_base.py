@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class ProjectFieldsBase(BaseModel):
@@ -16,6 +16,8 @@ class ProjectFieldsBase(BaseModel):
     description: Optional[str] = None
     justification: Optional[str] = None
     superior_project_id: Optional[int] = None
+    # Other names and ids ("DT 38", "Gäubahn"), see feature-infraplan-import.md.
+    aliases: Optional[List[str]] = None
 
     # Draft state: set to True by the creation wizard, cleared on finalize.
     is_draft: Optional[bool] = None
@@ -77,3 +79,10 @@ class ProjectFieldsBase(BaseModel):
     tilting: Optional[bool] = None
 
     project_group_ids: Optional[List[int]] = None
+
+    @field_validator("aliases")
+    @classmethod
+    def _clean_aliases(cls, value: Optional[List[str]]) -> Optional[List[str]]:
+        if value is None:
+            return None
+        return list(dict.fromkeys(a.strip() for a in value if a and a.strip()))

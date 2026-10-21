@@ -139,7 +139,9 @@ function AssignCell({
                             return (
                                 <Tooltip
                                     key={s.project_id}
-                                    label={`Vorschlag (${REASON_LABEL[s.reason] ?? s.reason}) übernehmen`}
+                                    label={`Vorschlag (${REASON_LABEL[s.reason] ?? s.reason}${
+                                        s.detail ? `: ${s.detail}` : ""
+                                    }) übernehmen`}
                                     withArrow
                                 >
                                     <Badge

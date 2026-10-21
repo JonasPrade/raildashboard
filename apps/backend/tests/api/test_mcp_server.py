@@ -15,7 +15,7 @@ from fastapi.testclient import TestClient
 from dashboard_backend.core.security import hash_password
 from dashboard_backend.crud.projects import progress as progress_crud
 from dashboard_backend.crud import api_keys as api_keys_crud
-from dashboard_backend.models.change_tracking import ChangeLog
+from dashboard_backend.models.change_tracking import ChangeLog, ChangeLogEntry
 from dashboard_backend.models.projects.progress_observation import ProgressObservation
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.projects.project_group import ProjectGroup
@@ -172,6 +172,7 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
         "edit_project_geometry",
         "list_data_gaps",
         "check_geometry",
+        "check_project_data",
         "list_fulda_categories",
         "list_fulda_documents",
         "create_fulda_document",
@@ -204,9 +205,13 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
         "start_infraplan_parse",
         "apply_infraplan_suggestions",
         "assign_infraplan_row",
+        "assign_infraplan_rows",
         "create_infraplan_subproject",
+        "create_infraplan_subprojects",
         "confirm_infraplan_import",
         "get_infraplan_page_image",
+        "get_infraplan_page_text",
+        "suggest_infraplan_kpi_values",
         "list_infraplan_kpis",
         "get_infraplan_kpi_values",
         "set_infraplan_kpi_values",
@@ -926,3 +931,61 @@ def test_upsert_project_text_category_and_visibility(mcp_client, admin_token, db
     )
     assert unknown["isError"] is True
     assert "Kategorie" in unknown["content"][0]["text"]
+
+
+def test_list_projects_with_description_and_alias_search(mcp_client, admin_token, db_session):
+    parent = Project(name="Knoten Mannheim", is_draft=False)
+    db_session.add(parent)
+    db_session.flush()
+    db_session.add_all(
+        [
+            Project(
+                name="Knoten Mannheim Teilmaßnahme 2",
+                superior_project_id=parent.id,
+                description="Viergleisiger Ausbau Heidelberg Hbf – Wieblingen. Mit Weichen.",
+                aliases=["DT 82"],
+                is_draft=False,
+            ),
+            Project(name="Knoten Mannheim Teilmaßnahme 8", superior_project_id=parent.id, is_draft=False),
+        ]
+    )
+    db_session.commit()
+
+    listed = _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "list_projects",
+            {"superior_project_id": parent.id, "with_description": True},
+        )
+    )
+    entries = {p["name"]: p for p in listed["projects"]}
+    assert entries["Knoten Mannheim Teilmaßnahme 2"]["short_description"] == (
+        "Viergleisiger Ausbau Heidelberg Hbf – Wieblingen."
+    )
+    assert entries["Knoten Mannheim Teilmaßnahme 2"]["aliases"] == ["DT 82"]
+    assert entries["Knoten Mannheim Teilmaßnahme 8"]["short_description"] is None
+    plain = _payload(_call(mcp_client, admin_token, "list_projects", {"superior_project_id": parent.id}))
+    assert "short_description" not in plain["projects"][0]
+
+    by_alias = _payload(_call(mcp_client, admin_token, "list_projects", {"search": "DT 82"}))
+    by_description = _payload(_call(mcp_client, admin_token, "list_projects", {"search": "wieblingen"}))
+    assert [p["name"] for p in by_alias["projects"]] == ["Knoten Mannheim Teilmaßnahme 2"]
+    assert [p["name"] for p in by_description["projects"]] == ["Knoten Mannheim Teilmaßnahme 2"]
+
+
+def test_update_project_sets_aliases(mcp_client, admin_token, db_session):
+    alpha, _ = _seed_projects(db_session)
+
+    updated = _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "update_project",
+            {"project_id": alpha.id, "changes": {"aliases": [" DT 38 ", "Gäubahn", "DT 38", ""]}},
+        )
+    )
+
+    assert updated["aliases"] == ["DT 38", "Gäubahn"]
+    entry = db_session.query(ChangeLogEntry).filter_by(field_name="aliases").one()
+    assert json.loads(entry.new_value) == ["DT 38", "Gäubahn"]

@@ -44,6 +44,9 @@ export const SOURCE_COLOR: Record<string, string> = {
 export const REASON_LABEL: Record<string, string> = {
     NUMBER: "Nummer",
     GVFG_KEY: "GVFG-Schlüssel",
+    PREVIOUS_YEAR: "Vorjahr",
+    ALIAS: "Alias",
+    CONTEXT: "Teilprojekt",
     FUZZY: "Name",
 };
 
@@ -308,6 +311,28 @@ export function kpiFlow(kpi: Pick<InfraplanPublicKpi, "values">): KpiFlow | null
             .map((v) => ({ label: v.series!.slice(prefix.length).trim(), value: v.value }))
             .sort((a, b) => b.value - a.value);
     return { year, herkunft: side("Herkunft:"), einsatz: side("Einsatz:") };
+}
+
+/**
+ * The KPIs as the Infraplan `year` saw them, for comparing targets: values of
+ * that Jahrgang plus the targets of `compareYear` (the previous one), so each
+ * chart shows Ist and Ziel of the chosen year next to the earlier Ziel.
+ * Later Jahrgänge and older targets drop out.
+ */
+export function kpisAsOf<T extends Pick<InfraplanPublicKpi, "values">>(
+    kpis: T[],
+    year: number,
+    compareYear: number | null,
+): T[] {
+    return kpis.map((k) => ({
+        ...k,
+        values: (k.values ?? []).filter(
+            (v) =>
+                // Ist falls back to an older Jahrgang when the chosen one has none for this KPI.
+                (v.value_kind === "IST" && v.report_year <= year) ||
+                (v.value_kind === "ZIEL" && (v.report_year === year || v.report_year === compareYear)),
+        ),
+    }));
 }
 
 /**
