@@ -17,6 +17,7 @@ The frontend communicates with the backend exclusively via the REST API. Types a
 - **Parent projects always aggregate.** Every quantitative value that belongs to projects (costs, funding, lengths, counts) is summed over the sub-projects (`superior_project_id`) for a parent that has no value of its own — for every project and every source (FinVe, GVFG, Infraplan, …). Values referenced by several rows (shared totals, cost references) are counted once. A feature must not opt out of this; if a sum would be misleading, show it with a note, but still show it. (Decided 2026-10-15.)
 - **The more recent source wins when two sources state the same fact.** Example: for a GVFG project, Lph, commissioning date and costs come from whichever is newer, the GVFG-Bundesprogramm edition or the Infraplan. Manual entries still override derived ones.
 - **Contradictions between plans are surfaced, not silently resolved.** Before a feature doc is written or changed, run the `widerspruchs-check` skill (`.claude/skills/widerspruchs-check/`) and let the user decide each conflict.
+- **The UI follows the design system of the Initiative Deutschlandtakt and the studio's Anwendungsebene.** Colours, sizes, spacing, borders and icons come from `src/shared/theme/tokens.css` (the design system, verbatim) and the Mantine scales mixed from it; every mapping from a domain term to a colour (phase, traffic type, source, status) lives in `src/shared/theme/semanticColors.ts` and nowhere else. Rules: `docs/DESIGN.md`. (Decided 2026-10-21.)
 
 ---
 
@@ -203,6 +204,8 @@ src/
 | Concern | Library |
 |---|---|
 | UI framework | Mantine |
+| Design tokens | Design system of the Initiative Deutschlandtakt (`src/shared/theme/tokens.css`), see `docs/DESIGN.md` |
+| Icons | lucide-react (planned, replaces `@tabler/icons-react` with the IDT design) |
 | Map rendering | MapLibre GL |
 | Server state | TanStack React Query |
 | Routing | React Router |
@@ -217,7 +220,7 @@ src/
 ├── components/   # Shared UI building blocks (header, error boundary)
 ├── shared/       # Cross-feature utilities and generated API client
 ├── lib/          # Infrastructure (API client config, React Query setup, auth)
-├── theme.ts      # Mantine theme configuration (custom colours incl. "petrol")
+├── theme.ts      # Mantine theme configuration (moves to shared/theme/ with the IDT design)
 └── router.tsx    # Central route definitions
 ```
 
@@ -232,7 +235,7 @@ src/
 
 ### UI components
 
-- Use **Mantine** for layout and UI work. Keep theme overrides in `theme.ts`. The custom colour `"petrol"` is available for primary actions.
+- Use **Mantine** for layout and UI work. Keep theme overrides in `theme.ts` (`src/shared/theme/` with the IDT design). The primary colour is the brand violet (`--accent-primary`); never hard-code a hex value in a component, take tokens or `semanticColors.ts` (`docs/DESIGN.md`).
 - Extract recurring patterns into custom components under `src/components/`.
 
 ### Routing
@@ -258,7 +261,7 @@ Do **not** introduce Zustand or Redux. The project intentionally avoids client-s
 
 ### Error handling (frontend)
 
-- Use Mantine `Alert` (variant `"light"`, color `"red"`) for inline error states in forms and data views.
+- Use Mantine `Alert` (color `"red"`) for inline error states in forms and data views. Its look is set once in the theme after the Anwendungsebene (2 px frame, red inset edge, no red fill; decided 2026-10-21, W3 in `feature-idt-design.md`), so call sites do not style it.
 - Use React Query's `isError` / `error` fields — do not catch fetch errors manually.
 - Do not use `console.error` in production code paths.
 

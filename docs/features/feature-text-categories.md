@@ -30,10 +30,15 @@ meant for the team is not shown to anonymous visitors.
 
 | style | colour token | icon | left border | seeded category |
 |---|---|---|---|---|
-| `neutral` | `--text-cat-neutral` → `--ink3` | `IconNote` | no | – |
-| `info` | `--text-cat-info` → `--info` | `IconInfoCircle` | no | „Info“ |
-| `warning` | `--text-cat-warning` → `--warn` (new) | `IconAlertTriangle` | yes | „Warnung“ |
-| `critical` | `--text-cat-critical` → `--signal` | `IconAlertOctagon` | yes | – |
+| `neutral` | no edge; icon `--text-muted` | `FileText` | no | – |
+| `info` | edge `--idt-cyan`; icon ink | `Info` | yes, 8 px | „Info“ |
+| `warning` | edge `--idt-warning`; icon ink | `TriangleAlert` | yes, 8 px | „Warnung“ |
+| `critical` | edge `--idt-danger`; icon `--idt-danger` | `OctagonAlert` | yes, 8 px | – |
+
+Since 2026-10-21 (IDT design, W5 in `feature-idt-design.md`): the style map is
+`TEXT_CATEGORY_STYLE` in `src/shared/theme/semanticColors.ts`, the icons are
+Lucide, the edge is 8 px like the design system's callout and the icon stays ink
+except for `critical`, because cyan on paper (1.6:1) cannot carry an icon.
 
 **Colours are switchable in one place.** Components never use a base token
 directly for a category: they use the semantic tokens `--text-cat-*`, which
@@ -41,8 +46,9 @@ directly for a category: they use the semantic tokens `--text-cat-*`, which
 TypeScript map (`textCategoryStyles.ts`). Changing a colour = one line in
 `tokens.css`; changing icon or border = one line in the map.
 
-`--warn` is a new base token (dark amber) because `--led` (Gold) is the brand and
-CTA accent and must not double as a warning colour (`docs/DESIGN.md` §2).
+Direction F history: `--warn` was a separate base token because `--led` (Gold) was
+the brand accent; with the IDT design the warning colour is `--idt-warning` from
+the design system and `--led` no longer exists.
 
 ## Desired behaviour
 
@@ -118,6 +124,7 @@ rollback) is shown with the default category in the UI and in MCP.
 | 2026-10-20 | W2: only `warning`/`critical` get a left border. |
 | 2026-10-20 | W3: text visibility (roadmap item was ticked but never built) is implemented here. |
 | 2026-10-20 | W4: the category belongs to the text and applies to all linked projects. |
+| 2026-10-21 | IDT design: edge in the status colour (info cyan, warning amber, critical red), icon ink except critical, Lucide icons, map in `semanticColors.ts`; `--text-cat-*` tokens retired (`feature-idt-design.md` W5). |
 
 ## Acceptance criteria
 

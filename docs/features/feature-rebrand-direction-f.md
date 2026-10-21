@@ -1,5 +1,11 @@
 # Feature: Rebrand Frontend to Direction F (Bahnhofshalle Tag)
 
+> **Abgelöst (2026-10-21).** Richtung F wird vollständig durch das Design der
+> Initiative Deutschlandtakt ersetzt: `docs/features/feature-idt-design.md`,
+> Regeln in `docs/DESIGN.md`. Die Festlegungen unten (kein globaler Dark Mode,
+> Chronicle-Props bleiben, Markenteilung außerhalb des Scopes) gelten nicht mehr.
+> Diese Datei bleibt als Geschichte der Version v0.0.4.
+
 ## Goal
 
 Replace the current "Architectural Chronicle" (FAZ-editorial, dark teal, Noto Serif) brand with **Direction F · Bahnhofshalle Tag** — a railway-station-board idiom (Anthracite ink, Gold accent, Prussian-Blue weight, sharp corners, Archivo Narrow + Space Mono + Work Sans). Design source: `docs/DESIGN.md` (rewritten 2026-04-25 from the design-system-f bundle).
