@@ -1,5 +1,41 @@
 /* Mantine components after the Anwendungsebene (docs/features/feature-idt-design.md
-   → "Stufe 4 — Bausteine"). One file, no CSS modules; theme.ts wires the classes. */
+   → "Stufe 4 — Bausteine"). One file, no CSS modules; theme.ts wires the classes
+   (Component.extend classNames) and resolves colours (variantColorResolver).
+
+   Specificity: this file loads after @mantine/core/styles.css, so a single idt-*
+   class beats Mantine's single hashed class. Where Mantine scopes a rule by colour
+   scheme (`[data-mantine-color-scheme] .m_…`), the rule here sets the property
+   itself or carries `:root` in front to stay ahead. */
+
+/* ── Derived colours ──────────────────────────────────────────────────────
+   The DS danger/success reach only 4.1:1 against paper (DS contrast notes), too
+   little for 13–14.5px text. In the light scheme text and fills on red/green are
+   pulled 20 % towards ink (≥ 5:1); in the dark scheme fills keep the DS value
+   with ink text, red text is lifted towards paper. Frames and edges keep the pure tokens. */
+:root {
+    --idt-danger-text: color-mix(in srgb, var(--idt-danger) 80%, var(--idt-ink));
+    --idt-danger-fill: var(--idt-danger-text);
+    --idt-danger-fill-hover: color-mix(in srgb, var(--idt-danger) 65%, var(--idt-ink));
+    --idt-success-fill: color-mix(in srgb, var(--idt-success) 80%, var(--idt-ink));
+    --idt-inverse-hover: var(--idt-ink-hover);
+    --idt-dialog-shadow: 8px 8px 0 rgba(0, 55, 60, 0.18);
+    --idt-overlay: color-mix(in srgb, var(--idt-ink) 32%, transparent);
+    --idt-h-bedien: 40px;
+}
+:root[data-theme="dark"] {
+    /* Lifted 25 % towards paper: 5:1 also on violet-soft (header counter). */
+    --idt-danger-text: color-mix(in srgb, var(--idt-danger) 75%, var(--idt-paper));
+    --idt-danger-fill: var(--idt-danger);
+    --idt-danger-fill-hover: color-mix(in srgb, var(--idt-danger) 85%, var(--idt-paper));
+    --idt-success-fill: var(--idt-success);
+    --idt-inverse-hover: var(--border-frame);
+    /* Block shadows turn into the deepest tone in the dark scheme (DS). */
+    --idt-dialog-shadow: 8px 8px 0 rgba(0, 0, 0, 0.35);
+    --idt-overlay: rgba(0, 0, 0, 0.5);
+}
+@media (max-width: 48em) {
+    :root { --idt-h-bedien: 44px; }
+}
 
 /* ── Cards (DS Card variants) ─────────────────────────────────────────────
    Paper withBorder = DS `soft`; .karte--frame = 2px ink; .karte--inverse = ink panel
@@ -57,4 +93,875 @@
     .idt-statband > .idt-stat:first-child { border-top: none; }
     .idt-stat__num { font-size: 28px; }
     .idt-stat__num--lg { font-size: 40px; }
+}
+
+/* ── Button / ActionIcon / CloseButton ─────────────────────────────────────
+   40px (44 under 48em), 14.5/600, 2px frame, padding 0 16px. Colours per variant
+   from theme.ts → variantColorResolver: filled = violet action, default/outline =
+   ink frame, subtle = no frame, red outline = remove in bars, red filled = delete
+   in the dialog. `light` is not a DS look: it renders like `default`. Hover is a
+   colour change only, never a lift. */
+.idt-button {
+    --idt-bw: 2px;
+    --button-height-xs: 34px;
+    --button-height-sm: var(--idt-h-bedien);
+    --button-height-md: var(--idt-h-bedien);
+    --button-height-lg: 44px;
+    --button-height-xl: 48px;
+    --button-height-compact-xs: 28px;
+    --button-height-compact-sm: 34px;
+    --button-height-compact-md: 34px;
+    --button-height-compact-lg: 40px;
+    --button-height-compact-xl: 44px;
+    --button-padding-x-xs: 12px;
+    --button-padding-x-sm: 16px;
+    --button-padding-x-md: 16px;
+    --button-padding-x-lg: 18px;
+    --button-padding-x-xl: 20px;
+    --button-padding-x-compact-xs: 8px;
+    --button-padding-x-compact-sm: 12px;
+    --button-padding-x-compact-md: 12px;
+    --button-fz-xs: 13.5px;
+    --button-fz-sm: 14.5px;
+    --button-fz-md: 14.5px;
+    --button-fz-lg: 16px;
+    --button-fz-xl: 16px;
+    --button-fz-compact-xs: 13px;
+    --button-fz-compact-sm: 13.5px;
+    --button-fz-compact-md: 14.5px;
+    font-weight: 600;
+    border-radius: 0;
+}
+.idt-button,
+.idt-button:active,
+.idt-actionicon:active,
+.idt-close:active {
+    transform: none;
+}
+.idt-button::before { display: none; } /* Mantine's loading blur sheen */
+.idt-button[data-variant="light"] {
+    background: transparent;
+    border: 2px solid var(--border-frame);
+    color: var(--text-strong);
+}
+.idt-button[data-variant="light"].idt-tone-red {
+    border-color: var(--idt-danger);
+    color: var(--idt-danger-text);
+}
+.idt-button[data-variant="light"]:hover:not(:disabled, [data-disabled], [data-loading]) {
+    background: var(--surface-alt);
+    color: var(--text-strong);
+}
+.idt-button[data-variant="light"].idt-tone-red:hover:not(:disabled, [data-disabled], [data-loading]) {
+    background: color-mix(in srgb, var(--idt-danger) 10%, transparent);
+    color: var(--idt-danger-text);
+}
+/* Disabled keeps its variant look at 45 % (Anwendungsebene), not Mantine's grey
+   fill. Mantine drops the colour variables of a disabled control, so the look is
+   restated per variant here. */
+:is(.idt-button, .idt-actionicon):is(:disabled, [data-disabled]):not([data-loading]) {
+    opacity: 0.45;
+    background: transparent;
+    border: 2px solid var(--border-frame);
+    color: var(--text-strong);
+}
+:is(.idt-button, .idt-actionicon).idt-v-filled:is(:disabled, [data-disabled]):not([data-loading]) {
+    background: var(--accent-primary);
+    border-color: transparent;
+    color: var(--text-on-accent);
+}
+:is(.idt-button, .idt-actionicon).idt-v-filled.idt-tone-red:is(:disabled, [data-disabled]):not([data-loading]) {
+    background: var(--idt-danger-fill);
+}
+:is(.idt-button, .idt-actionicon):is(.idt-v-outline, .idt-v-light).idt-tone-red:is(:disabled, [data-disabled]) {
+    border-color: var(--idt-danger);
+    color: var(--idt-danger-text);
+}
+:is(.idt-button, .idt-actionicon):is(.idt-v-subtle, .idt-v-transparent):is(:disabled, [data-disabled]) {
+    border-color: transparent;
+}
+/* The loader is the one place a spinner stays (Anwendungsebene → Zustände). */
+.idt-button-loader { --loader-color: currentColor; }
+
+.idt-actionicon {
+    --idt-bw: 2px;
+    --ai-size-xs: 24px;
+    --ai-size-sm: 28px;
+    --ai-size-md: var(--idt-h-bedien);
+    --ai-size-lg: var(--idt-h-bedien);
+    --ai-size-xl: 44px;
+    --ai-size-input-xs: 30px;
+    --ai-size-input-sm: 34px;
+    --ai-size-input-md: var(--idt-h-bedien);
+    border-radius: 0;
+}
+.idt-actionicon:is([data-size="md"], [data-size="lg"], [data-size="xl"], :not([data-size])) svg.lucide {
+    width: 20px;
+    height: 20px;
+}
+.idt-actionicon[data-size="sm"] svg.lucide {
+    width: 16px;
+    height: 16px;
+}
+
+.idt-close {
+    color: var(--text-strong);
+    border-radius: 0;
+}
+:root .idt-close { color: var(--text-strong); }
+.idt-close:hover:not(:disabled, [data-disabled]) { background: var(--surface-alt); }
+
+/* ── Fields (Anwendungsebene → Feldzustände) ───────────────────────────────
+   2px ink frame on paper, 8px 11px, 16px. Focus: violet frame + 2px ring with
+   2px offset. Error: red frame. Disabled: border-strong on paper-3, muted text. */
+.idt-input-wrapper {
+    --input-height-xs: 34px;
+    --input-height-sm: var(--idt-h-bedien);
+    --input-height-md: var(--idt-h-bedien);
+    --input-height-lg: 44px;
+    --input-height-xl: 48px;
+    --input-padding: 11px;
+    --input-line-height: calc(var(--input-height) - 4px);
+    --input-padding-y-xs: 6px;
+    --input-padding-y-sm: 8px;
+    --input-padding-y-md: 8px;
+    --input-padding-y-lg: 10px;
+    --input-padding-y-xl: 12px;
+    --section-y: 2px;
+    --left-section-start: 2px;
+    --right-section-end: 2px;
+    --input-left-section-size: var(--input-left-section-width, calc(var(--input-height) - 6px));
+    --input-right-section-size: var(--input-right-section-width, calc(var(--input-height) - 6px));
+}
+.idt-input-wrapper[data-multiline] {
+    --input-padding-y-xs: 6px;
+    --input-padding-y-sm: 8px;
+    --input-padding-y-md: 8px;
+}
+.idt-input {
+    border: 2px solid var(--border-frame);
+    border-radius: 0;
+    background-color: var(--surface);
+    color: var(--text-body);
+    font-size: 16px;
+    transition: none;
+}
+.idt-input-wrapper[data-variant="unstyled"] > .idt-input,
+.idt-input-wrapper[data-variant="filled"] > .idt-input {
+    border-color: transparent;
+}
+.idt-input-wrapper[data-variant="unstyled"] > .idt-input { background: transparent; }
+.idt-input::placeholder { color: var(--text-muted); }
+.idt-input:focus,
+.idt-input:focus-within {
+    border-color: var(--focus-ring);
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+.idt-input-wrapper[data-variant="unstyled"] > .idt-input:is(:focus, :focus-within) {
+    border-color: transparent;
+    outline: none;
+}
+/* An open dropdown hangs flush below the field; the ring would cut into it. */
+.idt-input:is([data-expanded], [aria-expanded="true"], :has([data-expanded], [aria-expanded="true"])) { outline: none; }
+.idt-input[data-error],
+[data-error] > .idt-input {
+    border-color: var(--idt-danger);
+    color: var(--text-body);
+}
+.idt-input:is(:disabled, [data-disabled], :has(input:disabled)) {
+    opacity: 1;
+    border-color: var(--border-strong);
+    background-color: var(--surface-sunken);
+    color: var(--text-muted);
+}
+.idt-input[readonly] { background-color: var(--surface); }
+:root .idt-input-section { color: var(--text-muted); }
+[data-error] > .idt-input-section { color: var(--idt-danger-text); }
+
+.idt-input-label {
+    margin-bottom: 6px;
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--text-strong);
+}
+.idt-input-description {
+    margin-bottom: 4px;
+    font-size: 13px;
+    line-height: 1.35;
+    color: var(--text-muted);
+}
+.idt-input-error {
+    margin-top: 5px;
+    font-size: 13px;
+    line-height: 1.35;
+    color: var(--idt-danger-text);
+}
+.idt-input-required { color: var(--idt-danger-text); }
+
+/* ── Combobox dropdown (Anwendungsebene → Auswahlfelder) ───────────────────
+   Hangs flush under the field: 2px violet frame without its top edge, hairlines
+   between entries, the chosen entry on violet-soft with the check on the right,
+   no shadow. */
+:root:root .idt-combobox-dropdown {
+    padding: 0;
+    border: 2px solid var(--focus-ring);
+    border-radius: 0;
+    background: var(--surface);
+    box-shadow: none;
+    color: var(--text-body);
+}
+:root:root .idt-combobox-dropdown[data-position^="bottom"] { border-top: none; }
+:root:root .idt-combobox-dropdown[data-position^="top"] { border-bottom: none; }
+/* Entries run edge to edge; the scrollbar overlays instead of indenting them. */
+.idt-combobox-dropdown .mantine-ScrollArea-viewport { padding-inline-end: 0 !important; }
+.idt-combobox-option {
+    padding: 9px 11px;
+    border-radius: 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 16px;
+    line-height: 1.35;
+    color: var(--text-body);
+}
+.idt-combobox-option:last-child { border-bottom: none; }
+:root .idt-combobox-option:hover:not([data-combobox-disabled]),
+:root .idt-combobox-option[data-combobox-selected] {
+    background-color: var(--surface-alt);
+    color: var(--text-strong);
+}
+:root .idt-combobox-option[data-checked] {
+    background-color: var(--idt-violet-soft);
+    color: var(--text-strong);
+    font-weight: 600;
+}
+.idt-combobox-option[data-combobox-disabled] { color: var(--text-muted); opacity: 1; }
+:root .idt-combobox-check {
+    color: var(--text-strong);
+    opacity: 1;
+    width: 16px;
+    height: 16px;
+    margin-left: auto;
+}
+.idt-combobox-empty { padding: 10px 11px; font-size: 14.5px; color: var(--text-muted); }
+.idt-combobox-group-label {
+    padding: 8px 11px 4px;
+    font-size: 13px;
+    letter-spacing: var(--ls-label);
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.idt-combobox-group-label::after { display: none; }
+
+/* Marks inside a MultiSelect / TagsInput: square, 1px ink, 14.5/600. */
+.idt-pill {
+    --pill-height: 26px;
+    border: 1px solid var(--border-frame);
+    border-radius: 0;
+    background: transparent;
+    font-size: 14.5px;
+    font-weight: 600;
+}
+:root .idt-pill {
+    background: transparent;
+    color: var(--text-strong);
+}
+.idt-pill-remove { color: var(--text-strong); border-radius: 0; }
+
+/* ── Checkbox / Radio / Switch ─────────────────────────────────────────── */
+.idt-checkbox {
+    --checkbox-size-xs: 16px;
+    --checkbox-size-sm: 18px;
+    --checkbox-size-md: 18px;
+    --checkbox-size-lg: 22px;
+    --checkbox-size-xl: 24px;
+    --checkbox-icon-color: var(--text-on-accent);
+}
+:root .idt-checkbox-input {
+    border: 2px solid var(--border-frame);
+    border-radius: 0;
+    background-color: var(--surface);
+}
+:root .idt-checkbox-input:is(:checked, [data-indeterminate]) {
+    border-color: var(--accent-primary);
+    background-color: var(--accent-primary);
+}
+:root .idt-checkbox-input:disabled {
+    border-color: var(--border-strong);
+    background-color: var(--surface-sunken);
+}
+:root .idt-checkbox-input[data-error] { border-color: var(--idt-danger); }
+.idt-checkbox-icon { color: var(--text-on-accent); }
+.idt-check-label { color: var(--text-body); }
+
+.idt-radio { --radio-icon-color: var(--text-on-accent); }
+:root .idt-radio-input {
+    border: 2px solid var(--border-frame);
+    background-color: var(--surface);
+}
+:root .idt-radio-input:checked {
+    border-color: var(--accent-primary);
+    background-color: var(--accent-primary);
+}
+:root .idt-radio-input:disabled {
+    border-color: var(--border-strong);
+    background-color: var(--surface-sunken);
+}
+
+:root .idt-switch-track {
+    --switch-bg: var(--surface);
+    border: 2px solid var(--border-frame);
+}
+:root input:checked + .idt-switch-track {
+    --switch-bg: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+:root input:disabled + .idt-switch-track {
+    --switch-bg: var(--surface-sunken);
+    border-color: var(--border-strong);
+}
+:root .idt-switch-thumb {
+    --switch-thumb-bg: var(--border-frame);
+    border: none;
+}
+:root input:checked + * > .idt-switch-thumb { --switch-thumb-bg: var(--text-on-accent); }
+:root input:disabled + * > .idt-switch-thumb { --switch-thumb-bg: var(--border-strong); }
+
+/* ── SegmentedControl: 2px frame, ink dividers, active violet ──────────── */
+:root .idt-sc {
+    padding: 0;
+    border: 2px solid var(--border-frame);
+    border-radius: 0;
+    background-color: var(--surface);
+}
+:root .idt-sc-indicator {
+    border-radius: 0;
+    background-color: var(--accent-primary);
+    box-shadow: none;
+}
+:root .idt-sc-control { --separator-color: var(--border-frame); }
+:root .idt-sc[data-with-items-borders] .idt-sc-control::before { width: 2px; }
+:root .idt-sc-control:first-of-type::before { --separator-color: transparent; }
+:root .idt-sc-label {
+    padding: 0 14px;
+    border-radius: 0;
+    font-size: 14.5px;
+    font-weight: 600;
+    line-height: calc(var(--idt-h-bedien) - 4px);
+    color: var(--text-strong);
+}
+:root .idt-sc-label[data-active] { color: var(--text-on-accent); }
+:root .idt-sc-label[data-active]::before { background-color: var(--accent-primary); box-shadow: none; }
+:root .idt-sc-label:not([data-active], [data-disabled]):hover { color: var(--text-strong); background: var(--surface-alt); }
+
+.idt-chip-label { border-radius: 0; font-weight: 600; }
+:root .idt-chip-label:not([data-checked]) {
+    border: 1px solid var(--border-frame);
+    background-color: transparent;
+    color: var(--text-strong);
+}
+
+/* ── Table (Anwendungsebene → Tabelle) ─────────────────────────────────────
+   .idt-table sits on every Mantine Table (theme.ts); .idt-table-frame is the
+   2px outer frame ResponsiveTable wraps it in. Head 13.5/600 muted over a 2px
+   ink line, 48px rows with a hairline, no zebra, hover paper-2. */
+.idt-table {
+    --table-border-color: var(--border);
+    --table-hover-color: var(--surface-alt);
+    --table-striped-color: transparent;
+    --table-highlight-on-hover-color: var(--surface-alt);
+    font-size: 14.5px;
+    color: var(--text-body);
+}
+.idt-table > thead > tr {
+    border-bottom: 2px solid var(--border-frame);
+}
+.idt-table > thead > tr > th {
+    padding: 12px;
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--text-muted);
+    vertical-align: bottom;
+    background: transparent;
+}
+.idt-table > :is(tbody, tfoot) > tr > :is(td, th) {
+    height: var(--row-h);
+    padding: 8px 12px;
+    vertical-align: middle;
+}
+.idt-table > tbody > tr[data-hover]:hover,
+.idt-table > tbody > tr.is-clickable:hover { background-color: var(--surface-alt); }
+.idt-table-frame .idt-table > tbody > tr:last-child { border-bottom: none; }
+
+/* Sorted column: 700 ink, arrow inline after the last word. Other heads show
+   their arrow (.idt-sort-icon) only on hover/focus. */
+.idt-table th.is-sorted {
+    font-weight: 700;
+    color: var(--text-strong);
+    white-space: nowrap;
+}
+.idt-table th svg.lucide,
+.idt-table th .idt-sort-icon {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    margin-left: 6px;
+    vertical-align: -2px;
+}
+.idt-table th:not(.is-sorted) .idt-sort-icon { visibility: hidden; }
+.idt-table th:not(.is-sorted):is(:hover, :focus-within) .idt-sort-icon { visibility: visible; }
+
+.idt-table :is(th, td).num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Checkbox column and selected row. */
+.idt-table > * > tr > :is(th, td).idt-check-cell {
+    width: 1px;
+    padding: 15px 0 15px 16px;
+}
+.idt-table > * > tr > :is(th, td).idt-check-cell + :is(th, td) { padding-left: 13px; }
+.idt-table > tbody > tr.is-selected,
+.idt-table > tbody > tr.is-selected:hover { background-color: var(--surface-alt); }
+.idt-table > tbody > tr.is-selected > .idt-check-cell { box-shadow: inset 3px 0 0 var(--border-frame); }
+
+.idt-table-frame {
+    border: 2px solid var(--border-frame);
+    background: var(--surface);
+    min-width: 0;
+}
+/* The frame is the only outer border: Mantine's withTableBorder (1px) and
+   column borders on the outside edge would double it. */
+.idt-table-frame .idt-table[data-with-table-border] { border: none; }
+.idt-table-frame .idt-table > * > tr > :is(th, td)[data-with-column-border]:first-child { border-inline-start: none; }
+.idt-table-frame .idt-table > * > tr > :is(th, td)[data-with-column-border]:last-child { border-inline-end: none; }
+/* Sortable heads are buttons: they inherit the head's type and colour. */
+.idt-table th > .mantine-UnstyledButton-root { font: inherit; color: inherit; }
+
+/* Filter bar: search 2px (min 220px), active filters as marks, filter button,
+   hit count right. 18px to what follows. */
+.idt-filterbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+.idt-filterbar__search { min-width: 220px; }
+.idt-filterbar__count {
+    margin-left: auto;
+    font-size: 14.5px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+}
+.idt-filtermark {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: var(--idt-h-bedien);
+    padding: 0 8px 0 10px;
+    border: 2px solid var(--border-frame);
+    background: var(--idt-violet-soft);
+    color: var(--text-strong);
+    font-size: 14.5px;
+    font-weight: 600;
+}
+.idt-filtermark button {
+    display: inline-flex;
+    padding: 2px;
+    border: none;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+}
+.idt-filtermark svg.lucide { width: 14px; height: 14px; }
+
+/* Selection bar: appears once a box is ticked. Paper, 2px frame, 4px violet
+   inner edge; count bold, hairline divider, framed 34px actions, clear right. */
+.idt-selectionbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    min-height: 52px;
+    padding: 8px 16px;
+    border: 2px solid var(--border-frame);
+    background: var(--surface);
+    box-shadow: inset 4px 0 0 var(--accent-primary);
+    font-size: 14.5px;
+    color: var(--text-body);
+}
+.idt-selectionbar strong { font-weight: 700; color: var(--text-strong); }
+.idt-selectionbar__sep {
+    align-self: center;
+    width: 1px;
+    height: 22px;
+    background: var(--border-strong);
+}
+.idt-selectionbar__clear { margin-left: auto; }
+/* Directly above the table the bar shares the frame's top edge. */
+.idt-selectionbar + .idt-table-frame,
+.idt-selectionbar + .idt-rtable .idt-table-frame { border-top: none; }
+
+@media (max-width: 48em) {
+    .idt-filterbar .idt-filtermark,
+    .idt-filterbar .idt-filterbar__count { display: none; }
+    .idt-filterbar__search { flex: 1; min-width: 0; }
+    .idt-selectionbar { padding: 10px 12px; margin-bottom: 14px; }
+    .idt-selectionbar__clear { margin-left: 0; width: 100%; }
+    .idt-selectionbar + .idt-table-frame,
+    .idt-selectionbar + .idt-rtable .idt-table-frame { border-top: 2px solid var(--border-frame); }
+}
+
+/* ── Dialog: Modal (and Drawer) ────────────────────────────────────────────
+   Overlay ink 32 %, paper, 2px frame, the dialog's soft hard shadow. Head: title
+   19/700, close right, 2px ink line. Foot (.idt-modal-footer, inside the body):
+   2px ink line, actions right. Under 48em full screen with fixed head and foot,
+   only the body scrolls; actions full width, 46px. No caller passes fullScreen. */
+.idt-modal-overlay {
+    background: var(--idt-overlay);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+.idt-modal-content,
+.idt-drawer-content {
+    border: 2px solid var(--border-frame);
+    border-radius: 0;
+    background: var(--surface);
+    color: var(--text-body);
+}
+.idt-modal-content { box-shadow: var(--idt-dialog-shadow); }
+.idt-drawer-content { box-shadow: none; }
+:root .idt-modal-header {
+    padding: 14px 14px 14px 18px;
+    border-bottom: 2px solid var(--border-frame);
+    background: var(--surface);
+    min-height: 0;
+}
+.idt-modal-title {
+    font-size: 19px;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--text-strong);
+}
+.idt-modal-close { color: var(--text-strong); }
+.idt-modal-body,
+.idt-drawer-body { padding: 18px; }
+.idt-modal-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    margin: 18px -18px -18px;
+    padding: 14px 18px;
+    border-top: 2px solid var(--border-frame);
+    background: var(--surface);
+}
+
+@media (max-width: 48em) {
+    .idt-modal-inner { padding: 0; }
+    .idt-modal-content {
+        display: flex;
+        flex-direction: column;
+        flex: 0 0 100%;
+        width: 100%;
+        max-width: 100%;
+        height: 100dvh;
+        max-height: 100dvh;
+        overflow: hidden;
+        border: none;
+        box-shadow: none;
+    }
+    .idt-modal-content > .idt-modal-header { flex: none; }
+    .idt-modal-content > .idt-modal-body {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+    }
+    /* The foot stays at the bottom edge while the body scrolls. */
+    .idt-modal-footer {
+        position: sticky;
+        bottom: 0;
+        z-index: 2;
+        margin-top: auto;
+        padding-top: 14px;
+    }
+    .idt-modal-footer > *,
+    .idt-modal-footer .mantine-Group-root { flex: 1 1 0; }
+    .idt-modal-footer .idt-button {
+        flex: 1 1 0;
+        --button-height-sm: 46px;
+        --button-height-md: 46px;
+        --button-height-xs: 46px;
+    }
+
+    .idt-drawer-content {
+        flex-basis: 100%;
+        max-width: 100vw;
+        border: none;
+    }
+}
+
+/* ── Alert (W3): frame on paper, colour only as 4px inner edge ─────────────
+   red → danger, yellow/orange → warning, blue/cyan → cyan, others none. Title
+   17/700, text 14.5; icon ink (red only for red); text never coloured. */
+:root .idt-alert {
+    padding: 12px 16px 12px 20px;
+    border: 2px solid var(--border-frame);
+    border-radius: 0;
+    background: var(--surface);
+    color: var(--text-body);
+    box-shadow: none;
+}
+:root .idt-alert.idt-tone-red { box-shadow: inset 4px 0 0 var(--idt-danger); }
+:root .idt-alert.idt-tone-amber { box-shadow: inset 4px 0 0 var(--idt-warning); }
+:root .idt-alert.idt-tone-cyan { box-shadow: inset 4px 0 0 var(--idt-cyan); }
+:root .idt-alert.idt-tone-ink:is([data-variant="light"], [data-variant="outline"], [data-variant="filled"]) { box-shadow: none; }
+.idt-alert-title {
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--text-strong);
+}
+:root .idt-alert-message {
+    font-size: 14.5px;
+    line-height: 1.5;
+    color: var(--text-body);
+}
+.idt-alert-icon { color: var(--text-strong); }
+.idt-alert.idt-tone-red .idt-alert-icon { color: var(--idt-danger-text); }
+.idt-alert-close { color: var(--text-strong); }
+
+/* ── Badge (Tag): 22px, 11.5/600 caps .06em, square, 1px frame ──────────── */
+.idt-badge {
+    --idt-bw: 1px;
+    --badge-height-xs: 18px;
+    --badge-height-sm: 22px;
+    --badge-height-md: 22px;
+    --badge-height-lg: 26px;
+    --badge-height-xl: 30px;
+    --badge-fz-xs: 10.5px;
+    --badge-fz-sm: 11.5px;
+    --badge-fz-md: 11.5px;
+    --badge-fz-lg: 13px;
+    --badge-fz-xl: 14.5px;
+    --badge-padding-x-sm: 8px;
+    --badge-padding-x-md: 8px;
+    border-radius: 0;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    font-variant-numeric: tabular-nums;
+}
+.idt-badge-section { display: inline-flex; }
+.idt-badge-section[data-position="left"] { margin-inline-end: 6px; }
+.idt-badge-section[data-position="right"] { margin-inline-start: 6px; }
+
+/* ── Notifications: paper, 2px frame, no shadow; success = ink check ─────── */
+:root .idt-notification {
+    padding: 12px 10px 12px 16px;
+    border: 2px solid var(--border-frame);
+    border-radius: 0;
+    background-color: var(--surface);
+    box-shadow: none;
+}
+:root .idt-notification::before {
+    /* Mantine's colour bar: gone; green/teal turn it into an ink check. */
+    display: none;
+}
+:root .idt-notification:is(.idt-tone-green, .idt-tone-ink):not([data-with-icon])::before {
+    display: block;
+    position: static;
+    flex: none;
+    width: 20px;
+    height: 20px;
+    margin-right: 12px;
+    border-radius: 0;
+    background-color: var(--text-strong);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+:root .idt-notification.idt-tone-red { box-shadow: inset 4px 0 0 var(--idt-danger); }
+:root .idt-notification.idt-tone-cyan { box-shadow: inset 4px 0 0 var(--idt-cyan); }
+:root .idt-notification.idt-tone-amber { box-shadow: inset 4px 0 0 var(--idt-warning); }
+:root .idt-notification-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 0;
+    background: transparent;
+    color: var(--text-strong);
+}
+:root .idt-notification-title {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--text-strong);
+}
+:root .idt-notification-description,
+:root .idt-notification-description[data-with-title] {
+    font-size: 14.5px;
+    color: var(--text-body);
+}
+
+/* ── Tabs: 15/600, active 3px violet under, list 2px ink line ──────────── */
+:root .idt-tabs[data-variant="default"] {
+    --tab-border-color: var(--border-frame);
+    --tab-hover-color: var(--surface-alt);
+}
+.idt-tab {
+    padding: 10px 14px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-strong);
+}
+.idt-tabs[data-variant="default"] .idt-tab {
+    border-bottom-width: 3px;
+    border-color: transparent;
+}
+.idt-tabs[data-variant="default"] .idt-tab[data-active] { border-bottom-color: var(--accent-primary); }
+.idt-tabs[data-variant="default"] .idt-tab:not([data-active]):hover { border-bottom-color: var(--border-strong); }
+.idt-tabs[data-variant="default"][data-orientation="vertical"] .idt-tab {
+    border-bottom-width: 0;
+    border-right-width: 3px;
+}
+.idt-tabs[data-variant="default"][data-orientation="vertical"] .idt-tab[data-active] { border-right-color: var(--accent-primary); }
+
+/* ── Paper / Card: withBorder = DS `soft` (1px line + small shadow) ────── */
+.idt-paper { border-radius: 0; background-color: var(--surface-card); }
+.idt-paper[data-with-border] {
+    border: 1px solid var(--border);
+    box-shadow: var(--paper-shadow, var(--shadow-sm));
+}
+
+/* ── Title: h2 = section title with a 2px ink line (opt out: .idt-title-plain) */
+.idt-title[data-order="2"]:not(.idt-title-plain) {
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--border-frame);
+}
+.karte--inverse .idt-title[data-order="2"] { border-bottom-color: var(--text-on-inverse-muted); }
+
+/* ── Menu / Popover / HoverCard / Tooltip ──────────────────────────────── */
+:root .idt-popover {
+    border: 2px solid var(--border-frame);
+    border-radius: 0;
+    background-color: var(--surface);
+    color: var(--text-body);
+    box-shadow: none;
+}
+.idt-menu { padding: 0; }
+.idt-menu-item {
+    min-height: var(--idt-h-bedien);
+    padding: 8px 12px;
+    border-radius: 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14.5px;
+    color: var(--menu-item-color, var(--text-body));
+}
+.idt-menu-item:last-child { border-bottom: none; }
+:root .idt-menu-item:is(:hover, :focus, [data-hovered]):not(:disabled, [data-disabled]) { background-color: var(--surface-alt); }
+.idt-menu-label {
+    font-size: 13px;
+    letter-spacing: var(--ls-label);
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+:root .idt-menu-divider { margin: 0; border-color: var(--border-frame); }
+/* Ink on paper in light; the inverse pair (paper on ink) in dark, so the tooltip
+   always stands out from the page. */
+:root .idt-tooltip {
+    padding: 6px 10px;
+    border-radius: 0;
+    background-color: var(--surface-inverse);
+    color: var(--text-on-inverse);
+    font-size: 13.5px;
+    font-weight: 500;
+}
+
+/* ── Pagination / Stepper / Progress ───────────────────────────────────── */
+:root .idt-pagination-control {
+    border: 2px solid var(--border-frame);
+    border-radius: 0;
+    background-color: transparent;
+    color: var(--text-strong);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+:root .idt-pagination-control:hover:not(:disabled, [data-disabled], [data-active]) { background-color: var(--surface-alt); }
+:root .idt-pagination-control[data-active] {
+    border-color: var(--accent-primary);
+    background-color: var(--accent-primary);
+    color: var(--text-on-accent);
+}
+.idt-pagination-dots { color: var(--text-muted); }
+
+/* Completed step: violet with check (no green). Open steps: ink outline;
+   separators in text-muted (≥ 3:1 in both schemes), violet once passed. */
+.idt-stepper { --stepper-icon-color: var(--text-on-accent); }
+:root .idt-step-icon {
+    border: 2px solid var(--border-frame);
+    border-radius: 0;
+    background-color: var(--surface);
+    color: var(--text-strong);
+    font-variant-numeric: tabular-nums;
+}
+:root .idt-step-icon[data-progress] { border-color: var(--accent-primary); background-color: var(--idt-violet-soft); }
+:root .idt-step-icon[data-completed] {
+    border-color: var(--accent-primary);
+    background-color: var(--accent-primary);
+    color: var(--text-on-accent);
+}
+.idt-step-completed { color: var(--text-on-accent); }
+.idt-step-label { font-size: 14.5px; font-weight: 600; color: var(--text-strong); }
+.idt-step-description { font-size: 13px; color: var(--text-muted); }
+:root .idt-step-separator,
+:root .idt-step-separator-vertical { background-color: var(--text-muted); border-color: var(--text-muted); }
+:root .idt-step-separator[data-active],
+:root .idt-step-separator-vertical[data-active] { background-color: var(--accent-primary); border-color: var(--accent-primary); }
+.idt-step:is(:disabled, [data-disabled]) { opacity: 1; }
+
+:root .idt-progress {
+    border-radius: 0;
+    background-color: var(--idt-chart-track);
+}
+.idt-progress-section { border-radius: 0; }
+
+/* Skeleton: paper-3 bars, no shimmer (theme.ts turns animation off). */
+.idt-skeleton { border-radius: 0; }
+:root .idt-skeleton[data-visible]::after {
+    background-color: var(--surface-sunken);
+    animation: none;
+}
+
+/* ── Accordion / Code / Kbd ────────────────────────────────────────────── */
+:root .idt-accordion-item {
+    border-radius: 0;
+    border-color: var(--border);
+}
+.idt-accordion-control { border-radius: 0; color: var(--text-strong); }
+:root .idt-accordion-control:hover { background-color: var(--surface-alt); }
+.idt-accordion-label { font-weight: 600; }
+.idt-accordion-chevron { color: var(--text-strong); }
+
+/* No mono face in the DS: code in Inter with tabular figures. */
+:root .idt-code,
+:root .idt-kbd {
+    border-radius: 0;
+    background-color: var(--surface-sunken);
+    color: var(--text-strong);
+    font-family: var(--font-sans);
+    font-variant-numeric: tabular-nums;
+}
+:root .idt-kbd { border: 1px solid var(--border-frame); border-bottom-width: 2px; }
+
+/* A horizontal stepper wraps into ragged rows on a phone: stack the steps. */
+@media (max-width: 48em) {
+    .idt-stepper-steps:not([data-orientation="vertical"]) {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    .idt-stepper-steps:not([data-orientation="vertical"]) > .idt-step-separator { display: none; }
 }

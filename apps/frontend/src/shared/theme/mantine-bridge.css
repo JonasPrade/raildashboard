@@ -74,3 +74,26 @@
   --mantine-color-dark-8: var(--surface-alt);
   --mantine-color-dark-9: var(--surface-sunken);
 }
+
+/* `c="<colour>"` text (Mantine's --mantine-color-<name>-text, shade 6 in light and
+   4 in dark) follows the status rule of the Anwendungsebene in both schemes:
+   violet (and blue, used for link-like toggles) is the link colour, red the danger text, gray muted, every other
+   colour reads as ink. Mantine's own dark shades would drop below 4.5:1. */
+:root:root,
+:root:root[data-mantine-color-scheme="light"],
+:root:root[data-mantine-color-scheme="dark"] {
+  --mantine-color-violet-text: var(--text-link);
+  --mantine-color-indigo-text: var(--text-link);
+  --mantine-color-grape-text: var(--text-link);
+  --mantine-color-red-text: var(--idt-danger-text);
+  --mantine-color-pink-text: var(--idt-danger-text);
+  --mantine-color-gray-text: var(--text-muted);
+  --mantine-color-blue-text: var(--text-link); /* c="blue" marks link-like toggles in the code */
+  --mantine-color-teal-text: var(--text-strong);
+  --mantine-color-dark-text: var(--text-strong);
+  --mantine-color-cyan-text: var(--text-strong);
+  --mantine-color-green-text: var(--text-strong);
+  --mantine-color-lime-text: var(--text-strong);
+  --mantine-color-yellow-text: var(--text-strong);
+  --mantine-color-orange-text: var(--text-strong);
+}
