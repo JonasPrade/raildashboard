@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
     ActionIcon,
     Alert,
@@ -7,6 +7,7 @@ import {
     Container,
     Group,
     List,
+    Paper,
     Popover,
     SegmentedControl,
     Select,
@@ -17,8 +18,8 @@ import {
     TextInput,
     Title,
 } from "@mantine/core";
-import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
-import { FlapNumber, Eyebrow } from "../../components/tafel";
+import { Stat } from "../../shared/ui/Stat";
+import { SwatchTag } from "../../shared/ui/SwatchTag";
 import { useDisclosure } from "@mantine/hooks";
 import { CircleHelp, Search, X } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
@@ -347,19 +348,8 @@ export default function MapPage() {
                 <Stack gap="xl">
                     {viewToggle}
                     <Stack gap={6}>
-                        <Eyebrow>Schienenprojekte · {isTimeline ? "Zeitstrahl" : "Liste"}</Eyebrow>
-                        <Title
-                            order={2}
-                            style={{
-                                fontFamily: "var(--font-display)",
-                                textTransform: "uppercase",
-                                margin: 0,
-                                letterSpacing: "-0.015em",
-                                lineHeight: 0.95,
-                            }}
-                        >
-                            Projekte nach <em style={{ fontStyle: "normal", color: "var(--accent-primary)" }}>Projektgruppen</em>
-                        </Title>
+                        <Text className="idt-eyebrow" component="div">Schienenprojekte · {isTimeline ? "Zeitstrahl" : "Liste"}</Text>
+                        <Title order={2}>Projekte nach Projektgruppen</Title>
                         <Text size="sm" c="dimmed" style={{ maxWidth: 540 }}>
                             {isTimeline
                                 ? "Wähle eine Projektgruppe aus, um ihre Projekte mit belastbaren Terminen auf einer Zeitachse zu sehen."
@@ -419,7 +409,7 @@ export default function MapPage() {
                     </Stack>
 
                     {selectedGroup && (
-                        <ChronicleCard>
+                        <Paper withBorder p="var(--card-pad)">
                             <Stack gap="xs">
                                 <Group justify="space-between" align="flex-start">
                                     <Stack gap={4}>
@@ -429,20 +419,9 @@ export default function MapPage() {
                                         </Text>
                                     </Stack>
                                     <Group gap="xs">
-                                        <ChronicleDataChip>
-                                            <span
-                                                aria-hidden
-                                                style={{
-                                                    display: "inline-block",
-                                                    width: 8,
-                                                    height: 8,
-                                                    backgroundColor: selectedGroup.color,
-                                                    marginRight: 6,
-                                                    verticalAlign: "middle",
-                                                }}
-                                            />
+                                        <SwatchTag color={selectedGroup.color}>
                                             {selectedGroup.projects?.length ?? 0} Projekte
-                                        </ChronicleDataChip>
+                                        </SwatchTag>
                                     </Group>
                                 </Group>
                                 {selectedGroup.description ? (
@@ -455,7 +434,7 @@ export default function MapPage() {
                                     </Text>
                                 )}
                             </Stack>
-                        </ChronicleCard>
+                        </Paper>
                     )}
 
                     {!isLoading && groups.length === 0 && (
@@ -477,58 +456,28 @@ export default function MapPage() {
                         />
                     ) : selectedGroup ? (
                         <Stack gap="md">
-                            <Group
-                                justify="space-between"
-                                align="center"
-                                wrap="wrap"
-                                gap="sm"
-                                style={{
-                                    background: "var(--surface-alt)",
-                                    border: "1px solid var(--border)",
-                                    borderLeft: "3px solid var(--accent-primary)",
-                                    padding: "var(--card-pad)",
-                                }}
+                            <Paper
+                                withBorder
+                                p="var(--card-pad)"
+                                style={{ "--card-accent": "var(--accent-primary)" } as CSSProperties}
                             >
-                                <Group gap="md" align="center" wrap="nowrap">
-                                    <FlapNumber
-                                        n={projects.length}
-                                        digits={Math.max(2, String(projects.length).length)}
-                                        width={42}
-                                        height={52}
-                                        fontSize={32}
-                                    />
-                                    <Stack gap={2}>
-                                        <Eyebrow>{selectedGroup.short_name ?? "Projektgruppe"}</Eyebrow>
-                                        <Title
-                                            order={3}
-                                            style={{
-                                                fontFamily: "var(--font-display)",
-                                                textTransform: "uppercase",
-                                                margin: 0,
-                                                letterSpacing: "-0.005em",
-                                            }}
-                                        >
-                                            Projekte
-                                        </Title>
-                                    </Stack>
+                                <Group justify="space-between" align="center" wrap="wrap" gap="sm">
+                                    <Group gap="md" align="center" wrap="nowrap">
+                                        <Stat value={projects.length} />
+                                        <Stack gap={2}>
+                                            <Text className="idt-eyebrow" component="div">{selectedGroup.short_name ?? "Projektgruppe"}</Text>
+                                            <Title order={3}>Projekte</Title>
+                                        </Stack>
+                                    </Group>
+                                    <Text size="sm" c="dimmed">
+                                        {isFiltered
+                                            ? `${projects.length} von ${superiorFiltered.length} Projekten`
+                                            : projects.length === 1
+                                              ? "1 Projekt"
+                                              : `${projects.length} Projekte${onlySuperior && rawProjects.length !== projects.length ? ` (von ${rawProjects.length})` : " in dieser Gruppe"}`}
+                                    </Text>
                                 </Group>
-                                <Text
-                                    style={{
-                                        fontFamily: "var(--font-mono)",
-                                        fontSize: 11,
-                                        letterSpacing: "var(--ls-label)",
-                                        textTransform: "uppercase",
-                                        color: "var(--text-muted)",
-                                        fontWeight: 700,
-                                    }}
-                                >
-                                    {isFiltered
-                                        ? `${projects.length} von ${superiorFiltered.length} Projekten`
-                                        : projects.length === 1
-                                          ? "1 Projekt"
-                                          : `${projects.length} Projekte${onlySuperior && rawProjects.length !== projects.length ? ` (von ${rawProjects.length})` : " in dieser Gruppe"}`}
-                                </Text>
-                            </Group>
+                            </Paper>
 
                             {projects.length === 0 ? (
                                 <Alert color="blue" variant="light" title="Keine Projekte gefunden">

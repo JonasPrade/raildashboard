@@ -1,12 +1,11 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Stack } from "@mantine/core";
+import { Button, Stack } from "@mantine/core";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import type { ConstituencyFeatureCollection, ProjectOverview } from "../../shared/api/queries";
 import { usePrefetchProjectPage } from "../projects/usePrefetchProjectPage";
 import ProjectSummaryCard from "../projects/ProjectSummaryCard";
-import { ChronicleButton } from "../../components/chronicle";
 import { featureBounds } from "./featureBounds";
 import { LIGHT_TILE_URL as tileLayerUrl, swapRasterTiles, useTileUrl } from "../../shared/geo/useTileUrl";
 import { MAP_COLOR } from "../../shared/theme/semanticColors";
@@ -750,16 +749,16 @@ export default function MapView({
                 >
                     <Stack gap="sm">
                         <ProjectSummaryCard project={selectedProject.project} />
-                        <ChronicleButton
+                        <Button
                             onClick={() => {
                                 const groupParam = searchParams.get("group");
                                 navigate(`/projects/${selectedProject.project.id}${groupParam ? `?group=${groupParam}` : ""}`);
                                 setSelectedProject(null);
                             }}
-                            style={{ width: "100%" }}
+                            fullWidth
                         >
                             Auswählen
-                        </ChronicleButton>
+                        </Button>
                     </Stack>
                 </div>
             )}

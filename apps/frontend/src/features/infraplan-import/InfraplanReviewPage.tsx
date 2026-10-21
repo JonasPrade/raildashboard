@@ -14,17 +14,18 @@ import {
     Modal,
     MultiSelect,
     Pagination,
+    Paper,
     Stack,
     Switch,
     Table,
     Text,
     TextInput,
+    Title,
     Tooltip,
 } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
 import { EllipsisVertical } from "lucide-react";
-import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
 import RequirePermission from "../../components/RequirePermission";
 import { filterProjectOption } from "../../lib/filterProjectOption";
 import { API_BASE } from "../../shared/api/client";
@@ -274,7 +275,7 @@ function ConfirmBlock({ record }: { record: InfraplanParseResult }) {
     };
 
     return (
-        <ChronicleCard>
+        <Paper withBorder p="var(--card-pad)">
             <Stack gap="sm">
                 <Text fw={600}>Übernehmen</Text>
                 <Text size="sm" c="dimmed">
@@ -310,7 +311,7 @@ function ConfirmBlock({ record }: { record: InfraplanParseResult }) {
                     </Button>
                 </Group>
             </Stack>
-        </ChronicleCard>
+        </Paper>
     );
 }
 
@@ -416,7 +417,7 @@ function InfraplanReviewPageContent() {
                 <Group justify="space-between" align="flex-end" wrap="wrap">
                     <Stack gap={2}>
                         <Anchor component={Link} to="/admin/infraplan-import" size="sm">← Infraplan-Import</Anchor>
-                        <ChronicleHeadline as="h1">Infraplan {record.year}</ChronicleHeadline>
+                        <Title order={1}>Infraplan {record.year}</Title>
                         <Text size="sm" c="dimmed" style={{ overflowWrap: "anywhere" }}>
                             {record.file_name} · {record.assigned_count} von {record.row_count ?? rows.length} Zeilen
                             zugeordnet
@@ -464,7 +465,7 @@ function InfraplanReviewPageContent() {
                     </Alert>
                 )}
 
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="sm">
                         <Chip.Group multiple={false} value={section} onChange={(v) => changeFilter(() => setSection(v))}>
                             <Group gap={6} wrap="wrap">
@@ -609,10 +610,10 @@ function InfraplanReviewPageContent() {
                             </Group>
                         )}
                     </Stack>
-                </ChronicleCard>
+                </Paper>
 
                 {(record.missing_from_previous ?? []).length > 0 && (
-                    <ChronicleCard>
+                    <Paper withBorder p="var(--card-pad)">
                         <Stack gap="sm">
                             <Text fw={600}>
                                 Im Vorjahr enthalten, jetzt ohne Eintrag ({record.missing_from_previous?.length})
@@ -651,7 +652,7 @@ function InfraplanReviewPageContent() {
                                 </Table.Tbody>
                             </ResponsiveTable>
                         </Stack>
-                    </ChronicleCard>
+                    </Paper>
                 )}
 
                 {!confirmed && <ConfirmBlock record={record} />}

@@ -10,6 +10,7 @@ import {
     Group,
     Image,
     NumberInput,
+    Paper,
     Select,
     SimpleGrid,
     Stack,
@@ -17,11 +18,11 @@ import {
     Tabs,
     Text,
     TextInput,
+    Title,
 } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
 import { Plus, Trash2 } from "lucide-react";
-import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
 import RequirePermission from "../../components/RequirePermission";
 import { API_BASE } from "../../shared/api/client";
 import {
@@ -304,7 +305,7 @@ function Approval({
                 </Button>
             </Group>
             {byPage.map(([page, list]) => (
-                <ChronicleCard key={page ?? "none"}>
+                <Paper withBorder p="var(--card-pad)" key={page ?? "none"}>
                     <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                         <Stack gap={4}>
                             <Text fw={600} size="sm">{page != null ? `Seite ${page}` : "Ohne Quellseite"}</Text>
@@ -357,7 +358,7 @@ function Approval({
                             </Table.Tbody>
                         </ResponsiveTable>
                     </SimpleGrid>
-                </ChronicleCard>
+                </Paper>
             ))}
         </Stack>
     );
@@ -409,7 +410,7 @@ function InfraplanKpiPageContent() {
             <Stack gap="lg">
                 <Stack gap={2}>
                     <Anchor component={Link} to="/admin/infraplan-import" size="sm">← Infraplan-Import</Anchor>
-                    <ChronicleHeadline as="h1">Kennzahlen Infraplan {year}</ChronicleHeadline>
+                    <Title order={1}>Kennzahlen Infraplan {year}</Title>
                     <Text size="sm" c="dimmed">
                         {values.length} Werte · {unchecked} ungeprüft · öffentlich auf{" "}
                         <Anchor component={Link} to="/infraplan" size="sm">/infraplan</Anchor> erscheinen nur geprüfte
@@ -433,7 +434,7 @@ function InfraplanKpiPageContent() {
                         />
                     </Tabs.Panel>
                     <Tabs.Panel value="edit" pt="md">
-                        <ChronicleCard>
+                        <Paper withBorder p="var(--card-pad)">
                             <Stack gap="md">
                                 <Select
                                     label="Kennzahl"
@@ -453,7 +454,7 @@ function InfraplanKpiPageContent() {
                                     </Text>
                                 )}
                             </Stack>
-                        </ChronicleCard>
+                        </Paper>
                     </Tabs.Panel>
                 </Tabs>
             </Stack>

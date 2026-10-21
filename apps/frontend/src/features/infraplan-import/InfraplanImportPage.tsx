@@ -8,14 +8,15 @@ import {
     FileInput,
     Group,
     NumberInput,
+    Paper,
     Stack,
     Table,
     Tabs,
     Text,
+    Title,
 } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
-import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
 import RequirePermission from "../../components/RequirePermission";
 import {
     useDeleteInfraplanParseResult,
@@ -295,7 +296,7 @@ function InfraplanImportPageContent() {
         <Container size="lg" py="xl">
             <Stack gap="xl">
                 <Stack gap={4}>
-                    <ChronicleHeadline as="h1">Infraplan</ChronicleHeadline>
+                    <Title order={1}>Infraplan</Title>
                     <Text size="sm" c="dimmed">
                         Infraplan des Bundes (Fünfjahresplan Schiene): Maßnahmentabellen einlesen, Projekten zuordnen,
                         Kennzahlen erfassen. Schritt für Schritt in der{" "}
@@ -311,16 +312,16 @@ function InfraplanImportPageContent() {
                         <Tabs.Tab value="allgemeines">Allgemeines</Tabs.Tab>
                     </Tabs.List>
                     <Tabs.Panel value="allgemeines" pt="md">
-                        <ChronicleCard>
+                        <Paper withBorder p="var(--card-pad)">
                             <Stack gap="md">
                                 <Text fw={600}>Kennzahlen</Text>
                                 <InfraplanKpiSettings />
                             </Stack>
-                        </ChronicleCard>
+                        </Paper>
                     </Tabs.Panel>
                     <Tabs.Panel value="import" pt="md">
                         <Stack gap="xl">
-                            <ChronicleCard>
+                            <Paper withBorder p="var(--card-pad)">
                                 <Stack gap="md">
                                     <Text fw={600}>Neuer Jahrgang</Text>
                                     <Text size="sm" c="dimmed">
@@ -356,19 +357,19 @@ function InfraplanImportPageContent() {
                                     </Group>
                                     {task.isRunning && <TaskProgressIndicator progress={task.progress} warning={task.warning} />}
                                 </Stack>
-                            </ChronicleCard>
-                            <ChronicleCard>
+                            </Paper>
+                            <Paper withBorder p="var(--card-pad)">
                                 <Stack gap="md">
                                     <Text fw={600}>Entwürfe</Text>
                                     {draftsLoading ? <LoadingState rows={6} /> : <Drafts drafts={drafts ?? []} />}
                                 </Stack>
-                            </ChronicleCard>
-                            <ChronicleCard>
+                            </Paper>
+                            <Paper withBorder p="var(--card-pad)">
                                 <Stack gap="md">
                                     <Text fw={600}>Übernommene Jahrgänge</Text>
                                     {reportsLoading ? <LoadingState rows={6} /> : <Years reports={reports ?? []} />}
                                 </Stack>
-                            </ChronicleCard>
+                            </Paper>
                         </Stack>
                     </Tabs.Panel>
                 </Tabs>

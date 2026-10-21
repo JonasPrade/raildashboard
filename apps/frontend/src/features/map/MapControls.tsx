@@ -1,7 +1,6 @@
-import { ActionIcon, Box, Drawer, Indicator, Slider, Stack, Switch, Text, TextInput } from "@mantine/core";
+import { ActionIcon, Box, Button, Drawer, Indicator, Slider, Stack, Switch, Text, TextInput } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { SlidersHorizontal, Search, X } from "lucide-react";
-import { ChronicleButton } from "../../components/chronicle";
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import PhaseFilterSelect from "../projects/PhaseFilterSelect";
 import type { PhaseFilterValue } from "../projects/phaseFilter";
@@ -208,7 +207,7 @@ export default function MapControls({
                 >
                     <Stack gap="md" pb="md">
                         {phaseSelect}
-                        <ChronicleButton
+                        <Button
                             onClick={() => {
                                 // Both drawers at once would stack — hand over instead.
                                 closeSheet();
@@ -216,12 +215,12 @@ export default function MapControls({
                             }}
                         >
                             Projektgruppen
-                        </ChronicleButton>
+                        </Button>
                         {layerSwitches}
                         {sizeSliders}
-                        <ChronicleButton variant="ghost" onClick={closeSheet}>
+                        <Button variant="subtle" onClick={closeSheet}>
                             Schließen
-                        </ChronicleButton>
+                        </Button>
                     </Stack>
                 </Drawer>
             </>
@@ -252,9 +251,9 @@ export default function MapControls({
                             {filteredCount} von {totalProjects} Projekten
                         </Text>
                     )}
-                    <ChronicleButton onClick={onOpenFilters}>
+                    <Button onClick={onOpenFilters} size="sm">
                         Projektgruppen
-                    </ChronicleButton>
+                    </Button>
                     {layerSwitches}
                     {sizeSliders}
                 </Stack>
