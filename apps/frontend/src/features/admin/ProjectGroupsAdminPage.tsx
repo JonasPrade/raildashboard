@@ -12,7 +12,7 @@ import {
     TextInput,
     Tooltip,
 } from "@mantine/core";
-import { IconPencil, IconPlus, IconSearch, IconTrash } from "@tabler/icons-react";
+import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { modals } from "@mantine/modals";
 import { ChronicleHeadline, ChronicleCard, ChronicleDataChip, ChronicleButton } from "../../components/chronicle";
 import { notifications } from "@mantine/notifications";
@@ -161,7 +161,7 @@ export default function ProjectGroupsAdminPage() {
                         </Text>
                     </Stack>
                     <ChronicleButton onClick={openCreate}>
-                        <IconPlus size={16} /> Neue Gruppe
+                        <Plus size={16} /> Neue Gruppe
                     </ChronicleButton>
                 </Group>
 
@@ -195,7 +195,7 @@ export default function ProjectGroupsAdminPage() {
                         {sortedGroups.length > 0 && (
                             <TextInput
                                 placeholder="Projektgruppe nach Name oder Kürzel suchen …"
-                                leftSection={<IconSearch size={16} />}
+                                leftSection={<Search size={16} />}
                                 value={search}
                                 onChange={(e) => setSearch(e.currentTarget.value)}
                                 aria-label="Projektgruppen durchsuchen"
@@ -269,7 +269,7 @@ export default function ProjectGroupsAdminPage() {
                                                     onClick={() => openEdit(group)}
                                                     aria-label={`${group.name} bearbeiten`}
                                                 >
-                                                    <IconPencil size={18} />
+                                                    <Pencil size={16} />
                                                 </ActionIcon>
                                             </Tooltip>
                                             <Tooltip label="Gruppe löschen" withArrow>
@@ -280,7 +280,7 @@ export default function ProjectGroupsAdminPage() {
                                                     disabled={deleteGroup.isPending}
                                                     aria-label={`${group.name} löschen`}
                                                 >
-                                                    <IconTrash size={18} />
+                                                    <Trash2 size={16} />
                                                 </ActionIcon>
                                             </Tooltip>
                                         </Group>

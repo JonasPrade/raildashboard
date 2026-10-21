@@ -23,7 +23,7 @@ export default function LazyMapView(props: MapViewProps) {
                     align="center"
                     justify="center"
                     gap="xs"
-                    style={{ height, background: "var(--bg2, #f2f2f2)" }}
+                    style={{ height, background: "var(--surface-alt)" }}
                     role="status"
                 >
                     <Loader />

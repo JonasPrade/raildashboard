@@ -1,5 +1,5 @@
 import { Alert, Badge, Group, Stack, Text, ThemeIcon, Timeline } from "@mantine/core";
-import { IconAlertTriangle, IconClockHour4, IconFlag } from "@tabler/icons-react";
+import { TriangleAlert, Clock, Flag } from "lucide-react";
 
 import type { ProgressForecast } from "../../../../shared/api/queries";
 import { formatMio } from "../../../gvfg/gvfgFormat";
@@ -27,7 +27,7 @@ function IbnDoubtAlert({ doubt }: { doubt: IbnDoubt }) {
     const share = doubt.aid_total > 0 ? Math.round((doubt.aid_after / doubt.aid_total) * 100) : null;
     const years = doubt.periods.map((p) => `${p.label}: ${formatMio(p.aid)}`).join(" · ");
     return (
-        <Alert color="gold" variant="light" icon={<IconAlertTriangle size={16} />} title={`Inbetriebnahme ${doubt.ibn_year} fraglich`}>
+        <Alert color="gold" variant="light" icon={<TriangleAlert size={16} />} title={`Inbetriebnahme ${doubt.ibn_year} fraglich`}>
             <Text size="sm">
                 Die GVFG-Finanzreihe (Ausgabe {doubt.edition}, Abschnitt GVFG) sieht nach {doubt.ibn_year} noch {formatMio(doubt.aid_after)} Mio. € Finanzhilfen vor
                 {share !== null && ` (${share} % der Finanzhilfen)`}. Quelle des Inbetriebnahmejahrs:{" "}
@@ -63,7 +63,7 @@ export default function ForecastPanel({
             {forecast.remaining_text && (
                 <Group gap="xs">
                     <ThemeIcon variant="light" size="sm" color="indigo">
-                        <IconClockHour4 size={14} />
+                        <Clock size={16} />
                     </ThemeIcon>
                     <Text size="sm" fw={600}>
                         {forecast.remaining_text}
@@ -76,7 +76,7 @@ export default function ForecastPanel({
                     {forecast.next_steps.map((step) => (
                         <Timeline.Item
                             key={step.phase}
-                            bullet={<IconFlag size={11} />}
+                            bullet={<Flag size={11} />}
                             title={
                                 <Group gap="xs">
                                     <Text size="sm" fw={600}>

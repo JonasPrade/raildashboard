@@ -148,7 +148,7 @@ function UnassignedPageContent() {
                         </span>
                     }
                 >
-                    Offene <em style={{ fontStyle: "normal", color: "var(--led)" }}>Zuordnungen</em>
+                    Offene <em style={{ fontStyle: "normal", color: "var(--accent-primary)" }}>Zuordnungen</em>
                 </SectionHead>
 
                 <Group justify="space-between" align="center" wrap="nowrap">

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Badge, Button, Group, Loader, Stack, Text } from "@mantine/core";
-import { IconPencil } from "@tabler/icons-react";
+import { Pencil } from "lucide-react";
 
 import { ChronicleCard, ChronicleHeadline } from "../../../../components/chronicle";
 import { useAuth } from "../../../../lib/auth";
@@ -124,7 +124,7 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
                         <Button
                             variant="light"
                             size="xs"
-                            leftSection={<IconPencil size={14} />}
+                            leftSection={<Pencil size={16} />}
                             onClick={() => setEditing(true)}
                         >
                             Bearbeiten

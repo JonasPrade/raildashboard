@@ -20,7 +20,7 @@ import {
     Table,
     Text,
 } from "@mantine/core";
-import { IconRefresh } from "@tabler/icons-react";
+import { RefreshCw } from "lucide-react";
 
 import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
 import RequirePermission from "../../components/RequirePermission";
@@ -90,7 +90,7 @@ function SystemStatusPageContent() {
                     <ChronicleHeadline as="h1">Systemstatus</ChronicleHeadline>
                     <Button
                         variant="light"
-                        leftSection={<IconRefresh size={16} />}
+                        leftSection={<RefreshCw size={16} />}
                         loading={recheck.isPending}
                         onClick={() => {
                             recheck.mutate();

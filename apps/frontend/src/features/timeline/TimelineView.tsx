@@ -33,7 +33,7 @@ const LEGEND_PHASES: MainPhase[] = ["VORPLANUNG", "GENEHMIGUNGSPLANUNG", "BAU", 
 // Vorplanung one shade lighter: blue-6 and indigo-6 are hard to tell apart in thin bars.
 const phaseColor = (phase: MainPhase) =>
     `var(--mantine-color-${MAIN_PHASE_COLOR[phase]}-${phase === "VORPLANUNG" ? 4 : 6})`;
-const TODAY_COLOR = "var(--led)";
+const TODAY_COLOR = "var(--accent-primary)";
 
 function todayUtc(): number {
     const now = new Date();
@@ -71,8 +71,8 @@ function Marker({ milestone, range }: { milestone: TimelineMilestone; range: Tim
             width: 9,
             height: 9,
             transform: "rotate(45deg)",
-            border: "2px solid var(--info)",
-            background: milestone.kind === "PFB" ? "var(--info)" : "var(--mantine-color-body)",
+            border: "2px solid var(--text-strong)",
+            background: milestone.kind === "PFB" ? "var(--text-strong)" : "var(--mantine-color-body)",
         };
     }
     return (
@@ -112,7 +112,7 @@ function TimelineRow({
     const summary = row.milestones.map(milestoneLabel).join("; ");
 
     return (
-        <Box py={8} style={{ borderBottom: "1px solid var(--rule)", opacity: lifecycle === "AKTIV" ? 1 : 0.55 }}>
+        <Box py={8} style={{ borderBottom: "1px solid var(--border)", opacity: lifecycle === "AKTIV" ? 1 : 0.55 }}>
             <Group justify="space-between" gap="xs" wrap="nowrap" mb={6}>
                 <Group gap={6} wrap="nowrap" style={{ minWidth: 0 }}>
                     <Anchor component={Link} to={`/projects/${row.project_id}`} size="sm" fw={600} truncate>
@@ -134,7 +134,7 @@ function TimelineRow({
                 style={{
                     position: "relative",
                     height: TRACK_HEIGHT,
-                    background: "var(--bg2)",
+                    background: "var(--surface-alt)",
                 }}
             >
                 {ticks.map((year) => (
@@ -146,7 +146,7 @@ function TimelineRow({
                             top: 0,
                             bottom: 0,
                             width: 1,
-                            background: "var(--rule)",
+                            background: "var(--border)",
                         }}
                     />
                 ))}
@@ -214,7 +214,7 @@ function Legend({ showGap }: { showGap: boolean }) {
                 </Group>
             ))}
             <Group gap={6} wrap="nowrap">
-                {swatch(plannedFill("var(--ink3)"))}
+                {swatch(plannedFill("var(--text-muted)"))}
                 <Text size="xs">geplant</Text>
             </Group>
             {showGap && (
@@ -224,15 +224,15 @@ function Legend({ showGap }: { showGap: boolean }) {
                 </Group>
             )}
             <Group gap={6} wrap="nowrap">
-                {swatch("var(--info)", { width: 9, height: 9, transform: "rotate(45deg)" })}
+                {swatch("var(--text-strong)", { width: 9, height: 9, transform: "rotate(45deg)" })}
                 <Text size="xs">Planfeststellung</Text>
             </Group>
             <Group gap={6} wrap="nowrap">
-                {swatch("transparent", { width: 9, height: 9, transform: "rotate(45deg)", border: "2px solid var(--info)" })}
+                {swatch("transparent", { width: 9, height: 9, transform: "rotate(45deg)", border: "2px solid var(--text-strong)" })}
                 <Text size="xs">Parl. Befassung</Text>
             </Group>
             <Group gap={6} wrap="nowrap">
-                {swatch("transparent", { width: 9, height: 9, borderRadius: "50%", border: "2px solid var(--ink3)" })}
+                {swatch("transparent", { width: 9, height: 9, borderRadius: "50%", border: "2px solid var(--text-muted)" })}
                 <Text size="xs">spätestens seit (Beleg)</Text>
             </Group>
             <Group gap={6} wrap="nowrap">
@@ -338,7 +338,7 @@ export default function TimelineView({
                             zIndex: 3,
                             height: 22,
                             background: "var(--mantine-color-body)",
-                            borderBottom: "1px solid var(--rule)",
+                            borderBottom: "1px solid var(--border)",
                         }}
                     >
                         {ticks.map((year) => (

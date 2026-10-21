@@ -11,6 +11,9 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 
 ## [Unreleased]
 
+### Added
+- **Optional dark map tiles.** `REACT_APP_TILE_LAYER_URL_DARK` (GitHub variable `TILE_LAYER_URL_DARK`, baked in by `release.yml`) is used in the dark colour scheme; the basemap source is swapped in place on scheme change. Empty → the light tiles stay.
+
 ### Changed
 - **New layout of `/infraplan`.** The explanation moved into a tooltip next to the title,
   the Jahrgang is picked from a dropdown in the header (once there is more than one), and a

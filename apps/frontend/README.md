@@ -22,12 +22,12 @@ npm run dev
 
 The frontend talks to a backend at `http://localhost:8000` by default. Use `VITE_API_BASE_URL` (for example in a `.env` file at the project root) to override the API base URL.
 
-The map view expects a raster tile URL provided via `REACT_APP_TILE_LAYER_URL`. The Vite configuration accepts both `VITE_` and `REACT_APP_` prefixes, so either environment prefix can be used if you decide to migrate to `VITE_TILE_LAYER_URL` later. The map renders project routes from each project's `geojson_representation` payload, supports a click popover to navigate to `/projects/:projectId`, and syncs selected project groups via the `group` query parameter.
+The map view expects a raster tile URL provided via `REACT_APP_TILE_LAYER_URL`. The Vite configuration accepts both `VITE_` and `REACT_APP_` prefixes, so either environment prefix can be used if you decide to migrate to `VITE_TILE_LAYER_URL` later. The map renders project routes from each project's `geojson_representation` payload, supports a click popover to navigate to `/projects/:projectId`, and syncs selected project groups via the `group` query parameter. An optional `REACT_APP_TILE_LAYER_URL_DARK` is used instead in the dark colour scheme (the basemap tiles are swapped in place; without it the light tiles stay).
 
 ## Projektstruktur
 
 ```
-├── public/                # Static assets (fonts, favicons, …)
+├── public/                # Static assets (favicon set, web manifest, brand images)
 ├── src/
 │   ├── components/        # Reusable UI building blocks (e.g. header)
 │   ├── features/          # Domain-specific feature modules (map, projects, documentation …)
@@ -35,8 +35,8 @@ The map view expects a raster tile URL provided via `REACT_APP_TILE_LAYER_URL`. 
 │   ├── shared/            # Modules shared across features
 │   │   ├── api/           # Generated types + react-query hooks (queries.ts)
 │   │   ├── hooks/         # Cross-feature hooks (useBreakpoint: useIsMobile/useIsCompact)
+│   │   ├── theme/         # IDT design: tokens.css (DS), mantine-bridge.css, theme.ts (Mantine theme), fonts/
 │   │   └── ui/            # Cross-feature UI primitives (ResponsiveTable)
-│   ├── theme.ts           # Mantine theme configuration
 │   └── router.tsx         # Route definitions
 ├── README.md              # This document
 ├── AGENT.MD               # Contribution guidelines
@@ -127,7 +127,7 @@ The group list carries project metadata only (`ProjectListItem`, flags folded in
 - **List view:** Project cards are filtered in-place (on the deferred search term, so typing stays responsive). The count label updates to "X von Y Projekten" and an empty-state alert is shown when nothing matches. Cards render in steps of 48 with a "Weitere … anzeigen" button; the step resets when group, search, phase filter or "Nur Hauptprojekte" change.
 - **Prefetch:** Hovering/focusing a `ProjectCard` or selecting a project on the map preloads the detail page chunk and `GET /projects/{id}` (`usePrefetchProjectPage()`), so the detail page usually opens without a spinner.
 - **URL persistence:** The term is stored in `?search=<term>` (debounced, 200 ms, `replace: true`) so it survives map ↔ list tab switches and browser back/forward navigation.
-- **Dependency added:** `@tabler/icons-react` for the search and close icons.
+- **Dependency added:** `lucide-react` for the search and close icons.
 
 ### Phase filter (`features/projects/phaseFilter.ts` + `PhaseFilterSelect.tsx`)
 
@@ -266,7 +266,7 @@ Lightweight task system for **logged-in users only** (no public view). Central p
 * **Stay strict with TypeScript:** New modules should embrace type safety (avoid `any`).
 * **Feature folder structure:** Functional areas (e.g. map, projects, documentation) live in dedicated folders under `src/features`.
 * **Separation of concerns:** Put UI components in `components/`, technical helpers in `lib/`, and global types in `types.ts` or `shared/`.
-* **Mantine components:** Prefer Mantine for layout and UI work, and keep theme colours consistent (`theme.ts`).
+* **Mantine components:** Prefer Mantine for layout and UI work, and keep theme colours consistent (`src/shared/theme/theme.ts`, tokens in `src/shared/theme/tokens.css`, see `docs/DESIGN.md`).
 * **Routing:** Register new pages as children of the shared `Layout` component in `router.tsx`.
 * **Fetch the narrowest project list:** `useProjects()` returns the full `ProjectSchema`
   including `geojson_representation`, which dominates the payload. Use

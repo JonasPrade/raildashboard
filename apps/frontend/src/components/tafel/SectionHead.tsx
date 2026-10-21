@@ -23,7 +23,7 @@ export default function SectionHead({ n, eyebrow, children, description, style }
                 gap: 24,
                 marginBottom: 24,
                 paddingBottom: 14,
-                borderBottom: "1px solid var(--rule)",
+                borderBottom: "1px solid var(--border)",
                 ...style,
             }}
         >
@@ -34,9 +34,9 @@ export default function SectionHead({ n, eyebrow, children, description, style }
                         style={{
                             fontFamily: "var(--font-mono)",
                             fontSize: 10.5,
-                            letterSpacing: "0.18em",
+                            letterSpacing: "var(--ls-label)",
                             textTransform: "uppercase",
-                            color: "var(--ink3)",
+                            color: "var(--text-muted)",
                             marginBottom: 6,
                             fontWeight: 700,
                         }}
@@ -53,7 +53,7 @@ export default function SectionHead({ n, eyebrow, children, description, style }
                         textTransform: "uppercase",
                         letterSpacing: "-0.015em",
                         lineHeight: 0.95,
-                        color: "var(--ink)",
+                        color: "var(--text-strong)",
                     }}
                 >
                     {children}
@@ -64,7 +64,7 @@ export default function SectionHead({ n, eyebrow, children, description, style }
                     style={{
                         fontFamily: "var(--font-sans)",
                         fontSize: 12.5,
-                        color: "var(--ink2)",
+                        color: "var(--text-body)",
                         maxWidth: 320,
                         lineHeight: 1.55,
                         justifySelf: "end",

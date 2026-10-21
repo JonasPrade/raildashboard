@@ -1,5 +1,5 @@
 import { Badge, Card, Group, Select, Stack, Text, Tooltip, ActionIcon, Avatar } from "@mantine/core";
-import { IconPencil, IconTrash, IconCalendarEvent } from "@tabler/icons-react";
+import { Pencil, Trash2, Calendar } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Todo, TodoStatus } from "../../shared/api/queries";
 import {
@@ -63,7 +63,7 @@ export default function TodoCard({
                 <Group gap="xs" wrap="wrap">
                     {todo.due_date && (
                         <Group gap={4} wrap="nowrap">
-                            <IconCalendarEvent size={14} color={overdue ? "var(--mantine-color-red-6)" : undefined} />
+                            <Calendar size={16} style={{ color: overdue ? "var(--mantine-color-red-6)" : undefined }} />
                             <Text size="xs" c={overdue ? "red" : "dimmed"} fw={overdue ? 700 : 400}>
                                 {formatDate(todo.due_date)}
                                 {overdue ? " · überfällig" : ""}
@@ -115,14 +115,14 @@ export default function TodoCard({
                             {canEdit && (
                                 <Tooltip label="Bearbeiten" withArrow>
                                     <ActionIcon variant="subtle" color="gray" onClick={() => onEdit(todo)} aria-label="Bearbeiten">
-                                        <IconPencil size={16} />
+                                        <Pencil size={16} />
                                     </ActionIcon>
                                 </Tooltip>
                             )}
                             {canDelete && (
                                 <Tooltip label="Löschen" withArrow>
                                     <ActionIcon variant="subtle" color="red" onClick={() => onDelete(todo)} aria-label="Löschen">
-                                        <IconTrash size={16} />
+                                        <Trash2 size={16} />
                                     </ActionIcon>
                                 </Tooltip>
                             )}

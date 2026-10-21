@@ -24,7 +24,7 @@ function text(category: ProjectTextCategory | null): ProjectText {
 describe("textCategoryStyles", () => {
     it("colours every style through a semantic token", () => {
         for (const display of Object.values(TEXT_CATEGORY_STYLES)) {
-            expect(display.color).toMatch(/^var\(--text-cat-/);
+            expect(display.color).toMatch(/^var\(--[a-z0-9-]+\)$/);
         }
     });
 

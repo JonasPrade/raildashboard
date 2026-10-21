@@ -1,5 +1,5 @@
 import { Anchor, Badge, Group, Stack, Text } from "@mantine/core";
-import { IconExternalLink } from "@tabler/icons-react";
+import { ExternalLink } from "lucide-react";
 
 import { PARALLEL_STATE_LABEL, type ParallelState } from "./phaseMeta";
 import { formatDate } from "../../../../shared/format";
@@ -54,7 +54,7 @@ function Lane({
                     {validLinks.map((l, i) => (
                         <Anchor key={i} href={l.url} target="_blank" rel="noreferrer" size="sm">
                             <Group gap={4} wrap="nowrap" component="span">
-                                <IconExternalLink size={14} />
+                                <ExternalLink size={16} />
                                 {l.comment?.trim() || l.url}
                             </Group>
                         </Anchor>

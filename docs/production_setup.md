@@ -46,6 +46,7 @@ cp .env.example .env
 | `GRAPH_VERSION` | `1` | Hochzählen nach neuem OSM-Extrakt (busted Route-Cache) |
 | `GH_OSM_URL` | `https://download.geofabrik.de/…` | OSM PBF URL; GraphHopper lädt die Datei beim ersten Start automatisch herunter |
 | `REACT_APP_TILE_LAYER_URL` | — | Raster-Kachel-URL für die Kartenansicht |
+| `REACT_APP_TILE_LAYER_URL_DARK` | — | Optional: Raster-Kachel-URL für die dunkle Fassung (nur Build-Zeit; leer = helle Karte) |
 | `CELERY_BROKER_URL` | `redis://redis:6379/0` | Redis im Docker-Netzwerk (kein Passwort nötig, da nicht nach außen exponiert) |
 | `CELERY_RESULT_BACKEND` | `redis://redis:6379/0` | Wie `CELERY_BROKER_URL` |
 | `IMPORT_STAGING_DIR` | `/app/uploads/import-staging` | Ablage hochgeladener Import-PDFs, bis der Celery-Task sie gelesen hat. Muss im von Backend **und** Worker gemounteten `uploads`-Volume liegen |
@@ -102,6 +103,7 @@ GitHub in [`docs/uebergabe-deploy.md`](uebergabe-deploy.md). Kurzfassung:
 | `DEPLOY_PORT` *(optional)* | SSH-Port, Default 22 |
 | `GITHUB_TOKEN` *(automatisch)* | Push nach GHCR in `release.yml`, `manifest inspect` in `deploy.yml` |
 | `TILE_LAYER_URL` *(Repo-Variable)* | Raster-Kachel-URL, die zur Build-Zeit ins Frontend-Bundle gebacken wird (TopPlus). Die Server-`.env` beeinflusst die Kacheln nicht. |
+| `TILE_LAYER_URL_DARK` *(Repo-Variable, optional)* | Wie `TILE_LAYER_URL`, aber für die dunkle Fassung der Karte. Leer = die helle Karte bleibt auch im dunklen Schema. |
 
 Der Server meldet sich selbst bei GHCR an (classic Token, nur `read:packages`, als `deploy`);
 die Pipeline reicht keinen Token mehr durch. **Der Token läuft ab** — daran ist der Release

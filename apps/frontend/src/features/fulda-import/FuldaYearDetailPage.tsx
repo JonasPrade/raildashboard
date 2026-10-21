@@ -13,7 +13,7 @@ import {
     Title,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconArrowLeft, IconChecks, IconTrash } from "@tabler/icons-react";
+import { ArrowLeft, CheckCheck, Trash2 } from "lucide-react";
 
 import {
     useConfirmFuldaYear,
@@ -109,7 +109,7 @@ export default function FuldaYearDetailPage() {
                             <Button
                                 variant="subtle"
                                 size="xs"
-                                leftSection={<IconArrowLeft size={14} />}
+                                leftSection={<ArrowLeft size={16} />}
                                 onClick={() => navigate("/admin/fulda-import")}
                             >
                                 Übersicht
@@ -123,7 +123,7 @@ export default function FuldaYearDetailPage() {
                     <Group gap="sm">
                         <Button
                             color="green"
-                            leftSection={<IconChecks size={16} />}
+                            leftSection={<CheckCheck size={16} />}
                             onClick={handleConfirmAll}
                             loading={confirmYear.isPending}
                             disabled={readyCount === 0}
@@ -138,7 +138,7 @@ export default function FuldaYearDetailPage() {
                         <Button
                             color="red"
                             variant="light"
-                            leftSection={<IconTrash size={16} />}
+                            leftSection={<Trash2 size={16} />}
                             onClick={handleDeleteYear}
                             loading={deleteYear.isPending}
                         >

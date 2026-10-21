@@ -21,7 +21,7 @@ import {
 import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import { FlapNumber, Eyebrow } from "../../components/tafel";
 import { useDisclosure } from "@mantine/hooks";
-import { IconHelp, IconSearch, IconX } from "@tabler/icons-react";
+import { CircleHelp, Search, X } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../lib/auth";
 
@@ -273,7 +273,7 @@ export default function MapPage() {
             <Popover width={300} position="bottom" withArrow shadow="md">
                 <Popover.Target>
                     <ActionIcon variant="subtle" color="gray" size="md" aria-label="Hilfe zur Suche und Filterung">
-                        <IconHelp size={18} />
+                        <CircleHelp size={16} />
                     </ActionIcon>
                 </Popover.Target>
                 <Popover.Dropdown>
@@ -357,7 +357,7 @@ export default function MapPage() {
                                 lineHeight: 0.95,
                             }}
                         >
-                            Projekte nach <em style={{ fontStyle: "normal", color: "var(--led)" }}>Projektgruppen</em>
+                            Projekte nach <em style={{ fontStyle: "normal", color: "var(--accent-primary)" }}>Projektgruppen</em>
                         </Title>
                         <Text size="sm" c="dimmed" style={{ maxWidth: 540 }}>
                             {isTimeline
@@ -384,11 +384,11 @@ export default function MapPage() {
                             <TextInput
                                 label="Suche"
                                 placeholder="Name, Nr., Beschreibung…"
-                                leftSection={<IconSearch size={14} />}
+                                leftSection={<Search size={16} />}
                                 rightSection={
                                     localSearch ? (
                                         <ActionIcon variant="subtle" size="xs" onClick={() => setLocalSearch("")}>
-                                            <IconX size={12} />
+                                            <X size={12} />
                                         </ActionIcon>
                                     ) : undefined
                                 }
@@ -486,9 +486,9 @@ export default function MapPage() {
                                 wrap="wrap"
                                 gap="sm"
                                 style={{
-                                    background: "var(--bg2)",
-                                    border: "1px solid var(--rule)",
-                                    borderLeft: "3px solid var(--info)",
+                                    background: "var(--surface-alt)",
+                                    border: "1px solid var(--border)",
+                                    borderLeft: "3px solid var(--accent-primary)",
                                     padding: "var(--card-pad)",
                                 }}
                             >
@@ -519,9 +519,9 @@ export default function MapPage() {
                                     style={{
                                         fontFamily: "var(--font-mono)",
                                         fontSize: 11,
-                                        letterSpacing: "0.14em",
+                                        letterSpacing: "var(--ls-label)",
                                         textTransform: "uppercase",
-                                        color: "var(--ink3)",
+                                        color: "var(--text-muted)",
                                         fontWeight: 700,
                                     }}
                                 >

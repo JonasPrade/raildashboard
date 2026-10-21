@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Anchor, Badge, Group, Stack, Table, Text, TextInput } from "@mantine/core";
 import { ResponsiveTable } from "../../../../shared/ui/ResponsiveTable";
-import { IconSearch } from "@tabler/icons-react";
+import { Search } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import type { ProgressChild } from "../../../../shared/api/queries";
@@ -89,7 +89,7 @@ export default function SubprojectsTable({ children }: { children: ProgressChild
             <TextInput
                 size="xs"
                 placeholder="Unterprojekt suchen …"
-                leftSection={<IconSearch size={14} />}
+                leftSection={<Search size={16} />}
                 value={query}
                 onChange={(e) => setQuery(e.currentTarget.value)}
                 w={260}

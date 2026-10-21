@@ -10,7 +10,7 @@ import {
     Title,
 } from "@mantine/core";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
-import { IconTrash } from "@tabler/icons-react";
+import { Trash2 } from "lucide-react";
 
 import {
     useDeleteFuldaEntry,
@@ -193,7 +193,7 @@ export function FuldaRow({
                             onClick={() => remove.mutate(entry.id)}
                             title="Eintrag löschen"
                         >
-                            <IconTrash size={16} />
+                            <Trash2 size={16} />
                         </ActionIcon>
                     )}
                 </Group>

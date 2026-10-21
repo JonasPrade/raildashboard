@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Alert, Button, Group, Loader, Stack, Text } from "@mantine/core";
-import { IconPlus } from "@tabler/icons-react";
+import { Plus } from "lucide-react";
 import { useAuth } from "../../lib/auth";
 import { useTodos, type Todo } from "../../shared/api/queries";
 import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
@@ -36,7 +36,7 @@ export default function TasksSection({ projectId }: { projectId: number }) {
                 <Group justify="space-between" align="center">
                     <ChronicleHeadline as="h2">Aufgaben</ChronicleHeadline>
                     {canCreate && (
-                        <Button size="xs" variant="light" leftSection={<IconPlus size={14} />} onClick={openCreate}>
+                        <Button size="xs" variant="light" leftSection={<Plus size={16} />} onClick={openCreate}>
                             Aufgabe
                         </Button>
                     )}

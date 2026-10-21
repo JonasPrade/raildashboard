@@ -13,7 +13,7 @@ import {
     Text,
 } from "@mantine/core";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
-import { IconChevronLeft, IconPencil } from "@tabler/icons-react";
+import { ChevronLeft, Pencil } from "lucide-react";
 import { ChronicleHeadline, ChronicleButton } from "../../components/chronicle";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
@@ -133,7 +133,7 @@ function UsersPageContent() {
                                         <Button
                                             size="xs"
                                             variant="subtle"
-                                            leftSection={<IconPencil size={14} />}
+                                            leftSection={<Pencil size={16} />}
                                             onClick={() => setEditUserId(u.id)}
                                         >
                                             Bearbeiten
@@ -188,7 +188,7 @@ function UsersPageContent() {
             <Stack gap="lg">
                 <Anchor component={Link} to="/admin" size="sm" c="dimmed">
                     <Group gap={4} align="center">
-                        <IconChevronLeft size={14} />
+                        <ChevronLeft size={16} />
                         Zurück zur Administration
                     </Group>
                 </Anchor>

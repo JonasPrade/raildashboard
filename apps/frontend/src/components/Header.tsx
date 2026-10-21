@@ -1,7 +1,8 @@
 import React from "react";
-import { Badge, Burger, Drawer, Group, Stack } from "@mantine/core";
+import { ActionIcon, Badge, Burger, Button, Drawer, Group, Stack, useComputedColorScheme, useMantineColorScheme } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { NavLink } from "react-router-dom";
+import { Moon, Sun } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { LoginModal } from "../features/auth/LoginModal";
 import {
@@ -16,7 +17,7 @@ import { Wordmark, Signet } from "./tafel";
 
 const navLinkBase: React.CSSProperties = {
     textDecoration: "none",
-    color: "var(--ink2)",
+    color: "var(--text-body)",
     padding: "8px 12px",
     fontFamily: "var(--font-mono)",
     fontWeight: 700,
@@ -27,8 +28,8 @@ const navLinkBase: React.CSSProperties = {
 
 const navLinkActive: React.CSSProperties = {
     ...navLinkBase,
-    color: "var(--ink)",
-    borderBottom: "2px solid var(--led)",
+    color: "var(--text-strong)",
+    borderBottom: "2px solid var(--accent-primary)",
 };
 
 // Drawer entries are thumb targets, not pointer targets: full width, 48px tall.
@@ -39,13 +40,13 @@ const drawerNavBase: React.CSSProperties = {
     minHeight: 48,
     fontSize: "13px",
     padding: "12px",
-    borderBottom: "1px solid var(--rule)",
+    borderBottom: "1px solid var(--border)",
 };
 
 const drawerNavActive: React.CSSProperties = {
     ...drawerNavBase,
-    color: "var(--ink)",
-    borderBottom: "2px solid var(--led)",
+    color: "var(--text-strong)",
+    borderBottom: "2px solid var(--accent-primary)",
 };
 
 export function Header() {
@@ -107,7 +108,7 @@ export function Header() {
                     <Group gap={6} align="center" wrap="nowrap">
                         <span>▸ {item.label}</span>
                         {item.badge !== undefined && item.badge > 0 && (
-                            <Badge color="gold.5" size="xs" variant="filled" circle styles={{ root: { color: "var(--ink)" } }}>
+                            <Badge color="violet" size="xs" variant="filled" circle>
                                 {item.badge}
                             </Badge>
                         )}
@@ -120,9 +121,9 @@ export function Header() {
             style={{
                 fontFamily: "var(--font-mono)",
                 fontSize: "10.5px",
-                letterSpacing: "0.14em",
+                letterSpacing: "var(--ls-label)",
                 textTransform: "uppercase",
-                color: "var(--ink3)",
+                color: "var(--text-muted)",
                 fontWeight: 700,
             }}
         >
@@ -143,6 +144,24 @@ export function Header() {
         </ChronicleButton>
     );
 
+    // Dark mode: default follows the system, the toggle stores an explicit choice
+    // (docs/DESIGN.md → Dunkelfassung).
+    const { setColorScheme } = useMantineColorScheme();
+    const isDark = useComputedColorScheme("light") === "dark";
+    const toggleColorScheme = () => setColorScheme(isDark ? "light" : "dark");
+    const themeToggleLabel = isDark ? "Hellfassung einschalten" : "Dunkelfassung einschalten";
+    const themeToggle = (
+        <ActionIcon
+            variant="default"
+            size={40}
+            onClick={toggleColorScheme}
+            aria-label={themeToggleLabel}
+            title={themeToggleLabel}
+        >
+            {isDark ? <Sun size={20} aria-hidden /> : <Moon size={20} aria-hidden />}
+        </ActionIcon>
+    );
+
     return (
         <>
             <Group
@@ -151,10 +170,10 @@ export function Header() {
                 py={6}
                 wrap="nowrap"
                 style={{
-                    backgroundColor: "var(--bg)",
+                    backgroundColor: "var(--surface)",
                     height: "100%",
-                    borderTop: "2px solid var(--ink)",
-                    borderBottom: "1px solid var(--rule)",
+                    borderTop: "2px solid var(--border-frame)",
+                    borderBottom: "1px solid var(--border)",
                 }}
             >
                 <NavLink
@@ -170,17 +189,21 @@ export function Header() {
                     </span>
                 </NavLink>
                 {isCompact ? (
-                    <Burger
-                        opened={drawerOpened}
-                        onClick={openDrawer}
-                        aria-label="Navigation öffnen"
-                        color="var(--ink)"
-                        size="md"
-                    />
+                    <Group gap="xs" wrap="nowrap">
+                        {themeToggle}
+                        <Burger
+                            opened={drawerOpened}
+                            onClick={openDrawer}
+                            aria-label="Navigation öffnen"
+                            color="var(--text-strong)"
+                            size="md"
+                        />
+                    </Group>
                 ) : (
                     <Group gap="xs" wrap="nowrap">
                         {renderNavLinks(navLinkBase, navLinkActive)}
                         {authSection}
+                        {themeToggle}
                     </Group>
                 )}
             </Group>
@@ -196,6 +219,14 @@ export function Header() {
                     {renderNavLinks(drawerNavBase, drawerNavActive)}
                 </Stack>
                 <Group pt="md">{authSection}</Group>
+                <Button
+                    mt="md"
+                    variant="default"
+                    leftSection={isDark ? <Sun size={16} aria-hidden /> : <Moon size={16} aria-hidden />}
+                    onClick={toggleColorScheme}
+                >
+                    {themeToggleLabel}
+                </Button>
             </Drawer>
 
             <LoginModal opened={loginOpened} onClose={closeLogin} />

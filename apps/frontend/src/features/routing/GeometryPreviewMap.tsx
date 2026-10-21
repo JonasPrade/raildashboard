@@ -10,8 +10,8 @@ import {
 import { TerraDrawMapLibreGLAdapter } from "terra-draw-maplibre-gl-adapter";
 import type { OperationalPointRef, RoutePreviewFeature } from "../../shared/api/queries";
 import type { EditablePart } from "./editExisting";
+import { LIGHT_TILE_URL as tileLayerUrl, swapRasterTiles, useTileUrl } from "../../shared/geo/useTileUrl";
 
-const tileLayerUrl = import.meta.env.REACT_APP_TILE_LAYER_URL as string | undefined;
 
 /** Active hand-drawing mode (null = off, terra-draw sits in its neutral "static" mode). */
 export type DrawMode = "line" | "point" | "select" | null;
@@ -174,6 +174,9 @@ export default function GeometryPreviewMap({ existingGeojson, previewFeature, sh
     const mapRef = useRef<maplibregl.Map | null>(null);
     const drawRef = useRef<TerraDraw | null>(null);
     const [isReady, setIsReady] = useState(false);
+    const activeTileUrl = useTileUrl();
+    const activeTileUrlRef = useRef(activeTileUrl);
+    activeTileUrlRef.current = activeTileUrl;
     // Refs so the click handler (registered once on load) always sees the latest values.
     const selectionModeRef = useRef(selectionMode);
     const onFeatureClickRef = useRef(onFeatureClick);
@@ -183,6 +186,13 @@ export default function GeometryPreviewMap({ existingGeojson, previewFeature, sh
     onFeatureClickRef.current = onFeatureClick;
     onDrawnFeaturesChangeRef.current = onDrawnFeaturesChange;
     onEditedPartsChangeRef.current = onEditedPartsChange;
+
+    // Colour scheme changed: swap the basemap tiles in place (layers/state stay).
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map || !activeTileUrl) return;
+        swapRasterTiles(map, "basemap", activeTileUrl);
+    }, [activeTileUrl]);
 
     // Init map once
     useLayoutEffect(() => {
@@ -199,7 +209,7 @@ export default function GeometryPreviewMap({ existingGeojson, previewFeature, sh
             style: {
                 version: 8,
                 sources: {
-                    basemap: { type: "raster", tiles: [tileLayerUrl], tileSize: 256 },
+                    basemap: { type: "raster", tiles: [activeTileUrlRef.current ?? tileLayerUrl], tileSize: 256 },
                     existing: { type: "geojson", data: { type: "FeatureCollection", features: [] } },
                     preview: { type: "geojson", data: { type: "FeatureCollection", features: [] } },
                     "existing-points": { type: "geojson", data: { type: "FeatureCollection", features: [] } },

@@ -8,8 +8,8 @@ import { usePrefetchProjectPage } from "../projects/usePrefetchProjectPage";
 import ProjectSummaryCard from "../projects/ProjectSummaryCard";
 import { ChronicleButton } from "../../components/chronicle";
 import { featureBounds } from "./featureBounds";
+import { LIGHT_TILE_URL as tileLayerUrl, swapRasterTiles, useTileUrl } from "../../shared/geo/useTileUrl";
 
-const tileLayerUrl = import.meta.env.REACT_APP_TILE_LAYER_URL as string | undefined;
 const tileAttribution =
     'Kartenhintergrund: <a href="https://www.bkg.bund.de" target="_blank" rel="noopener noreferrer">Bundesamt für Kartographie und Geodäsie</a>';
 
@@ -269,6 +269,10 @@ export default function MapView({
         };
     }, [projects]);
 
+    const activeTileUrl = useTileUrl();
+    const activeTileUrlRef = useRef(activeTileUrl);
+    activeTileUrlRef.current = activeTileUrl;
+
     useEffect(() => {
         if (!tileLayerUrl || !mapContainerRef.current) {
             return undefined;
@@ -281,7 +285,7 @@ export default function MapView({
                 sources: {
                     basemap: {
                         type: "raster",
-                        tiles: [tileLayerUrl],
+                        tiles: [activeTileUrlRef.current ?? tileLayerUrl],
                         tileSize: 256,
                         attribution: tileAttribution,
                     },
@@ -452,6 +456,13 @@ export default function MapView({
             mapInstance.remove();
         };
     }, [tileLayerUrl]);
+
+    // Colour scheme changed: swap the basemap tiles in place (layers/state stay).
+    useEffect(() => {
+        const mapInstance = mapInstanceRef.current;
+        if (!mapInstance || !activeTileUrl) return;
+        swapRasterTiles(mapInstance, "basemap", activeTileUrl);
+    }, [activeTileUrl]);
 
     // Register click handlers separately so they re-run when `clickable` changes.
     // This is needed because `clickable` may start as false (data not yet loaded)
@@ -721,8 +732,8 @@ export default function MapView({
                         background: "rgba(251, 249, 248, 0.92)",
                         backdropFilter: "blur(20px)",
                         WebkitBackdropFilter: "blur(20px)",
-                        boxShadow: "var(--shadow-float)",
-                        borderRadius: "var(--radius-sharp)",
+                        boxShadow: "var(--shadow-sm)",
+                        borderRadius: 0,
                         padding: "16px",
                     }}
                 >

@@ -23,7 +23,7 @@ import { notifications } from "@mantine/notifications";
 import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
 import RequirePermission from "../../components/RequirePermission";
 import { filterProjectOption } from "../../lib/filterProjectOption";
-import { IconPlus } from "@tabler/icons-react";
+import { Plus } from "lucide-react";
 import CreateDraftProjectModal from "../projects/CreateDraftProjectModal";
 import {
     useConfirmGvfgImport,
@@ -321,7 +321,7 @@ function GvfgReviewPageContent() {
                                                             <Button
                                                                 variant="light"
                                                                 size="compact-xs"
-                                                                leftSection={<IconPlus size={12} />}
+                                                                leftSection={<Plus size={12} />}
                                                                 onClick={() => setDraftFor(entry)}
                                                             >
                                                                 Projekt nicht gefunden – als Entwurf anlegen

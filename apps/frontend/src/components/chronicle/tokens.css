@@ -1,72 +1,18 @@
-/* Design tokens — Direction F · Bahnhofshalle Tag.
-   Spec: docs/DESIGN.md. Migration plan: docs/features/feature-rebrand-direction-f.md. */
+/* Layout tokens only. Colours, type and shape come from the IDT design system
+   (src/shared/theme/tokens.css, docs/DESIGN.md). This file goes away in stage 4 of
+   docs/features/feature-idt-design.md; the layout tokens then move with it.
+
+   Breakpoints match Mantine (48em phone / 62em small tablet) and
+   src/shared/hooks/useBreakpoint.ts. Components read these tokens instead of
+   hard-coding pixel values, so the mobile layout is steered from one place.
+   See docs/features/feature-mobile-usability.md. */
 
 :root {
-    /* ── Surfaces · Hallenlicht ─────────────────────────────────── */
-    --bg:        #ffffff;
-    --bg2:       #f3f1ec;
-    --bg3:       #e9e6df;
-    --bg4:       #dedad0;
-    --rule:      #d6d2c6;
-    --ruleHot:   #b8b2a3;
-
-    /* ── Ink ────────────────────────────────────────────────────── */
-    --ink:       #0d1013;
-    --ink2:      #3d4550;
-    --ink3:      #7a8390;
-
-    /* ── Accents ────────────────────────────────────────────────── */
-    --led:       #c98a00;
-    --ledHot:    #e8a417;
-    --ledDim:    #7a5300;
-    --info:      #0f2347;
-
-    /* ── Status ─────────────────────────────────────────────────── */
-    --signal:    #c41a1a;
-    --signalDim: #8a1818;
-    --go:        #058a44;
-    --goDim:     #03602e;
-    --warn:      #b45309;
-
-    /* ── Text categories · semantic, switch colours here ────────── */
-    /* Style → colour; icon and border live in textCategoryStyles.ts. */
-    --text-cat-neutral:  var(--ink3);
-    --text-cat-info:     var(--info);
-    --text-cat-warning:  var(--warn);
-    --text-cat-critical: var(--signal);
-
-    /* ── Tafel · dark surfaces (component-scoped) ───────────────── */
-    --board:     #111418;
-    --board2:    #1b2028;
-    --boardRule: #2a323b;
-
-    /* ── Typography ─────────────────────────────────────────────── */
-    --font-display: "Archivo Narrow", "Oswald", Impact, sans-serif;
-    --font-mono:    "IBM Plex Mono", "JetBrains Mono", ui-monospace, monospace;
-    --font-sans:    "IBM Plex Sans", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-
-    --font-size-display:  2rem;
-    --font-size-headline: 1.25rem;
-    --font-size-label:    0.75rem;
-
-    --letter-spacing-tight: -0.02em;
-    --letter-spacing-data:   0.05em;
-    --letter-spacing-mono:   0.14em;
-
-    /* ── Shape & depth ──────────────────────────────────────────── */
-    --radius-sharp:  0;
-    --shadow-float:  0 6px 14px -8px rgba(13, 16, 19, 0.2);
-    --border-accent: 2px solid var(--ink);
-    --gap-editorial: 1.5rem;
-
-    /* ── Layout · responsive ────────────────────────────────────────
-       Breakpoints match Mantine (48em phone / 62em small tablet) and
-       src/shared/hooks/useBreakpoint.ts. Components read these tokens
-       instead of hard-coding pixel values, so the mobile layout is
-       steered from one place. See docs/features/feature-mobile-usability.md. */
     --header-height: 60px;
     --page-pad:      16px;
     --card-pad:      24px;
+    /* Table row height of the Anwendungsebene. */
+    --row-h:         48px;
     /* Map on the map page: viewport minus header, view toggle and page padding. */
     --map-height:        800px;
     /* Map inside the project detail card. */
@@ -87,6 +33,5 @@
         --map-height:        calc(100vh - var(--header-height) - 104px);
         --map-height:        calc(100dvh - var(--header-height) - 104px);
         --map-height-detail: 300px;
-        --font-size-display:  1.5rem;
     }
 }

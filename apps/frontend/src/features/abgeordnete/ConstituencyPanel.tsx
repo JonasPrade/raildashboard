@@ -34,8 +34,8 @@ export default function ConstituencyPanel({
                 background: "rgba(255, 255, 255, 0.95)",
                 backdropFilter: "blur(20px)",
                 WebkitBackdropFilter: "blur(20px)",
-                boxShadow: "var(--shadow-float)",
-                border: "1px solid var(--rule)",
+                boxShadow: "var(--shadow-sm)",
+                border: "1px solid var(--border)",
                 padding: 12,
             }}
         >

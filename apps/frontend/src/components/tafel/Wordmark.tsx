@@ -24,8 +24,8 @@ export default function Wordmark({ size = "md", inverse, children = "Schienendas
                 fontWeight: 700,
                 textTransform: "uppercase",
                 letterSpacing: "-0.015em",
-                color: inverse ? "#f5f3ed" : "var(--ink)",
-                background: inverse ? "var(--ink)" : "transparent",
+                color: inverse ? "var(--text-on-inverse)" : "var(--text-strong)",
+                background: inverse ? "var(--surface-inverse)" : "transparent",
                 padding: inverse ? "10px 14px" : 0,
                 display: "inline-flex",
                 alignItems: "baseline",
@@ -35,7 +35,7 @@ export default function Wordmark({ size = "md", inverse, children = "Schienendas
             }}
         >
             {children}
-            <span style={{ color: inverse ? "var(--ledHot)" : "var(--led)" }}>.</span>
+            <span style={{ color: "var(--accent-primary)" }}>.</span>
         </span>
     );
 }

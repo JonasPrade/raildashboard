@@ -14,7 +14,7 @@ import {
     Title,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconChecks, IconExternalLink, IconRefresh } from "@tabler/icons-react";
+import { CheckCheck, ExternalLink, RefreshCw } from "lucide-react";
 
 import {
     useBauportalEntries,
@@ -71,7 +71,7 @@ function MatchRow({
                     {entry.url && (
                         <Anchor href={entry.url} target="_blank" rel="noreferrer" size="xs">
                             <Group gap={4} wrap="nowrap" component="span">
-                                <IconExternalLink size={12} />
+                                <ExternalLink size={12} />
                                 Bauportal
                             </Group>
                         </Anchor>
@@ -216,7 +216,7 @@ export default function BauportalImportPage() {
                     <Group gap="sm">
                         <Button
                             color="green"
-                            leftSection={<IconChecks size={16} />}
+                            leftSection={<CheckCheck size={16} />}
                             onClick={handleConfirmAll}
                             loading={confirmAll.isPending}
                             disabled={readyCount === 0}
@@ -229,7 +229,7 @@ export default function BauportalImportPage() {
                             Alle übernehmen{readyCount > 0 ? ` (${readyCount})` : ""}
                         </Button>
                         <Button
-                            leftSection={<IconRefresh size={16} />}
+                            leftSection={<RefreshCw size={16} />}
                             onClick={handleFetch}
                             loading={fetchBauportal.isPending}
                             variant="light"

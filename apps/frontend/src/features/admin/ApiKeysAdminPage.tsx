@@ -19,7 +19,7 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
-import { IconChevronLeft } from "@tabler/icons-react";
+import { ChevronLeft } from "lucide-react";
 import { ChronicleButton, ChronicleHeadline } from "../../components/chronicle";
 import RequirePermission from "../../components/RequirePermission";
 import { useAuth } from "../../lib/auth";
@@ -334,7 +334,7 @@ function ApiKeysPageContent() {
             <Stack gap="lg">
                 <Anchor component={Link} to="/admin" size="sm" c="dimmed">
                     <Group gap={4} align="center">
-                        <IconChevronLeft size={14} />
+                        <ChevronLeft size={16} />
                         Zurück zur Administration
                     </Group>
                 </Anchor>

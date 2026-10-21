@@ -2,7 +2,11 @@
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <!-- Title and description are what the browser sees before the app renders;
          in English they made Chrome detect the page as English and offer a translation. -->
@@ -10,14 +14,21 @@
     <title>Schienendashboard – Bahnprojekte in Deutschland</title>
     <meta name="description" content="Interaktive Karte und Detailansicht der Schieneninfrastrukturprojekte in Deutschland: Planungsstand, Finanzierung und Abgeordnete je Vorhaben" />
     <meta name="keywords" content="Schiene, Bahn, Eisenbahn, Infrastruktur, Deutschland, Bahnprojekte, Karte" />
-    <meta name="theme-color" content="#0d1013" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- Web fonts load without blocking the first paint (display=swap shows the
-         fallback font until they arrive). -->
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'" />
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" /></noscript>
+    <meta name="theme-color" content="#00373C" />
+    <!-- Colour scheme before first paint, so a dark start does not flash paper.
+         Same key and values as Mantine's localStorageColorSchemeManager in main.tsx
+         ("light" | "dark" | "auto"; missing = auto = system setting). -->
+    <script>
+      (function () {
+        var stored = null;
+        try { stored = window.localStorage.getItem("schienendashboard.thema"); } catch (e) {}
+        var scheme = stored === "light" || stored === "dark"
+          ? stored
+          : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.setAttribute("data-mantine-color-scheme", scheme);
+        document.documentElement.setAttribute("data-theme", scheme);
+      })();
+    </script>
   </head>
   <body>
     <div id="app"></div>

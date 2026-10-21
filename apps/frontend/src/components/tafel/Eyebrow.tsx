@@ -7,9 +7,9 @@ type Props = {
 };
 
 const colorMap = {
-    ink:  "var(--ink3)",
-    led:  "var(--led)",
-    info: "var(--info)",
+    ink:  "var(--text-muted)",
+    led:  "var(--text-link)",
+    info: "var(--text-strong)",
 } as const;
 
 export default function Eyebrow({ children, color = "ink", style }: Props) {
@@ -18,7 +18,7 @@ export default function Eyebrow({ children, color = "ink", style }: Props) {
             style={{
                 fontFamily: "var(--font-mono)",
                 fontSize: 11,
-                letterSpacing: "0.18em",
+                letterSpacing: "var(--ls-label)",
                 textTransform: "uppercase",
                 color: colorMap[color],
                 fontWeight: 700,

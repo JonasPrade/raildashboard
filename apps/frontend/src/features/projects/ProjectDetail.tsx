@@ -14,7 +14,7 @@ import {
     Stack,
     Text,
 } from "@mantine/core";
-import { IconDotsVertical } from "@tabler/icons-react";
+import { EllipsisVertical } from "lucide-react";
 import { ChronicleCard, ChronicleDataChip, ChronicleHeadline } from "../../components/chronicle";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
@@ -505,7 +505,7 @@ export default function ProjectDetail() {
                             <Menu position="bottom-end" withinPortal>
                                 <Menu.Target>
                                     <ActionIcon variant="default" size={42} aria-label="Weitere Aktionen">
-                                        <IconDotsVertical size={18} />
+                                        <EllipsisVertical size={16} />
                                     </ActionIcon>
                                 </Menu.Target>
                                 <Menu.Dropdown>

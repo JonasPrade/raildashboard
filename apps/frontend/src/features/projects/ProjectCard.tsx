@@ -25,7 +25,7 @@ export function ProjectCard({ project }: { project: ProjectOverview }) {
                         lineHeight: 1.15,
                         letterSpacing: "-0.005em",
                         textTransform: "uppercase",
-                        color: "var(--ink)",
+                        color: "var(--text-strong)",
                     }}
                 >
                     {project.name}
@@ -38,7 +38,7 @@ export function ProjectCard({ project }: { project: ProjectOverview }) {
                             fontWeight: 700,
                             letterSpacing: "0.1em",
                             textTransform: "uppercase",
-                            color: "var(--ink3)",
+                            color: "var(--text-muted)",
                         }}
                     >
                         ▸ Nr. {project.project_number}
@@ -52,7 +52,7 @@ export function ProjectCard({ project }: { project: ProjectOverview }) {
                         fontFamily: "var(--font-sans)",
                         fontSize: "15px",
                         lineHeight: 1.65,
-                        color: "var(--ink2)",
+                        color: "var(--text-body)",
                         margin: 0,
                         display: "-webkit-box",
                         WebkitLineClamp: 3,
@@ -69,7 +69,7 @@ export function ProjectCard({ project }: { project: ProjectOverview }) {
                         fontSize: "15px",
                         lineHeight: 1.65,
                         fontStyle: "italic",
-                        color: "var(--ink3)",
+                        color: "var(--text-muted)",
                         margin: 0,
                     }}
                 >

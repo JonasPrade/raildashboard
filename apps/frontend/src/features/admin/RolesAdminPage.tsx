@@ -11,7 +11,7 @@ import {
     Text,
     Tooltip,
 } from "@mantine/core";
-import { IconChevronLeft, IconPencil, IconPlus, IconTrash } from "@tabler/icons-react";
+import { ChevronLeft, Pencil, Plus, Trash2 } from "lucide-react";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
 import {
@@ -77,7 +77,7 @@ function RolesAdminPageContent() {
             <Stack gap="lg">
                 <Anchor component={Link} to="/admin" size="sm" c="dimmed">
                     <Group gap={4} align="center">
-                        <IconChevronLeft size={14} />
+                        <ChevronLeft size={16} />
                         Zurück zur Administration
                     </Group>
                 </Anchor>
@@ -90,7 +90,7 @@ function RolesAdminPageContent() {
                         </Text>
                     </Stack>
                     <ChronicleButton onClick={openCreate}>
-                        <IconPlus size={16} /> Neue Rolle
+                        <Plus size={16} /> Neue Rolle
                     </ChronicleButton>
                 </Group>
 
@@ -130,7 +130,7 @@ function RolesAdminPageContent() {
                                                 onClick={() => openEdit(role)}
                                                 aria-label={`${role.name} bearbeiten`}
                                             >
-                                                <IconPencil size={18} />
+                                                <Pencil size={16} />
                                             </ActionIcon>
                                         </Tooltip>
                                         <Tooltip
@@ -144,7 +144,7 @@ function RolesAdminPageContent() {
                                                 disabled={role.is_system || deleteRole.isPending}
                                                 aria-label={`${role.name} löschen`}
                                             >
-                                                <IconTrash size={18} />
+                                                <Trash2 size={16} />
                                             </ActionIcon>
                                         </Tooltip>
                                     </Group>

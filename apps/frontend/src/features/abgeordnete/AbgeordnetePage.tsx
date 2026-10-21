@@ -22,7 +22,7 @@ import {
     TextInput,
 } from "@mantine/core";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
-import { IconSearch } from "@tabler/icons-react";
+import { Search } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { ChronicleCard, ChronicleDataChip, ChronicleHeadline } from "../../components/chronicle";
@@ -225,7 +225,7 @@ function PoliticianWorkingList() {
                     <TextInput
                         label="Name"
                         placeholder="Namensteil eingeben"
-                        leftSection={<IconSearch size={16} />}
+                        leftSection={<Search size={16} />}
                         value={query}
                         onChange={(event) => setParam("q", event.currentTarget.value || null)}
                         style={{ flex: "1 1 240px" }}

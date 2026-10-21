@@ -1,5 +1,5 @@
-import type { Icon } from "@tabler/icons-react";
-import { IconAlertOctagon, IconAlertTriangle, IconInfoCircle, IconNote } from "@tabler/icons-react";
+import type { LucideIcon } from "lucide-react";
+import { OctagonAlert, TriangleAlert, Info, FileText } from "lucide-react";
 
 import type { ProjectText, ProjectTextCategory } from "../../shared/api/queries";
 
@@ -14,16 +14,16 @@ export type TextCategoryStyle = ProjectTextCategory["style"];
 type StyleDisplay = {
     label: string;
     color: string;
-    icon: Icon;
+    icon: LucideIcon;
     /** Left border on the text card — only for styles that need attention. */
     border: boolean;
 };
 
 export const TEXT_CATEGORY_STYLES: Record<TextCategoryStyle, StyleDisplay> = {
-    neutral: { label: "Neutral", color: "var(--text-cat-neutral)", icon: IconNote, border: false },
-    info: { label: "Info", color: "var(--text-cat-info)", icon: IconInfoCircle, border: false },
-    warning: { label: "Warnung", color: "var(--text-cat-warning)", icon: IconAlertTriangle, border: true },
-    critical: { label: "Kritisch", color: "var(--text-cat-critical)", icon: IconAlertOctagon, border: true },
+    neutral: { label: "Neutral", color: "var(--text-muted)", icon: FileText, border: false },
+    info: { label: "Info", color: "var(--idt-info)", icon: Info, border: false },
+    warning: { label: "Warnung", color: "var(--idt-warning)", icon: TriangleAlert, border: true },
+    critical: { label: "Kritisch", color: "var(--idt-danger)", icon: OctagonAlert, border: true },
 };
 
 export const TEXT_CATEGORY_STYLE_ORDER: TextCategoryStyle[] = ["neutral", "info", "warning", "critical"];

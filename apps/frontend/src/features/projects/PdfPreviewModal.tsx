@@ -5,7 +5,7 @@ import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import { ActionIcon, Anchor, Group, Loader, Modal, Stack, Text } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
-import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 
 // Worker is bundled locally (no CDN dependency); this module is lazy-loaded,
@@ -89,7 +89,7 @@ export default function PdfPreviewModal({ opened, onClose, attachmentUrl, filena
                                 onClick={() => setPageNumber((p) => p - 1)}
                                 aria-label="Vorherige Seite"
                             >
-                                <IconChevronLeft size={16} />
+                                <ChevronLeft size={16} />
                             </ActionIcon>
                             <Text size="sm">{pageNumber} / {numPages}</Text>
                             <ActionIcon
@@ -98,7 +98,7 @@ export default function PdfPreviewModal({ opened, onClose, attachmentUrl, filena
                                 onClick={() => setPageNumber((p) => p + 1)}
                                 aria-label="Nächste Seite"
                             >
-                                <IconChevronRight size={16} />
+                                <ChevronRight size={16} />
                             </ActionIcon>
                         </Group>
                     )}

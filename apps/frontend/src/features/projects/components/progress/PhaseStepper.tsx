@@ -1,5 +1,5 @@
 import { Box, Group, Stack, Text, Tooltip } from "@mantine/core";
-import { IconChevronRight } from "@tabler/icons-react";
+import { ChevronRight } from "lucide-react";
 
 import {
     MAIN_PHASE_LABEL,
@@ -51,9 +51,9 @@ type Props = {
     hiddenPhases?: readonly string[] | null;
 };
 
-const ACTIVE = "var(--info)";
-const DONE = "var(--ledOk, #2f9e44)";
-const IDLE = "var(--rule)";
+const ACTIVE = "var(--accent-primary)";
+const DONE = "var(--idt-success)";
+const IDLE = "var(--border)";
 
 /**
  * Gate milestone marker rendered on a second tier *below* a timeline connector
@@ -195,7 +195,7 @@ export default function PhaseStepper({
                                         display: "flex",
                                         alignItems: "center",
                                         justifyContent: "center",
-                                        color: inSpan || isCurrent || isDone ? "#fff" : "var(--ink, #333)",
+                                        color: inSpan || isCurrent || isDone ? "var(--text-on-accent)" : "var(--text-body)",
                                         fontSize: 12,
                                         fontWeight: 700,
                                     }}
@@ -211,8 +211,8 @@ export default function PhaseStepper({
                                                 height: 16,
                                                 padding: "0 4px",
                                                 borderRadius: 8,
-                                                backgroundColor: "var(--board, #1f2933)",
-                                                color: "#fff",
+                                                backgroundColor: "var(--surface-inverse)",
+                                                color: "var(--text-on-inverse)",
                                                 fontSize: 10,
                                                 lineHeight: "16px",
                                                 textAlign: "center",
@@ -238,8 +238,8 @@ export default function PhaseStepper({
                                 {/* Arrow stays on the main timeline row, vertically centred
                                     with the phase circles (28px band). */}
                                 <Box style={{ height: 28, display: "flex", alignItems: "center" }}>
-                                    <IconChevronRight
-                                        size={18}
+                                    <ChevronRight
+                                        size={16}
                                         style={{ color: !unknown && idx < maxIdx ? ACTIVE : IDLE }}
                                     />
                                 </Box>

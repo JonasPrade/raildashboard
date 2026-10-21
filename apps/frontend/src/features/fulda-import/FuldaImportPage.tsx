@@ -12,7 +12,7 @@ import {
     Text,
     Title,
 } from "@mantine/core";
-import { IconChevronRight } from "@tabler/icons-react";
+import { ChevronRight } from "lucide-react";
 
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { useFuldaYearSummaries } from "../../shared/api/queries";
@@ -108,7 +108,7 @@ export default function FuldaImportPage() {
                                                     <Button
                                                         size="xs"
                                                         variant="light"
-                                                        rightSection={<IconChevronRight size={14} />}
+                                                        rightSection={<ChevronRight size={16} />}
                                                         onClick={() => navigate(target)}
                                                     >
                                                         Öffnen

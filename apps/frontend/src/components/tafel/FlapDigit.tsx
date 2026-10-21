@@ -12,9 +12,9 @@ type Props = {
 };
 
 const variantBg: Record<Variant, { bg: string; color: string; border: string; seam: string }> = {
-    default: { bg: "var(--bg2)", color: "var(--ink)", border: "var(--ruleHot)", seam: "var(--rule)" },
-    section: { bg: "var(--bg2)", color: "var(--ink)", border: "var(--ruleHot)", seam: "var(--rule)" },
-    tafel:   { bg: "var(--board2)", color: "var(--ledHot)", border: "var(--boardRule)", seam: "rgba(0,0,0,0.6)" },
+    default: { bg: "var(--surface-alt)", color: "var(--text-strong)", border: "var(--border-strong)", seam: "var(--border)" },
+    section: { bg: "var(--surface-alt)", color: "var(--text-strong)", border: "var(--border-strong)", seam: "var(--border)" },
+    tafel:   { bg: "var(--surface-inverse)", color: "var(--text-on-inverse)", border: "var(--border-strong)", seam: "var(--border-strong)" },
 };
 
 export default function FlapDigit({

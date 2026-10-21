@@ -18,7 +18,7 @@ import {
     Tooltip,
 } from "@mantine/core";
 import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
-import { IconEye, IconLock } from "@tabler/icons-react";
+import { Eye, Lock } from "lucide-react";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
 
@@ -245,9 +245,10 @@ function CategoryLabel({ category }: { category: ProjectTextCategory }) {
     const display = TEXT_CATEGORY_STYLES[category.style];
     const StyleIcon = display.icon;
     return (
-        <Group gap={4} wrap="nowrap" style={{ color: display.color }}>
-            <StyleIcon size={14} aria-hidden />
-            <Text span size="xs" fw={600} style={{ color: "inherit" }}>
+        <Group gap={4} wrap="nowrap">
+            {/* Status colours carry the icon only — amber and cyan are no text colours. */}
+            <StyleIcon size={14} color={display.color} aria-hidden />
+            <Text span size="xs" fw={600} style={{ color: "var(--text-body)" }}>
                 {category.name}
             </Text>
         </Group>
@@ -567,7 +568,7 @@ function AttachmentList({ attachments, textId, projectId, canEdit }: AttachmentL
                                         onClick={() => setPreviewAttachment(a)}
                                         aria-label={`PDF-Vorschau ${a.filename}`}
                                     >
-                                        <IconEye size={12} />
+                                        <Eye size={12} />
                                     </ActionIcon>
                                 </Tooltip>
                             )}
@@ -774,7 +775,7 @@ function TextCard({ projectText, canEdit, projectId }: TextCardProps) {
                                 </Text>
                                 {projectText.is_public === false && (
                                     <Group gap={3} wrap="nowrap" c="dimmed">
-                                        <IconLock size={12} aria-hidden />
+                                        <Lock size={12} aria-hidden />
                                         <Text size="xs" c="dimmed">Intern</Text>
                                     </Group>
                                 )}

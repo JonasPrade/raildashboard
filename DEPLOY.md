@@ -90,6 +90,8 @@ Standard „Caddy über Netz `web`": `docs/workflow.md`, Ausnahmen.
   `prod.sh` läuft, auf dem Server ändert sich nichts. Die alten `SSH_HOST`, `SSH_USER`,
   `SSH_PRIVATE_KEY`, `GHCR_TOKEN` braucht nichts mehr.
 - **Repo-Variable** `TILE_LAYER_URL`: wird in `release.yml` ins Frontend-Bundle gebacken.
+  Optional `TILE_LAYER_URL_DARK`: Kachel-URL für die dunkle Fassung, ebenso gebacken;
+  leer = die helle Karte bleibt auch dunkel.
 - **Branch Protection: nicht verfügbar.** GitHub setzt Branch Protection und Rulesets
   in privaten Repositories erst mit einem bezahlten Plan durch. Ein Merge an einer
   roten PR-Prüfung vorbei ist deshalb möglich. **In Produktion kommt trotzdem nichts

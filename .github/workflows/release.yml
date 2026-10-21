@@ -47,6 +47,7 @@ jobs:
             build_args: |
               VITE_API_BASE_URL=
               REACT_APP_TILE_LAYER_URL=${{ vars.TILE_LAYER_URL }}
+              REACT_APP_TILE_LAYER_URL_DARK=${{ vars.TILE_LAYER_URL_DARK }}
           - service: db
             context: docker/db
             target: ""

@@ -81,6 +81,7 @@ All runtime configuration is managed through a single `.env` file in the reposit
 | `USE_GEOMETRY` | Backend | Set to `0` to skip geometry creation on OSM import |
 | `VITE_API_BASE_URL` | Frontend | Backend API base URL (default: `http://localhost:8000`) |
 | `REACT_APP_TILE_LAYER_URL` | Frontend | Raster tile layer URL for the map view |
+| `REACT_APP_TILE_LAYER_URL_DARK` | Frontend | Optional raster tile URL for the dark colour scheme (falls back to the light one) |
 
 ## Backend
 

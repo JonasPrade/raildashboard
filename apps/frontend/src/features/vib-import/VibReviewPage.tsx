@@ -13,7 +13,7 @@ import {
     Tooltip,
 } from "@mantine/core";
 import { ChronicleHeadline, ChronicleDataChip } from "../../components/chronicle";
-import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { notifications } from "@mantine/notifications";
 import RequirePermission from "../../components/RequirePermission";
 import {
@@ -197,7 +197,7 @@ function VibReviewPageContent() {
                         onClick={() => setCurrentIndex((i) => i - 1)}
                         disabled={currentIndex === 0}
                     >
-                        <IconChevronLeft size={16} />
+                        <ChevronLeft size={16} />
                     </ActionIcon>
                     <Group gap={4} align="center">
                         <Select
@@ -217,7 +217,7 @@ function VibReviewPageContent() {
                         onClick={() => setCurrentIndex((i) => i + 1)}
                         disabled={currentIndex === total - 1}
                     >
-                        <IconChevronRight size={16} />
+                        <ChevronRight size={16} />
                     </ActionIcon>
                     <Text fw={600} lineClamp={1} style={{ maxWidth: 500 }}>
                         {currentEntry.vib_name_raw}

@@ -11,9 +11,9 @@ import {
     visiblePhases,
 } from "./phaseMeta";
 
-const ACTIVE = "var(--info)";
-const DONE = "var(--ledOk, #2f9e44)";
-const IDLE = "var(--rule)";
+const ACTIVE = "var(--accent-primary)";
+const DONE = "var(--idt-success)";
+const IDLE = "var(--border)";
 
 /**
  * Kompakte Leistungsphasen-Darstellung für die Kurzansicht eines Projekts

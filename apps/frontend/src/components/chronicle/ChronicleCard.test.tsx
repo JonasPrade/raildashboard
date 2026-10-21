@@ -20,9 +20,9 @@ describe("ChronicleCard", () => {
     });
 
     it("uses accentColor for the left border", () => {
-        const { container } = render(<ChronicleCard accentColor="var(--text-cat-warning)">Warnung</ChronicleCard>);
+        const { container } = render(<ChronicleCard accentColor="var(--idt-warning)">Warnung</ChronicleCard>);
         const el = container.firstChild as HTMLElement;
-        expect(el.style.borderLeft).toContain("var(--text-cat-warning)");
+        expect(el.style.borderLeft).toContain("var(--idt-warning)");
     });
 
     it("has no left accent border by default", () => {

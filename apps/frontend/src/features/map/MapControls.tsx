@@ -1,6 +1,6 @@
 import { ActionIcon, Box, Drawer, Indicator, Slider, Stack, Switch, Text, TextInput } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconAdjustments, IconSearch, IconX } from "@tabler/icons-react";
+import { SlidersHorizontal, Search, X } from "lucide-react";
 import { ChronicleButton } from "../../components/chronicle";
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import PhaseFilterSelect from "../projects/PhaseFilterSelect";
@@ -48,11 +48,11 @@ export default function MapControls({
     const searchField = (
         <TextInput
             placeholder="Projekt suchen…"
-            leftSection={<IconSearch size={14} />}
+            leftSection={<Search size={16} />}
             rightSection={
                 searchTerm ? (
                     <ActionIcon variant="subtle" size="xs" onClick={() => onSearchChange("")} aria-label="Suche leeren">
-                        <IconX size={12} />
+                        <X size={12} />
                     </ActionIcon>
                 ) : undefined
             }
@@ -149,8 +149,8 @@ export default function MapControls({
                             flex: 1,
                             minWidth: 0,
                             background: "rgba(255, 255, 255, 0.92)",
-                            border: "1px solid var(--rule)",
-                            boxShadow: "var(--shadow-float)",
+                            border: "1px solid var(--border)",
+                            boxShadow: "var(--shadow-sm)",
                             padding: 4,
                         }}
                     >
@@ -169,9 +169,9 @@ export default function MapControls({
                                     ? "Karteneinstellungen öffnen (Phasenfilter aktiv)"
                                     : "Karteneinstellungen öffnen"
                             }
-                            style={{ boxShadow: "var(--shadow-float)" }}
+                            style={{ boxShadow: "var(--shadow-sm)" }}
                         >
-                            <IconAdjustments size={20} />
+                            <SlidersHorizontal size={20} />
                         </ActionIcon>
                     </Indicator>
                 </Box>
@@ -184,7 +184,7 @@ export default function MapControls({
                             left: 8,
                             zIndex: 10,
                             background: "rgba(255, 255, 255, 0.92)",
-                            border: "1px solid var(--rule)",
+                            border: "1px solid var(--border)",
                             padding: "2px 6px",
                         }}
                     >
@@ -240,9 +240,9 @@ export default function MapControls({
                     backdropFilter: "blur(20px)",
                     WebkitBackdropFilter: "blur(20px)",
                     borderRadius: 0,
-                    boxShadow: "var(--shadow-float)",
+                    boxShadow: "var(--shadow-sm)",
                     padding: "12px",
-                    border: "1px solid var(--rule)",
+                    border: "1px solid var(--border)",
                 }}
             >
                 <Stack gap="sm">

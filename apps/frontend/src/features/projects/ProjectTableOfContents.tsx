@@ -155,9 +155,9 @@ export function ProjectTableOfContents({ sections, onCreateTask }: Props) {
                     minWidth: 200,
                     // Never wider than the screen minus the icon column.
                     maxWidth: "calc(100vw - 64px)",
-                    background: "var(--bg)",
-                    border: "1px solid var(--rule)",
-                    boxShadow: "var(--shadow-float)",
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                    boxShadow: "var(--shadow-sm)",
                     borderRadius: 0,
                     padding: "8px",
                 }}>
@@ -171,7 +171,7 @@ export function ProjectTableOfContents({ sections, onCreateTask }: Props) {
                                     borderRadius: 0,
                                     backgroundColor:
                                         activeId === section.id
-                                            ? "var(--bg2)"
+                                            ? "var(--surface-alt)"
                                             : undefined,
                                     transition: "background-color 100ms ease",
                                 }}

@@ -10,10 +10,10 @@ type Props = {
 };
 
 const dotColor: Record<Status, string> = {
-    default: "var(--led)",
-    go: "var(--go)",
-    signal: "var(--signal)",
-    info: "var(--info)",
+    default: "var(--accent-primary)",
+    go: "var(--idt-success)",
+    signal: "var(--idt-danger)",
+    info: "var(--idt-info)",
 };
 
 export default function ChronicleDataChip({ children, status = "default", className, style }: Props) {
@@ -25,8 +25,8 @@ export default function ChronicleDataChip({ children, status = "default", classN
                 alignItems: "center",
                 gap: "7px",
                 padding: "3px 8px",
-                background: "var(--bg2)",
-                color: "var(--ink2)",
+                background: "var(--surface-alt)",
+                color: "var(--text-body)",
                 fontFamily: "var(--font-mono)",
                 fontSize: "11.5px",
                 fontWeight: 600,

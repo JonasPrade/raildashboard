@@ -24,7 +24,7 @@ import {
 } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
-import { IconDotsVertical } from "@tabler/icons-react";
+import { EllipsisVertical } from "lucide-react";
 import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
 import RequirePermission from "../../components/RequirePermission";
 import { filterProjectOption } from "../../lib/filterProjectOption";
@@ -577,7 +577,7 @@ function InfraplanReviewPageContent() {
                                                 <Menu position="bottom-end" withinPortal>
                                                     <Menu.Target>
                                                         <ActionIcon variant="subtle" aria-label="Aktionen">
-                                                            <IconDotsVertical size={16} />
+                                                            <EllipsisVertical size={16} />
                                                         </ActionIcon>
                                                     </Menu.Target>
                                                     <Menu.Dropdown>

@@ -21,7 +21,7 @@ import {
 } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
-import { IconPlus, IconTrash } from "@tabler/icons-react";
+import { Plus, Trash2 } from "lucide-react";
 import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
 import RequirePermission from "../../components/RequirePermission";
 import { API_BASE } from "../../shared/api/client";
@@ -203,7 +203,7 @@ function KpiEditor({
                                         aria-label="Zeile entfernen"
                                         onClick={() => setRows(current.filter((x) => x.uid !== r.uid))}
                                     >
-                                        <IconTrash size={16} />
+                                        <Trash2 size={16} />
                                     </ActionIcon>
                                 </Table.Td>
                             </Table.Tr>
@@ -218,7 +218,7 @@ function KpiEditor({
                 </Text>
             )}
             <Group gap="sm" wrap="wrap">
-                <Button variant="light" leftSection={<IconPlus size={14} />} onClick={add}>
+                <Button variant="light" leftSection={<Plus size={16} />} onClick={add}>
                     Zeile hinzufügen
                 </Button>
                 <Button onClick={handleSave} loading={save.isPending} disabled={payload.length === 0 || invalid.size > 0}>

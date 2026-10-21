@@ -1,0 +1,60 @@
+/* Mantine CSS variables → DS semantic aliases (tokens.css).
+   Plan: docs/features/feature-idt-design.md → "Stufe 1 — Fundament".
+
+   Mantine sets data-mantine-color-scheme on <html>; the DS dark values apply under
+   [data-theme="dark"], which main.tsx mirrors from the computed colour scheme.
+
+   Specificity: Mantine writes its own values under `:root` and
+   `:root[data-mantine-color-scheme="light|dark"]`, both in styles.css and in the
+   <style> tag MantineProvider renders inside the app (later in the document, so it
+   wins on equal specificity). The doubled `:root:root` raises every selector here
+   by one class, so the bridge wins in both schemes regardless of order. */
+
+:root[data-mantine-color-scheme="dark"] { color-scheme: dark; }
+:root[data-mantine-color-scheme="light"] { color-scheme: light; }
+
+:root:root,
+:root:root[data-mantine-color-scheme="light"],
+:root:root[data-mantine-color-scheme="dark"] {
+  --mantine-color-body: var(--surface);
+  --mantine-color-text: var(--text-body);
+  --mantine-color-bright: var(--text-strong);
+  --mantine-color-dimmed: var(--text-muted);
+  --mantine-color-default-border: var(--border);
+  --mantine-color-default: var(--surface);
+  --mantine-color-default-hover: var(--surface-alt);
+  --mantine-color-default-color: var(--text-body);
+  --mantine-color-anchor: var(--text-link);
+  --mantine-color-placeholder: var(--text-muted);
+  --mantine-color-error: var(--idt-danger);
+  --mantine-color-disabled: var(--surface-sunken);
+  --mantine-color-disabled-color: var(--text-faint);
+  --mantine-color-disabled-border: var(--border);
+
+  --mantine-primary-color-filled: var(--accent-primary);
+  --mantine-primary-color-filled-hover: var(--accent-primary-hover);
+  --mantine-primary-color-light: var(--idt-violet-soft);
+  --mantine-primary-color-light-color: var(--accent-primary-hover);
+  --mantine-primary-color-contrast: var(--text-on-accent);
+
+  /* Components ask for the primary colour by name (`violet`), not through the
+     --mantine-primary-color-* aliases, so the named variables follow the DS too.
+     Filled text colour comes from theme.ts → variantColorResolver. */
+  --mantine-color-violet-filled: var(--accent-primary);
+  --mantine-color-violet-filled-hover: var(--accent-primary-hover);
+  --mantine-color-violet-light: var(--idt-violet-soft);
+  --mantine-color-violet-light-hover: color-mix(in srgb, var(--idt-violet-soft), var(--accent-primary) 12%);
+  --mantine-color-violet-light-color: var(--accent-primary-hover);
+  --mantine-color-violet-outline: var(--accent-primary);
+  --mantine-color-violet-outline-hover: var(--idt-violet-soft);
+
+  --mantine-radius-default: 0;
+  --mantine-shadow-xs: var(--shadow-sm);
+  --mantine-shadow-sm: var(--shadow-sm);
+  --mantine-shadow-md: var(--shadow-md);
+  --mantine-shadow-lg: var(--shadow-lg);
+  --mantine-shadow-xl: var(--shadow-lg);
+  --mantine-font-family: var(--font-sans);
+  --mantine-font-family-headings: var(--font-display);
+  --mantine-font-family-monospace: var(--font-sans);
+}

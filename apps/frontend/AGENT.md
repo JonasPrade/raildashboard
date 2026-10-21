@@ -36,7 +36,7 @@ src/
    }
    ```
 2. **Feature-oriented structure:** Create new functionality under `src/features/<feature-name>` (e.g. `src/features/auth/`, `src/features/dashboard/`). Only place shared UI in `src/components/`.
-3. **Use Mantine intentionally:** Rely on Mantine's standard components. Extract recurring patterns into custom components under `src/components/` and manage theme overrides centrally (e.g. `theme.ts`).
+3. **Use Mantine intentionally:** Rely on Mantine's standard components. Extract recurring patterns into custom components under `src/components/` and manage theme overrides centrally (`src/shared/theme/theme.ts`).
 4. **Keep routing tidy:** Register new pages in `src/router.tsx`. For larger bundles use lazy loading (`React.lazy()` and `Suspense`).
    ```tsx
    const DocumentationPage = React.lazy(() => import("./features/documentation/DocumentationPage"));

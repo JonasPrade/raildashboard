@@ -23,7 +23,7 @@ import {
     Text,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconMap, IconRefresh, IconRoute } from "@tabler/icons-react";
+import { Map as MapIcon, RefreshCw, Route } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
@@ -217,7 +217,7 @@ function ParliamentAdminPageContent() {
                         </Text>
                         <Group>
                             <Button
-                                leftSection={<IconRefresh size={16} />}
+                                leftSection={<RefreshCw size={16} />}
                                 loading={importBusy}
                                 onClick={() => launch(startImport, importTask, "Import konnte nicht gestartet werden")}
                             >
@@ -262,7 +262,7 @@ function ParliamentAdminPageContent() {
                                 w={110}
                             />
                             <Button
-                                leftSection={<IconMap size={16} />}
+                                leftSection={<MapIcon size={16} />}
                                 loading={geometryBusy}
                                 disabled={!geometryFile}
                                 onClick={launchGeometryImport}
@@ -294,7 +294,7 @@ function ParliamentAdminPageContent() {
                         <Group>
                             <Button
                                 variant="light"
-                                leftSection={<IconRoute size={16} />}
+                                leftSection={<Route size={16} />}
                                 loading={linksBusy}
                                 disabled={status != null && withGeometry === 0}
                                 onClick={() => launch(startLinks, linkTask, "Neuberechnung konnte nicht gestartet werden")}

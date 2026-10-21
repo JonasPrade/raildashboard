@@ -13,7 +13,7 @@ import {
     Text,
     TextInput,
 } from "@mantine/core";
-import { IconPlus } from "@tabler/icons-react";
+import { Plus } from "lucide-react";
 import { notifications } from "@mantine/notifications";
 import { useAuth } from "../../lib/auth";
 import {
@@ -103,7 +103,7 @@ export default function TasksPage() {
                 <Group justify="space-between" align="center" wrap="wrap" gap="sm">
                     <ChronicleHeadline as="h1">Aufgaben</ChronicleHeadline>
                     {canCreate && (
-                        <Button leftSection={<IconPlus size={16} />} onClick={openCreate}>
+                        <Button leftSection={<Plus size={16} />} onClick={openCreate}>
                             Neue Aufgabe
                         </Button>
                     )}

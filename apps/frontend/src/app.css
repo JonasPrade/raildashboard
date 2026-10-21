@@ -7,13 +7,13 @@
 }
 .vib-raw-markdown th,
 .vib-raw-markdown td {
-    border: 1px solid var(--mantine-color-gray-3);
+    border: 1px solid var(--border);
     padding: 3px 8px;
     text-align: left;
     white-space: nowrap;
 }
 .vib-raw-markdown th {
-    background: var(--mantine-color-gray-1);
+    background: var(--surface-alt);
     font-weight: 600;
 }
 .vib-raw-markdown p {
@@ -22,21 +22,6 @@
 .vib-raw-markdown h1, .vib-raw-markdown h2, .vib-raw-markdown h3 {
     font-size: 13px;
     margin: 8px 0 4px;
-}
-
-/* Header: below 30em the wordmark would crowd out the burger — signet only. */
-@media (max-width: 30em) {
-    .header-wordmark {
-        display: none;
-    }
-}
-
-/* Same between the burger breakpoint and a wide desktop: with six nav entries
-   plus the auth section the bar would otherwise wrap or overflow. */
-@media (min-width: 62em) and (max-width: 80em) {
-    .header-wordmark {
-        display: none;
-    }
 }
 
 /* Header title link */
@@ -51,14 +36,33 @@
 
 /* Global base */
 body {
-    background-color: var(--bg);
-    color: var(--ink);
+    background-color: var(--surface);
+    color: var(--text-body);
     font-family: var(--font-sans);
-    font-size: 15px;
-    line-height: 1.6;
+    font-size: 16px;
+    line-height: 1.5;
     margin: 0;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+
+/* Focus ring of the Anwendungsebene: 2px violet, 2px offset. */
+:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+/* Secondary text (tables, card pairs) — no Mantine size step for 14.5px. */
+.idt-neben {
+    font-size: 14.5px;
+}
+
+/* Upper-case label in Inter (the mono role is gone). */
+.idt-eyebrow {
+    font-size: 13px;
+    letter-spacing: var(--ls-label);
+    text-transform: uppercase;
+    color: var(--text-muted);
 }
 
 p { line-height: 1.65; }
@@ -112,11 +116,6 @@ pre {
         overflow-wrap: anywhere;
     }
 
-    /* Display headings are sized for a wide canvas — scale them down. */
-    .mantine-Title-root[data-order="1"] { font-size: 28px; }
-    .mantine-Title-root[data-order="2"] { font-size: 22px; }
-    .mantine-Title-root[data-order="3"] { font-size: 18px; }
-
     /* iOS Safari zooms into any focused field whose font is below 16px. */
     .mantine-InputBase-input,
     .mantine-TextInput-input,
@@ -158,14 +157,4 @@ pre {
         min-height: 40px;
         min-width: 40px;
     }
-}
-
-/* Self-hosted Inter as offline fallback for IBM Plex Sans
-   (Archivo Narrow / IBM Plex Sans / IBM Plex Mono load from Google Fonts in index.html) */
-@font-face {
-    font-family: "Inter";
-    src: url("/fonts/inter/Inter-VariableFont_opsz,wght.ttf") format("truetype");
-    font-weight: 100 900;
-    font-style: normal;
-    font-display: swap;
 }

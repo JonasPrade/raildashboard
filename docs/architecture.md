@@ -194,9 +194,8 @@ The frontend is a feature-oriented React application.
 src/
 ├── features/     # Domain-specific modules (map, projects, documentation …)
 ├── components/   # Shared UI building blocks (header, error boundary)
-├── shared/       # Cross-feature utilities and generated API client
+├── shared/       # Cross-feature utilities, generated API client, theme/ (IDT tokens + Mantine theme)
 ├── lib/          # Infrastructure (API client config, React Query setup, auth)
-├── theme.ts      # Mantine theme configuration
 └── router.tsx    # Central route definitions
 ```
 
@@ -220,7 +219,6 @@ src/
 ├── components/   # Shared UI building blocks (header, error boundary)
 ├── shared/       # Cross-feature utilities and generated API client
 ├── lib/          # Infrastructure (API client config, React Query setup, auth)
-├── theme.ts      # Mantine theme configuration (moves to shared/theme/ with the IDT design)
 └── router.tsx    # Central route definitions
 ```
 
@@ -235,7 +233,7 @@ src/
 
 ### UI components
 
-- Use **Mantine** for layout and UI work. Keep theme overrides in `theme.ts` (`src/shared/theme/` with the IDT design). The primary colour is the brand violet (`--accent-primary`); never hard-code a hex value in a component, take tokens or `semanticColors.ts` (`docs/DESIGN.md`).
+- Use **Mantine** for layout and UI work. Keep theme overrides in `src/shared/theme/theme.ts`; Mantine CSS variables map onto the DS tokens in `src/shared/theme/mantine-bridge.css`. The primary colour is the brand violet (`--accent-primary`); never hard-code a hex value in a component, take tokens or `semanticColors.ts` (`docs/DESIGN.md`).
 - Extract recurring patterns into custom components under `src/components/`.
 
 ### Routing

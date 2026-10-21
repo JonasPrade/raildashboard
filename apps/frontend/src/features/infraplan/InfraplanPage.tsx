@@ -1,6 +1,6 @@
 import { createRef, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { IconInfoCircle } from "@tabler/icons-react";
+import { Info } from "lucide-react";
 import {
     ActionIcon,
     Alert,
@@ -218,7 +218,7 @@ function KpiInfo({ description }: { description: string }) {
     return (
         <Tooltip label={description} multiline w={280} withArrow position="top" events={{ hover: true, focus: true, touch: true }}>
             <ActionIcon variant="subtle" color="gray" size="sm" aria-label="Erklärung der Kennzahl">
-                <IconInfoCircle size={16} />
+                <Info size={16} />
             </ActionIcon>
         </Tooltip>
     );
@@ -520,7 +520,7 @@ export default function InfraplanPage() {
                             events={{ hover: true, focus: true, touch: true }}
                         >
                             <ActionIcon variant="subtle" color="gray" size="md" aria-label="Was ist der Infraplan?">
-                                <IconInfoCircle size={18} />
+                                <Info size={16} />
                             </ActionIcon>
                         </Tooltip>
                     </Group>

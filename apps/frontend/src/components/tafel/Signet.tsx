@@ -18,7 +18,8 @@ export default function Signet({ size = 44, title = "Schienendashboard", style }
                 justifyContent: "center",
                 width: size,
                 height: size,
-                background: "var(--ink)",
+                // Brand surface: ink in both schemes.
+                background: "var(--idt-ink)",
                 flex: "0 0 auto",
                 ...style,
             }}
@@ -28,8 +29,8 @@ export default function Signet({ size = 44, title = "Schienendashboard", style }
                 style={{
                     width: inner,
                     height: inner,
-                    background: "var(--led)",
-                    boxShadow: `0 0 0 2px var(--ink), 0 0 0 3px var(--led)`,
+                    background: "var(--accent-primary)",
+                    boxShadow: `0 0 0 2px var(--idt-ink), 0 0 0 3px var(--accent-primary)`,
                 }}
             />
         </span>
