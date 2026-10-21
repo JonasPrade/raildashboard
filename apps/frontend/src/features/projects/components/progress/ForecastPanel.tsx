@@ -22,10 +22,6 @@ function formatExpected(dateStr: string | null | undefined): string {
 
 type IbnDoubt = NonNullable<ProgressForecast["ibn_doubt"]>;
 
-const IBN_SOURCE_LABEL: Record<string, string> = {
-    GVFG: "GVFG (Inbetriebnahme gepl.)",
-};
-
 /** The GVFG-Finanzreihe still funds the project after its known commissioning. */
 function IbnDoubtAlert({ doubt }: { doubt: IbnDoubt }) {
     const share = doubt.aid_total > 0 ? Math.round((doubt.aid_after / doubt.aid_total) * 100) : null;
@@ -35,7 +31,7 @@ function IbnDoubtAlert({ doubt }: { doubt: IbnDoubt }) {
             <Text size="sm">
                 Die GVFG-Finanzreihe (Ausgabe {doubt.edition}, Abschnitt GVFG) sieht nach {doubt.ibn_year} noch {formatMio(doubt.aid_after)} Mio. € Finanzhilfen vor
                 {share !== null && ` (${share} % der Finanzhilfen)`}. Quelle des Inbetriebnahmejahrs:{" "}
-                {IBN_SOURCE_LABEL[doubt.ibn_source] ?? doubt.ibn_source}.
+                {doubt.ibn_source.startsWith("GVFG") ? `${doubt.ibn_source} (Inbetriebnahme gepl.)` : doubt.ibn_source}.
             </Text>
             {years && (
                 <Text size="xs" c="dimmed" mt={4}>

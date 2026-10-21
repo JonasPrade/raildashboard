@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from datetime import date
 from decimal import Decimal
 
-from dashboard_backend.services.gvfg_ibn_check import check_ibn_against_gvfg
+from dashboard_backend.services.gvfg_ibn_check import check_ibn_against_gvfg, known_ibn
 
 PERIODS = [
     {"label": "1967–2023", "year_from": 1967, "year_to": 2023, "kind": "ausgezahlt"},
@@ -54,3 +55,21 @@ def test_tiny_amounts_are_no_doubt_even_as_a_large_share():
 
 def test_no_amounts_no_doubt():
     assert _check(2026, {}) is None
+
+
+GVFG_2025 = (date(2025, 7, 18), 2029, "2025–2029")
+
+
+def test_known_ibn_more_recent_source_wins():
+    assert known_ibn(GVFG_2025, (date(2026, 3, 1), 2031)) == (2031, "Infraplan")
+    assert known_ibn(GVFG_2025, (date(2024, 3, 1), 2027)) == (2029, "GVFG 2025–2029")
+
+
+def test_known_ibn_same_date_prefers_infraplan():
+    assert known_ibn(GVFG_2025, (date(2025, 7, 18), 2030)) == (2030, "Infraplan")
+
+
+def test_known_ibn_single_source_or_none():
+    assert known_ibn(GVFG_2025, None) == (2029, "GVFG 2025–2029")
+    assert known_ibn(None, (date(2026, 3, 1), 2031)) == (2031, "Infraplan")
+    assert known_ibn(None, None) is None

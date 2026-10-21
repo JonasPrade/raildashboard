@@ -510,10 +510,13 @@ Jahr fraglich — wer baut, bekommt noch Geld. Die Prognose zeigt dann einen Hin
 „Inbetriebnahme JJJJ fraglich“ mit Verweis auf die GVFG-Finanzreihe; das Datum selbst
 bleibt unverändert (keine Quelle wird übersteuert, der Mensch entscheidet).
 
-- **Bekanntes IBN-Jahr:** die konkrete Inbetriebnahme der Prognose (VIB-PFA,
-  Fulda-Runde, Infraplan, Manuell — nicht BVWP/Schätzung), sonst das größte
-  „Inbetriebnahme gepl.“ der Vorhaben in der neuesten Ausgabe (Quelle „GVFG“).
-  Projekte in Betrieb werden nicht geprüft.
+- **Bekanntes IBN-Jahr:** Für GVFG-Vorhaben äußern sich nur zwei Quellen, beide
+  gleichwertig: das größte „Inbetriebnahme gepl.“ der Vorhaben in der neuesten
+  GVFG-Ausgabe und die Inbetriebnahme aus dem Infraplan. Es gilt der **jüngere Stand**
+  (Stand der Ausgabe vs. Veröffentlichung des Infraplans, wie Entscheidung 22 in
+  `feature-gvfg-import.md`), bei gleichem Datum der Infraplan (`known_ibn`). VIB,
+  Fulda-Runde und BVWP sagen zu GVFG-Vorhaben nichts und bleiben außen vor. Projekte in
+  Betrieb werden nicht geprüft.
 - **Finanzreihe:** ∑-Zeile aller finanzrelevanten Vorhaben des Projekts und seiner
   direkten Teilprojekte in der **neuesten** GVFG-Ausgabe, je Jahresspalte summiert.
   Eine Spalte zählt als „danach“, wenn sie nach dem IBN-Jahr beginnt („ab 2030“ zählt

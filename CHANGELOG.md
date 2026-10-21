@@ -27,8 +27,8 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ### Added
 - **GVFG funding questions the commissioning year.** When the newest GVFG edition still
   plans at least 1 Mio. € and 15 % of a project's aid for years after its known
-  Inbetriebnahme (forecast date from VIB-PFA/Fulda/Infraplan/manual, else the edition's
-  „Inbetriebnahme gepl.“), the forecast panel shows „Inbetriebnahme JJJJ fraglich“ with
+  Inbetriebnahme (the edition's „Inbetriebnahme gepl.“ or the Infraplan's year, equal
+  weight, the more recent statement wins), the forecast panel shows „Inbetriebnahme JJJJ fraglich“ with
   the amounts per year. The date itself is unchanged. API: `forecast.ibn_doubt`; MCP:
   `get_project_progress` and `list_project_gvfg`.
 - **Infraplan KPI settings in the admin area.** Admin → Infraplan gets the tabs „Import“

@@ -175,7 +175,7 @@ class IbnDoubtSchema(BaseModel):
     commissioning year — that year is doubtful (the forecast stays as is)."""
 
     ibn_year: int
-    ibn_source: str  # forecast source of the year, or "GVFG" (Inbetriebnahme gepl.)
+    ibn_source: str  # "Infraplan" or "GVFG <edition>" (Inbetriebnahme gepl.), the more recent
     edition: str  # newest GVFG edition, e.g. "2025–2029"
     program_id: int
     entry_ids: list[int]

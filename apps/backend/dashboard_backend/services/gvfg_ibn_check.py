@@ -9,6 +9,7 @@ year is doubtful. The check never changes the forecast; it only flags it.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import date
 from decimal import Decimal
 
 # Final payments (Schlussrechnung) often follow the commissioning by a year or
@@ -25,6 +26,31 @@ class IbnDoubt:
     aid_after: Decimal  # Mio. €, in year columns starting after ibn_year
     aid_total: Decimal  # Mio. €, all year columns
     periods: list[tuple[str, Decimal]] = field(default_factory=list)  # label → aid after ibn_year
+
+
+def known_ibn(
+    gvfg: tuple[date, int, str] | None, infraplan: tuple[date, int] | None
+) -> tuple[int, str] | None:
+    """The commissioning year to check, as (year, source label).
+
+    For a GVFG project only the GVFG edition (``(stand, Inbetriebnahme gepl.,
+    edition label)``) and the Infraplan (``(publication date, year)``) state
+    it; both weigh the same and the more recent statement wins (decision 22).
+    On the same date the Infraplan wins — its GVFG row yields a date only when
+    it is at least as recent as the edition. VIB and Fulda-Runde say nothing
+    about GVFG Vorhaben.
+    """
+    candidates = []
+    if gvfg is not None:
+        stand, year, edition = gvfg
+        candidates.append((stand, False, year, f"GVFG {edition}"))
+    if infraplan is not None:
+        published, year = infraplan
+        candidates.append((published, True, year, "Infraplan"))
+    if not candidates:
+        return None
+    _when, _is_infraplan, year, source = max(candidates)
+    return year, source
 
 
 def check_ibn_against_gvfg(

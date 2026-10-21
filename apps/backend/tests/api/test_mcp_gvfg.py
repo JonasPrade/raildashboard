@@ -231,7 +231,7 @@ def test_aid_after_commissioning_questions_it(mcp_client, admin_token, db_sessio
 
     payload = _payload(_call(mcp_client, admin_token, "list_project_gvfg", {"project_id": project.id}))
     doubt = payload["ibn_doubt"]
-    assert (doubt["ibn_year"], doubt["ibn_source"], doubt["edition"]) == (2025, "GVFG", "2025–2029")
+    assert (doubt["ibn_year"], doubt["ibn_source"], doubt["edition"]) == (2025, "GVFG 2025–2029", "2025–2029")
     assert (doubt["aid_after"], doubt["aid_total"]) == (50.0, 120.0)
     assert doubt["periods"] == [{"label": "2026", "aid": 50.0}]
     assert doubt["entry_ids"] == [entry.id]

@@ -44,7 +44,7 @@ from dashboard_backend.services.progress_derivation import (
     aggregate_tree,
     derive_headline,
 )
-from dashboard_backend.services.gvfg_ibn_check import check_ibn_against_gvfg
+from dashboard_backend.services.gvfg_ibn_check import check_ibn_against_gvfg, known_ibn
 from dashboard_backend.services.progress_dates import parse_flexible_date
 from dashboard_backend.services.progress_forecast import (
     BvwpDurations,
@@ -892,19 +892,17 @@ def _build_forecast_for_project(
             for step in result.next_steps
         ],
         "has_data": result.has_data,
-        "ibn_doubt": _gvfg_ibn_doubt(db, project_id, effective_phase, result.next_steps),
+        "ibn_doubt": _gvfg_ibn_doubt(db, project_id, effective_phase, split.infraplan),
     }
 
 
-# Estimates are no known commissioning; only concrete dates are questioned.
-_ESTIMATED_SOURCES = {"BVWP", "Schätzung"}
-
-
-def _gvfg_ibn_doubt(db: Session, project_id: int, effective_phase: MainPhase, next_steps) -> dict | None:
+def _gvfg_ibn_doubt(
+    db: Session, project_id: int, effective_phase: MainPhase, infraplan: list[ExpectedDate]
+) -> dict | None:
     """Question the known commissioning year when the newest GVFG edition still
-    funds the project (with its direct subprojects) after it. The known year is
-    the forecast's concrete Inbetriebnahme, else the edition's own
-    "Inbetriebnahme gepl.". See ``services/gvfg_ibn_check.py``."""
+    funds the project (with its direct subprojects) after it. The year comes
+    from the GVFG edition or the Infraplan, whichever is more recent
+    (``known_ibn``); see ``services/gvfg_ibn_check.py``."""
     if effective_phase is MainPhase.IN_BETRIEB:
         return None
     entries = gvfg_crud.project_entries(db, project_id, with_subprojects=True)
@@ -914,22 +912,19 @@ def _gvfg_ibn_doubt(db: Session, project_id: int, effective_phase: MainPhase, ne
     entries = [e for e in entries if e.program_id == program.id and e.part == "finanzrelevant"]
     if not entries:
         return None
+    edition = f"{program.year_from}–{program.year_to}"
 
-    ibn = next(
-        (
-            (step.expected_date.year, step.source)
-            for step in next_steps
-            if step.phase is MainPhase.IN_BETRIEB
-            and step.expected_date is not None
-            and step.source not in _ESTIMATED_SOURCES
-        ),
-        None,
-    )
+    planned = [e.commissioning_planned for e in entries if e.commissioning_planned]
+    gvfg = (program.stand or date(program.year_from, 1, 1), max(planned), edition) if planned else None
+    claims = [c for c in infraplan if c.phase is MainPhase.IN_BETRIEB]
+    infraplan_ibn = None
+    if claims:
+        published = max((c.reported_on for c in claims if c.reported_on), default=date.min)
+        infraplan_ibn = (published, max(c.date for c in claims).year)
+    ibn = known_ibn(gvfg, infraplan_ibn)
     if ibn is None:
-        planned = [e.commissioning_planned for e in entries if e.commissioning_planned]
-        if not planned:
-            return None
-        ibn = (max(planned), "GVFG")
+        return None
+    ibn_year, ibn_source = ibn
 
     amounts: dict[str, Decimal] = {}
     for entry in entries:
@@ -938,8 +933,7 @@ def _gvfg_ibn_doubt(db: Session, project_id: int, effective_phase: MainPhase, ne
             if value is not None:
                 amounts[label] = amounts.get(label, Decimal(0)) + Decimal(str(value))
 
-    edition = f"{program.year_from}–{program.year_to}"
-    doubt = check_ibn_against_gvfg(ibn[0], ibn[1], edition, program.periods or [], amounts)
+    doubt = check_ibn_against_gvfg(ibn_year, ibn_source, edition, program.periods or [], amounts)
     if doubt is None:
         return None
     return {
