@@ -4,6 +4,7 @@
  * of KPI values into chart rows. No React here, so everything is unit-tested.
  */
 
+import { CHART_SERIES } from "../../shared/theme/semanticColors";
 import type {
     InfraplanParsedRow,
     InfraplanProjectEntry,
@@ -202,12 +203,13 @@ export type KpiChart = {
     istReportYear: number | null;
 };
 
-// Same Mantine palette tokens the other charts use (FinVe/GVFG): blue/teal
-// for actual values, warm tones for targets.
-const IST_COLORS = ["blue.6", "teal.6", "indigo.5", "cyan.6", "violet.5", "green.6"];
-const ZIEL_COLORS = ["orange.6", "red.6", "grape.6", "yellow.7", "pink.6"];
-const COMPANION_IST_COLOR = "gray.5";
-const COMPANION_ZIEL_COLORS = ["yellow.6", "lime.7"];
+// Design-system chart tokens: Ist bars start with chart-1 (further stacked
+// sub-series skip chart-2, which belongs to the targets), targets are chart-2
+// (newest vintage solid, older dashed, see strokeDasharray below).
+const IST_COLORS = [CHART_SERIES[0], CHART_SERIES[2], CHART_SERIES[3], CHART_SERIES[4], CHART_SERIES[5]];
+const ZIEL_COLORS = [CHART_SERIES[1]];
+const COMPANION_IST_COLOR = CHART_SERIES[4];
+const COMPANION_ZIEL_COLORS = [CHART_SERIES[3], CHART_SERIES[2]];
 
 /**
  * A second statement drawn into a KPI's chart on its own right-hand scale,

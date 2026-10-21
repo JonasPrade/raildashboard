@@ -5,20 +5,21 @@
  * overview page — both keep their own card headers and collapse toggles.
  */
 
-import { Box, ColorSwatch, Group, Stack, Table, Tabs, Text, type MantineSpacing } from "@mantine/core";
+import { Box, Group, Stack, Table, Tabs, Text, type MantineSpacing } from "@mantine/core";
 import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
 import { DonutChart, LineChart } from "@mantine/charts";
 import "@mantine/charts/styles.css";
+import "../../../shared/ui/charts.css";
 
 import type { BudgetSummary, TitelEntry } from "../../../shared/api/queries";
 import { useIsMobile } from "../../../shared/hooks/useBreakpoint";
+import { CHART_SERIES, CHART_SERIES_OVERFLOW } from "../../../shared/theme/semanticColors";
 import { chartNum, formatTEuro, formatTEuroWithZero } from "../../../shared/format";
 
-// Distinct CSS hex colors for up to 10 Titel series (must be plain CSS for DonutChart)
-const SERIE_COLORS = [
-    "#339af0", "#20c997", "#51cf66", "#fcc419", "#ff922b",
-    "#ff6b6b", "#cc5de8", "#5c7cfa", "#22b8cf", "#94d82d",
-];
+/** Colour of the i-th series: the six chart colours, everything beyond in the overflow colour. */
+export function seriesColor(i: number): string {
+    return i < CHART_SERIES.length ? CHART_SERIES[i] : CHART_SERIES_OVERFLOW;
+}
 
 export function buildPieData(budget: BudgetSummary) {
     return budget.titel_entries
@@ -26,8 +27,15 @@ export function buildPieData(budget: BudgetSummary) {
         .map((e, i) => ({
             name: e.label,
             value: e.veranschlagt ?? 0,
-            color: SERIE_COLORS[i % SERIE_COLORS.length],
+            color: seriesColor(i),
         }));
+}
+
+/** Legend entries: the first six series by name, all further ones grouped as "weitere". */
+export function buildLegendItems(data: { name: string; color: string }[]): { label: string; color: string }[] {
+    const head = data.slice(0, CHART_SERIES.length).map((d) => ({ label: d.name, color: d.color }));
+    const rest = data.length - CHART_SERIES.length;
+    return rest > 0 ? [...head, { label: `weitere (${rest})`, color: CHART_SERIES_OVERFLOW }] : head;
 }
 
 export function buildLineData(budgets: BudgetSummary[]) {
@@ -37,27 +45,17 @@ export function buildLineData(budgets: BudgetSummary[]) {
     }));
 }
 
-const CHART_TOOLTIP_PROPS = {
-    contentStyle: {
-        background: "var(--mantine-color-body)",
-        border: "1px solid var(--mantine-color-default-border)",
-        borderRadius: "var(--mantine-radius-sm)",
-        color: "var(--mantine-color-text)",
-        fontSize: 12,
-    },
-} as const;
-
 // Custom legend rendered below a chart (avoids recharts clipping issues)
 export function ChartLegend({ items }: { items: { label: string; color: string }[] }) {
     return (
-        <Group gap="md" mt="xs" wrap="wrap">
+        <div className="idt-chart-legend">
             {items.map((item) => (
-                <Group key={item.label} gap={6} align="center">
-                    <ColorSwatch color={item.color} size={12} />
-                    <Text size="xs" c="dimmed">{item.label}</Text>
-                </Group>
+                <span key={item.label} className="idt-chart-legend__item">
+                    <span className="idt-chart-legend__swatch" style={{ background: item.color }} aria-hidden />
+                    {item.label}
+                </span>
             ))}
-        </Group>
+        </div>
     );
 }
 
@@ -172,7 +170,7 @@ export function FinveBudgetDetails({
                                 h={280}
                                 data={lineData}
                                 dataKey="Jahr"
-                                series={[{ name: "Gesamtkosten", color: "green.6" }]}
+                                series={[{ name: "Gesamtkosten", color: CHART_SERIES[0] }]}
                                 curveType="monotone"
                                 tickLine="x"
                                 gridAxis="y"
@@ -180,7 +178,6 @@ export function FinveBudgetDetails({
                                 valueFormatter={formatTEuroWithZero}
                                 // A 130px axis would leave almost no plot area on a phone.
                                 yAxisProps={{ width: isMobile ? 64 : 130, domain: [0, yMax] }}
-                                tooltipProps={CHART_TOOLTIP_PROPS}
                             />
                         </Box>
                     </Stack>
@@ -205,7 +202,7 @@ export function FinveBudgetDetails({
                             />
                         </Group>
                         <ChartLegend
-                            items={pieData.map((d) => ({ label: d.name, color: d.color }))}
+                            items={buildLegendItems(pieData)}
                         />
                     </Stack>
                 </Tabs.Panel>

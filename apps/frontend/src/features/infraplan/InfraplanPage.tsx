@@ -7,7 +7,6 @@ import {
     Button,
     Container,
     Group,
-    Loader,
     Modal,
     Pagination,
     Progress,
@@ -22,6 +21,7 @@ import {
 } from "@mantine/core";
 import { ChartTooltip, CompositeChart } from "@mantine/charts";
 import "@mantine/charts/styles.css";
+import "../../shared/ui/charts.css";
 import { ChronicleCard, ChronicleDataChip, ChronicleHeadline } from "../../components/chronicle";
 import {
     useInfraplanPublicKpis,
@@ -33,7 +33,7 @@ import {
 import { formatDateShort } from "../../shared/format";
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { LinkedProjects, type LinkedProject } from "../../shared/ui/LinkedProjects";
-import { ProjectTableOfContents, type TocSection } from "../projects/ProjectTableOfContents";
+import { ProjectRegister, type RegisterSection } from "../projects/ProjectRegister";
 import Footnotes from "./Footnotes";
 import {
     KPI_CATEGORY_LABEL,
@@ -56,6 +56,8 @@ import {
     type KpiCompanion,
     type KpiChartSeries,
 } from "./infraplanFormat";
+import { LoadingState } from "../../shared/ui/LoadingState";
+import { ErrorState } from "../../shared/ui/ErrorState";
 
 const PAGE_SIZE = 25;
 
@@ -296,7 +298,7 @@ function Kpis({ kpis }: { kpis: InfraplanPublicKpi[] }) {
     }, [kpis]);
     const companions = useMemo(() => kpiCompanions(kpis), [kpis]);
     // One scroll target per Bereich: the kind, and each category below it.
-    const tocSections = useMemo<TocSection[]>(
+    const tocSections = useMemo<RegisterSection[]>(
         () =>
             groups.flatMap((g) => [
                 { id: g.kind, label: KPI_KIND_LABEL[g.kind] ?? g.kind, ref: createRef<HTMLDivElement>() as SectionRef, visible: true },
@@ -317,8 +319,8 @@ function Kpis({ kpis }: { kpis: InfraplanPublicKpi[] }) {
         return <Text size="sm" c="dimmed">Für die Kennzahlen liegen noch keine geprüften Werte vor.</Text>;
     }
     return (
-        <>
-            <ProjectTableOfContents sections={tocSections} />
+        <div className="project-register-layout">
+            <ProjectRegister sections={tocSections} />
             <Stack gap="xl">
                 {groups.map((g) => (
                     <Stack key={g.kind} gap="md" ref={refOf(g.kind)} style={{ scrollMarginTop: 80 }}>
@@ -348,7 +350,7 @@ function Kpis({ kpis }: { kpis: InfraplanPublicKpi[] }) {
                     </Stack>
                 ))}
             </Stack>
-        </>
+        </div>
     );
 }
 
@@ -405,7 +407,7 @@ function MeasureCard({ entry }: { entry: InfraplanReportEntry }) {
 }
 
 function Measures({ year }: { year: number }) {
-    const { data: entries, isLoading, isError } = useInfraplanReportEntries(year);
+    const { data: entries, isLoading, isError, refetch } = useInfraplanReportEntries(year);
     const [section, setSection] = useState<string | null>(null);
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
@@ -426,8 +428,8 @@ function Measures({ year }: { year: number }) {
         );
     }, [entries, section, search]);
 
-    if (isLoading) return <Loader size="sm" />;
-    if (isError) return <Alert color="red" variant="light">Maßnahmen konnten nicht geladen werden.</Alert>;
+    if (isLoading) return <LoadingState rows={6} />;
+    if (isError) return <ErrorState onRetry={() => void refetch()}>Maßnahmen konnten nicht geladen werden.</ErrorState>;
 
     const pageRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
     return (
@@ -499,7 +501,7 @@ export default function InfraplanPage() {
         );
 
     if (reportsLoading || kpisLoading) {
-        return <Container py="xl"><Group justify="center"><Loader /></Group></Container>;
+        return <Container py="xl"><LoadingState rows={6} /></Container>;
     }
 
     return (

@@ -1,12 +1,15 @@
 import { useState } from "react";
-import { Anchor, Collapse, Group, Loader, Stack, Table, Text, Title } from "@mantine/core";
+import { Anchor, Collapse, Group, Stack, Table, Text, Title } from "@mantine/core";
 import { BarChart } from "@mantine/charts";
+import "../../../shared/ui/charts.css";
+import { CHART_SERIES } from "../../../shared/theme/semanticColors";
 import "@mantine/charts/styles.css";
 import { Link } from "react-router-dom";
 import { ChronicleCard, ChronicleDataChip } from "../../../components/chronicle";
 import { type GvfgProjectEntry, useProjectGvfg } from "../../../shared/api/queries";
 import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
 import { CATEGORY_LABEL, KIND_LABEL, editionLabel, formatMio, num, sumLine } from "../../gvfg/gvfgFormat";
+import { LoadingState } from "../../../shared/ui/LoadingState";
 
 // ---------------------------------------------------------------------------
 // GVFG-Bundesprogramm on the project page (docs/features/feature-gvfg-import.md).
@@ -91,8 +94,8 @@ function PeriodChart({ entry }: { entry: GvfgProjectEntry }) {
             dataKey="period"
             type="stacked"
             series={[
-                { name: "paid", label: "ausgezahlt", color: "teal.6" },
-                { name: "planned", label: "geplant / Rest", color: "blue.6" },
+                { name: "paid", label: "ausgezahlt", color: CHART_SERIES[0] },
+                { name: "planned", label: "geplant / Rest", color: CHART_SERIES[1] },
             ]}
             valueFormatter={(v) => formatMio(v)}
             withLegend
@@ -229,7 +232,7 @@ function SubprojectEntries({ groups, projectId }: { groups: GvfgProjectEntry[][]
 export default function GvfgSection({ projectId }: { projectId: number }) {
     const { data: entries, isLoading } = useProjectGvfg(projectId);
 
-    if (isLoading) return <Loader size="sm" />;
+    if (isLoading) return <LoadingState rows={3} />;
     if (!entries || entries.length === 0) return null;
 
     const own = byKey(entries.filter((e) => e.projects.some((p) => p.id === projectId)));

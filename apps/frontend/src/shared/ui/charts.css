@@ -1,0 +1,102 @@
+/* Shared chart furniture (IDT design, Stage 3): axes, grid, legend and tooltip.
+   Colours come from the --idt-chart-* tokens so the dark scheme follows. */
+
+.mantine-ChartLegend-legend,
+.recharts-wrapper {
+  --chart-grid-color: var(--idt-chart-grid);
+  --chart-text-color: var(--idt-chart-axis);
+  --chart-cursor-fill: var(--idt-chart-track);
+}
+
+/* Mantine sets the variables on the chart root, not on the recharts wrapper. */
+[class*="m_a50f3e58"],
+[class*="mantine-BarChart-root"],
+[class*="mantine-LineChart-root"],
+[class*="mantine-CompositeChart-root"],
+[class*="mantine-DonutChart-root"] {
+  --chart-grid-color: var(--idt-chart-grid);
+  --chart-text-color: var(--idt-chart-axis);
+  --chart-cursor-fill: var(--idt-chart-track);
+}
+
+.recharts-cartesian-axis-tick text,
+.recharts-cartesian-axis-tick-value {
+  font-size: 12.5px;
+  fill: var(--idt-chart-axis);
+  font-variant-numeric: tabular-nums;
+}
+
+.recharts-cartesian-grid line,
+.recharts-cartesian-axis-line,
+.recharts-cartesian-axis-tick-line {
+  stroke: var(--idt-chart-grid);
+}
+
+/* Legend: square 12px swatches, 13.5px text. */
+.mantine-ChartLegend-legendItem {
+  border-radius: 0;
+  font-size: 13.5px;
+}
+
+.mantine-ChartLegend-legendItemColor {
+  border-radius: 0;
+  width: 12px;
+  height: 12px;
+  min-width: 12px;
+}
+
+.mantine-ChartLegend-legendItemColor > *,
+.mantine-ChartLegend-legendItemColor::before {
+  border-radius: 0;
+}
+
+.mantine-ChartLegend-legendItemName {
+  font-size: 13.5px;
+  color: var(--text-body);
+}
+
+.idt-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 8px;
+}
+
+.idt-chart-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  color: var(--text-body);
+}
+
+.idt-chart-legend__swatch {
+  width: 12px;
+  height: 12px;
+  flex: none;
+}
+
+/* Tooltip: paper, 2px frame, no shadow, radius 0. */
+.mantine-ChartTooltip-tooltip,
+.recharts-default-tooltip {
+  background: var(--surface) !important;
+  border: 2px solid var(--border-frame) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: var(--text-body) !important;
+}
+
+.mantine-ChartTooltip-tooltip *,
+.recharts-default-tooltip * {
+  color: var(--text-body);
+}
+
+.mantine-ChartTooltip-tooltipLabel {
+  color: var(--text-strong);
+}
+
+.mantine-ChartTooltip-tooltipItemColor,
+.mantine-ChartLegend-legendItemColor {
+  --cs-radius: 0;
+  border-radius: 0 !important;
+}
