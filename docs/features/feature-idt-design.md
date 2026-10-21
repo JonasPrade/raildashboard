@@ -649,11 +649,12 @@ Die Regel „kein dritter Breakpoint“ aus `feature-mobile-usability.md` bleibt
 - Vektor-Logo und Schutzraum liegen dem DS nicht vor; die Bildmarke bleibt PNG.
 - Inhalte Impressum und Datenschutz (Human Task).
 
-## Issues (Vorschlag, Format nach `docs/github-projects.md`)
+## Issues (angelegt am 2026-10-21)
 
-Alle: Label `area:design`, `bot:claude-code`; Milestone nach Entscheidung des
-Nutzers (Vorschlag: die nächste Version nach v0.0.5). Konzept-Verweis:
-`docs/features/feature-idt-design.md`.
+Epic #217; Stufe 1 #218; Stufe 2 #219 (depends on #218); Stufe 3 #220 (depends on
+#218); Stufe 4 #221 (depends on #219, #220); Human Task Impressum/Datenschutz #222
+(depends on #219). Alle `area:design`, `bot:claude-code`, ohne Milestone, bis der
+Nutzer eine Version zuweist. Die Texte unten sind der Stand beim Anlegen.
 
 **Epic — IDT-Design: Dashboard auf das Design der Initiative Deutschlandtakt umstellen** (`type:ui`)
 - Aufgabe: Richtung F vollständig durch das IDT-Design ersetzen (DS + Anwendungsebene + Dunkelfassung), in vier Stufen.
