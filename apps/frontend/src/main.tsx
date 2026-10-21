@@ -7,9 +7,11 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import "@mantine/core/styles.css";
 import "./shared/theme/tokens.css";
 import "./shared/theme/mantine-bridge.css";
-// Layout tokens only (page/card padding, map and header height, row height) until stage 4.
-import "./components/chronicle/tokens.css";
+// Layout tokens (page/card padding, map and header height, row height).
+import "./shared/theme/layout.css";
 import "@mantine/notifications/styles.css";
+// Mantine component rules after the Anwendungsebene (stage 4).
+import "./shared/theme/components.css";
 
 import { COLOR_SCHEME_STORAGE_KEY, theme, ThemeAttributeSync } from "./shared/theme";
 import { router } from "./router";

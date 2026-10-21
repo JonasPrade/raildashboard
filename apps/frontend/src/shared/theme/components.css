@@ -1,0 +1,60 @@
+/* Mantine components after the Anwendungsebene (docs/features/feature-idt-design.md
+   → "Stufe 4 — Bausteine"). One file, no CSS modules; theme.ts wires the classes. */
+
+/* ── Cards (DS Card variants) ─────────────────────────────────────────────
+   Paper withBorder = DS `soft`; .karte--frame = 2px ink; .karte--inverse = ink panel
+   (replaces ChronicleCard tone="board"); --card-accent = 6px top stripe. */
+.karte--frame {
+    border: 2px solid var(--border-frame) !important;
+    box-shadow: none !important;
+}
+.karte--inverse {
+    background: var(--surface-inverse) !important;
+    color: var(--text-on-inverse);
+    border-color: var(--surface-inverse) !important;
+    --mantine-color-dimmed: var(--text-on-inverse-muted);
+}
+[style*="--card-accent"] {
+    border-top: 6px solid var(--card-accent) !important;
+}
+
+/* ── Kennzahl (Stat) and Kennzahlenband — shared/ui/Stat.tsx ─────────────── */
+.idt-statband {
+    display: grid;
+    grid-template-columns: repeat(var(--statband-cols, 4), minmax(0, 1fr));
+    border: 2px solid var(--border-frame);
+}
+.idt-statband > .idt-stat {
+    padding: 18px 22px 16px;
+    border-left: 2px solid var(--border-frame);
+}
+.idt-statband > .idt-stat:first-child { border-left: none; }
+.idt-stat { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.idt-stat__num {
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: var(--ls-tight);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-strong);
+}
+.idt-stat__num--lg { font-size: 56px; }
+.idt-stat__num small { font-size: 0.5em; font-weight: 600; margin-left: 2px; }
+.idt-stat__title { font-size: 16px; font-weight: 600; margin-top: 6px; color: var(--text-strong); }
+.idt-stat__label {
+    font-size: 13px;
+    letter-spacing: var(--ls-label);
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.karte--inverse .idt-stat__num,
+.karte--inverse .idt-stat__title { color: var(--text-on-inverse); }
+.karte--inverse .idt-stat__label { color: var(--text-on-inverse-muted); }
+
+@media (max-width: 48em) {
+    .idt-statband { grid-template-columns: 1fr; }
+    .idt-statband > .idt-stat { border-left: none; border-top: 2px solid var(--border-frame); }
+    .idt-statband > .idt-stat:first-child { border-top: none; }
+    .idt-stat__num { font-size: 28px; }
+    .idt-stat__num--lg { font-size: 40px; }
+}

@@ -1,6 +1,5 @@
 /* Layout tokens only. Colours, type and shape come from the IDT design system
-   (src/shared/theme/tokens.css, docs/DESIGN.md). This file goes away in stage 4 of
-   docs/features/feature-idt-design.md; the layout tokens then move with it.
+   (src/shared/theme/tokens.css, docs/DESIGN.md).
 
    Breakpoints match Mantine (48em phone / 62em small tablet) and
    src/shared/hooks/useBreakpoint.ts. Components read these tokens instead of
