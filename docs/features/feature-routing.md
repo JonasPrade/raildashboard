@@ -32,6 +32,10 @@ Backend-Infrastruktur ist vollständig implementiert (GraphHopper HTTP client, `
 - Fehlerfall 502 → "Routing-Dienst nicht erreichbar"
 - Fehlerfall 422 → "Kein Pfad gefunden"
 - Accept: schreibt Route in DB und aktualisiert `geojson_representation` des Projekts
+- Start-, Ziel- und Zwischenhalte werden **nicht** als Punkte eingezeichnet oder gespeichert —
+  sie steuern nur die Route. Nur wenn es ausdrücklich gewünscht ist (Schalter „Start, Ziel und
+  Zwischenhalte als Punkte übernehmen“ im Editor, `add_stations: true` im MCP-Tool
+  `route_project_geometry`), kommen sie als Betriebsstellen-Punkte dazu.
 - Reject: kein API-Call, Vorschau wird verworfen
 
 ## Akzeptanzkriterien

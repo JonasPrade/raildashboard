@@ -13,6 +13,7 @@ import {
     mainPhaseIndex,
     visiblePhases,
 } from "./phaseMeta";
+import type { PhaseCompletions } from "./phaseCompletions";
 import { formatDateShort } from "../../../../shared/format";
 import { formatExpected, formatQualifiedDate } from "../../../../shared/datePrecision";
 import { FORECAST_SOURCE_COLOR, LANE_STATE_COLOR } from "../../../../shared/theme/semanticColors";
@@ -67,6 +68,9 @@ type Props = {
     /** Forecast steps; those with a known date are drawn in a "Prognose" row
      * under their phase column, the rest is left out. */
     forecastSteps?: readonly StepperForecastStep[] | null;
+    /** When phases ended per the sources (GVFG, VIB), shown in the phase
+     * tooltip as "abgeschlossen 2009". */
+    completedAt?: PhaseCompletions;
 };
 
 const ACTIVE: string = LANE_STATE_COLOR.active;
@@ -197,6 +201,7 @@ export default function PhaseStepper({
     parlDate,
     hiddenPhases,
     forecastSteps,
+    completedAt,
 }: Props) {
     const phases = visiblePhases(hiddenPhases);
     const isSpan = spanMin != null && spanMax != null;
@@ -265,12 +270,22 @@ export default function PhaseStepper({
                 }
 
                 const phaseChildren = childrenByPhase?.[phase] ?? [];
+                const completions = completedAt?.[phase] ?? [];
                 const tooltipLabel =
-                    phaseChildren.length > 0 ? (
+                    phaseChildren.length > 0 || completions.length > 0 ? (
                         <Stack gap={2}>
                             <Text size="xs" fw={700}>
-                                {MAIN_PHASE_LABEL[phase]} ({phaseChildren.length})
+                                {MAIN_PHASE_LABEL[phase]}
+                                {phaseChildren.length > 0 && ` (${phaseChildren.length})`}
                             </Text>
+                            {completions.map((c) => (
+                                <Text key={c.source} size="xs">
+                                    abgeschlossen {c.label}{" "}
+                                    <Text span size="xs" c="dimmed">
+                                        ({c.source})
+                                    </Text>
+                                </Text>
+                            ))}
                             {phaseChildren.slice(0, 12).map((c) => (
                                 <Text key={c.project_id} size="xs">
                                     {c.name}

@@ -28,7 +28,9 @@ Der Editor besteht aus einem linken Bedienfeld mit den vier Erfassungswegen und 
 
 1. **„Startbahnhof"** und **„Zielbahnhof"** suchen und auswählen.
 2. Läuft die berechnete Route falsch, mit **„+ Via-Bahnhof hinzufügen"** Zwischenhalte („Via 1", „Via 2", …) erzwingen.
-3. **„Route berechnen"** klicken — die Route erscheint als Vorschau auf der Karte und wird erst mit dem Speichern übernommen.`,
+3. **„Route berechnen"** klicken — die Route erscheint als Vorschau auf der Karte und wird erst mit dem Speichern übernommen.
+
+Gespeichert wird nur die Linie; Start, Ziel und Zwischenhalte steuern nur die Route. Sollen die Bahnhöfe selbst als Punkte in die Geometrie (z. B. bei Knotenprojekten), den Schalter **„Start, Ziel und Zwischenhalte als Punkte übernehmen"** einschalten.`,
         },
         {
             key: "punkte-geojson",
