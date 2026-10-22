@@ -687,12 +687,17 @@ BVWP-Schätzungen.
 - **Unterprojekt-Tabelle** (`SubprojectsTable.tsx`): durchsuchbar, mit Status-Verteilungs-Chips
   (inkl. „Unbekannt"-Bucket), ersetzt die frühere Kinderliste im Aufklappbereich.
 - **Phasen-Hover** im `PhaseStepper`: Tooltip + Zähler-Badge listen die Unterprojekte je Phase.
-- **Abschlussjahre aus dem GVFG** im Phasen-Tooltip („abgeschlossen 2009", mit Quelle):
-  `progress/gvfgPhaseDates.ts` liest die neueste Ausgabe der eigenen GVFG-Vorhaben — ein
-  Baubeginn bis zum laufenden Jahr schließt die letzte sichtbare Planungsphase vor Bau, eine
-  „Inbetriebnahme tats.“ vor dem laufenden Jahr schließt Bau (gleiche Lesart wie
-  `gvfg_entry_to_specs`). Bei mehreren Vorhaben gilt das späteste Jahr. Nur Anzeige, keine
-  Beobachtung.
+- **Abschlussdaten im Phasen-Tooltip** („abgeschlossen 2009“, mit Quelle), nur Anzeige, keine
+  Beobachtung; Logik in `progress/phaseCompletions.ts`, gleiche Lesart wie
+  `services/progress_materialization.py`:
+  - **GVFG** (neueste Ausgabe der eigenen Vorhaben): ein Baubeginn bis zum laufenden Jahr schließt
+    die letzte sichtbare Planungsphase vor Bau, eine „Inbetriebnahme tats.“ vor dem laufenden Jahr
+    schließt Bau. Bei mehreren Vorhaben gilt das späteste Jahr.
+  - **VIB** (PFA-Tabelle des neuesten Berichts; ein Blatt sieht nur eigene und nicht zugeordnete
+    Abschnitte, ein Superior alle): PFB (sonst Baubeginn) schließt die letzte Planungsphase,
+    Inbetriebnahme schließt Bau — nur wenn **jeder** Abschnitt ein vergangenes Datum trägt;
+    angezeigt wird das späteste im Wortlaut des VIB. Prognosen („voraussichtlich …“) zählen nicht;
+    ein Zeitraum („12/2024“, „Mitte 2026“) gilt erst nach seinem Ende als vergangen.
 
 ### Entscheidungen (Phase 1)
 

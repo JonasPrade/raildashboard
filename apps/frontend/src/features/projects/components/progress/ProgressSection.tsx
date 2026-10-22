@@ -3,9 +3,9 @@ import { Alert, Badge, Button, Group, Paper, Stack, Text, Title } from "@mantine
 import { Pencil } from "lucide-react";
 
 import { useAuth } from "../../../../lib/auth";
-import { useProjectGvfg, useProjectProgress } from "../../../../shared/api/queries";
+import { useProjectGvfg, useProjectProgress, useProjectVibEntries } from "../../../../shared/api/queries";
 import ForecastPanel from "./ForecastPanel";
-import { gvfgPhaseCompletions } from "./gvfgPhaseDates";
+import { gvfgPhaseCompletions, mergeCompletions, vibPhaseCompletions } from "./phaseCompletions";
 import LifecycleOverlay from "./LifecycleOverlay";
 import ParallelLanes from "./ParallelLanes";
 import PhaseStepper, { type StepperChild } from "./PhaseStepper";
@@ -29,8 +29,9 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
     const { can, user } = useAuth();
     const canEdit = can("progress.edit");
     const { data: progress, isLoading, isError } = useProjectProgress(projectId);
-    // Same query as the GVFG section on the page — served from the cache.
+    // Same queries as the GVFG and VIB sections on the page — served from the cache.
     const { data: gvfgEntries } = useProjectGvfg(projectId);
+    const { data: vibEntries } = useProjectVibEntries(projectId);
     const [editing, setEditing] = useState(false);
 
     if (isLoading) {
@@ -164,7 +165,10 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
                     parlState={progress.parl_state as ParallelState | null}
                     parlDate={progress.parl_befassung_date}
                     hiddenPhases={progress.hidden_phases}
-                    completedAt={gvfgPhaseCompletions(gvfgEntries, projectId, progress.hidden_phases)}
+                    completedAt={mergeCompletions(
+                        gvfgPhaseCompletions(gvfgEntries, projectId, progress.hidden_phases),
+                        vibPhaseCompletions(vibEntries, projectId, progress.is_superior, progress.hidden_phases),
+                    )}
                 />
 
                 {progress.is_superior && progress.children.length > 0 && (
