@@ -7,6 +7,13 @@ Zusammenarbeit (Status-Wechsel, Issue-Format, User-Backlog, Release-Gate) stehen
 in [`docs/github-projects.md`](docs/github-projects.md). `docs/roadmap.md` ist
 nur noch Lese-Übersicht; lose Ideen kommen in `docs/user-backlog.md`.
 
+**Auto-Merge ist eingeschaltet.** Ein `PostToolUse`-Hook (`.claude/settings.json` →
+`.claude/hooks/pr_auto_merge.py`) meldet sich, sobald ein PR angelegt ist, und gibt den
+dauerhaften Auftrag mit: CI verfolgen, rote Läufe beheben, bis sie grün ist, dann ohne
+Rückfrage mergen (Merge-Commit). Ausnahme: Issue in **Needs User Test** oder Draft-PR —
+dann bei Grün anhalten. Ein Merge auf `master` rollt nicht aus. Hook-Eintrag entfernen
+schaltet es ab.
+
 ## Alembic / Database Migrations
 
 Use the Makefile commands for all Alembic interactions — never call `alembic` directly.
