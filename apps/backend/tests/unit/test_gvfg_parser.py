@@ -14,7 +14,7 @@ from dashboard_backend.services.gvfg_parser import (
     parse_decimal,
     parse_gvfg_pdf,
 )
-from tests.gvfg_pdf_factory import Row, build_pdf
+from tests.gvfg_pdf_factory import FINANCIAL_HEADERS, Row, build_pdf
 
 
 def _meta(nr, key, name, **extra):
@@ -71,6 +71,8 @@ def _financial_page(**overrides):
 def test_helpers():
     assert normalize_key("Projektschlüssel 5 G 7007_A") == "05 G 7007_A"
     assert normalize_key("01 G 540 _ A") == "01 G 540_A"
+    assert normalize_key("03 D 4505 A") == "03 D 4505_A"
+    assert normalize_key("12 D 565 Anteil") is None
     assert normalize_key("Bau und Ausbau") is None
     assert parse_decimal("1.662,00") == Decimal("1662.00")
     assert parse_decimal("") is None
@@ -125,6 +127,51 @@ def test_missing_sum_line_is_computed():
     assert total.category == CATEGORY_SUM and total.computed is True
     assert total.cost_total == Decimal("323.90")
     assert total.periods == {"1967–2023": Decimal("50.13")}
+
+
+def test_typos_in_header_and_rows():
+    """2023 edition: one table prints other labels for the same columns, puts
+    "insgesamt" into the neighbouring header cell, a key lacks its underscore
+    and a marker reads "Kat: C"."""
+    headers = list(FINANCIAL_HEADERS)
+    for printed, typo in (
+        ("zwf. Kosten", "zwf. Kosten insgesamt"),
+        ("insgesamt", "Bundesfinanzhilfen"),
+        ("1967-2023", "1967-2022"),
+        ("2024", "vsl. 2024"),
+    ):
+        headers[headers.index(printed)] = typo
+    row = Row(
+        _meta("1", "11 G 4519 A", "Verlängerung U5"),
+        [
+            ("∑", ["10,00", "8,00", "6,00", "1,00", "2,00", "3,00", "0,00"]),
+            ("Kat: C", ["10,00", "8,00", "6,00", "1,00", "2,00", "3,00", "0,00"]),
+        ],
+    )
+    odd_page = _financial_page(land="Berlin", rows=[row], total=[], headers=headers)
+    # More entries without year columns than with must not change the reference.
+    info_rows = [
+        Row(_meta(str(n), f"01 G 52{n}_A", f"Vorhaben {n}"), [("", ["1,00", "1,00", "0,75"])]) for n in range(1, 5)
+    ]
+    info_page = {"land": "Schleswig-Holstein", "kind": "DB-Vorhaben", "informational": True, "rows": info_rows, "total": []}
+    result = parse_gvfg_pdf(io.BytesIO(build_pdf([_financial_page(), odd_page, info_page])))
+
+    assert [p.label for p in result.periods] == ["1967–2023", "2024", "2025", "ab 2030"]
+    assert result.warnings == [
+        "S. 2: Spalte „1967–2022“ als „1967–2023“ gelesen (abweichender Tabellenkopf).",
+        "S. 2: Spalte „vsl. 2024“ als „2024“ gelesen (abweichender Tabellenkopf).",
+    ]
+    entry = result.entries[2]
+    assert (entry.key, entry.key_raw) == ("11 G 4519_A", "11 G 4519 A")
+    assert [a.category for a in entry.amounts] == [CATEGORY_SUM, "C"]
+    total = entry.amounts[0]
+    assert total.aid_total == Decimal("6.00")
+    assert total.periods == {
+        "1967–2023": Decimal("1.00"),
+        "2024": Decimal("2.00"),
+        "2025": Decimal("3.00"),
+        "ab 2030": Decimal("0.00"),
+    }
 
 
 def test_informational_part():

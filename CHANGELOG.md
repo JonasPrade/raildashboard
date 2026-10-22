@@ -323,6 +323,16 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   with short names) and can be reverted like any other project field.
 
 ### Fixed
+- **GVFG import reads the 2023 edition completely.** Header typos in single tables
+  („1967-2020“ / „2022“ for „1967-2021“ / „vsl. 2022“) are mapped onto the edition's
+  columns with a review hint instead of becoming extra year columns; a header that
+  splits „Bundesfinanzhilfen insgesamt“ over two cells keeps the aid total (16 D 4520_A);
+  „Kat: C“ and a key without underscore („03 D 4505 A“, previously missing) are read.
+  Confirming a parse with the financial part now replaces the edition's year columns,
+  so a re-import removes wrongly read ones.
+  The data migration `20261022001` applies the same corrections to the already
+  imported edition 2023–2027 on the next deploy (no re-upload); it does nothing without
+  that edition.
 - **Infraplan: full stops read as "�".** Some prints of the Infraplan 2026 map the table
   font's full stop to U+FFFD in their ToUnicode table, so every "." came out as "�"
   ("4gl�", "1�676,02", "E�1637260058") — which also broke costs from 1,000 Mio. € on, the
