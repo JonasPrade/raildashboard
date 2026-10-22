@@ -1,7 +1,7 @@
 """Project geometry tools: inspect, route over the rail network, edit by hand.
 
 The same building blocks as the GeometryEditor in the UI: a GraphHopper route
-between operational points (plus the stations as points), hand-made lines and
+between operational points (stations as points only on request), hand-made lines and
 points from coordinates, operational points as points, and deleting single
 features. Every write goes through ``update_project`` with a changelog entry, so
 it can be reverted in the project history like a geometry saved in the UI.
@@ -419,7 +419,7 @@ def route_project_geometry(
     project_id: int,
     waypoints: list[int | str | Coordinate],
     mode: Literal["append", "replace"] = "append",
-    add_stations: bool = True,
+    add_stations: bool = False,
     apply: bool = False,
     *,
     ctx: Context,
@@ -432,8 +432,10 @@ def route_project_geometry(
       search_operational_points) — or a free coordinate {"lat": …, "lon": …}.
       Add via points to force the right corridor where several lines run.
     - mode: "append" adds the route to the existing geometry, "replace" swaps it.
-    - add_stations: also add the operational-point waypoints as points
-      (skipped when the op_id is already present).
+    - add_stations: also add the operational-point waypoints (start, via, end)
+      as points (skipped when the op_id is already present). Off by default:
+      waypoints only steer the route; set it only when the stations are meant
+      to be part of the geometry (e.g. a station or node project).
     - apply: false (default) only calculates and reports distance, resolved
       waypoints and the resulting geometry; true writes it (changelog, revertible)
       and stores the route.

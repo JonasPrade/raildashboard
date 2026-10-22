@@ -112,8 +112,8 @@ def test_route_preview_does_not_write(mcp_client, admin_token, db_session, routi
     assert result["route"]["distance_km"] == 1.2
     assert result["route"]["duration_min"] == 8
     assert [w["op_id"] for w in result["route"]["waypoints"]] == ["KK", "EDO"]
-    # Existing line + point, the route and both stations.
-    assert result["geometry"]["feature_count"] == 5
+    # Existing line + point and the route; waypoints are not added as points by default.
+    assert result["geometry"]["feature_count"] == 3
     db_session.refresh(project)
     assert project.geojson_representation == EXISTING_LINE
     assert db_session.query(Route).filter_by(project_id=project.id).count() == 0
@@ -133,6 +133,7 @@ def test_route_apply_replace_writes_changelog_and_route(
                 "project_id": project.id,
                 "waypoints": ["kk", {"lat": 51.5, "lon": 7.5}],
                 "mode": "replace",
+                "add_stations": True,
                 "apply": True,
             },
         )
@@ -169,7 +170,12 @@ def test_route_append_skips_present_station(mcp_client, admin_token, db_session)
             mcp_client,
             admin_token,
             "route_project_geometry",
-            {"project_id": project.id, "waypoints": [koeln.id, dortmund.id], "apply": True},
+            {
+                "project_id": project.id,
+                "waypoints": [koeln.id, dortmund.id],
+                "add_stations": True,
+                "apply": True,
+            },
         )
     )
     db_session.refresh(project)
