@@ -1,5 +1,5 @@
 import { useMemo, useState, type MouseEvent } from "react";
-import { ActionIcon, Button, Group, Select, Table, Text, UnstyledButton } from "@mantine/core";
+import { ActionIcon, Button, Group, Select, Table, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -140,13 +140,22 @@ export function ProjectListTable({ projects, limit, onShowMore, pageSize }: Prop
                             >
                                 <Table.Td>
                                     {id !== null ? (
-                                        <Link
-                                            to={`/projects/${id}`}
-                                            onFocus={() => prefetchProjectPage(id)}
-                                            style={{ color: nameColor, fontWeight: 600, textDecoration: "none" }}
+                                        <Tooltip
+                                            label={project.description}
+                                            disabled={!project.description}
+                                            multiline
+                                            w={360}
+                                            withArrow
+                                            openDelay={300}
                                         >
-                                            {project.name}
-                                        </Link>
+                                            <Link
+                                                to={`/projects/${id}`}
+                                                onFocus={() => prefetchProjectPage(id)}
+                                                style={{ color: nameColor, fontWeight: 600, textDecoration: "none" }}
+                                            >
+                                                {project.name}
+                                            </Link>
+                                        </Tooltip>
                                     ) : (
                                         <Text span fw={600} style={{ color: nameColor }}>
                                             {project.name}
