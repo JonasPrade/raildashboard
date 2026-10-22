@@ -139,8 +139,9 @@ der **neuesten Ausgabe** zählen in der Admin-Übersicht „Nicht zugeordnet“ 
 - `/finanzen/gvfg`: Tabelle der gewählten Ausgabe, Filter Land, kommunal/DB,
   Fördertatbestand, Kategorie, Teil, „ohne Projekt“; Summen je Land; Reiter
   „Änderungen zur Vorausgabe“.
-- Projektseite: Abschnitt „GVFG“ unter „Finanzierungsvereinbarungen (FinVe)“ mit
-  eigenem Inhaltsverzeichnis-Eintrag: neueste Ausgabe (A/B/C, Fördersatz,
+- Projektseite: Abschnitt „GVFG“ nach „Infraplan“ und vor „Finanzierungsvereinbarungen
+  (FinVe)“ mit eigenem Inhaltsverzeichnis-Eintrag; die Finanzhilfen stehen zusätzlich
+  als „Bundesförderung (GVFG)“ im Kostenblock: neueste Ausgabe (A/B/C, Fördersatz,
   Fördertatbestand, Lph, Inbetriebnahme), Balkendiagramm Bundesfinanzhilfen je
   Jahr, Tabelle „Entwicklung über die Ausgaben“.
 - Plant die neueste Ausgabe nach dem bekannten Inbetriebnahmejahr noch einen relevanten

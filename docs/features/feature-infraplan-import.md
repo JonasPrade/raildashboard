@@ -313,8 +313,8 @@ automatisch.
 
 ## Kosten
 
-- **Gesamtkostenprognose** (Kopfzahl im Projektdetail; der Kostenblock steht ganz oben,
-  direkt unter dem Projekttitel):
+- **Gesamtkostenprognose** (Kopfzahl im Projektdetail; der Kostenblock steht direkt
+  unter Projektdetails und Karte, vor Planungsstand und Infraplan):
   - Projekt mit eigener Zeile → deren `cost_mio` (bzw. der über `cost_ref_entry_id`
     aufgelöste Wert, wenn die Zeile auf einen anderen Eintrag verweist);
   - übergeordnetes Projekt ohne eigene Zeile → Summe der Teilprojekte (Grundsatz für
@@ -332,6 +332,10 @@ automatisch.
   Derselbe Grundsatz gilt für den Abschnitt „Finanzierungsvereinbarungen (FinVe)“:
   Er listet erst die eigenen FinVe, dann die der Teilprojekte, jede mit dem Hinweis
   „Aus Teilprojekt …“ und einem Link darauf.
+- **GVFG-Projekte** (ohne FinVe): an die Stelle von „Vom Bund zugesichert“ tritt die
+  **Bundesförderung (GVFG)** — die Finanzhilfen der ∑-Zeile, je Schlüssel die jüngste
+  Ausgabe, eigene Vorhaben (ohne eigene die der Teilprojekte, nie beide addiert). Ohne
+  Infraplan-Zahl steht der Block trotzdem, mit den GVFG-Gesamtkosten als Kopfzahl.
 - **Kein Deckungsgrad** — andere Organisationen finanzieren mit, ein Verhältnis wäre
   irreführend.
 
