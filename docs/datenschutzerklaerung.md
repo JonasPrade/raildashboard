@@ -4,7 +4,7 @@
 Entwurf zum Einfügen unter /admin → „Impressum und Datenschutz“ → Datenschutz (Markdown).
 Platzhalter in [eckigen Klammern] vor dem Veröffentlichen füllen und diesen Kommentar weglassen.
 Offen: Anschrift/E-Mail des Vereins, Datenschutzbeauftragter ja/nein, Aufbewahrungsdauer der
-Zugriffsprotokolle des Host-nginx, Speicherort der Borg-Backups, zuständige Aufsichtsbehörde.
+Zugriffsprotokolle des Host-nginx, Serverstandort und Aufbewahrung der Hetzner-Sicherung.
 Keine Rechtsberatung — vor Veröffentlichung juristisch prüfen lassen.
 -->
 
@@ -33,9 +33,9 @@ Personenbezogene Daten verarbeiten wir nur in folgenden Fällen:
 
 ## 3. Hosting
 
-Die Website wird auf einem Server der Contabo GmbH, Aschauer Straße 32a, 81549 München, betrieben. Mit Contabo besteht ein Vertrag über Auftragsverarbeitung nach Art. 28 DSGVO. Die Daten werden in Rechenzentren in Deutschland verarbeitet.
+Die Website wird auf einem Server der Hetzner Online GmbH, Industriestr. 25, 91710 Gunzenhausen, betrieben. Mit Hetzner besteht ein Vertrag über Auftragsverarbeitung nach Art. 28 DSGVO. Die Daten werden in Rechenzentren in [Deutschland/Finnland – Standort des Servers] verarbeitet.
 
-Zur Datensicherung legen wir regelmäßig Sicherungskopien der Datenbank und der hochgeladenen Dateien an. Die Sicherungen werden auf dem Server 14 Tage aufbewahrt und zusätzlich verschlüsselt bei [Anbieter, Ort] gespeichert. [Aufbewahrungsdauer der externen Sicherung ergänzen.]
+Zur Datensicherung legen wir regelmäßig Sicherungskopien der Datenbank und der hochgeladenen Dateien an. Die Sicherungen werden auf dem Server 14 Tage aufbewahrt und zusätzlich verschlüsselt auf einem Speicher der Hetzner Online GmbH abgelegt und dort [X Tage/Wochen] aufbewahrt.
 
 ## 4. Aufruf der Website und Server-Protokolle
 
@@ -79,7 +79,7 @@ Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (Mitwirkung in der Redaktion) bzw
 
 ## 8. Empfänger
 
-Eine Weitergabe Ihrer Daten an Dritte findet außer an die oben genannten Dienstleister (Hosting, Datensicherung) und – technisch bedingt – an das BKG nicht statt. Eine Übermittlung in Länder außerhalb der EU bzw. des EWR erfolgt nicht.
+Eine Weitergabe Ihrer Daten an Dritte findet außer an die Hetzner Online GmbH als Dienstleister für Hosting und Datensicherung und – technisch bedingt – an das BKG nicht statt. Eine Übermittlung in Länder außerhalb der EU bzw. des EWR erfolgt nicht.
 
 ## 9. Ihre Rechte
 
@@ -94,7 +94,7 @@ Sie haben gegenüber uns folgende Rechte hinsichtlich der Sie betreffenden perso
 
 Wenden Sie sich dazu an die in Abschnitt 1 genannte Adresse.
 
-Sie haben außerdem das Recht, sich bei einer Datenschutz-Aufsichtsbehörde zu beschweren (Art. 77 DSGVO). Für uns zuständig ist [Aufsichtsbehörde des Bundeslands, in dem der Verein seinen Sitz hat, z. B. Berliner Beauftragte für Datenschutz und Informationsfreiheit, Alt-Moabit 59–61, 10555 Berlin].
+Sie haben außerdem das Recht, sich bei einer Datenschutz-Aufsichtsbehörde zu beschweren (Art. 77 DSGVO). Für uns zuständig ist die Sächsische Datenschutz- und Transparenzbeauftragte, Devrientstraße 5, 01067 Dresden.
 
 ## 10. Keine automatisierte Entscheidungsfindung
 
