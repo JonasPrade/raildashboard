@@ -20,6 +20,7 @@ export type SourceType =
     | "BAUPORTAL"
     | "MEDIEN"
     | "INFRAPLAN"
+    | "GVFG"
     | "MANUELL";
 
 export const MAIN_PHASES: MainPhase[] = [
@@ -98,6 +99,7 @@ export const SOURCE_LABEL: Record<SourceType, string> = {
     BAUPORTAL: "Bauportal",
     MEDIEN: "Medien",
     INFRAPLAN: "Infraplan",
+    GVFG: "GVFG",
     MANUELL: "Manuell",
 };
 

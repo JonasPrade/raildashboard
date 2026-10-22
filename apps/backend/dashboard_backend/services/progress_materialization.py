@@ -10,6 +10,8 @@ Mapping (per feature-project-progress.md):
   ``status_abgeschlossen`` → ≥ IN_BETRIEB. PFA fields drive the PF track
   (and the forecast, handled elsewhere).
 - FinVe link → MAIN ≥ BAU; Sammel-FinVe weaker (lower explicit confidence).
+- GVFG-Bundesprogramm (newest edition) → MAIN from Inbetriebnahme, Lph and
+  Baubeginn, plus the expected commissioning.
 """
 
 from __future__ import annotations
@@ -75,6 +77,7 @@ class DerivedSpec:
     media_report_id: int | None = None
     fulda_announcement_id: int | None = None
     infraplan_entry_id: int | None = None
+    gvfg_entry_id: int | None = None
     # Prognosis: feeds the forecast only, never the phase.
     is_expected: bool = False
 
@@ -543,3 +546,100 @@ def infraplan_parl_relevant(parl_state: str | None) -> bool | None:
     if not parl_state:
         return None
     return parl_state != "NICHT_VEREINBART"
+
+
+_GVFG_LPH = re.compile(r"^\s*(\d)\s*(?:-\s*(\d))?\s*$")
+
+
+def gvfg_lph_main_phase(lph: str | None) -> MainPhase | None:
+    """Lower bound of the main phase from the printed Lph of a GVFG Vorhaben.
+
+    Same reading as the GVFG rows of the Infraplan (:func:`infraplan_main_phase`):
+    from 5 → BAU, within 3–4 → GENEHMIGUNGSPLANUNG, within 1–2 → VORPLANUNG;
+    a lone ``9`` (Objektbetreuung) → IN_BETRIEB. Spans across those bounds
+    (``1 - 9``, ``4 - 8``) and lists (``4, 9``, ``1 - 3 / 5 - 9``) say nothing.
+    """
+
+    match = _GVFG_LPH.match(lph or "")
+    if match is None:
+        return None
+    lph_from = int(match.group(1))
+    upper = int(match.group(2)) if match.group(2) else lph_from
+    if lph_from == 9:
+        return MainPhase.IN_BETRIEB
+    if lph_from >= 5:
+        return MainPhase.BAU
+    if lph_from >= 3 and upper <= 4:
+        return MainPhase.GENEHMIGUNGSPLANUNG
+    if lph_from >= 1 and upper <= 2:
+        return MainPhase.VORPLANUNG
+    return None
+
+
+def gvfg_ibn_year(commissioning_planned: int | None, commissioning_actual: int | None) -> int | None:
+    """The commissioning year a GVFG Vorhaben states: "Inbetriebnahme tats."
+    (in the editions often a future year, i.e. the current expectation), else
+    "Inbetriebnahme gepl."."""
+
+    return commissioning_actual if commissioning_actual is not None else commissioning_planned
+
+
+def gvfg_entry_to_specs(
+    *,
+    gvfg_entry_id: int,
+    edition: str,
+    stand: date,
+    lph: str | None,
+    construction_start: int | None,
+    commissioning_planned: int | None,
+    commissioning_actual: int | None,
+) -> list[DerivedSpec]:
+    """Derived specs for one Vorhaben of the newest GVFG edition (trust 0.75,
+    observed on the edition's Stand).
+
+    - MAIN: the strongest of "Inbetriebnahme tats." before the Stand year →
+      IN_BETRIEB, the Lph (:func:`gvfg_lph_main_phase`) and a Baubeginn up to
+      the Stand year → BAU. One observation only: several with the same weight
+      would let the weaker phase win on a tie of dates.
+    - Expected IN_BETRIEB at 31 Dec of :func:`gvfg_ibn_year` when that year is
+      not before the Stand year (earlier years are Restarbeiten).
+    """
+
+    label = f"GVFG {edition}"
+    stand_year = stand.year
+    reasons: list[tuple[MainPhase, str]] = []
+    if commissioning_actual is not None and commissioning_actual < stand_year:
+        reasons.append((MainPhase.IN_BETRIEB, f"Inbetriebnahme {commissioning_actual}"))
+    lph_phase = gvfg_lph_main_phase(lph)
+    if lph_phase is not None:
+        reasons.append((lph_phase, f"Lph {lph.strip()}"))
+    if construction_start is not None and construction_start <= stand_year:
+        reasons.append((MainPhase.BAU, f"Baubeginn {construction_start}"))
+
+    specs: list[DerivedSpec] = []
+    phase = max((p for p, _ in reasons), key=lambda p: p.order, default=None)
+    if phase is not None:
+        specs.append(
+            DerivedSpec(
+                source_type=SourceType.GVFG,
+                track=ObservationTrack.MAIN,
+                asserted_state=phase.value,
+                observed_date=stand,
+                note=f"{label}: " + ", ".join(text for _, text in reasons),
+                gvfg_entry_id=gvfg_entry_id,
+            )
+        )
+    ibn_year = gvfg_ibn_year(commissioning_planned, commissioning_actual)
+    if phase is not MainPhase.IN_BETRIEB and ibn_year is not None and ibn_year >= stand_year:
+        specs.append(
+            DerivedSpec(
+                source_type=SourceType.GVFG,
+                track=ObservationTrack.MAIN,
+                asserted_state=MainPhase.IN_BETRIEB.value,
+                observed_date=date(ibn_year, 12, 31),
+                note=f"{label}: geplante Inbetriebnahme {ibn_year}",
+                gvfg_entry_id=gvfg_entry_id,
+                is_expected=True,
+            )
+        )
+    return specs

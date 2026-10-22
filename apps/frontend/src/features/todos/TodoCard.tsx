@@ -1,4 +1,4 @@
-import { Card, Group, Select, Stack, Text, Tooltip, ActionIcon, Avatar } from "@mantine/core";
+import { Badge, Card, Group, Select, Stack, Text, Tooltip, ActionIcon, Avatar } from "@mantine/core";
 import { Pencil, Trash2, Calendar, Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Todo, TodoStatus } from "../../shared/api/queries";
@@ -13,6 +13,7 @@ import {
     initials,
     todoStatusTextStyle,
 } from "./todoConstants";
+import ProjectHoverCard from "../projects/ProjectHoverCard";
 
 type Props = {
     todo: Todo;
@@ -60,6 +61,23 @@ export default function TodoCard({
                     </Text>
                 )}
 
+                {(todo.tags ?? []).length > 0 && (
+                    <Group gap={4} wrap="wrap">
+                        {(todo.tags ?? []).map((tag) => (
+                            <Badge
+                                key={tag.id}
+                                size="sm"
+                                variant="outline"
+                                radius={0}
+                                color="var(--text-strong)"
+                                title={tag.description ?? undefined}
+                            >
+                                {tag.name}
+                            </Badge>
+                        ))}
+                    </Group>
+                )}
+
                 <Group gap="xs" wrap="wrap">
                     {todo.due_date && (
                         <Group gap={4} wrap="nowrap">
@@ -72,11 +90,13 @@ export default function TodoCard({
                     )}
                     {showProject && todo.project && (
                         <Text size="xs" c="dimmed">
-                            <Text component={Link} to={`/projects/${todo.project.id}`} size="xs" c="var(--accent-primary)" inherit>
-                                {todo.project.project_number
-                                    ? `${todo.project.project_number} – ${todo.project.name}`
-                                    : todo.project.name}
-                            </Text>
+                            <ProjectHoverCard projectId={todo.project.id}>
+                                <Text component={Link} to={`/projects/${todo.project.id}`} size="xs" c="var(--accent-primary)" inherit>
+                                    {todo.project.project_number
+                                        ? `${todo.project.project_number} – ${todo.project.name}`
+                                        : todo.project.name}
+                                </Text>
+                            </ProjectHoverCard>
                         </Text>
                     )}
                 </Group>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
     Alert,
     Button,
@@ -14,12 +14,14 @@ import {
     TextInput,
     Title,
 } from "@mantine/core";
-import { Plus } from "lucide-react";
+import { useDebouncedValue } from "@mantine/hooks";
+import { Plus, Search, Tags } from "lucide-react";
 import { notifications } from "@mantine/notifications";
 import { useAuth } from "../../lib/auth";
 import {
     useCreateTodo,
     useProjectOptions,
+    useTodoTags,
     useTodos,
     useUserOptions,
     type Todo,
@@ -27,6 +29,7 @@ import {
 } from "../../shared/api/queries";
 import TodoCard from "./TodoCard";
 import TodoEditDrawer from "./TodoEditDrawer";
+import TagManagerModal from "./TagManagerModal";
 import { useTodoActions } from "./useTodoActions";
 import { STATUS_LABELS, STATUS_ORDER } from "./todoConstants";
 import { LoadingState } from "../../shared/ui/LoadingState";
@@ -42,25 +45,36 @@ export default function TasksPage() {
     const [projectFilter, setProjectFilter] = useState<string | null>(null);
     const [onlyMine, setOnlyMine] = useState(false);
     const [includeDone, setIncludeDone] = useState(true);
+    const [tagFilter, setTagFilter] = useState<string | null>(null);
+    const [search, setSearch] = useState("");
+    const [debouncedSearch] = useDebouncedValue(search.trim(), 300);
 
     const filters = useMemo(
         () => ({
             assignee_id: onlyMine && user ? user.id : assigneeFilter ? Number(assigneeFilter) : undefined,
             project_id: projectFilter ? Number(projectFilter) : undefined,
             include_done: includeDone,
+            tag: tagFilter ?? undefined,
+            q: debouncedSearch || undefined,
         }),
-        [onlyMine, user, assigneeFilter, projectFilter, includeDone],
+        [onlyMine, user, assigneeFilter, projectFilter, includeDone, tagFilter, debouncedSearch],
     );
 
     const { data: todos, isLoading, isError, refetch } = useTodos(filters, user !== null);
     const { data: projects } = useProjectOptions();
     const { data: users } = useUserOptions(user !== null);
+    const { data: tags } = useTodoTags(user !== null);
+    // A renamed or deleted tag drops out of the filter.
+    useEffect(() => {
+        if (tagFilter && tags && !tags.some((t) => t.name === tagFilter)) setTagFilter(null);
+    }, [tags, tagFilter]);
     const createTodo = useCreateTodo();
     const { changeStatus, confirmDelete } = useTodoActions();
 
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [editing, setEditing] = useState<Todo | null>(null);
     const [quickTitle, setQuickTitle] = useState("");
+    const [tagsOpen, setTagsOpen] = useState(false);
 
     const grouped = useMemo(() => {
         const by: Record<TodoStatus, Todo[]> = { OPEN: [], IN_PROGRESS: [], DONE: [] };
@@ -104,11 +118,18 @@ export default function TasksPage() {
             <Stack gap="lg">
                 <Group justify="space-between" align="center" wrap="wrap" gap="sm">
                     <Title order={1}>Aufgaben</Title>
-                    {canCreate && (
-                        <Button leftSection={<Plus size={16} />} onClick={openCreate}>
-                            Neue Aufgabe
-                        </Button>
-                    )}
+                    <Group gap="xs">
+                        {canEdit && (
+                            <Button variant="default" leftSection={<Tags size={16} />} onClick={() => setTagsOpen(true)}>
+                                Tags verwalten
+                            </Button>
+                        )}
+                        {canCreate && (
+                            <Button leftSection={<Plus size={16} />} onClick={openCreate}>
+                                Neue Aufgabe
+                            </Button>
+                        )}
+                    </Group>
                 </Group>
 
                 {canCreate && (
@@ -129,6 +150,24 @@ export default function TasksPage() {
                 )}
 
                 <Group gap="md" align="flex-end" wrap="wrap">
+                    <TextInput
+                        label="Suche"
+                        placeholder="Titel oder Beschreibung"
+                        leftSection={<Search size={16} />}
+                        value={search}
+                        onChange={(e) => setSearch(e.currentTarget.value)}
+                        flex="1 1 200px"
+                    />
+                    <Select
+                        label="Tag"
+                        placeholder="Alle"
+                        data={(tags ?? []).map((t) => ({ value: t.name, label: `${t.name} (${t.todo_count})` }))}
+                        value={tagFilter}
+                        onChange={setTagFilter}
+                        clearable
+                        searchable
+                        flex="1 1 160px"
+                    />
                     <Select
                         label="Zugewiesen an"
                         placeholder="Alle"
@@ -213,6 +252,7 @@ export default function TasksPage() {
             </Stack>
 
             <TodoEditDrawer opened={drawerOpen} onClose={() => setDrawerOpen(false)} todo={editing} />
+            <TagManagerModal opened={tagsOpen} onClose={() => setTagsOpen(false)} canDelete={canDelete} />
         </Container>
     );
 }

@@ -151,14 +151,14 @@ export const featureHighlights: FeatureHighlight[] = [
     {
         title: "GVFG-Import",
         description:
-            "Unter Admin → GVFG-Import lesen Nutzer mit dem Recht gvfg.import das GVFG-Bundesprogramm " +
+            "Unter Einstellungen → GVFG-Import lesen Nutzer mit dem Recht gvfg.import das GVFG-Bundesprogramm " +
             "(ÖPNV-Förderung nach § 6 GVFG) als PDF ein, prüfen die Projektzuordnung und übernehmen die Ausgabe.",
         details: [
             "Hauptteil und – wo getrennt geliefert – Anhang (nachrichtlicher Teil) werden derselben Ausgabe zugeordnet",
             "Die Zahlen werden direkt aus dem PDF gelesen; Summenzeilen werden gegengeprüft und Abweichungen angezeigt",
             "Vorschläge: Projekte der Vorausgabe, dann Projektnummer = GVFG-Schlüssel, dann Name",
             "Fehlt ein Projekt, legt der Button „Projekt nicht gefunden – als Entwurf anlegen“ unter jedem Vorhaben einen Projektentwurf an und ordnet ihn zu; alternativ lassen sich alle Vorhaben ohne Projekt beim Übernehmen anlegen – auch diese Projekte entstehen als Entwurf und sind bis zur Fertigstellung aus Listen und Karte ausgeblendet. Zugeordnete Projekte kommen in die Gruppe GVFG (Land 08 zusätzlich GVFG BW)",
-            "Vorhaben der neuesten Ausgabe ohne Projekt erscheinen unter Admin → Offene Zuordnungen"
+            "Vorhaben der neuesten Ausgabe ohne Projekt erscheinen unter Einstellungen → Offene Zuordnungen"
         ]
     },
     {
@@ -176,7 +176,7 @@ export const featureHighlights: FeatureHighlight[] = [
     {
         title: "Infraplan-Import",
         description:
-            "Unter Admin → Infraplan-Import lesen Nutzer mit dem Recht infraplan.import den Infraplan des Bundes " +
+            "Unter Einstellungen → Infraplan-Import lesen Nutzer mit dem Recht infraplan.import den Infraplan des Bundes " +
             "(Fünfjahresplan Schiene) als PDF ein, ordnen die Maßnahmen Projekten zu und übernehmen den Jahrgang. " +
             "Zuordnen und Kennzahlen gehen von Hand oder per KI-Agent über den MCP-Server (Skill infraplan-import).",
         details: [
@@ -186,8 +186,8 @@ export const featureHighlights: FeatureHighlight[] = [
             "Vorjahresabgleich: Projekte mit Eintrag im Vorjahr, aber ohne Zeile im neuen Jahrgang",
             "Übernehmen nur ohne Parser-Warnungen oder ausdrücklich mit „Trotzdem übernehmen“; ein Jahrgang lässt sich löschen und neu übernehmen",
             "Kennzahlen je Jahrgang (/admin/infraplan/kpis/:jahr): manuelles Formular (gilt als geprüft) und Freigabe der KI-gelesenen Werte neben dem Seitenbild",
-            "Admin → Infraplan → Allgemeines: Name, Einheit, Kategorie, Beschreibung (Tooltip hinter dem Info-Symbol) und Darstellung jeder Kennzahl auf /infraplan (Diagrammart, Teilreihe für die Übersicht, Begleitkennzahl auf rechter Skala, Skala ab Werten)",
-            "Zeilen ohne Projekt erscheinen unter Admin → Offene Zuordnungen",
+            "Einstellungen → Infraplan → Allgemeines: Name, Einheit, Kategorie, Beschreibung (Tooltip hinter dem Info-Symbol) und Darstellung jeder Kennzahl auf /infraplan (Diagrammart, Teilreihe für die Übersicht, Begleitkennzahl auf rechter Skala, Skala ab Werten)",
+            "Zeilen ohne Projekt erscheinen unter Einstellungen → Offene Zuordnungen",
             "Plan: docs/features/feature-infraplan-import.md"
         ]
     },
@@ -205,7 +205,8 @@ export const featureHighlights: FeatureHighlight[] = [
             "Info-Symbol neben dem Namen: Tooltip mit der Erklärung der Kennzahl (z. B. Kapazitätsauslastung = Anteil der gefahrenen Trassenkilometer in überausgelasteten Netzabschnitten); die Mittelherkunft-Karte nennt das gezeigte Jahr im Titel",
             "Projektseite, Abschnitt Infraplan: Abschnitt, Realisierungsstand, geplante Inbetriebnahme, Kosten und Befassung je Jahrgang, ab dem zweiten Jahrgang Veränderungen („GWU +12 %“, „IBN 2028 → 2030“)",
             "Hinweis „Nicht mehr im Infraplan …“, wenn das Projekt im neuesten Jahrgang fehlt",
-            "Kostenblock: Gesamtkostenprognose laut Infraplan (bei Elternprojekten ohne eigene Zeile die Summe der Teilprojekte) neben den vom Bund zugesicherten FinVe-Mitteln — bewusst ohne Deckungsgrad"
+            "Kostenblock ganz oben auf der Projektseite: Gesamtkostenprognose laut Infraplan (bei Elternprojekten ohne eigene Zeile die Summe der Teilprojekte, Fußnoten hinter dem „?“) neben den vom Bund zugesicherten FinVe-Mitteln (bei Elternprojekten inklusive aller FinVe der Teilprojekte, jede einmal) — bewusst ohne Deckungsgrad",
+            "Abschnitt FinVe: bei Elternprojekten auch die FinVe aller Teilprojekte, jeweils mit dem Hinweis „Aus Teilprojekt …“ und Link darauf"
         ]
     },
     {
@@ -262,7 +263,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Lebenszyklus-Overlay (Pausiert/Abgebrochen) und einen Aufklappbereich mit der " +
             "Quellen-Aufschlüsselung. Die Anzeige ist öffentlich; Bearbeiten erfordert progress.edit.",
         details: [
-            "Headline-Phase: der neueste glaubwürdige Statusbericht (VIB, Infraplan, Bauportal, Fulda-Runde, Medien, manuell) gewinnt; nur innerhalb eines Jahres vor dem neuesten Bericht entscheidet das Vertrauen der Quelle, bei Gleichstand die höhere Phase. FinVes sind Untergrenzen („mindestens Bau“): Sie heben die Phase nur an und veralten nicht",
+            "Headline-Phase: der neueste glaubwürdige Statusbericht (VIB, Infraplan, GVFG, Bauportal, Fulda-Runde, Medien, manuell) gewinnt; nur innerhalb eines Jahres vor dem neuesten Bericht entscheidet das Vertrauen der Quelle, bei Gleichstand die höhere Phase. FinVes sind Untergrenzen („mindestens Bau“): Sie heben die Phase nur an und veralten nicht",
             "Meldet ein neuerer Bericht eine niedrigere Phase als ältere Angaben, stuft er nur zurück, wenn er mindestens so vertrauenswürdig ist (oder manuell erfasst wurde); sonst bleibt die höhere Phase. Beides erscheint als Konflikt unter Admin → „Planungsstand-Konflikte“ und als Hinweis im Projekt; ein Phasen-Override löst ihn auf",
             "Manueller Phasen-Override gewinnt immer über den berechneten Wert (Badge 'übersteuert')",
             "Parl. Befassung ist bei BSWAG-Projektgruppen vorbelegt; nullable Override pro Projekt",
@@ -275,14 +276,16 @@ export const featureHighlights: FeatureHighlight[] = [
             "„Hat Planfeststellung\" wird automatisch aktiviert, sobald eine PF-Beobachtung oder ein PF-Detail erfasst wird — kein separates Anhaken nötig",
             "API: GET (public) / PATCH / POST+DELETE observations / tracks/{track}/documents / recompute unter /api/v1/projects/{id}/progress",
             "VIB/FinVe-Beobachtungen werden materialisiert (is_derived): VIB-Status → Leistungsphasen, PFA → Planfeststellung; reguläre FinVe → Bau; nicht manuell löschbar",
-            "Sammel-FinVe: Phase aus der Leistungsphase im Namen (Lph 1/2 → Vorplanung, Lph 3/4 → Genehmigungsplanung); ohne erkennbare Lph (z. B. EKrG) manuell zuordenbar unter Admin → „Sammel-FinVe Phasen“",
+            "Sammel-FinVe: Phase aus der Leistungsphase im Namen (Lph 1/2 → Vorplanung, Lph 3/4 → Genehmigungsplanung); ohne erkennbare Lph (z. B. EKrG) manuell zuordenbar unter Einstellungen → „Sammel-FinVe Phasen“",
             "Lazy-Resync der abgeleiteten Beobachtungen bei stalem Cache (24h); „Neu berechnen\" erzwingt den Sync",
             "Prognose-Panel: Restdauer der aktuellen Phase + nächste Schritte aus BVWP-Dauern, VIB-PFA-Terminen, Fulda-Runde- und manuellen Erwartet-Beobachtungen",
+            "GVFG-Bundesprogramm als Quelle (Quelle „GVFG“, Vertrauen 0,75, Stand der neuesten Ausgabe): Inbetriebnahme tats. vor dem Standjahr oder Lph 9 → In Betrieb, Lph 5 und höher oder ein Baubeginn bis zum Standjahr → Bau, Lph 3–4 → Genehmigungsplanung, Lph 1–2 → Vorplanung; ein künftiges Inbetriebnahmejahr (tats., sonst gepl.) erscheint in der Prognose. Ist der Infraplan-Eintrag desselben Vorhabens jünger, gilt der Infraplan",
             "GVFG-Abgleich: Sieht die neueste GVFG-Ausgabe nach dem bekannten Inbetriebnahmejahr (GVFG oder Infraplan, der jüngere Stand gilt) noch mindestens 1 Mio. € und 15 % der Finanzhilfen vor, zeigt die Prognose „Inbetriebnahme JJJJ fraglich\" mit den Beträgen je Jahr; das Datum selbst bleibt unverändert",
-            "Übersprungene Planungsphasen: Projektgruppen können Vorplanung und/oder Genehmigungsplanung überspringen (z. B. Korridorsanierungen ohne Planfeststellung, Admin → Projektgruppe bearbeiten). Die Phasen verschwinden dann aus Phasenleiste und Prognose – aber nur, wenn alle Gruppen eines Projekts sie überspringen und keine Daten das Projekt in diese Phase setzen",
+            "Übersprungene Planungsphasen: Projektgruppen können Vorplanung und/oder Genehmigungsplanung überspringen (z. B. Korridorsanierungen ohne Planfeststellung, Einstellungen → Projektgruppe bearbeiten). Die Phasen verschwinden dann aus Phasenleiste und Prognose – aber nur, wenn alle Gruppen eines Projekts sie überspringen und keine Daten das Projekt in diese Phase setzen",
             "Manuelle Beobachtungen erfassen nur Leistungsphasen (Quellentyp MANUELL/BAUPORTAL/MEDIEN + optionaler Vertrauens-Override; die Fulda-Runde kommt nur über ihren Import); Planfeststellung & parl. Befassung werden separat im Schaltmenü „Verfahren\" gepflegt",
             "Erwartete Termine: eine manuelle Beobachtung kann als „erwarteter Termin\" markiert werden (Schalter im Beobachtungsformular). Sie speist nur die Prognose (z. B. erwartete Inbetriebnahme), zieht die aktuelle Phase nicht hoch und übersteuert dort alle automatischen Quellen (VIB-PFA/BVWP/Fulda). Zwischen VIB-PFA- und Fulda-Terminen entscheidet Glaubwürdigkeit × Aktualität des Berichts",
             "Kurzansicht (Karten-Popup, Unter-/Übergeordnet-Abschnitte): kompakte Leistungsphasen-Leiste mit aktuellem Stand; erreichte Phasen grün, „In Betrieb\" grün (= abgeschlossen), Spanne bei übergeordneten Projekten",
+            "Kurzansicht beim Überfahren: Wo ein Projekt verlinkt ist (Wahlkreise und Abgeordnete, FinVe, Infraplan, GVFG, Unterprojekt-Tabelle, Zeitstrahl, Aufgaben), zeigt das Überfahren des Links mit der Maus die Kurzansicht des Projekts; auf Touch-Geräten bleibt es ein normaler Link",
             "Tabelle „Quellen & Beobachtungen\": Spalte „Bereich\" (Planungsphasen/Planfeststellung/parl. Befassung); Spalte „Alter“ für alle; Vertrauen (ohne Altersabschlag) und die Marken „entscheidend“, „Untergrenze“ und „Konflikt“ sind nur für Admins sichtbar, ebenso die Vertrauensangabe in der Kopfzeile",
             "Beim Anlegen eines neuen Projekts (Wizard, Schritt „Eigenschaften\") lässt sich die aktuelle Planungsphase direkt setzen (manueller Override, optional)",
             "Filter „Planungsphase\" auf der Startseite (Karte und Liste, Mehrfachauswahl): zeigt nur Projekte in den gewählten Phasen; „Unbekannt\" wählt Projekte ohne bekannten Planungsstand. Die Auswahl steht in der URL (?phase=BAU,VORPLANUNG), kombiniert sich mit Projektgruppe und Suche und bleibt beim Wechsel Karte ↔ Liste erhalten. Auf dem Telefon liegt der Filter im Bottom-Sheet „Karte einstellen\"",
@@ -447,7 +450,12 @@ export const featureHighlights: FeatureHighlight[] = [
             "Status Offen / In Arbeit / Erledigt (Erledigt setzt completed_at), Priorität Niedrig / Mittel / Hoch, optionales Fälligkeitsdatum (überfällig rot hervorgehoben)",
             "Projektdetailseite zeigt für angemeldete Nutzer den Abschnitt „Aufgaben“ mit den Aufgaben des Projekts und „+ Aufgabe“ (Projekt vorbelegt)",
             "Schnell-Einstieg: „Aufgabe erstellen“ am Ende des Registers der Projektseite öffnet direkt das Formular für eine neue Aufgabe (Projekt vorbelegt)",
-            "Beim Löschen eines Projekts bleibt die Aufgabe erhalten (project_id wird auf NULL gesetzt)"
+            "Beim Löschen eines Projekts bleibt die Aufgabe erhalten (project_id wird auf NULL gesetzt)",
+            "Tags: beliebig viele je Aufgabe, im Formular wählen oder neu eingeben; Filter nach Tag und Textsuche über Titel und Beschreibung auf /tasks",
+            "Tag „@LLM“: Die Aufgabe ist ganz oder teilweise vom LLM über den MCP-Server zu erledigen (list_todos mit tag=\"@LLM\")",
+            "Tag „@Jonas“: Teil für Jonas, der zuerst kommt. Mit „@LLM“ zusammen beginnt das LLM erst, wenn „@Jonas“ entfernt ist",
+            "„Tags verwalten“ (Recht todo.edit, Löschen todo.delete): Tags umbenennen, beschreiben und löschen; die Änderung steht im Verlauf jeder betroffenen Aufgabe",
+            "Verlauf: Jede Änderung einer Aufgabe (auch an Tags und Zuweisungen) wird mit Nutzer und Zeitpunkt protokolliert und im Formular angezeigt"
         ]
     },
     {

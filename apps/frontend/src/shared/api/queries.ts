@@ -46,6 +46,8 @@ export const queryKeys = {
     progressConflicts: ["project-progress", "conflicts"],
     sammelFinveProgress: ["sammel-finve-progress"],
     projectFinves: (projectId: number) => ["project-finves", projectId] as const,
+    // Prefix-matches projectFinves, so invalidating that also refreshes this.
+    projectFinvesWithSubprojects: (projectId: number) => ["project-finves", projectId, "with-subprojects"] as const,
     projectBvwp: (projectId: number) => ["project-bvwp", projectId] as const,
     projectVib: ["project-vib"],
     projectVibFor: (projectId: number) => ["project-vib", projectId] as const,
@@ -106,6 +108,9 @@ export const queryKeys = {
     fuldaCategories: ["fulda-categories"],
     operationalPoints: (q: string) => ["operational-points", q] as const,
     todos: ["todos"],
+    // Under the "todos" prefix so every task mutation refreshes them too.
+    todoTags: ["todos", "tags"],
+    todoHistory: (todoId: number) => ["todos", "history", todoId] as const,
     guideOverrides: (guideSlug: string) => ["guide-overrides", guideSlug] as const,
     parliamentStatus: ["parliament-status"],
     projectConstituencies: (projectId: number) => ["project-constituencies", projectId] as const,
@@ -461,8 +466,9 @@ function projectQueryOptions(id: number) {
     });
 }
 
-export function useProject(id: number) {
-    return useQuery(projectQueryOptions(id));
+export function useProject(id: number, { enabled = true }: { enabled?: boolean } = {}) {
+    const options = projectQueryOptions(id);
+    return useQuery({ ...options, enabled: enabled && Number.isFinite(id) });
 }
 
 /**
@@ -912,10 +918,11 @@ export type BudgetSummary = components["schemas"]["BudgetSummarySchema"];
 
 export type FinveWithBudgets = components["schemas"]["FinveWithBudgetsSchema"];
 
-export function useProjectFinves(projectId: number) {
+/** FinVes of the project and all its sub-projects, each once (parent projects aggregate). */
+export function useProjectFinvesWithSubprojects(projectId: number) {
     return useQuery({
-        queryKey: queryKeys.projectFinves(projectId),
-        queryFn: () => api<FinveWithBudgets[]>(`/api/v1/projects/${projectId}/finves`),
+        queryKey: queryKeys.projectFinvesWithSubprojects(projectId),
+        queryFn: () => api<FinveWithBudgets[]>(`/api/v1/projects/${projectId}/finves?include_subprojects=true`),
         enabled: !Number.isNaN(projectId),
     });
 }
@@ -1722,6 +1729,9 @@ export type TodoCreate = components["schemas"]["TodoCreate"];
 export type TodoUpdate = components["schemas"]["TodoUpdate"];
 export type TodoStatus = Todo["status"];
 export type TodoPriority = Todo["priority"];
+export type TodoTag = components["schemas"]["TodoTagSchema"];
+export type TodoTagUpdate = components["schemas"]["TodoTagUpdate"];
+export type TodoChangeLog = components["schemas"]["TodoChangeLogSchema"];
 export type UserOption = components["schemas"]["UserOption"];
 
 export type TodoFilters = {
@@ -1731,6 +1741,10 @@ export type TodoFilters = {
     project_id?: number;
     created_by_id?: number;
     include_done?: boolean;
+    /** Tag name (case-insensitive). */
+    tag?: string;
+    /** Text search in title and description. */
+    q?: string;
 };
 
 const todosKey = (filters?: TodoFilters) =>
@@ -1745,6 +1759,8 @@ function buildTodoQuery(filters?: TodoFilters): string {
     if (filters.project_id != null) params.set("project_id", String(filters.project_id));
     if (filters.created_by_id != null) params.set("created_by_id", String(filters.created_by_id));
     if (filters.include_done != null) params.set("include_done", String(filters.include_done));
+    if (filters.tag) params.set("tag", filters.tag);
+    if (filters.q) params.set("q", filters.q);
     const qs = params.toString();
     return qs ? `?${qs}` : "";
 }
@@ -1755,6 +1771,44 @@ export function useTodos(filters?: TodoFilters, enabled = true) {
         queryKey: todosKey(filters),
         enabled,
         queryFn: () => api<Todo[]>(`/api/v1/todos/${buildTodoQuery(filters)}`),
+    });
+}
+
+/** All task tags with their task count (logged-in users only). */
+export function useTodoTags(enabled = true) {
+    return useQuery({
+        queryKey: queryKeys.todoTags,
+        enabled,
+        queryFn: () => api<TodoTag[]>(`/api/v1/todos/tags`),
+    });
+}
+
+/** Rename a tag or change its description (409 when the name is taken). */
+export function useUpdateTodoTag() {
+    return useInvalidatingMutation(
+        ({ id, payload }: { id: number; payload: TodoTagUpdate }) =>
+            api<TodoTag>(`/api/v1/todos/tags/${id}`, {
+                method: "PATCH",
+                json: payload,
+            }),
+        [queryKeys.todos],
+    );
+}
+
+/** Remove a tag from all tasks and delete it. */
+export function useDeleteTodoTag() {
+    return useInvalidatingMutation(
+        (id: number) => api<void>(`/api/v1/todos/tags/${id}`, { method: "DELETE" }),
+        [queryKeys.todos],
+    );
+}
+
+/** Change history of one task, newest first. */
+export function useTodoHistory(todoId: number | null) {
+    return useQuery({
+        queryKey: queryKeys.todoHistory(todoId ?? 0),
+        enabled: todoId !== null,
+        queryFn: () => api<TodoChangeLog[]>(`/api/v1/todos/${todoId}/history`),
     });
 }
 

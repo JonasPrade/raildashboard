@@ -15,6 +15,7 @@
 /* Grid item that stretches to the full content height so the register inside
    can stick while the page scrolls. */
 .project-register-slot {
+    width: 26px;
     min-width: 0;
 }
 
@@ -27,6 +28,10 @@
     overflow-y: auto;
     background: var(--surface);
     border: 2px solid var(--border-frame);
+    /* Lies over the content: the slot stays 26px wide, the page does not shift. */
+    margin-right: -214px;
+    z-index: var(--z-sticky);
+    box-shadow: 4px 4px 0 rgba(0, 55, 60, 0.18);
 }
 
 .project-register__head {

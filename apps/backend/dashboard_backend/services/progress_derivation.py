@@ -6,7 +6,7 @@ Observations come in two kinds (decided 2026-10-22):
   project has reached *at least* this phase" — a Finanzierungsvereinbarung for
   Bau stays true however old it is. They only ever *raise* the headline; they
   never compete with a status report that says the project is further along.
-* **Status reports** (VIB, Infraplan, Bauportal, Fulda-Runde, Medien, manual)
+* **Status reports** (VIB, Infraplan, GVFG, Bauportal, Fulda-Runde, Medien, manual)
   describe the state at their date. The **newest** report wins; only within
   :data:`TRUST_WINDOW` before the newest report does **trust** decide instead
   of recency (ties → higher phase). Trust is the explicit per-observation
@@ -46,6 +46,8 @@ SOURCE_TYPE_DEFAULT_TRUST: dict[SourceType, float] = {
     SourceType.MANUELL: 0.9,
     # Bedarfsplan/InvKG rows; GVFG rows carry an explicit 0.75 (Länderangaben).
     SourceType.INFRAPLAN: 0.85,
+    # GVFG-Bundesprogramm: Länderangaben, like the GVFG rows of the Infraplan.
+    SourceType.GVFG: 0.75,
     SourceType.BAUPORTAL: 0.8,
     SourceType.FINVE: 0.7,
     # Fulda-Runde: a working-level preview, a little below the reports.

@@ -47,7 +47,8 @@ LAND_BY_CODE = {
     "16": "Thüringen",
 }
 
-KEY_RE = re.compile(r"(\d{1,2})\s*([GD])\s*(\d+)\s*_\s*([A-Z])")
+# The underscore before the suffix is sometimes missing ("03 D 4505 A", 2023).
+KEY_RE = re.compile(r"(\d{1,2})\s*([GD])\s*(\d+)(?:\s*_\s*|\s+)([A-Z])\b")
 
 CATEGORY_SUM = "SUM"
 CATEGORIES = (CATEGORY_SUM, "A", "B", "C")
@@ -317,6 +318,12 @@ def _header_columns(
         fields.append(name)
         if period is not None:
             periods[col] = period
+    # "insgesamt" can slip into the neighbouring header cell (2023, p. 44); the
+    # column right after the eligible costs then reads only "Bundesfinanzhilfen".
+    if "aid_total" not in fields and "cost_eligible" in fields:
+        col = fields.index("cost_eligible") + 1
+        if col < len(fields) and fields[col] == "" and texts[col].lower() == "bundesfinanzhilfen":
+            fields[col] = "aid_total"
     if "key" not in fields:
         return None
     spans: dict[int, tuple[float, float]] = {}
@@ -433,6 +440,8 @@ def parse_gvfg_pdf(source: str | BinaryIO) -> ParseResult:
     year_from = year_to = None
     is_annex = False
     last_columns: _Columns | None = None
+    # Period labels of the table each entry was read from, parallel to entries.
+    layouts: list[tuple[str, ...]] = []
 
     with pdfplumber.open(source) as pdf:
         for page_no, page in enumerate(pdf.pages, start=1):
@@ -507,12 +516,14 @@ def parse_gvfg_pdf(source: str | BinaryIO) -> ParseResult:
                     entry.amounts = _amounts(page_words, table.rows[row_idx].bbox, columns, scale)
                     for col, period in columns.periods.items():
                         periods_by_label.setdefault(period.label, period)
+                    layouts.append(tuple(p.label for _, p in sorted(columns.periods.items())))
                     entries.append(entry)
 
     if year_from is None:
         raise GvfgParseError("Kein GVFG-Bundesprogramm erkannt (Titel „Bundesprogramm JJJJ - JJJJ“ fehlt).")
     if not entries:
         raise GvfgParseError("Im PDF wurden keine Vorhaben gefunden.")
+    warnings.extend(_unify_periods(entries, layouts, periods_by_label))
     warnings.extend(_check_totals(entries, totals))
     warnings.extend(_check_lines(entries))
     warnings.extend(_check_duplicates(entries))
@@ -575,7 +586,8 @@ def _amounts(
 
     lines: list[tuple[float, str]] = []
     for top, text in _group_lines(marker_words, scale):
-        marker = re.sub(r"Kat\s*\.?", "", text).replace(" ", "")
+        # "Kat: C" is a typo in the 2023 edition (09 G 7034_A).
+        marker = re.sub(r"Kat\s*[.:]?", "", text).replace(" ", "")
         if marker in ("∑", "Σ"):
             lines.append((top, CATEGORY_SUM))
         elif marker in ("A", "B", "C"):
@@ -600,6 +612,60 @@ def _amounts(
         # Some 2023 pages print only the A/B/C lines; the ∑ line is their sum.
         amounts.insert(0, _sum_line(amounts))
     return amounts
+
+
+def _same_column(printed: Period, expected: Period) -> bool:
+    """Two labels for the same column: a paid span from 1967 that ends in another
+    year, or the same single year paid / expected ("2022" vs "vsl. 2022")."""
+    if printed.kind == expected.kind == PERIOD_PAID and printed.year_from == expected.year_from == 1967:
+        return True
+    paid = {PERIOD_PAID, PERIOD_PAID_EXPECTED}
+    return (
+        printed.year_to is not None
+        and printed.year_from == printed.year_to == expected.year_from == expected.year_to
+        and {printed.kind, expected.kind} <= paid
+    )
+
+
+def _unify_periods(
+    entries: list[ParsedEntry], layouts: list[tuple[str, ...]], periods_by_label: dict[str, Period]
+) -> list[str]:
+    """Map typos in a table header onto the edition's columns.
+
+    A few 2023 tables print "1967-2020" or "2022" where all others print
+    "1967-2021" and "vsl. 2022". The layout of most entries is taken as the
+    edition's; a deviating label at the same position is renamed when it can
+    only mean the same column (``_same_column``). Each rename is a warning.
+    """
+    counts: dict[tuple[str, ...], int] = defaultdict(int)
+    for layout in layouts:
+        if layout:  # the informational part has no year columns
+            counts[layout] += 1
+    if not counts:
+        return []
+    reference = max(counts, key=lambda layout: counts[layout])  # first seen wins a tie
+    aliases: dict[str, str] = {}
+    for layout in counts:
+        if layout == reference or len(layout) != len(reference):
+            continue
+        for printed, expected in zip(layout, reference):
+            if printed == expected or printed in reference:
+                continue
+            if _same_column(periods_by_label[printed], periods_by_label[expected]):
+                aliases[printed] = expected
+    warnings = []
+    for printed, expected in aliases.items():
+        pages = sorted({e.page for e, layout in zip(entries, layouts) if printed in layout})
+        warnings.append(
+            f"S. {', '.join(map(str, pages))}: Spalte „{printed}“ als „{expected}“ gelesen "
+            "(abweichender Tabellenkopf)."
+        )
+        del periods_by_label[printed]
+    for entry in entries:
+        for line in entry.amounts:
+            if any(label in aliases for label in line.periods):
+                line.periods = {aliases.get(label, label): value for label, value in line.periods.items()}
+    return warnings
 
 
 def _sum_line(parts: list[AmountLine]) -> AmountLine:

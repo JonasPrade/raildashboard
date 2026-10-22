@@ -59,6 +59,7 @@ import {
 } from "./infraplanFormat";
 import { LoadingState } from "../../shared/ui/LoadingState";
 import { ErrorState } from "../../shared/ui/ErrorState";
+import ProjectHoverCard from "../projects/ProjectHoverCard";
 
 const PAGE_SIZE = 25;
 
@@ -400,7 +401,10 @@ function MeasureCard({ entry }: { entry: InfraplanReportEntry }) {
                         />
                     </Group>
                 </Group>
-                <LinkedProjects projects={projectsOf(entry)} />
+                <LinkedProjects
+                    projects={projectsOf(entry)}
+                    wrapLink={(id, link) => <ProjectHoverCard projectId={id}>{link}</ProjectHoverCard>}
+                />
             </Stack>
         </Paper>
     );

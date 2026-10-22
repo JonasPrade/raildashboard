@@ -175,6 +175,7 @@ def get_group_timeline(
                     pfas=own_pfas,
                     fulda=unit_split.fulda,
                     infraplan=unit_split.infraplan,
+                    gvfg=unit_split.gvfg,
                     manual_expected=unit_split.manual,
                 )
             )
@@ -185,6 +186,7 @@ def get_group_timeline(
             pfas=list(pfas.values()),
             fulda=split.fulda,
             infraplan=split.infraplan,
+            gvfg=split.gvfg,
             manual_expected=split.manual,
             observations=_to_inputs(evidence),
             pf_dates=pf_dates,

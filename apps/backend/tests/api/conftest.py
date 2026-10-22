@@ -62,7 +62,14 @@ from dashboard_backend.models.projects.project_text import ProjectText
 from dashboard_backend.models.projects.project_text_type import ProjectTextType
 from dashboard_backend.models.projects.project_text_category import ProjectTextCategory
 from dashboard_backend.models.roles import Role, RolePermission
-from dashboard_backend.models.todos.todo import Todo, TodoAssignee
+from dashboard_backend.models.todos.todo import (
+    Todo,
+    TodoAssignee,
+    TodoChangeLog,
+    TodoChangeLogEntry,
+    TodoTag,
+    TodoTagLink,
+)
 from dashboard_backend.models.users import User
 from dashboard_backend.models.vib.vib_entry import VibEntry, vib_entry_project
 from dashboard_backend.models.vib.vib_pfa_entry import VibPfaEntry
@@ -116,6 +123,10 @@ TABLES = [
     ProjectText.__table__,
     Todo.__table__,  # FK to project (absent here) is unenforced in SQLite
     TodoAssignee.__table__,  # must follow Todo (FK dependency)
+    TodoTag.__table__,
+    TodoTagLink.__table__,  # must follow Todo and TodoTag (FK dependency)
+    TodoChangeLog.__table__,  # must follow Todo (FK dependency)
+    TodoChangeLogEntry.__table__,  # must follow TodoChangeLog (FK dependency)
     GuideSectionOverride.__table__,
     ParliamentPeriod.__table__,  # must precede Constituency/Mandate (FK dependency)
     Politician.__table__,

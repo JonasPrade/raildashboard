@@ -21,6 +21,8 @@ export const FORECAST_SOURCE_COLOR = {
     "Fulda-Runde": "var(--idt-chart-2)",
     BVWP: "var(--idt-chart-3)",
     "Schätzung": "var(--idt-chart-4)",
+    Infraplan: "var(--idt-chart-5)",
+    GVFG: "var(--idt-chart-6)",
 } as const;
 
 // Planning state of the stepper, milestones and parallel lanes. These are status,
@@ -38,6 +40,17 @@ export const LANE_STATE_COLOR = {
 } as const;
 
 // Zeitstrahl (W4): segments carry PHASE_COLOR, the planned part is hatched.
+// Distinct hues per phase (light teal, cyan, ink, green) so the segments stay
+// apart on the track; PHASE_COLOR's teal ramp is too close together there.
+export const TIMELINE_PHASE_COLOR = {
+    NICHT_GESTARTET: "var(--idt-seq-1)",
+    VORPLANUNG: "var(--idt-seq-2)",
+    GENEHMIGUNGSPLANUNG: "var(--idt-chart-2)",
+    BAU: "var(--idt-seq-5)",
+    IN_BETRIEB: "var(--idt-success)",
+    UNBEKANNT: "var(--idt-line-strong)",
+} as const;
+
 export const TIMELINE_COLOR = {
     today: "var(--accent-primary)",
     stagePause: "var(--idt-seq-4)",

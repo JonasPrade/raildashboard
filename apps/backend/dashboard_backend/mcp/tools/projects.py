@@ -769,14 +769,19 @@ def get_project_progress(project_id: int, *, ctx: Context) -> dict[str, Any]:
         return ProjectProgressSchema.model_validate(view).model_dump(mode="json")
 
 
-def list_project_finves(project_id: int, *, ctx: Context) -> list[dict[str, Any]]:
+def list_project_finves(
+    project_id: int, include_subprojects: bool = False, *, ctx: Context
+) -> list[dict[str, Any]]:
     """Financing agreements (FinVe) of a project with their budget history per
     budget year, including the per-Haushaltstitel breakdown. Amounts in T€.
+    ``include_subprojects`` adds the FinVes of all sub-projects, each once;
+    those carry ``from_subprojects`` and name the carrying ``subprojects``.
     To find FinVes regardless of a project link, use list_finves."""
     get_principal(ctx)
     with tool_session(ctx) as db:
         project = _project_or_error(db, project_id)
-        return [f.model_dump(mode="json") for f in get_project_finves_with_budgets(db, project)]
+        finves = get_project_finves_with_budgets(db, project, include_subprojects=include_subprojects)
+        return [f.model_dump(mode="json") for f in finves]
 
 
 def get_project_texts(

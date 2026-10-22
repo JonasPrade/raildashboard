@@ -215,7 +215,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `list_project_filters` | Katalog der Filter von `list_projects`: Felder, Typen, Operatoren, Enum-Werte | — |
 | `get_project` | Projektdetail inkl. BVWP-Daten und Unterprojekten | — |
 | `get_project_progress` | Planungsstand inkl. Beobachtungen und Prognose; `forecast.ibn_doubt`, wenn die GVFG-Finanzreihe nach dem IBN-Jahr noch Mittel vorsieht | — |
-| `list_project_finves` | Finanzierungsvereinbarungen und Budgets eines Projekts | — |
+| `list_project_finves` | Finanzierungsvereinbarungen und Budgets eines Projekts; `include_subprojects` nimmt die FinVe aller Teilprojekte dazu (jede einmal, mit tragenden Teilprojekten) | — |
 | `list_finves` | FinVe frei suchen — auch ohne Projektzuordnung: FinVe-Nummer, Name, Bedarfsplannummer, lfd. Nr.; Filter Haushaltsjahr, Sammel-FinVe, mit/ohne Projekt | — |
 | `get_finve` | eine FinVe per Nummer mit Budgethistorie und verknüpften Projekten | — |
 | `list_gvfg_programs` | GVFG-Ausgaben mit Jahresspalten, Zahl der Vorhaben und der Vorhaben ohne Projekt | — |
@@ -229,7 +229,8 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `get_project_texts` | Projekttexte nach Typ, mit Kategorie und Sichtbarkeit | — |
 | `list_text_types` | Texttypen (für `text_type_id`) | — |
 | `list_text_categories` | Textkategorien mit Stil (für `category_id`) | — |
-| `list_todos` | Aufgaben, gefiltert | — |
+| `list_todos` | Aufgaben, gefiltert (u. a. `tag`, Textsuche `search`), seitenweise mit `limit`/`offset` | — |
+| `list_todo_tags` | Alle Aufgaben-Tags mit Beschreibung und Anzahl; „@LLM“ = vom LLM über MCP zu erledigen, mit „@Jonas“ zusammen erst nach Jonas’ Teil | — |
 | `create_project` | Projekt/Unterprojekt anlegen (final, ohne Geometrie) | `project.create` |
 | `compute_project_length` | Länge aus der Geometrie berechnen, optional übernehmen | — / `project.edit` mit `apply` |
 | `update_project` | Projektfelder ändern | `project.edit` |
@@ -250,8 +251,9 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `check_project_data` | Prüfliste Stammdaten: doppelte Projektnummern, namensgleiche Teilprojekte, GVFG-Ländercode ≠ Land, Teilmaßnahmen ohne Namen (siehe `feature-infraplan-import.md` → „Datenqualität“) | — |
 | `list_skills` | Skills für die Arbeit über den MCP (Name, Beschreibung), siehe *Skills über MCP* | — |
 | `get_skill` | Anleitung eines Skills (Text der `SKILL.md`, optional eine Begleitdatei) | — |
-| `create_todo` | Aufgabe anlegen | `todo.create` |
-| `update_todo` | Aufgabe ändern | `todo.edit` |
+| `create_todo` | Aufgabe anlegen, optional mit `tags` | `todo.create` |
+| `update_todo` | Aufgabe ändern; `tags` ersetzt die Tag-Menge | `todo.edit` |
+| `update_todo_tag` | Tag umbenennen oder Beschreibung ändern (Umbenennung im Verlauf jeder Aufgabe); Löschen nur in der Oberfläche | `todo.edit` |
 
 Bewusst schmal gehalten: ein Tool je Absicht, keine generischen
 „führe-beliebige-Abfrage-aus"-Tools. Ausgaben sind kompakt zu halten (Listen

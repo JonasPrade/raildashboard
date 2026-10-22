@@ -305,7 +305,8 @@ export interface paths {
         /**
          * Get Project Finves
          * @description Return all FinVes linked to a project, each with their full budget history
-         *     including per-Haushaltstiteln breakdown.
+         *     including per-Haushaltstiteln breakdown. ``include_subprojects`` adds the
+         *     FinVes of all sub-projects (each once, flagged ``from_subprojects``).
          */
         get: operations["get_project_finves_api_v1_projects__project_id__finves_get"];
         put?: never;
@@ -1004,6 +1005,70 @@ export interface paths {
         put?: never;
         /** Create Todo */
         post: operations["create_todo_api_v1_todos__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/todos/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Todo Tags
+         * @description All tags with their task count (logged-in users only).
+         */
+        get: operations["list_todo_tags_api_v1_todos_tags_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/todos/tags/{tag_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Todo Tag
+         * @description Remove a tag from all tasks and delete it.
+         */
+        delete: operations["delete_todo_tag_api_v1_todos_tags__tag_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Todo Tag
+         * @description Rename a tag or change its description (rename is logged on every task).
+         */
+        patch: operations["update_todo_tag_api_v1_todos_tags__tag_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/todos/{todo_id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Todo History
+         * @description Change history of one task, newest first.
+         */
+        get: operations["get_todo_history_api_v1_todos__todo_id__history_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3857,6 +3922,16 @@ export interface components {
              * @default []
              */
             budgets: components["schemas"]["BudgetSummarySchema"][];
+            /**
+             * From Subprojects
+             * @default false
+             */
+            from_subprojects: boolean;
+            /**
+             * Subprojects
+             * @default []
+             */
+            subprojects: components["schemas"]["ProjectRefSchema"][];
         };
         /** ForecastStepSchema */
         ForecastStepSchema: {
@@ -5548,7 +5623,7 @@ export interface components {
              * Source Type
              * @enum {string}
              */
-            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "INFRAPLAN" | "MANUELL";
+            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "INFRAPLAN" | "GVFG" | "MANUELL";
             /**
              * Asserted Phase
              * @enum {string}
@@ -5782,7 +5857,7 @@ export interface components {
              * Source Type
              * @enum {string}
              */
-            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "INFRAPLAN" | "MANUELL";
+            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "INFRAPLAN" | "GVFG" | "MANUELL";
             /**
              * Track
              * @enum {string}
@@ -7198,7 +7273,7 @@ export interface components {
              * Source Type
              * @enum {string}
              */
-            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "INFRAPLAN" | "MANUELL";
+            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "INFRAPLAN" | "GVFG" | "MANUELL";
             /**
              * Track
              * @enum {string}
@@ -7399,6 +7474,33 @@ export interface components {
             /** Vorhalten Future */
             vorhalten_future?: number | null;
         };
+        /** TodoChangeLogEntrySchema */
+        TodoChangeLogEntrySchema: {
+            /** Field Name */
+            field_name: string;
+            /** Old Value */
+            old_value: string | null;
+            /** New Value */
+            new_value: string | null;
+        };
+        /** TodoChangeLogSchema */
+        TodoChangeLogSchema: {
+            /** Id */
+            id: number;
+            /** Todo Id */
+            todo_id: number | null;
+            /** Username Snapshot */
+            username_snapshot: string | null;
+            /**
+             * Timestamp
+             * Format: date-time
+             */
+            timestamp: string;
+            /** Action */
+            action: string;
+            /** Entries */
+            entries: components["schemas"]["TodoChangeLogEntrySchema"][];
+        };
         /** TodoCreate */
         TodoCreate: {
             /** Title */
@@ -7423,6 +7525,8 @@ export interface components {
             project_id?: number | null;
             /** Assignee Ids */
             assignee_ids?: number[];
+            /** Tags */
+            tags?: string[];
         };
         /** TodoProjectRef */
         TodoProjectRef: {
@@ -7458,6 +7562,8 @@ export interface components {
             project: components["schemas"]["TodoProjectRef"] | null;
             /** Assignees */
             assignees: components["schemas"]["TodoUserRef"][];
+            /** Tags */
+            tags?: components["schemas"]["TodoTagRef"][];
             /** Created By Id */
             created_by_id: number | null;
             /** Created By Username */
@@ -7475,6 +7581,38 @@ export interface components {
             /** Completed At */
             completed_at: string | null;
         };
+        /** TodoTagRef */
+        TodoTagRef: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+        };
+        /** TodoTagSchema */
+        TodoTagSchema: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Todo Count
+             * @default 0
+             */
+            todo_count: number;
+        };
+        /** TodoTagUpdate */
+        TodoTagUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Clear Description */
+            clear_description?: boolean | null;
+        };
         /** TodoUpdate */
         TodoUpdate: {
             /** Title */
@@ -7491,6 +7629,8 @@ export interface components {
             project_id?: number | null;
             /** Assignee Ids */
             assignee_ids?: number[] | null;
+            /** Tags */
+            tags?: string[] | null;
             /** Clear Due Date */
             clear_due_date?: boolean | null;
             /** Clear Project */
@@ -8740,7 +8880,9 @@ export interface operations {
     };
     get_project_finves_api_v1_projects__project_id__finves_get: {
         parameters: {
-            query?: never;
+            query?: {
+                include_subprojects?: boolean;
+            };
             header?: never;
             path: {
                 project_id: number;
@@ -10238,6 +10380,10 @@ export interface operations {
                 project_id?: number | null;
                 created_by_id?: number | null;
                 include_done?: boolean;
+                /** @description Tag name (case-insensitive) */
+                tag?: string | null;
+                /** @description Text search in title and description */
+                q?: string | null;
             };
             header?: never;
             path?: never;
@@ -10289,6 +10435,138 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TodoSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_todo_tags_api_v1_todos_tags_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodoTagSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_todo_tag_api_v1_todos_tags__tag_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tag_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_todo_tag_api_v1_todos_tags__tag_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tag_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TodoTagUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodoTagSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_todo_history_api_v1_todos__todo_id__history_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                todo_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodoChangeLogSchema"][];
                 };
             };
             /** @description Validation Error */

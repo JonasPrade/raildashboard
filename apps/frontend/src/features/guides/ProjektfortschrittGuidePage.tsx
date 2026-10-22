@@ -54,7 +54,7 @@ Dargestellt als horizontaler Verlauf mit Kreisen und Pfeilen. Manuelle Beobachtu
             body: `Beobachtungen sind von zweierlei Art:
 
 - **Untergrenzen** (FinVe): „mindestens diese Phase". Eine FinVe für Bau bleibt wahr, egal wie alt. Sie hebt die Phase nur an und veraltet nicht.
-- **Statusberichte** (VIB, Infraplan, Bauportal, Fulda-Runde, Medien, manuell): Stand zum jeweiligen Datum. Der **neueste** Bericht gewinnt. Nur innerhalb von **einem Jahr** vor dem neuesten Bericht entscheidet das **Vertrauen** der Quelle (bei Gleichstand die höhere Phase).
+- **Statusberichte** (VIB, Infraplan, GVFG, Bauportal, Fulda-Runde, Medien, manuell): Stand zum jeweiligen Datum. Der **neueste** Bericht gewinnt. Nur innerhalb von **einem Jahr** vor dem neuesten Bericht entscheidet das **Vertrauen** der Quelle (bei Gleichstand die höhere Phase).
 
 Das Alter macht einen Bericht nicht weniger vertrauenswürdig, es zählt über die Datumsreihenfolge. Nur sehr alte Medienmeldungen fallen ganz unter die Glaubwürdigkeitsschwelle.
 

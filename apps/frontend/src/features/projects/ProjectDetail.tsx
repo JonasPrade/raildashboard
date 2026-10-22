@@ -400,6 +400,12 @@ export default function ProjectDetail() {
         .filter(({ value }) => value !== null) as Array<{ label: string; value: string }>;
 
     const tocSections: RegisterSection[] = [
+        {
+            id: "costs",
+            label: "Kosten",
+            ref: costRef,
+            visible: infraplan?.cost_forecast != null,
+        },
         { id: "details", label: "Projektdetails", ref: detailsRef, visible: true },
         { id: "progress", label: "Planungsstand", ref: progressRef, visible: true },
         {
@@ -414,12 +420,6 @@ export default function ProjectDetail() {
             label: "Begründung",
             ref: justificationRef,
             visible: !!(project.justification?.trim()),
-        },
-        {
-            id: "costs",
-            label: "Kosten",
-            ref: costRef,
-            visible: infraplan?.cost_forecast != null,
         },
         {
             id: "infraplan",
@@ -559,6 +559,11 @@ export default function ProjectDetail() {
                         </Group>
                     )}
                 </Group>
+
+                {/* Kosten: Infraplan-Prognose neben den FinVe-Mitteln, ganz oben */}
+                <div ref={costRef}>
+                    <ProjectCostBlock projectId={projectId} />
+                </div>
 
                 {/* Zweispaltiges Layout: Details/Beschreibung links, Karte rechts */}
                 <div ref={detailsRef}>
@@ -720,11 +725,6 @@ export default function ProjectDetail() {
                     </Paper>
                     </div>
                 )}
-
-                {/* Kosten: Infraplan-Prognose neben den FinVe-Mitteln */}
-                <div ref={costRef}>
-                    <ProjectCostBlock projectId={projectId} />
-                </div>
 
                 {/* Infraplan */}
                 <div ref={infraplanRef}>

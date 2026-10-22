@@ -6,8 +6,8 @@ import "./ProjectRegister.css";
 
 /**
  * Left-edge register of the project page (Anwendungsebene, feature-idt-design.md
- * → Q26). From 62em a sticky 240px column next to the content that folds into a
- * 26px tab; below that a fixed 44px button „Abschnitte“ that opens the same list
+ * → Q26). From 62em a 26px tab that unfolds into a 240px register lying over the content (the
+ * page does not shift); it folds again after a pick; below that a fixed 44px button „Abschnitte“ that opens the same list
  * as a bottom drawer.
  *
  * Place it as the first child of an element with the class
@@ -31,24 +31,6 @@ interface Props {
     sections: RegisterSection[];
     /** When provided, the register ends with an „Aufgabe erstellen“ action. */
     onCreateTask?: () => void;
-}
-
-export const REGISTER_STORAGE_KEY = "schienendashboard.register";
-
-function readCollapsed(): boolean {
-    try {
-        return window.localStorage.getItem(REGISTER_STORAGE_KEY) === "closed";
-    } catch {
-        return false;
-    }
-}
-
-function writeCollapsed(collapsed: boolean) {
-    try {
-        window.localStorage.setItem(REGISTER_STORAGE_KEY, collapsed ? "closed" : "open");
-    } catch {
-        // Private mode or blocked storage: the register still works, it just forgets.
-    }
 }
 
 /**
@@ -141,16 +123,14 @@ function RegisterList({ sections, activeId, onSelect, onCreateTask }: ListProps)
 export function ProjectRegister({ sections, onCreateTask }: Props) {
     const isCompact = useIsCompact();
     const activeId = useActiveSection(sections);
-    const [collapsed, setCollapsed] = useState(readCollapsed);
+    // Always starts folded; the open register lies over the page (see CSS).
+    const [collapsed, setCollapsed] = useState(true);
     const [drawerOpen, setDrawerOpen] = useState(false);
     // Section picked in the drawer; scrolled to once the drawer has closed and
     // released the scroll lock.
     const pendingRef = useRef<RegisterSection | null>(null);
 
-    const toggleCollapsed = useCallback((next: boolean) => {
-        setCollapsed(next);
-        writeCollapsed(next);
-    }, []);
+    const toggleCollapsed = useCallback((next: boolean) => setCollapsed(next), []);
 
     const visibleSections = sections.filter((s) => s.visible);
     if (visibleSections.length === 0) return null;
@@ -238,7 +218,10 @@ export function ProjectRegister({ sections, onCreateTask }: Props) {
                 <RegisterList
                     sections={visibleSections}
                     activeId={activeId}
-                    onSelect={scrollToSection}
+                    onSelect={(section) => {
+                        toggleCollapsed(true);
+                        scrollToSection(section);
+                    }}
                     onCreateTask={onCreateTask}
                 />
             </nav>

@@ -105,6 +105,18 @@ def has_subprojects(db: Session, project_id: int) -> bool:
     )
 
 
+def subtree_ids(db: Session, root_id: int) -> List[int]:
+    """*root_id* followed by all of its descendants (any depth), one query per level."""
+    ids, frontier = [root_id], [root_id]
+    while frontier:
+        frontier = [
+            pid for (pid,) in db.query(Project.id).filter(Project.superior_project_id.in_(frontier))
+        ]
+        frontier = [pid for pid in frontier if pid not in ids]
+        ids.extend(frontier)
+    return ids
+
+
 def recompute_geojson_for_parent(db: Session, parent_id: Optional[int]) -> None:
     """Recompute and persist the geojson_representation of *parent_id* and its ancestors.
 

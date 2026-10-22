@@ -10,8 +10,8 @@ describe("timelineStyles", () => {
     });
 
     it("fills past segments solid and planned ones hatched", () => {
-        expect(segmentFill("BAU", false)).toBe("var(--idt-seq-4)");
-        expect(segmentFill("BAU", true)).toBe(plannedFill("var(--idt-seq-4)"));
+        expect(segmentFill("BAU", false)).toBe("var(--idt-seq-5)");
+        expect(segmentFill("BAU", true)).toBe(plannedFill("var(--idt-seq-5)"));
         expect(phaseColor("IN_BETRIEB")).toBe("var(--idt-success)");
     });
 

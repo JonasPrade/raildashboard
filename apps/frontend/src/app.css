@@ -89,6 +89,9 @@
 }
 .app-header__link.is-active {
     border-bottom-color: var(--accent-primary);
+    border-bottom-width: 5px;
+    background: var(--idt-violet-soft);
+    color: var(--accent-primary);
 }
 .app-header__count {
     margin-left: 6px;
@@ -135,7 +138,9 @@
     color: var(--accent-primary);
 }
 .app-drawer__link.is-active {
-    box-shadow: inset 3px 0 0 var(--accent-primary);
+    box-shadow: inset 5px 0 0 var(--accent-primary);
+    background: var(--idt-violet-soft);
+    color: var(--accent-primary);
 }
 /* 62em–80em: six entries plus auth and toggle must fit without wrapping
    (checked at 993px with every entry and both counters). Tighter gaps and
