@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import type { ProjectTimeline, TimelineMilestone } from "../../shared/api/queries";
 import {
-    buildSegments,
+    buildSegments as buildSegmentsWithTitles,
     computeRange,
+    drawnMarkers,
     formatMonth,
+    markerTime,
+    shortMilestoneDate,
     milestoneLabel,
     parseTimelineSort,
     percent,
@@ -15,9 +18,22 @@ import {
 
 const TODAY = toTime("2026-10-01");
 
-function phase(p: TimelineMilestone["phase"], date: string, certainty: TimelineMilestone["certainty"] = "CONCRETE"): TimelineMilestone {
-    return { kind: "PHASE", phase: p, date, source: "VIB-PFA", certainty };
+function phase(
+    p: TimelineMilestone["phase"],
+    date: string,
+    certainty: TimelineMilestone["certainty"] = "CONCRETE",
+    date_precision: TimelineMilestone["date_precision"] = "EXACT",
+): TimelineMilestone {
+    return { kind: "PHASE", phase: p, date, source: "VIB-PFA", certainty, date_precision };
 }
+
+// Geometry only — the tooltips are checked separately.
+const buildSegments = (...args: Parameters<typeof buildSegmentsWithTitles>) =>
+    buildSegmentsWithTitles(...args).map((seg) => {
+        const rest = { ...seg };
+        delete rest.title;
+        return rest;
+    });
 
 function row(name: string, milestones: TimelineMilestone[]): ProjectTimeline {
     return { project_id: name.length, name, lifecycle_status: "AKTIV", milestones, construction_periods: [] };
@@ -94,7 +110,7 @@ describe("buildSegments", () => {
     });
 
     it("ignores PFB and parliamentary milestones", () => {
-        const pfb: TimelineMilestone = { kind: "PFB", date: "2024-01-01", source: "Manuell", certainty: "CONCRETE" };
+        const pfb: TimelineMilestone = { kind: "PFB", date: "2024-01-01", source: "Manuell", certainty: "CONCRETE", date_precision: "EXACT" };
         expect(buildSegments([pfb], TODAY)).toEqual([]);
     });
 });
@@ -138,14 +154,144 @@ describe("sortRows", () => {
 });
 
 describe("labels", () => {
-    it("formats month precision and describes milestones", () => {
+    it("formats dates at their precision and describes milestones", () => {
         expect(formatMonth("2026-05-15")).toBe("05/2026");
-        expect(milestoneLabel(phase("BAU", "2026-05-15"))).toBe("Baubeginn 05/2026 · VIB-PFA");
-        expect(milestoneLabel({ ...phase("BAU", "2024-12-31", "EVIDENCE"), source: "VIB" })).toBe(
-            "Bau spätestens seit 12/2024 · VIB",
+        expect(milestoneLabel(phase("BAU", "2026-05-15", "CONCRETE", "MONTH"))).toBe("Baubeginn 05/2026 · VIB-PFA");
+        expect(milestoneLabel(phase("BAU", "2026-05-15"))).toBe("Baubeginn 15.05.2026 · VIB-PFA");
+        expect(milestoneLabel({ ...phase("BAU", "2024-12-31", "EVIDENCE", "YEAR"), source: "VIB" })).toBe(
+            "Bau spätestens seit 2024 · VIB",
         );
-        expect(milestoneLabel({ kind: "PFB", date: "2024-03-15", source: "VIB-PFA", certainty: "CONCRETE" })).toBe(
-            "Planfeststellung 03/2024 · VIB-PFA",
+        expect(
+            milestoneLabel({
+                kind: "PFB",
+                date: "2024-03-15",
+                source: "VIB-PFA",
+                certainty: "CONCRETE",
+                date_precision: "MONTH",
+            }),
+        ).toBe("Planfeststellung 03/2024 · VIB-PFA");
+    });
+
+    it("names the derivation of an assumed date", () => {
+        const ibn = {
+            ...phase("IN_BETRIEB", "2028-07-01", "CONCRETE", "ASSUMED"),
+            source: "Annahme",
+            derivation: "Annahme: 6 Monate Bauzeit ab Baubeginn 2028 (Manuell)",
+        };
+        expect(milestoneLabel(ibn)).toBe(
+            "Inbetriebnahme ca. 07/2028 (Annahme) · Annahme · Annahme: 6 Monate Bauzeit ab Baubeginn 2028 (Manuell)",
         );
+    });
+
+    it("shortens the header date by precision", () => {
+        expect(shortMilestoneDate(phase("IN_BETRIEB", "2030-12-31", "CONCRETE", "YEAR"))).toBe("2030");
+        expect(shortMilestoneDate(phase("IN_BETRIEB", "2032-01-01", "CONCRETE", "NOT_BEFORE"))).toBe("nach 2031");
+        expect(shortMilestoneDate(phase("IN_BETRIEB", "2028-07-01", "CONCRETE", "ASSUMED"))).toBe("ca. 07/2028");
+        expect(shortMilestoneDate(phase("IN_BETRIEB", "2031-07-01"))).toBe("07/2031");
+    });
+});
+
+describe("uncertain dates (Datumsqualifikation)", () => {
+    const RANGE_END = Date.UTC(2034, 0, 1);
+
+    it("draws a year-only start over the year with a soft edge", () => {
+        // Hagen – Hamm: Bau 2028, Inbetriebnahme assumed 07/2028.
+        const segs = buildSegments(
+            [phase("BAU", "2028-01-01", "CONCRETE", "YEAR"), phase("IN_BETRIEB", "2028-07-01", "CONCRETE", "ASSUMED")],
+            TODAY,
+        );
+        expect(segs).toEqual([
+            {
+                phase: "BAU",
+                start: Date.UTC(2028, 0, 1),
+                end: toTime("2028-07-01"),
+                planned: true,
+                fuzzyStart: true,
+                label: "2028",
+                assumed: true,
+            },
+        ]);
+    });
+
+    it("spans the whole year when a year-only start has no successor", () => {
+        // Derived year dates are stored on 31 Dec: the bar still starts on 1 Jan.
+        const [seg] = buildSegments([phase("BAU", "2029-12-31", "CONCRETE", "YEAR")], TODAY);
+        expect(seg!.start).toBe(Date.UTC(2029, 0, 1));
+        expect(seg!.end - seg!.start).toBeGreaterThan(364 * 24 * 3600 * 1000);
+    });
+
+    it("draws an open area instead of a bar for a lower bound", () => {
+        const segs = buildSegments(
+            [
+                phase("BAU", "2032-01-01", "CONCRETE", "NOT_BEFORE"),
+                phase("IN_BETRIEB", "2032-07-01", "CONCRETE", "NOT_BEFORE"),
+            ],
+            TODAY,
+            [],
+            RANGE_END,
+        );
+        expect(segs).toEqual([
+            {
+                phase: "BAU",
+                start: toTime("2032-01-01"),
+                end: RANGE_END,
+                planned: true,
+                open: true,
+                label: "nach 2031 – Termin offen",
+            },
+        ]);
+    });
+
+    it("keeps a known construction start and leaves the end open for a lower-bound opening", () => {
+        const segs = buildSegments(
+            [phase("BAU", "2027-03-01"), phase("IN_BETRIEB", "2032-01-01", "CONCRETE", "NOT_BEFORE")],
+            TODAY,
+            [],
+            RANGE_END,
+        );
+        expect(segs).toEqual([
+            { phase: "BAU", start: toTime("2027-03-01"), end: toTime("2032-01-01"), planned: true, fuzzyEnd: true },
+            {
+                phase: "BAU",
+                start: toTime("2032-01-01"),
+                end: RANGE_END,
+                planned: true,
+                open: true,
+                label: "Inbetriebnahme nach 2031 – Termin offen",
+            },
+        ]);
+    });
+
+    it("uses the free-text label instead of „Termin offen“", () => {
+        const [seg] = buildSegments(
+            [{ ...phase("BAU", "2032-01-01", "CONCRETE", "NOT_BEFORE"), date_label: "Priorisierung 2027 offen" }],
+            TODAY,
+            [],
+            RANGE_END,
+        );
+        expect(seg!.label).toBe("nach 2031 – Priorisierung 2027 offen");
+    });
+
+    it("puts the derivation into the bar tooltip", () => {
+        const [seg] = buildSegmentsWithTitles(
+            [
+                phase("BAU", "2028-01-01", "CONCRETE", "YEAR"),
+                { ...phase("IN_BETRIEB", "2028-07-01", "CONCRETE", "ASSUMED"), derivation: "Annahme: 6 Monate Bauzeit" },
+            ],
+            TODAY,
+        );
+        expect(seg!.title).toBe("Bau: 2028 – ca. 07/2028 (Annahme) · Annahme: 6 Monate Bauzeit");
+    });
+
+    it("hides markers of lower bounds and centres year-only markers", () => {
+        const open = phase("IN_BETRIEB", "2032-07-01", "CONCRETE", "NOT_BEFORE");
+        const year = phase("IN_BETRIEB", "2030-12-31", "CONCRETE", "YEAR");
+        expect(drawnMarkers([open, year])).toEqual([year]);
+        expect(markerTime(year)).toBe(Date.UTC(2030, 6, 1));
+    });
+
+    it("does not stretch the axis beyond the year of a lower bound", () => {
+        const range = computeRange([row("A", [phase("BAU", "2032-01-01", "CONCRETE", "NOT_BEFORE")])], TODAY);
+        expect(range.end).toBe(Date.UTC(2033, 0, 1));
     });
 });

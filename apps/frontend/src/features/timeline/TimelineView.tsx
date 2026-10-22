@@ -1,6 +1,7 @@
 import { useMemo, useState, type CSSProperties } from "react";
 import { Alert, Anchor, Badge, Box, Button, Group, Select, Stack, Text, Tooltip } from "@mantine/core";
 import { Link, useSearchParams } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
 
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { useProjectGroupTimeline, type ProjectTimeline, type TimelineMilestone } from "../../shared/api/queries";
@@ -14,16 +15,27 @@ import {
     TIMELINE_SORT_OPTIONS,
     buildSegments,
     computeRange,
-    formatMonth,
+    drawnMarkers,
+    markerTime,
     milestoneLabel,
     parseTimelineSort,
     percent,
+    shortMilestoneDate,
     sortRows,
-    toTime,
     yearTicks,
+    type Segment,
     type TimelineRange,
 } from "./timelineLayout";
-import { gapFill, markerStyle, phaseColor, plannedFill, segmentFill } from "./timelineStyles";
+import {
+    ASSUMED_OUTLINE,
+    fuzzyMask,
+    gapFill,
+    markerStyle,
+    openFill,
+    phaseColor,
+    plannedFill,
+    segmentFill,
+} from "./timelineStyles";
 import { TIMELINE_COLOR } from "../../shared/theme/semanticColors";
 import { LoadingState } from "../../shared/ui/LoadingState";
 import ProjectHoverCard from "../projects/ProjectHoverCard";
@@ -43,11 +55,17 @@ function todayUtc(): number {
 // Pause between construction stages: a thin dashed line in seq-4 on the
 // neutral track — clearly not construction, but still one project.
 const GAP_LABEL = "zwischen Bauetappen";
+const YEAR_MASK = fuzzyMask(true, false, 60);
 
 function Marker({ milestone, range }: { milestone: TimelineMilestone; range: TimelineRange }) {
-    const left = percent(toTime(milestone.date), range);
+    const left = percent(markerTime(milestone), range);
     const evidence = milestone.certainty === "EVIDENCE";
-    const style: CSSProperties = markerStyle(milestone.kind, milestone.phase as MainPhase | null, evidence);
+    const style: CSSProperties = markerStyle(
+        milestone.kind,
+        milestone.phase as MainPhase | null,
+        evidence,
+        milestone.date_precision,
+    );
     return (
         <Tooltip label={milestoneLabel(milestone)} withArrow>
             <Box
@@ -65,6 +83,68 @@ function Marker({ milestone, range }: { milestone: TimelineMilestone; range: Tim
     );
 }
 
+// Inline text of a year-only bar („2028“) or an open area („nach 2031 –
+// Termin offen“): on a surface pill so it stays legible on the hatch.
+const SEGMENT_LABEL_STYLE: CSSProperties = {
+    position: "absolute",
+    left: 4,
+    top: "50%",
+    translate: "0 -50%",
+    maxWidth: "calc(100% - 22px)",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    fontSize: 10,
+    lineHeight: "12px",
+    padding: "0 3px",
+    color: "var(--text-strong)",
+    background: "color-mix(in srgb, var(--surface) 85%, transparent)",
+    pointerEvents: "none",
+};
+
+function PhaseSegment({ seg, range }: { seg: Segment; range: TimelineRange }) {
+    const color = phaseColor(seg.phase);
+    const mask = fuzzyMask(Boolean(seg.fuzzyStart), Boolean(seg.fuzzyEnd));
+    return (
+        <Tooltip label={seg.title} withArrow disabled={!seg.title} multiline maw={320}>
+            <Box
+                style={{
+                    position: "absolute",
+                    left: `${percent(seg.start, range)}%`,
+                    width: `${percent(seg.end, range) - percent(seg.start, range)}%`,
+                    top: 3,
+                    bottom: 3,
+                    boxSizing: "border-box",
+                    background: seg.open ? openFill(color) : segmentFill(seg.phase, seg.planned),
+                    ...(mask && { maskImage: mask, WebkitMaskImage: mask }),
+                    ...(seg.assumed && { border: ASSUMED_OUTLINE }),
+                }}
+            >
+                {seg.label && (
+                    <span
+                        style={
+                            seg.open
+                                ? // Anchored before the arrow, growing to the left: a narrow
+                                  // open area at the axis end still shows the full text.
+                                  { ...SEGMENT_LABEL_STYLE, left: "auto", right: 14, maxWidth: "none" }
+                                : SEGMENT_LABEL_STYLE
+                        }
+                    >
+                        {seg.label}
+                    </span>
+                )}
+                {seg.open && (
+                    <ArrowRight
+                        size={12}
+                        aria-hidden
+                        style={{ position: "absolute", right: 0, top: "50%", translate: "0 -50%", color: "var(--text-strong)" }}
+                    />
+                )}
+            </Box>
+        </Tooltip>
+    );
+}
+
 function TimelineRow({
     row,
     range,
@@ -77,8 +157,8 @@ function TimelineRow({
     today: number;
 }) {
     const segments = useMemo(
-        () => buildSegments(row.milestones, today, row.construction_periods),
-        [row.milestones, row.construction_periods, today],
+        () => buildSegments(row.milestones, today, row.construction_periods, range.end),
+        [row.milestones, row.construction_periods, today, range.end],
     );
     const lifecycle = row.lifecycle_status as LifecycleStatus;
     const opening = row.milestones.find((m) => m.kind === "PHASE" && m.phase === "IN_BETRIEB");
@@ -109,7 +189,7 @@ function TimelineRow({
                     )}
                 </Group>
                 <Text size="xs" c="dimmed" className="idt-tnum" style={{ flexShrink: 0 }}>
-                    {opening ? `IB ${formatMonth(opening.date)}` : row.project_number ?? ""}
+                    {opening ? `IB ${shortMilestoneDate(opening)}` : row.project_number ?? ""}
                 </Text>
             </Group>
             <Box
@@ -150,17 +230,7 @@ function TimelineRow({
                             />
                         </Tooltip>
                     ) : (
-                        <Box
-                            key={idx}
-                            style={{
-                                position: "absolute",
-                                left: `${percent(seg.start, range)}%`,
-                                width: `${percent(seg.end, range) - percent(seg.start, range)}%`,
-                                top: 3,
-                                bottom: 3,
-                                background: segmentFill(seg.phase, seg.planned),
-                            }}
-                        />
+                        <PhaseSegment key={idx} seg={seg} range={range} />
                     ),
                 )}
                 <Box
@@ -176,7 +246,7 @@ function TimelineRow({
                         zIndex: 3,
                     }}
                 />
-                {row.milestones.map((m) => (
+                {drawnMarkers(row.milestones).map((m) => (
                     <Marker key={`${m.kind}-${m.phase ?? ""}-${m.date}`} milestone={m} range={range} />
                 ))}
             </Box>
@@ -201,6 +271,20 @@ function Legend({ showGap }: { showGap: boolean }) {
             <Group gap={6} wrap="nowrap">
                 {swatch(plannedFill("var(--text-muted)"), { boxShadow: "inset 0 0 0 1px var(--text-muted)" })}
                 <Text size="xs">geplant</Text>
+            </Group>
+            {/* Date qualification: how sure a date is (feature-project-progress.md). */}
+            <Group gap={6} wrap="nowrap">
+                {swatch(phaseColor("BAU"), { width: 22, maskImage: YEAR_MASK, WebkitMaskImage: YEAR_MASK })}
+                <Text size="xs">nur Jahr bekannt</Text>
+            </Group>
+            <Group gap={4} wrap="nowrap">
+                {swatch(openFill(phaseColor("BAU")), { width: 22 })}
+                <ArrowRight size={12} aria-hidden />
+                <Text size="xs">nach … – Termin offen</Text>
+            </Group>
+            <Group gap={6} wrap="nowrap">
+                {swatch("transparent", { border: ASSUMED_OUTLINE, boxSizing: "border-box" })}
+                <Text size="xs">Annahme</Text>
             </Group>
             {showGap && (
                 <Group gap={6} wrap="nowrap">

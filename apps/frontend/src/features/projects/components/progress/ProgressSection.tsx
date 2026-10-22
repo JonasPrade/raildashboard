@@ -133,7 +133,7 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
                     <Alert color="orange" variant="light" title="Konflikt im Planungsstand">
                         {SOURCE_LABEL[progress.conflict.source_type as SourceType] ??
                             progress.conflict.source_type}{" "}
-                        ({progress.conflict.observed_date ?? "ohne Datum"}) meldet{" "}
+                        ({progress.conflict.date_text ?? "ohne Datum"}) meldet{" "}
                         {MAIN_PHASE_LABEL[progress.conflict.asserted_phase as MainPhase]}, ältere Quellen
                         sehen das Projekt schon in{" "}
                         {MAIN_PHASE_LABEL[progress.conflict.contradicted_phase as MainPhase]}.{" "}

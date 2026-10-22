@@ -5648,6 +5648,14 @@ export interface components {
             asserted_phase: "NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB";
             /** Observed Date */
             observed_date?: string | null;
+            /**
+             * Date Precision
+             * @default EXACT
+             * @enum {string}
+             */
+            date_precision: "EXACT" | "MONTH" | "YEAR" | "NOT_BEFORE" | "ASSUMED";
+            /** Date Text */
+            date_text?: string | null;
             /** Trust */
             trust: number;
             /**
@@ -7378,6 +7386,14 @@ export interface components {
             asserted_state: string;
             /** Observed Date */
             observed_date?: string | null;
+            /**
+             * Date Precision
+             * @default EXACT
+             * @enum {string}
+             */
+            date_precision: "EXACT" | "MONTH" | "YEAR" | "NOT_BEFORE" | "ASSUMED";
+            /** Date Text */
+            date_text?: string | null;
             /** Effective Confidence */
             effective_confidence: number;
             /** Was Decisive */

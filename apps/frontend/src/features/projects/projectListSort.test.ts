@@ -36,6 +36,18 @@ describe("sortProjects", () => {
     });
 });
 
+describe("sortProjects by dates", () => {
+    it("orders by the Baubeginn sort value, undated last", () => {
+        const rows = [
+            { name: "offen", construction_start_date: "2032-01-01" },
+            { name: "ohne", construction_start_date: null },
+            { name: "2028", construction_start_date: "2028-01-01" },
+        ];
+        expect(sortProjects(rows, { key: "dates", dir: "asc" }).map((r) => r.name)).toEqual(["2028", "offen", "ohne"]);
+        expect(sortProjects(rows, { key: "dates", dir: "desc" }).map((r) => r.name)).toEqual(["offen", "2028", "ohne"]);
+    });
+});
+
 describe("nextSort", () => {
     it("flips the direction on the same column and starts ascending on another", () => {
         expect(nextSort({ key: "name", dir: "asc" }, "name")).toEqual({ key: "name", dir: "desc" });

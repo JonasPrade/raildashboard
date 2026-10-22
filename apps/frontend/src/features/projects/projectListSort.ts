@@ -4,13 +4,14 @@
  */
 import { MAIN_PHASES } from "./components/progress/phaseMeta";
 
-export type ProjectSortKey = "name" | "phase" | "length";
+export type ProjectSortKey = "name" | "phase" | "dates" | "length";
 export type SortDirection = "asc" | "desc";
 export type ProjectSort = { key: ProjectSortKey | null; dir: SortDirection };
 
 export const PROJECT_SORT_LABEL: Record<ProjectSortKey, string> = {
     name: "Projekt",
     phase: "Phase",
+    dates: "Termine",
     length: "Länge (km)",
 };
 
@@ -18,6 +19,8 @@ type Sortable = {
     name: string;
     headline_phase?: string | null;
     length?: number | null;
+    // Sort value of the cached Baubeginn (ISO); its precision does not change the order.
+    construction_start_date?: string | null;
 };
 
 const phaseRank = (phase: string | null | undefined): number | null => {
@@ -42,6 +45,7 @@ export function sortProjects<T extends Sortable>(projects: readonly T[], sort: P
     const value = (p: T): string | number | null => {
         if (key === "name") return p.name ?? "";
         if (key === "phase") return phaseRank(p.headline_phase);
+        if (key === "dates") return p.construction_start_date ?? null;
         return typeof p.length === "number" && Number.isFinite(p.length) ? p.length : null;
     };
     return projects

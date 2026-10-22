@@ -28,6 +28,7 @@ import {
     type ProjectProgressUpdate,
     useAddProgressObservation,
     useDeleteProgressObservation,
+    useUpdateProgressObservation,
     useRecomputeProgress,
     useUpdateProjectProgress,
 } from "../../../../shared/api/queries";
@@ -47,6 +48,15 @@ import {
     type ParallelState,
     type SourceType,
 } from "./phaseMeta";
+import {
+    DATE_PRECISIONS,
+    DATE_PRECISION_META,
+    normalizeSortDate,
+    qualifiedDateText,
+    type DatePrecision,
+} from "../../../../shared/datePrecision";
+
+const PRECISION_OPTIONS = DATE_PRECISIONS.map((p) => ({ value: p, label: DATE_PRECISION_META[p].label }));
 
 const PHASE_NONE = "__none__";
 const PARL_STATE_NONE = "__none__";
@@ -87,6 +97,8 @@ type Draft = {
     pfDate: string; // ISO date or ""
     newObservations: ProgressObservationCreate[];
     removedObservationIds: number[]; // existing manual observations to delete
+    // Date precision changed on existing manual observations (id → precision).
+    precisionChanges: Record<number, DatePrecision>;
 };
 
 function initDraft(progress: ProjectProgress): Draft {
@@ -106,6 +118,7 @@ function initDraft(progress: ProjectProgress): Draft {
         pfDate: progress.pf_date ?? "",
         newObservations: [],
         removedObservationIds: [],
+        precisionChanges: {},
     };
 }
 
@@ -129,7 +142,8 @@ function isDirty(draft: Draft, progress: ProjectProgress): boolean {
         JSON.stringify(normPfLinks(draft.pfLinks)) !== JSON.stringify(serverPfLinks(progress)) ||
         (draft.pfDate || "") !== (progress.pf_date ?? "") ||
         draft.newObservations.length > 0 ||
-        draft.removedObservationIds.length > 0
+        draft.removedObservationIds.length > 0 ||
+        Object.keys(draft.precisionChanges).length > 0
     );
 }
 
@@ -200,6 +214,10 @@ function ObservationDraftForm({ onAdd }: { onAdd: (obs: ProgressObservationCreat
     // section instead, so this form no longer offers a track selector.
     const [state, setState] = useState<string>("VORPLANUNG");
     const [date, setDate] = useState("");
+    // How precisely the source names the date (feature-project-progress.md →
+    // „Datumsqualifikation“); never invent a day the source does not give.
+    const [precision, setPrecision] = useState<DatePrecision>("EXACT");
+    const [dateLabel, setDateLabel] = useState("");
     const [confidence, setConfidence] = useState<string>("");
     const [note, setNote] = useState("");
     // Expected (future) milestone vs. a reached state. Expected entries only feed
@@ -214,13 +232,17 @@ function ObservationDraftForm({ onAdd }: { onAdd: (obs: ProgressObservationCreat
             source_type: sourceType,
             track: "MAIN",
             asserted_state: state,
-            observed_date: date || null,
+            observed_date: date ? normalizeSortDate(date, precision) : null,
+            date_precision: precision,
+            date_label: dateLabel.trim() || null,
             confidence: conf !== null && Number.isFinite(conf) ? conf : null,
             note: note || null,
             is_expected: isExpected,
         });
         setNote("");
         setDate("");
+        setDateLabel("");
+        setPrecision("EXACT");
         setConfidence("");
     };
 
@@ -250,6 +272,25 @@ function ObservationDraftForm({ onAdd }: { onAdd: (obs: ProgressObservationCreat
                     value={date}
                     onChange={(e) => setDate(e.currentTarget.value)}
                     w={150}
+                />
+                <Select
+                    size="xs"
+                    label="Genauigkeit"
+                    description={DATE_PRECISION_META[precision].help}
+                    value={precision}
+                    onChange={(v) => setPrecision((v as DatePrecision) ?? "EXACT")}
+                    data={PRECISION_OPTIONS}
+                    allowDeselect={false}
+                    w={150}
+                />
+                <TextInput
+                    size="xs"
+                    label="Terminzusatz"
+                    description="optional, z. B. „Priorisierung 2027 offen“"
+                    value={dateLabel}
+                    onChange={(e) => setDateLabel(e.currentTarget.value)}
+                    maxLength={120}
+                    w={200}
                 />
                 <NumberInput
                     size="xs"
@@ -308,6 +349,7 @@ export default function ProgressEditDrawer({ projectId, progress, opened, onClos
     const update = useUpdateProjectProgress(projectId);
     const addObs = useAddProgressObservation(projectId);
     const delObs = useDeleteProgressObservation(projectId);
+    const updObs = useUpdateProgressObservation(projectId);
     const recompute = useRecomputeProgress(projectId);
 
     const active = draft ?? initDraft(progress);
@@ -331,6 +373,13 @@ export default function ProgressEditDrawer({ projectId, progress, opened, onClos
             const payload = scalarPayload(active, progress);
             if (payload) await update.mutateAsync(payload);
             for (const id of active.removedObservationIds) await delObs.mutateAsync(id);
+            for (const [id, precision] of Object.entries(active.precisionChanges)) {
+                if (active.removedObservationIds.includes(Number(id))) continue;
+                await updObs.mutateAsync({
+                    observationId: Number(id),
+                    payload: { date_precision: precision, clear_date_label: false },
+                });
+            }
             for (const obs of active.newObservations) await addObs.mutateAsync(obs);
             notifications.show({ color: "green", message: "Planungsstand gespeichert." });
             reset();
@@ -662,7 +711,38 @@ export default function ProgressEditDrawer({ projectId, progress, opened, onClos
                                                 )}
                                             </Group>
                                         </Table.Td>
-                                        <Table.Td>{obs.observed_date ?? "–"}</Table.Td>
+                                        <Table.Td>
+                                            <Stack gap={4}>
+                                                <Text size="sm">
+                                                    {qualifiedDateText(
+                                                        obs.observed_date
+                                                            ? normalizeSortDate(
+                                                                  obs.observed_date,
+                                                                  active.precisionChanges[obs.id] ?? obs.date_precision,
+                                                              )
+                                                            : null,
+                                                        active.precisionChanges[obs.id] ?? obs.date_precision,
+                                                        obs.date_label,
+                                                    ) ?? "–"}
+                                                </Text>
+                                                {obs.observed_date && (
+                                                    <Select
+                                                        size="xs"
+                                                        aria-label="Genauigkeit des Datums"
+                                                        value={active.precisionChanges[obs.id] ?? obs.date_precision}
+                                                        data={PRECISION_OPTIONS}
+                                                        allowDeselect={false}
+                                                        w={130}
+                                                        onChange={(v) => {
+                                                            const changes = { ...active.precisionChanges };
+                                                            if (!v || v === obs.date_precision) delete changes[obs.id];
+                                                            else changes[obs.id] = v as DatePrecision;
+                                                            set({ precisionChanges: changes });
+                                                        }}
+                                                    />
+                                                )}
+                                            </Stack>
+                                        </Table.Td>
                                         <Table.Td>{obs.note ?? ""}</Table.Td>
                                         <Table.Td>{obs.username_snapshot ?? "–"}</Table.Td>
                                         <Table.Td>{formatTimestamp(obs.created_at)}</Table.Td>
@@ -707,7 +787,9 @@ export default function ProgressEditDrawer({ projectId, progress, opened, onClos
                                                 )}
                                             </Group>
                                         </Table.Td>
-                                        <Table.Td>{obs.observed_date ?? "–"}</Table.Td>
+                                        <Table.Td>
+                                            {qualifiedDateText(obs.observed_date, obs.date_precision, obs.date_label) ?? "–"}
+                                        </Table.Td>
                                         <Table.Td>
                                             <Group gap={4}>
                                                 <Text size="sm">{obs.note ?? ""}</Text>

@@ -1,8 +1,9 @@
-import { ActionIcon, Button, Popover, Select, Stack, Switch, TextInput } from "@mantine/core";
+import { ActionIcon, Button, Group, NumberInput, Popover, Select, Stack, Switch, Text, TextInput } from "@mantine/core";
 import { Filter, Search, X } from "lucide-react";
 
 import PhaseFilterSelect from "./PhaseFilterSelect";
 import { phaseFilterOptions, type PhaseFilterValue } from "./phaseFilter";
+import { dateFilterMarks, type DateFilter } from "./dateFilter";
 
 const PHASE_LABEL = new Map(phaseFilterOptions().map((o) => [o.value, o.label]));
 
@@ -17,10 +18,59 @@ type Props = {
     onPhasesChange: (values: PhaseFilterValue[]) => void;
     onlySuperior: boolean;
     onOnlySuperiorChange: (checked: boolean) => void;
+    dateFilter: DateFilter;
+    onDateFilterChange: (filter: DateFilter) => void;
     /** Hits after all filters, and the size of the group they come from. */
     shown: number;
     total: number | null;
 };
+
+function YearRange({
+    label,
+    from,
+    to,
+    onChange,
+}: {
+    label: string;
+    from: number | null;
+    to: number | null;
+    onChange: (from: number | null, to: number | null) => void;
+}) {
+    const year = (v: string | number) => (typeof v === "number" && v >= 1900 && v <= 2100 ? v : null);
+    return (
+        <Stack gap={4}>
+            <Text size="sm" fw={500}>
+                {label}
+            </Text>
+            <Group gap="xs" wrap="nowrap">
+                <NumberInput
+                    aria-label={`${label} von`}
+                    placeholder="von"
+                    value={from ?? ""}
+                    onChange={(v) => onChange(year(v), to)}
+                    min={1900}
+                    max={2100}
+                    allowDecimal={false}
+                    thousandSeparator={false}
+                    hideControls
+                    style={{ flex: 1 }}
+                />
+                <NumberInput
+                    aria-label={`${label} bis`}
+                    placeholder="bis"
+                    value={to ?? ""}
+                    onChange={(v) => onChange(from, year(v))}
+                    min={1900}
+                    max={2100}
+                    allowDecimal={false}
+                    thousandSeparator={false}
+                    hideControls
+                    style={{ flex: 1 }}
+                />
+            </Group>
+        </Stack>
+    );
+}
 
 function FilterMark({ label, onRemove }: { label: string; onRemove: () => void }) {
     return (
@@ -49,6 +99,8 @@ export function ProjectFilterBar({
     onPhasesChange,
     onlySuperior,
     onOnlySuperiorChange,
+    dateFilter,
+    onDateFilterChange,
     shown,
     total,
 }: Props) {
@@ -88,6 +140,9 @@ export function ProjectFilterBar({
                     onRemove={() => onPhasesChange(phases.filter((p) => p !== phase))}
                 />
             ))}
+            {dateFilterMarks(dateFilter).map((mark) => (
+                <FilterMark key={mark.label} label={mark.label} onRemove={() => onDateFilterChange(mark.without)} />
+            ))}
             {onlySuperior && <FilterMark label="Nur Hauptprojekte" onRemove={() => onOnlySuperiorChange(false)} />}
             <Popover width={300} position="bottom-start">
                 <Popover.Target>
@@ -98,6 +153,24 @@ export function ProjectFilterBar({
                 <Popover.Dropdown>
                     <Stack gap="md">
                         <PhaseFilterSelect label="Planungsphase" value={phases} onChange={onPhasesChange} />
+                        <YearRange
+                            label="Baubeginn (Jahr)"
+                            from={dateFilter.bauFrom}
+                            to={dateFilter.bauTo}
+                            onChange={(bauFrom, bauTo) => onDateFilterChange({ ...dateFilter, bauFrom, bauTo })}
+                        />
+                        <YearRange
+                            label="Inbetriebnahme (Jahr)"
+                            from={dateFilter.ibFrom}
+                            to={dateFilter.ibTo}
+                            onChange={(ibFrom, ibTo) => onDateFilterChange({ ...dateFilter, ibFrom, ibTo })}
+                        />
+                        <Switch
+                            label="Termin offen"
+                            description="Baubeginn oder Inbetriebnahme nur als Untergrenze bekannt („nach 2031“) — zählt in keinem Zeitraum"
+                            checked={dateFilter.open}
+                            onChange={(e) => onDateFilterChange({ ...dateFilter, open: e.currentTarget.checked })}
+                        />
                         <Switch
                             label="Nur Hauptprojekte"
                             checked={onlySuperior}

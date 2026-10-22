@@ -139,7 +139,9 @@ class SourceContributionSchema(BaseModel):
     source_type: SourceTypeLiteral
     track: TrackLiteral
     asserted_state: str
-    observed_date: Optional[date] = None
+    observed_date: Optional[date] = None  # sort value; shown as ``date_text``
+    date_precision: DatePrecisionLiteral = "EXACT"
+    date_text: Optional[str] = None
     effective_confidence: float  # trust × recency; decides credibility only
     was_decisive: bool
     trust: float = 0.0  # explicit confidence, else the source default (no recency)
@@ -157,7 +159,9 @@ class PhaseConflictSchema(BaseModel):
     observation_id: Optional[int] = None
     source_type: SourceTypeLiteral
     asserted_phase: MainPhaseLiteral
-    observed_date: Optional[date] = None
+    observed_date: Optional[date] = None  # sort value; shown as ``date_text``
+    date_precision: DatePrecisionLiteral = "EXACT"
+    date_text: Optional[str] = None
     trust: float
     contradicted_ids: list[Optional[int]] = []
     contradicted_phase: MainPhaseLiteral

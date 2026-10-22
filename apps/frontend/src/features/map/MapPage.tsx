@@ -23,6 +23,7 @@ import { useAuth } from "../../lib/auth";
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import GroupFilterDrawer, { type ProjectGroupOption } from "../projects/GroupFilterDrawer";
 import { ProjectFilterBar } from "../projects/ProjectFilterBar";
+import { filterProjectsByDate, isDateFilterActive, parseDateFilter, writeDateFilter, type DateFilter } from "../projects/dateFilter";
 import { ProjectListTable } from "../projects/ProjectListTable";
 import {
     PHASE_PARAM,
@@ -107,6 +108,13 @@ export default function MapPage() {
             else prev.delete(PHASE_PARAM);
             return prev;
         });
+    };
+
+    // --- Date filters: ?bau_von / bau_bis / ib_von / ib_bis / termin_offen —
+    //     on the cached forecast dates; a lower bound never matches a range.
+    const dateFilter = useMemo(() => parseDateFilter(searchParams), [searchParams]);
+    const handleDateFilterChange = (filter: DateFilter) => {
+        setSearchParams((prev) => writeDateFilter(prev, filter));
     };
 
     const constituencyGeojson = useConstituencyGeojson(showConstituencies);
@@ -196,7 +204,10 @@ export default function MapPage() {
     // while the (cheap, but setData-triggering) map update lags a beat behind.
     const deferredSearch = useDeferredValue(localSearch);
     const filteredMapProjects = useMemo(() => {
-        const phaseFiltered = filterProjectsByPhase(selectedProjects, selectedPhases);
+        const phaseFiltered = filterProjectsByDate(
+            filterProjectsByPhase(selectedProjects, selectedPhases),
+            dateFilter,
+        );
         const term = deferredSearch.trim().toLowerCase();
         if (!term) return phaseFiltered;
         return phaseFiltered.filter(
@@ -205,11 +216,14 @@ export default function MapPage() {
                 p.project_number?.toLowerCase().includes(term) ||
                 p.description?.toLowerCase().includes(term),
         );
-    }, [selectedProjects, selectedPhases, deferredSearch]);
-    const isFiltered = localSearch.trim().length > 0 || selectedPhases.length > 0;
+    }, [selectedProjects, selectedPhases, dateFilter, deferredSearch]);
+    const isFiltered =
+        localSearch.trim().length > 0 || selectedPhases.length > 0 || isDateFilterActive(dateFilter);
     const noMatchMessage = localSearch.trim()
         ? `Keine Projekte für „${localSearch.trim()}"${selectedPhases.length > 0 ? " in den gewählten Phasen" : ""} gefunden`
-        : "Keine Projekte in den gewählten Phasen";
+        : isDateFilterActive(dateFilter)
+          ? "Keine Projekte für die gewählten Filter"
+          : "Keine Projekte in den gewählten Phasen";
 
     // --- List tab: single-group selection (first entry in ?group) ---
     const selectedGroupId = useMemo(() => {
@@ -323,7 +337,10 @@ export default function MapPage() {
         const superiorFiltered = onlySuperior
             ? rawProjects.filter((p) => p.superior_project_id == null)
             : rawProjects;
-        const phaseFiltered = filterProjectsByPhase(superiorFiltered, selectedPhases);
+        const phaseFiltered = filterProjectsByDate(
+            filterProjectsByPhase(superiorFiltered, selectedPhases),
+            dateFilter,
+        );
         const searchTerm = deferredSearch.trim().toLowerCase();
         const projects = searchTerm
             ? phaseFiltered.filter(
@@ -399,6 +416,8 @@ export default function MapPage() {
                             onPhasesChange={handlePhaseFilterChange}
                             onlySuperior={onlySuperior}
                             onOnlySuperiorChange={handleOnlySuperiorChange}
+                            dateFilter={dateFilter}
+                            onDateFilterChange={handleDateFilterChange}
                             shown={projects.length}
                             total={selectedGroup ? rawProjects.length : null}
                         />
@@ -418,7 +437,7 @@ export default function MapPage() {
                             groupId={selectedGroup.id}
                             onlySuperior={onlySuperior}
                             visibleProjectIds={new Set(projects.map((p) => p.id))}
-                            searchActive={searchTerm.length > 0}
+                            searchActive={searchTerm.length > 0 || isDateFilterActive(dateFilter)}
                         />
                     ) : selectedGroup ? (
                         <Stack gap="md">
