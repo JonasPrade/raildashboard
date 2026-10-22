@@ -1,9 +1,11 @@
+import { Fragment } from "react";
 import { Box, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { Check, ChevronRight } from "lucide-react";
 
 import {
     MAIN_PHASE_LABEL,
     MAIN_PHASE_SHORT,
+    MILESTONE_LABEL,
     PARALLEL_STATE_LABEL,
     UNKNOWN_LABEL,
     type MainPhase,
@@ -12,9 +14,13 @@ import {
     visiblePhases,
 } from "./phaseMeta";
 import { formatDateShort } from "../../../../shared/format";
-import { LANE_STATE_COLOR } from "../../../../shared/theme/semanticColors";
+import { FORECAST_SOURCE_COLOR, LANE_STATE_COLOR } from "../../../../shared/theme/semanticColors";
+import { SwatchTag } from "../../../../shared/ui/SwatchTag";
 
 export type StepperChild = { project_id: number; name: string };
+
+/** Forecast step as delivered by the progress endpoint. */
+export type StepperForecastStep = { phase: string; expected_date?: string | null; source: string };
 
 type Props = {
     /** Effective (override-aware) current phase. */
@@ -50,6 +56,9 @@ type Props = {
     parlDate?: string | null;
     /** Planning phases left out entirely (skipped by the project's groups). */
     hiddenPhases?: readonly string[] | null;
+    /** Forecast steps; those with a known date are drawn in a "Prognose" row
+     * under their phase column, the rest is left out. */
+    forecastSteps?: readonly StepperForecastStep[] | null;
 };
 
 const ACTIVE: string = LANE_STATE_COLOR.active;
@@ -59,6 +68,37 @@ const DONE_FRAME: string = LANE_STATE_COLOR.doneFrame;
 // Open steps, chevrons and open milestones are graphics: --text-muted reaches 3:1
 // in both schemes, the hairline token (--idt-line-strong) only 1.8:1.
 const IDLE: string = LANE_STATE_COLOR.idleLine;
+const SOURCE_COLOR: Record<string, string> = FORECAST_SOURCE_COLOR;
+const SOURCE_FALLBACK_COLOR = "var(--idt-line-strong)";
+
+/** Forecast dates are period approximations → month/year only; null if unknown. */
+function formatForecastDate(dateStr: string | null | undefined): string | null {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return null;
+    return `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+}
+
+/** Forecast cell in the "Prognose" row: expected month/year plus its source. */
+function ForecastCell({ phase, date, source }: { phase: MainPhase; date: string; source: string }) {
+    return (
+        <Tooltip
+            label={`${MILESTONE_LABEL[phase]} voraussichtlich ${date} · Quelle: ${source}`}
+            withArrow
+            position="bottom"
+            events={{ hover: true, focus: true, touch: true }}
+        >
+            <Stack gap={3} align="center" style={{ flexShrink: 0, cursor: "default" }}>
+                <Text size="xs" fw={600} style={{ lineHeight: 1.1, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+                    {date}
+                </Text>
+                <SwatchTag size="xs" color={SOURCE_COLOR[source] ?? SOURCE_FALLBACK_COLOR}>
+                    {source}
+                </SwatchTag>
+            </Stack>
+        </Tooltip>
+    );
+}
 
 /**
  * Gate milestone marker rendered on a second tier *below* a timeline connector
@@ -133,6 +173,7 @@ export default function PhaseStepper({
     parlState,
     parlDate,
     hiddenPhases,
+    forecastSteps,
 }: Props) {
     const phases = visiblePhases(hiddenPhases);
     const isSpan = spanMin != null && spanMax != null;
@@ -148,13 +189,36 @@ export default function PhaseStepper({
     const spansBoundary = (fromIdx: number, toIdx: number, boundaryIdx: number) =>
         fromIdx <= boundaryIdx && boundaryIdx < toIdx;
 
+    // Only forecast steps with a known date get a cell; "Termin offen" is left out.
+    const forecastByPhase: Partial<Record<MainPhase, { date: string; source: string }>> = {};
+    for (const step of forecastSteps ?? []) {
+        const date = formatForecastDate(step.expected_date);
+        if (date && phases.includes(step.phase as MainPhase)) {
+            forecastByPhase[step.phase as MainPhase] = { date, source: step.source };
+        }
+    }
+    const hasForecast = Object.keys(forecastByPhase).length > 0;
+
+    // Grid: phase columns alternate with connector columns (chevron + gates).
+    // Row 1 = phases, row 2 = gate milestones, rows 3–4 = "Prognose" label + cells.
+    const columnCount = phases.length * 2 - 1 + (unknown ? 1 : 0);
+    const phaseColumn = (pos: number) => pos * 2 + 1;
+
     return (
-        <Group
-            gap={4}
-            wrap="nowrap"
-            align="flex-start"
-            // Paused: phase colours go grey, text keeps its contrast (no opacity).
-            style={{ filter: dimmed ? "grayscale(1)" : undefined, overflowX: "auto" }}
+        <Box
+            style={{
+                display: "grid",
+                gridTemplateColumns: [
+                    ...phases.flatMap((_, pos) => (pos < phases.length - 1 ? ["minmax(78px, max-content)", "auto"] : ["minmax(78px, max-content)"])),
+                    ...(unknown ? ["auto"] : []),
+                ].join(" "),
+                columnGap: 4,
+                justifyContent: "start",
+                alignItems: "start",
+                overflowX: "auto",
+                // Paused: phase colours go grey, text keeps its contrast (no opacity).
+                filter: dimmed ? "grayscale(1)" : undefined,
+            }}
         >
             {phases.map((phase, pos) => {
                 const idx = mainPhaseIndex(phase);
@@ -199,10 +263,13 @@ export default function PhaseStepper({
                         MAIN_PHASE_LABEL[phase]
                     );
 
+                const forecast = forecastByPhase[phase];
+                const column = phaseColumn(pos);
+
                 return (
-                    <Group gap={4} wrap="nowrap" key={phase} align="flex-start">
+                    <Fragment key={phase}>
                         <Tooltip label={tooltipLabel} multiline withArrow position="top" events={{ hover: true, focus: true, touch: true }}>
-                            <Stack gap={4} align="center" style={{ minWidth: 78, cursor: "default" }}>
+                            <Stack gap={4} align="center" style={{ gridRow: 1, gridColumn: column, cursor: "default" }}>
                                 <Box
                                     style={{
                                         position: "relative",
@@ -259,41 +326,70 @@ export default function PhaseStepper({
                             </Stack>
                         </Tooltip>
                         {nextIdx !== null && (
-                            <Stack gap={4} align="center" style={{ flexShrink: 0 }}>
+                            <>
                                 {/* Arrow stays on the main timeline row, vertically centred
                                     with the phase markers (28px band). */}
-                                <Box style={{ height: 28, display: "flex", alignItems: "center" }}>
+                                <Box style={{ gridRow: 1, gridColumn: column + 1, height: 28, display: "flex", alignItems: "center" }}>
                                     <ChevronRight
                                         size={16}
                                         style={{ color: !unknown && idx < maxIdx ? ACTIVE : IDLE }}
                                     />
                                 </Box>
-                                {spansBoundary(idx, nextIdx, parlBoundaryIdx) && parlRelevant && (
-                                    <Milestone
-                                        label="Parl."
-                                        tooltipPrefix="Parlamentarische Befassung"
-                                        state={parlState ?? null}
-                                        date={parlDate ?? null}
-                                    />
-                                )}
-                                {spansBoundary(idx, nextIdx, pfBoundaryIdx) && pfRelevant && (
-                                    <Milestone
-                                        label="PFB"
-                                        tooltipPrefix="Planfeststellung"
-                                        state={pfState ?? null}
-                                        date={pfDate ?? null}
-                                    />
-                                )}
-                            </Stack>
+                                <Stack gap={4} align="center" style={{ gridRow: 2, gridColumn: column + 1 }}>
+                                    {spansBoundary(idx, nextIdx, parlBoundaryIdx) && parlRelevant && (
+                                        <Milestone
+                                            label="Parl."
+                                            tooltipPrefix="Parlamentarische Befassung"
+                                            state={parlState ?? null}
+                                            date={parlDate ?? null}
+                                        />
+                                    )}
+                                    {spansBoundary(idx, nextIdx, pfBoundaryIdx) && pfRelevant && (
+                                        <Milestone
+                                            label="PFB"
+                                            tooltipPrefix="Planfeststellung"
+                                            state={pfState ?? null}
+                                            date={pfDate ?? null}
+                                        />
+                                    )}
+                                </Stack>
+                            </>
                         )}
-                    </Group>
+                        {forecast && (
+                            // Zero-width centred box: a long source tag overflows evenly instead
+                            // of widening its phase column and pushing the stepper apart.
+                            <Box style={{ gridRow: 4, gridColumn: column, justifySelf: "center", width: 0, display: "flex", justifyContent: "center" }}>
+                                <ForecastCell phase={phase} date={forecast.date} source={forecast.source} />
+                            </Box>
+                        )}
+                    </Fragment>
                 );
             })}
             {unknown && (
-                <Text size="sm" c="dimmed" fs="italic" style={{ alignSelf: "center", paddingLeft: 8 }}>
+                <Text
+                    size="sm"
+                    c="dimmed"
+                    fs="italic"
+                    style={{ gridRow: 1, gridColumn: columnCount, alignSelf: "center", paddingLeft: 8 }}
+                >
                     {UNKNOWN_LABEL}
                 </Text>
             )}
-        </Group>
+            {hasForecast && (
+                <Text
+                    component="div"
+                    className="idt-eyebrow"
+                    style={{
+                        gridRow: 3,
+                        gridColumn: "1 / -1",
+                        marginTop: 10,
+                        paddingTop: 6,
+                        borderTop: "1px solid var(--idt-line)",
+                    }}
+                >
+                    Prognose
+                </Text>
+            )}
+        </Box>
     );
 }

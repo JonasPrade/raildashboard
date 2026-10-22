@@ -161,6 +161,7 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
                     parlState={progress.parl_state as ParallelState | null}
                     parlDate={progress.parl_befassung_date}
                     hiddenPhases={progress.hidden_phases}
+                    forecastSteps={!isDimmed && progress.forecast?.has_data ? progress.forecast.next_steps : null}
                 />
 
                 {progress.is_superior && progress.children.length > 0 && (
@@ -182,14 +183,7 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
                     parlStateInGraphic={!progress.is_superior && progress.parl_befassung_relevant}
                 />
 
-                {!isDimmed && (
-                    <Stack gap="xs">
-                        <Text component="div" className="idt-eyebrow">
-                            Prognose
-                        </Text>
-                        <ForecastPanel forecast={progress.forecast} />
-                    </Stack>
-                )}
+                {!isDimmed && <ForecastPanel forecast={progress.forecast} />}
 
                 <SourceBreakdown
                     contributions={progress.contributions}

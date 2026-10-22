@@ -79,7 +79,7 @@ Das Alter macht einen Bericht nicht weniger vertrauenswürdig, es zählt über d
         {
             key: "prognose",
             title: "Prognose & erwartete Termine",
-            body: `Neben dem aktuellen Stand zeigt der Aufklappbereich eine **Prognose** (Restdauer der aktuellen Phase + nächste Schritte). Konkrete Termine aus VIB-PFA und Fulda speisen die Prognose.
+            body: `Unter der Phasenleiste zeigt eine Zeile **Prognose** für jede Phase, für die ein Termin bekannt ist, den erwarteten Monat und die Quelle; darunter steht die Restdauer der aktuellen Phase. Konkrete Termine aus VIB-PFA und Fulda speisen die Prognose.
 
 Eine manuelle Beobachtung kannst du als **„erwartet"** markieren (Phase + Datum). Erwartete Einträge fließen **nicht** in die Headline ein (sie verändern den heutigen Stand nicht), sondern übersteuern nur die Prognose.`,
         },
