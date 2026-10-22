@@ -29,7 +29,7 @@ from dashboard_backend.models.gvfg import (
 )
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.projects.project_group import ProjectGroup
-from dashboard_backend.services.gvfg_parser import key_without_suffix, normalize_key
+from dashboard_backend.services.gvfg_parser import PART_FINANCIAL, key_without_suffix, normalize_key
 from dashboard_backend.tasks.finve_matching import _score as name_score
 
 GVFG_GROUP = "GVFG"
@@ -301,7 +301,11 @@ def confirm_parse_result(
         db.flush()
     elif not result.get("is_annex"):
         program.stand = _stand(result.get("stand")) or program.stand
-    program.periods = _merge_periods(program.periods or [], result.get("periods") or [])
+    # The financial part carries all year columns and replaces them (a re-import
+    # drops labels an older parse read wrongly); an informational part has none.
+    program.periods = _merge_periods(
+        [] if PART_FINANCIAL in parts else program.periods or [], result.get("periods") or []
+    )
     if result.get("is_annex"):
         program.has_annex = True
     program.imported_at = datetime.utcnow()

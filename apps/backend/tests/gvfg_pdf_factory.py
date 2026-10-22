@@ -46,6 +46,7 @@ _WIDTHS = {
     "Lph": 20,
     "Fördertatbestand": 60,
     "Fördersatz": 30,
+    "insgesamt": 44,  # room for "Bundesfinanzhilfen" in one line
 }
 
 
@@ -68,7 +69,9 @@ def build_pdf(
     stand: str = "18.07.2025",
 ) -> bytes:
     """``pages``: [{"land", "kind" ("kommunale Vorhaben"/"DB-Vorhaben"),
-    "informational": bool, "rows": [Row], "total": [(marker, [values])]}]."""
+    "informational": bool, "rows": [Row], "total": [(marker, [values])]}];
+    an optional "headers" replaces the printed header texts of that page
+    (same columns, e.g. a typo), Row.meta still uses the default names."""
     doc = fitz.open()
     for spec in pages:
         page = doc.new_page(width=842, height=595)
@@ -82,12 +85,13 @@ def build_pdf(
         _text(writer, 350, 50, title)
 
         headers = INFO_HEADERS if spec.get("informational") else FINANCIAL_HEADERS
+        printed = spec.get("headers", headers)
         xs = [30.0]
         for header in headers:
             xs.append(xs[-1] + _WIDTHS.get(header, 34))
         top = 70.0
         header_bottom = top + 4 * _LINE
-        for col, header in enumerate(headers):
+        for col, header in enumerate(printed):
             for i, part in enumerate(header.split(" ")):
                 _text(writer, xs[col] + 1, top + (i + 1) * _LINE - 1, part)
 
