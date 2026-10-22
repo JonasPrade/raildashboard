@@ -308,12 +308,14 @@ def patch_project(
 
 @router.get("/{project_id}/finves", response_model=list[FinveWithBudgetsSchema])
 def get_project_finves(
+    include_subprojects: bool = False,
     project: Project = Depends(get_project_or_404),
     db: Session = Depends(get_db),
 ):
     """Return all FinVes linked to a project, each with their full budget history
-    including per-Haushaltstiteln breakdown."""
-    return get_project_finves_with_budgets(db, project)
+    including per-Haushaltstiteln breakdown. ``include_subprojects`` adds the
+    FinVes of all sub-projects (each once, flagged ``from_subprojects``)."""
+    return get_project_finves_with_budgets(db, project, include_subprojects=include_subprojects)
 
 
 @router.post("/{project_id}/finves", status_code=204)

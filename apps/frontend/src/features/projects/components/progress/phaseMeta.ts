@@ -19,6 +19,8 @@ export type SourceType =
     | "FULDA_RUNDE"
     | "BAUPORTAL"
     | "MEDIEN"
+    | "INFRAPLAN"
+    | "GVFG"
     | "MANUELL";
 
 export const MAIN_PHASES: MainPhase[] = [
@@ -96,6 +98,8 @@ export const SOURCE_LABEL: Record<SourceType, string> = {
     FULDA_RUNDE: "Fulda-Runde",
     BAUPORTAL: "Bauportal",
     MEDIEN: "Medien",
+    INFRAPLAN: "Infraplan",
+    GVFG: "GVFG",
     MANUELL: "Manuell",
 };
 

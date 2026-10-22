@@ -37,6 +37,7 @@ from dashboard_backend.models.infraplan import (
     InfraplanParseResult,
     InfraplanReport,
 )
+from dashboard_backend.models.gvfg import GvfgEntry, GvfgProgram, gvfg_entry_project
 from dashboard_backend.models.users import User
 from dashboard_backend.services.progress_derivation import aggregate_tree
 
@@ -63,6 +64,10 @@ _TABLES_BEFORE = [
     InfraplanReport.__table__,
     InfraplanEntry.__table__,
     InfraplanEntryProject.__table__,
+    # GVFG editions feed it too (feature-project-progress.md → GVFG source).
+    GvfgProgram.__table__,
+    GvfgEntry.__table__,
+    gvfg_entry_project,
 ]
 
 

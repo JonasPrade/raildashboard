@@ -10,6 +10,7 @@ import { type GvfgProjectEntry, useProjectGvfg } from "../../../shared/api/queri
 import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
 import { CATEGORY_LABEL, KIND_LABEL, editionLabel, formatMio, num, sumLine } from "../../gvfg/gvfgFormat";
 import { LoadingState } from "../../../shared/ui/LoadingState";
+import ProjectHoverCard from "../ProjectHoverCard";
 
 // ---------------------------------------------------------------------------
 // GVFG-Bundesprogramm on the project page (docs/features/feature-gvfg-import.md).
@@ -213,9 +214,11 @@ function SubprojectEntries({ groups, projectId }: { groups: GvfgProjectEntry[][]
                                     {entry.projects
                                         .filter((p) => p.id !== projectId)
                                         .map((p) => (
-                                            <Anchor key={p.id} component={Link} to={`/projects/${p.id}`} size="sm">
-                                                {p.name}
-                                            </Anchor>
+                                            <ProjectHoverCard key={p.id} projectId={p.id}>
+                                                <Anchor component={Link} to={`/projects/${p.id}`} size="sm">
+                                                    {p.name}
+                                                </Anchor>
+                                            </ProjectHoverCard>
                                         ))}
                                 </Stack>
                             </Table.Td>

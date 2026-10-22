@@ -83,7 +83,8 @@ Migration rückwärtskompatibel (nur neue Tabellen).
 
 Die GVFG-Projekte existieren größtenteils schon (Gruppe „GVFG“, `project_number` =
 Schlüssel, Schreibweise uneinheitlich). Abgleich auf **beiden Seiten normalisiert**:
-Regex `(\d{1,2})\s*([GD])\s*(\d+)\s*_\s*([A-Z])`, Land auf zwei Stellen, ohne
+Regex `(\d{1,2})\s*([GD])\s*(\d+)(?:\s*_\s*|\s+)([A-Z])\b` (der Unterstrich fehlt
+manchmal: „03 D 4505 A“ 2023), Land auf zwei Stellen, ohne
 Leerzeichen.
 
 1. exakter normalisierter Schlüssel,
@@ -119,7 +120,10 @@ der **neuesten Ausgabe** zählen in der Admin-Übersicht „Nicht zugeordnet“ 
   vs. Veröffentlichungsdatum des Infraplans (Entscheidung 2026-10-15, siehe
   `feature-infraplan-import.md` → „Abgleich mit `feature-gvfg-import.md`“). Die jüngere
   Quelle fließt in Planungsstand und Prognose (Vertrauen 0.75), die ältere bleibt im
-  GVFG-Abschnitt sichtbar.
+  GVFG-Abschnitt sichtbar. Seit 2026-10-22 ist die GVFG-Ausgabe dafür eine eigene
+  Fortschrittsquelle `GVFG` (Lph, Baubeginn, Inbetriebnahme; Regeln in
+  `feature-project-progress.md` → „Planungsstand aus dem GVFG-Bundesprogramm“).
+  Übernahme und Zuordnung berechnen den Planungsstand der Projekte sofort neu.
 - Elternprojekte (München, Nürnberg, Breisgau, …) bilden **Summen** über ihre
   Teilprojekte (projektweiter Grundsatz, `docs/architecture.md` → „Grundsätze“;
   ersetzt die frühere Festlegung „keine Summen“, 2026-10-15) und verlinken die
@@ -154,10 +158,23 @@ der **neuesten Ausgabe** zählen in der Admin-Übersicht „Nicht zugeordnet“ 
   9 pt gesetzt). Fehlt die ∑-Zeile (einige Seiten 2023), wird sie aus A/B/C
   berechnet (`computed`). Die Art (kommunal/DB) kommt aus der Seitenüberschrift,
   nicht aus dem Schlüsselbuchstaben — einige G-Vorhaben stehen in DB-Tabellen.
+- **Druckfehler im Kopf (2023):** Einige Tabellen beschriften dieselbe Spalte anders
+  („1967-2020“ statt „1967-2021“, S. 41/44; „2022“ statt „vsl. 2022“, S. 42). Maßgeblich
+  ist die Spaltenfolge der meisten Vorhaben; eine abweichende Beschriftung an derselben
+  Stelle wird umbenannt, wenn sie nur dieselbe Spalte meinen kann (Zeitraum ab 1967 mit
+  anderem Endjahr, dasselbe Einzeljahr ausgezahlt/voraussichtlich) — jede Umbenennung ist
+  ein Hinweis im Review. Ebenso abgefangen: „insgesamt“ in der Nachbarzelle (S. 44, die
+  Spalte heißt dann nur „Bundesfinanzhilfen“) und „Kat: C“ statt „Kat. C“.
+  Beim Bestätigen ersetzt ein Lauf mit finanzrelevantem Teil die Jahresspalten der
+  Ausgabe (ein Anhang ergänzt nur), damit ein erneuter Import falsch gelesene Spalten
+  entfernt; die Zuordnungen schlägt der Review aus dem vorigen Import wieder vor.
+  Die schon importierte Ausgabe 2023–2027 korrigiert die Datenmigration `20261022002`
+  an Ort und Stelle (Spalten umbenannt, 16 D 4520_A, 09 G 7034_A, fehlendes
+  03 D 4505_A mit den Projekten der neuesten Ausgabe) — kein erneuter Upload nötig.
 - **Summenprüfung:** „Summe über <Land>“ und „Kat. A/C“ je Tabelle gegen die
   eingelesenen Vorhaben, dazu ∑ gegen A+B+C je Vorhaben. Abweichungen sind
   Hinweise im Review, kein Abbruch: Gegen die echten PDFs geprüft liest der Parser
-  2024–2028 (Haupt + Anhang) ohne Abweichung; die übrigen Hinweise in 2023/2025
+  2024–2028 (Haupt + Anhang) und 2023–2027 ohne Abweichung; die übrigen Hinweise in 2025
   sind Rechenfehler der PDF-Summenzeilen selbst (z. B. fehlt 05 D 633_A in der
   NRW-DB-Summe 2025).
 - **Import:** `POST /api/v1/import/gvfg/parse` (Celery `parse_gvfg_pdf_task`) →
@@ -203,6 +220,10 @@ Beträge in Mio. €.
 `assign_gvfg_entry` ersetzt statt zu ergänzen (anders als die REST-Zuordnung unter
 „Offene Zuordnungen“), weil es vor allem falsche Zuordnungen korrigiert — etwa wenn
 nach dem Zusammenführen von Dubletten ein Vorhaben noch auf zwei Projekte zeigt.
+
+Die Nacharbeit nach einem Import (offene Vorhaben zuordnen, Mehrfachzuordnungen und
+Dubletten bereinigen, Import-Entwürfe prüfen) beschreibt der MCP-Skill
+[`gvfg-nacharbeit`](../../.claude/skills/gvfg-nacharbeit/SKILL.md) (`get_skill`).
 
 ## Etappen
 

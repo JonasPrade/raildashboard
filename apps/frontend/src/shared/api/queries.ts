@@ -44,6 +44,8 @@ export const queryKeys = {
     progressFor: (projectId: number) => ["project-progress", projectId] as const,
     sammelFinveProgress: ["sammel-finve-progress"],
     projectFinves: (projectId: number) => ["project-finves", projectId] as const,
+    // Prefix-matches projectFinves, so invalidating that also refreshes this.
+    projectFinvesWithSubprojects: (projectId: number) => ["project-finves", projectId, "with-subprojects"] as const,
     projectBvwp: (projectId: number) => ["project-bvwp", projectId] as const,
     projectVib: ["project-vib"],
     projectVibFor: (projectId: number) => ["project-vib", projectId] as const,
@@ -452,8 +454,9 @@ function projectQueryOptions(id: number) {
     });
 }
 
-export function useProject(id: number) {
-    return useQuery(projectQueryOptions(id));
+export function useProject(id: number, { enabled = true }: { enabled?: boolean } = {}) {
+    const options = projectQueryOptions(id);
+    return useQuery({ ...options, enabled: enabled && Number.isFinite(id) });
 }
 
 /**
@@ -903,10 +906,11 @@ export type BudgetSummary = components["schemas"]["BudgetSummarySchema"];
 
 export type FinveWithBudgets = components["schemas"]["FinveWithBudgetsSchema"];
 
-export function useProjectFinves(projectId: number) {
+/** FinVes of the project and all its sub-projects, each once (parent projects aggregate). */
+export function useProjectFinvesWithSubprojects(projectId: number) {
     return useQuery({
-        queryKey: queryKeys.projectFinves(projectId),
-        queryFn: () => api<FinveWithBudgets[]>(`/api/v1/projects/${projectId}/finves`),
+        queryKey: queryKeys.projectFinvesWithSubprojects(projectId),
+        queryFn: () => api<FinveWithBudgets[]>(`/api/v1/projects/${projectId}/finves?include_subprojects=true`),
         enabled: !Number.isNaN(projectId),
     });
 }

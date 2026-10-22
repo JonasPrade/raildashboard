@@ -1,12 +1,12 @@
 import type { CSSProperties } from "react";
 
-import { PHASE_COLOR, TIMELINE_COLOR } from "../../shared/theme/semanticColors";
+import { TIMELINE_COLOR, TIMELINE_PHASE_COLOR } from "../../shared/theme/semanticColors";
 import type { MainPhase } from "../projects/components/progress/phaseMeta";
 
 // Fill rules of the Zeitstrahl (feature-idt-design.md → Diagramme, W4).
 
-/** Segment colour of a phase (teal ramp, "In Betrieb" green). */
-export const phaseColor = (phase: MainPhase): string => PHASE_COLOR[phase];
+/** Segment colour of a phase (teal, cyan, ink, "In Betrieb" green). */
+export const phaseColor = (phase: MainPhase): string => TIMELINE_PHASE_COLOR[phase];
 
 /** Planned part (after today): hatched in the phase colour, not lighter. */
 export function plannedFill(color: string): string {

@@ -41,6 +41,8 @@ SOURCE_TYPE_DEFAULT_TRUST: dict[SourceType, float] = {
     SourceType.MANUELL: 0.9,
     # Bedarfsplan/InvKG rows; GVFG rows carry an explicit 0.75 (Länderangaben).
     SourceType.INFRAPLAN: 0.85,
+    # GVFG-Bundesprogramm: Länderangaben, like the GVFG rows of the Infraplan.
+    SourceType.GVFG: 0.75,
     SourceType.BAUPORTAL: 0.8,
     SourceType.FINVE: 0.7,
     # Fulda-Runde: a working-level preview, a little below the reports.

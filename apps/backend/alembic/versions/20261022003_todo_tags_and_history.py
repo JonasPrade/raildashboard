@@ -12,8 +12,8 @@ Expand only: new tables, older code ignores them. The only touched existing
 data is the marker; downgrade puts it back in front of the title before
 dropping the tables.
 
-Revision ID: 20261022001
-Revises: 20261021004
+Revision ID: 20261022003
+Revises: 20261022002
 Create Date: 2026-10-22
 """
 
@@ -23,8 +23,8 @@ from datetime import datetime
 from alembic import op
 import sqlalchemy as sa
 
-revision = "20261022001"
-down_revision = "20261021004"
+revision = "20261022003"
+down_revision = "20261022002"
 branch_labels = None
 depends_on = None
 

@@ -313,7 +313,8 @@ automatisch.
 
 ## Kosten
 
-- **Gesamtkostenprognose** (Kopfzahl im Projektdetail, oberer Kostenblock):
+- **Gesamtkostenprognose** (Kopfzahl im Projektdetail; der Kostenblock steht ganz oben,
+  direkt unter dem Projekttitel):
   - Projekt mit eigener Zeile → deren `cost_mio` (bzw. der über `cost_ref_entry_id`
     aufgelöste Wert, wenn die Zeile auf einen anderen Eintrag verweist);
   - übergeordnetes Projekt ohne eigene Zeile → Summe der Teilprojekte (Grundsatz für
@@ -321,9 +322,16 @@ automatisch.
   - Sammel-GWU und Verweise zählen **einmal**, beim tragenden Eintrag (Deduplizierung
     über die Eintrags-ID).
   - Beschriftung: „Gesamtkostenprognose (Infraplan 2026)“; bei GVFG „Gesamtkosten
-    (Länderangabe, Infraplan 2026)“. Fußnoten als Tooltip.
+    (Länderangabe, Infraplan 2026)“. Fußnoten als Tooltip hinter einem „?“-Symbol neben
+    der Beschriftung, nicht hochgestellt an der Zahl.
 - **Vom Bund zugesichert** — daneben die FinVe-Mittel aus dem Haushalt (bestehende
-  Daten, nur neu beschriftet und in denselben Block gezogen).
+  Daten, nur neu beschriftet und in denselben Block gezogen). Bei übergeordneten
+  Projekten zählen die FinVe **aller** Teilprojekte mit (jede FinVe einmal, auch wenn
+  mehrere Teilprojekte sie tragen); die Beschriftung nennt, wie viele davon aus
+  Teilprojekten stammen. Quelle: `GET /projects/{id}/finves?include_subprojects=true`.
+  Derselbe Grundsatz gilt für den Abschnitt „Finanzierungsvereinbarungen (FinVe)“:
+  Er listet erst die eigenen FinVe, dann die der Teilprojekte, jede mit dem Hinweis
+  „Aus Teilprojekt …“ und einem Link darauf.
 - **Kein Deckungsgrad** — andere Organisationen finanzieren mit, ein Verhältnis wäre
   irreführend.
 
@@ -526,7 +534,9 @@ den GVFG-Zeilen des Infraplans (Kat. A/C, 77 Zeilen):
   GVFG-Ausgabe vs. Veröffentlichungsdatum des Infraplans). Diese Quelle fließt in
   Planungsstand, Prognose und Kostenblock; die andere bleibt in ihrem Abschnitt
   sichtbar. Beim Gleichstand gewinnt der Infraplan. Die Prüfung erfolgt beim
-  Materialisieren über den normalisierten Schlüssel.
+  Materialisieren über den normalisierten Schlüssel. Die Richtung „GVFG-Ausgabe ist
+  jünger“ liefert seit 2026-10-22 die Quelle `GVFG` (`feature-project-progress.md` →
+  „Planungsstand aus dem GVFG-Bundesprogramm“); vorher fiel die Angabe dann ganz weg.
 - **Entschieden (2026-10-15) — Summen überall:** Auch reine GVFG-Elternprojekte bilden
   Summen über ihre Teilprojekte. Das ist ein projektweiter Grundsatz
   (`docs/architecture.md` → „Grundsätze“); `feature-gvfg-import.md` ist angepasst.

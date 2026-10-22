@@ -20,6 +20,7 @@ import { formatTEuro } from "../../shared/format";
 import { LinkedProjects } from "../../shared/ui/LinkedProjects";
 import { LoadingState } from "../../shared/ui/LoadingState";
 import { ErrorState } from "../../shared/ui/ErrorState";
+import ProjectHoverCard from "../projects/ProjectHoverCard";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -81,7 +82,10 @@ function FinveCard({ finve }: { finve: FinveListItem }) {
                 </Group>
 
                 {/* ── Linked projects ────────────────────────────────────── */}
-                <LinkedProjects projects={finve.projects} />
+                <LinkedProjects
+                    projects={finve.projects}
+                    wrapLink={(id, link) => <ProjectHoverCard projectId={id}>{link}</ProjectHoverCard>}
+                />
 
                 {/* ── Expandable charts / budget details ─────────────────── */}
                 {hasBudgets && (

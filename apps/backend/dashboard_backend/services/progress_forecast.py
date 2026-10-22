@@ -135,11 +135,12 @@ def concrete_milestone_dates(
     today: date,
     pfb_as_genehmigung: bool = True,
     infraplan: list[ExpectedDate] | None = None,
+    gvfg: list[ExpectedDate] | None = None,
 ) -> dict[MainPhase, tuple[date, str]]:
     """Concrete (non-estimated) milestone date per phase, with its source label.
 
     Shared by the forecast and the multi-project timeline so both apply the same
-    precedence: per phase, the VIB-PFA, Fulda-Runde or Infraplan date with the
+    precedence: per phase, the VIB-PFA, Fulda-Runde, Infraplan or GVFG date with the
     higher weight wins — trust of the source × recency of its report (tie →
     earlier date). Manual expected dates are editorial and always win.
 
@@ -176,6 +177,11 @@ def concrete_milestone_dates(
         candidates.setdefault(claim.phase, []).append(
             (claim.date, "Infraplan", _weight(SourceType.INFRAPLAN, claim.reported_on, today))
         )
+    # GVFG-Bundesprogramm: one expected commissioning per Vorhaben → latest year.
+    for claim in reduce_expected(gvfg or []):
+        candidates.setdefault(claim.phase, []).append(
+            (claim.date, "GVFG", _weight(SourceType.GVFG, claim.reported_on, today))
+        )
 
     concrete: dict[MainPhase, tuple[date, str]] = {}
     for phase, options in candidates.items():
@@ -199,6 +205,7 @@ def build_forecast(
     manual_expected: list[tuple[MainPhase, date]] | None = None,
     skipped_phases: frozenset[MainPhase] | set[MainPhase] = frozenset(),
     infraplan: list[ExpectedDate] | None = None,
+    gvfg: list[ExpectedDate] | None = None,
 ) -> ForecastResult:
     pfas = pfas or []
     fulda = fulda or []
@@ -210,6 +217,7 @@ def build_forecast(
         manual_expected=manual_expected,
         today=today,
         infraplan=infraplan or [],
+        gvfg=gvfg or [],
     )
 
     has_concrete = bool(concrete)

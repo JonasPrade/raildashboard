@@ -15,6 +15,7 @@ import {
     groupChildrenByPhase,
 } from "./phaseMeta";
 import { PhaseTag } from "./PhaseBadge";
+import ProjectHoverCard from "../../ProjectHoverCard";
 
 function phaseBadge(child: ProgressChild) {
     if (child.is_known === false) {
@@ -96,9 +97,11 @@ export default function SubprojectsTable({ children }: { children: ProgressChild
                         <Table.Tr key={child.project_id}>
                             <Table.Td>
                                 <Group gap={6} wrap="nowrap">
-                                    <Anchor component={Link} to={`/projects/${child.project_id}`} size="sm">
-                                        {child.name}
-                                    </Anchor>
+                                    <ProjectHoverCard projectId={child.project_id}>
+                                        <Anchor component={Link} to={`/projects/${child.project_id}`} size="sm">
+                                            {child.name}
+                                        </Anchor>
+                                    </ProjectHoverCard>
                                     {child.is_superior && (
                                         <Badge size="xs" variant="outline" color="gray" title="Hat eigene Unterprojekte">
                                             Gruppe

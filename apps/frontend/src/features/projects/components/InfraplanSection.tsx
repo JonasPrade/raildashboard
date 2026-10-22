@@ -6,6 +6,7 @@ import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
 import Footnotes from "../../infraplan/Footnotes";
 import { PARL_LABEL, SECTION_SHORT, entryCost, entryDeltas, formatMio } from "../../infraplan/infraplanFormat";
 import { LoadingState } from "../../../shared/ui/LoadingState";
+import ProjectHoverCard from "../ProjectHoverCard";
 
 // ---------------------------------------------------------------------------
 // Infraplan on the project page (docs/features/feature-infraplan-import.md →
@@ -68,9 +69,11 @@ export default function InfraplanSection({ projectId }: { projectId: number }) {
                                             <Footnotes footnotes={e.footnotes} />
                                         </Text>
                                         {e.project_id !== projectId && e.project_name && (
-                                            <Anchor component={Link} to={`/projects/${e.project_id}`} size="xs">
-                                                {e.project_name}
-                                            </Anchor>
+                                            <ProjectHoverCard projectId={e.project_id}>
+                                                <Anchor component={Link} to={`/projects/${e.project_id}`} size="xs">
+                                                    {e.project_name}
+                                                </Anchor>
+                                            </ProjectHoverCard>
                                         )}
                                     </Table.Td>
                                     <Table.Td style={{ maxWidth: 200 }}>{e.state_raw ?? "–"}</Table.Td>

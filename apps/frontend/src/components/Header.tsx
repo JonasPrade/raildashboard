@@ -43,7 +43,7 @@ export function Header() {
     // entries plus the auth section fit into the bar.
     const isCompact = useIsCompact();
 
-    // The Admin entry is shown when the user holds any admin-area capability.
+    // The Einstellungen entry is shown when the user holds any admin-area capability.
     const canAdmin =
         can("assignment.manage") ||
         can("haushalt.import") ||
@@ -87,7 +87,7 @@ export function Header() {
         { to: "/infraplan", label: "Infraplan", visible: true },
         { to: "/abgeordnete", label: "Abgeordnete", visible: user !== null },
         { to: "/tasks", label: "Aufgaben", visible: user !== null, count: openTodoList.length, overdue: todosOverdue },
-        { to: "/admin", label: "Admin", visible: canAdmin, count: totalUnassigned },
+        { to: "/admin", label: "Einstellungen", visible: canAdmin, count: totalUnassigned },
     ];
 
     const renderNavLinks = (className: string) =>

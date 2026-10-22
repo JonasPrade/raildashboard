@@ -69,7 +69,9 @@ rückwärts gehen; das ist gewollt, damit aktuelle und menschliche Eingaben maß
 
 **Quellen → Beobachtungen:** Jede Quelle erzeugt eine oder mehrere *Beobachtungen*
 `(source_type, track, asserted_state, observed_date, confidence)`.
-Quellentypen: `VIB, FINVE, FULDA_RUNDE, BAUPORTAL, MEDIEN, MANUELL`.
+Quellentypen: `VIB, FINVE, FULDA_RUNDE, BAUPORTAL, MEDIEN, INFRAPLAN, GVFG, MANUELL`
+(Infraplan: `feature-infraplan-import.md`; GVFG: Abschnitt „Planungsstand aus dem
+GVFG-Bundesprogramm“ unten).
 - **VIB** und **FINVE** sind bereits importiert & m:n verknüpft → Beobachtungen werden
   daraus **abgeleitet/materialisiert** (nicht neu erfasst).
 - **FULDA_RUNDE, BAUPORTAL, MEDIEN** haben inzwischen eigene Importer; die Fulda-Runde ist
@@ -511,8 +513,9 @@ Jahr fraglich — wer baut, bekommt noch Geld. Die Prognose zeigt dann einen Hin
 bleibt unverändert (keine Quelle wird übersteuert, der Mensch entscheidet).
 
 - **Bekanntes IBN-Jahr:** Für GVFG-Vorhaben äußern sich nur zwei Quellen, beide
-  gleichwertig: das größte „Inbetriebnahme gepl.“ der Vorhaben in der neuesten
-  GVFG-Ausgabe und die Inbetriebnahme aus dem Infraplan. Es gilt der **jüngere Stand**
+  gleichwertig: das größte Inbetriebnahmejahr der Vorhaben in der neuesten
+  GVFG-Ausgabe — „Inbetriebnahme tats.“, sonst „gepl.“, also dasselbe Jahr wie in der
+  Prognose (Entscheidung W4, 2026-10-22) — und die Inbetriebnahme aus dem Infraplan. Es gilt der **jüngere Stand**
   (Stand der Ausgabe vs. Veröffentlichung des Infraplans, wie Entscheidung 22 in
   `feature-gvfg-import.md`), bei gleichem Datum der Infraplan (`known_ibn`). VIB,
   Fulda-Runde und BVWP sagen zu GVFG-Vorhaben nichts und bleiben außen vor. Projekte in
@@ -528,6 +531,55 @@ bleibt unverändert (keine Quelle wird übersteuert, der Mensch entscheidet).
   `list_project_gvfg` → `ibn_doubt`. Ein Agent, der den Hinweis sieht, stellt das
   IBN-Datum in seiner Antwort in Frage und nennt die GVFG-Finanzreihe.
 - **Frontend:** gelber Hinweis unter der Prognose (`ForecastPanel`).
+
+## Planungsstand aus dem GVFG-Bundesprogramm
+
+**Problem (2026-10-22):** Die GVFG-Ausgabe war keine Quelle des Planungsstands. Sie
+unterdrückte nur die GVFG-Zeile des Infraplans, wenn sie jünger war (Entscheidung 22
+in `feature-infraplan-import.md`), lieferte selbst aber nichts — ein GVFG-Projekt ohne
+Infraplan-Zeile blieb „Unbekannt“ (z. B. 08 D 120_S S-Bahn Stuttgart S60, Baubeginn
+2004, nur von Hand auf „In Betrieb“ übersteuert).
+
+**Quelle `GVFG`** (Vertrauen 0.75 wie die GVFG-Zeilen des Infraplans, Länderangaben;
+`observed_date` = Stand der Ausgabe, ohne Stand der 1.1. ihres ersten Jahres). Es zählt
+je Projekt und Schlüssel die **neueste Ausgabe**, die den Schlüssel für das Projekt
+führt. Mapper `gvfg_entry_to_specs` in `services/progress_materialization.py`, Zweig
+`_add_gvfg_specs` in `sync_derived_observations_bulk`, Provenienz
+`progress_observation.gvfg_entry_id` (Migration `20261022001`, nur Expand).
+
+- **MAIN — eine Beobachtung, die stärkste dieser Aussagen** (mehrere mit gleichem
+  Gewicht und Datum ließen bei Gleichstand nicht sicher die richtige gewinnen):
+  - „Inbetriebnahme tats.“ **vor** dem Standjahr → `IN_BETRIEB` (W2),
+  - Lph wie bei den GVFG-Zeilen des Infraplans (`5 - 9`, `8` → `BAU`; `3 - 4` →
+    `GENEHMIGUNGSPLANUNG`; `1 - 2` → `VORPLANUNG`), zusätzlich eine alleinstehende `9`
+    (Objektbetreuung) → `IN_BETRIEB`; Spannen über die Grenzen (`1 - 9`, `4 - 8`) und
+    Listen (`4, 9`, `1 - 3 / 5 - 9`) sagen nichts (W1),
+  - Baubeginn im oder vor dem Standjahr → `BAU` (W3).
+  Die Notiz nennt alle Gründe („GVFG 2025–2029: Inbetriebnahme 2017, Lph 5 - 9“).
+- **Erwartete Inbetriebnahme** (`is_expected`, 31.12. des Jahres): „Inbetriebnahme
+  tats.“ — in den Ausgaben oft ein künftiges Jahr, also die aktuelle Erwartung —, sonst
+  „gepl.“; nur wenn das Jahr nicht vor dem Standjahr liegt (frühere Jahre sind
+  Restarbeiten, wie beim Infraplan) und das Vorhaben nicht schon in Betrieb ist (W2).
+  In der Prognose und im Zeitstrahl konkurriert sie mit Quelle „GVFG“ wie die
+  Infraplan-Termine über Glaubwürdigkeit × Aktualität (`concrete_milestone_dates`).
+- **Vorrang zum Infraplan (Entscheidung 22, jetzt in beide Richtungen):** Ist die
+  Infraplan-GVFG-Zeile desselben Schlüssels im neuesten Infraplan-Jahrgang des Projekts
+  mindestens so jung wie die Ausgabe, liefert der Infraplan und die Ausgabe bleibt
+  außen vor; sonst umgekehrt.
+- **Sofort wirksam:** Übernahme einer Ausgabe (`confirm_parse_result`), Zuordnen
+  (`assign_entry`) und Korrigieren (`set_entry_projects`, MCP `assign_gvfg_entry`)
+  berechnen den Planungsstand der betroffenen Projekte neu; ersetzte Vorhaben nehmen
+  ihre abgeleiteten Beobachtungen mit.
+- **Nicht genutzt:** Kategorien A/C und der Auszahlungsgrad. Ein weitgehend ausgezahltes
+  Vorhaben ist kein sicherer Beleg für die Inbetriebnahme.
+
+**Entscheidungen (Widerspruchs-Check 2026-10-22):** W1 Lph `9` → In Betrieb, gemischte
+Angaben → nichts · W2 „tats.“ vor dem Standjahr = In Betrieb, sonst erwartete IBN;
+„gepl.“ nur ohne „tats.“ · W3 Baubeginn ≤ Standjahr → mindestens Bau · W4 die
+IBN-Plausibilität nimmt dasselbe GVFG-Jahr wie die Prognose.
+
+**Datenlage:** Bei den DB-Vorhaben Baden-Württembergs (`08 D …`) druckt die Ausgabe
+2025–2029 weder Lph noch Inbetriebnahme; dort trägt nur der Baubeginn.
 
 ## Zeitstrahl über mehrere Projekte
 

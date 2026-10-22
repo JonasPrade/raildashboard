@@ -537,7 +537,7 @@ export default function GeometryEditor({
                                         Stützpunkte setzen, Doppelklick beendet die Linie. „Bearbeiten": Stützpunkte
                                         verschieben, einfügen (Mittelpunkt) oder löschen.
                                     </Text>
-                                    <Button.Group>
+                                    <Group gap="xs" wrap="wrap">
                                         <Button
                                             size="xs"
                                             variant={drawMode === "line" ? "filled" : "default"}
@@ -570,7 +570,7 @@ export default function GeometryEditor({
                                         >
                                             Fertig
                                         </Button>
-                                    </Button.Group>
+                                    </Group>
                                     <Group justify="space-between" align="center">
                                         <Badge variant="outline" color="var(--text-strong)" tt="none">
                                             {drawnFeatures.length} gezeichnet

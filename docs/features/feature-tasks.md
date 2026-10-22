@@ -42,7 +42,7 @@ one or more users.
 - **`@LLM`** is seeded with the description „Die Aufgabe ist ganz oder teilweise
   vom LLM über MCP zu erledigen.“ The LLM finds its work with
   `list_todos(tag="@LLM")`. Before tags existed the marker stood in the title;
-  migration `20261022001` moved it into the tag and removed it from the title
+  migration `20261022003` moved it into the tag and removed it from the title
   (downgrade puts `@LLM ` back in front).
 - **Two-part tasks use two tags, no sub-tasks** (decided 2026-10-22, #173):
   `@Jonas` marks the part Jonas does first. A task with `@LLM` and `@Jonas`

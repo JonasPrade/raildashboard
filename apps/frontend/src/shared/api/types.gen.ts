@@ -305,7 +305,8 @@ export interface paths {
         /**
          * Get Project Finves
          * @description Return all FinVes linked to a project, each with their full budget history
-         *     including per-Haushaltstiteln breakdown.
+         *     including per-Haushaltstiteln breakdown. ``include_subprojects`` adds the
+         *     FinVes of all sub-projects (each once, flagged ``from_subprojects``).
          */
         get: operations["get_project_finves_api_v1_projects__project_id__finves_get"];
         put?: never;
@@ -3900,6 +3901,16 @@ export interface components {
              * @default []
              */
             budgets: components["schemas"]["BudgetSummarySchema"][];
+            /**
+             * From Subprojects
+             * @default false
+             */
+            from_subprojects: boolean;
+            /**
+             * Subprojects
+             * @default []
+             */
+            subprojects: components["schemas"]["ProjectRefSchema"][];
         };
         /** ForecastStepSchema */
         ForecastStepSchema: {
@@ -5765,7 +5776,7 @@ export interface components {
              * Source Type
              * @enum {string}
              */
-            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "INFRAPLAN" | "MANUELL";
+            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "INFRAPLAN" | "GVFG" | "MANUELL";
             /**
              * Track
              * @enum {string}
@@ -7180,7 +7191,7 @@ export interface components {
              * Source Type
              * @enum {string}
              */
-            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "INFRAPLAN" | "MANUELL";
+            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "INFRAPLAN" | "GVFG" | "MANUELL";
             /**
              * Track
              * @enum {string}
@@ -8772,7 +8783,9 @@ export interface operations {
     };
     get_project_finves_api_v1_projects__project_id__finves_get: {
         parameters: {
-            query?: never;
+            query?: {
+                include_subprojects?: boolean;
+            };
             header?: never;
             path: {
                 project_id: number;

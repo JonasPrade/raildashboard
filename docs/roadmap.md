@@ -240,6 +240,7 @@ Siehe: `docs/features/feature-new-project-wizard.md`
 - [x] **GVFG-Import (Etappe 1)** — Parser, Datenmodell, Import mit Review unter `/admin/gvfg-import`, Lese-API.
 - [x] **GVFG-Anzeige** — Menü „Finanzen“ mit „Bedarfsplan Schiene“ und „GVFG“, Übersicht `/finanzen/gvfg`, Abschnitt „GVFG“ auf der Projektseite (inkl. Teilprojekte), offene Zuordnungen im Admin.
 - [x] **GVFG-MCP-Tools** — `list_gvfg_programs`, `list_gvfg_entries`, `get_gvfg_entry` (Verlauf über die Ausgaben), `list_project_gvfg` und das Zuordnungs-Tool `assign_gvfg_entry`.
+- [x] **GVFG als Planungsstand-Quelle** — Die neueste GVFG-Ausgabe liefert Lph, Baubeginn und Inbetriebnahme als Quelle `GVFG` in Planungsstand und Prognose; ein jüngerer Infraplan-Eintrag gewinnt. Siehe `docs/features/feature-project-progress.md` → „Planungsstand aus dem GVFG-Bundesprogramm“.
 - [ ] **GVFG-Vergleich** — Reiter „Änderungen zur Vorausgabe“. Vorher Dubletten im GVFG-Bestand bereinigen.
   Siehe: `docs/features/feature-gvfg-import.md`
 
@@ -320,7 +321,7 @@ Siehe: `docs/features/feature-tasks.md`
 - [x] Capabilities `todo.create`/`todo.edit`/`todo.delete` (Gruppe „Aufgaben"), in editor-Systemrolle geseedet (Migration `e4a1b2c3d5f6`)
 - [x] Frontend: zentrale Seite `/tasks` (Spalten Offen/In Arbeit/Erledigt, Schnell-Erfassung, Filter), Edit-Drawer, Aufgaben-Sektion auf der Projektdetailseite; Nav-Link „Aufgaben" (login-gated)
 - [x] Optionaler Projektbezug (`project_id` nullable, `ON DELETE SET NULL`), Mehrfachzuweisung, Priorität + Fälligkeit (überfällig hervorgehoben)
-- [x] Tags (m:n, Tag „@LLM“ für Aufgaben an das LLM), Tag-Filter und Textsuche, eigener Aufgaben-Verlauf; „Tags verwalten“ (umbenennen, beschreiben, löschen), zweites Tag „@Jonas“ für den Teil vor dem LLM; MCP `list_todos` mit `tag`/`search`/`offset`, `list_todo_tags`, `update_todo_tag` (Migration `20261022001`, „@LLM“ aus Titeln ins Tag übernommen)
+- [x] Tags (m:n, Tag „@LLM“ für Aufgaben an das LLM), Tag-Filter und Textsuche, eigener Aufgaben-Verlauf; „Tags verwalten“ (umbenennen, beschreiben, löschen), zweites Tag „@Jonas“ für den Teil vor dem LLM; MCP `list_todos` mit `tag`/`search`/`offset`, `list_todo_tags`, `update_todo_tag` (Migration `20261022003`, „@LLM“ aus Titeln ins Tag übernommen)
 
 ### Claude Code Setup
 - [x] Hooks (pre-edit `.env` guard, post-edit reminders for `make gen-api`, Alembic, roadmap sync, macOS notifications)
@@ -363,6 +364,7 @@ Quelle: `docs/DESIGN.md` (am 2026-04-25 auf Richtung F neu geschrieben). Vollst�
 - [x] Toggle „Nur übergeordnete Projekte"; Kartenauswahl zeigt Projektnummer + Beschreibung
 - [x] Kartengeometrie: einstellbare Liniendicke/Punktgröße, `line-cap: round` für Lückenbehebung, separater Circle-Layer für GeoJSON-Punkte
 - [x] Projektdetail: Projekteigenschaften-Box, Kurzansicht-Komponente für Unter-/Oberprojekte, Zentrierung auf Projektmittelpunkt
+- [x] Kurzansicht als Hover-Vorschau an allen Projektlinks (`ProjectHoverCard`, nur bei Maus/Trackpad)
 - [x] Datum-/Zeitanzeige auf Zeitzone Europe/Berlin; Login per Enter-Taste; Burger-Menü bei schmalen Fenstern
 - [x] SV-FinVes in Projektdetailseite als kompakter Tag dargestellt
 

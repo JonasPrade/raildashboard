@@ -75,6 +75,9 @@ Every route has to work on a 360 px screen. The rules — plan and per-surface b
   labels). `Table.Thead`/`Tbody`/`Tr`/`Td` children stay unchanged.
 - **The project page has a register**, not a table of contents: `features/projects/ProjectRegister`
   is a sticky column at the left edge on desktop and the button „Abschnitte“ (drawer) on phones.
+- **Links to a project get `features/projects/ProjectHoverCard`** around them: hovering shows the
+  Kurzansicht (`ProjectSummaryCard`), fetched on open. Touch devices get the bare link. In `shared/ui`
+  (which must not import features) pass it in instead, e.g. `LinkedProjects`' `wrapLink`.
 - **Drawers pass `size={isMobile ? "100%" : …}`**; modals become full-width through the mobile CSS
   layer in `app.css` — no per-modal change needed.
 - **Filter rows wrap**, they never scroll: `Group … wrap="wrap"` with `flex="1 1 <basis>"` on the

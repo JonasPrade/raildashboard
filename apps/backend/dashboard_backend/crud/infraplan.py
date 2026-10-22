@@ -20,6 +20,7 @@ from dashboard_backend.models.infraplan import (
     InfraplanKpiValue,
     InfraplanReport,
 )
+from dashboard_backend.crud.projects.projects import subtree_ids
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.services.infraplan_kpis import DEFAULT_KPIS
 from dashboard_backend.tasks.infraplan import SECTION_TITLES
@@ -99,17 +100,6 @@ def entry_dict(entry: InfraplanEntry, year: int, by_id: dict[int, InfraplanEntry
 # --- Per project -----------------------------------------------------------------
 
 
-def _subtree_ids(db: Session, root_id: int) -> list[int]:
-    ids, frontier = [root_id], [root_id]
-    while frontier:
-        frontier = [
-            pid for (pid,) in db.query(Project.id).filter(Project.superior_project_id.in_(frontier))
-        ]
-        frontier = [pid for pid in frontier if pid not in ids]
-        ids.extend(frontier)
-    return ids
-
-
 def _linked(db: Session, project_ids: list[int]):
     return (
         db.query(InfraplanEntry, InfraplanReport, InfraplanEntryProject)
@@ -181,7 +171,7 @@ def project_infraplan(db: Session, project_id: int) -> dict[str, Any]:
 
     forecast = cost_forecast([(e, r.year) for e, r, _l in own], by_id, from_subprojects=False)
     if forecast is None:
-        descendants = [pid for pid in _subtree_ids(db, project_id) if pid != project_id]
+        descendants = [pid for pid in subtree_ids(db, project_id) if pid != project_id]
         if descendants:
             sub = _linked(db, descendants)
             sub_by_id = _load_refs(db, [entry for entry, _r, _l in sub])

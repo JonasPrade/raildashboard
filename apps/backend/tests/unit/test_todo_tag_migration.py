@@ -10,7 +10,7 @@ _MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "alembic"
     / "versions"
-    / "20261022001_todo_tags_and_history.py"
+    / "20261022003_todo_tags_and_history.py"
 )
 _spec = importlib.util.spec_from_file_location("todo_tags_migration", _MIGRATION)
 migration = importlib.util.module_from_spec(_spec)

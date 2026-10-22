@@ -126,6 +126,37 @@ def test_confirm_annex_and_reads(client, create_user, db_session):
     assert record_2.result_json["suggestions"]["by_key"]["02 G 4518_A"]["source"] == "previous"
 
 
+def test_reimport_replaces_periods(client, create_user, db_session):
+    """A re-import of the financial part drops year columns an older parse read
+    wrongly (e.g. a header typo stored as its own column) and keeps the links."""
+    editor = create_user("editor", "editorpass", UserRole.editor)
+    headers = {"Authorization": f"Bearer {_key_for(db_session, editor)}"}
+    _, u4, _ = _projects(db_session)
+    first = _stage(db_session, [_financial_page()])
+    client.post(
+        f"/api/v1/import/gvfg/parse-result/{first.id}/confirm",
+        json={"assignments": {"02 G 509_A": [u4.id]}},
+        headers=headers,
+    )
+    program = db_session.query(GvfgProgram).one()
+    program.periods = program.periods + [{"label": "1967–2022", "year_from": 1967, "year_to": 2022, "kind": "ausgezahlt"}]
+    db_session.commit()
+
+    again = _stage(db_session, [_financial_page()])
+    selected = again.result_json["suggestions"]["by_key"]["02 G 509_A"]["selected"]
+    response = client.post(
+        f"/api/v1/import/gvfg/parse-result/{again.id}/confirm",
+        json={"assignments": {"02 G 509_A": selected}},
+        headers=headers,
+    )
+    assert response.status_code == 200, response.text
+    db_session.expire_all()
+    program = db_session.query(GvfgProgram).one()
+    assert [p["label"] for p in program.periods] == ["1967–2023", "2024", "2025", "ab 2030"]
+    entry = db_session.query(GvfgEntry).filter_by(key="02 G 509_A").one()
+    assert [p.id for p in entry.projects] == [u4.id]
+
+
 def test_import_needs_permission(client, create_user, db_session):
     viewer = create_user("viewer", "viewerpass", UserRole.viewer)
     headers = {"Authorization": f"Bearer {_key_for(db_session, viewer)}"}
