@@ -204,6 +204,10 @@ Beträge in Mio. €.
 „Offene Zuordnungen“), weil es vor allem falsche Zuordnungen korrigiert — etwa wenn
 nach dem Zusammenführen von Dubletten ein Vorhaben noch auf zwei Projekte zeigt.
 
+Die Nacharbeit nach einem Import (offene Vorhaben zuordnen, Mehrfachzuordnungen und
+Dubletten bereinigen, Import-Entwürfe prüfen) beschreibt der MCP-Skill
+[`gvfg-nacharbeit`](../../.claude/skills/gvfg-nacharbeit/SKILL.md) (`get_skill`).
+
 ## Etappen
 
 0. Projekte zusammenführen (`merge_projects`) — umgesetzt, siehe eigene Feature-Datei.
