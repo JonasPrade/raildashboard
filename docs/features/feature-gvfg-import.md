@@ -119,7 +119,10 @@ der **neuesten Ausgabe** zählen in der Admin-Übersicht „Nicht zugeordnet“ 
   vs. Veröffentlichungsdatum des Infraplans (Entscheidung 2026-10-15, siehe
   `feature-infraplan-import.md` → „Abgleich mit `feature-gvfg-import.md`“). Die jüngere
   Quelle fließt in Planungsstand und Prognose (Vertrauen 0.75), die ältere bleibt im
-  GVFG-Abschnitt sichtbar.
+  GVFG-Abschnitt sichtbar. Seit 2026-10-22 ist die GVFG-Ausgabe dafür eine eigene
+  Fortschrittsquelle `GVFG` (Lph, Baubeginn, Inbetriebnahme; Regeln in
+  `feature-project-progress.md` → „Planungsstand aus dem GVFG-Bundesprogramm“).
+  Übernahme und Zuordnung berechnen den Planungsstand der Projekte sofort neu.
 - Elternprojekte (München, Nürnberg, Breisgau, …) bilden **Summen** über ihre
   Teilprojekte (projektweiter Grundsatz, `docs/architecture.md` → „Grundsätze“;
   ersetzt die frühere Festlegung „keine Summen“, 2026-10-15) und verlinken die

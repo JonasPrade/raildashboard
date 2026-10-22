@@ -76,6 +76,7 @@ class SourceType(str, enum.Enum):
     BAUPORTAL = "BAUPORTAL"
     MEDIEN = "MEDIEN"
     INFRAPLAN = "INFRAPLAN"
+    GVFG = "GVFG"
     MANUELL = "MANUELL"
 
 

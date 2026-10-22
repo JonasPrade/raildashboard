@@ -5712,7 +5712,7 @@ export interface components {
              * Source Type
              * @enum {string}
              */
-            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "INFRAPLAN" | "MANUELL";
+            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "INFRAPLAN" | "GVFG" | "MANUELL";
             /**
              * Track
              * @enum {string}
@@ -7127,7 +7127,7 @@ export interface components {
              * Source Type
              * @enum {string}
              */
-            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "INFRAPLAN" | "MANUELL";
+            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "INFRAPLAN" | "GVFG" | "MANUELL";
             /**
              * Track
              * @enum {string}

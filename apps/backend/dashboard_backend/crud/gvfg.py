@@ -27,6 +27,7 @@ from dashboard_backend.models.gvfg import (
     GvfgProgram,
     gvfg_entry_project,
 )
+from dashboard_backend.models.projects.progress_observation import ProgressObservation
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.projects.project_group import ProjectGroup
 from dashboard_backend.services.gvfg_parser import key_without_suffix, normalize_key
@@ -42,6 +43,26 @@ _MAX_NAME_SUGGESTIONS = 3
 
 class GvfgConfirmError(ValueError):
     """Confirm not possible; the message is user-facing (German)."""
+
+
+def _program_project_ids(db: Session, program_id: int) -> set[int]:
+    return {
+        pid
+        for (pid,) in db.query(gvfg_entry_project.c.project_id)
+        .join(GvfgEntry, GvfgEntry.id == gvfg_entry_project.c.entry_id)
+        .filter(GvfgEntry.program_id == program_id)
+        .distinct()
+    }
+
+
+def _recompute(db: Session, project_ids: Iterable[int]) -> None:
+    """Re-materialise the planning state: the newest edition of a Vorhaben is a
+    source of it (feature-project-progress.md → „Planungsstand aus dem
+    GVFG-Bundesprogramm“)."""
+    # Imported here: crud.projects.progress itself reads GVFG entries.
+    from dashboard_backend.crud._importer_common import recompute_for
+
+    recompute_for(db, project_ids)
 
 
 # --- Suggestions -------------------------------------------------------------
@@ -306,7 +327,14 @@ def confirm_parse_result(
         program.has_annex = True
     program.imported_at = datetime.utcnow()
 
-    for old in db.query(GvfgEntry).filter(GvfgEntry.program_id == program.id, GvfgEntry.part.in_(parts)):
+    affected = _program_project_ids(db, program.id)
+    old_entries = db.query(GvfgEntry).filter(GvfgEntry.program_id == program.id, GvfgEntry.part.in_(parts)).all()
+    if old_entries:
+        # Derived rows go with their source (explicit: also where FKs are not enforced).
+        db.query(ProgressObservation).filter(
+            ProgressObservation.gvfg_entry_id.in_([e.id for e in old_entries])
+        ).delete(synchronize_session=False)
+    for old in old_entries:
         db.delete(old)
     db.flush()
 
@@ -373,6 +401,7 @@ def confirm_parse_result(
     record.confirmed_at = datetime.utcnow()
     record.confirmed_by_snapshot = user.username
     db.commit()
+    _recompute(db, affected | _program_project_ids(db, program.id))
     return stats
 
 
@@ -450,6 +479,7 @@ def assign_entry(db: Session, entry: GvfgEntry, project_ids: list[int], user: An
             entry.projects.append(project)
         _ensure_groups(db, project, entry.key, groups, user)
     db.commit()
+    _recompute(db, [p.id for p in entry.projects])
 
 
 def entries_with_key(db: Session, key: str) -> list[GvfgEntry]:
@@ -479,8 +509,10 @@ def set_entry_projects(
     if missing:
         raise GvfgConfirmError(f"Unbekannte Projekte: {sorted(missing)}")
     groups = _groups(db)
+    affected = {p.id for entry in entries for p in entry.projects} | {p.id for p in projects}
     for entry in entries:
         entry.projects = list(projects)
         for project in projects:
             _ensure_groups(db, project, entry.key, groups, user)
     db.commit()
+    _recompute(db, affected)

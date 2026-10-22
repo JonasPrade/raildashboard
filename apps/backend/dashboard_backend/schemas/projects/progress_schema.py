@@ -22,7 +22,7 @@ SkippablePhaseLiteral = Literal["VORPLANUNG", "GENEHMIGUNGSPLANUNG"]
 ParallelStateLiteral = Literal["OFFEN", "LAEUFT", "ABGESCHLOSSEN"]
 LifecycleStatusLiteral = Literal["AKTIV", "PAUSIERT", "ABGEBROCHEN"]
 SourceTypeLiteral = Literal[
-    "VIB", "FINVE", "FULDA_RUNDE", "BAUPORTAL", "MEDIEN", "INFRAPLAN", "MANUELL"
+    "VIB", "FINVE", "FULDA_RUNDE", "BAUPORTAL", "MEDIEN", "INFRAPLAN", "GVFG", "MANUELL"
 ]
 # Sources an editor may record by hand. The Fulda-Runde is read only through its
 # importer (feature-fulda-import.md, W3), never as a manual observation.
