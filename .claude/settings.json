@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash /home/phips/code/raildashboard/.claude/hooks/worktree-setup.sh"
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/worktree-setup.sh"
           }
         ]
       }
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash /home/phips/code/raildashboard/.claude/hooks/guard-env.sh"
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-env.sh"
           }
         ]
       }
@@ -27,23 +27,23 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash /home/phips/code/raildashboard/.claude/hooks/remind-gen-api.sh"
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/remind-gen-api.sh"
           },
           {
             "type": "command",
-            "command": "bash /home/phips/code/raildashboard/.claude/hooks/remind-migration.sh"
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/remind-migration.sh"
           },
           {
             "type": "command",
-            "command": "bash /home/phips/code/raildashboard/.claude/hooks/remind-roadmap.sh"
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/remind-roadmap.sh"
           },
           {
             "type": "command",
-            "command": "bash /home/phips/code/raildashboard/.claude/hooks/remind-auth.sh"
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/remind-auth.sh"
           },
           {
             "type": "command",
-            "command": "cd /home/phips/code/raildashboard/apps/frontend && npx tsc --noEmit 2>&1 | head -20"
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/typecheck-frontend.sh"
           }
         ]
       }
@@ -59,7 +59,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash /home/phips/code/raildashboard/.claude/hooks/remind-usage-report.sh"
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/remind-usage-report.sh"
           }
         ]
       }
