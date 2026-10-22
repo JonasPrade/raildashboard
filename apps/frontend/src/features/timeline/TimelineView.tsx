@@ -164,12 +164,13 @@ function TimelineRow({
                     style={{
                         position: "absolute",
                         left: `${percent(today, range)}%`,
-                        top: -2,
-                        bottom: -2,
-                        width: 2,
+                        top: -6,
+                        bottom: -6,
+                        width: 3,
                         translate: "-50% 0",
                         background: TODAY_COLOR,
-                        zIndex: 1,
+                        boxShadow: "0 0 0 1px var(--surface)",
+                        zIndex: 3,
                     }}
                 />
                 {row.milestones.map((m) => (
@@ -217,7 +218,7 @@ function Legend({ showGap }: { showGap: boolean }) {
                 <Text size="xs">spätestens seit (Beleg)</Text>
             </Group>
             <Group gap={6} wrap="nowrap">
-                {swatch(TODAY_COLOR, { width: 2, height: 14 })}
+                {swatch(TODAY_COLOR, { width: 3, height: 14 })}
                 <Text size="xs">heute</Text>
             </Group>
         </Group>

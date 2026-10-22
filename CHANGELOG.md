@@ -11,10 +11,13 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 
 ## [Unreleased]
 
+### Changed
+- **Design fixes.** Stronger active marker in the app bar and drawer; the „Admin“ entry is now „Einstellungen“; the Zeitstrahl uses more distinct phase colours (`TIMELINE_PHASE_COLOR`) and a thicker, haloed „heute“ line; the project table shows the short description as a tooltip on the name; the drawing buttons in the geometry editor wrap instead of being cut off.
+
 ### Added
 - **IDT design system as the foundation (#217, stage 1).** The design system's `tokens.css` is vendored in `apps/frontend/src/shared/theme/` together with the self-hosted `InterVariable` (woff2); a Mantine theme with scales mixed from the DS colours, a CSS bridge (`mantine-bridge.css`) from Mantine variables to the DS aliases and `layout.css` for the layout tokens replace the old theme. The published `tokens.css` lacks its dark block, so a block generated from `tokens.json` is appended (#224). New favicon set and web manifest from the DS.
 - **Dark colour scheme.** Follows the system setting by default; a toggle in the header switches it and the choice is remembered (`localStorage` key `schienendashboard.thema`). A small inline script in `index.html` sets the scheme before the first paint, so there is no flash. Maps swap the basemap when `REACT_APP_TILE_LAYER_URL_DARK` is set.
-- **Register on the project page.** `ProjectRegister` replaces the table of contents: a sticky column at the left edge on desktop, a button „Abschnitte“ with a drawer on phones.
+- **Register on the project page.** `ProjectRegister` replaces the table of contents: a 26px tab at the left edge on desktop that unfolds into a register lying over the page (starts folded, folds again after a pick; the page does not shift), a button „Abschnitte“ with a drawer on phones.
 - **Tables as cards on phones.** `ResponsiveTable` switches every data table to a card list under 48em (one card per row, label/value pairs) instead of scrolling sideways.
 - **State blocks and `Stat`.** `EmptyState`, `LoadingState`, `ErrorState` and `SaveStatus` in `src/shared/ui` give empty, loading, failed and saved states one look (no spinners); `Stat`/`StatBand` show key figures.
 - **`semanticColors.ts`.** The one place that maps domain terms to colours: planning phases (teal ramp), `STATUS_TONE`, `SwatchTag`, traffic types, sources.

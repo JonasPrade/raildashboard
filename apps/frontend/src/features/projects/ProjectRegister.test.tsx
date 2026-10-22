@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MantineProvider } from "@mantine/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ProjectRegister, REGISTER_STORAGE_KEY, type RegisterSection } from "./ProjectRegister";
+import { ProjectRegister, type RegisterSection } from "./ProjectRegister";
 
 const originalMatchMedia = window.matchMedia;
 
@@ -37,6 +37,11 @@ function renderRegister(sections: RegisterSection[], onCreateTask?: () => void) 
     );
 }
 
+// The register starts folded; unfold it like a user does.
+async function openRegister() {
+    await userEvent.click(screen.getByRole("button", { name: "Abschnitte aufklappen" }));
+}
+
 beforeEach(() => {
     window.localStorage.clear();
     setCompact(false);
@@ -48,12 +53,13 @@ afterEach(() => {
 });
 
 describe("ProjectRegister (from 62em)", () => {
-    it("lists only the visible sections under the label „Abschnitte“", () => {
+    it("lists only the visible sections under the label „Abschnitte“", async () => {
         renderRegister([
             makeSection("details", "Projektdetails"),
             makeSection("texts", "Texte", { visible: false }),
             makeSection("finve", "FinVe"),
         ]);
+        await openRegister();
         const nav = screen.getByRole("navigation", { name: "Abschnitte" });
         expect(within(nav).getByRole("button", { name: "Projektdetails" })).toBeInTheDocument();
         expect(within(nav).getByRole("button", { name: "FinVe" })).toBeInTheDocument();
@@ -68,6 +74,7 @@ describe("ProjectRegister (from 62em)", () => {
     it("scrolls to a section on click", async () => {
         const finve = makeSection("finve", "FinVe");
         renderRegister([makeSection("details", "Projektdetails"), finve]);
+        await openRegister();
         await userEvent.click(screen.getByRole("button", { name: "FinVe" }));
         expect(finve.ref.current?.scrollIntoView).toHaveBeenCalled();
     });
@@ -75,43 +82,33 @@ describe("ProjectRegister (from 62em)", () => {
     it("opens a collapsed section before scrolling to it", async () => {
         const onOpen = vi.fn();
         renderRegister([makeSection("history", "Versionshistorie", { isCollapsible: true, isOpen: false, onOpen })]);
+        await openRegister();
         await userEvent.click(screen.getByRole("button", { name: "Versionshistorie" }));
         expect(onOpen).toHaveBeenCalledOnce();
     });
 
-    it("folds into a tab and remembers the state", async () => {
-        const sections = [makeSection("details", "Projektdetails")];
-        const { unmount } = renderRegister(sections);
+    it("starts folded and unfolds and folds again on demand", async () => {
+        renderRegister([makeSection("details", "Projektdetails")]);
+        expect(screen.queryByRole("button", { name: "Projektdetails" })).not.toBeInTheDocument();
+
+        await openRegister();
+        expect(screen.getByRole("button", { name: "Projektdetails" })).toBeInTheDocument();
 
         await userEvent.click(screen.getByRole("button", { name: "Abschnitte einklappen" }));
-        expect(window.localStorage.getItem(REGISTER_STORAGE_KEY)).toBe("closed");
-        expect(screen.queryByRole("button", { name: "Projektdetails" })).not.toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Abschnitte aufklappen" })).toBeInTheDocument();
-
-        unmount();
-        renderRegister(sections);
-        expect(screen.getByRole("button", { name: "Abschnitte aufklappen" })).toBeInTheDocument();
-
-        await userEvent.click(screen.getByRole("button", { name: "Abschnitte aufklappen" }));
-        expect(window.localStorage.getItem(REGISTER_STORAGE_KEY)).toBe("open");
-        expect(screen.getByRole("button", { name: "Projektdetails" })).toBeInTheDocument();
     });
 
-    it("still works when localStorage is unavailable", async () => {
-        vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
-            throw new Error("blocked");
-        });
-        vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
-            throw new Error("blocked");
-        });
+    it("folds again after a section was picked", async () => {
         renderRegister([makeSection("details", "Projektdetails")]);
-        await userEvent.click(screen.getByRole("button", { name: "Abschnitte einklappen" }));
+        await openRegister();
+        await userEvent.click(screen.getByRole("button", { name: "Projektdetails" }));
         expect(screen.getByRole("button", { name: "Abschnitte aufklappen" })).toBeInTheDocument();
     });
 
     it("offers „Aufgabe erstellen“ when a handler is given", async () => {
         const onCreateTask = vi.fn();
         renderRegister([makeSection("details", "Projektdetails")], onCreateTask);
+        await openRegister();
         await userEvent.click(screen.getByRole("button", { name: "Aufgabe erstellen" }));
         expect(onCreateTask).toHaveBeenCalledOnce();
     });
