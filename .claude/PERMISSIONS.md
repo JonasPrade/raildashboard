@@ -30,3 +30,9 @@ If Claude prompts for a command you want auto-allowed:
 - For a new script: put it in `apps/backend/scripts/`, then `run-python-script scripts/new_script.py`
 - For a new npm package: covered by `npm:*`
 - For a one-off that doesn't fit: approve once in the prompt, or add a scoped rule to `settings.local.json`
+
+## Schienendashboard MCP
+
+`settings.json` allows the geometry tools of the Schienendashboard MCP without a prompt
+(`route_project_geometry`, `edit_project_geometry`, `compute_project_length`). Every change
+they make lands in the project changelog and can be reverted in the UI.

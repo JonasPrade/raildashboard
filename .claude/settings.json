@@ -78,7 +78,10 @@
       "Bash(.venv/bin/python -m pytest*)",
       "Bash(cd apps/backend && .venv/bin/python -m pytest*)",
       "Bash(apps/backend/.venv/bin/python -m pytest*)",
-      "Bash(cd apps/backend && apps/backend/.venv/bin/python -m pytest*)"
+      "Bash(cd apps/backend && apps/backend/.venv/bin/python -m pytest*)",
+      "mcp__Schienendashboard__route_project_geometry",
+      "mcp__Schienendashboard__edit_project_geometry",
+      "mcp__Schienendashboard__compute_project_length"
     ]
   },
   "enabledPlugins": {
