@@ -1,7 +1,8 @@
 """To-do (Aufgaben) tools.
 
 Tags label tasks; ``@LLM`` marks a task that the LLM is to do (fully or in
-part) through MCP — filter with ``list_todos(tag="@LLM")``.
+part) through MCP — filter with ``list_todos(tag="@LLM")``. A task with a part
+for Jonas carries ``@Jonas`` too; the LLM part starts once ``@Jonas`` is gone.
 """
 
 from __future__ import annotations
@@ -21,6 +22,7 @@ from dashboard_backend.schemas.todos.todo_schema import (
     TodoPriorityLiteral,
     TodoSchema,
     TodoStatusLiteral,
+    TodoTagUpdate,
     TodoUpdate,
 )
 
@@ -73,10 +75,46 @@ def list_todos(
 
 def list_todo_tags(*, ctx: Context) -> dict[str, Any]:
     """All task tags with their description and number of tasks. "@LLM" marks
-    tasks the LLM is to do (fully or in part) through MCP."""
+    tasks the LLM is to do (fully or in part) through MCP. A task that also
+    carries "@Jonas" waits for Jonas' part first: skip it until "@Jonas" is
+    removed."""
     get_principal(ctx)
     with tool_session(ctx) as db:
         return {"tags": todos_crud.list_tags(db)}
+
+
+def update_todo_tag(
+    tag: str,
+    new_name: str | None = None,
+    description: str | None = None,
+    clear_description: bool = False,
+    *,
+    ctx: Context,
+) -> dict[str, Any]:
+    """Rename a task tag (by its current name) or change its description
+    (requires ``todo.edit``). A rename is logged on every task carrying it."""
+    principal = get_principal(ctx)
+    require(principal, "todo.edit")
+    raw: dict[str, Any] = {"name": new_name, "description": description}
+    raw = {key: value for key, value in raw.items() if value is not None}
+    if clear_description:
+        raw["clear_description"] = True
+    if not raw:
+        raise ToolError("Keine Änderungen übergeben.")
+    try:
+        payload = TodoTagUpdate(**raw).model_dump(exclude_unset=True)
+    except ValidationError as exc:
+        raise ToolError(f"Ungültige Werte: {exc}") from exc
+    with tool_session(ctx) as db:
+        found = todos_crud.get_tag_by_name(db, tag)
+        if found is None:
+            raise ToolError(f"Tag „{tag}“ nicht gefunden (siehe list_todo_tags).")
+        user = load_user(db, principal)
+        try:
+            todos_crud.update_tag(db, found, payload, user)
+        except todos_crud.TagNameTaken as exc:
+            raise ToolError(f"Es gibt schon ein Tag „{new_name}“.") from exc
+        return todos_crud.tag_dict(db, found)
 
 
 def create_todo(
@@ -165,3 +203,4 @@ def register(server: MCPServer) -> None:
     server.add_tool(list_todo_tags, annotations=READ_ONLY)
     server.add_tool(create_todo, annotations=WRITE)
     server.add_tool(update_todo, annotations=WRITE)
+    server.add_tool(update_todo_tag, annotations=WRITE)

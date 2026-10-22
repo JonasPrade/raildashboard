@@ -239,3 +239,73 @@ def test_history_records_create_and_tag_changes(client, create_user):
 def test_history_unknown_task_is_404(client, create_user):
     headers = _editor(create_user)
     assert client.get("/api/v1/todos/999/history", headers=headers).status_code == 404
+
+
+# --- Tag management ----------------------------------------------------------
+
+
+def _tag_id(client, headers, name):
+    return next(t["id"] for t in client.get("/api/v1/todos/tags", headers=headers).json() if t["name"] == name)
+
+
+def test_rename_tag_is_logged_on_tasks(client, create_user):
+    headers = _editor(create_user)
+    todo_id = client.post(
+        "/api/v1/todos/", json={"title": "T", "tags": ["Recherche"]}, headers=headers
+    ).json()["id"]
+    tag_id = _tag_id(client, headers, "Recherche")
+
+    resp = client.patch(
+        f"/api/v1/todos/tags/{tag_id}",
+        json={"name": " Quellen ", "description": "Quellen suchen"},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"id": tag_id, "name": "Quellen", "description": "Quellen suchen", "todo_count": 1}
+
+    todo = client.get(f"/api/v1/todos/{todo_id}", headers=headers).json()
+    assert [t["name"] for t in todo["tags"]] == ["Quellen"]
+    history = client.get(f"/api/v1/todos/{todo_id}/history", headers=headers).json()
+    assert history[0]["entries"] == [
+        {"field_name": "tags", "old_value": "Recherche", "new_value": "Quellen"}
+    ]
+
+    resp = client.patch(f"/api/v1/todos/tags/{tag_id}", json={"clear_description": True}, headers=headers)
+    assert resp.json()["description"] is None
+
+
+def test_rename_tag_to_existing_name_conflicts(client, create_user):
+    headers = _editor(create_user)
+    client.post("/api/v1/todos/", json={"title": "T", "tags": ["a", "b"]}, headers=headers)
+    tag_id = _tag_id(client, headers, "a")
+    resp = client.patch(f"/api/v1/todos/tags/{tag_id}", json={"name": "B"}, headers=headers)
+    assert resp.status_code == 409
+    # Changing only the case of its own name is fine.
+    resp = client.patch(f"/api/v1/todos/tags/{tag_id}", json={"name": "A"}, headers=headers)
+    assert resp.json()["name"] == "A"
+
+
+def test_delete_tag_removes_it_from_tasks(client, create_user):
+    headers = _editor(create_user)
+    todo_id = client.post(
+        "/api/v1/todos/", json={"title": "T", "tags": ["alt", "bleibt"]}, headers=headers
+    ).json()["id"]
+    tag_id = _tag_id(client, headers, "alt")
+
+    viewer = _viewer(create_user)
+    assert client.delete(f"/api/v1/todos/tags/{tag_id}", headers=viewer).status_code == 403
+
+    assert client.delete(f"/api/v1/todos/tags/{tag_id}", headers=headers).status_code == 204
+    assert [t["name"] for t in client.get("/api/v1/todos/tags", headers=headers).json()] == ["bleibt"]
+    todo = client.get(f"/api/v1/todos/{todo_id}", headers=headers).json()
+    assert [t["name"] for t in todo["tags"]] == ["bleibt"]
+    history = client.get(f"/api/v1/todos/{todo_id}/history", headers=headers).json()
+    assert history[0]["entries"] == [
+        {"field_name": "tags", "old_value": "alt, bleibt", "new_value": "bleibt"}
+    ]
+
+
+def test_unknown_tag_is_404(client, create_user):
+    headers = _editor(create_user)
+    assert client.patch("/api/v1/todos/tags/99", json={"name": "x"}, headers=headers).status_code == 404
+    assert client.delete("/api/v1/todos/tags/99", headers=headers).status_code == 404

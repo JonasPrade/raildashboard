@@ -46,3 +46,8 @@ def test_strip_llm_marker(title, expected):
 )
 def test_strip_llm_line(description, expected):
     assert migration.strip_llm_line(description) == expected
+
+
+def test_seeded_tag_names_fit_the_column():
+    assert len(migration.LLM_TAG) <= 50
+    assert len(migration.JONAS_TAG) <= 50

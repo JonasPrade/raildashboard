@@ -230,7 +230,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `list_text_types` | Texttypen (für `text_type_id`) | — |
 | `list_text_categories` | Textkategorien mit Stil (für `category_id`) | — |
 | `list_todos` | Aufgaben, gefiltert (u. a. `tag`, Textsuche `search`), seitenweise mit `limit`/`offset` | — |
-| `list_todo_tags` | Alle Aufgaben-Tags mit Beschreibung und Anzahl; „@LLM“ = vom LLM über MCP zu erledigen | — |
+| `list_todo_tags` | Alle Aufgaben-Tags mit Beschreibung und Anzahl; „@LLM“ = vom LLM über MCP zu erledigen, mit „@Jonas“ zusammen erst nach Jonas’ Teil | — |
 | `create_project` | Projekt/Unterprojekt anlegen (final, ohne Geometrie) | `project.create` |
 | `compute_project_length` | Länge aus der Geometrie berechnen, optional übernehmen | — / `project.edit` mit `apply` |
 | `update_project` | Projektfelder ändern | `project.edit` |
@@ -253,6 +253,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `get_skill` | Anleitung eines Skills (Text der `SKILL.md`, optional eine Begleitdatei) | — |
 | `create_todo` | Aufgabe anlegen, optional mit `tags` | `todo.create` |
 | `update_todo` | Aufgabe ändern; `tags` ersetzt die Tag-Menge | `todo.edit` |
+| `update_todo_tag` | Tag umbenennen oder Beschreibung ändern (Umbenennung im Verlauf jeder Aufgabe); Löschen nur in der Oberfläche | `todo.edit` |
 
 Bewusst schmal gehalten: ein Tool je Absicht, keine generischen
 „führe-beliebige-Abfrage-aus"-Tools. Ausgaben sind kompakt zu halten (Listen

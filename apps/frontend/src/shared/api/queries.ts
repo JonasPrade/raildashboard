@@ -1714,6 +1714,7 @@ export type TodoUpdate = components["schemas"]["TodoUpdate"];
 export type TodoStatus = Todo["status"];
 export type TodoPriority = Todo["priority"];
 export type TodoTag = components["schemas"]["TodoTagSchema"];
+export type TodoTagUpdate = components["schemas"]["TodoTagUpdate"];
 export type TodoChangeLog = components["schemas"]["TodoChangeLogSchema"];
 export type UserOption = components["schemas"]["UserOption"];
 
@@ -1764,6 +1765,26 @@ export function useTodoTags(enabled = true) {
         enabled,
         queryFn: () => api<TodoTag[]>(`/api/v1/todos/tags`),
     });
+}
+
+/** Rename a tag or change its description (409 when the name is taken). */
+export function useUpdateTodoTag() {
+    return useInvalidatingMutation(
+        ({ id, payload }: { id: number; payload: TodoTagUpdate }) =>
+            api<TodoTag>(`/api/v1/todos/tags/${id}`, {
+                method: "PATCH",
+                json: payload,
+            }),
+        [queryKeys.todos],
+    );
+}
+
+/** Remove a tag from all tasks and delete it. */
+export function useDeleteTodoTag() {
+    return useInvalidatingMutation(
+        (id: number) => api<void>(`/api/v1/todos/tags/${id}`, { method: "DELETE" }),
+        [queryKeys.todos],
+    );
 }
 
 /** Change history of one task, newest first. */

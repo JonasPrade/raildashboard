@@ -44,11 +44,15 @@ one or more users.
   `list_todos(tag="@LLM")`. Before tags existed the marker stood in the title;
   migration `20261022001` moved it into the tag and removed it from the title
   (downgrade puts `@LLM ` back in front).
-- Tags have no management UI yet (rename/delete/description); unused tags stay
-  in the list with count 0.
-- **Open:** many tasks have one part for Jonas and one for the LLM. Whether a
-  second tag as precondition is enough or sub-tasks fit better is not decided
-  yet (#173); until then the split is written in the description.
+- **Two-part tasks use two tags, no sub-tasks** (decided 2026-10-22, #173):
+  `@Jonas` marks the part Jonas does first. A task with `@LLM` and `@Jonas`
+  waits for Jonas; he removes `@Jonas` when his part is done, then the LLM
+  takes it. The migration sets `@Jonas` on `@LLM` tasks whose description has
+  a „Für Jonas:“ part.
+- **Tags verwalten** (button on `/tasks`, `todo.edit`): rename a tag, edit its
+  description, delete it (`todo.delete`). Rename and delete show up in the
+  history of every task carrying the tag; a rename to a name another tag has
+  is refused (409). Deleting removes the tag from all tasks.
 
 ## Verlauf (history)
 
@@ -120,6 +124,10 @@ See „Verlauf“ above; mirrors `text_change_log` / `text_change_log_entry`.
   `project_id`, `created_by_id`, `include_done` (default true), `tag` (name,
   case-insensitive), `q` (text search in title and description). Auth required.
 - `GET /tags` — all tags with `todo_count`. Auth required.
+- `PATCH /tags/{id}` — rename (`name`) and/or `description` / `clear_description`;
+  409 when the name is taken. Requires `todo.edit`.
+- `DELETE /tags/{id}` — remove the tag from all tasks and delete it. Requires
+  `todo.delete`.
 - `GET /{id}` — single task. Auth required.
 - `GET /{id}/history` — change history, newest first. Auth required.
 - `POST /` — create. Requires `todo.create`.
@@ -136,7 +144,9 @@ See „Verlauf“ above; mirrors `text_change_log` / `text_change_log_entry`.
 `create_todo` / `update_todo` take `tags` (names; `update_todo` replaces the
 set, `[]` removes all). `list_todos` filters by `tag`, searches with `search`
 and pages with `limit`/`offset` (`total` counts all matches). `list_todo_tags`
-lists every tag with description and count.
+lists every tag with description and count; `update_todo_tag` renames a tag
+(found by its current name) or changes its description. There is no MCP tool
+for deleting a tag (deleting stays in the UI, like deleting tasks).
 
 ## Acceptance criteria
 - [ ] A logged-in editor can create a task with only a title via quick-add.
@@ -154,6 +164,8 @@ lists every tag with description and count.
 - [ ] Tags can be set, removed and used as a filter; „@LLM“ exists with its
       description; former „@LLM“ titles carry the tag without the prefix.
 - [ ] Tag changes (and every other change) show up in the task's history.
+- [ ] A tag can be renamed, described and deleted under „Tags verwalten“; the
+      affected tasks follow and log the change.
 
 ## Technical notes
 - Enums live in `models/todos/todo_enums.py` (`TodoStatus`, `TodoPriority`) for

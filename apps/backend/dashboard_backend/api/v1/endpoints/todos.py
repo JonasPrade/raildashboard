@@ -21,6 +21,7 @@ from dashboard_backend.schemas.todos.todo_schema import (
     TodoCreate,
     TodoSchema,
     TodoTagSchema,
+    TodoTagUpdate,
     TodoUpdate,
 )
 
@@ -61,6 +62,37 @@ def list_todo_tags(
 ):
     """All tags with their task count (logged-in users only)."""
     return todos_crud.list_tags(db)
+
+
+@router.patch("/tags/{tag_id}", response_model=TodoTagSchema)
+def update_todo_tag(
+    tag_id: int,
+    body: TodoTagUpdate,
+    current_user: User = Depends(require_permission("todo.edit")),
+    db: Session = Depends(get_db),
+):
+    """Rename a tag or change its description (rename is logged on every task)."""
+    tag = todos_crud.get_tag(db, tag_id)
+    if tag is None:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    try:
+        todos_crud.update_tag(db, tag, body.model_dump(exclude_unset=True), current_user)
+    except todos_crud.TagNameTaken:
+        raise HTTPException(status_code=409, detail="Tag name already exists") from None
+    return todos_crud.tag_dict(db, tag)
+
+
+@router.delete("/tags/{tag_id}", status_code=204)
+def delete_todo_tag(
+    tag_id: int,
+    current_user: User = Depends(require_permission("todo.delete")),
+    db: Session = Depends(get_db),
+):
+    """Remove a tag from all tasks and delete it."""
+    tag = todos_crud.get_tag(db, tag_id)
+    if tag is None:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    todos_crud.delete_tag(db, tag, current_user)
 
 
 @router.get("/{todo_id}/history", response_model=list[TodoChangeLogSchema])

@@ -127,6 +127,76 @@ def list_tags(db: Session) -> list[dict]:
     ]
 
 
+class TagNameTaken(ValueError):
+    """Another tag already has the requested name."""
+
+
+def get_tag(db: Session, tag_id: int) -> TodoTag | None:
+    return db.query(TodoTag).filter(TodoTag.id == tag_id).first()
+
+
+def get_tag_by_name(db: Session, name: str) -> TodoTag | None:
+    return db.query(TodoTag).filter(func.lower(TodoTag.name) == name.strip().lower()).first()
+
+
+def _tagged_todos(db: Session, tag: TodoTag) -> list[Todo]:
+    return (
+        db.query(Todo)
+        .join(TodoTagLink, TodoTagLink.todo_id == Todo.id)
+        .filter(TodoTagLink.tag_id == tag.id)
+        .all()
+    )
+
+
+def update_tag(db: Session, tag: TodoTag, payload: dict, user: User | None = None) -> TodoTag:
+    """Rename a tag and/or change its description.
+
+    A rename shows up in the history of every task carrying the tag. Raises
+    ``TagNameTaken`` when another tag already has the new name.
+    """
+
+    new_name = payload.get("name")
+    renamed = new_name is not None and new_name != tag.name
+    if renamed:
+        clash = get_tag_by_name(db, new_name)
+        if clash is not None and clash.id != tag.id:
+            raise TagNameTaken(new_name)
+        todos = _tagged_todos(db, tag)
+        before = {todo.id: _snapshot(todo) for todo in todos}
+        tag.name = new_name
+        db.flush()
+        for todo in todos:
+            _log_change(db, todo, user, "PATCH", before[todo.id], _snapshot(todo))
+
+    if payload.get("clear_description"):
+        tag.description = None
+    elif payload.get("description") is not None:
+        tag.description = payload["description"].strip() or None
+
+    db.commit()
+    db.refresh(tag)
+    return tag
+
+
+def delete_tag(db: Session, tag: TodoTag, user: User | None = None) -> int:
+    """Remove a tag from all tasks (logged per task) and delete it. Returns the task count."""
+
+    todos = _tagged_todos(db, tag)
+    for todo in todos:
+        before = _snapshot(todo)
+        todo.tags = [t for t in todo.tags if t.id != tag.id]
+        db.flush()
+        _log_change(db, todo, user, "PATCH", before, _snapshot(todo))
+    db.delete(tag)
+    db.commit()
+    return len(todos)
+
+
+def tag_dict(db: Session, tag: TodoTag) -> dict:
+    count = db.query(func.count(TodoTagLink.todo_id)).filter(TodoTagLink.tag_id == tag.id).scalar()
+    return {"id": tag.id, "name": tag.name, "description": tag.description, "todo_count": count}
+
+
 # --- Tasks -------------------------------------------------------------------
 
 

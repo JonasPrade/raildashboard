@@ -202,7 +202,7 @@ export default function TodoEditDrawer({ opened, onClose, todo, defaultProjectId
                 />
                 <TagsInput
                     label="Tags"
-                    description="„@LLM“: ganz oder teilweise vom LLM über MCP zu erledigen"
+                    description="„@LLM“: vom LLM über MCP zu erledigen · zusammen mit „@Jonas“: erst Jonas’ Teil, dann das LLM"
                     placeholder="Tag wählen oder neu eingeben (Enter)"
                     data={(allTags ?? []).map((t) => t.name)}
                     value={tags}

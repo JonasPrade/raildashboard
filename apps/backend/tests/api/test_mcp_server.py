@@ -167,6 +167,7 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
         "list_todo_tags",
         "create_todo",
         "update_todo",
+        "update_todo_tag",
         "search_operational_points",
         "get_project_geometry",
         "route_project_geometry",
@@ -419,6 +420,14 @@ def test_todo_tags_search_and_paging(mcp_client, admin_token):
 
     tags = _payload(_call(mcp_client, admin_token, "list_todo_tags"))["tags"]
     assert {t["name"]: t["todo_count"] for t in tags} == {"@LLM": 3, "Doku": 1}
+
+    renamed = _payload(
+        _call(mcp_client, admin_token, "update_todo_tag", {"tag": "doku", "new_name": "Dokumentation"})
+    )
+    assert renamed["name"] == "Dokumentation"
+    assert renamed["todo_count"] == 1
+    clash = _call(mcp_client, admin_token, "update_todo_tag", {"tag": "Dokumentation", "new_name": "@llm"})
+    assert clash["isError"] is True
 
 
 def test_write_tool_needs_capability(mcp_client, db_session):

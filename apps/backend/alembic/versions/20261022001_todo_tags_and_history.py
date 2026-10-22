@@ -4,7 +4,9 @@ docs/features/feature-tasks.md → "Tags" and "Verlauf": adds ``todo_tag`` and
 ``todo_tag_link`` (m:n) plus the per-task change log ``todo_change_log`` /
 ``todo_change_log_entry``. Seeds the tag ``@LLM`` and moves the ``@LLM``
 marker out of task titles (and a leading marker line out of descriptions) into
-that tag (logged as a ``MIGRATION`` change).
+that tag (logged as a ``MIGRATION`` change). Also seeds ``@Jonas`` for the
+part of a task that Jonas does first; ``@LLM`` tasks whose description has a
+"Für Jonas:" part get it too.
 
 Expand only: new tables, older code ignores them. The only touched existing
 data is the marker; downgrade puts it back in front of the title before
@@ -30,6 +32,11 @@ depends_on = None
 LLM_TAG = "@LLM"
 LLM_TAG_DESCRIPTION = (
     "Die Aufgabe ist ganz oder teilweise vom LLM über MCP zu erledigen."
+)
+JONAS_TAG = "@Jonas"
+JONAS_TAG_DESCRIPTION = (
+    "Ein Teil der Aufgabe liegt bei Jonas und kommt zuerst. Mit „@LLM“ zusammen: "
+    "Das LLM beginnt erst, wenn „@Jonas“ entfernt ist."
 )
 
 # "@LLM" as its own token, with an optional trailing ":"/"-"/"–" and the
@@ -115,12 +122,15 @@ def upgrade() -> None:
 
     bind = op.get_bind()
     now = datetime.utcnow()
+    insert_tag = sa.text(
+        "INSERT INTO todo_tag (name, description, created_at) "
+        "VALUES (:name, :description, :now) RETURNING id"
+    )
     tag_id = bind.execute(
-        sa.text(
-            "INSERT INTO todo_tag (name, description, created_at) "
-            "VALUES (:name, :description, :now) RETURNING id"
-        ),
-        {"name": LLM_TAG, "description": LLM_TAG_DESCRIPTION, "now": now},
+        insert_tag, {"name": LLM_TAG, "description": LLM_TAG_DESCRIPTION, "now": now}
+    ).scalar_one()
+    jonas_tag_id = bind.execute(
+        insert_tag, {"name": JONAS_TAG, "description": JONAS_TAG_DESCRIPTION, "now": now}
     ).scalar_one()
 
     rows = bind.execute(
@@ -132,10 +142,16 @@ def upgrade() -> None:
     for todo_id, title, description in rows:
         new_title = strip_llm_marker(title)
         new_description = strip_llm_line(description)
-        bind.execute(
-            sa.text("INSERT INTO todo_tag_link (todo_id, tag_id) VALUES (:todo_id, :tag_id)"),
-            {"todo_id": todo_id, "tag_id": tag_id},
-        )
+        tag_ids = [tag_id]
+        tag_names = LLM_TAG
+        if "für jonas" in (description or "").lower():
+            tag_ids.append(jonas_tag_id)
+            tag_names = f"{JONAS_TAG}, {LLM_TAG}"
+        for linked in tag_ids:
+            bind.execute(
+                sa.text("INSERT INTO todo_tag_link (todo_id, tag_id) VALUES (:todo_id, :tag_id)"),
+                {"todo_id": todo_id, "tag_id": linked},
+            )
         bind.execute(
             sa.text("UPDATE todo SET title = :title, description = :description WHERE id = :id"),
             {"title": new_title, "description": new_description, "id": todo_id},
@@ -147,7 +163,7 @@ def upgrade() -> None:
             ),
             {"todo_id": todo_id, "title": new_title, "now": now},
         ).scalar_one()
-        entries = [("tags", None, LLM_TAG)]
+        entries = [("tags", None, tag_names)]
         if new_title != title:
             entries.append(("title", title, new_title))
         if new_description != description:

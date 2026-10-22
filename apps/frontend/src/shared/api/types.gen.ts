@@ -1030,6 +1030,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/todos/tags/{tag_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Todo Tag
+         * @description Remove a tag from all tasks and delete it.
+         */
+        delete: operations["delete_todo_tag_api_v1_todos_tags__tag_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Todo Tag
+         * @description Rename a tag or change its description (rename is logged on every task).
+         */
+        patch: operations["update_todo_tag_api_v1_todos_tags__tag_id__patch"];
+        trace?: never;
+    };
     "/api/v1/todos/{todo_id}/history": {
         parameters: {
             query?: never;
@@ -7472,6 +7496,15 @@ export interface components {
              */
             todo_count: number;
         };
+        /** TodoTagUpdate */
+        TodoTagUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Clear Description */
+            clear_description?: boolean | null;
+        };
         /** TodoUpdate */
         TodoUpdate: {
             /** Title */
@@ -10323,6 +10356,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TodoTagSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_todo_tag_api_v1_todos_tags__tag_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tag_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_todo_tag_api_v1_todos_tags__tag_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tag_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TodoTagUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodoTagSchema"];
                 };
             };
             /** @description Validation Error */

@@ -67,6 +67,23 @@ class TodoTagSchema(TodoTagRef):
     todo_count: int = 0
 
 
+class TodoTagUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=TAG_NAME_MAX)
+    description: str | None = Field(default=None, max_length=1000)
+    # Explicit clear (None is otherwise ambiguous with "not provided").
+    clear_description: bool | None = None
+
+    @field_validator("name")
+    @classmethod
+    def _normalize_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        name = " ".join(value.split())
+        if not name:
+            raise ValueError("Der Tag-Name darf nicht leer sein.")
+        return name
+
+
 class TodoSchema(BaseModel):
     id: int
     title: str

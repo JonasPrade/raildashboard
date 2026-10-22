@@ -137,7 +137,7 @@ them as `/app/skills` via the named build context `skills`) (read)
 and `create_project`, `create_project_group`, `compute_project_length`, `update_project`, `set_project_groups`,
 `add_progress_observation`,
 `delete_progress_observation`, `set_phase_override`, `upsert_project_text`, `create_todo`,
-`update_todo`, `route_project_geometry` (GraphHopper route, preview or apply),
+`update_todo`, `update_todo_tag`, `route_project_geometry` (GraphHopper route, preview or apply),
 `edit_project_geometry` (draw lines/points, add operational points, delete features),
 `assign_gvfg_entry` (needs `assignment.manage`: replace a GVFG Vorhaben's projects, optionally
 in every edition) (write),
@@ -252,6 +252,8 @@ User-facing task list (Aufgaben), **distinct from the Celery `/tasks/{task_id}` 
 |---|---|---|
 | `GET /api/v1/todos/` | Logged-in | List tasks; filters `status`, `priority`, `assignee_id`, `project_id`, `created_by_id`, `include_done`, `tag`, `q` (text search) |
 | `GET /api/v1/todos/tags` | Logged-in | All tags with task count |
+| `PATCH /api/v1/todos/tags/{id}` | `todo.edit` | Rename / describe a tag (409 if the name is taken) |
+| `DELETE /api/v1/todos/tags/{id}` | `todo.delete` | Remove a tag from all tasks and delete it |
 | `GET /api/v1/todos/{id}` | Logged-in | Single task |
 | `GET /api/v1/todos/{id}/history` | Logged-in | Change history, newest first |
 | `POST /api/v1/todos/` | `todo.create` | Create |
@@ -259,7 +261,7 @@ User-facing task list (Aufgaben), **distinct from the Celery `/tasks/{task_id}` 
 | `DELETE /api/v1/todos/{id}` | `todo.delete` | Delete |
 | `GET /api/v1/users/options` | Logged-in | Minimal `{id, username}` list for the assignee picker |
 
-A task optionally links to one project (`project_id`, `ON DELETE SET NULL`) or is a free note, and assigns to multiple users via the `todo_assignee` m:n table. Status `OPEN`/`IN_PROGRESS`/`DONE` (DONE stamps `completed_at`), priority `LOW`/`MEDIUM`/`HIGH`, optional `due_date`. Tags (`todo_tag`, m:n via `todo_tag_link`) are written as names — unknown ones are created, matching is case-insensitive; `@LLM` marks work for the LLM via MCP. Every create/update/delete is logged in `todo_change_log` / `todo_change_log_entry`. The `todo.*` capabilities ship with the editor system role. See `docs/features/feature-tasks.md`.
+A task optionally links to one project (`project_id`, `ON DELETE SET NULL`) or is a free note, and assigns to multiple users via the `todo_assignee` m:n table. Status `OPEN`/`IN_PROGRESS`/`DONE` (DONE stamps `completed_at`), priority `LOW`/`MEDIUM`/`HIGH`, optional `due_date`. Tags (`todo_tag`, m:n via `todo_tag_link`) are written as names — unknown ones are created, matching is case-insensitive; `@LLM` marks work for the LLM via MCP, `@Jonas` a part Jonas does first. Rename/delete of a tag is logged on every affected task. Every create/update/delete is logged in `todo_change_log` / `todo_change_log_entry`. The `todo.*` capabilities ship with the editor system role. See `docs/features/feature-tasks.md`.
 
 ## Shared PDF text extraction
 

@@ -449,6 +449,8 @@ export const featureHighlights: FeatureHighlight[] = [
             "Beim Löschen eines Projekts bleibt die Aufgabe erhalten (project_id wird auf NULL gesetzt)",
             "Tags: beliebig viele je Aufgabe, im Formular wählen oder neu eingeben; Filter nach Tag und Textsuche über Titel und Beschreibung auf /tasks",
             "Tag „@LLM“: Die Aufgabe ist ganz oder teilweise vom LLM über den MCP-Server zu erledigen (list_todos mit tag=\"@LLM\")",
+            "Tag „@Jonas“: Teil für Jonas, der zuerst kommt. Mit „@LLM“ zusammen beginnt das LLM erst, wenn „@Jonas“ entfernt ist",
+            "„Tags verwalten“ (Recht todo.edit, Löschen todo.delete): Tags umbenennen, beschreiben und löschen; die Änderung steht im Verlauf jeder betroffenen Aufgabe",
             "Verlauf: Jede Änderung einer Aufgabe (auch an Tags und Zuweisungen) wird mit Nutzer und Zeitpunkt protokolliert und im Formular angezeigt"
         ]
     },
