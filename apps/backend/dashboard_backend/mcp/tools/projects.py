@@ -757,7 +757,9 @@ def get_project(project_id: int, *, ctx: Context) -> dict[str, Any]:
 
 def get_project_progress(project_id: int, *, ctx: Context) -> dict[str, Any]:
     """Planning state (Planungsstand): effective phase, parallel tracks (PF,
-    parliament), observations with their weight, subproject span and forecast.
+    parliament), observations with their trust and role (decisive, lower bound,
+    in conflict), a set-back ``conflict`` (newer report with a lower phase than
+    older information), subproject span and forecast.
     ``forecast.ibn_doubt`` set → the GVFG-Finanzreihe still funds the project
     after the known Inbetriebnahme year; question that year and cite it."""
     get_principal(ctx)
@@ -1094,6 +1096,10 @@ def add_progress_observation(
       GENEHMIGUNGSPLANUNG, BAU, IN_BETRIEB)
     - track PF / PARL: asserted_state is OFFEN, LAEUFT or ABGESCHLOSSEN
     - is_expected: the date is a forecast, not a fact
+    - confidence: trust of this report (default: source default). The newest
+      report wins; within one year trust decides. A MANUELL observation may set
+      a project back without a conflict; other sources only when they are at
+      least as trusted as the contradicting older information.
     Returns the recomputed planning state."""
     principal = get_principal(ctx)
     require(principal, "progress.edit")

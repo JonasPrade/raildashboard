@@ -47,7 +47,7 @@ Mit dem Schalter **„Nur offene (unbestätigt)"** filterst du die Liste auf noc
             title: "Bestätigen — und was dann passiert",
             body: `Sobald **Phase und Projekt** gesetzt sind, lässt sich der Schalter **„Als Beobachtung übernehmen (bestätigt)"** aktivieren (vorher ist er gesperrt: „Phase und Projekt wählen, um den Bericht zu bestätigen."). Die Karte erhält das Badge \`bestätigt\`.
 
-Das erzeugt eine abgeleitete **Beobachtung** mit der Quelle \`Medien\` und **niedrigem Vertrauen** — dafür ist sie meist sehr aktuell. Ob sie den angezeigten Stand bewegt, entscheidet die [glaubwürdigkeitsbasierte Ableitung](/admin/anleitungen/projektfortschritt) (Vertrauen je Quelle × Aktualität): Ein frischer Pressebericht kann veraltete Automatik-Signale überstimmen, verliert aber selbst schnell an Gewicht.
+Das erzeugt eine abgeleitete **Beobachtung** mit der Quelle \`Medien\` und **niedrigem Vertrauen** — dafür ist sie meist sehr aktuell. Ob sie den angezeigten Stand bewegt, entscheidet die [Ableitung](/admin/anleitungen/projektfortschritt): Ein frischer Pressebericht kann den Stand nach vorn bewegen, eine Rückstufung gegen vertrauenswürdigere ältere Angaben (VIB, FinVe) wird aber nur als Konflikt gemeldet. Sehr alte Medienmeldungen fallen unter die Glaubwürdigkeitsschwelle.
 
 - Spätere Änderungen an Phase/Projekt aktualisieren die Beobachtung automatisch.
 - Der Schalter lässt sich zurücknehmen; das entfernt die Beobachtung wieder.

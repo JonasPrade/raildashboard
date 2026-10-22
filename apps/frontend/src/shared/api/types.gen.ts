@@ -2292,6 +2292,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/progress-conflicts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Progress Conflicts
+         * @description Projects whose planning state has a set-back conflict (newer report with
+         *     a lower phase than older information).
+         */
+        get: operations["get_progress_conflicts_api_v1_admin_progress_conflicts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/unassigned-finves": {
         parameters: {
             query?: never;
@@ -5513,6 +5534,43 @@ export interface components {
             /** Comment */
             comment?: string | null;
         };
+        /**
+         * PhaseConflictSchema
+         * @description A newer status report asserts a lower phase than older information.
+         *
+         *     ``applied``: the report set the headline back (trust at least that of every
+         *     contradicting observation); otherwise it was held back.
+         */
+        PhaseConflictSchema: {
+            /** Observation Id */
+            observation_id?: number | null;
+            /**
+             * Source Type
+             * @enum {string}
+             */
+            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "INFRAPLAN" | "MANUELL";
+            /**
+             * Asserted Phase
+             * @enum {string}
+             */
+            asserted_phase: "NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB";
+            /** Observed Date */
+            observed_date?: string | null;
+            /** Trust */
+            trust: number;
+            /**
+             * Contradicted Ids
+             * @default []
+             */
+            contradicted_ids: (number | null)[];
+            /**
+             * Contradicted Phase
+             * @enum {string}
+             */
+            contradicted_phase: "NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB";
+            /** Applied */
+            applied: boolean;
+        };
         /** PoliticianDetailSchema */
         PoliticianDetailSchema: {
             /** Politician Id */
@@ -5642,6 +5700,29 @@ export interface components {
             span_min_phase?: ("NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB") | null;
             /** Span Max Phase */
             span_max_phase?: ("NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB") | null;
+        };
+        /**
+         * ProgressConflictRowSchema
+         * @description One project in the admin list of planning-state conflicts.
+         */
+        ProgressConflictRowSchema: {
+            /** Project Id */
+            project_id: number;
+            /** Project Name */
+            project_name: string;
+            /** Project Number */
+            project_number?: string | null;
+            /**
+             * Computed Phase
+             * @enum {string}
+             */
+            computed_phase: "NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB";
+            conflict: components["schemas"]["PhaseConflictSchema"];
+            /**
+             * Contradicted
+             * @default []
+             */
+            contradicted: components["schemas"]["SourceContributionSchema"][];
         };
         /** ProgressForecastSchema */
         ProgressForecastSchema: {
@@ -5916,7 +5997,7 @@ export interface components {
             public: boolean;
             /**
              * Color
-             * @default #FF0000
+             * @default #6E50FA
              */
             color: string;
             /**
@@ -5988,7 +6069,7 @@ export interface components {
             public: boolean;
             /**
              * Color
-             * @default #FF0000
+             * @default #6E50FA
              */
             color: string;
             /**
@@ -6263,6 +6344,7 @@ export interface components {
              * @default []
              */
             contributions: components["schemas"]["SourceContributionSchema"][];
+            conflict?: components["schemas"]["PhaseConflictSchema"] | null;
             /**
              * Pf Documents
              * @default []
@@ -7130,6 +7212,21 @@ export interface components {
             effective_confidence: number;
             /** Was Decisive */
             was_decisive: boolean;
+            /**
+             * Trust
+             * @default 0
+             */
+            trust: number;
+            /**
+             * Is Lower Bound
+             * @default false
+             */
+            is_lower_bound: boolean;
+            /**
+             * In Conflict
+             * @default false
+             */
+            in_conflict: boolean;
         };
         /** TaskLaunchResponse */
         TaskLaunchResponse: {
@@ -12449,6 +12546,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectInfraplanSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_progress_conflicts_api_v1_admin_progress_conflicts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProgressConflictRowSchema"][];
                 };
             };
             /** @description Validation Error */

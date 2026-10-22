@@ -19,6 +19,7 @@ export type SourceType =
     | "FULDA_RUNDE"
     | "BAUPORTAL"
     | "MEDIEN"
+    | "INFRAPLAN"
     | "MANUELL";
 
 export const MAIN_PHASES: MainPhase[] = [
@@ -96,6 +97,7 @@ export const SOURCE_LABEL: Record<SourceType, string> = {
     FULDA_RUNDE: "Fulda-Runde",
     BAUPORTAL: "Bauportal",
     MEDIEN: "Medien",
+    INFRAPLAN: "Infraplan",
     MANUELL: "Manuell",
 };
 
@@ -116,6 +118,17 @@ export function mainPhaseIndex(phase: MainPhase): number {
 export function stateLabel(track: ObservationTrack, state: string): string {
     if (track === "MAIN") return MAIN_PHASE_LABEL[state as MainPhase] ?? state;
     return PARALLEL_STATE_LABEL[state as ParallelState] ?? state;
+}
+
+/** Age of an observation date as short German text, e.g. "2,8 J." or "4 Mon.". */
+export function formatAge(isoDate: string | null | undefined, today: Date = new Date()): string {
+    if (!isoDate) return "–";
+    const d = new Date(isoDate);
+    if (Number.isNaN(d.getTime())) return "–";
+    const days = (today.getTime() - d.getTime()) / 86_400_000;
+    if (days < 0) return "künftig";
+    if (days < 365) return `${Math.floor(days / 30.44)} Mon.`;
+    return `${(days / 365.25).toLocaleString("de-DE", { maximumFractionDigits: 1 })} J.`;
 }
 
 /** Format an ISO datetime as a short German date + time, e.g. "21.06.2026 14:08". */

@@ -1,23 +1,28 @@
 """Pure planning-state derivation logic (no DB session, fully unit-testable).
 
-The headline main phase is decided by the **most credible observation**: among
-all credible MAIN observations (effective confidence ≥ ``CREDIBILITY_THRESHOLD``)
-the one with the **highest effective confidence** wins, and its asserted phase
-becomes the computed headline. Confidence — not phase order — is the arbiter, so
-a high-confidence editorial correction (e.g. a manual "Genehmigungsplanung" at
-confidence 1.0) beats a weak derived signal (e.g. a low-confidence FinVe-derived
-"Bau"). Ties in confidence resolve to the higher phase (progress doesn't
-un-happen among equally trusted signals). The computed value is only a
-*suggestion* — a manual override (passed in) always wins for the effective
-phase. Conflicts are never silently resolved away; every input observation is
-echoed back as a :class:`SourceContribution` so the API / frontend can show the
-full breakdown.
+Observations come in two kinds (decided 2026-10-22):
 
-Effective confidence = explicit per-observation confidence, else the source-type
-default trust × recency decay. Trade-off of the confidence-wins rule: a fresh,
-low-trust signal can override an older, higher-phase one — i.e. the headline
-*can* move backwards for automated sources. This is intended, so that recent and
-human input is authoritative.
+* **Lower bounds** (:data:`LOWER_BOUND_SOURCES`, today the FinVe) say "the
+  project has reached *at least* this phase" — a Finanzierungsvereinbarung for
+  Bau stays true however old it is. They only ever *raise* the headline; they
+  never compete with a status report that says the project is further along.
+* **Status reports** (VIB, Infraplan, Bauportal, Fulda-Runde, Medien, manual)
+  describe the state at their date. The **newest** report wins; only within
+  :data:`TRUST_WINDOW` before the newest report does **trust** decide instead
+  of recency (ties → higher phase). Trust is the explicit per-observation
+  confidence, else the source-type default — without recency decay.
+
+A status report that asserts a *lower* phase than older information (a lower
+bound or an older report) would set the project back. It only does so when its
+trust is at least that of every contradicting observation, or when it is a
+manual entry; otherwise the higher phase is kept. Either way (except manual
+entries, which are editorial decisions) the derivation reports a
+:class:`PhaseConflict` that the admin area collects for review.
+
+The computed value is only a *suggestion* — a manual override (passed in)
+always wins for the effective phase. Every input observation is echoed back as
+a :class:`SourceContribution` so the API / frontend can show the full
+breakdown.
 """
 
 from __future__ import annotations
@@ -49,16 +54,22 @@ SOURCE_TYPE_DEFAULT_TRUST: dict[SourceType, float] = {
     SourceType.MEDIEN: 0.4,
 }
 
-# Half-life (days) of an observation's recency weight. After this many days the
-# recency multiplier has halved — this is what makes the "always outdated" VIB
-# fade against fresher sources.
+# Sources whose observations are lower bounds ("at least this phase") rather
+# than status reports. They raise the headline but never decide against a
+# report that sees the project further along, and they do not age.
+LOWER_BOUND_SOURCES: frozenset[SourceType] = frozenset({SourceType.FINVE})
+
+# Within this window before the newest status report, trust decides instead of
+# recency (reports of the same cycle compete on trust).
+TRUST_WINDOW = timedelta(days=365)
+
+# Half-life (days) of an observation's recency weight. Recency no longer ranks
+# observations (the date order does); it only lets old, low-trust status
+# reports drop below ``CREDIBILITY_THRESHOLD``. Also used by the forecast.
 RECENCY_HALF_LIFE_DAYS = 365
-# Recency multiplier never drops below this floor. Chosen so that a structured
-# source (VIB 0.6, FinVe 0.7) stays *credible* (above CREDIBILITY_THRESHOLD)
-# regardless of age (0.6 × 0.3 = 0.18 ≥ 0.15), while fully-decayed low-trust media
-# (0.4 × 0.3 = 0.12) can still fall below it. The floor keeps an old structured
-# observation in the running; whether it decides the headline then depends on its
-# confidence relative to the others.
+# Recency multiplier never drops below this floor, so a structured report
+# (VIB 0.6 × 0.3 = 0.18 ≥ 0.15) stays credible however old it is, while
+# fully-decayed media (0.4 × 0.3 = 0.12) falls below the threshold.
 RECENCY_FLOOR = 0.3
 # Recency multiplier for observations without a parseable date.
 NO_DATE_RECENCY = 0.6
@@ -91,15 +102,40 @@ class ObservationInput:
 
 @dataclass
 class SourceContribution:
-    """One input observation, annotated with its effective weight and role."""
+    """One input observation, annotated with its weight and role."""
 
     id: int | None
     source_type: SourceType
     track: ObservationTrack
     asserted_state: str
     observed_date: date | None
+    # Trust × recency (lower bounds: trust only); decides credibility only.
     effective_confidence: float
     was_decisive: bool
+    # Trust without recency: explicit confidence, else the source default.
+    trust: float = 0.0
+    is_lower_bound: bool = False
+    # True for both sides of a reported PhaseConflict.
+    in_conflict: bool = False
+
+
+@dataclass
+class PhaseConflict:
+    """A newer status report asserts a lower phase than older information.
+
+    ``applied`` tells whether the report set the headline back (its trust is at
+    least that of every contradicting observation) or was held back.
+    """
+
+    observation_id: int | None
+    source_type: SourceType
+    asserted_phase: MainPhase
+    observed_date: date | None
+    trust: float
+    # Older observations (lower bounds or reports) asserting a higher phase.
+    contradicted_ids: list[int | None]
+    contradicted_phase: MainPhase  # highest phase among them
+    applied: bool
 
 
 @dataclass
@@ -116,6 +152,7 @@ class DerivationResult:
     # than the NICHT_GESTARTET fallback — "we don't know" ≠ "not started".
     is_known: bool = False
     contributions: list[SourceContribution] = field(default_factory=list)
+    conflict: PhaseConflict | None = None
 
 
 # --- Helpers -----------------------------------------------------------------
@@ -138,13 +175,30 @@ def recency_decay(observed_date: date | None, today: date) -> float:
     return max(RECENCY_FLOOR, decay)
 
 
-def effective_confidence(obs: ObservationInput, today: date) -> float:
-    """Effective confidence = explicit override, else default trust × recency."""
+def is_lower_bound(obs: ObservationInput) -> bool:
+    return obs.source_type in LOWER_BOUND_SOURCES
+
+
+def trust(obs: ObservationInput) -> float:
+    """Trust without recency: explicit confidence, else the source default."""
 
     if obs.confidence is not None:
         return obs.confidence
-    base = SOURCE_TYPE_DEFAULT_TRUST.get(obs.source_type, 0.5)
-    return base * recency_decay(obs.observed_date, today)
+    return SOURCE_TYPE_DEFAULT_TRUST.get(obs.source_type, 0.5)
+
+
+def effective_confidence(obs: ObservationInput, today: date) -> float:
+    """Credibility weight: explicit override, else trust × recency.
+
+    Lower bounds do not age (a FinVe for Bau stays true), so they keep their
+    trust.
+    """
+
+    if obs.confidence is not None:
+        return obs.confidence
+    if is_lower_bound(obs):
+        return trust(obs)
+    return trust(obs) * recency_decay(obs.observed_date, today)
 
 
 def _safe_main_phase(value: str) -> MainPhase | None:
@@ -183,6 +237,79 @@ def _derive_parallel(
     return best
 
 
+@dataclass
+class _Main:
+    """A credible MAIN observation with its parsed phase."""
+
+    obs: ObservationInput
+    contrib: SourceContribution
+    phase: MainPhase
+
+
+def _sort_date(item: _Main) -> date:
+    # Undated reports count as the oldest.
+    return item.obs.observed_date or date.min
+
+
+def _strongest(items: list[_Main]) -> list[_Main]:
+    """Items with the highest trust, then the highest phase among those."""
+
+    top_trust = max(i.contrib.trust for i in items)
+    top = [i for i in items if i.contrib.trust == top_trust]
+    top_order = max(i.phase.order for i in top)
+    return [i for i in top if i.phase.order == top_order]
+
+
+def _decide_main(
+    credible: list[_Main],
+) -> tuple[list[_Main], PhaseConflict | None]:
+    """Pick the decisive MAIN observation(s); report a set-back as a conflict."""
+
+    bounds = [i for i in credible if i.contrib.is_lower_bound]
+    reports = [i for i in credible if not i.contrib.is_lower_bound]
+
+    if not reports:
+        # Only lower bounds: the highest bound holds.
+        top_order = max(i.phase.order for i in bounds)
+        return _strongest([i for i in bounds if i.phase.order == top_order]), None
+
+    # Status: newest report; within the trust window trust decides.
+    anchor = max(_sort_date(i) for i in reports)
+    window_start = anchor - TRUST_WINDOW if anchor - date.min > TRUST_WINDOW else date.min
+    in_window = [i for i in reports if _sort_date(i) >= window_start]
+    status = _strongest(in_window)
+    current = max(status, key=_sort_date)
+
+    # Older information that sees the project further along.
+    higher = [
+        i
+        for i in bounds + [r for r in reports if _sort_date(r) < window_start]
+        if i.phase.order > current.phase.order
+    ]
+    if not higher or current.obs.source_type is SourceType.MANUELL:
+        return status, None
+
+    blockers = [i for i in higher if i.contrib.trust > current.contrib.trust]
+    conflict = PhaseConflict(
+        observation_id=current.obs.id,
+        source_type=current.obs.source_type,
+        asserted_phase=current.phase,
+        observed_date=current.obs.observed_date,
+        trust=current.contrib.trust,
+        contradicted_ids=[i.obs.id for i in higher],
+        contradicted_phase=max((i.phase for i in higher), key=lambda p: p.order),
+        applied=not blockers,
+    )
+    current.contrib.in_conflict = True
+    for i in higher:
+        i.contrib.in_conflict = True
+    if not blockers:
+        return status, conflict
+    # Held back: the highest phase among the more trusted older observations.
+    top_order = max(i.phase.order for i in blockers)
+    return _strongest([i for i in blockers if i.phase.order == top_order]), conflict
+
+
 # --- Main entry point --------------------------------------------------------
 
 
@@ -204,14 +331,12 @@ def derive_headline(
     lifecycle is returned as an overlay flag and never changes the phase value.
     """
 
-    # --- Main phase: max over credible MAIN lower bounds ---------------------
     computed_phase = MainPhase.NICHT_GESTARTET
     computed_confidence = 0.0
-    decisive_ids: set[int] = set()
+    conflict: PhaseConflict | None = None
 
     contributions: list[SourceContribution] = []
     for obs in observations:
-        eff = effective_confidence(obs, today)
         contributions.append(
             SourceContribution(
                 id=obs.id,
@@ -219,43 +344,34 @@ def derive_headline(
                 track=obs.track,
                 asserted_state=obs.asserted_state,
                 observed_date=obs.observed_date,
-                effective_confidence=round(eff, 4),
+                effective_confidence=round(effective_confidence(obs, today), 4),
                 was_decisive=False,
+                trust=round(trust(obs), 4),
+                is_lower_bound=is_lower_bound(obs),
             )
         )
 
     credible_main = [
-        (obs, contrib)
+        _Main(obs, contrib, phase)
         for obs, contrib in zip(observations, contributions)
         if obs.track is ObservationTrack.MAIN
         and contrib.effective_confidence >= CREDIBILITY_THRESHOLD
-        and _safe_main_phase(obs.asserted_state) is not None
+        and (phase := _safe_main_phase(obs.asserted_state)) is not None
     ]
 
     if credible_main:
-        # Highest effective confidence decides the headline phase. Confidence —
-        # not phase order — is the arbiter, so an editor's high-confidence
-        # correction beats a weak derived signal. Ties in confidence resolve to
-        # the higher phase (progress doesn't un-happen among equally trusted
-        # signals).
-        top_confidence = max(contrib.effective_confidence for _, contrib in credible_main)
-        top = [
-            (obs, contrib)
-            for obs, contrib in credible_main
-            if contrib.effective_confidence == top_confidence
-        ]
-        best_order = max(
-            _safe_main_phase(obs.asserted_state).order for obs, _ in top  # type: ignore[union-attr]
-        )
-        computed_phase = next(
-            phase for phase in MainPhase if phase.order == best_order
-        )
-        computed_confidence = round(top_confidence, 4)
-        for obs, contrib in top:
-            if _safe_main_phase(obs.asserted_state).order == best_order:  # type: ignore[union-attr]
-                contrib.was_decisive = True
-                if obs.id is not None:
-                    decisive_ids.add(obs.id)
+        decisive, conflict = _decide_main(credible_main)
+        computed_phase = decisive[0].phase
+        computed_confidence = decisive[0].contrib.trust
+        for item in decisive:
+            item.contrib.was_decisive = True
+
+    # A manual override is an editorial decision on the phase: nothing left to
+    # review, so no conflict is reported.
+    if manual_phase_override is not None:
+        conflict = None
+        for c in contributions:
+            c.in_conflict = False
 
     # --- Parallel tracks (only when active) ----------------------------------
     pf_state: ParallelState | None = None
@@ -283,6 +399,7 @@ def derive_headline(
         parl_state=parl_state,
         is_known=is_known,
         contributions=contributions,
+        conflict=conflict,
     )
 
 

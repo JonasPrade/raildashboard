@@ -11,15 +11,17 @@ import {
 import {
     SOURCE_LABEL,
     TRACK_LABEL,
+    formatAge,
     formatTimestamp,
     stateLabel,
     type ObservationTrack,
     type SourceType,
 } from "./phaseMeta";
 
-// ``showInternal`` reveals the editorial confidence / decisive columns, which
-// are only meaningful to administrators (not shown to the public or to
-// non-admin logged-in users).
+// ``showInternal`` reveals the editorial trust / role columns, which are only
+// meaningful to administrators (not shown to the public or to non-admin
+// logged-in users). Trust is shown without recency; the age has its own column
+// because the derivation ranks reports by date, not by a combined weight.
 function ContributionRow({ c, showInternal }: { c: SourceContribution; showInternal: boolean }) {
     return (
         <Table.Tr>
@@ -31,15 +33,33 @@ function ContributionRow({ c, showInternal }: { c: SourceContribution; showInter
             <Table.Td>{TRACK_LABEL[c.track as ObservationTrack] ?? c.track}</Table.Td>
             <Table.Td>{stateLabel(c.track as ObservationTrack, c.asserted_state)}</Table.Td>
             <Table.Td>{c.observed_date ?? "–"}</Table.Td>
+            <Table.Td>{formatAge(c.observed_date)}</Table.Td>
             {showInternal && (
                 <>
-                    <Table.Td>{(c.effective_confidence * 100).toFixed(0)} %</Table.Td>
+                    <Table.Td>{((c.trust ?? 0) * 100).toFixed(0)} %</Table.Td>
                     <Table.Td>
-                        {c.was_decisive && (
-                            <Badge size="sm" color="blue">
-                                entscheidend
-                            </Badge>
-                        )}
+                        <Group gap={4} wrap="nowrap">
+                            {c.was_decisive && (
+                                <Badge size="sm" color="blue">
+                                    entscheidend
+                                </Badge>
+                            )}
+                            {c.is_lower_bound && (
+                                <Badge
+                                    size="sm"
+                                    variant="outline"
+                                    color="gray"
+                                    title="Untergrenze: hebt die Phase nur an und veraltet nicht"
+                                >
+                                    Untergrenze
+                                </Badge>
+                            )}
+                            {c.in_conflict && (
+                                <Badge size="sm" variant="light" color="orange">
+                                    Konflikt
+                                </Badge>
+                            )}
+                        </Group>
                     </Table.Td>
                 </>
             )}
@@ -77,13 +97,14 @@ export default function SourceBreakdown({ contributions, observations }: Props) 
             <Collapse in={open}>
                 <Stack gap="md">
                     {contributions.length > 0 ? (
-                        <ResponsiveTable minWidth={560} striped withTableBorder>
+                        <ResponsiveTable minWidth={640} striped withTableBorder>
                             <Table.Thead>
                                 <Table.Tr>
                                     <Table.Th>Quelle</Table.Th>
                                     <Table.Th>Bereich</Table.Th>
                                     <Table.Th>Aussage</Table.Th>
                                     <Table.Th>Datum</Table.Th>
+                                    <Table.Th>Alter</Table.Th>
                                     {showInternal && (
                                         <>
                                             <Table.Th>Vertrauen</Table.Th>

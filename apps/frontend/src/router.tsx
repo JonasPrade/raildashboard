@@ -40,6 +40,7 @@ const FuldaImportPage = lazyWithRetry(() => import("./features/fulda-import/Fuld
 const FuldaYearDetailPage = lazyWithRetry(() => import("./features/fulda-import/FuldaYearDetailPage"));
 const UnassignedPage = lazyWithRetry(() => import("./features/admin/UnassignedPage"));
 const FinveProgressAdminPage = lazyWithRetry(() => import("./features/admin/FinveProgressAdminPage"));
+const ProgressConflictsAdminPage = lazyWithRetry(() => import("./features/admin/ProgressConflictsAdminPage"));
 const NewProjectPage = lazyWithRetry(() => import("./features/admin/new-project/NewProjectPage"));
 const TasksPage = lazyWithRetry(() => import("./features/todos/TasksPage"));
 const AbgeordnetePage = lazyWithRetry(() => import("./features/abgeordnete/AbgeordnetePage"));
@@ -174,6 +175,10 @@ export const router = createBrowserRouter([
             {
                 path: "admin/finve-progress",
                 element: <FinveProgressAdminPage />,
+            },
+            {
+                path: "admin/planungsstand-konflikte",
+                element: <ProgressConflictsAdminPage />,
             },
             {
                 path: "admin/vib-import",

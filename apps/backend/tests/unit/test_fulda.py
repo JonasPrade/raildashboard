@@ -53,7 +53,7 @@ def test_ist_line_asserts_phase_at_document_date():
     assert spec.asserted_state == MainPhase.GENEHMIGUNGSPLANUNG.value
     assert spec.observed_date == DOC_DATE
     assert spec.is_expected is False
-    assert spec.confidence is None  # source default (0.55) × recency
+    assert spec.confidence is None  # source default (0.55)
     assert spec.note == "Fulda-Runde (Drs. 21/5855)"
 
 

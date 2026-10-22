@@ -13,6 +13,7 @@ from dashboard_backend.crud.admin_assignments import (
     list_unassigned_vib_entries,
 )
 from dashboard_backend.crud import gvfg as gvfg_crud
+from dashboard_backend.crud.projects.progress import list_progress_conflicts
 from dashboard_backend.crud import infraplan_import as infraplan_crud
 from dashboard_backend.database import get_db
 from dashboard_backend.models.gvfg import GvfgEntry
@@ -26,9 +27,20 @@ from dashboard_backend.schemas.admin_assignments import (
     UnassignedVibEntrySchema,
 )
 from dashboard_backend.schemas.gvfg import GvfgEntrySchema
+from dashboard_backend.schemas.projects.progress_schema import ProgressConflictRowSchema
 router = AuthRouter()
 
 _require_editor = Depends(require_permission("assignment.manage"))
+
+
+@router.get("/progress-conflicts", response_model=list[ProgressConflictRowSchema])
+def get_progress_conflicts(
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(require_permission("progress.edit")),
+) -> list[dict]:
+    """Projects whose planning state has a set-back conflict (newer report with
+    a lower phase than older information)."""
+    return list_progress_conflicts(db)
 
 
 @router.get("/unassigned-finves", response_model=list[UnassignedFinveSchema])

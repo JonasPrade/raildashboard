@@ -211,3 +211,68 @@ def test_aggregation_resyncs_stale_leaves_in_batch(engine, db):
         engine, lambda: progress_crud._build_aggregation_node(db, superior2, date(2026, 7, 1))
     )
     assert q_stale2 == q_stale, f"stale resync grew with leaves: {q_stale} -> {q_stale2}"
+
+
+# --- Conflict list (admin) ---------------------------------------------------
+
+
+def _main_obs(project_id: int, source: str, state: str, observed: date) -> ProgressObservation:
+    return ProgressObservation(
+        project_id=project_id,
+        source_type=source,
+        track="MAIN",
+        asserted_state=state,
+        observed_date=observed,
+        is_derived=source != "MANUELL",
+        is_expected=False,
+    )
+
+
+def test_list_progress_conflicts(db):
+    held = Project(name="Held back")
+    applied = Project(name="Applied")
+    clean = Project(name="Clean")
+    overridden = Project(name="Overridden")
+    superior = Project(name="Superior")
+    db.add_all([held, applied, clean, overridden, superior])
+    db.flush()
+    child = Project(name="Child", superior_project_id=superior.id)
+    db.add(child)
+    db.flush()
+    finve_date = date(2015, 1, 1)
+    db.add_all(
+        [
+            # FinVe "Bau" vs. newer VIB "Vorplanung" (less trusted) → held back.
+            _main_obs(held.id, "FINVE", "BAU", finve_date),
+            _main_obs(held.id, "VIB", "VORPLANUNG", date(2025, 12, 31)),
+            # Infraplan is trusted more than the FinVe → set back, still listed.
+            _main_obs(applied.id, "FINVE", "BAU", finve_date),
+            _main_obs(applied.id, "INFRAPLAN", "GENEHMIGUNGSPLANUNG", date(2026, 1, 1)),
+            # Newer report further along → no conflict.
+            _main_obs(clean.id, "FINVE", "BAU", finve_date),
+            _main_obs(clean.id, "VIB", "IN_BETRIEB", date(2025, 12, 31)),
+            # Manual override resolves the conflict.
+            _main_obs(overridden.id, "FINVE", "BAU", finve_date),
+            _main_obs(overridden.id, "VIB", "VORPLANUNG", date(2025, 12, 31)),
+            ProjectProgress(
+                project_id=overridden.id,
+                lifecycle_status="AKTIV",
+                manual_phase_override="VORPLANUNG",
+            ),
+            # Observations on a superior don't count.
+            _main_obs(superior.id, "FINVE", "BAU", finve_date),
+            _main_obs(superior.id, "VIB", "VORPLANUNG", date(2025, 12, 31)),
+        ]
+    )
+    db.commit()
+
+    rows = progress_crud.list_progress_conflicts(db, today=date(2026, 6, 18))
+
+    assert [r["project_name"] for r in rows] == ["Held back", "Applied"]
+    held_row, applied_row = rows
+    assert held_row["computed_phase"] == "BAU"
+    assert held_row["conflict"]["applied"] is False
+    assert held_row["conflict"]["source_type"] == "VIB"
+    assert [c["source_type"] for c in held_row["contradicted"]] == ["FINVE"]
+    assert applied_row["computed_phase"] == "GENEHMIGUNGSPLANUNG"
+    assert applied_row["conflict"]["applied"] is True

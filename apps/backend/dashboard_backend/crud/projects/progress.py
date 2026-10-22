@@ -41,6 +41,8 @@ from dashboard_backend.services.progress_derivation import (
     AggregationNode,
     DerivationResult,
     ObservationInput,
+    PhaseConflict,
+    SourceContribution,
     aggregate_tree,
     derive_headline,
 )
@@ -1085,6 +1087,109 @@ def _build_aggregation_node(db: Session, project: Project, today: date) -> Aggre
     return build(project)
 
 
+def _contribution_payload(c: SourceContribution) -> dict:
+    return {
+        "observation_id": c.id,
+        "source_type": c.source_type.value,
+        "track": c.track.value,
+        "asserted_state": c.asserted_state,
+        "observed_date": c.observed_date,
+        "effective_confidence": c.effective_confidence,
+        "was_decisive": c.was_decisive,
+        "trust": c.trust,
+        "is_lower_bound": c.is_lower_bound,
+        "in_conflict": c.in_conflict,
+    }
+
+
+def _conflict_payload(conflict: PhaseConflict | None) -> dict | None:
+    if conflict is None:
+        return None
+    return {
+        "observation_id": conflict.observation_id,
+        "source_type": conflict.source_type.value,
+        "asserted_phase": conflict.asserted_phase.value,
+        "observed_date": conflict.observed_date,
+        "trust": conflict.trust,
+        "contradicted_ids": conflict.contradicted_ids,
+        "contradicted_phase": conflict.contradicted_phase.value,
+        "applied": conflict.applied,
+    }
+
+
+def list_progress_conflicts(db: Session, today: date | None = None) -> list[dict]:
+    """All leaf projects whose planning state has a set-back conflict.
+
+    Runs the pure derivation over the stored observations in a constant number
+    of queries (no lazy resync per project — derived observations are at most
+    ``STALENESS_WINDOW`` old, importers recompute their projects anyway).
+    Superior projects are skipped: their headline spans the leaves, their own
+    observations don't count. A manual phase override resolves the conflict.
+    """
+
+    today = today or date.today()
+    superior_ids = {
+        pid
+        for (pid,) in db.query(Project.superior_project_id)
+        .filter(Project.superior_project_id.isnot(None))
+        .distinct()
+    }
+
+    by_project: dict[int, list[ProgressObservation]] = {}
+    for obs in (
+        db.query(ProgressObservation)
+        .filter(
+            ProgressObservation.track == ObservationTrack.MAIN.value,
+            ProgressObservation.is_expected.is_(False),
+        )
+        .all()
+    ):
+        if obs.project_id not in superior_ids:
+            by_project.setdefault(obs.project_id, []).append(obs)
+    if not by_project:
+        return []
+
+    overrides = {
+        pid: value
+        for pid, value in db.query(
+            ProjectProgress.project_id, ProjectProgress.manual_phase_override
+        ).filter(ProjectProgress.project_id.in_(by_project))
+    }
+    projects = {
+        p.id: p
+        for p in db.query(Project).filter(Project.id.in_(by_project)).all()
+    }
+
+    rows: list[dict] = []
+    for pid, observations in by_project.items():
+        project = projects.get(pid)
+        if project is None or _enum_or_none(MainPhase, overrides.get(pid)) is not None:
+            continue
+        result = derive_headline(
+            _to_inputs(observations), has_pf=False, parl_relevant=False, today=today
+        )
+        if result.conflict is None:
+            continue
+        contradicted = set(result.conflict.contradicted_ids)
+        rows.append(
+            {
+                "project_id": pid,
+                "project_name": project.name,
+                "project_number": project.project_number,
+                "computed_phase": result.computed_phase.value,
+                "conflict": _conflict_payload(result.conflict),
+                "contradicted": [
+                    _contribution_payload(c)
+                    for c in result.contributions
+                    if c.id in contradicted
+                ],
+            }
+        )
+    # Held-back reports first (the headline ignores them), then by name.
+    rows.sort(key=lambda r: (r["conflict"]["applied"], r["project_name"].lower()))
+    return rows
+
+
 def get_progress_view(db: Session, project_id: int, today: date | None = None) -> dict | None:
     """Assemble the full progress view payload (dict matching ProjectProgressSchema).
 
@@ -1196,18 +1301,8 @@ def get_progress_view(db: Session, project_id: int, today: date | None = None) -
         "pf_date": progress.pf_date,
         "pf_links": progress.pf_links or [],
         "observations": observations,
-        "contributions": [
-            {
-                "observation_id": c.id,
-                "source_type": c.source_type.value,
-                "track": c.track.value,
-                "asserted_state": c.asserted_state,
-                "observed_date": c.observed_date,
-                "effective_confidence": c.effective_confidence,
-                "was_decisive": c.was_decisive,
-            }
-            for c in result.contributions
-        ],
+        "contributions": [_contribution_payload(c) for c in result.contributions],
+        "conflict": _conflict_payload(result.conflict),
         "pf_documents": pf_documents,
         "parl_documents": parl_documents,
         "is_superior": is_superior,

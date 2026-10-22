@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Badge, Button, Group, Paper, Stack, Text, Title } from "@mantine/core";
+import { Alert, Badge, Button, Group, Paper, Stack, Text, Title } from "@mantine/core";
 import { Pencil } from "lucide-react";
 
 import { useAuth } from "../../../../lib/auth";
@@ -14,11 +14,13 @@ import SubprojectsTable from "./SubprojectsTable";
 import {
     LIFECYCLE_LABEL,
     MAIN_PHASE_LABEL,
+    SOURCE_LABEL,
     UNKNOWN_LABEL,
     groupChildrenByPhase,
     type LifecycleStatus,
     type MainPhase,
     type ParallelState,
+    type SourceType,
 } from "./phaseMeta";
 import { LoadingState } from "../../../../shared/ui/LoadingState";
 
@@ -126,6 +128,21 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
                         )}
                     </Group>
                 </Stack>
+
+                {canEdit && progress.conflict && (
+                    <Alert color="orange" variant="light" title="Konflikt im Planungsstand">
+                        {SOURCE_LABEL[progress.conflict.source_type as SourceType] ??
+                            progress.conflict.source_type}{" "}
+                        ({progress.conflict.observed_date ?? "ohne Datum"}) meldet{" "}
+                        {MAIN_PHASE_LABEL[progress.conflict.asserted_phase as MainPhase]}, ältere Quellen
+                        sehen das Projekt schon in{" "}
+                        {MAIN_PHASE_LABEL[progress.conflict.contradicted_phase as MainPhase]}.{" "}
+                        {progress.conflict.applied
+                            ? "Die neuere Meldung ist vertrauenswürdiger und wurde übernommen."
+                            : "Die neuere Meldung ist weniger vertrauenswürdig und wurde nicht übernommen."}{" "}
+                        Auflösen per Phasen-Override oder manueller Beobachtung.
+                    </Alert>
+                )}
 
                 <LifecycleOverlay status={lifecycle} />
 

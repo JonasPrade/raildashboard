@@ -35,7 +35,7 @@ Die Meldung nach dem Abruf zeigt, wie viele Einträge insgesamt geholt, neu ange
 Mit **„Alle übernehmen (N)"** bestätigst du auf einen Schlag alle zugeordneten, noch offenen Einträge. N zeigt an, wie viele bereit sind (zugeordnet und unbestätigt). Zuordnungen lassen sich auch nach dem Übernehmen weiter anpassen.
 
 > [!blue] Was dabei entsteht
-> Jede bestätigte Zuordnung erzeugt eine abgeleitete **Beobachtung** mit der Quelle \`Bauportal\`. Wie stark sie den angezeigten Stand beeinflusst, entscheidet die [glaubwürdigkeitsbasierte Ableitung](/admin/anleitungen/projektfortschritt) (Vertrauen je Quelle × Aktualität).`,
+> Jede bestätigte Zuordnung erzeugt eine abgeleitete **Beobachtung** mit der Quelle \`Bauportal\`. Wie stark sie den angezeigten Stand beeinflusst, entscheidet die [Ableitung](/admin/anleitungen/projektfortschritt) (der neueste Bericht gewinnt, innerhalb eines Jahres das Vertrauen; mit 0.8 darf das Bauportal VIB und FinVe auch zurückstufen, gemeldet als Konflikt).`,
         },
     ],
     troubleshooting: [

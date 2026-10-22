@@ -2,7 +2,7 @@
 
 > Diese Datei ersetzt die frühere, einfachere `ProjectProgress`-Skizze. Das hier
 > beschriebene Modell subsumiert sie: Mehrquellen-Darstellung **mit** Konfliktauflösung
-> (Hybrid-Ableitung), Parallelspuren, Lebenszyklus-Overlay, Unterprojekt-Aggregation,
+> (Hybrid-Ableitung, Konfliktliste im Admin-Bereich), Parallelspuren, Lebenszyklus-Overlay, Unterprojekt-Aggregation,
 > Dokument-Verknüpfung und Prognose.
 
 ## Kontext / Ziel
@@ -55,17 +55,29 @@ nächste Schritte). Darstellung als horizontaler Verlauf mit **Kreisen + Pfeilen
    `PAUSIERT`/`ABGEBROCHEN` wird die **gesamte** Darstellung überblendet
    (Banner + abgeblendeter Stepper); die zuletzt bekannte Phase bleibt erhalten.
 
-**Ableitung = HYBRID:** Ein Algorithmus erzeugt einen *Vorschlag* für die Headline-Phase.
-Maßgeblich ist die **glaubwürdigste Beobachtung**: unter allen MAIN-Beobachtungen
-über der Glaubwürdigkeitsschwelle gewinnt die mit der **höchsten effektiven Konfidenz**;
-ihre Phase wird zum Vorschlag. **Konfidenz** entscheidet, nicht die Phasen-Reihenfolge —
-so schlägt eine redaktionelle Hochkonfidenz-Korrektur (z. B. manuell „Genehmigungsplanung")
-ein schwaches abgeleitetes Signal (z. B. FinVe→„Bau" mit niedriger Konfidenz). Gleichstand
-in der Konfidenz löst sich zur höheren Phase auf. Der Vorschlag ist zusätzlich redaktionell
-**übersteuerbar** (Phasen-Override). Konflikte werden nie weggerechnet, sondern im
-Aufklappbereich transparent gezeigt. *Trade-off:* ein frisches, schwach gewichtetes Signal
-kann ein älteres, höheres überstimmen — der Stand kann für Automatik-Quellen also
-rückwärts gehen; das ist gewollt, damit aktuelle und menschliche Eingaben maßgeblich sind.
+**Ableitung = HYBRID** (Regel neu gefasst 2026-10-22): Ein Algorithmus erzeugt einen
+*Vorschlag* für die Headline-Phase, der redaktionell **übersteuerbar** bleibt (Phasen-Override).
+Beobachtungen sind von zweierlei Art:
+
+- **Untergrenzen** (FinVe inkl. Sammel-FinVe): „mindestens diese Phase“. Eine FinVe für Bau
+  bleibt wahr, egal wie alt — Untergrenzen **veralten nicht** und heben die Phase nur an. Gegen
+  einen neueren Statusbericht, der das Projekt weiter sieht, entscheiden sie nie.
+- **Statusberichte** (VIB, Infraplan inkl. GVFG, Bauportal, Fulda-Runde, Medien, manuell):
+  Stand zum jeweiligen Datum. Der **neueste** Bericht gewinnt; nur innerhalb von **einem Jahr**
+  vor dem neuesten Bericht entscheidet das **Vertrauen** (explizite Konfidenz, sonst
+  Quellen-Default — ohne Altersabschlag), Gleichstand → höhere Phase.
+
+**Rückstufung = Konflikt:** Meldet ein neuerer Bericht eine **niedrigere** Phase als ältere
+Angaben (Untergrenze oder älterer Bericht), stuft er nur zurück, wenn sein Vertrauen
+mindestens so hoch ist wie das jeder widersprechenden Beobachtung (z. B. Infraplan 0.85 gegen
+FinVe 0.7) oder wenn er manuell erfasst ist. Sonst bleibt die höhere Phase stehen (z. B. VIB 0.6
+oder Medien 0.4 gegen FinVe 0.7). In beiden Fällen — außer bei manuellen Einträgen, die eine
+redaktionelle Entscheidung sind — wird ein **Konflikt** gemeldet: im Projekt als Hinweis (für
+Bearbeitende), gesammelt unter **Admin → „Planungsstand-Konflikte“**
+(`/admin/planungsstand-konflikte`, `GET /api/v1/admin/progress-conflicts`, Recht
+`progress.edit`). Ein Phasen-Override löst den Konflikt auf. Anlass: Eine 15 Jahre alte FinVe
+(„Bau“) schlug den VIB 2023 („In Betrieb“), weil beide auf dem Recency-Floor lagen und dann nur
+noch das Grundvertrauen zählte.
 
 **Quellen → Beobachtungen:** Jede Quelle erzeugt eine oder mehrere *Beobachtungen*
 `(source_type, track, asserted_state, observed_date, confidence)`.
@@ -75,8 +87,11 @@ Quellentypen: `VIB, FINVE, FULDA_RUNDE, BAUPORTAL, MEDIEN, MANUELL`.
 - **FULDA_RUNDE, BAUPORTAL, MEDIEN** haben inzwischen eigene Importer; die Fulda-Runde ist
   keine manuelle Quelle mehr (`feature-fulda-import.md`).
 
-**Vertrauensmodell:** Default-Vertrauen pro Quellentyp × Aktualitätsverfall
-(`recency_decay`; wichtig für den „immer veralteten" VIB), pro Beobachtung übersteuerbar.
+**Vertrauensmodell:** Default-Vertrauen pro Quellentyp, pro Beobachtung übersteuerbar. Die
+Aktualität wirkt **nicht** als Gewicht, sondern über die Datumsreihenfolge (neuester Bericht
+gewinnt). Trust × `recency_decay` (Floor 0.3) entscheidet nur noch, ob ein Statusbericht
+überhaupt **glaubwürdig** ist (Schwelle 0.15): alte Medienmeldungen fallen heraus, VIB bleibt
+drin. Untergrenzen veralten nicht.
 
 **Mehrere Abschnitte = Unterprojekte:** Projekte mit mehreren Planfeststellungs-
 abschnitten sind bereits als **Unterprojekte** modelliert (`Project.superior_project_id`
@@ -195,14 +210,17 @@ sieht. Backend-Python: `apps/backend/.venv/bin/python`.
 
 - **Reine Logik** in `services/progress_derivation.py` (neues Package, ohne DB-Session,
   unit-testbar): `derive_headline(observations, *, has_pf, parl_relevant, lifecycle)`.
-  - Effektives Vertrauen je Beobachtung = `confidence ?? SOURCE_TYPE_DEFAULT_TRUST ×
-    recency_decay(observed_date)`.
-  - Hauptphase = Phase der MAIN-Beobachtung mit der **höchsten effektiven Konfidenz**
-    (Gleichstand → höhere Phase); Konfidenz entscheidet, nicht die Phasen-Reihenfolge.
+  - Vertrauen je Beobachtung (`trust`) = `confidence ?? SOURCE_TYPE_DEFAULT_TRUST`;
+    Glaubwürdigkeit (`effective_confidence`) = Vertrauen × `recency_decay(observed_date)`,
+    bei Untergrenzen (`LOWER_BOUND_SOURCES` = FinVe) ohne Verfall.
+  - Hauptphase: neuester glaubwürdiger Statusbericht, innerhalb `TRUST_WINDOW` (365 Tage)
+    vor ihm entscheidet das Vertrauen; Untergrenzen heben nur an; Rückstufung nur bei
+    Vertrauen ≥ Widerspruch oder MANUELL, sonst gehalten — beides als `PhaseConflict`
+    gemeldet (außer MANUELL; ein Phasen-Override löscht den Konflikt).
   - PF/PARL-Zustand nur ableiten, wenn Spur aktiv.
   - Lebenszyklus als Overlay-Flag zurückgeben (ändert Phasenwert nicht).
   - Output: `computed_phase`, `confidence`, `pf_state`, `parl_state`, Beitrag je Quelle
-    (`was_decisive`), `effective_headline = manual_phase_override ?? computed_phase`.
+    (`was_decisive`, `trust`, `is_lower_bound`, `in_conflict`), `conflict`, `effective_headline = manual_phase_override ?? computed_phase`.
 - **DB-Zugriff** in `crud/projects/progress.py`:
   - `sync_derived_observations(db, project_id)` — löscht `is_derived=True`-Zeilen und
     regeneriert sie aus aktuell verknüpften VIB/FinVe-Records (**materialisieren**, nicht
@@ -212,7 +230,8 @@ sieht. Backend-Python: `apps/backend/.venv/bin/python`.
     `status_abgeschlossen→≥IN_BETRIEB` (Eintrags-Flags, am Elternprojekt unterdrückt
     sobald PFAs auf Unterprojekte zugeordnet sind); PFA-Felder → PF-Spur + Prognose **und**
     pro-PFA-MAIN am zugeordneten Unterprojekt (`inbetriebnahme`/`baubeginn`/`datum_pfb`).
-  - Mapping FinVe: aktive Verknüpfung → `≥GENEHMIGUNGSPLANUNG/BAU`; Sammel-FinVe schwächer.
+  - Mapping FinVe: aktive Verknüpfung → Untergrenze `GENEHMIGUNGSPLANUNG/BAU`; Sammel-FinVe
+    mit geringerem Vertrauen (0.35), also von jedem Bericht rückstufbar.
   - `get_aggregated_progress(db, superior_id)` — Spanne über Blatt-Kinder + Kinderliste.
 
 ## API
@@ -250,7 +269,9 @@ Neuer Komponentenbaum `features/projects/components/progress/`, eingehängt in
   Anmerkung — Teil des Skalar-Entwurfs).
 - `LifecycleOverlay.tsx` — Banner/Abblendung bei `PAUSIERT`/`ABGEBROCHEN`.
 - `SourceBreakdown.tsx` — `<Collapse>` mit Beitrag je Quelle (Typ, Aussage, Datum,
-  Vertrauen, „entscheidend"). **Rein lesend** (Anlegen/Löschen läuft im
+  **Alter**; für Admins zusätzlich Vertrauen ohne Altersabschlag und die Marken
+  „entscheidend“, „Untergrenze“, „Konflikt“). Ein Konflikt erscheint für Bearbeitende als
+  Hinweis über dem Stepper. **Rein lesend** (Anlegen/Löschen läuft im
   `ProgressEditDrawer`). Zusätzlich eine **Provenienz-Tabelle der manuellen
   Beobachtungen** (Quelle, Spur, Aussage, Datum, Notiz, **Erfasst von**, **Erfasst am**),
   damit nachvollziehbar ist, ob eine Übertragung aktuell oder veraltet ist
@@ -435,7 +456,7 @@ Inbetriebnahme-/Phasentermine nur aus VIB-PFA, BVWP-Dauern und Fulda-Runde; ein
 direkter, redaktioneller Zukunftstermin fehlt.
 
 **Kernunterscheidung:** Eine reguläre Beobachtung behauptet einen *aktuell erreichten*
-Zustand (Untergrenze für die Headline-Phase). Ein **erwarteter** Eintrag behauptet,
+Zustand (Untergrenze oder Statusbericht für die Headline-Phase). Ein **erwarteter** Eintrag behauptet,
 dass eine Phase erst *künftig* erreicht wird — er darf die aktuelle Phase **nicht**
 hochziehen, sondern speist ausschließlich die **Prognose**.
 
@@ -445,8 +466,8 @@ hochziehen, sondern speist ausschließlich die **Prognose**.
 `source_type=MANUELL`, optional `note`. Migration via `make migrate-create`.
 
 **Ableitung (`derive_headline`):** Beobachtungen mit `is_expected=True` werden aus der
-Headline-/`computed_phase`-Ableitung **ausgeschlossen** (kein Untergrenzen-Beitrag,
-kein Vertrauensbeitrag). Sie tauchen weiterhin in der Provenienz-/Quellen-Tabelle auf,
+Headline-/`computed_phase`-Ableitung **ausgeschlossen** (kein Beitrag zur
+Headline). Sie tauchen weiterhin in der Provenienz-/Quellen-Tabelle auf,
 klar als „erwartet" markiert.
 
 **Prognose (`build_forecast` / `_build_forecast_for_project`):** erwartete Einträge
@@ -543,9 +564,13 @@ BVWP-Schätzungen.
   Override hält Re-Gruppierung live.
 - **VIB-Datumsfelder sind Freitext** (`baubeginn`, `datum_pfb`, …) → tolerantes Parsen +
   Fallback „nicht parsebar" (geringes Recency-Gewicht).
-- **Echte Phasen-Rückschritte** (Reset): per höher-konfidenter (frischer/manueller)
-  Beobachtung oder Phasen-Override / Lebenszyklus auffangen.
-- **Sammel-FinVe** (`is_sammel_finve`, jahres-skaliert) schwächer gewichten.
+- **Echte Phasen-Rückschritte** (Reset): ein neuerer Bericht mit mindestens gleichem
+  Vertrauen oder eine manuelle Beobachtung stuft zurück; sonst Konflikt in der Admin-Liste,
+  aufzulösen per Phasen-Override / Lebenszyklus.
+- **Sammel-FinVe** (`is_sammel_finve`, jahres-skaliert) mit geringerem Vertrauen.
+- **Datum der Beobachtung = Datum der Aussage**: pro-PFA-MAIN-Beobachtungen tragen das
+  Meilensteindatum (`baubeginn`/`datum_pfb`), Bauportal das erste Abrufdatum
+  (`fetched_at`). Für „neuester Bericht gewinnt“ zählen sie damit als älter als ihr Bericht.
 - **Superior ohne/gemischte Kinder** sowie Superior, das selbst Blatt ist (keine Kinder).
 - **Derived-Observation-Churn**: regenerierte `is_derived`-Zeilen nicht ins Changelog;
   nur manuelle Edits auditieren.
@@ -564,7 +589,11 @@ BVWP-Schätzungen.
 - [x] Parallelspuren PF / parl. Befassung werden nur bei zutreffenden Projekten angezeigt;
   parl. Befassung wird per Projektgruppe (`short_name`-Prefix `BSWAG`) vorbelegt.
 - [x] `PAUSIERT`/`ABGEBROCHEN` überblendet die gesamte Darstellung.
-- [x] Aufklappbereich zeigt je Quelle Aussage, Datum und Vertrauen; Konflikte bleiben sichtbar.
+- [x] Aufklappbereich zeigt je Quelle Aussage, Datum, Alter und (Admin) Vertrauen; Konflikte bleiben sichtbar.
+- [x] Neuester Statusbericht gewinnt, Vertrauen nur innerhalb eines Jahres; FinVe ist
+  Untergrenze und veraltet nicht (Regressionstest: VIB 2023 „In Betrieb“ schlägt FinVe 2011 „Bau“).
+- [x] Rückstufungen durch neuere Berichte werden als Konflikt gemeldet und unter
+  Admin → „Planungsstand-Konflikte“ gesammelt; weniger vertrauenswürdige werden zurückgehalten.
 - [x] Übergeordnete Projekte zeigen eine Spanne + ihre Unterprojekte; die Spanne wird
   **rekursiv über beliebig tiefe** Unterprojekt-Ebenen gebildet (Blätter tragen den Stand,
   manueller Override am Zwischenknoten fixiert den Teilbaum). Direkte Kinder, die selbst
@@ -588,10 +617,9 @@ BVWP-Schätzungen.
   Phase **keine** Beobachtung. Alle Sammel-FinVe schwächer (`confidence=0.35`).
   PFA-Evidenz schaltet `has_planfeststellung` automatisch ein. Beobachtungsdatum = VIB-
   **Report-Jahr** (das Freitext-`report_date` ist unzuverlässig).
-- **Recency-Floor** auf `0.3` angehoben, damit strukturierte Quellen (VIB/FinVe) über Jahre
-  **glaubwürdig** bleiben (über der Schwelle), während veraltete Medien-Beobachtungen
-  darunter fallen können. Der Floor hält eine alte Beobachtung im Rennen; ob sie die
-  Headline entscheidet, hängt nun von ihrer Konfidenz relativ zu den anderen ab.
+- **Recency-Floor** `0.3`: wirkt nur noch auf die Glaubwürdigkeit von Statusberichten (VIB
+  bleibt über Jahre über der Schwelle, veraltete Medien fallen darunter), **nicht** mehr auf
+  die Rangfolge — die folgt dem Datum (seit 2026-10-22, siehe „Ableitung = HYBRID“).
 - **Prognose** (`services/progress_forecast.py` + `services/progress_dates.py`): konkrete
   Termine (PFA/Fulda) schlagen BVWP-Schätzungen; Restdauer wird humanisiert.
 
@@ -620,7 +648,8 @@ BVWP-Schätzungen.
 ## Verifikation
 
 - Backend-Tests: `cd apps/backend && .venv/bin/python -m pytest` — Unit-Tests für
-  `derive_headline` (Untergrenzen, Recency-Verfall, Lebenszyklus-Overlay, Superior-Spanne)
+  `derive_headline` (Untergrenzen, neuester Bericht, Vertrauensfenster, Rückstufungs-Konflikte,
+  Lebenszyklus-Overlay, Superior-Spanne)
   und Endpoint-Tests (PATCH-Override gewinnt, derived nicht löschbar). Neue Tabellen ins
   Test-Schema (`TABLES`) eintragen.
 - Migration lokal anwenden (`make migrate-create` → `make migrate`), Modelle vorher
