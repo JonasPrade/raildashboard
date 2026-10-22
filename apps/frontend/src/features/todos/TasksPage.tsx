@@ -5,15 +5,16 @@ import {
     Checkbox,
     Container,
     Group,
-    Loader,
+    Paper,
     SegmentedControl,
     Select,
     SimpleGrid,
     Stack,
     Text,
     TextInput,
+    Title,
 } from "@mantine/core";
-import { IconPlus } from "@tabler/icons-react";
+import { Plus } from "lucide-react";
 import { notifications } from "@mantine/notifications";
 import { useAuth } from "../../lib/auth";
 import {
@@ -24,11 +25,12 @@ import {
     type Todo,
     type TodoStatus,
 } from "../../shared/api/queries";
-import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
 import TodoCard from "./TodoCard";
 import TodoEditDrawer from "./TodoEditDrawer";
 import { useTodoActions } from "./useTodoActions";
 import { STATUS_LABELS, STATUS_ORDER } from "./todoConstants";
+import { LoadingState } from "../../shared/ui/LoadingState";
+import { ErrorState } from "../../shared/ui/ErrorState";
 
 export default function TasksPage() {
     const { user, can } = useAuth();
@@ -50,7 +52,7 @@ export default function TasksPage() {
         [onlyMine, user, assigneeFilter, projectFilter, includeDone],
     );
 
-    const { data: todos, isLoading, isError } = useTodos(filters, user !== null);
+    const { data: todos, isLoading, isError, refetch } = useTodos(filters, user !== null);
     const { data: projects } = useProjectOptions();
     const { data: users } = useUserOptions(user !== null);
     const createTodo = useCreateTodo();
@@ -101,9 +103,9 @@ export default function TasksPage() {
         <Container size="xl" py={{ base: "md", sm: "lg" }} px={{ base: 0, sm: "md" }}>
             <Stack gap="lg">
                 <Group justify="space-between" align="center" wrap="wrap" gap="sm">
-                    <ChronicleHeadline as="h1">Aufgaben</ChronicleHeadline>
+                    <Title order={1}>Aufgaben</Title>
                     {canCreate && (
-                        <Button leftSection={<IconPlus size={16} />} onClick={openCreate}>
+                        <Button leftSection={<Plus size={16} />} onClick={openCreate}>
                             Neue Aufgabe
                         </Button>
                     )}
@@ -167,18 +169,16 @@ export default function TasksPage() {
                 </Group>
 
                 {isLoading && (
-                    <Group justify="center" py="xl">
-                        <Loader />
-                    </Group>
+                    <LoadingState rows={6} />
                 )}
-                {isError && <Alert color="red">Aufgaben konnten nicht geladen werden.</Alert>}
+                {isError && <ErrorState onRetry={() => void refetch()}>Aufgaben konnten nicht geladen werden.</ErrorState>}
 
                 {!isLoading && !isError && (
                     <SimpleGrid cols={{ base: 1, sm: visibleStatuses.length }} spacing="md">
                         {visibleStatuses.map((status) => (
                             <Stack key={status} gap="sm">
                                 <Group gap="xs">
-                                    <ChronicleHeadline as="h3">{STATUS_LABELS[status]}</ChronicleHeadline>
+                                    <Title order={3}>{STATUS_LABELS[status]}</Title>
                                     <Text c="dimmed" size="sm">
                                         ({grouped[status].length})
                                     </Text>
@@ -206,9 +206,9 @@ export default function TasksPage() {
                 )}
 
                 {(todos?.length ?? 0) === 0 && !isLoading && !isError && (
-                    <ChronicleCard>
+                    <Paper withBorder p="var(--card-pad)">
                         <Text c="dimmed">Noch keine Aufgaben. Lege oben deine erste an.</Text>
-                    </ChronicleCard>
+                    </Paper>
                 )}
             </Stack>
 

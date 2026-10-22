@@ -11,7 +11,25 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 
 ## [Unreleased]
 
+### Added
+- **IDT design system as the foundation (#217, stage 1).** The design system's `tokens.css` is vendored in `apps/frontend/src/shared/theme/` together with the self-hosted `InterVariable` (woff2); a Mantine theme with scales mixed from the DS colours, a CSS bridge (`mantine-bridge.css`) from Mantine variables to the DS aliases and `layout.css` for the layout tokens replace the old theme. The published `tokens.css` lacks its dark block, so a block generated from `tokens.json` is appended (#224). New favicon set and web manifest from the DS.
+- **Dark colour scheme.** Follows the system setting by default; a toggle in the header switches it and the choice is remembered (`localStorage` key `schienendashboard.thema`). A small inline script in `index.html` sets the scheme before the first paint, so there is no flash. Maps swap the basemap when `REACT_APP_TILE_LAYER_URL_DARK` is set.
+- **Register on the project page.** `ProjectRegister` replaces the table of contents: a sticky column at the left edge on desktop, a button „Abschnitte“ with a drawer on phones.
+- **Tables as cards on phones.** `ResponsiveTable` switches every data table to a card list under 48em (one card per row, label/value pairs) instead of scrolling sideways.
+- **State blocks and `Stat`.** `EmptyState`, `LoadingState`, `ErrorState` and `SaveStatus` in `src/shared/ui` give empty, loading, failed and saved states one look (no spinners); `Stat`/`StatBand` show key figures.
+- **`semanticColors.ts`.** The one place that maps domain terms to colours: planning phases (teal ramp), `STATUS_TONE`, `SwatchTag`, traffic types, sources.
+- **Footer with build version.** Every page (also the error page) ends in an ink footer with the IDT inverse logo, „Schienendashboard · Fassung <sha>“ and links to Impressum, Datenschutz and Dokumentation. The version comes from the build arg `VITE_APP_VERSION`, which `release.yml` sets to the short commit SHA (local builds: `dev`). The legal links go to an external URL when one is set in the app settings, else to `/impressum` and `/datenschutz`.
+- **Impressum and Datenschutz pages.** `AppSettings` gains `impressum_url`, `impressum_markdown`, `datenschutz_url` and `datenschutz_markdown` (expand-only migration `20261021004`, all nullable); `GET /api/v1/settings/` returns them publicly, `PATCH` (settings.manage) is now partial and validates http(s) URLs, `""` clears. New routes `/impressum` and `/datenschutz`: a set URL redirects there, else the Markdown is rendered, both empty → empty state with a link to the admin card (settings.manage only). Maintained on `/admin` → card „Impressum und Datenschutz“. Content itself is a human task.
+- **Optional dark map tiles.** `REACT_APP_TILE_LAYER_URL_DARK` (GitHub variable `TILE_LAYER_URL_DARK`, baked in by `release.yml`) is used in the dark colour scheme; the basemap source is swapped in place on scheme change. Empty → the light tiles stay.
+
 ### Changed
+- **Whole UI moved to the IDT design (#217, stages 2–4).** Colours, type (Inter), 0 px corners and 2 px frames, icons (lucide-react) and spacing follow the design system; Mantine buttons, fields, tables, dialogs, badges, alerts, notifications and tabs are styled once after the Anwendungsebene (`components.css`). Charts use a shared palette and furniture (`charts.css`), the timeline hatches uncertain stretches, maps use the DS colours and a 2 px frame. All former Chronicle/Tafel call sites (57 files) use Mantine components and the shared building blocks.
+- **Header in the IDT design.** 72px (64px on phones) on paper with a 2px ink line, brand mark plus „Schienendashboard“, plain text links with a violet underline on the active entry, counters in an ink frame on violet-soft. „Aufgaben“ now counts the open tasks and turns red only when one is overdue; the Admin counter (open assignments) lost its filled violet badge. Direction-F `Signet`/`Wordmark` removed.
+- **New default group colour `#6E50FA` (IDT violet).** New project groups (API schema,
+  ORM default, MCP `create_project_group`, admin form) and projects without a group colour
+  on the maps now use the violet of the IDT design instead of `#FF0000`/`#2563eb`; the
+  admin colour picker offers six DS swatches, free input stays. ORM/schema defaults only,
+  no migration: existing groups keep their stored colour.
 - **New layout of `/infraplan`.** The explanation moved into a tooltip next to the title,
   the Jahrgang is picked from a dropdown in the header (once there is more than one), and a
   central switch (like Karte/Liste/Zeitstrahl on the start page) toggles between
@@ -31,6 +49,10 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   as a subtitle. The Kapazitätsauslastung gets its definition from the Infraplan 2026
   (share of train-path km run on overloaded sections, > 125 % load) in the seed and in
   migration `20261021002`. The Mittelherkunft card names the shown year in its title.
+
+### Removed
+- **`@tabler/icons-react`** (replaced by `lucide-react`) and **Google Fonts** (Archivo Narrow, IBM Plex, Inter TTF; only the self-hosted `InterVariable` remains).
+- **Chronicle and Tafel components** (`components/chronicle`, `components/tafel`: `ChronicleCard`/`Button`/`Headline`/`DataChip`, `KpiCard`, `MiniBoard`, `Ticker`, `FlapText`, …) and the Direction-F tokens; `ProjectTableOfContents` (replaced by `ProjectRegister`).
 
 ### Added
 - **GVFG funding questions the commissioning year.** When the newest GVFG edition still

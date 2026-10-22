@@ -4,7 +4,6 @@ import {
     Badge,
     Button,
     Group,
-    Loader,
     Modal,
     NumberInput,
     Select,
@@ -23,9 +22,9 @@ import {
     type InfraplanKpi,
     type InfraplanKpiUpdate,
 } from "../../shared/api/queries";
-import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { KPI_CATEGORY_LABEL, KPI_KIND_LABEL } from "../infraplan/infraplanFormat";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 const LAYOUT_OPTIONS = [
     { value: "", label: "Automatisch" },
@@ -100,7 +99,6 @@ function EditModal({ kpi, kpis, series, onClose }: {
     series: string[];
     onClose: () => void;
 }) {
-    const isMobile = useIsMobile();
     const [form, setForm] = useState<Form>(() => toForm(kpi));
     const update = useUpdateInfraplanKpi();
     const set = <K extends keyof Form>(field: K, value: Form[K]) => setForm((f) => ({ ...f, [field]: value }));
@@ -121,7 +119,7 @@ function EditModal({ kpi, kpis, series, onClose }: {
     };
 
     return (
-        <Modal opened onClose={onClose} title={kpi.name} size="lg" fullScreen={isMobile}>
+        <Modal opened onClose={onClose} title={kpi.name} size="lg">
             <Stack gap="sm">
                 <Text size="xs" c="dimmed">Schlüssel: {kpi.key}</Text>
                 <TextInput label="Name" value={form.name} onChange={(e) => set("name", e.currentTarget.value)} required />
@@ -196,12 +194,12 @@ function EditModal({ kpi, kpis, series, onClose }: {
                     checked={form.zoomed_axis}
                     onChange={(e) => set("zoomed_axis", e.currentTarget.checked)}
                 />
-                <Group justify="flex-end" mt="md">
+                <div className="idt-modal-footer">
                     <Button variant="default" onClick={onClose}>Abbrechen</Button>
                     <Button onClick={save} loading={update.isPending} disabled={!form.name.trim()}>
                         Speichern
                     </Button>
-                </Group>
+                </div>
             </Stack>
         </Modal>
     );
@@ -222,7 +220,7 @@ export default function InfraplanKpiSettings() {
         return out;
     }, [publicKpis]);
 
-    if (isLoading) return <Group justify="center"><Loader /></Group>;
+    if (isLoading) return <LoadingState rows={6} />;
     const list = kpis ?? [];
     const current = list.find((k) => k.key === editing);
 

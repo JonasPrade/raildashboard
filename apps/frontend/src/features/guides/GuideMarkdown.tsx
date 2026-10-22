@@ -1,13 +1,12 @@
 import type { ReactNode } from "react";
-import { Alert, Anchor, Box, List, Text } from "@mantine/core";
+import { Alert, Anchor, Badge, Box, List, Text } from "@mantine/core";
 import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ChronicleDataChip } from "../../components/chronicle";
 
 /**
  * Renders guide markdown in the guide look: paragraphs as small Text, inline
- * code as ChronicleDataChip, internal links as router links, and "> [!color]"
+ * code as outline Badge, internal links as router links, and "> [!color]"
  * blockquote blocks as Mantine Alerts (see guideContent.ts for the syntax).
  */
 
@@ -15,7 +14,11 @@ type Segment =
     | { type: "md"; text: string }
     | { type: "alert"; color: string; title: string | null; text: string };
 
+// Markup names of "> [!color]" blocks (kept for existing guide texts). "green"
+// renders neutral: success is no green surface (DESIGN.md rule 4); "yellow"
+// gets the amber edge of the global Alert style (W3).
 const ALERT_COLORS = new Set(["blue", "yellow", "green", "red"]);
+const ALERT_RENDER_COLOR: Record<string, string> = { green: "teal" };
 const ALERT_MARKER = /^\[!(\w+)\]\s*(.*)$/;
 
 /** Split markdown into plain segments and blockquote-alert segments. */
@@ -106,10 +109,9 @@ function MarkdownBlock({ text, dimmed }: { text: string; dimmed?: boolean }) {
                                 p="xs"
                                 my={6}
                                 style={{
-                                    fontFamily: "var(--mantine-font-family-monospace)",
                                     fontSize: 12,
-                                    background: "var(--mantine-color-gray-0)",
-                                    borderRadius: 4,
+                                    fontVariantNumeric: "tabular-nums",
+                                    background: "var(--surface-alt)",
                                     overflowX: "auto",
                                 }}
                             >
@@ -117,7 +119,11 @@ function MarkdownBlock({ text, dimmed }: { text: string; dimmed?: boolean }) {
                             </Box>
                         );
                     }
-                    return <ChronicleDataChip>{raw}</ChronicleDataChip>;
+                    return (
+                        <Badge variant="outline" tt="none">
+                            {raw}
+                        </Badge>
+                    );
                 },
                 pre: ({ children }) => <>{children}</>,
             }}
@@ -143,7 +149,7 @@ export default function GuideMarkdown({
                 ) : (
                     <Alert
                         key={i}
-                        color={seg.color}
+                        color={ALERT_RENDER_COLOR[seg.color] ?? seg.color}
                         variant="light"
                         title={seg.title ?? undefined}
                         my={6}

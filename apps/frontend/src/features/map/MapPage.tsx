@@ -1,34 +1,29 @@
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
     ActionIcon,
     Alert,
     Box,
-    Button,
     Container,
     Group,
     List,
-    Loader,
+    Paper,
     Popover,
     SegmentedControl,
-    Select,
-    SimpleGrid,
     Stack,
-    Switch,
     Text,
-    TextInput,
     Title,
 } from "@mantine/core";
-import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
-import { FlapNumber, Eyebrow } from "../../components/tafel";
+import { Stat } from "../../shared/ui/Stat";
+import { SwatchTag } from "../../shared/ui/SwatchTag";
 import { useDisclosure } from "@mantine/hooks";
-import { IconHelp, IconSearch, IconX } from "@tabler/icons-react";
+import { CircleHelp } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../lib/auth";
 
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import GroupFilterDrawer, { type ProjectGroupOption } from "../projects/GroupFilterDrawer";
-import { ProjectCard } from "../projects/ProjectCard";
-import PhaseFilterSelect from "../projects/PhaseFilterSelect";
+import { ProjectFilterBar } from "../projects/ProjectFilterBar";
+import { ProjectListTable } from "../projects/ProjectListTable";
 import {
     PHASE_PARAM,
     filterProjectsByPhase,
@@ -48,8 +43,10 @@ import {
     useProjectGroups,
     type ProjectGroup,
 } from "../../shared/api/queries";
+import { MAP_COLOR } from "../../shared/theme/semanticColors";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
-const DEFAULT_GROUP_COLOR = "#2563eb";
+const DEFAULT_GROUP_COLOR = MAP_COLOR.default;
 const hasNumericId = (
     group: ProjectGroup,
 ): group is ProjectGroup & { id: number } => typeof group.id === "number";
@@ -273,7 +270,7 @@ export default function MapPage() {
             <Popover width={300} position="bottom" withArrow shadow="md">
                 <Popover.Target>
                     <ActionIcon variant="subtle" color="gray" size="md" aria-label="Hilfe zur Suche und Filterung">
-                        <IconHelp size={18} />
+                        <CircleHelp size={16} />
                     </ActionIcon>
                 </Popover.Target>
                 <Popover.Dropdown>
@@ -346,19 +343,8 @@ export default function MapPage() {
                 <Stack gap="xl">
                     {viewToggle}
                     <Stack gap={6}>
-                        <Eyebrow>Schienenprojekte · {isTimeline ? "Zeitstrahl" : "Liste"}</Eyebrow>
-                        <Title
-                            order={2}
-                            style={{
-                                fontFamily: "var(--font-display)",
-                                textTransform: "uppercase",
-                                margin: 0,
-                                letterSpacing: "-0.015em",
-                                lineHeight: 0.95,
-                            }}
-                        >
-                            Projekte nach <em style={{ fontStyle: "normal", color: "var(--led)" }}>Projektgruppen</em>
-                        </Title>
+                        <Text className="idt-eyebrow idt-eyebrow--arrow" component="div">Schienenprojekte · {isTimeline ? "Zeitstrahl" : "Liste"}</Text>
+                        <Title order={2}>Projekte nach Projektgruppen</Title>
                         <Text size="sm" c="dimmed" style={{ maxWidth: 540 }}>
                             {isTimeline
                                 ? "Wähle eine Projektgruppe aus, um ihre Projekte mit belastbaren Terminen auf einer Zeitachse zu sehen."
@@ -366,60 +352,8 @@ export default function MapPage() {
                         </Text>
                     </Stack>
 
-                    <Stack gap="sm">
-                        <Group align="flex-end" gap="md" wrap="wrap">
-                            <Select
-                                label="Projektgruppe"
-                                placeholder="Projektgruppe wählen"
-                                data={selectData}
-                                value={selectedGroupId !== null ? String(selectedGroupId) : null}
-                                onChange={handleGroupChange}
-                                disabled={isLoading && groups.length === 0}
-                                rightSection={isLoading ? <Loader size="xs" /> : undefined}
-                                nothingFoundMessage={isLoading ? "Lade…" : "Keine Projektgruppen gefunden"}
-                                searchable
-                                clearable
-                                style={{ flex: "1 1 220px", minWidth: 0 }}
-                            />
-                            <TextInput
-                                label="Suche"
-                                placeholder="Name, Nr., Beschreibung…"
-                                leftSection={<IconSearch size={14} />}
-                                rightSection={
-                                    localSearch ? (
-                                        <ActionIcon variant="subtle" size="xs" onClick={() => setLocalSearch("")}>
-                                            <IconX size={12} />
-                                        </ActionIcon>
-                                    ) : undefined
-                                }
-                                value={localSearch}
-                                onChange={(e) => setLocalSearch(e.currentTarget.value)}
-                                style={{ flex: "1 1 220px", minWidth: 0 }}
-                            />
-                            <PhaseFilterSelect
-                                label="Planungsphase"
-                                value={selectedPhases}
-                                onChange={handlePhaseFilterChange}
-                                style={{ flex: "1 1 220px", minWidth: 0 }}
-                            />
-                            <Switch
-                                label="Nur Hauptprojekte"
-                                checked={onlySuperior}
-                                onChange={(e) => handleOnlySuperiorChange(e.currentTarget.checked)}
-                                size="sm"
-                                pb={6}
-                                style={{ flex: "0 0 auto" }}
-                            />
-                        </Group>
-                        {errorMessage && (
-                            <Alert color="red" variant="light" title="Projektgruppen konnten nicht geladen werden">
-                                {errorMessage}
-                            </Alert>
-                        )}
-                    </Stack>
-
                     {selectedGroup && (
-                        <ChronicleCard>
+                        <Paper withBorder p="var(--card-pad)">
                             <Stack gap="xs">
                                 <Group justify="space-between" align="flex-start">
                                     <Stack gap={4}>
@@ -429,21 +363,9 @@ export default function MapPage() {
                                         </Text>
                                     </Stack>
                                     <Group gap="xs">
-                                        <ChronicleDataChip>
-                                            <span
-                                                aria-hidden
-                                                style={{
-                                                    display: "inline-block",
-                                                    width: 8,
-                                                    height: 8,
-                                                    borderRadius: "50%",
-                                                    backgroundColor: selectedGroup.color,
-                                                    marginRight: 6,
-                                                    verticalAlign: "middle",
-                                                }}
-                                            />
+                                        <SwatchTag color={selectedGroup.color}>
                                             {selectedGroup.projects?.length ?? 0} Projekte
-                                        </ChronicleDataChip>
+                                        </SwatchTag>
                                     </Group>
                                 </Group>
                                 {selectedGroup.description ? (
@@ -456,7 +378,7 @@ export default function MapPage() {
                                     </Text>
                                 )}
                             </Stack>
-                        </ChronicleCard>
+                        </Paper>
                     )}
 
                     {!isLoading && groups.length === 0 && (
@@ -465,10 +387,30 @@ export default function MapPage() {
                         </Alert>
                     )}
 
+                    <Stack gap={0}>
+                        <ProjectFilterBar
+                            groups={selectData}
+                            groupId={selectedGroupId}
+                            onGroupChange={handleGroupChange}
+                            groupsLoading={isLoading}
+                            search={localSearch}
+                            onSearchChange={setLocalSearch}
+                            phases={selectedPhases}
+                            onPhasesChange={handlePhaseFilterChange}
+                            onlySuperior={onlySuperior}
+                            onOnlySuperiorChange={handleOnlySuperiorChange}
+                            shown={projects.length}
+                            total={selectedGroup ? rawProjects.length : null}
+                        />
+                        {errorMessage && (
+                            <Alert color="red" variant="light" title="Projektgruppen konnten nicht geladen werden">
+                                {errorMessage}
+                            </Alert>
+                        )}
+                    </Stack>
+
                     {isLoading && groups.length === 0 ? (
-                        <Group justify="center" py="xl">
-                            <Loader />
-                        </Group>
+                        <LoadingState rows={6} />
                     ) : selectedGroup && isTimeline ? (
                         <TimelineView
                             // Remount per group so the row paging starts over.
@@ -480,58 +422,28 @@ export default function MapPage() {
                         />
                     ) : selectedGroup ? (
                         <Stack gap="md">
-                            <Group
-                                justify="space-between"
-                                align="center"
-                                wrap="wrap"
-                                gap="sm"
-                                style={{
-                                    background: "var(--bg2)",
-                                    border: "1px solid var(--rule)",
-                                    borderLeft: "3px solid var(--info)",
-                                    padding: "var(--card-pad)",
-                                }}
+                            <Paper
+                                withBorder
+                                p="var(--card-pad)"
+                                style={{ "--card-accent": "var(--accent-primary)" } as CSSProperties}
                             >
-                                <Group gap="md" align="center" wrap="nowrap">
-                                    <FlapNumber
-                                        n={projects.length}
-                                        digits={Math.max(2, String(projects.length).length)}
-                                        width={42}
-                                        height={52}
-                                        fontSize={32}
-                                    />
-                                    <Stack gap={2}>
-                                        <Eyebrow>{selectedGroup.short_name ?? "Projektgruppe"}</Eyebrow>
-                                        <Title
-                                            order={3}
-                                            style={{
-                                                fontFamily: "var(--font-display)",
-                                                textTransform: "uppercase",
-                                                margin: 0,
-                                                letterSpacing: "-0.005em",
-                                            }}
-                                        >
-                                            Projekte
-                                        </Title>
-                                    </Stack>
+                                <Group justify="space-between" align="center" wrap="wrap" gap="sm">
+                                    <Group gap="md" align="center" wrap="nowrap">
+                                        <Stat value={projects.length} />
+                                        <Stack gap={2}>
+                                            <Text className="idt-eyebrow" component="div">{selectedGroup.short_name ?? "Projektgruppe"}</Text>
+                                            <Title order={3}>Projekte</Title>
+                                        </Stack>
+                                    </Group>
+                                    <Text size="sm" c="dimmed">
+                                        {isFiltered
+                                            ? `${projects.length} von ${superiorFiltered.length} Projekten`
+                                            : projects.length === 1
+                                              ? "1 Projekt"
+                                              : `${projects.length} Projekte${onlySuperior && rawProjects.length !== projects.length ? ` (von ${rawProjects.length})` : " in dieser Gruppe"}`}
+                                    </Text>
                                 </Group>
-                                <Text
-                                    style={{
-                                        fontFamily: "var(--font-mono)",
-                                        fontSize: 11,
-                                        letterSpacing: "0.14em",
-                                        textTransform: "uppercase",
-                                        color: "var(--ink3)",
-                                        fontWeight: 700,
-                                    }}
-                                >
-                                    {isFiltered
-                                        ? `${projects.length} von ${superiorFiltered.length} Projekten`
-                                        : projects.length === 1
-                                          ? "1 Projekt"
-                                          : `${projects.length} Projekte${onlySuperior && rawProjects.length !== projects.length ? ` (von ${rawProjects.length})` : " in dieser Gruppe"}`}
-                                </Text>
-                            </Group>
+                            </Paper>
 
                             {projects.length === 0 ? (
                                 <Alert color="blue" variant="light" title="Keine Projekte gefunden">
@@ -540,24 +452,12 @@ export default function MapPage() {
                                         : "Diese Projektgruppe enthält aktuell keine Projekte."}
                                 </Alert>
                             ) : (
-                                <Stack gap="lg">
-                                    <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="lg">
-                                        {projects.slice(0, listLimit).map((project) => (
-                                            <ProjectCard key={project.id ?? project.name} project={project} />
-                                        ))}
-                                    </SimpleGrid>
-                                    {projects.length > listLimit && (
-                                        <Group justify="center">
-                                            <Button
-                                                variant="default"
-                                                onClick={() => setListLimit((limit) => limit + LIST_PAGE_SIZE)}
-                                            >
-                                                Weitere {Math.min(LIST_PAGE_SIZE, projects.length - listLimit)} von{" "}
-                                                {projects.length - listLimit} Projekten anzeigen
-                                            </Button>
-                                        </Group>
-                                    )}
-                                </Stack>
+                                <ProjectListTable
+                                    projects={projects}
+                                    limit={listLimit}
+                                    pageSize={LIST_PAGE_SIZE}
+                                    onShowMore={() => setListLimit((limit) => limit + LIST_PAGE_SIZE)}
+                                />
                             )}
                         </Stack>
                     ) : groups.length > 0 ? (
@@ -603,7 +503,7 @@ export default function MapPage() {
                                 bottom: 6,
                                 left: 12,
                                 zIndex: 5,
-                                background: "rgba(255,255,255,0.85)",
+                                background: "var(--surface)",
                                 padding: "2px 6px",
                             }}
                         >
@@ -618,7 +518,7 @@ export default function MapPage() {
                                 left: 0,
                                 width: "100%",
                                 height: "100%",
-                                background: "rgba(255,255,255,0.7)",
+                                background: "color-mix(in srgb, var(--surface) 70%, transparent)",
                                 display: "flex",
                                 flexDirection: "column",
                                 alignItems: "center",
@@ -627,7 +527,6 @@ export default function MapPage() {
                                 zIndex: 4,
                             }}
                         >
-                            <Loader size="lg" />
                             <Text size="sm" c="dimmed">Projektgruppen werden geladen…</Text>
                         </Box>
                     )}
@@ -642,9 +541,10 @@ export default function MapPage() {
                                 left: "50%",
                                 transform: "translateX(-50%)",
                                 zIndex: 5,
-                                background: "rgba(255,255,255,0.9)",
+                                background: "var(--surface)",
+                                border: "2px solid var(--border-frame)",
                                 padding: "4px 10px",
-                                borderRadius: 6,
+                                borderRadius: 0,
                                 pointerEvents: "none",
                             }}
                         >
@@ -668,10 +568,10 @@ export default function MapPage() {
                                 size="sm"
                                 c="dimmed"
                                 style={{
-                                    background: "rgba(255,255,255,0.9)",
+                                    background: "var(--surface)",
                                     padding: "8px 14px",
-                                    borderRadius: 8,
-                                    border: "1px solid #e0e0e0",
+                                    borderRadius: 0,
+                                    border: "2px solid var(--border-frame)",
                                 }}
                             >
                                 {noMatchMessage}

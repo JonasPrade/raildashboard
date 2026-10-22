@@ -9,18 +9,17 @@ import {
     Container,
     CopyButton,
     Group,
-    Loader,
     Modal,
     Radio,
     Stack,
     Table,
     Text,
     TextInput,
+    Title,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
-import { IconChevronLeft } from "@tabler/icons-react";
-import { ChronicleButton, ChronicleHeadline } from "../../components/chronicle";
+import { ChevronLeft } from "lucide-react";
 import RequirePermission from "../../components/RequirePermission";
 import { useAuth } from "../../lib/auth";
 import { API_BASE } from "../../shared/api/client";
@@ -34,6 +33,9 @@ import {
 } from "../../shared/api/queries";
 import { formatDateShort, formatDateTimeShort } from "../../shared/format";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
+import { STATUS_TONE } from "../../shared/theme/semanticColors";
+import { LoadingState } from "../../shared/ui/LoadingState";
+import { ErrorState } from "../../shared/ui/ErrorState";
 
 const MCP_PERMISSION = "mcp.access";
 // A read-only key keeps only the MCP capability: every write tool needs a
@@ -69,11 +71,11 @@ function mcpConfigSnippet(token: string): string {
 }
 
 function keyStatus(key: ApiKey): { label: string; color: string } {
-    if (key.revoked_at) return { label: "Widerrufen", color: "gray" };
+    if (key.revoked_at) return { label: "Widerrufen", color: STATUS_TONE.neutral };
     if (key.expires_at && new Date(asUtc(key.expires_at)) <= new Date()) {
-        return { label: "Abgelaufen", color: "orange" };
+        return { label: "Abgelaufen", color: STATUS_TONE.neutral };
     }
-    return { label: "Aktiv", color: "green" };
+    return { label: "Aktiv", color: STATUS_TONE.done };
 }
 
 function scopeLabel(key: ApiKey): string {
@@ -133,7 +135,7 @@ function CreateApiKeyModal({
                     </Code>
                     <CopyButton value={created.token}>
                         {({ copied, copy }) => (
-                            <Button size="xs" variant="light" color={copied ? "green" : undefined} onClick={copy}>
+                            <Button size="xs" variant="light" color={copied ? "teal" : undefined} onClick={copy}>
                                 {copied ? "Kopiert" : "Key kopieren"}
                             </Button>
                         )}
@@ -147,7 +149,7 @@ function CreateApiKeyModal({
                     </Code>
                     <CopyButton value={snippet}>
                         {({ copied, copy }) => (
-                            <Button size="xs" variant="light" color={copied ? "green" : undefined} onClick={copy}>
+                            <Button size="xs" variant="light" color={copied ? "teal" : undefined} onClick={copy}>
                                 {copied ? "Kopiert" : "Konfiguration kopieren"}
                             </Button>
                         )}
@@ -155,9 +157,9 @@ function CreateApiKeyModal({
                     <Text size="sm" c="dimmed">
                         Gültig bis {created.expires_at ? formatDateShort(asUtc(created.expires_at)) : "unbegrenzt"}.
                     </Text>
-                    <Group justify="flex-end">
+                    <div className="idt-modal-footer">
                         <Button onClick={handleClose}>Fertig</Button>
-                    </Group>
+                    </div>
                 </Stack>
             </Modal>
         );
@@ -202,14 +204,14 @@ function CreateApiKeyModal({
                     <Text size="xs" c="dimmed">
                         Der Key läuft nach 90 Tagen ab und lässt sich jederzeit widerrufen.
                     </Text>
-                    <Group justify="flex-end">
+                    <div className="idt-modal-footer">
                         <Button variant="default" onClick={handleClose}>
                             Abbrechen
                         </Button>
                         <Button type="submit" loading={createKey.isPending} disabled={!name.trim()}>
                             Key erstellen
                         </Button>
-                    </Group>
+                    </div>
                 </Stack>
             </form>
         </Modal>
@@ -254,7 +256,7 @@ function KeysTable({
                     <Table.Th>Rechte</Table.Th>
                     <Table.Th>Zuletzt genutzt</Table.Th>
                     <Table.Th>Gültig bis</Table.Th>
-                    <Table.Th>Status</Table.Th>
+                    <Table.Th data-role="status">Status</Table.Th>
                     <Table.Th />
                 </Table.Tr>
             </Table.Thead>
@@ -326,7 +328,7 @@ function ApiKeysPageContent() {
     const { can } = useAuth();
     const canManageUsers = can("user.manage");
     const [createOpened, { open: openCreate, close: closeCreate }] = useDisclosure(false);
-    const { data: ownKeys, isLoading, isError } = useApiKeys();
+    const { data: ownKeys, isLoading, isError, refetch } = useApiKeys();
     const { data: allKeys } = useAllApiKeys(canManageUsers);
 
     return (
@@ -334,14 +336,14 @@ function ApiKeysPageContent() {
             <Stack gap="lg">
                 <Anchor component={Link} to="/admin" size="sm" c="dimmed">
                     <Group gap={4} align="center">
-                        <IconChevronLeft size={14} />
+                        <ChevronLeft size={16} />
                         Zurück zur Administration
                     </Group>
                 </Anchor>
 
                 <Group justify="space-between">
-                    <ChronicleHeadline as="h1">API-Keys & MCP</ChronicleHeadline>
-                    <ChronicleButton onClick={openCreate}>Neuen Key anlegen</ChronicleButton>
+                    <Title order={1}>API-Keys & MCP</Title>
+                    <Button onClick={openCreate}>Neuen Key anlegen</Button>
                 </Group>
 
                 <Text size="sm">
@@ -352,15 +354,11 @@ function ApiKeysPageContent() {
                 </Text>
 
                 <Stack gap="xs">
-                    <ChronicleHeadline as="h2">Meine Keys</ChronicleHeadline>
+                    <Title order={2}>Meine Keys</Title>
                     {isLoading ? (
-                        <Group justify="center" py="md">
-                            <Loader />
-                        </Group>
+                        <LoadingState rows={6} />
                     ) : isError ? (
-                        <Alert color="red" variant="light" title="Fehler">
-                            API-Keys konnten nicht geladen werden.
-                        </Alert>
+                        <ErrorState onRetry={() => void refetch()}>API-Keys konnten nicht geladen werden.</ErrorState>
                     ) : (
                         <KeysTable keys={ownKeys ?? []} />
                     )}
@@ -368,7 +366,7 @@ function ApiKeysPageContent() {
 
                 {canManageUsers && (
                     <Stack gap="xs">
-                        <ChronicleHeadline as="h2">Alle Keys</ChronicleHeadline>
+                        <Title order={2}>Alle Keys</Title>
                         <Text size="sm" c="dimmed">
                             Keys aller Nutzer — als Benutzerverwalter können Sie fremde Keys widerrufen.
                         </Text>

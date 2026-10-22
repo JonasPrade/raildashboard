@@ -42,7 +42,7 @@ Abweichungen des Dashboards stehen in der Entscheidungstabelle der Feature-Datei
    Haarlinien 1px (`--border`) nur innerhalb von Inhalt. Keine Blockschatten im
    Dashboard; weiche Schatten nur bei Karten der Variante `soft` und beim Dialog
    (`8px 8px 0 rgba(0,55,60,.18)`).
-6. **Eine Schrift.** InterVariable, selbst gehostet (`public/fonts/`). Keine
+6. **Eine Schrift.** InterVariable, selbst gehostet (`src/shared/theme/fonts/`, von Vite gebündelt). Keine
    Mono-Schrift: Versal-Etiketten in Inter mit `letter-spacing: .12em`, Zahlen
    mit `font-variant-numeric: tabular-nums`. Grundschrift 16px, Stufen
    13 (Marke) · 13,5 (Etikett, Spaltenkopf) · 14,5 (Nebentext, Tabellen) ·
@@ -123,7 +123,9 @@ Bedienhöhe 44px und Vollbild-Dialoge unter 48em.
 
 Ändert sich das DS, wird `tokens.css` ausgetauscht (Kopfkommentar mit
 Artefakt-Version und Datum) und die Mantine-Skalen in `theme.ts` werden aus den
-neuen Werten neu gemischt. Neue fachliche Farbzuordnungen kommen nur nach
+neuen Werten neu gemischt. Der Dunkel-Block am Ende der vendorten `tokens.css` ist aus
+`tokens.json` erzeugt, weil das veröffentlichte DS ihn nicht enthält (#224); beim
+Austausch prüfen, ob er nun mitkommt. Neue fachliche Farbzuordnungen kommen nur nach
 `semanticColors.ts`. Das WordPress-Theme der Initiative und das Strategie-Tool
 konsumieren dieselben Tokens; eine Abweichung in einem der drei Werkzeuge wird
 im DS geklärt, nicht lokal.

@@ -983,7 +983,7 @@ def create_project_group(
     name: str,
     short_name: str,
     description: str | None = None,
-    color: str = "#FF0000",
+    color: str = "#6E50FA",
     public: bool = False,
     plot_only_superior_projects: bool = True,
     is_visible: bool = True,

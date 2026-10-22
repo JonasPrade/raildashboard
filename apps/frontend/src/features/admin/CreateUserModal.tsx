@@ -99,9 +99,14 @@ export function CreateUserModal({ opened, onClose }: Props) {
                         onChange={(e) => setPasswordConfirm(e.target.value)}
                         required
                     />
-                    <Button type="submit" loading={createUser.isPending} fullWidth mt="xs">
-                        Nutzer anlegen
-                    </Button>
+                    <div className="idt-modal-footer">
+                        <Button variant="default" onClick={handleClose}>
+                            Abbrechen
+                        </Button>
+                        <Button type="submit" loading={createUser.isPending}>
+                            Nutzer anlegen
+                        </Button>
+                    </div>
                 </Stack>
             </form>
         </Modal>

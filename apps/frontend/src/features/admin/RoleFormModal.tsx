@@ -183,14 +183,14 @@ export function RoleFormModal({ opened, onClose, role }: Props) {
                         ))}
                     </Stack>
 
-                    <Button
-                        type="submit"
-                        loading={createRole.isPending || updateRole.isPending}
-                        fullWidth
-                        mt="xs"
-                    >
-                        {isEdit ? "Speichern" : "Rolle anlegen"}
-                    </Button>
+                    <div className="idt-modal-footer">
+                        <Button variant="default" onClick={onClose}>
+                            Abbrechen
+                        </Button>
+                        <Button type="submit" loading={createRole.isPending || updateRole.isPending}>
+                            {isEdit ? "Speichern" : "Rolle anlegen"}
+                        </Button>
+                    </div>
                 </Stack>
             </form>
         </Modal>

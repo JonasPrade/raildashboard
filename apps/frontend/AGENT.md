@@ -11,11 +11,11 @@ This file contains frontend-specific details that complement the root guide.
 ```
 src/
 ├── features/          # Feature modules (auth, dashboard, documentation, ...)
-├── components/        # Shared UI components (buttons, layouts, navigation)
+├── components/        # App shell (header, footer, frame, error boundary)
 ├── api/               # Backend integration & API clients (React Query services, REST wrapper)
 ├── hooks/             # Custom React hooks (e.g. useProjects)
 ├── types/             # Global TypeScript types used across features
-├── shared/            # Utilities, constants, helper functions (no UI components)
+├── shared/            # api/, hooks/, theme/ (IDT design), ui/ (cross-feature building blocks), helpers
 ├── assets/            # Images, fonts, icons
 └── router.tsx         # Central routing configuration with layout
 ```
@@ -35,8 +35,8 @@ src/
      return { id: raw.id, title: raw.payload.title };
    }
    ```
-2. **Feature-oriented structure:** Create new functionality under `src/features/<feature-name>` (e.g. `src/features/auth/`, `src/features/dashboard/`). Only place shared UI in `src/components/`.
-3. **Use Mantine intentionally:** Rely on Mantine's standard components. Extract recurring patterns into custom components under `src/components/` and manage theme overrides centrally (e.g. `theme.ts`).
+2. **Feature-oriented structure:** Create new functionality under `src/features/<feature-name>` (e.g. `src/features/auth/`, `src/features/dashboard/`). Only place shared UI in `src/shared/ui/` (app shell parts in `src/components/`).
+3. **Use Mantine intentionally:** Rely on Mantine's standard components. Extract recurring patterns into shared building blocks under `src/shared/ui/` and manage theme overrides centrally (`src/shared/theme/theme.ts`, `components.css`).
 4. **Keep routing tidy:** Register new pages in `src/router.tsx`. For larger bundles use lazy loading (`React.lazy()` and `Suspense`).
    ```tsx
    const DocumentationPage = React.lazy(() => import("./features/documentation/DocumentationPage"));
@@ -56,7 +56,8 @@ src/
    (`--page-pad`, `--card-pad`, `--map-height`) instead of fixed pixels, and
    `shared/ui/ResponsiveTable` instead of a bare `<Table>`. Rules:
    `docs/features/feature-mobile-usability.md`.
-6. **Protect quality:** Before committing, run `npm run build && npm run lint && npm run test` locally and document the results.
+6. **Follow the IDT design.** Rules in `docs/DESIGN.md`, files in `src/shared/theme/` (see `README.md` → *Design*). Never hard-code colours, sizes or fonts: take tokens from `tokens.css`, layout tokens from `layout.css`, and every mapping from a domain term to a colour from `semanticColors.ts`. Icons come from `lucide-react` only. Use the building blocks in `src/shared/ui/` — `EmptyState`, `LoadingState`, `ErrorState`, `SaveStatus`, `Stat`/`StatBand`, `SwatchTag`, `ResponsiveTable` — instead of spinners or ad-hoc markup. Check new UI in the light and the dark scheme.
+7. **Protect quality:** Before committing, run `npm run build && npm run lint && npm run test` locally and document the results.
 
 ## Git workflow
 - **Branches:** `feature/<summary>`, `fix/<bug-id>`, `docs/<topic>`, `refactor/<area>`.

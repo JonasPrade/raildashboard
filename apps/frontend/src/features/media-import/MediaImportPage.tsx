@@ -8,7 +8,6 @@ import {
     Card,
     Container,
     Group,
-    Loader,
     Select,
     Stack,
     Switch,
@@ -18,7 +17,7 @@ import {
     Title,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconExternalLink, IconTrash } from "@tabler/icons-react";
+import { ExternalLink, Trash2 } from "lucide-react";
 
 import {
     useDeleteMediaEntry,
@@ -31,6 +30,7 @@ import {
 import { UnconfirmedFilter, usePatchWithToast } from "../import-review/shared";
 import { mainPhaseOptions } from "../projects/components/progress/phaseMeta";
 import { formatDate } from "../../shared/format";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 const PHASE_OPTIONS = mainPhaseOptions();
 
@@ -61,7 +61,7 @@ function MediaCard({
                                 </Text>
                             )}
                             {entry.confirmed && (
-                                <Badge color="green" variant="light">
+                                <Badge color="teal" variant="light">
                                     bestätigt
                                 </Badge>
                             )}
@@ -69,7 +69,7 @@ function MediaCard({
                         {entry.url && (
                             <Anchor href={entry.url} target="_blank" rel="noreferrer" size="xs">
                                 <Group gap={4} wrap="nowrap" component="span">
-                                    <IconExternalLink size={12} />
+                                    <ExternalLink size={12} />
                                     Artikel öffnen
                                 </Group>
                             </Anchor>
@@ -81,7 +81,7 @@ function MediaCard({
                         onClick={() => remove.mutate(entry.id)}
                         title="Bericht löschen"
                     >
-                        <IconTrash size={16} />
+                        <Trash2 size={16} />
                     </ActionIcon>
                 </Group>
 
@@ -224,9 +224,7 @@ export default function MediaImportPage() {
                 </Group>
 
                 {isLoading ? (
-                    <Group justify="center" py="xl">
-                        <Loader />
-                    </Group>
+                    <LoadingState rows={6} />
                 ) : !entries || entries.length === 0 ? (
                     <Alert variant="light" title="Keine Berichte">
                         Noch keine Medienberichte. Füge oben eine URL oder Text ein.

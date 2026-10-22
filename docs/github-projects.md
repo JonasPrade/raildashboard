@@ -68,7 +68,7 @@ Punkte ohne Versionszuordnung bekommen **keinen** Milestone und liegen in
 | `area:progress` | ProjectProgress (Fortschrittsanzeige) |
 | `area:auth` | Benutzerverwaltung, Rollen, Sessions |
 | `area:ops` | Docker, Backup/Restore, CI, Infrastruktur |
-| `area:design` | Direction-F-Design-System, UI-Komponenten |
+| `area:design` | IDT-Design-System, UI-Komponenten |
 | `area:docs` | Dokumentation |
 | `area:tests` | Test-Infrastruktur und -Abdeckung |
 

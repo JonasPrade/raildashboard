@@ -35,7 +35,7 @@ export function ExtractionComparisonPanel({
                 <Text size="sm" fw={500}>
                     Texterkennung im Vergleich
                 </Text>
-                <Badge color={comparison.identical ? "green" : "orange"} variant="light" size="sm">
+                <Badge color={comparison.identical ? "teal" : "violet"} variant="light" size="sm">
                     {comparison.identical ? "identisch" : "Abweichungen"}
                 </Badge>
                 <Badge color="gray" variant="light" size="sm">
@@ -61,7 +61,7 @@ export function ExtractionComparisonPanel({
             )}
 
             {comparison.identical && !comparison.error && (
-                <Alert color="green" variant="light" title="Beide Wege liefern dasselbe">
+                <Alert color="teal" variant="light" title="Beide Wege liefern dasselbe">
                     Die Texterkennung hat jede Zeile und jeden Wert wie pdfplumber gelesen. Das ist
                     die Voraussetzung dafür, den Import dauerhaft auf die Texterkennung umzustellen.
                 </Alert>

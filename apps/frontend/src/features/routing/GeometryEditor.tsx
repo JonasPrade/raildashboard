@@ -2,21 +2,22 @@ import { useMemo, useState } from "react";
 import {
     ActionIcon,
     Alert,
+    Badge,
     Box,
     Button,
     Divider,
     FileInput,
     Group,
+    Paper,
     ScrollArea,
     Stack,
     Switch,
     Text,
 } from "@mantine/core";
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
-import { modals } from "@mantine/modals";
+import { openConfirmModal } from "../../shared/ui/confirmModal";
 import { notifications } from "@mantine/notifications";
 
-import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import type { OperationalPointRef, Project, RoutePreviewFeature } from "../../shared/api/queries";
 import {
     useConfirmRoute,
@@ -189,7 +190,7 @@ export default function GeometryEditor({
             applyGeojsonSource(false);
             return;
         }
-        modals.openConfirmModal({
+        openConfirmModal({
             title: "Geometrie aus Unterprojekten zusammensetzen?",
             children: (
                 <Text size="sm">
@@ -391,12 +392,12 @@ export default function GeometryEditor({
                               width: "100%",
                               flex: "0 1 auto",
                               maxHeight: "50%",
-                              borderBottom: "1px solid var(--mantine-color-default-border)",
+                              borderBottom: "2px solid var(--border-frame)",
                           }
                         : {
                               width: 380,
                               minWidth: 320,
-                              borderRight: "1px solid var(--mantine-color-default-border)",
+                              borderRight: "2px solid var(--border-frame)",
                           }),
                 }}
             >
@@ -404,12 +405,12 @@ export default function GeometryEditor({
                     <Stack gap="md">
                         {/* Current status */}
                         <div>
-                            <Text size="xs" fw={600} c="dimmed" tt="uppercase" mb={6}>
+                            <Text className="idt-eyebrow" mb={6}>
                                 Aktuelle Geometrie
                             </Text>
-                            <ChronicleDataChip>
+                            <Badge variant="outline" color="var(--text-strong)" tt="none">
                                 {hasExisting ? "Geometrie vorhanden" : "Keine Geometrie"}
-                            </ChronicleDataChip>
+                            </Badge>
                         </div>
 
                         {isSuperiorProject && (
@@ -463,9 +464,9 @@ export default function GeometryEditor({
                                                     löscht ihn. Gespeichert wird erst mit „{saveLabel}".
                                                 </Text>
                                                 <Group justify="space-between" align="center">
-                                                    <ChronicleDataChip>
+                                                    <Badge variant="outline" color="var(--text-strong)" tt="none">
                                                         {hasEditedExisting ? "Geändert" : "Unverändert"}
-                                                    </ChronicleDataChip>
+                                                    </Badge>
                                                     {hasEditedExisting && (
                                                         <Button
                                                             size="xs"
@@ -501,9 +502,9 @@ export default function GeometryEditor({
                                                     Ausgewählte Features erscheinen rot.
                                                 </Text>
                                                 <Group justify="space-between" align="center">
-                                                    <ChronicleDataChip>
+                                                    <Badge variant="outline" color="var(--text-strong)" tt="none">
                                                         {selectedFeatureIndices.size} ausgewählt
-                                                    </ChronicleDataChip>
+                                                    </Badge>
                                                     {selectedFeatureIndices.size > 0 && (
                                                         <Button
                                                             size="xs"
@@ -571,10 +572,10 @@ export default function GeometryEditor({
                                         </Button>
                                     </Button.Group>
                                     <Group justify="space-between" align="center">
-                                        <ChronicleDataChip>
+                                        <Badge variant="outline" color="var(--text-strong)" tt="none">
                                             {drawnFeatures.length} gezeichnet
                                             {drawnLengthKm != null ? ` · ${drawnLengthKm.toLocaleString("de-DE")} km` : ""}
-                                        </ChronicleDataChip>
+                                        </Badge>
                                         {hasDrawn && (
                                             <Button
                                                 size="xs"
@@ -657,7 +658,7 @@ export default function GeometryEditor({
 
                                 {/* Preview info */}
                                 {previewFeature && (
-                                    <ChronicleCard>
+                                    <Paper withBorder p="var(--card-pad)">
                                         <Stack gap={4}>
                                             <Text size="sm" fw={600}>Berechnete Route</Text>
                                             <Text size="sm" c="dimmed">
@@ -667,39 +668,45 @@ export default function GeometryEditor({
                                                 Dauer: {Math.round(previewFeature.properties.duration_ms / 60_000)} min
                                             </Text>
                                         </Stack>
-                                    </ChronicleCard>
+                                    </Paper>
                                 )}
 
                                 {uploadedGeojson && !previewFeature && (
-                                    <ChronicleCard>
-                                        <Text size="sm" fw={600} c="green">GeoJSON geladen — bitte prüfen</Text>
-                                    </ChronicleCard>
+                                    <Paper withBorder p="var(--card-pad)">
+                                        <Text size="sm" fw={600}>GeoJSON geladen — bitte prüfen</Text>
+                                    </Paper>
                                 )}
                             </>
                         )}
                     </Stack>
                 </ScrollArea>
 
-                {/* Footer buttons */}
-                <Box p="md" style={{ borderTop: "1px solid var(--mantine-color-default-border)" }}>
-                    <Stack gap="xs">
-                        {!isAggregated && (
-                            <Button
-                                onClick={handleAccept}
-                                loading={isPending}
-                                disabled={!canAccept}
-                                color={isDeleteOnly ? "red" : undefined}
-                            >
-                                {isDeleteOnly ? "Geometrie löschen" : saveLabel}
-                            </Button>
-                        )}
-                        {showCancel && (
-                            <Button variant="default" onClick={onCancel} disabled={isPending}>
-                                {cancelLabel}
-                            </Button>
-                        )}
-                    </Stack>
-                </Box>
+                {/* Foot of the dialog: cancel framed on the left, confirm (or the red
+                    delete) filled on the right — two actions at most. */}
+                <Group
+                    p="md"
+                    justify="flex-end"
+                    gap={10}
+                    grow={isMobile}
+                    style={{ borderTop: "2px solid var(--border-frame)" }}
+                >
+                    {showCancel && (
+                        <Button variant="default" onClick={onCancel} disabled={isPending}>
+                            {cancelLabel}
+                        </Button>
+                    )}
+                    {!isAggregated && (
+                        <Button
+                            onClick={handleAccept}
+                            loading={isPending}
+                            disabled={!canAccept}
+                            variant="filled"
+                            color={isDeleteOnly ? "red" : undefined}
+                        >
+                            {isDeleteOnly ? "Geometrie löschen" : saveLabel}
+                        </Button>
+                    )}
+                </Group>
             </Box>
 
             {/* ── Right panel (below on phones): map ──────────────────── */}
@@ -741,7 +748,7 @@ function parseFeatures(raw: string): object[] {
 
 /**
  * Wrap an uploaded GeoJSON string into a minimal RoutePreviewFeature-like object
- * so the map can display it as a preview (dashed orange). Only used for display.
+ * so the map can display it as a preview (dashed cyan). Only used for display.
  */
 function buildUploadPreview(geojsonStr: string): RoutePreviewFeature | null {
     try {

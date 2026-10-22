@@ -10,7 +10,7 @@ import {
     Title,
 } from "@mantine/core";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
-import { IconTrash } from "@tabler/icons-react";
+import { Trash2 } from "lucide-react";
 
 import {
     useDeleteFuldaEntry,
@@ -58,10 +58,10 @@ export const CATEGORY_LABEL: Record<string, string> = {
 
 // What a category does to the planning state (statement kind → effect).
 export const KIND_LABEL: Record<string, { label: string; color: string }> = {
-    IST: { label: "Ist · setzt Phase", color: "blue" },
-    OHNE_FOLGEPHASE: { label: "Ist · ohne Folgephase", color: "orange" },
-    PROGNOSE: { label: "Prognose · nur Termin", color: "grape" },
-    NEUAUFNAHME: { label: "Neuaufnahme · nur Termin", color: "grape" },
+    IST: { label: "Ist · setzt Phase", color: "teal" },
+    OHNE_FOLGEPHASE: { label: "Ist · ohne Folgephase", color: "gray" },
+    PROGNOSE: { label: "Prognose · nur Termin", color: "violet" },
+    NEUAUFNAHME: { label: "Neuaufnahme · nur Termin", color: "violet" },
 };
 
 export const ANSWER_STATUS_LABEL: Record<string, string> = {
@@ -193,7 +193,7 @@ export function FuldaRow({
                             onClick={() => remove.mutate(entry.id)}
                             title="Eintrag löschen"
                         >
-                            <IconTrash size={16} />
+                            <Trash2 size={16} />
                         </ActionIcon>
                     )}
                 </Group>
@@ -222,11 +222,11 @@ export function PhaseTable({
                         {kind.label}
                     </Badge>
                 )}
-                <Badge variant="light" color={rows.length ? "blue" : "gray"}>
+                <Badge variant="light" color={rows.length ? "teal" : "gray"}>
                     {rows.length}
                 </Badge>
                 {rows.length > 0 && (
-                    <Badge variant="light" color="green">
+                    <Badge variant="light" color="teal">
                         {confirmed} aktiv
                     </Badge>
                 )}

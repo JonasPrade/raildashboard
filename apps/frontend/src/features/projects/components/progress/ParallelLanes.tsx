@@ -1,15 +1,17 @@
-import { Anchor, Badge, Group, Stack, Text } from "@mantine/core";
-import { IconExternalLink } from "@tabler/icons-react";
+import { Anchor, Group, Stack, Text } from "@mantine/core";
+import { Check, ExternalLink } from "lucide-react";
 
 import { PARALLEL_STATE_LABEL, type ParallelState } from "./phaseMeta";
 import { formatDate } from "../../../../shared/format";
+import { LANE_STATE_COLOR } from "../../../../shared/theme/semanticColors";
+import { SwatchTag } from "../../../../shared/ui/SwatchTag";
 
 type Link = { url: string; comment?: string | null };
 
 const STATE_COLOR: Record<ParallelState, string> = {
-    OFFEN: "gray",
-    LAEUFT: "blue",
-    ABGESCHLOSSEN: "green",
+    OFFEN: LANE_STATE_COLOR.idle,
+    LAEUFT: LANE_STATE_COLOR.active,
+    ABGESCHLOSSEN: LANE_STATE_COLOR.done,
 };
 
 function Lane({
@@ -38,9 +40,12 @@ function Lane({
                     {label}
                 </Text>
                 {!hideState && (
-                    <Badge color={state ? STATE_COLOR[state] : "gray"} variant="light">
-                        {state ? PARALLEL_STATE_LABEL[state] : "–"}
-                    </Badge>
+                    <SwatchTag color={state ? STATE_COLOR[state] : LANE_STATE_COLOR.idle}>
+                        <Group gap={4} wrap="nowrap" component="span">
+                            {state ? PARALLEL_STATE_LABEL[state] : "–"}
+                            {state === "ABGESCHLOSSEN" && <Check size={12} aria-hidden />}
+                        </Group>
+                    </SwatchTag>
                 )}
                 {!hideState && formattedDate && (
                     <Text size="xs" c="dimmed">
@@ -54,7 +59,7 @@ function Lane({
                     {validLinks.map((l, i) => (
                         <Anchor key={i} href={l.url} target="_blank" rel="noreferrer" size="sm">
                             <Group gap={4} wrap="nowrap" component="span">
-                                <IconExternalLink size={14} />
+                                <ExternalLink size={16} />
                                 {l.comment?.trim() || l.url}
                             </Group>
                         </Anchor>

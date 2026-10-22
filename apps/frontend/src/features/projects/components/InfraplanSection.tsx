@@ -1,11 +1,11 @@
 import { useMemo } from "react";
-import { Alert, Anchor, Badge, Group, Loader, Stack, Table, Text, Title } from "@mantine/core";
+import { Alert, Anchor, Badge, Group, Paper, Stack, Table, Text, Title } from "@mantine/core";
 import { Link } from "react-router-dom";
-import { ChronicleCard } from "../../../components/chronicle";
 import { useProjectInfraplan, type InfraplanProjectEntry } from "../../../shared/api/queries";
 import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
 import Footnotes from "../../infraplan/Footnotes";
 import { PARL_LABEL, SECTION_SHORT, entryCost, entryDeltas, formatMio } from "../../infraplan/infraplanFormat";
+import { LoadingState } from "../../../shared/ui/LoadingState";
 
 // ---------------------------------------------------------------------------
 // Infraplan on the project page (docs/features/feature-infraplan-import.md →
@@ -24,14 +24,14 @@ export default function InfraplanSection({ projectId }: { projectId: number }) {
     const entries = useMemo(() => sortEntries(data?.entries ?? []), [data]);
     const deltas = useMemo(() => entryDeltas(entries), [entries]);
 
-    if (isLoading) return <Loader size="sm" />;
+    if (isLoading) return <LoadingState rows={3} />;
     if (!data || entries.length === 0) return null;
 
     return (
-        <ChronicleCard>
+        <Paper withBorder p="var(--card-pad)">
             <Stack gap="md">
-                <Group justify="space-between" wrap="wrap">
-                    <Title order={4}>Infraplan</Title>
+                <Group className="idt-section-head" justify="space-between" wrap="wrap">
+                    <Title order={2} className="idt-title-plain">Infraplan</Title>
                     <Anchor component={Link} to="/infraplan" size="sm">Infraplan-Übersicht →</Anchor>
                 </Group>
                 {data.missing_in_latest && data.latest_year != null && (
@@ -46,7 +46,7 @@ export default function InfraplanSection({ projectId }: { projectId: number }) {
                             <Table.Th>Abschnitt</Table.Th>
                             <Table.Th>Realisierungsstand</Table.Th>
                             <Table.Th>Inbetriebnahme gepl.</Table.Th>
-                            <Table.Th ta="right">Kosten Mio. €</Table.Th>
+                            <Table.Th className="num">Kosten Mio. €</Table.Th>
                             <Table.Th>Befassung</Table.Th>
                             <Table.Th>Veränderung</Table.Th>
                         </Table.Tr>
@@ -75,7 +75,7 @@ export default function InfraplanSection({ projectId }: { projectId: number }) {
                                     </Table.Td>
                                     <Table.Td style={{ maxWidth: 200 }}>{e.state_raw ?? "–"}</Table.Td>
                                     <Table.Td style={{ whiteSpace: "nowrap" }}>{e.ibn_raw ?? "–"}</Table.Td>
-                                    <Table.Td ta="right" style={{ whiteSpace: "nowrap" }}>
+                                    <Table.Td className="num" style={{ whiteSpace: "nowrap" }}>
                                         {cost !== null ? (
                                             <>
                                                 {formatMio(cost)}
@@ -95,7 +95,7 @@ export default function InfraplanSection({ projectId }: { projectId: number }) {
                                     <Table.Td>
                                         <Group gap={4} wrap="wrap">
                                             {hints.map((h) => (
-                                                <Badge key={h} size="sm" variant="light" color="orange" style={{ textTransform: "none" }}>
+                                                <Badge key={h} size="sm" variant="outline">
                                                     {h}
                                                 </Badge>
                                             ))}
@@ -111,6 +111,6 @@ export default function InfraplanSection({ projectId }: { projectId: number }) {
                     vorherigen Jahrgang derselben Maßnahme.
                 </Text>
             </Stack>
-        </ChronicleCard>
+        </Paper>
     );
 }

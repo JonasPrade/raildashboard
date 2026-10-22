@@ -116,7 +116,7 @@ the same or weaker role).
 - Unused exports in `queries.ts`: `useLinkTrackDocument`,
   `useUnlinkTrackDocument`, `useProjectRoutes`, `getProjectRoutesQueryOptions`,
   `updateProjectProgress`, `useFuldaYears`, `useStartVibAiExtraction`; unused
-  `components/tafel` exports (`KpiCard`, `MiniBoard`, `Ticker`, `FlapText`).
+  former `components/tafel` exports (`KpiCard`, `MiniBoard`, `Ticker`, `FlapText`).
 - `package.json`: `openapi-typescript`/`openapi-zod-client` are CLI tools in
   `dependencies`; `@types/maplibre-gl` is deprecated (maplibre v5 ships types).
 - `index.html:5` references `/favicon.svg` which does not exist → 404 on every

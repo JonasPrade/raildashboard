@@ -10,22 +10,22 @@ import {
     Container,
     Group,
     List,
-    Loader,
     Menu,
     Modal,
     MultiSelect,
     Pagination,
+    Paper,
     Stack,
     Switch,
     Table,
     Text,
     TextInput,
+    Title,
     Tooltip,
 } from "@mantine/core";
-import { modals } from "@mantine/modals";
+import { openConfirmModal } from "../../shared/ui/confirmModal";
 import { notifications } from "@mantine/notifications";
-import { IconDotsVertical } from "@tabler/icons-react";
-import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
+import { EllipsisVertical } from "lucide-react";
 import RequirePermission from "../../components/RequirePermission";
 import { filterProjectOption } from "../../lib/filterProjectOption";
 import { API_BASE } from "../../shared/api/client";
@@ -55,6 +55,7 @@ import {
     formatMio,
     isAssigned,
 } from "../infraplan/infraplanFormat";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 const PAGE_SIZE = 50;
 
@@ -147,7 +148,7 @@ function AssignCell({
                                     <Badge
                                         size="xs"
                                         variant="outline"
-                                        color={s.confidence >= 0.85 ? "green" : "gray"}
+                                        color={s.confidence >= 0.85 ? "violet" : "gray"}
                                         style={{ cursor: "pointer", textTransform: "none", maxWidth: 260 }}
                                         onClick={() => onChange([...current, s.project_id])}
                                     >
@@ -219,12 +220,12 @@ function SubprojectModal({
                     value={name}
                     onChange={(e) => setName(e.currentTarget.value)}
                 />
-                <Group justify="flex-end">
+                <div className="idt-modal-footer">
                     <Button variant="default" onClick={onClose}>Abbrechen</Button>
                     <Button onClick={submit} loading={create.isPending} disabled={parentId === null}>
                         Anlegen und zuordnen
                     </Button>
-                </Group>
+                </div>
             </Stack>
         </Modal>
     );
@@ -255,7 +256,7 @@ function ConfirmBlock({ record }: { record: InfraplanParseResult }) {
             const status = (error as { status?: number } | undefined)?.status;
             // Only parser warnings may be overridden — an existing year never.
             if (status === 409 && !force && detail.includes("Warnung")) {
-                modals.openConfirmModal({
+                openConfirmModal({
                     title: "Trotzdem übernehmen?",
                     children: (
                         <Text size="sm">
@@ -264,7 +265,6 @@ function ConfirmBlock({ record }: { record: InfraplanParseResult }) {
                         </Text>
                     ),
                     labels: { confirm: "Trotzdem übernehmen", cancel: "Abbrechen" },
-                    confirmProps: { color: "orange" },
                     onConfirm: () => void run(true),
                 });
                 return;
@@ -274,7 +274,7 @@ function ConfirmBlock({ record }: { record: InfraplanParseResult }) {
     };
 
     return (
-        <ChronicleCard>
+        <Paper withBorder p="var(--card-pad)">
             <Stack gap="sm">
                 <Text fw={600}>Übernehmen</Text>
                 <Text size="sm" c="dimmed">
@@ -310,7 +310,7 @@ function ConfirmBlock({ record }: { record: InfraplanParseResult }) {
                     </Button>
                 </Group>
             </Stack>
-        </ChronicleCard>
+        </Paper>
     );
 }
 
@@ -348,7 +348,7 @@ function InfraplanReviewPageContent() {
         [rows, section, onlyUnassigned, search],
     );
 
-    if (isLoading) return <Container py="xl"><Group justify="center"><Loader /></Group></Container>;
+    if (isLoading) return <Container py="xl"><LoadingState rows={6} /></Container>;
     if (isError || !record) {
         return (
             <Container size="sm" py="xl">
@@ -359,7 +359,7 @@ function InfraplanReviewPageContent() {
     if (record.status === "PENDING" || record.status === "RUNNING") {
         return (
             <Container size="sm" py="xl">
-                <Group gap="sm"><Loader size="sm" /><Text>Der Infraplan {record.year} wird ausgelesen …</Text></Group>
+                <Stack gap="sm"><Text>Der Infraplan {record.year} wird ausgelesen …</Text><LoadingState rows={3} label="Wird ausgelesen …" /></Stack>
             </Container>
         );
     }
@@ -416,7 +416,7 @@ function InfraplanReviewPageContent() {
                 <Group justify="space-between" align="flex-end" wrap="wrap">
                     <Stack gap={2}>
                         <Anchor component={Link} to="/admin/infraplan-import" size="sm">← Infraplan-Import</Anchor>
-                        <ChronicleHeadline as="h1">Infraplan {record.year}</ChronicleHeadline>
+                        <Title order={1}>Infraplan {record.year}</Title>
                         <Text size="sm" c="dimmed" style={{ overflowWrap: "anywhere" }}>
                             {record.file_name} · {record.assigned_count} von {record.row_count ?? rows.length} Zeilen
                             zugeordnet
@@ -430,7 +430,7 @@ function InfraplanReviewPageContent() {
                 </Group>
 
                 {confirmed && (
-                    <Alert color="green" variant="light">
+                    <Alert color="teal" variant="light">
                         Übernommen am {formatDateTime(record.confirmed_at as string)}
                         {record.confirmed_by_snapshot ? ` von ${record.confirmed_by_snapshot}` : ""}. Der Entwurf ist
                         nur noch lesbar; Zuordnungen pflegst du jetzt unter{" "}
@@ -464,7 +464,7 @@ function InfraplanReviewPageContent() {
                     </Alert>
                 )}
 
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="sm">
                         <Chip.Group multiple={false} value={section} onChange={(v) => changeFilter(() => setSection(v))}>
                             <Group gap={6} wrap="wrap">
@@ -508,7 +508,7 @@ function InfraplanReviewPageContent() {
                                     <Table.Th>Bezeichnung / Maßnahme</Table.Th>
                                     <Table.Th>Stand</Table.Th>
                                     <Table.Th>IBN</Table.Th>
-                                    <Table.Th ta="right">Kosten Mio. €</Table.Th>
+                                    <Table.Th className="num">Kosten Mio. €</Table.Th>
                                     <Table.Th>Befassung</Table.Th>
                                     <Table.Th style={{ minWidth: 320 }}>Zuordnung</Table.Th>
                                     <Table.Th />
@@ -553,7 +553,7 @@ function InfraplanReviewPageContent() {
                                             <Text size="sm">{row.state_raw ?? "–"}</Text>
                                         </Table.Td>
                                         <Table.Td style={{ whiteSpace: "nowrap" }}>{row.ibn_raw ?? "–"}</Table.Td>
-                                        <Table.Td ta="right"><CostCell row={row} /></Table.Td>
+                                        <Table.Td className="num"><CostCell row={row} /></Table.Td>
                                         <Table.Td style={{ maxWidth: 160 }}>
                                             <Text size="sm">
                                                 {row.parl_state ? PARL_LABEL[row.parl_state] : (row.parl_raw ?? "–")}
@@ -577,7 +577,7 @@ function InfraplanReviewPageContent() {
                                                 <Menu position="bottom-end" withinPortal>
                                                     <Menu.Target>
                                                         <ActionIcon variant="subtle" aria-label="Aktionen">
-                                                            <IconDotsVertical size={16} />
+                                                            <EllipsisVertical size={16} />
                                                         </ActionIcon>
                                                     </Menu.Target>
                                                     <Menu.Dropdown>
@@ -609,10 +609,10 @@ function InfraplanReviewPageContent() {
                             </Group>
                         )}
                     </Stack>
-                </ChronicleCard>
+                </Paper>
 
                 {(record.missing_from_previous ?? []).length > 0 && (
-                    <ChronicleCard>
+                    <Paper withBorder p="var(--card-pad)">
                         <Stack gap="sm">
                             <Text fw={600}>
                                 Im Vorjahr enthalten, jetzt ohne Eintrag ({record.missing_from_previous?.length})
@@ -651,7 +651,7 @@ function InfraplanReviewPageContent() {
                                 </Table.Tbody>
                             </ResponsiveTable>
                         </Stack>
-                    </ChronicleCard>
+                    </Paper>
                 )}
 
                 {!confirmed && <ConfirmBlock record={record} />}

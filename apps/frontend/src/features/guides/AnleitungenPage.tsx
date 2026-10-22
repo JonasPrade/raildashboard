@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
-import { Container, SimpleGrid, Stack, Text, Group } from "@mantine/core";
-import { ChronicleHeadline, ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
+import { Badge, Container, Paper, SimpleGrid, Stack, Text, Group, Title } from "@mantine/core";
 import { useAuth } from "../../lib/auth";
 
 type Guide = {
@@ -74,7 +73,7 @@ function GuideGrid({ guides }: { guides: Guide[] }) {
     return (
         <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="sm">
             {guides.map((g) => (
-                <ChronicleCard key={g.to} style={{ textDecoration: "none" }}>
+                <Paper withBorder p="var(--card-pad)" key={g.to}>
                     <Link to={g.to} style={{ textDecoration: "none", color: "inherit" }}>
                         <Stack gap={4}>
                             <Text fw={500}>{g.title}</Text>
@@ -83,7 +82,7 @@ function GuideGrid({ guides }: { guides: Guide[] }) {
                             </Text>
                         </Stack>
                     </Link>
-                </ChronicleCard>
+                </Paper>
             ))}
         </SimpleGrid>
     );
@@ -107,8 +106,8 @@ export default function AnleitungenPage() {
             <Stack gap="xl">
                 <Stack gap="xs">
                     <Group gap="xs" align="center">
-                        <ChronicleHeadline as="h1">Anleitungen</ChronicleHeadline>
-                        <ChronicleDataChip>Datenpflege</ChronicleDataChip>
+                        <Title order={1}>Anleitungen</Title>
+                        <Badge variant="outline">Datenpflege</Badge>
                     </Group>
                     <Text c="dimmed" size="sm">
                         Schritt-für-Schritt-Anleitungen für das Pflegen der Datenbank: wie der
@@ -120,14 +119,14 @@ export default function AnleitungenPage() {
                 </Stack>
 
                 <Stack gap="sm">
-                    <Text fw={600} size="sm" c="dimmed" tt="uppercase">
+                    <Text className="idt-eyebrow" component="div">
                         Grundlagen
                     </Text>
                     <GuideGrid guides={FOUNDATIONS} />
                 </Stack>
 
                 <Stack gap="sm">
-                    <Text fw={600} size="sm" c="dimmed" tt="uppercase">
+                    <Text className="idt-eyebrow" component="div">
                         Datenquellen pflegen
                     </Text>
                     <GuideGrid guides={WORKFLOWS} />

@@ -1,18 +1,20 @@
 import { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import {
     Anchor,
+    Badge,
     Collapse,
     Group,
-    Loader,
+    Paper,
     Stack,
     Text,
     Title,
 } from "@mantine/core";
 import { Link } from "react-router-dom";
-import { ChronicleCard, ChronicleDataChip } from "../../../components/chronicle";
 import { type FinveWithBudgets, useProjectFinves } from "../../../shared/api/queries";
 import { FinveBudgetDetails } from "../../finves/shared/FinveBudgetDetails";
 import { formatTEuro } from "../../../shared/format";
+import { LoadingState } from "../../../shared/ui/LoadingState";
 
 // ---------------------------------------------------------------------------
 // Single FinVe card with charts (chart/table internals live in
@@ -34,8 +36,8 @@ function FinveCard({ finve }: { finve: FinveWithBudgets }) {
                 style={{ color: "inherit" }}
             >
                 <Group gap="xs" align="center">
-                    <ChronicleDataChip>Sammel-FinVe</ChronicleDataChip>
-                    <ChronicleDataChip>FinVe {finve.id}</ChronicleDataChip>
+                    <Badge variant="outline">Sammel-FinVe</Badge>
+                    <Badge variant="outline">FinVe {finve.id}</Badge>
                     <Text size="sm" c="dimmed">{finve.name ?? "–"}</Text>
                 </Group>
             </Anchor>
@@ -43,11 +45,11 @@ function FinveCard({ finve }: { finve: FinveWithBudgets }) {
     }
 
     return (
-        <ChronicleCard>
+        <Paper withBorder p="var(--card-pad)">
             <Stack gap="sm">
                 <Group justify="space-between" align="flex-start" wrap="wrap">
                     <Group gap="sm" align="center">
-                        <ChronicleDataChip>FinVe {finve.id}</ChronicleDataChip>
+                        <Badge variant="outline">FinVe {finve.id}</Badge>
                         <Text size="sm" fw={500}>{finve.name ?? "–"}</Text>
                     </Group>
                     <Group gap="xl">
@@ -73,10 +75,11 @@ function FinveCard({ finve }: { finve: FinveWithBudgets }) {
                             <Text
                                 size="xs"
                                 c="blue"
-                                style={{ cursor: "pointer", userSelect: "none" }}
+                                style={{ display: "inline-flex", alignItems: "center", gap: 4, cursor: "pointer", userSelect: "none" }}
                                 onClick={() => setOpen((o) => !o)}
                             >
-                                {open ? "Ausblenden ▲" : "Details & Diagramme ▼"}
+                                {open ? "Ausblenden" : "Details & Diagramme"}
+                                {open ? <ChevronUp size={16} aria-hidden /> : <ChevronDown size={16} aria-hidden />}
                             </Text>
                         )}
                     </Group>
@@ -88,7 +91,7 @@ function FinveCard({ finve }: { finve: FinveWithBudgets }) {
                     </Collapse>
                 )}
             </Stack>
-        </ChronicleCard>
+        </Paper>
     );
 }
 
@@ -99,17 +102,17 @@ function FinveCard({ finve }: { finve: FinveWithBudgets }) {
 export default function FinveSection({ projectId }: { projectId: number }) {
     const { data: finves, isLoading } = useProjectFinves(projectId);
 
-    if (isLoading) return <Loader size="sm" />;
+    if (isLoading) return <LoadingState rows={3} />;
     if (!finves || finves.length === 0) return null;
 
     return (
-        <ChronicleCard>
+        <Paper withBorder p="var(--card-pad)">
             <Stack gap="md">
-                <Title order={4}>Finanzierungsvereinbarungen (FinVe)</Title>
+                <Title order={2}>Finanzierungsvereinbarungen (FinVe)</Title>
                 {finves.map((finve) => (
                     <FinveCard key={finve.id} finve={finve} />
                 ))}
             </Stack>
-        </ChronicleCard>
+        </Paper>
     );
 }

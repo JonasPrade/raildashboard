@@ -1,5 +1,5 @@
 import { Alert } from "@mantine/core";
-import { IconPlayerPause, IconBan } from "@tabler/icons-react";
+import { Pause, Ban } from "lucide-react";
 
 import { LIFECYCLE_LABEL, type LifecycleStatus } from "./phaseMeta";
 
@@ -14,9 +14,10 @@ export default function LifecycleOverlay({ status }: Props) {
     const isAbort = status === "ABGEBROCHEN";
     return (
         <Alert
-            color={isAbort ? "red" : "orange"}
+            // Lifecycle is no "Versäumnis": neutral alert, the icon tells pause from abort.
+            color="teal"
             variant="light"
-            icon={isAbort ? <IconBan size={18} /> : <IconPlayerPause size={18} />}
+            icon={isAbort ? <Ban size={16} /> : <Pause size={16} />}
             title={`Projekt ${LIFECYCLE_LABEL[status]}`}
         >
             {isAbort

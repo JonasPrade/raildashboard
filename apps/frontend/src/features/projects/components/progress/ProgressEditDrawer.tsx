@@ -20,7 +20,7 @@ import {
 import { useIsMobile } from "../../../../shared/hooks/useBreakpoint";
 import { ResponsiveTable } from "../../../../shared/ui/ResponsiveTable";
 import { notifications } from "@mantine/notifications";
-import { IconPlus, IconRefresh, IconTrash } from "@tabler/icons-react";
+import { Plus, RefreshCw, Trash2 } from "lucide-react";
 
 import {
     type ProgressObservationCreate,
@@ -271,7 +271,7 @@ function ObservationDraftForm({ onAdd }: { onAdd: (obs: ProgressObservationCreat
                     onChange={(e) => setNote(e.currentTarget.value)}
                     w={200}
                 />
-                <Button size="xs" leftSection={<IconPlus size={14} />} onClick={submit}>
+                <Button size="xs" leftSection={<Plus size={16} />} onClick={submit}>
                     Hinzufügen
                 </Button>
             </Group>
@@ -525,14 +525,14 @@ export default function ProgressEditDrawer({ projectId, progress, opened, onClos
                                                 set({ pfLinks: active.pfLinks.filter((_, j) => j !== i) })
                                             }
                                         >
-                                            <IconTrash size={14} />
+                                            <Trash2 size={16} />
                                         </ActionIcon>
                                     </Group>
                                 ))}
                                 <Button
                                     variant="light"
                                     size="compact-xs"
-                                    leftSection={<IconPlus size={14} />}
+                                    leftSection={<Plus size={16} />}
                                     style={{ alignSelf: "flex-start" }}
                                     onClick={() =>
                                         set({ pfLinks: [...active.pfLinks, { url: "", comment: "" }] })
@@ -681,7 +681,7 @@ export default function ProgressEditDrawer({ projectId, progress, opened, onClos
                                                     })
                                                 }
                                             >
-                                                <IconTrash size={14} />
+                                                <Trash2 size={16} />
                                             </ActionIcon>
                                         </Table.Td>
                                     </Table.Tr>
@@ -740,7 +740,7 @@ export default function ProgressEditDrawer({ projectId, progress, opened, onClos
                                                     })
                                                 }
                                             >
-                                                <IconTrash size={14} />
+                                                <Trash2 size={16} />
                                             </ActionIcon>
                                         </Table.Td>
                                     </Table.Tr>
@@ -757,7 +757,7 @@ export default function ProgressEditDrawer({ projectId, progress, opened, onClos
                     <Button
                         variant="subtle"
                         size="xs"
-                        leftSection={<IconRefresh size={14} />}
+                        leftSection={<RefreshCw size={16} />}
                         onClick={() => recompute.mutate()}
                         loading={recompute.isPending}
                     >

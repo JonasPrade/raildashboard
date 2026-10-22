@@ -1,7 +1,6 @@
-import { ActionIcon, Box, Drawer, Indicator, Slider, Stack, Switch, Text, TextInput } from "@mantine/core";
+import { ActionIcon, Box, Button, Drawer, Indicator, Slider, Stack, Switch, Text, TextInput } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconAdjustments, IconSearch, IconX } from "@tabler/icons-react";
-import { ChronicleButton } from "../../components/chronicle";
+import { SlidersHorizontal, Search, X } from "lucide-react";
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import PhaseFilterSelect from "../projects/PhaseFilterSelect";
 import type { PhaseFilterValue } from "../projects/phaseFilter";
@@ -24,6 +23,15 @@ type Props = {
     /** Omitted for anonymous visitors — the constituency switch is hidden then. */
     onShowConstituenciesChange?: (value: boolean) => void;
 };
+
+// Panels over the map: opaque surface in the frame colour, legible on the light
+// basemap in both schemes (feature-idt-design.md → Karte).
+const PANEL_STYLE = {
+    background: "var(--surface)",
+    color: "var(--text-body)",
+    border: "2px solid var(--border-frame)",
+    borderRadius: 0,
+} as const;
 
 export default function MapControls({
     onOpenFilters,
@@ -48,11 +56,11 @@ export default function MapControls({
     const searchField = (
         <TextInput
             placeholder="Projekt suchen…"
-            leftSection={<IconSearch size={14} />}
+            leftSection={<Search size={16} />}
             rightSection={
                 searchTerm ? (
                     <ActionIcon variant="subtle" size="xs" onClick={() => onSearchChange("")} aria-label="Suche leeren">
-                        <IconX size={12} />
+                        <X size={16} />
                     </ActionIcon>
                 ) : undefined
             }
@@ -148,30 +156,26 @@ export default function MapControls({
                         style={{
                             flex: 1,
                             minWidth: 0,
-                            background: "rgba(255, 255, 255, 0.92)",
-                            border: "1px solid var(--rule)",
-                            boxShadow: "var(--shadow-float)",
-                            padding: 4,
+                            // The field brings its own 2px frame; the strip only gives it ground.
+                            background: "var(--surface)",
                         }}
                     >
                         {searchField}
                     </Box>
                     {/* The phase filter lives in the sheet — flag an active one on its button. */}
-                    <Indicator disabled={phaseFilter.length === 0} color="orange" size={10} offset={3}>
+                    <Indicator disabled={phaseFilter.length === 0} color="violet" size={10} offset={3}>
                         <ActionIcon
                             onClick={openSheet}
-                            size={42}
-                            radius={0}
-                            variant="filled"
-                            color="preussen"
+                            size={44}
+                            variant="default"
                             aria-label={
                                 phaseFilter.length > 0
                                     ? "Karteneinstellungen öffnen (Phasenfilter aktiv)"
                                     : "Karteneinstellungen öffnen"
                             }
-                            style={{ boxShadow: "var(--shadow-float)" }}
+                            style={{ border: "2px solid var(--border-frame)", color: "var(--text-strong)" }}
                         >
-                            <IconAdjustments size={20} />
+                            <SlidersHorizontal size={20} />
                         </ActionIcon>
                     </Indicator>
                 </Box>
@@ -183,8 +187,7 @@ export default function MapControls({
                             top: 60,
                             left: 8,
                             zIndex: 10,
-                            background: "rgba(255, 255, 255, 0.92)",
-                            border: "1px solid var(--rule)",
+                            ...PANEL_STYLE,
                             padding: "2px 6px",
                         }}
                     >
@@ -204,7 +207,7 @@ export default function MapControls({
                 >
                     <Stack gap="md" pb="md">
                         {phaseSelect}
-                        <ChronicleButton
+                        <Button
                             onClick={() => {
                                 // Both drawers at once would stack — hand over instead.
                                 closeSheet();
@@ -212,12 +215,12 @@ export default function MapControls({
                             }}
                         >
                             Projektgruppen
-                        </ChronicleButton>
+                        </Button>
                         {layerSwitches}
                         {sizeSliders}
-                        <ChronicleButton variant="ghost" onClick={closeSheet}>
+                        <Button variant="subtle" onClick={closeSheet}>
                             Schließen
-                        </ChronicleButton>
+                        </Button>
                     </Stack>
                 </Drawer>
             </>
@@ -236,13 +239,8 @@ export default function MapControls({
         >
             <div
                 style={{
-                    background: "rgba(255, 255, 255, 0.92)",
-                    backdropFilter: "blur(20px)",
-                    WebkitBackdropFilter: "blur(20px)",
-                    borderRadius: 0,
-                    boxShadow: "var(--shadow-float)",
+                    ...PANEL_STYLE,
                     padding: "12px",
-                    border: "1px solid var(--rule)",
                 }}
             >
                 <Stack gap="sm">
@@ -253,9 +251,9 @@ export default function MapControls({
                             {filteredCount} von {totalProjects} Projekten
                         </Text>
                     )}
-                    <ChronicleButton onClick={onOpenFilters}>
+                    <Button onClick={onOpenFilters} size="sm">
                         Projektgruppen
-                    </ChronicleButton>
+                    </Button>
                     {layerSwitches}
                     {sizeSliders}
                 </Stack>

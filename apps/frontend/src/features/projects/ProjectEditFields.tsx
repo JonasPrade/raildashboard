@@ -108,7 +108,7 @@ export function ProjectEditFields({
         const km = computeGeojsonLengthKm(geojson);
         if (km == null) {
             notifications.show({
-                color: "yellow",
+                color: "gray",
                 title: "Keine Linien-Geometrie",
                 message: "Aus der Projektgeometrie konnte keine Länge berechnet werden.",
             });

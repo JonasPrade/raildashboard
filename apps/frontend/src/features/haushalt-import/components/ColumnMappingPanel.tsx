@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Alert, Badge, Box, Button, Collapse, Group, Stack, Table, Text } from "@mantine/core";
 import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
+import { STATUS_TONE } from "../../../shared/theme/semanticColors";
 import type {
     HaushaltsColumnMapping,
     HaushaltsTableSection,
@@ -13,9 +14,9 @@ const SOURCE_LABEL: Record<HaushaltsColumnMapping["source"], string> = {
 };
 
 const SOURCE_COLOR: Record<HaushaltsColumnMapping["source"], string> = {
-    header: "green",
-    llm: "yellow",
-    fallback: "orange",
+    header: STATUS_TONE.done,
+    llm: STATUS_TONE.active,
+    fallback: STATUS_TONE.neutral,
 };
 
 /**

@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { Badge, Button, Group, Loader, Stack, Text } from "@mantine/core";
-import { IconPencil } from "@tabler/icons-react";
+import { Badge, Button, Group, Paper, Stack, Text, Title } from "@mantine/core";
+import { Pencil } from "lucide-react";
 
-import { ChronicleCard, ChronicleHeadline } from "../../../../components/chronicle";
 import { useAuth } from "../../../../lib/auth";
 import { useProjectProgress } from "../../../../shared/api/queries";
 import ForecastPanel from "./ForecastPanel";
@@ -21,6 +20,7 @@ import {
     type MainPhase,
     type ParallelState,
 } from "./phaseMeta";
+import { LoadingState } from "../../../../shared/ui/LoadingState";
 
 export default function ProgressSection({ projectId }: { projectId: number }) {
     const { can, user } = useAuth();
@@ -30,23 +30,18 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
 
     if (isLoading) {
         return (
-            <ChronicleCard>
-                <Group gap="sm">
-                    <Loader size="sm" />
-                    <Text size="sm" c="dimmed">
-                        Planungsstand wird geladen …
-                    </Text>
-                </Group>
-            </ChronicleCard>
+            <Paper withBorder p="var(--card-pad)">
+                <LoadingState rows={4} label="Planungsstand wird geladen …" />
+            </Paper>
         );
     }
     if (isError || !progress) {
         return (
-            <ChronicleCard>
+            <Paper withBorder p="var(--card-pad)">
                 <Text size="sm" c="dimmed">
                     Planungsstand konnte nicht geladen werden.
                 </Text>
-            </ChronicleCard>
+            </Paper>
         );
     }
 
@@ -72,65 +67,65 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
     });
 
     return (
-        <ChronicleCard>
+        <Paper withBorder p="var(--card-pad)">
             <Stack gap="lg">
-                <Group justify="space-between" align="flex-start">
-                    <Stack gap={2}>
-                        <ChronicleHeadline as="h2" style={{ fontSize: "1.15rem" }}>
+                <Stack gap="xs">
+                    <Group className="idt-section-head" justify="space-between" align="center" wrap="nowrap">
+                        <Title order={2} className="idt-title-plain">
                             Planungsstand
-                        </ChronicleHeadline>
-                        <Group gap="sm">
-                            {progress.is_superior ? (
-                                hasSpan ? (
-                                    <Text size="sm" c="dimmed">
-                                        Spanne der Unterprojekte:{" "}
-                                        {MAIN_PHASE_LABEL[progress.span_min_phase as MainPhase]} –{" "}
-                                        {MAIN_PHASE_LABEL[progress.span_max_phase as MainPhase]}
-                                    </Text>
-                                ) : progress.is_overridden ? (
-                                    // Editorial override pins the whole project to one phase.
-                                    <Text size="sm" c="dimmed">
-                                        Gesamter Abschnitt: {MAIN_PHASE_LABEL[effectivePhase]}
-                                    </Text>
-                                ) : (
-                                    <Text size="sm" c="dimmed">
-                                        Status der Unterprojekte unbekannt
-                                    </Text>
-                                )
-                            ) : isUnknownLeaf ? (
+                        </Title>
+                        {canEdit && (
+                            <Button
+                                variant="light"
+                                size="xs"
+                                leftSection={<Pencil size={16} />}
+                                onClick={() => setEditing(true)}
+                            >
+                                Bearbeiten
+                            </Button>
+                        )}
+                    </Group>
+                    <Group gap="sm">
+                        {progress.is_superior ? (
+                            hasSpan ? (
                                 <Text size="sm" c="dimmed">
-                                    Aktuelle Phase: {UNKNOWN_LABEL} (keine Datengrundlage)
+                                    Spanne der Unterprojekte:{" "}
+                                    {MAIN_PHASE_LABEL[progress.span_min_phase as MainPhase]} –{" "}
+                                    {MAIN_PHASE_LABEL[progress.span_max_phase as MainPhase]}
+                                </Text>
+                            ) : progress.is_overridden ? (
+                                // Editorial override pins the whole project to one phase.
+                                <Text size="sm" c="dimmed">
+                                    Gesamter Abschnitt: {MAIN_PHASE_LABEL[effectivePhase]}
                                 </Text>
                             ) : (
                                 <Text size="sm" c="dimmed">
-                                    Aktuelle Phase: {MAIN_PHASE_LABEL[effectivePhase]}
-                                    {user?.role === "admin" &&
-                                        ` · ${(progress.computed_confidence * 100).toFixed(0)} % Vertrauen`}
+                                    Status der Unterprojekte unbekannt
                                 </Text>
-                            )}
-                            {progress.is_overridden && (
-                                <Badge color="grape" variant="light" title={progress.manual_override_note ?? undefined}>
-                                    übersteuert
-                                </Badge>
-                            )}
-                            {isDimmed && (
-                                <Badge color={lifecycle === "ABGEBROCHEN" ? "red" : "orange"}>
-                                    {LIFECYCLE_LABEL[lifecycle]}
-                                </Badge>
-                            )}
-                        </Group>
-                    </Stack>
-                    {canEdit && (
-                        <Button
-                            variant="light"
-                            size="xs"
-                            leftSection={<IconPencil size={14} />}
-                            onClick={() => setEditing(true)}
-                        >
-                            Bearbeiten
-                        </Button>
-                    )}
-                </Group>
+                            )
+                        ) : isUnknownLeaf ? (
+                            <Text size="sm" c="dimmed">
+                                Aktuelle Phase: {UNKNOWN_LABEL} (keine Datengrundlage)
+                            </Text>
+                        ) : (
+                            <Text size="sm" c="dimmed">
+                                Aktuelle Phase: {MAIN_PHASE_LABEL[effectivePhase]}
+                                {user?.role === "admin" &&
+                                    ` · ${(progress.computed_confidence * 100).toFixed(0)} % Vertrauen`}
+                            </Text>
+                        )}
+                        {progress.is_overridden && (
+                            <Badge color="violet" variant="light" title={progress.manual_override_note ?? undefined}>
+                                übersteuert
+                            </Badge>
+                        )}
+                        {isDimmed && (
+                            <Badge variant="outline" color="gray">
+                                {LIFECYCLE_LABEL[lifecycle]}
+                            </Badge>
+                        )}
+                    </Group>
+                </Stack>
 
                 <LifecycleOverlay status={lifecycle} />
 
@@ -172,7 +167,7 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
 
                 {!isDimmed && (
                     <Stack gap="xs">
-                        <Text size="sm" fw={700} c="dimmed" tt="uppercase" style={{ letterSpacing: 0.5 }}>
+                        <Text component="div" className="idt-eyebrow">
                             Prognose
                         </Text>
                         <ForecastPanel forecast={progress.forecast} />
@@ -193,6 +188,6 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
                     onClose={() => setEditing(false)}
                 />
             )}
-        </ChronicleCard>
+        </Paper>
     );
 }

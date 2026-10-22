@@ -50,7 +50,7 @@ const DEF: GuideDef = {
             body: `Nach dem Parsen landest du automatisch auf der **Strukturvorschau**. Sie zeigt oben Kennzahlen (*Projekte erkannt, Berichtsjahr, Drucksache, Ohne PFA*) und darunter alle erkannten Vorhaben mit Sektion, Projektname und Kategorie.
 
 - Die Spalte **„Rohtext-Qualität & Abschnitte"** zeigt pro Vorhaben, welche Unterabschnitte gefunden wurden (Verk. Zielsetzung, Durchgef. Maßnahmen, Noch umzusetzende, Bauaktivitäten, Teilinbetriebnahmen, Projektkenndaten) und wie viele PFA-Zeilen erkannt wurden.
-- Per Klick auf eine Zeile (**„▼ Rohtext anzeigen"**) lässt sich der OCR-Rohtext des Vorhabens einsehen — nützlich, wenn ein Eintrag \`leer\` oder \`0 PFA\` meldet.
+- Per Klick auf eine Zeile (**„Rohtext anzeigen"**) lässt sich der OCR-Rohtext des Vorhabens einsehen — nützlich, wenn ein Eintrag \`leer\` oder \`0 PFA\` meldet.
 - Stimmt die Struktur grob, weiter mit **„Weiter zum Review →"**; sonst **„Abbrechen"** und mit angepasstem Seitenbereich neu parsen.`,
             exampleKey: "vib-structure",
         },

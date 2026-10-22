@@ -10,22 +10,22 @@ import { useMemo, useState } from "react";
 import {
     Accordion,
     Alert,
-    Container,
     Anchor,
     Badge,
+    Container,
     Group,
-    Loader,
+    Paper,
     Select,
     Stack,
     Table,
     Text,
     TextInput,
+    Title,
 } from "@mantine/core";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
-import { IconSearch } from "@tabler/icons-react";
+import { Search } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 
-import { ChronicleCard, ChronicleDataChip, ChronicleHeadline } from "../../components/chronicle";
 import { useAuth } from "../../lib/auth";
 import {
     type PoliticianListItem,
@@ -34,6 +34,7 @@ import {
     usePolitician,
 } from "../../shared/api/queries";
 import { COMMITTEE_LABELS, CommitteeBadges, formatWeight } from "./mandateDisplay";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 const COMMITTEE_OPTIONS = [
     { value: "verkehr", label: "Verkehrsausschuss" },
@@ -43,7 +44,7 @@ const COMMITTEE_OPTIONS = [
 function PoliticianProjects({ mandateId }: { mandateId: number }) {
     const { data, isLoading } = usePolitician(mandateId);
 
-    if (isLoading) return <Loader size="sm" />;
+    if (isLoading) return <LoadingState rows={3} />;
     if (!data) return <Text c="dimmed">Konnte nicht geladen werden.</Text>;
 
     if (data.projects.length === 0) {
@@ -62,7 +63,7 @@ function PoliticianProjects({ mandateId }: { mandateId: number }) {
                 <Table.Tr>
                     <Table.Th>Projekt</Table.Th>
                     <Table.Th>Nummer</Table.Th>
-                    <Table.Th ta="right">Im Wahlkreis</Table.Th>
+                    <Table.Th className="num">Im Wahlkreis</Table.Th>
                 </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -78,7 +79,7 @@ function PoliticianProjects({ mandateId }: { mandateId: number }) {
                                 {project.project_number ?? "—"}
                             </Text>
                         </Table.Td>
-                        <Table.Td ta="right">
+                        <Table.Td className="num">
                             {formatWeight(project.length_km, project.overlap_kind)}
                         </Table.Td>
                     </Table.Tr>
@@ -111,7 +112,7 @@ function PoliticianRow({ politician }: { politician: PoliticianListItem }) {
                             <Badge
                                 size="xs"
                                 variant={politician.is_direct_mandate ? "filled" : "outline"}
-                                color={politician.is_direct_mandate ? "preussen" : "gray"}
+                                color={politician.is_direct_mandate ? "violet" : "gray"}
                             >
                                 {politician.is_direct_mandate
                                     ? "Direktmandat"
@@ -121,10 +122,10 @@ function PoliticianRow({ politician }: { politician: PoliticianListItem }) {
                     </Stack>
                     <Group gap="xs" wrap="nowrap">
                         <CommitteeBadges committees={politician.committees} />
-                        <ChronicleDataChip>
+                        <Badge variant="outline">
                             {politician.project_count}{" "}
                             {politician.project_count === 1 ? "Projekt" : "Projekte"}
-                        </ChronicleDataChip>
+                        </Badge>
                     </Group>
                 </Group>
             </Accordion.Control>
@@ -191,7 +192,7 @@ function PoliticianWorkingList() {
     return (
         <Stack gap="lg" p={{ base: "xs", sm: "xl" }} maw={1100} mx="auto">
             <Stack gap="xs">
-                <ChronicleHeadline as="h1">Abgeordnete</ChronicleHeadline>
+                <Title order={1}>Abgeordnete</Title>
                 <Text c="dimmed">
                     Wer ist für welches Projekt zuständig? Namen suchen, auf Verkehrs- oder
                     Haushaltsausschuss filtern und die Projekte im jeweiligen Wahlkreis lesen.
@@ -209,7 +210,7 @@ function PoliticianWorkingList() {
             )}
 
             {status.data?.is_stale && status.data.period && (
-                <Alert color="gold" variant="light">
+                <Alert color="teal" variant="light">
                     Der Abgeordnetenstand ist älter als {status.data.stale_after_days} Tage
                     {importedAt
                         ? ` (zuletzt am ${new Date(importedAt).toLocaleDateString("de-DE", {
@@ -220,12 +221,12 @@ function PoliticianWorkingList() {
                 </Alert>
             )}
 
-            <ChronicleCard>
+            <Paper withBorder p="var(--card-pad)">
                 <Group align="flex-end" gap="md" wrap="wrap">
                     <TextInput
                         label="Name"
                         placeholder="Namensteil eingeben"
-                        leftSection={<IconSearch size={16} />}
+                        leftSection={<Search size={16} />}
                         value={query}
                         onChange={(event) => setParam("q", event.currentTarget.value || null)}
                         style={{ flex: "1 1 240px" }}
@@ -250,7 +251,7 @@ function PoliticianWorkingList() {
                         style={{ flex: "0 1 260px" }}
                     />
                 </Group>
-            </ChronicleCard>
+            </Paper>
 
             <Group justify="space-between" align="baseline" wrap="wrap" gap="xs">
                 <Text size="sm" c="dimmed">
@@ -270,9 +271,7 @@ function PoliticianWorkingList() {
             </Group>
 
             {isLoading ? (
-                <Group justify="center" py="xl">
-                    <Loader />
-                </Group>
+                <LoadingState rows={6} />
             ) : (data?.length ?? 0) === 0 ? (
                 <Text c="dimmed">Keine Abgeordneten gefunden.</Text>
             ) : (

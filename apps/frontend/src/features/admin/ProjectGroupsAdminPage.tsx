@@ -2,19 +2,21 @@ import { useMemo, useState } from "react";
 import {
     ActionIcon,
     Alert,
+    Badge,
+    Button,
     Container,
     Group,
-    Loader,
+    Paper,
     SegmentedControl,
     Stack,
     Switch,
     Text,
     TextInput,
+    Title,
     Tooltip,
 } from "@mantine/core";
-import { IconPencil, IconPlus, IconSearch, IconTrash } from "@tabler/icons-react";
-import { modals } from "@mantine/modals";
-import { ChronicleHeadline, ChronicleCard, ChronicleDataChip, ChronicleButton } from "../../components/chronicle";
+import { Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { openConfirmModal } from "../../shared/ui/confirmModal";
 import { notifications } from "@mantine/notifications";
 import {
     useProjectGroups,
@@ -26,6 +28,8 @@ import {
     type ProjectGroup,
 } from "../../shared/api/queries";
 import { ProjectGroupFormModal } from "./ProjectGroupFormModal";
+import { LoadingState } from "../../shared/ui/LoadingState";
+import { ErrorState } from "../../shared/ui/ErrorState";
 
 const MODE_DATA: { value: MapGroupMode; label: string; description: string }[] = [
     {
@@ -41,7 +45,7 @@ const MODE_DATA: { value: MapGroupMode; label: string; description: string }[] =
 ];
 
 export default function ProjectGroupsAdminPage() {
-    const { data: groups, isLoading, isError } = useProjectGroups();
+    const { data: groups, isLoading, isError, refetch } = useProjectGroups();
     const { data: appSettings } = useAppSettings();
     const updateGroup = useUpdateProjectGroup();
     const deleteGroup = useDeleteProjectGroup();
@@ -64,7 +68,7 @@ export default function ProjectGroupsAdminPage() {
     };
 
     const handleModeChange = (value: string) => {
-        updateSettings.mutate(value as MapGroupMode, {
+        updateSettings.mutate({ map_group_mode: value as MapGroupMode }, {
             onError: () =>
                 notifications.show({
                     color: "red",
@@ -97,7 +101,7 @@ export default function ProjectGroupsAdminPage() {
     };
 
     const handleDelete = (group: ProjectGroup) => {
-        modals.openConfirmModal({
+        openConfirmModal({
             title: "Projektgruppe löschen",
             children: (
                 <Text size="sm">
@@ -107,7 +111,7 @@ export default function ProjectGroupsAdminPage() {
                 </Text>
             ),
             labels: { confirm: "Löschen", cancel: "Abbrechen" },
-            confirmProps: { color: "red" },
+            danger: true,
             onConfirm: () => {
                 deleteGroup.mutate(group.id!, {
                     onSuccess: () =>
@@ -152,7 +156,7 @@ export default function ProjectGroupsAdminPage() {
             <Stack gap="xl">
                 <Group justify="space-between" align="flex-start">
                     <Stack gap="xs">
-                        <ChronicleHeadline as="h1">Projektgruppen – Kartenansicht</ChronicleHeadline>
+                        <Title order={1}>Projektgruppen – Kartenansicht</Title>
                         <Text c="dimmed" size="sm">
                             Projektgruppen verwalten sowie Standardauswahl auf Karte
                         </Text>
@@ -160,12 +164,12 @@ export default function ProjectGroupsAdminPage() {
                             Lege fest, welche Projektgruppen auf der Karte angezeigt und vorausgewählt werden.
                         </Text>
                     </Stack>
-                    <ChronicleButton onClick={openCreate}>
-                        <IconPlus size={16} /> Neue Gruppe
-                    </ChronicleButton>
+                    <Button onClick={openCreate}>
+                        <Plus size={16} /> Neue Gruppe
+                    </Button>
                 </Group>
 
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="sm">
                         <Text size="sm" fw={500}>Anzeigemodus</Text>
                         <SegmentedControl
@@ -178,24 +182,20 @@ export default function ProjectGroupsAdminPage() {
                             <Text size="xs" c="dimmed">{activeMode.description}</Text>
                         )}
                     </Stack>
-                </ChronicleCard>
+                </Paper>
 
                 {isError && (
-                    <Alert color="red" variant="light" title="Fehler beim Laden">
-                        Projektgruppen konnten nicht geladen werden.
-                    </Alert>
+                    <ErrorState onRetry={() => void refetch()}>Projektgruppen konnten nicht geladen werden.</ErrorState>
                 )}
 
                 {isLoading ? (
-                    <Group justify="center" py="xl">
-                        <Loader />
-                    </Group>
+                    <LoadingState rows={6} />
                 ) : (
                     <Stack gap="sm">
                         {sortedGroups.length > 0 && (
                             <TextInput
                                 placeholder="Projektgruppe nach Name oder Kürzel suchen …"
-                                leftSection={<IconSearch size={16} />}
+                                leftSection={<Search size={16} />}
                                 value={search}
                                 onChange={(e) => setSearch(e.currentTarget.value)}
                                 aria-label="Projektgruppen durchsuchen"
@@ -218,7 +218,7 @@ export default function ProjectGroupsAdminPage() {
                         )}
 
                         {filteredGroups.map((group) => (
-                            <ChronicleCard key={group.id}>
+                            <Paper withBorder p="var(--card-pad)" key={group.id}>
                                 <Group justify="space-between" align="center">
                                     <Group gap="sm" align="center" style={{ opacity: group.is_visible ? 1 : 0.4 }}>
                                         <span
@@ -239,10 +239,10 @@ export default function ProjectGroupsAdminPage() {
                                             </Text>
                                         </Stack>
                                         {!group.is_visible && (
-                                            <ChronicleDataChip>Ausgeblendet</ChronicleDataChip>
+                                            <Badge variant="outline">Ausgeblendet</Badge>
                                         )}
                                         {group.is_visible && group.is_default_selected && (
-                                            <ChronicleDataChip>Vorausgewählt</ChronicleDataChip>
+                                            <Badge variant="outline">Vorausgewählt</Badge>
                                         )}
                                     </Group>
 
@@ -269,7 +269,7 @@ export default function ProjectGroupsAdminPage() {
                                                     onClick={() => openEdit(group)}
                                                     aria-label={`${group.name} bearbeiten`}
                                                 >
-                                                    <IconPencil size={18} />
+                                                    <Pencil size={16} />
                                                 </ActionIcon>
                                             </Tooltip>
                                             <Tooltip label="Gruppe löschen" withArrow>
@@ -280,13 +280,13 @@ export default function ProjectGroupsAdminPage() {
                                                     disabled={deleteGroup.isPending}
                                                     aria-label={`${group.name} löschen`}
                                                 >
-                                                    <IconTrash size={18} />
+                                                    <Trash2 size={16} />
                                                 </ActionIcon>
                                             </Tooltip>
                                         </Group>
                                     </Group>
                                 </Group>
-                            </ChronicleCard>
+                            </Paper>
                         ))}
 
                         {sortedGroups.length === 0 && (

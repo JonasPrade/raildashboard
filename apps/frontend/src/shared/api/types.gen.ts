@@ -2996,14 +2996,31 @@ export interface components {
              * @enum {string}
              */
             map_group_mode: "preconfigured" | "all";
+            /** Impressum Url */
+            impressum_url?: string | null;
+            /** Impressum Markdown */
+            impressum_markdown?: string | null;
+            /** Datenschutz Url */
+            datenschutz_url?: string | null;
+            /** Datenschutz Markdown */
+            datenschutz_markdown?: string | null;
         };
-        /** AppSettingsUpdate */
+        /**
+         * AppSettingsUpdate
+         * @description Partial update: only the fields sent are changed; ``null`` or an empty
+         *     string clears a legal-page field.
+         */
         AppSettingsUpdate: {
-            /**
-             * Map Group Mode
-             * @enum {string}
-             */
-            map_group_mode: "preconfigured" | "all";
+            /** Map Group Mode */
+            map_group_mode?: ("preconfigured" | "all") | null;
+            /** Impressum Url */
+            impressum_url?: string | null;
+            /** Impressum Markdown */
+            impressum_markdown?: string | null;
+            /** Datenschutz Url */
+            datenschutz_url?: string | null;
+            /** Datenschutz Markdown */
+            datenschutz_markdown?: string | null;
         };
         /** AssignProjectsInput */
         AssignProjectsInput: {

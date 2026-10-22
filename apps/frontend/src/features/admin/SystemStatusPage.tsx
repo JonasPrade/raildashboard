@@ -15,14 +15,14 @@ import {
     Code,
     Container,
     Group,
-    Loader,
+    Paper,
     Stack,
     Table,
     Text,
+    Title,
 } from "@mantine/core";
-import { IconRefresh } from "@tabler/icons-react";
+import { RefreshCw } from "lucide-react";
 
-import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
 import RequirePermission from "../../components/RequirePermission";
 import {
     useRecheckWorkerHealth,
@@ -32,17 +32,19 @@ import {
     type WorkerHealth,
 } from "../../shared/api/queries";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
+import { STATUS_TONE } from "../../shared/theme/semanticColors";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 const STATUS_DISPLAY: Record<WorkerHealth["status"], { color: string; label: string }> = {
-    ok: { color: "green", label: "Worker laufen" },
-    no_workers: { color: "red", label: "Kein Worker online" },
-    broker_unreachable: { color: "red", label: "Warteschlange nicht erreichbar" },
+    ok: { color: STATUS_TONE.done, label: "Worker laufen" },
+    no_workers: { color: STATUS_TONE.danger, label: "Kein Worker online" },
+    broker_unreachable: { color: STATUS_TONE.danger, label: "Warteschlange nicht erreichbar" },
 };
 
 const ROUTING_STATUS_DISPLAY: Record<RoutingHealth["status"], { color: string; label: string }> = {
-    ok: { color: "green", label: "Routing erreichbar" },
-    error: { color: "red", label: "Routing meldet Fehler" },
-    unreachable: { color: "red", label: "Routing nicht erreichbar" },
+    ok: { color: STATUS_TONE.done, label: "Routing erreichbar" },
+    error: { color: STATUS_TONE.danger, label: "Routing meldet Fehler" },
+    unreachable: { color: STATUS_TONE.danger, label: "Routing nicht erreichbar" },
 };
 
 function formatCheckedAt(checkedAt: number): string {
@@ -56,7 +58,7 @@ function WorkerTable({ health }: { health: WorkerHealth }) {
             <Table.Thead>
                 <Table.Tr>
                     <Table.Th>Worker</Table.Th>
-                    <Table.Th>Parallelität</Table.Th>
+                    <Table.Th className="num">Parallelität</Table.Th>
                     <Table.Th>Aufträge in Arbeit</Table.Th>
                 </Table.Tr>
             </Table.Thead>
@@ -64,7 +66,7 @@ function WorkerTable({ health }: { health: WorkerHealth }) {
                 {health.workers.map((worker) => (
                     <Table.Tr key={worker.name}>
                         <Table.Td><Code>{worker.name}</Code></Table.Td>
-                        <Table.Td>{worker.concurrency ?? "—"}</Table.Td>
+                        <Table.Td className="num">{worker.concurrency ?? "—"}</Table.Td>
                         <Table.Td>
                             {worker.active_tasks === 0
                                 ? "bereit (nichts in Arbeit)"
@@ -87,10 +89,10 @@ function SystemStatusPageContent() {
         <Container size="md" py="xl">
             <Stack gap="lg">
                 <Group justify="space-between" align="center">
-                    <ChronicleHeadline as="h1">Systemstatus</ChronicleHeadline>
+                    <Title order={1}>Systemstatus</Title>
                     <Button
                         variant="light"
-                        leftSection={<IconRefresh size={16} />}
+                        leftSection={<RefreshCw size={16} />}
                         loading={recheck.isPending}
                         onClick={() => {
                             recheck.mutate();
@@ -109,10 +111,10 @@ function SystemStatusPageContent() {
                     „wird verarbeitet".
                 </Text>
 
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="md">
                         {isLoading && (
-                            <Group gap="xs"><Loader size="xs" /><Text size="sm">Prüfung läuft…</Text></Group>
+                            <LoadingState rows={2} label="Prüfung läuft …" />
                         )}
 
                         {isError && (
@@ -134,7 +136,7 @@ function SystemStatusPageContent() {
                                 </Group>
 
                                 <Alert
-                                    color={health.status === "ok" ? "green" : "orange"}
+                                    color={health.status === "ok" ? "teal" : "red"}
                                     variant="light"
                                 >
                                     {health.message}
@@ -168,9 +170,9 @@ function SystemStatusPageContent() {
                             </>
                         )}
                     </Stack>
-                </ChronicleCard>
+                </Paper>
 
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="md">
                         <Text fw={600} size="md">Routing-Dienst</Text>
                         <Text size="sm" c="dimmed">
@@ -179,7 +181,7 @@ function SystemStatusPageContent() {
                         </Text>
 
                         {routingLoading && (
-                            <Group gap="xs"><Loader size="xs" /><Text size="sm">Prüfung läuft…</Text></Group>
+                            <LoadingState rows={2} label="Prüfung läuft …" />
                         )}
 
                         {routingError && (
@@ -199,7 +201,7 @@ function SystemStatusPageContent() {
                                     </Text>
                                 </Group>
 
-                                <Alert color={routing.status === "ok" ? "green" : "orange"} variant="light">
+                                <Alert color={routing.status === "ok" ? "teal" : "red"} variant="light">
                                     {routing.message}
                                 </Alert>
 
@@ -226,9 +228,9 @@ function SystemStatusPageContent() {
                             </>
                         )}
                     </Stack>
-                </ChronicleCard>
+                </Paper>
 
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="xs">
                         <Text fw={600} size="md">Wenn kein Worker läuft</Text>
                         <Text size="sm">
@@ -244,7 +246,7 @@ function SystemStatusPageContent() {
                             verloren — die Datei danach einfach erneut hochladen.
                         </Text>
                     </Stack>
-                </ChronicleCard>
+                </Paper>
             </Stack>
         </Container>
     );

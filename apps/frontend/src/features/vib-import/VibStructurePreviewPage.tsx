@@ -1,20 +1,22 @@
 import { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
     Alert,
+    Badge,
     Box,
     Button,
     Container,
     Group,
-    Loader,
+    Paper,
     ScrollArea,
     Stack,
     Table,
     Text,
+    Title,
     Tooltip,
 } from "@mantine/core";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
-import { ChronicleHeadline, ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import RequirePermission from "../../components/RequirePermission";
@@ -22,6 +24,7 @@ import {
     useVibParseResult,
     type VibEntryProposed,
 } from "../../shared/api/queries";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 // Sub-sections we look for in raw_text
 const SUBSECTIONS: { key: string; label: string; pattern: RegExp }[] = [
@@ -52,34 +55,35 @@ function RawTextCell({
         <Stack gap={4} style={{ cursor: "pointer" }} onClick={onToggle}>
             <Group gap={6} wrap="nowrap">
                 <Tooltip label={`${len} Zeichen`} withArrow>
-                    <ChronicleDataChip>
+                    <Badge variant="outline" color="var(--text-strong)" tt="none">
                         {len > 0 ? `${(len / 1000).toFixed(1)}k` : "leer"}
-                    </ChronicleDataChip>
+                    </Badge>
                 </Tooltip>
                 {entry.pfa_entries.length > 0 ? (
-                    <ChronicleDataChip>
+                    <Badge variant="outline" color="var(--text-strong)" tt="none">
                         {entry.pfa_entries.length} PFA
-                    </ChronicleDataChip>
+                    </Badge>
                 ) : (
-                    <ChronicleDataChip>
+                    <Badge variant="outline" color="var(--text-strong)" tt="none">
                         0 PFA
-                    </ChronicleDataChip>
+                    </Badge>
                 )}
             </Group>
             <Group gap={4} wrap="wrap">
                 {detected.map((s) => (
-                    <ChronicleDataChip key={s.key}>
+                    <Badge variant="outline" color="var(--text-strong)" tt="none" key={s.key}>
                         {s.label}
-                    </ChronicleDataChip>
+                    </Badge>
                 ))}
                 {missing.map((s) => (
-                    <ChronicleDataChip key={s.key}>
+                    <Badge variant="outline" color="var(--text-strong)" tt="none" key={s.key}>
                         {s.label}
-                    </ChronicleDataChip>
+                    </Badge>
                 ))}
             </Group>
-            <Text size="xs" c="blue">
-                {expanded ? "▲ einklappen" : "▼ Rohtext anzeigen"}
+            <Text size="xs" c="blue" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                {expanded ? <ChevronUp size={16} aria-hidden /> : <ChevronDown size={16} aria-hidden />}
+                {expanded ? "einklappen" : "Rohtext anzeigen"}
             </Text>
         </Stack>
     );
@@ -91,7 +95,7 @@ function ExpandedRawText({ entry }: { entry: VibEntryProposed }) {
     const missing = SUBSECTIONS.filter((s) => !s.pattern.test(raw));
 
     return (
-        <Box p="md" bg="gray.0" style={{ borderTop: "1px solid var(--mantine-color-gray-2)" }}>
+        <Box p="md" style={{ background: "var(--surface-alt)", borderTop: "1px solid var(--border)" }}>
             <Stack gap="xs">
                 <Group gap="xl">
                     <div>
@@ -100,7 +104,7 @@ function ExpandedRawText({ entry }: { entry: VibEntryProposed }) {
                     </div>
                     <div>
                         <Text size="xs" c="dimmed">PFA-Zeilen</Text>
-                        <Text fw={600} size="sm" c={entry.pfa_entries.length === 0 ? "orange" : undefined}>
+                        <Text fw={entry.pfa_entries.length === 0 ? 700 : 600} size="sm">
                             {entry.pfa_entries.length}
                         </Text>
                     </div>
@@ -122,9 +126,9 @@ function ExpandedRawText({ entry }: { entry: VibEntryProposed }) {
                     <Text size="xs" c="dimmed">Erkannt:</Text>
                     {detected.length > 0
                         ? detected.map((s) => (
-                              <ChronicleDataChip key={s.key}>
+                              <Badge variant="outline" color="var(--text-strong)" tt="none" key={s.key}>
                                   ✓ {s.label}
-                              </ChronicleDataChip>
+                              </Badge>
                           ))
                         : <Text size="xs" c="dimmed">–</Text>}
                 </Group>
@@ -132,9 +136,9 @@ function ExpandedRawText({ entry }: { entry: VibEntryProposed }) {
                     <Group gap={6}>
                         <Text size="xs" c="dimmed">Nicht gefunden:</Text>
                         {missing.map((s) => (
-                            <ChronicleDataChip key={s.key}>
+                            <Badge variant="outline" color="var(--text-strong)" tt="none" key={s.key}>
                                 ✗ {s.label}
-                            </ChronicleDataChip>
+                            </Badge>
                         ))}
                     </Group>
                 )}
@@ -147,9 +151,8 @@ function ExpandedRawText({ entry }: { entry: VibEntryProposed }) {
                             style={{
                                 fontSize: 12,
                                 lineHeight: 1.5,
-                                fontFamily: "var(--mantine-font-family-monospace)",
-                                background: "var(--mantine-color-gray-0)",
-                                borderRadius: 4,
+                                fontVariantNumeric: "tabular-nums",
+                                background: "var(--surface-alt)",
                             }}
                             className="vib-raw-markdown"
                         >
@@ -183,7 +186,7 @@ function VibStructurePreviewPageContent() {
     if (isLoading) {
         return (
             <Container py="xl">
-                <Group justify="center"><Loader /></Group>
+                <LoadingState rows={6} />
             </Container>
         );
     }
@@ -205,14 +208,14 @@ function VibStructurePreviewPageContent() {
         <Container size="lg" py="xl">
             <Stack gap="xl">
                 <div>
-                    <ChronicleHeadline as="h1">VIB-Import — Strukturvorschau</ChronicleHeadline>
+                    <Title order={1}>VIB-Import — Strukturvorschau</Title>
                     <Text c="dimmed" size="sm" mt={4}>
                         Struktur erkannt. Prüfen Sie die Vorhaben und wechseln Sie zum Review.
                         KI-Extraktion ist pro Vorhaben im Review verfügbar.
                     </Text>
                 </div>
 
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Group gap="xl">
                         <div>
                             <Text size="xs" c="dimmed">Projekte erkannt</Text>
@@ -228,14 +231,14 @@ function VibStructurePreviewPageContent() {
                         </div>
                         <div>
                             <Text size="xs" c="dimmed">Ohne PFA</Text>
-                            <Text fw={700} size="xl" c={withoutPfa.length > 0 ? "orange" : "green"}>
+                            <Text fw={700} size="xl">
                                 {withoutPfa.length}
                             </Text>
                         </div>
                     </Group>
-                </ChronicleCard>
+                </Paper>
 
-                <ChronicleCard style={{ padding: 0 }}>
+                <Paper withBorder p={0}>
                     <ResponsiveTable minWidth={720} withTableBorder>
                         <Table.Thead>
                             <Table.Tr>
@@ -252,20 +255,20 @@ function VibStructurePreviewPageContent() {
                                         key={`row-${idx}`}
                                         style={{
                                             backgroundColor: expandedRows.has(idx)
-                                                ? "var(--mantine-color-blue-0)"
+                                                ? "var(--surface-alt)"
                                                 : undefined,
                                         }}
                                     >
                                         <Table.Td>
-                                            <Text size="xs" ff="monospace">{e.vib_section ?? "–"}</Text>
+                                            <Text size="xs" className="idt-tnum">{e.vib_section ?? "–"}</Text>
                                         </Table.Td>
                                         <Table.Td>
                                             <Text size="sm" lineClamp={2}>{e.vib_name_raw}</Text>
                                         </Table.Td>
                                         <Table.Td>
-                                            <ChronicleDataChip>
+                                            <Badge variant="outline" color="var(--text-strong)" tt="none">
                                                 {e.category}
-                                            </ChronicleDataChip>
+                                            </Badge>
                                         </Table.Td>
                                         <Table.Td>
                                             <RawTextCell
@@ -286,7 +289,7 @@ function VibStructurePreviewPageContent() {
                             ))}
                         </Table.Tbody>
                     </ResponsiveTable>
-                </ChronicleCard>
+                </Paper>
 
                 <Group justify="flex-end" gap="sm">
                     <Button variant="subtle" onClick={() => navigate("/admin/vib-import")}>

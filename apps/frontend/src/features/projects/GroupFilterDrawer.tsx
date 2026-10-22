@@ -1,8 +1,8 @@
-import { Alert, Drawer, Stack, Button, Group, Text, Loader, UnstyledButton } from "@mantine/core";
-import { ChronicleDataChip } from "../../components/chronicle";
+import { Alert, Badge, Drawer, Stack, Button, Group, Text, UnstyledButton } from "@mantine/core";
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 export type ProjectGroupOption = {
     id: number;
@@ -68,9 +68,7 @@ export default function GroupFilterDrawer({ opened, onClose, groups = [], loadin
                 )}
 
                 {loading && groups.length === 0 ? (
-                    <Group justify="center" py="xl">
-                        <Loader size="sm" />
-                    </Group>
+                    <LoadingState rows={6} />
                 ) : (
                     groups.map((group) => {
                         const selected = pending.includes(group.id);
@@ -87,10 +85,10 @@ export default function GroupFilterDrawer({ opened, onClose, groups = [], loadin
                                     boxSizing: "border-box",
                                     gap: 10,
                                     padding: "10px 12px",
-                                    borderRadius: 8,
+                                    borderRadius: 0,
                                     border: selected ? `2px solid ${group.color}` : "2px solid transparent",
-                                    background: selected ? `${group.color}18` : "var(--mantine-color-default)",
-                                    outline: "1px solid var(--mantine-color-default-border)",
+                                    background: selected ? `${group.color}18` : "var(--surface)",
+                                    outline: "1px solid var(--border)",
                                     cursor: "pointer",
                                     transition: "background 120ms, border-color 120ms",
                                 }}
@@ -107,7 +105,7 @@ export default function GroupFilterDrawer({ opened, onClose, groups = [], loadin
                                 />
                                 <Text size="sm" style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>{group.name}</Text>
                                 {typeof group.count === "number" && (
-                                    <ChronicleDataChip style={{ flexShrink: 0 }}>{group.count}</ChronicleDataChip>
+                                    <Badge variant="outline" style={{ flexShrink: 0 }}>{group.count}</Badge>
                                 )}
                             </UnstyledButton>
                         );
@@ -116,7 +114,7 @@ export default function GroupFilterDrawer({ opened, onClose, groups = [], loadin
 
                 <Group justify="space-between" mt="md">
                     <Button variant="default" onClick={onClose}>Abbrechen</Button>
-                    <Button color="preussen" onClick={apply} disabled={loading}>Übernehmen</Button>
+                    <Button onClick={apply} disabled={loading}>Übernehmen</Button>
                 </Group>
             </Stack>
         </Drawer>

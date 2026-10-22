@@ -1,5 +1,7 @@
 # Feature: Chronicle Design System Rollout
 
+> **Historic — superseded.** The Chronicle components described here were replaced by Direction F and then deleted with the IDT design (stage 4). Current rules: `docs/DESIGN.md`, `docs/features/feature-idt-design.md`.
+
 ## Goal
 
 Roll out the "Architectural Chronicle" design system (defined in `docs/DESIGN.md`) to the two highest-visibility pages — **Projects** and **Map** — without changing the look of any other page.

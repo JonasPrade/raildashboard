@@ -1,0 +1,7 @@
+/* Flat placeholder bars in --surface-sunken in both colour schemes.
+   Mantine paints the bar via ::before/::after; doubled class beats its selectors. */
+.bar.bar::before,
+.bar.bar::after {
+    background-color: var(--surface-sunken);
+    animation: none;
+}

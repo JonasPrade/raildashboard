@@ -3,15 +3,15 @@ import { useState } from "react";
 import {
     Alert,
     Anchor,
+    Badge,
     Button,
     Container,
     Group,
-    Loader,
     Stack,
     Text,
+    Title,
 } from "@mantine/core";
-import { ChronicleHeadline, ChronicleDataChip } from "../../components/chronicle";
-import { modals } from "@mantine/modals";
+import { openConfirmModal } from "../../shared/ui/confirmModal";
 import { notifications } from "@mantine/notifications";
 import RequirePermission from "../../components/RequirePermission";
 import {
@@ -26,6 +26,7 @@ import { ReviewTable } from "./components/ReviewTable";
 import { ColumnMappingPanel } from "./components/ColumnMappingPanel";
 import { ExtractionComparisonPanel } from "./components/ExtractionComparisonPanel";
 import { formatDateTime } from "../../shared/format";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 function HaushaltsReviewPageContent() {
     const { parseResultId } = useParams<{ parseResultId: string }>();
@@ -39,7 +40,7 @@ function HaushaltsReviewPageContent() {
 
     const [rows, setRows] = useState<HaushaltsParseRow[] | null>(null);
 
-    if (isLoading) return <Container py="xl"><Group justify="center"><Loader /></Group></Container>;
+    if (isLoading) return <Container py="xl"><LoadingState rows={6} /></Container>;
     if (isError || !result) {
         return (
             <Container size="sm" py="xl">
@@ -65,7 +66,7 @@ function HaushaltsReviewPageContent() {
     };
 
     const handleDiscard = () => {
-        modals.openConfirmModal({
+        openConfirmModal({
             title: "Parse-Ergebnis verwerfen?",
             children: (
                 <Text size="sm">
@@ -74,7 +75,7 @@ function HaushaltsReviewPageContent() {
                 </Text>
             ),
             labels: { confirm: "Verwerfen", cancel: "Abbrechen" },
-            confirmProps: { color: "red" },
+            danger: true,
             onConfirm: async () => {
                 try {
                     await deleteResult.mutateAsync(id);
@@ -115,9 +116,9 @@ function HaushaltsReviewPageContent() {
                 <Group justify="space-between" wrap="wrap">
                     <Stack gap={2}>
                         <Group gap="sm" align="center">
-                            <ChronicleHeadline as="h1">
+                            <Title order={1}>
                                 Review – Haushalt {result.haushalt_year}
-                            </ChronicleHeadline>
+                            </Title>
                             <Anchor component={Link} to="/admin/haushalt-import/guide" size="sm" c="dimmed">
                                 Anleitung →
                             </Anchor>
@@ -129,10 +130,10 @@ function HaushaltsReviewPageContent() {
                     </Stack>
 
                     {isConfirmed ? (
-                        <ChronicleDataChip>
+                        <Badge variant="outline" tt="none">
                             Importiert am {formatDateTime(result.confirmed_at!)}
                             {result.confirmed_by_snapshot ? ` von ${result.confirmed_by_snapshot}` : ""}
-                        </ChronicleDataChip>
+                        </Badge>
                     ) : (
                         <Group gap="xs">
                             <Button
@@ -145,7 +146,6 @@ function HaushaltsReviewPageContent() {
                                 Verwerfen
                             </Button>
                             <Button
-                                color="green"
                                 size="sm"
                                 loading={confirm.isPending}
                                 onClick={handleConfirm}

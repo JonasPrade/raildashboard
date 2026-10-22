@@ -3,17 +3,17 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
     ActionIcon,
     Alert,
+    Badge,
     Button,
     Container,
     Group,
-    Loader,
     Select,
     Stack,
     Text,
+    Title,
     Tooltip,
 } from "@mantine/core";
-import { ChronicleHeadline, ChronicleDataChip } from "../../components/chronicle";
-import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { notifications } from "@mantine/notifications";
 import RequirePermission from "../../components/RequirePermission";
 import {
@@ -28,6 +28,7 @@ import {
     type VibConfirmEntryInput,
 } from "../../shared/api/queries";
 import VibEntryEditForm from "./VibEntryEditForm";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 function VibReviewPageContent() {
     const { taskId } = useParams<{ taskId: string }>();
@@ -48,9 +49,7 @@ function VibReviewPageContent() {
     if (isLoading) {
         return (
             <Container py="xl">
-                <Group justify="center">
-                    <Loader />
-                </Group>
+                <LoadingState rows={6} />
             </Container>
         );
     }
@@ -150,7 +149,7 @@ function VibReviewPageContent() {
                 {/* Header */}
                 <Group justify="space-between" align="flex-start">
                     <Stack gap={2}>
-                        <ChronicleHeadline as="h1">VIB-Review — Berichtsjahr {parseResult.year}</ChronicleHeadline>
+                        <Title order={1}>VIB-Review — Berichtsjahr {parseResult.year}</Title>
                         <Text size="sm" c="dimmed">
                             {parseResult.drucksache_nr
                                 ? `Drucksache ${parseResult.drucksache_nr}`
@@ -164,15 +163,15 @@ function VibReviewPageContent() {
                         </Text>
                         {failedAiCount > 0 && (
                             <Tooltip label={`${failedAiCount} Einträge: KI-Extraktion fehlgeschlagen`} withArrow>
-                                <ChronicleDataChip>
+                                <Badge variant="outline" color="var(--text-strong)" tt="none">
                                     {failedAiCount} KI ✗
-                                </ChronicleDataChip>
+                                </Badge>
                             </Tooltip>
                         )}
                         <Tooltip label={ocrAvailable?.available ? `OCR: ${ocrAvailable.model}` : "Texterkennung: pymupdf"}>
-                            <ChronicleDataChip>
+                            <Badge variant="outline" color="var(--text-strong)" tt="none">
                                 {ocrAvailable?.available ? "Mistral OCR" : "pymupdf"}
-                            </ChronicleDataChip>
+                            </Badge>
                         </Tooltip>
                         <Button
                             variant="light"
@@ -184,7 +183,7 @@ function VibReviewPageContent() {
                         <Button variant="outline" onClick={() => navigate("/admin/vib-import")}>
                             Abbrechen
                         </Button>
-                        <Button onClick={handleConfirm} loading={confirm.isPending} color="green">
+                        <Button onClick={handleConfirm} loading={confirm.isPending}>
                             Import bestätigen
                         </Button>
                     </Group>
@@ -197,7 +196,7 @@ function VibReviewPageContent() {
                         onClick={() => setCurrentIndex((i) => i - 1)}
                         disabled={currentIndex === 0}
                     >
-                        <IconChevronLeft size={16} />
+                        <ChevronLeft size={16} />
                     </ActionIcon>
                     <Group gap={4} align="center">
                         <Select
@@ -217,17 +216,17 @@ function VibReviewPageContent() {
                         onClick={() => setCurrentIndex((i) => i + 1)}
                         disabled={currentIndex === total - 1}
                     >
-                        <IconChevronRight size={16} />
+                        <ChevronRight size={16} />
                     </ActionIcon>
                     <Text fw={600} lineClamp={1} style={{ maxWidth: 500 }}>
                         {currentEntry.vib_name_raw}
                     </Text>
-                    <ChronicleDataChip>
+                    <Badge variant="outline" color="var(--text-strong)" tt="none">
                         {currentEntry.category}
-                    </ChronicleDataChip>
+                    </Badge>
                     {currentEntry.ai_extraction_failed && (
                         <Tooltip label={currentEntry.ai_extraction_error ?? "KI-Extraktion fehlgeschlagen – Wiederholen im Eintrag möglich"} withArrow>
-                            <ChronicleDataChip>KI ✗</ChronicleDataChip>
+                            <Badge variant="outline" color="var(--text-strong)" tt="none">KI ✗</Badge>
                         </Tooltip>
                     )}
                 </Group>

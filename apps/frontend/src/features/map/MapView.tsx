@@ -1,15 +1,15 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Stack } from "@mantine/core";
+import { Button, Stack } from "@mantine/core";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import type { ConstituencyFeatureCollection, ProjectOverview } from "../../shared/api/queries";
 import { usePrefetchProjectPage } from "../projects/usePrefetchProjectPage";
 import ProjectSummaryCard from "../projects/ProjectSummaryCard";
-import { ChronicleButton } from "../../components/chronicle";
 import { featureBounds } from "./featureBounds";
+import { LIGHT_TILE_URL as tileLayerUrl, swapRasterTiles, useTileUrl } from "../../shared/geo/useTileUrl";
+import { MAP_COLOR } from "../../shared/theme/semanticColors";
 
-const tileLayerUrl = import.meta.env.REACT_APP_TILE_LAYER_URL as string | undefined;
 const tileAttribution =
     'Kartenhintergrund: <a href="https://www.bkg.bund.de" target="_blank" rel="noopener noreferrer">Bundesamt für Kartographie und Geodäsie</a>';
 
@@ -269,6 +269,10 @@ export default function MapView({
         };
     }, [projects]);
 
+    const activeTileUrl = useTileUrl();
+    const activeTileUrlRef = useRef(activeTileUrl);
+    activeTileUrlRef.current = activeTileUrl;
+
     useEffect(() => {
         if (!tileLayerUrl || !mapContainerRef.current) {
             return undefined;
@@ -281,7 +285,7 @@ export default function MapView({
                 sources: {
                     basemap: {
                         type: "raster",
-                        tiles: [tileLayerUrl],
+                        tiles: [activeTileUrlRef.current ?? tileLayerUrl],
                         tileSize: 256,
                         attribution: tileAttribution,
                     },
@@ -311,12 +315,12 @@ export default function MapView({
                         type: "fill",
                         source: "constituencies",
                         paint: {
-                            "fill-color": "#0f2347",
+                            "fill-color": MAP_COLOR.constituency,
                             "fill-opacity": [
                                 "case",
                                 ["boolean", ["feature-state", "selected"], false],
                                 0.22,
-                                0.05,
+                                0.08,
                             ],
                         },
                     },
@@ -325,12 +329,12 @@ export default function MapView({
                         type: "line",
                         source: "constituencies",
                         paint: {
-                            "line-color": "#0f2347",
+                            "line-color": MAP_COLOR.constituency,
                             "line-width": [
                                 "case",
                                 ["boolean", ["feature-state", "selected"], false],
                                 2.5,
-                                0.8,
+                                1,
                             ],
                             "line-opacity": 0.6,
                         },
@@ -344,7 +348,7 @@ export default function MapView({
                             "line-join": "round",
                         },
                         paint: {
-                            "line-color": ["coalesce", ["get", "groupColor"], "#2563eb"],
+                            "line-color": ["coalesce", ["get", "groupColor"], MAP_COLOR.default],
                             "line-width": [
                                 "case",
                                 ["boolean", ["feature-state", "hover"], false],
@@ -358,7 +362,7 @@ export default function MapView({
                         type: "circle",
                         source: "project-points",
                         paint: {
-                            "circle-color": ["coalesce", ["get", "groupColor"], "#2563eb"],
+                            "circle-color": ["coalesce", ["get", "groupColor"], MAP_COLOR.default],
                             "circle-radius": [
                                 "case",
                                 ["boolean", ["feature-state", "hover"], false],
@@ -366,7 +370,7 @@ export default function MapView({
                                 5,
                             ],
                             "circle-stroke-width": 1.5,
-                            "circle-stroke-color": "#ffffff",
+                            "circle-stroke-color": MAP_COLOR.stroke,
                         },
                     },
                 ],
@@ -452,6 +456,13 @@ export default function MapView({
             mapInstance.remove();
         };
     }, [tileLayerUrl]);
+
+    // Colour scheme changed: swap the basemap tiles in place (layers/state stay).
+    useEffect(() => {
+        const mapInstance = mapInstanceRef.current;
+        if (!mapInstance || !activeTileUrl) return;
+        swapRasterTiles(mapInstance, "basemap", activeTileUrl);
+    }, [activeTileUrl]);
 
     // Register click handlers separately so they re-run when `clickable` changes.
     // This is needed because `clickable` may start as false (data not yet loaded)
@@ -685,8 +696,11 @@ export default function MapView({
             <div
                 style={{
                     height: typeof height === "number" ? `${height}px` : height,
-                    backgroundColor: "#f2f2f2",
-                    borderRadius: "8px",
+                    backgroundColor: "var(--surface-sunken)",
+                    color: "var(--text-body)",
+                    border: "2px solid var(--border-frame)",
+                    borderRadius: 0,
+                    boxSizing: "border-box",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -704,7 +718,15 @@ export default function MapView({
     }
 
     return (
-        <div style={{ height: typeof height === "number" ? `${height}px` : height, position: "relative" }}>
+        <div
+            style={{
+                height: typeof height === "number" ? `${height}px` : height,
+                position: "relative",
+                // The map sits "im Rahmen" (feature-idt-design.md → Karte).
+                border: "2px solid var(--border-frame)",
+                boxSizing: "border-box",
+            }}
+        >
             <div ref={mapContainerRef} style={{ height: "100%" }} />
             {selectedProject && (
                 <div
@@ -718,26 +740,25 @@ export default function MapView({
                         minWidth: "min(260px, calc(100vw - 32px))",
                         maxWidth: "min(340px, calc(100vw - 32px))",
                         zIndex: 10,
-                        background: "rgba(251, 249, 248, 0.92)",
-                        backdropFilter: "blur(20px)",
-                        WebkitBackdropFilter: "blur(20px)",
-                        boxShadow: "var(--shadow-float)",
-                        borderRadius: "var(--radius-sharp)",
+                        background: "var(--surface)",
+                        color: "var(--text-body)",
+                        border: "2px solid var(--border-frame)",
+                        borderRadius: 0,
                         padding: "16px",
                     }}
                 >
                     <Stack gap="sm">
                         <ProjectSummaryCard project={selectedProject.project} />
-                        <ChronicleButton
+                        <Button
                             onClick={() => {
                                 const groupParam = searchParams.get("group");
                                 navigate(`/projects/${selectedProject.project.id}${groupParam ? `?group=${groupParam}` : ""}`);
                                 setSelectedProject(null);
                             }}
-                            style={{ width: "100%" }}
+                            fullWidth
                         >
                             Auswählen
-                        </ChronicleButton>
+                        </Button>
                     </Stack>
                 </div>
             )}

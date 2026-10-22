@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Text
 from dashboard_backend.models.base import Base
 
 
@@ -13,3 +13,9 @@ class AppSettings(Base):
         default='preconfigured',
         comment="'preconfigured' = use is_default_selected groups; 'all' = show all projects without group filter",
     )
+    # Legal pages (Impressum, Datenschutz): URL set → footer link and route go
+    # outside; otherwise the Markdown is rendered on /impressum or /datenschutz.
+    impressum_url = Column(String(500), nullable=True)
+    impressum_markdown = Column(Text, nullable=True)
+    datenschutz_url = Column(String(500), nullable=True)
+    datenschutz_markdown = Column(Text, nullable=True)

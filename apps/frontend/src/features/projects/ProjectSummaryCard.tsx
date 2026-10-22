@@ -1,7 +1,7 @@
-import { Group, Stack, Text } from "@mantine/core";
+import { Badge, Group, Stack, Text } from "@mantine/core";
 import type { ProjectOverview } from "../../shared/api/queries";
 import { trainCategoryLabels, featureGroups } from "./projectFeatureConfig";
-import { ChronicleDataChip } from "../../components/chronicle";
+import { SwatchTag } from "../../shared/ui/SwatchTag";
 import ProgressMini from "./components/progress/ProgressMini";
 
 type Props = {
@@ -23,7 +23,7 @@ export default function ProjectSummaryCard({ project }: Props) {
             <Group gap="xs" align="center" wrap="wrap">
                 <Text fw={600}>{project.name}</Text>
                 {project.project_number && (
-                    <ChronicleDataChip>{project.project_number}</ChronicleDataChip>
+                    <Badge variant="outline">{project.project_number}</Badge>
                 )}
             </Group>
 
@@ -42,8 +42,8 @@ export default function ProjectSummaryCard({ project }: Props) {
                 <Group gap={4} wrap="wrap">
                     {trainCategoryLabels
                         .filter(({ key }) => Boolean(project[key]))
-                        .map(({ key, label }) => (
-                            <ChronicleDataChip key={String(key)}>{label}</ChronicleDataChip>
+                        .map(({ key, label, color }) => (
+                            <SwatchTag key={String(key)} color={color}>{label}</SwatchTag>
                         ))}
                 </Group>
             )}
@@ -52,7 +52,7 @@ export default function ProjectSummaryCard({ project }: Props) {
             {activeFeatures.length > 0 && (
                 <Group gap={4} wrap="wrap">
                     {activeFeatures.map(({ key, label }) => (
-                        <ChronicleDataChip key={String(key)}>{label}</ChronicleDataChip>
+                        <Badge key={String(key)} variant="outline">{label}</Badge>
                     ))}
                 </Group>
             )}

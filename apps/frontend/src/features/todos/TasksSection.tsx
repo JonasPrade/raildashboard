@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Alert, Button, Group, Loader, Stack, Text } from "@mantine/core";
-import { IconPlus } from "@tabler/icons-react";
+import { Button, Group, Paper, Stack, Text, Title } from "@mantine/core";
+import { Plus } from "lucide-react";
 import { useAuth } from "../../lib/auth";
 import { useTodos, type Todo } from "../../shared/api/queries";
-import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
 import TodoCard from "./TodoCard";
 import TodoEditDrawer from "./TodoEditDrawer";
 import { useTodoActions } from "./useTodoActions";
+import { LoadingState } from "../../shared/ui/LoadingState";
+import { ErrorState } from "../../shared/ui/ErrorState";
 
 /** Compact task list for a single project (project detail page). */
 export default function TasksSection({ projectId }: { projectId: number }) {
@@ -15,7 +16,7 @@ export default function TasksSection({ projectId }: { projectId: number }) {
     const canEdit = can("todo.edit");
     const canDelete = can("todo.delete");
 
-    const { data: todos, isLoading, isError } = useTodos({ project_id: projectId });
+    const { data: todos, isLoading, isError, refetch } = useTodos({ project_id: projectId });
     const { changeStatus, confirmDelete } = useTodoActions();
 
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -31,23 +32,21 @@ export default function TasksSection({ projectId }: { projectId: number }) {
     };
 
     return (
-        <ChronicleCard>
+        <Paper withBorder p="var(--card-pad)">
             <Stack gap="sm">
-                <Group justify="space-between" align="center">
-                    <ChronicleHeadline as="h2">Aufgaben</ChronicleHeadline>
+                <Group className="idt-section-head" justify="space-between" align="center">
+                    <Title order={2} className="idt-title-plain">Aufgaben</Title>
                     {canCreate && (
-                        <Button size="xs" variant="light" leftSection={<IconPlus size={14} />} onClick={openCreate}>
+                        <Button size="xs" variant="light" leftSection={<Plus size={16} />} onClick={openCreate}>
                             Aufgabe
                         </Button>
                     )}
                 </Group>
 
                 {isLoading && (
-                    <Group justify="center" py="md">
-                        <Loader size="sm" />
-                    </Group>
+                    <LoadingState rows={3} />
                 )}
-                {isError && <Alert color="red">Aufgaben konnten nicht geladen werden.</Alert>}
+                {isError && <ErrorState onRetry={() => void refetch()}>Aufgaben konnten nicht geladen werden.</ErrorState>}
 
                 {!isLoading && !isError && (todos?.length ?? 0) === 0 && (
                     <Text c="dimmed" size="sm">
@@ -78,6 +77,6 @@ export default function TasksSection({ projectId }: { projectId: number }) {
                 defaultProjectId={projectId}
                 lockProject
             />
-        </ChronicleCard>
+        </Paper>
     );
 }

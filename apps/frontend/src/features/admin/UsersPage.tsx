@@ -1,20 +1,18 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
-    Alert,
     Anchor,
     Button,
     Container,
     Group,
-    Loader,
     Select,
     Stack,
     Table,
     Text,
+    Title,
 } from "@mantine/core";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
-import { IconChevronLeft, IconPencil } from "@tabler/icons-react";
-import { ChronicleHeadline, ChronicleButton } from "../../components/chronicle";
+import { ChevronLeft, Pencil } from "lucide-react";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { useAuth } from "../../lib/auth";
@@ -29,6 +27,8 @@ import { formatDateNumeric } from "../../shared/format";
 import { CreateUserModal } from "./CreateUserModal";
 import { EditUserModal } from "./EditUserModal";
 import { SetPasswordModal } from "./SetPasswordModal";
+import { LoadingState } from "../../shared/ui/LoadingState";
+import { ErrorState } from "../../shared/ui/ErrorState";
 
 function UsersPageContent() {
     const { user: currentUser } = useAuth();
@@ -37,7 +37,7 @@ function UsersPageContent() {
     const [passwordUserId, setPasswordUserId] = useState<number | null>(null);
     const [editUserId, setEditUserId] = useState<number | null>(null);
 
-    const { data: users, isLoading: usersLoading, isError: usersError } = useUsers();
+    const { data: users, isLoading: usersLoading, isError: usersError, refetch: refetchUsers } = useUsers();
     const { data: roles } = useRoles();
     const roleOptions = (roles ?? []).map((r) => ({ value: r.name, label: r.name }));
 
@@ -77,13 +77,11 @@ function UsersPageContent() {
 
     const renderUsersTable = () => {
         if (usersLoading) {
-            return <Group justify="center" py="md"><Loader /></Group>;
+            return <LoadingState rows={6} />;
         }
         if (usersError) {
             return (
-                <Alert color="red" variant="light" title="Fehler">
-                    Nutzerliste konnte nicht geladen werden.
-                </Alert>
+                <ErrorState onRetry={() => void refetchUsers()}>Nutzerliste konnte nicht geladen werden.</ErrorState>
             );
         }
         return (
@@ -133,7 +131,7 @@ function UsersPageContent() {
                                         <Button
                                             size="xs"
                                             variant="subtle"
-                                            leftSection={<IconPencil size={14} />}
+                                            leftSection={<Pencil size={16} />}
                                             onClick={() => setEditUserId(u.id)}
                                         >
                                             Bearbeiten
@@ -188,14 +186,14 @@ function UsersPageContent() {
             <Stack gap="lg">
                 <Anchor component={Link} to="/admin" size="sm" c="dimmed">
                     <Group gap={4} align="center">
-                        <IconChevronLeft size={14} />
+                        <ChevronLeft size={16} />
                         Zurück zur Administration
                     </Group>
                 </Anchor>
 
                 <Group justify="space-between">
-                    <ChronicleHeadline as="h1">Benutzerverwaltung</ChronicleHeadline>
-                    <ChronicleButton onClick={openCreate}>Neuen Nutzer anlegen</ChronicleButton>
+                    <Title order={1}>Benutzerverwaltung</Title>
+                    <Button onClick={openCreate}>Neuen Nutzer anlegen</Button>
                 </Group>
                 {renderUsersTable()}
             </Stack>

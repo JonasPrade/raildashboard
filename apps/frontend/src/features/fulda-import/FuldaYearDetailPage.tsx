@@ -6,14 +6,13 @@ import {
     Button,
     Container,
     Group,
-    Loader,
     Paper,
     Stack,
     Text,
     Title,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconArrowLeft, IconChecks, IconTrash } from "@tabler/icons-react";
+import { ArrowLeft, CheckCheck, Trash2 } from "lucide-react";
 
 import {
     useConfirmFuldaYear,
@@ -23,6 +22,7 @@ import {
     useProjectOptions,
 } from "../../shared/api/queries";
 import { ANSWER_STATUS_LABEL, CATEGORY_ORDER, PhaseTable, bucketByCategory } from "./fuldaShared";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 export default function FuldaYearDetailPage() {
     const navigate = useNavigate();
@@ -109,21 +109,20 @@ export default function FuldaYearDetailPage() {
                             <Button
                                 variant="subtle"
                                 size="xs"
-                                leftSection={<IconArrowLeft size={14} />}
+                                leftSection={<ArrowLeft size={16} />}
                                 onClick={() => navigate("/admin/fulda-import")}
                             >
                                 Übersicht
                             </Button>
                         </Group>
-                        <Group gap="xs">
-                            <Title order={2}>Fulda-Runde {year}</Title>
+                        <Group className="idt-section-head" gap="xs">
+                            <Title order={2} className="idt-title-plain">Fulda-Runde {year}</Title>
                             <Badge variant="light">{total} Einträge</Badge>
                         </Group>
                     </Stack>
                     <Group gap="sm">
                         <Button
-                            color="green"
-                            leftSection={<IconChecks size={16} />}
+                            leftSection={<CheckCheck size={16} />}
                             onClick={handleConfirmAll}
                             loading={confirmYear.isPending}
                             disabled={readyCount === 0}
@@ -138,7 +137,7 @@ export default function FuldaYearDetailPage() {
                         <Button
                             color="red"
                             variant="light"
-                            leftSection={<IconTrash size={16} />}
+                            leftSection={<Trash2 size={16} />}
                             onClick={handleDeleteYear}
                             loading={deleteYear.isPending}
                         >
@@ -148,9 +147,7 @@ export default function FuldaYearDetailPage() {
                 </Group>
 
                 {isLoading ? (
-                    <Group justify="center" py="xl">
-                        <Loader />
-                    </Group>
+                    <LoadingState rows={6} />
                 ) : null}
 
                 {documents.map((d) => (
@@ -165,7 +162,7 @@ export default function FuldaYearDetailPage() {
                                 </Text>
                                 <Badge
                                     variant="light"
-                                    color={d.answer_status === "VOLLSTAENDIG" ? "green" : "orange"}
+                                    color={d.answer_status === "VOLLSTAENDIG" ? "teal" : "gray"}
                                 >
                                     {ANSWER_STATUS_LABEL[d.answer_status]}
                                 </Badge>

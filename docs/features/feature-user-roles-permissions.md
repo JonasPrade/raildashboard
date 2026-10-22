@@ -172,7 +172,7 @@ sonst die `role_permissions` der Rolle.
    `/admin/roles`, gated `role.manage`): Liste der Rollen; Anlegen/Bearbeiten in
    einem `RoleFormModal` mit **Rechte-Checkboxen**, gruppiert nach Capability-
    Gruppe; System-Rollen: Name/Description gesperrt, Rechte editierbar, kein
-   Löschen. Direction-F-Komponenten (`ChronicleCard`/`ChronicleButton`),
+   Löschen. Mantine-Komponenten (`Paper`/`Button`, IDT-Design),
    deutsche UI-Strings, Toasts via `@mantine/notifications`.
 6. **AdminOverviewPage**: neue Karte „Rollen & Berechtigungen" → `/admin/roles`
    (sichtbar bei `can("role.manage")`).

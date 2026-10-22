@@ -574,12 +574,15 @@ export function useAppSettings() {
     });
 }
 
+export type AppSettingsUpdatePayload = components["schemas"]["AppSettingsUpdate"];
+
+/** Partial PATCH: only the fields passed change ("" or null clears a legal-page field). */
 export function useUpdateAppSettings() {
     return useInvalidatingMutation(
-        (map_group_mode: MapGroupMode) =>
+        (payload: AppSettingsUpdatePayload) =>
             api<AppSettings>("/api/v1/settings/", {
                 method: "PATCH",
-                json: { map_group_mode },
+                json: payload,
             }),
         [queryKeys.appSettings],
     );

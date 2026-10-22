@@ -8,22 +8,22 @@ import {
     Container,
     Group,
     List,
-    Loader,
     MultiSelect,
     Pagination,
+    Paper,
     SegmentedControl,
     Select,
     Stack,
     Table,
     Text,
     TextInput,
+    Title,
 } from "@mantine/core";
-import { modals } from "@mantine/modals";
+import { openConfirmModal } from "../../shared/ui/confirmModal";
 import { notifications } from "@mantine/notifications";
-import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
 import RequirePermission from "../../components/RequirePermission";
 import { filterProjectOption } from "../../lib/filterProjectOption";
-import { IconPlus } from "@tabler/icons-react";
+import { Plus } from "lucide-react";
 import CreateDraftProjectModal from "../projects/CreateDraftProjectModal";
 import {
     useConfirmGvfgImport,
@@ -34,6 +34,7 @@ import {
 } from "../../shared/api/queries";
 import { formatNumberDe } from "../../shared/format";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 const PAGE_SIZE = 50;
 
@@ -85,7 +86,7 @@ function GvfgReviewPageContent() {
         [projectOptions],
     );
 
-    if (isLoading) return <Container py="xl"><Group justify="center"><Loader /></Group></Container>;
+    if (isLoading) return <Container py="xl"><LoadingState rows={6} /></Container>;
     if (isError || !record || !result) {
         return (
             <Container size="sm" py="xl">
@@ -119,7 +120,7 @@ function GvfgReviewPageContent() {
     };
 
     const handleConfirm = () =>
-        modals.openConfirmModal({
+        openConfirmModal({
             title: `${result.title ?? "GVFG-Programm"} übernehmen?`,
             children: (
                 <Text size="sm">
@@ -162,9 +163,9 @@ function GvfgReviewPageContent() {
                 <Group justify="space-between" align="flex-end" wrap="wrap">
                     <Stack gap={2}>
                         <Anchor component={Link} to="/admin/gvfg-import" size="sm">← GVFG-Import</Anchor>
-                        <ChronicleHeadline as="h1">
+                        <Title order={1}>
                             {result.title ?? "GVFG-Programm"} {record.is_annex ? "· Anhang" : ""}
-                        </ChronicleHeadline>
+                        </Title>
                         <Text size="sm" c="dimmed">
                             Stand {result.stand ?? "–"} · {result.entries.length} Vorhaben · Spalten{" "}
                             {result.periods.map((p) => p.label).join(", ") || "–"}
@@ -178,7 +179,7 @@ function GvfgReviewPageContent() {
                 </Group>
 
                 {confirmed && (
-                    <Alert color="green" variant="light">
+                    <Alert color="teal" variant="light">
                         Übernommen am {new Date(record.confirmed_at as string).toLocaleString("de-DE")}
                         {record.confirmed_by_snapshot ? ` von ${record.confirmed_by_snapshot}` : ""}.
                     </Alert>
@@ -202,7 +203,7 @@ function GvfgReviewPageContent() {
                     </Alert>
                 )}
 
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="sm">
                         <Group gap="sm" wrap="wrap" align="flex-end">
                             <SegmentedControl
@@ -253,7 +254,7 @@ function GvfgReviewPageContent() {
                                     <Table.Th>Schlüssel</Table.Th>
                                     <Table.Th>Bezeichnung</Table.Th>
                                     <Table.Th>Fördertatbestand</Table.Th>
-                                    <Table.Th ta="right">Finanzhilfen Mio. €</Table.Th>
+                                    <Table.Th className="num">Finanzhilfen Mio. €</Table.Th>
                                     <Table.Th style={{ minWidth: 340 }}>Projekt</Table.Th>
                                 </Table.Tr>
                             </Table.Thead>
@@ -276,7 +277,7 @@ function GvfgReviewPageContent() {
                                             <Table.Td>
                                                 <Text size="sm">{entry.name}</Text>
                                                 {suggestion?.flags.map((flag) => (
-                                                    <Badge key={flag} color="yellow" variant="light" size="xs" mr={4}>
+                                                    <Badge key={flag} color="gray" variant="outline" size="xs" mr={4}>
                                                         {flag}
                                                     </Badge>
                                                 ))}
@@ -285,7 +286,7 @@ function GvfgReviewPageContent() {
                                                 <Text size="sm">{entry.funding_type ?? "–"}</Text>
                                                 <Text size="xs" c="dimmed">{entry.funding_rate != null ? `${entry.funding_rate} %` : ""}</Text>
                                             </Table.Td>
-                                            <Table.Td ta="right">{formatNumberDe(aidTotal(entry))}</Table.Td>
+                                            <Table.Td className="num">{formatNumberDe(aidTotal(entry))}</Table.Td>
                                             <Table.Td>
                                                 <MultiSelect
                                                     data={data}
@@ -321,7 +322,7 @@ function GvfgReviewPageContent() {
                                                             <Button
                                                                 variant="light"
                                                                 size="compact-xs"
-                                                                leftSection={<IconPlus size={12} />}
+                                                                leftSection={<Plus size={12} />}
                                                                 onClick={() => setDraftFor(entry)}
                                                             >
                                                                 Projekt nicht gefunden – als Entwurf anlegen
@@ -342,7 +343,7 @@ function GvfgReviewPageContent() {
                             </Group>
                         )}
                     </Stack>
-                </ChronicleCard>
+                </Paper>
             </Stack>
             <CreateDraftProjectModal
                 opened={draftFor !== null}

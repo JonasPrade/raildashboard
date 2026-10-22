@@ -11,7 +11,7 @@ export function LinkedProjects({ projects }: { projects: LinkedProject[] }) {
     if (projects.length === 0) return null;
     return (
         <Stack gap={6}>
-            <Text size="xs" c="dimmed" fw={500} tt="uppercase" style={{ letterSpacing: "0.05em" }}>
+            <Text component="div" className="idt-eyebrow">
                 Verknüpfte Projekte
             </Text>
             <Group gap="xs" wrap="wrap">
@@ -26,13 +26,11 @@ export function LinkedProjects({ projects }: { projects: LinkedProject[] }) {
                             alignItems: "center",
                             gap: 6,
                             padding: "4px 8px",
-                            border: "1px solid var(--mantine-color-default-border)",
-                            borderRadius: 4,
-                            transition: "background 0.15s",
+                            border: "1px solid var(--border-frame)",
                         }}
                     >
-                        <Text size="xs" c="dimmed" ff="monospace">{p.id}</Text>
-                        <Text size="xs" fw={500} c="dark">{p.name}</Text>
+                        <Text size="xs" c="dimmed" className="idt-tnum">{p.id}</Text>
+                        <Text size="xs" fw={500} c="var(--text-strong)">{p.name}</Text>
                     </Link>
                 ))}
             </Group>

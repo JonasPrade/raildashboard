@@ -1,12 +1,13 @@
 import { Suspense } from "react";
 import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
-import { AppShell, Loader, Group } from "@mantine/core";
-import { Header } from "./components/Header";
+import { AppFrame } from "./components/AppFrame";
 import RouteErrorBoundary from "./components/RouteErrorBoundary";
 import { lazyWithRetry } from "./lib/lazyWithRetry";
 import MapPage from "./features/map/MapPage";
+import { LoadingState } from "./shared/ui/LoadingState";
 
 const DocumentationPage = lazyWithRetry(() => import("./features/documentation/DocumentationPage"));
+const LegalPage = lazyWithRetry(() => import("./features/legal/LegalPage"));
 // Lazy like all other routes: ProjectDetail transitively pulls in recharts,
 // react-markdown and terra-draw, which would otherwise land in the entry chunk.
 const ProjectDetail = lazyWithRetry(() => import("./features/projects/ProjectDetail"));
@@ -56,20 +57,14 @@ const InfraplanGuidePage = lazyWithRetry(() => import("./features/guides/Infrapl
 
 function Layout() {
     return (
-        // Padding follows --page-pad so the shell tightens on phones
-        // (docs/features/feature-mobile-usability.md).
-        <AppShell header={{ height: 60 }} padding="var(--page-pad)">
-            <AppShell.Header>
-                <Header />
-            </AppShell.Header>
-            <AppShell.Main>
-                {/* One boundary for all lazy route chunks: the header stays
-                    visible while a page's chunk is loading. */}
-                <Suspense fallback={<Group justify="center" py="xl"><Loader /></Group>}>
-                    <Outlet />
-                </Suspense>
-            </AppShell.Main>
-        </AppShell>
+        // Header, footer and page padding: components/AppFrame.tsx.
+        <AppFrame>
+            {/* One boundary for all lazy route chunks: the header stays
+                visible while a page's chunk is loading. */}
+            <Suspense fallback={<LoadingState rows={6} />}>
+                <Outlet />
+            </Suspense>
+        </AppFrame>
     );
 }
 
@@ -81,6 +76,8 @@ export const router = createBrowserRouter([
         children: [
             { index: true, element: <MapPage /> },
             { path: "documentation", element: <DocumentationPage /> },
+            { path: "impressum", element: <LegalPage kind="impressum" /> },
+            { path: "datenschutz", element: <LegalPage kind="datenschutz" /> },
             { path: "projects", element: <Navigate to="/?view=list" replace /> },
             {
                 path: "projects/:projectId",

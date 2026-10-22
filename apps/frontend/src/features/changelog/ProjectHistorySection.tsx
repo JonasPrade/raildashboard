@@ -2,15 +2,14 @@ import { useMemo, useState } from "react";
 import {
     Accordion,
     Alert,
+    Badge,
     Button,
     Group,
-    Loader,
     Stack,
     Table,
     Text,
 } from "@mantine/core";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
-import { ChronicleDataChip } from "../../components/chronicle";
 import { notifications } from "@mantine/notifications";
 
 import {
@@ -24,6 +23,7 @@ import {
     type TextChangeLogEntry,
 } from "../../shared/api/queries";
 import { formatDateTimeShort } from "../../shared/format";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 // German labels for all tracked project fields
 const PROJECT_FIELD_LABELS: Record<string, string> = {
@@ -231,14 +231,12 @@ function ChangeLogItem({ log, canEdit, revertingEntryId, onRevert, groupNames }:
             <Text size="sm" fw={500} style={{ minWidth: 130 }}>
                 {date}
             </Text>
-            <ChronicleDataChip>{isProgressLog ? "Planungsstand" : "Projekt"}</ChronicleDataChip>
-            <ChronicleDataChip>{actionLabel(log.action)}</ChronicleDataChip>
+            <Badge variant="outline">{isProgressLog ? "Planungsstand" : "Projekt"}</Badge>
+            <Badge variant="outline">{actionLabel(log.action)}</Badge>
             <Text size="sm" c="dimmed">
                 {log.username_snapshot ?? "–"}
             </Text>
-            <ChronicleDataChip>
-                {log.entries.length} {log.entries.length === 1 ? "Feld" : "Felder"}
-            </ChronicleDataChip>
+            <Badge variant="outline">{log.entries.length} {log.entries.length === 1 ? "Feld" : "Felder"}</Badge>
         </Group>
     );
 
@@ -269,7 +267,7 @@ function ChangeLogItem({ log, canEdit, revertingEntryId, onRevert, groupNames }:
                                         <Button
                                             size="xs"
                                             variant="subtle"
-                                            color="orange"
+                                            color="violet"
                                             loading={revertingEntryId === entry.id}
                                             disabled={
                                                 revertingEntryId !== null &&
@@ -304,8 +302,8 @@ function TextChangeLogItem({ log }: TextChangeLogItemProps) {
             <Text size="sm" fw={500} style={{ minWidth: 130 }}>
                 {date}
             </Text>
-            <ChronicleDataChip>Text</ChronicleDataChip>
-            <ChronicleDataChip>{actionLabel(log.action)}</ChronicleDataChip>
+            <Badge variant="outline">Text</Badge>
+            <Badge variant="outline">{actionLabel(log.action)}</Badge>
             <Text size="sm" c="dimmed">
                 {log.username_snapshot ?? "–"}
             </Text>
@@ -315,9 +313,7 @@ function TextChangeLogItem({ log }: TextChangeLogItemProps) {
                 </Text>
             )}
             {log.entries.length > 0 && (
-                <ChronicleDataChip>
-                    {log.entries.length} {log.entries.length === 1 ? "Feld" : "Felder"}
-                </ChronicleDataChip>
+                <Badge variant="outline">{log.entries.length} {log.entries.length === 1 ? "Feld" : "Felder"}</Badge>
             )}
         </Group>
     );
@@ -422,7 +418,7 @@ export default function ProjectHistorySection({ projectId, canEdit }: ProjectHis
     }
 
     if (isLoading) {
-        return <Loader size="sm" />;
+        return <LoadingState rows={6} />;
     }
 
     if (isError) {

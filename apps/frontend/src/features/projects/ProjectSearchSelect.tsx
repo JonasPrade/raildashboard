@@ -3,7 +3,6 @@ import {
     Combobox,
     Group,
     InputBase,
-    Loader,
     ScrollArea,
     Text,
     useCombobox,
@@ -84,7 +83,7 @@ export default function ProjectSearchSelect({
         value == null ? "" : selectedProject?.name ?? `Projekt #${value}`;
 
     const rightSection = isFetching ? (
-        <Loader size="xs" />
+        <Combobox.Chevron />
     ) : value != null ? (
         <CloseButton
             size="sm"

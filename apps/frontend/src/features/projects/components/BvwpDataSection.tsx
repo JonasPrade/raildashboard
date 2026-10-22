@@ -1,6 +1,7 @@
 import {
+    Badge,
     Group,
-    Loader,
+    Paper,
     SimpleGrid,
     Stack,
     Table,
@@ -10,8 +11,8 @@ import {
 } from "@mantine/core";
 import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
 import { type BvwpProjectData, useProjectBvwp } from "../../../shared/api/queries";
-import { ChronicleCard, ChronicleDataChip } from "../../../components/chronicle";
 import { formatTEuroWithZero } from "../../../shared/format";
+import { LoadingState } from "../../../shared/ui/LoadingState";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -307,15 +308,15 @@ function KapazitaetTab({ data }: { data: BvwpProjectData }) {
         <Stack gap="md">
             {hasTable && (
                 <Stack gap="xs">
-                    <Text size="sm" fw={600} c="dimmed" tt="uppercase" lts={0.5}>Streckenauslastung (überlastet)</Text>
+                    <Text component="div" className="idt-eyebrow">Streckenauslastung (überlastet)</Text>
                     <ResponsiveTable minWidth={640} withTableBorder withColumnBorders fz="sm">
                         <Table.Thead>
                             <Table.Tr>
                                 <Table.Th>Zeitraum</Table.Th>
-                                <Table.Th>Ref.-fall km</Table.Th>
-                                <Table.Th>Ref.-fall %</Table.Th>
-                                <Table.Th>Planfall km</Table.Th>
-                                <Table.Th>Planfall %</Table.Th>
+                                <Table.Th className="num">Ref.-fall km</Table.Th>
+                                <Table.Th className="num">Ref.-fall %</Table.Th>
+                                <Table.Th className="num">Planfall km</Table.Th>
+                                <Table.Th className="num">Planfall %</Table.Th>
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
@@ -325,10 +326,10 @@ function KapazitaetTab({ data }: { data: BvwpProjectData }) {
                                 return (
                                     <Table.Tr key={p.key}>
                                         <Table.Td>{p.label}</Table.Td>
-                                        <Table.Td>{fmtFloat(r.km) ?? "–"}</Table.Td>
-                                        <Table.Td>{fmtFloat(r.perc) ?? "–"}</Table.Td>
-                                        <Table.Td>{fmtFloat(pl.km) ?? "–"}</Table.Td>
-                                        <Table.Td>{fmtFloat(pl.perc) ?? "–"}</Table.Td>
+                                        <Table.Td className="num">{fmtFloat(r.km) ?? "–"}</Table.Td>
+                                        <Table.Td className="num">{fmtFloat(r.perc) ?? "–"}</Table.Td>
+                                        <Table.Td className="num">{fmtFloat(pl.km) ?? "–"}</Table.Td>
+                                        <Table.Td className="num">{fmtFloat(pl.perc) ?? "–"}</Table.Td>
                                     </Table.Tr>
                                 );
                             })}
@@ -453,12 +454,9 @@ export default function BvwpDataSection({ projectId }: Props) {
 
     if (isLoading) {
         return (
-            <ChronicleCard>
-                <Group>
-                    <Loader size="sm" />
-                    <Text size="sm" c="dimmed">BVWP-Daten werden geladen …</Text>
-                </Group>
-            </ChronicleCard>
+            <Paper withBorder p="var(--card-pad)">
+                <LoadingState rows={6} label="BVWP-Daten werden geladen …" />
+            </Paper>
         );
     }
 
@@ -468,15 +466,15 @@ export default function BvwpDataSection({ projectId }: Props) {
     const visibleTabs = TABS.filter((t) => t.hasData(data));
 
     return (
-        <ChronicleCard>
+        <Paper withBorder p="var(--card-pad)">
             <Stack gap="md">
-                <Group gap="md" align="center">
-                    <Title order={4}>BVWP-Bewertung</Title>
+                <Group className="idt-section-head" gap="md" align="center">
+                    <Title order={2} className="idt-title-plain">BVWP-Bewertung</Title>
                     {data.nkv != null && (
-                        <ChronicleDataChip>NKV {fmtFloat(data.nkv)}</ChronicleDataChip>
+                        <Badge variant="outline">NKV {fmtFloat(data.nkv)}</Badge>
                     )}
                     {data.priority && (
-                        <ChronicleDataChip>{data.priority}</ChronicleDataChip>
+                        <Badge variant="outline">{data.priority}</Badge>
                     )}
                 </Group>
 
@@ -499,6 +497,6 @@ export default function BvwpDataSection({ projectId }: Props) {
                     </Tabs>
                 )}
             </Stack>
-        </ChronicleCard>
+        </Paper>
     );
 }

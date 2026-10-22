@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { MantineProvider } from "@mantine/core";
 import { describe, expect, it } from "vitest";
 
-import PhaseBadge from "./PhaseBadge";
+import PhaseBadge, { PhaseTag } from "./PhaseBadge";
 
 const renderBadge = (phase: string | null, lifecycle?: string | null) =>
     render(
@@ -27,5 +27,16 @@ describe("PhaseBadge", () => {
         renderBadge("BAU", "PAUSIERT");
         expect(screen.getByText("Bau")).toBeInTheDocument();
         expect(screen.getByText("Pausiert")).toBeInTheDocument();
+    });
+
+    it("draws the phase tag with a square in the phase colour next to the text", () => {
+        const { container } = render(
+            <MantineProvider>
+                <PhaseTag phase="IN_BETRIEB" />
+            </MantineProvider>,
+        );
+        expect(screen.getByText("In Betrieb")).toBeInTheDocument();
+        const square = container.querySelector("span[aria-hidden]") as HTMLElement;
+        expect(square.style.background).toBe("var(--idt-success)");
     });
 });

@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, Container, FileInput, Group, Loader, Stack, Table, Text } from "@mantine/core";
-import { modals } from "@mantine/modals";
+import { Button, Container, FileInput, Group, Paper, Stack, Table, Text, Title } from "@mantine/core";
+import { openConfirmModal } from "../../shared/ui/confirmModal";
 import { notifications } from "@mantine/notifications";
-import { ChronicleCard, ChronicleDataChip, ChronicleHeadline } from "../../components/chronicle";
+import { StatusTag } from "../../shared/ui/SwatchTag";
 import RequirePermission from "../../components/RequirePermission";
 import {
     useDeleteGvfgParseResult,
@@ -16,6 +16,7 @@ import { formatDateTime } from "../../shared/format";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { TaskProgressIndicator, useImportTask } from "../import-review/shared";
 import { FileDropZone } from "../../shared/ui/FileDropZone";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 function edition(r: GvfgParseResultSummary): string {
     return r.year_from && r.year_to ? `${r.year_from}–${r.year_to}` : "–";
@@ -26,7 +27,7 @@ function ParseRuns({ results }: { results: GvfgParseResultSummary[] }) {
     const deleteResult = useDeleteGvfgParseResult();
 
     const handleDelete = (r: GvfgParseResultSummary) =>
-        modals.openConfirmModal({
+        openConfirmModal({
             title: "Import-Lauf löschen?",
             children: (
                 <Text size="sm">
@@ -35,7 +36,7 @@ function ParseRuns({ results }: { results: GvfgParseResultSummary[] }) {
                 </Text>
             ),
             labels: { confirm: "Löschen", cancel: "Abbrechen" },
-            confirmProps: { color: "red" },
+            danger: true,
             onConfirm: async () => {
                 try {
                     await deleteResult.mutateAsync(r.id);
@@ -56,7 +57,7 @@ function ParseRuns({ results }: { results: GvfgParseResultSummary[] }) {
                     <Table.Th>Teil</Table.Th>
                     <Table.Th>Datei</Table.Th>
                     <Table.Th>Gelesen</Table.Th>
-                    <Table.Th>Status</Table.Th>
+                    <Table.Th data-role="status">Status</Table.Th>
                     <Table.Th>Übernommen</Table.Th>
                     <Table.Th />
                 </Table.Tr>
@@ -72,7 +73,7 @@ function ParseRuns({ results }: { results: GvfgParseResultSummary[] }) {
                             {r.username_snapshot ? ` · ${r.username_snapshot}` : ""}
                         </Table.Td>
                         <Table.Td>
-                            <ChronicleDataChip>{r.status === "SUCCESS" ? "gelesen" : "Fehler"}</ChronicleDataChip>
+                            <StatusTag tone={r.status === "SUCCESS" ? "done" : "danger"}>{r.status === "SUCCESS" ? "gelesen" : "Fehler"}</StatusTag>
                         </Table.Td>
                         <Table.Td>{r.confirmed_at ? formatDateTime(r.confirmed_at) : "–"}</Table.Td>
                         <Table.Td>
@@ -123,8 +124,8 @@ function GvfgImportPageContent() {
     return (
         <Container size="lg" py="xl">
             <Stack gap="xl">
-                <ChronicleHeadline as="h1">GVFG-Import</ChronicleHeadline>
-                <ChronicleCard>
+                <Title order={1}>GVFG-Import</Title>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="md">
                         <Text fw={600}>Neuer Import</Text>
                         <Text size="sm" c="dimmed">
@@ -149,13 +150,13 @@ function GvfgImportPageContent() {
                         </FileDropZone>
                         {task.isRunning && <TaskProgressIndicator progress={task.progress} warning={task.warning} />}
                     </Stack>
-                </ChronicleCard>
-                <ChronicleCard>
+                </Paper>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="md">
                         <Text fw={600}>Import-Läufe</Text>
-                        {isLoading ? <Group justify="center"><Loader /></Group> : <ParseRuns results={results ?? []} />}
+                        {isLoading ? <LoadingState rows={6} /> : <ParseRuns results={results ?? []} />}
                     </Stack>
-                </ChronicleCard>
+                </Paper>
             </Stack>
         </Container>
     );

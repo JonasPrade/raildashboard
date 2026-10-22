@@ -3,15 +3,15 @@ import {
     Badge,
     Container,
     Group,
-    Loader,
+    Paper,
     Select,
     Stack,
     Table,
     Text,
+    Title,
 } from "@mantine/core";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 
-import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
 import RequirePermission from "../../components/RequirePermission";
 import {
     type SammelFinveProgress,
@@ -19,10 +19,11 @@ import {
     useSetFinveProgressPhase,
 } from "../../shared/api/queries";
 import {
-    MAIN_PHASE_LABEL,
     mainPhaseOptions,
     type MainPhase,
 } from "../projects/components/progress/phaseMeta";
+import { PhaseTag } from "../projects/components/progress/PhaseBadge";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 const AUTO = "__auto__";
 
@@ -39,17 +40,13 @@ function PhaseBadge({ value, dimmed }: { value: string | null | undefined; dimme
             </Badge>
         );
     }
-    return (
-        <Badge variant={dimmed ? "outline" : "light"} color={dimmed ? "gray" : "indigo"}>
-            {MAIN_PHASE_LABEL[value as MainPhase] ?? value}
-        </Badge>
-    );
+    return <PhaseTag phase={value as MainPhase} dimmed={dimmed} />;
 }
 
 function Row({ finve }: { finve: SammelFinveProgress }) {
     const setPhase = useSetFinveProgressPhase();
     return (
-        <Table.Tr style={finve.needs_assignment ? { backgroundColor: "rgba(250, 176, 5, 0.08)" } : undefined}>
+        <Table.Tr style={finve.needs_assignment ? { backgroundColor: "var(--idt-violet-soft)" } : undefined}>
             <Table.Td>
                 <Group gap={6}>
                     <Badge variant="light">FinVe {finve.finve_id}</Badge>
@@ -102,7 +99,7 @@ function FinveProgressAdminPageContent() {
         <Container size="lg" py="xl">
             <Stack gap="lg">
                 <Stack gap={4}>
-                    <ChronicleHeadline as="h1">Sammel-FinVe · Phasen-Zuordnung</ChronicleHeadline>
+                    <Title order={1}>Sammel-FinVe · Phasen-Zuordnung</Title>
                     <Text size="sm" c="dimmed">
                         Sammel-FinVes treiben den Planungsstand verknüpfter Projekte. Die Phase wird
                         aus der Leistungsphase im Namen erkannt (Lph 1/2 → Vorplanung, Lph 3/4 →
@@ -118,11 +115,9 @@ function FinveProgressAdminPageContent() {
                     </Alert>
                 )}
 
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     {isLoading ? (
-                        <Group justify="center" py="md">
-                            <Loader size="sm" />
-                        </Group>
+                        <LoadingState rows={6} />
                     ) : (
                         <ResponsiveTable minWidth={720} striped highlightOnHover>
                             <Table.Thead>
@@ -141,7 +136,7 @@ function FinveProgressAdminPageContent() {
                             </Table.Tbody>
                         </ResponsiveTable>
                     )}
-                </ChronicleCard>
+                </Paper>
             </Stack>
         </Container>
     );

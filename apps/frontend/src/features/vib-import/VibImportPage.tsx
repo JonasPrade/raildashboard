@@ -6,15 +6,15 @@ import {
     Container,
     FileInput,
     Group,
-    Loader,
     NumberInput,
+    Paper,
     Stack,
     Table,
     Text,
+    Title,
 } from "@mantine/core";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
-import { ChronicleHeadline, ChronicleCard } from "../../components/chronicle";
-import { modals } from "@mantine/modals";
+import { openConfirmModal } from "../../shared/ui/confirmModal";
 import { notifications } from "@mantine/notifications";
 import RequirePermission from "../../components/RequirePermission";
 import {
@@ -28,6 +28,7 @@ import { exceedsUploadLimit, tooLargeMessage, uploadErrorMessage } from "../../s
 import { TaskProgressIndicator, useImportTask } from "../import-review/shared";
 import { formatDateNumeric, formatDateTime } from "../../shared/format";
 import { FileDropZone } from "../../shared/ui/FileDropZone";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 function VibImportPageContent() {
     const navigate = useNavigate();
@@ -81,7 +82,7 @@ function VibImportPageContent() {
     const progress = task.progress;
 
     const handleDeleteReport = (id: number, reportYear: number) => {
-        modals.openConfirmModal({
+        openConfirmModal({
             title: "VIB-Bericht löschen?",
             children: (
                 <Text size="sm">
@@ -90,7 +91,7 @@ function VibImportPageContent() {
                 </Text>
             ),
             labels: { confirm: "Löschen", cancel: "Abbrechen" },
-            confirmProps: { color: "red" },
+            danger: true,
             onConfirm: () =>
                 deleteReport.mutate(id, {
                     onSuccess: () =>
@@ -104,10 +105,10 @@ function VibImportPageContent() {
     return (
         <Container size="lg" py="xl">
             <Stack gap="xl">
-                <ChronicleHeadline as="h1">VIB-Import (Verkehrsinvestitionsbericht)</ChronicleHeadline>
+                <Title order={1}>VIB-Import (Verkehrsinvestitionsbericht)</Title>
 
                 {/* A — New import */}
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="md">
                         <Text fw={600} size="md">Neuer Import</Text>
                         <Text size="sm" c="dimmed">
@@ -183,29 +184,29 @@ function VibImportPageContent() {
                             />
                         )}
                     </Stack>
-                </ChronicleCard>
+                </Paper>
 
                 {/* PDF preview — shown when a file is selected */}
                 {pdfUrl && (
-                    <ChronicleCard style={{ overflow: "hidden", padding: 0 }}>
+                    <Paper withBorder p={0} style={{ overflow: "hidden" }}>
                         <iframe
                             src={pdfUrl}
                             title="PDF-Vorschau"
                             style={{ width: "100%", height: "75vh", border: "none", display: "block" }}
                         />
-                    </ChronicleCard>
+                    </Paper>
                 )}
 
                 {/* B — Open drafts */}
                 {(draftsLoading || (drafts && drafts.length > 0)) && (
-                    <ChronicleCard>
+                    <Paper withBorder p="var(--card-pad)">
                         <Stack gap="md">
                             <Text fw={600} size="md">Offene Entwürfe</Text>
                             <Text size="sm" c="dimmed">
                                 Geparste PDFs, die noch nicht bestätigt wurden. Entwürfe können weiterbearbeitet werden.
                             </Text>
                             {draftsLoading ? (
-                                <Group justify="center"><Loader /></Group>
+                                <LoadingState rows={6} />
                             ) : (
                                 <ResponsiveTable minWidth={720} striped highlightOnHover withTableBorder>
                                     <Table.Thead>
@@ -238,7 +239,7 @@ function VibImportPageContent() {
                                                             variant="subtle"
                                                             color="red"
                                                             onClick={() =>
-                                                                modals.openConfirmModal({
+                                                                openConfirmModal({
                                                                     title: "Entwurf verwerfen?",
                                                                     children: (
                                                                         <Text size="sm">
@@ -246,7 +247,7 @@ function VibImportPageContent() {
                                                                         </Text>
                                                                     ),
                                                                     labels: { confirm: "Verwerfen", cancel: "Abbrechen" },
-                                                                    confirmProps: { color: "red" },
+                                                                    danger: true,
                                                                     onConfirm: () =>
                                                                         deleteDraft.mutate(d.task_id, {
                                                                             onError: () =>
@@ -268,17 +269,15 @@ function VibImportPageContent() {
                                 </ResponsiveTable>
                             )}
                         </Stack>
-                    </ChronicleCard>
+                    </Paper>
                 )}
 
                 {/* C — Imported reports */}
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="md">
                         <Text fw={600} size="md">Importierte Berichte</Text>
                         {reportsLoading ? (
-                            <Group justify="center">
-                                <Loader />
-                            </Group>
+                            <LoadingState rows={6} />
                         ) : reports && reports.length > 0 ? (
                             <ResponsiveTable minWidth={720} striped highlightOnHover withTableBorder>
                                 <Table.Thead>
@@ -286,7 +285,7 @@ function VibImportPageContent() {
                                         <Table.Th>Jahr</Table.Th>
                                         <Table.Th>Drucksache</Table.Th>
                                         <Table.Th>Importiert</Table.Th>
-                                        <Table.Th>Vorhaben</Table.Th>
+                                        <Table.Th className="num">Vorhaben</Table.Th>
                                         <Table.Th />
                                     </Table.Tr>
                                 </Table.Thead>
@@ -298,7 +297,7 @@ function VibImportPageContent() {
                                             <Table.Td>
                                                 {formatDateNumeric(r.imported_at)}
                                             </Table.Td>
-                                            <Table.Td>{r.entry_count}</Table.Td>
+                                            <Table.Td className="num">{r.entry_count}</Table.Td>
                                             <Table.Td>
                                                 <Button
                                                     size="xs"
@@ -321,7 +320,7 @@ function VibImportPageContent() {
                             </Text>
                         )}
                     </Stack>
-                </ChronicleCard>
+                </Paper>
             </Stack>
         </Container>
     );

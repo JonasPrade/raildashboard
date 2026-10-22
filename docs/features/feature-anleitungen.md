@@ -19,7 +19,7 @@ stored server-side as per-section overrides and win over the bundled defaults.
   (back link, headline + chip, editable intro, green "Voraussetzungen" alert,
   numbered steps accordion, contained troubleshooting accordion).
 - **Markdown rendering**: `features/guides/GuideMarkdown.tsx` (react-markdown
-  + remark-gfm; internal links → router links, inline code → ChronicleDataChip,
+  + remark-gfm; internal links → router links, inline code → outline `Badge`,
   blockquotes → Mantine Alerts).
 - **Editing**: `features/guides/GuideSectionBody.tsx` — per-section
   "Bearbeiten" (markdown textarea), "Speichern", "Auf Standardtext

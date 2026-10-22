@@ -1,15 +1,16 @@
 import { createRef, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { IconInfoCircle } from "@tabler/icons-react";
+import { Info } from "lucide-react";
 import {
     ActionIcon,
     Alert,
+    Badge,
     Button,
     Container,
     Group,
-    Loader,
     Modal,
     Pagination,
+    Paper,
     Progress,
     SegmentedControl,
     Select,
@@ -22,7 +23,7 @@ import {
 } from "@mantine/core";
 import { ChartTooltip, CompositeChart } from "@mantine/charts";
 import "@mantine/charts/styles.css";
-import { ChronicleCard, ChronicleDataChip, ChronicleHeadline } from "../../components/chronicle";
+import "../../shared/ui/charts.css";
 import {
     useInfraplanPublicKpis,
     useInfraplanPublicReports,
@@ -33,7 +34,7 @@ import {
 import { formatDateShort } from "../../shared/format";
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { LinkedProjects, type LinkedProject } from "../../shared/ui/LinkedProjects";
-import { ProjectTableOfContents, type TocSection } from "../projects/ProjectTableOfContents";
+import { ProjectRegister, type RegisterSection } from "../projects/ProjectRegister";
 import Footnotes from "./Footnotes";
 import {
     KPI_CATEGORY_LABEL,
@@ -56,6 +57,8 @@ import {
     type KpiCompanion,
     type KpiChartSeries,
 } from "./infraplanFormat";
+import { LoadingState } from "../../shared/ui/LoadingState";
+import { ErrorState } from "../../shared/ui/ErrorState";
 
 const PAGE_SIZE = 25;
 
@@ -160,17 +163,16 @@ function KpiDetailModal({ kpi, companion, subSeries, opened, onClose }: {
     opened: boolean;
     onClose: () => void;
 }) {
-    const isMobile = useIsMobile();
     return (
-        <Modal opened={opened} onClose={onClose} title={kpi.name} size="xl" fullScreen={isMobile}>
+        <Modal opened={opened} onClose={onClose} title={kpi.name} size="xl">
             <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                 {subSeries.map((s) => (
-                    <ChronicleCard key={s}>
+                    <Paper withBorder p="var(--card-pad)" key={s}>
                         <Stack gap="xs">
                             <Text fw={600} size="sm">{s}</Text>
                             <KpiChart kpi={kpi} scope={{ series: s }} companion={companion} h={200} />
                         </Stack>
-                    </ChronicleCard>
+                    </Paper>
                 ))}
             </SimpleGrid>
         </Modal>
@@ -218,7 +220,7 @@ function KpiInfo({ description }: { description: string }) {
     return (
         <Tooltip label={description} multiline w={280} withArrow position="top" events={{ hover: true, focus: true, touch: true }}>
             <ActionIcon variant="subtle" color="gray" size="sm" aria-label="Erklärung der Kennzahl">
-                <IconInfoCircle size={16} />
+                <Info size={16} />
             </ActionIcon>
         </Tooltip>
     );
@@ -231,7 +233,7 @@ function KpiCard({ kpi, companion }: { kpi: InfraplanPublicKpi; companion?: KpiC
     // The flow lists show a single year; it belongs in the heading, not just in the footnote.
     const flowYear = overview.layout === "flow" ? kpiFlow(kpi)?.year : undefined;
     return (
-        <ChronicleCard>
+        <Paper withBorder p="var(--card-pad)">
             <Stack gap="xs">
                 <Group justify="space-between" align="flex-start" wrap="nowrap" gap="sm">
                     <Stack gap={0}>
@@ -282,7 +284,7 @@ function KpiCard({ kpi, companion }: { kpi: InfraplanPublicKpi; companion?: KpiC
                     onClose={() => setDetailOpen(false)}
                 />
             )}
-        </ChronicleCard>
+        </Paper>
     );
 }
 
@@ -296,7 +298,7 @@ function Kpis({ kpis }: { kpis: InfraplanPublicKpi[] }) {
     }, [kpis]);
     const companions = useMemo(() => kpiCompanions(kpis), [kpis]);
     // One scroll target per Bereich: the kind, and each category below it.
-    const tocSections = useMemo<TocSection[]>(
+    const tocSections = useMemo<RegisterSection[]>(
         () =>
             groups.flatMap((g) => [
                 { id: g.kind, label: KPI_KIND_LABEL[g.kind] ?? g.kind, ref: createRef<HTMLDivElement>() as SectionRef, visible: true },
@@ -317,8 +319,8 @@ function Kpis({ kpis }: { kpis: InfraplanPublicKpi[] }) {
         return <Text size="sm" c="dimmed">Für die Kennzahlen liegen noch keine geprüften Werte vor.</Text>;
     }
     return (
-        <>
-            <ProjectTableOfContents sections={tocSections} />
+        <div className="project-register-layout">
+            <ProjectRegister sections={tocSections} />
             <Stack gap="xl">
                 {groups.map((g) => (
                     <Stack key={g.kind} gap="md" ref={refOf(g.kind)} style={{ scrollMarginTop: 80 }}>
@@ -331,7 +333,7 @@ function Kpis({ kpis }: { kpis: InfraplanPublicKpi[] }) {
                                 style={{ scrollMarginTop: 80 }}
                             >
                                 {c.category && (
-                                    <Text fw={600} size="sm" c="dimmed" tt="uppercase">
+                                    <Text className="idt-eyebrow" component="div">
                                         {KPI_CATEGORY_LABEL[c.category] ?? c.category}
                                     </Text>
                                 )}
@@ -348,7 +350,7 @@ function Kpis({ kpis }: { kpis: InfraplanPublicKpi[] }) {
                     </Stack>
                 ))}
             </Stack>
-        </>
+        </div>
     );
 }
 
@@ -371,14 +373,14 @@ function Fact({ label, value }: { label: string; value: React.ReactNode }) {
 function MeasureCard({ entry }: { entry: InfraplanReportEntry }) {
     const cost = entryCost(entry);
     return (
-        <ChronicleCard>
+        <Paper withBorder p="var(--card-pad)">
             <Stack gap="md">
                 <Group justify="space-between" align="flex-start" wrap="wrap" gap="sm">
                     <Stack gap={4} style={{ flex: "1 1 280px", minWidth: 0 }}>
                         <Group gap="sm" align="center">
-                            <ChronicleDataChip>{SECTION_SHORT[entry.section] ?? entry.section}</ChronicleDataChip>
-                            <ChronicleDataChip>Nr. {entry.lfd_nr}</ChronicleDataChip>
-                            {entry.primary_number && <ChronicleDataChip>{entry.primary_number}</ChronicleDataChip>}
+                            <Badge variant="outline">{SECTION_SHORT[entry.section] ?? entry.section}</Badge>
+                            <Badge variant="outline">Nr. {entry.lfd_nr}</Badge>
+                            {entry.primary_number && <Badge variant="outline">{entry.primary_number}</Badge>}
                         </Group>
                         <Text fw={600} size="md" lh={1.3}>
                             {entry.bezeichnung ?? "–"}
@@ -400,12 +402,12 @@ function MeasureCard({ entry }: { entry: InfraplanReportEntry }) {
                 </Group>
                 <LinkedProjects projects={projectsOf(entry)} />
             </Stack>
-        </ChronicleCard>
+        </Paper>
     );
 }
 
 function Measures({ year }: { year: number }) {
-    const { data: entries, isLoading, isError } = useInfraplanReportEntries(year);
+    const { data: entries, isLoading, isError, refetch } = useInfraplanReportEntries(year);
     const [section, setSection] = useState<string | null>(null);
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
@@ -426,8 +428,8 @@ function Measures({ year }: { year: number }) {
         );
     }, [entries, section, search]);
 
-    if (isLoading) return <Loader size="sm" />;
-    if (isError) return <Alert color="red" variant="light">Maßnahmen konnten nicht geladen werden.</Alert>;
+    if (isLoading) return <LoadingState rows={6} />;
+    if (isError) return <ErrorState onRetry={() => void refetch()}>Maßnahmen konnten nicht geladen werden.</ErrorState>;
 
     const pageRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
     return (
@@ -499,7 +501,7 @@ export default function InfraplanPage() {
         );
 
     if (reportsLoading || kpisLoading) {
-        return <Container py="xl"><Group justify="center"><Loader /></Group></Container>;
+        return <Container py="xl"><LoadingState rows={6} /></Container>;
     }
 
     return (
@@ -507,7 +509,7 @@ export default function InfraplanPage() {
             <Stack gap="xl">
                 <Group justify="space-between" align="center" wrap="wrap" gap="sm">
                     <Group gap="xs" align="center" wrap="nowrap">
-                        <ChronicleHeadline as="h1">Infraplan</ChronicleHeadline>
+                        <Title order={1}>Infraplan</Title>
                         <Tooltip
                             label="Der Infraplan ist der jährlich fortgeschriebene Fünfjahresplan des Bundes für die
                                 Schieneninfrastruktur. Er nennt je Maßnahme Realisierungsstand, geplante Inbetriebnahme,
@@ -520,7 +522,7 @@ export default function InfraplanPage() {
                             events={{ hover: true, focus: true, touch: true }}
                         >
                             <ActionIcon variant="subtle" color="gray" size="md" aria-label="Was ist der Infraplan?">
-                                <IconInfoCircle size={18} />
+                                <Info size={16} />
                             </ActionIcon>
                         </Tooltip>
                     </Group>
@@ -534,7 +536,7 @@ export default function InfraplanPage() {
                             w={{ base: "100%", xs: 180 }}
                         />
                     ) : (
-                        current && <ChronicleDataChip>Infraplan {current.year}</ChronicleDataChip>
+                        current && <Badge variant="outline">Infraplan {current.year}</Badge>
                     )}
                 </Group>
 

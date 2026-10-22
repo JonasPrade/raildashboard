@@ -1,12 +1,12 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
     ActionIcon,
-    Alert,
     Anchor,
+    Badge,
     Button,
     Group,
-    Loader,
     Modal,
+    Paper,
     Radio,
     Select,
     Stack,
@@ -17,9 +17,8 @@ import {
     Title,
     Tooltip,
 } from "@mantine/core";
-import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
-import { IconEye, IconLock } from "@tabler/icons-react";
-import { modals } from "@mantine/modals";
+import { Check, Eye, FileImage, FileSpreadsheet, FileText, Lock, Paperclip } from "lucide-react";
+import { openConfirmModal } from "../../shared/ui/confirmModal";
 import { notifications } from "@mantine/notifications";
 
 import {
@@ -45,10 +44,13 @@ import { API_BASE } from "../../shared/api/client";
 import {
     TEXT_CATEGORY_STYLE_ORDER,
     TEXT_CATEGORY_STYLES,
+    textCardStyle,
     type TextCategoryStyle,
     categoryOf,
     defaultCategory,
 } from "./textCategoryStyles";
+import { LoadingState } from "../../shared/ui/LoadingState";
+import { ErrorState } from "../../shared/ui/ErrorState";
 
 // Lazy: pulls in react-pdf/pdfjs (~400 KB) only when a preview is opened.
 const PdfPreviewModal = lazy(() => import("./PdfPreviewModal"));
@@ -61,12 +63,14 @@ function formatBytes(bytes: number): string {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function fileTypeIcon(mimeType: string): string {
-    if (mimeType === "application/pdf") return "📄";
-    if (mimeType.startsWith("image/")) return "🖼️";
-    if (mimeType.includes("word") || mimeType.includes("msword")) return "📝";
-    if (mimeType.includes("excel") || mimeType.includes("spreadsheet")) return "📊";
-    return "📎";
+/** Lucide icon for an attachment's file type (no emoji, DESIGN.md). */
+function FileTypeIcon({ mimeType }: { mimeType: string }) {
+    const props = { size: 16, "aria-hidden": true, style: { flex: "none" } } as const;
+    if (mimeType === "application/pdf") return <FileText {...props} />;
+    if (mimeType.startsWith("image/")) return <FileImage {...props} />;
+    if (mimeType.includes("word") || mimeType.includes("msword")) return <FileText {...props} />;
+    if (mimeType.includes("excel") || mimeType.includes("spreadsheet")) return <FileSpreadsheet {...props} />;
+    return <Paperclip {...props} />;
 }
 
 const ACCEPTED_MIME = [
@@ -123,7 +127,7 @@ function CreateTextTypeModal({ opened, onClose, onCreated }: CreateTextTypeModal
                     onChange={(event) => setName(event.currentTarget.value)}
                     placeholder="z. B. Pressemitteilung"
                 />
-                <Group justify="flex-end">
+                <div className="idt-modal-footer">
                     <Button variant="default" onClick={onClose} disabled={createTypeMutation.isPending}>
                         Abbrechen
                     </Button>
@@ -134,7 +138,7 @@ function CreateTextTypeModal({ opened, onClose, onCreated }: CreateTextTypeModal
                     >
                         Erstellen
                     </Button>
-                </Group>
+                </div>
             </Stack>
         </Modal>
     );
@@ -210,11 +214,12 @@ function CreateTextCategoryModal({ opened, onClose, onCreated }: CreateTextCateg
                                     value={key}
                                     label={
                                         <Group gap={6} wrap="nowrap">
-                                            <StyleIcon size={16} color={display.color} aria-hidden />
+                                            <span
+                                                aria-hidden
+                                                style={{ width: 8, height: 16, background: display.edge ?? "transparent" }}
+                                            />
+                                            <StyleIcon size={16} color={display.iconColor} aria-hidden />
                                             <span>{display.label}</span>
-                                            {display.border && (
-                                                <Text span size="xs" c="dimmed">hervorgehoben</Text>
-                                            )}
                                         </Group>
                                     }
                                 />
@@ -222,7 +227,7 @@ function CreateTextCategoryModal({ opened, onClose, onCreated }: CreateTextCateg
                         })}
                     </Stack>
                 </Radio.Group>
-                <Group justify="flex-end">
+                <div className="idt-modal-footer">
                     <Button variant="default" onClick={onClose} disabled={createCategoryMutation.isPending}>
                         Abbrechen
                     </Button>
@@ -233,7 +238,7 @@ function CreateTextCategoryModal({ opened, onClose, onCreated }: CreateTextCateg
                     >
                         Erstellen
                     </Button>
-                </Group>
+                </div>
             </Stack>
         </Modal>
     );
@@ -245,9 +250,10 @@ function CategoryLabel({ category }: { category: ProjectTextCategory }) {
     const display = TEXT_CATEGORY_STYLES[category.style];
     const StyleIcon = display.icon;
     return (
-        <Group gap={4} wrap="nowrap" style={{ color: display.color }}>
-            <StyleIcon size={14} aria-hidden />
-            <Text span size="xs" fw={600} style={{ color: "inherit" }}>
+        <Group gap={4} wrap="nowrap">
+            {/* Icon in ink (critical red); amber and cyan only on the card edge (W5). */}
+            <StyleIcon size={14} color={display.iconColor} aria-hidden />
+            <Text span size="xs" fw={600} style={{ color: "var(--text-body)" }}>
                 {category.name}
             </Text>
         </Group>
@@ -447,7 +453,7 @@ function TextFormModal({ opened, onClose, onSubmit, isSubmitting, initialValues,
                                 <Button
                                     size="xs"
                                     variant="subtle"
-                                    leftSection="📎"
+                                    leftSection={<Paperclip size={16} aria-hidden />}
                                     fullWidth
                                     onClick={() => fileInputRef.current?.click()}
                                 >
@@ -457,7 +463,7 @@ function TextFormModal({ opened, onClose, onSubmit, isSubmitting, initialValues,
                             {pendingFiles.map((f) => (
                                 <Group key={f.name} justify="space-between" align="center" wrap="nowrap">
                                     <Text size="xs" c="dimmed" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                        📎 {f.name} ({formatBytes(f.size)})
+                                        {f.name} ({formatBytes(f.size)})
                                     </Text>
                                     <ActionIcon
                                         size="xs"
@@ -473,14 +479,14 @@ function TextFormModal({ opened, onClose, onSubmit, isSubmitting, initialValues,
                         </Stack>
                     )}
 
-                    <Group justify="flex-end">
+                    <div className="idt-modal-footer">
                         <Button variant="default" onClick={onClose} disabled={isSubmitting}>
                             Abbrechen
                         </Button>
                         <Button onClick={() => onSubmit({ ...values, category: categoryValue }, pendingFiles)} loading={isSubmitting} disabled={!isValid}>
                             Speichern
                         </Button>
-                    </Group>
+                    </div>
                 </Stack>
             </Modal>
 
@@ -515,7 +521,7 @@ function AttachmentList({ attachments, textId, projectId, canEdit }: AttachmentL
     if (attachments.length === 0) return null;
 
     function handleDelete(attachment: TextAttachment) {
-        modals.openConfirmModal({
+        openConfirmModal({
             title: "Anhang löschen",
             children: (
                 <Text size="sm">
@@ -523,7 +529,7 @@ function AttachmentList({ attachments, textId, projectId, canEdit }: AttachmentL
                 </Text>
             ),
             labels: { confirm: "Löschen", cancel: "Abbrechen" },
-            confirmProps: { color: "red" },
+            danger: true,
             onConfirm: () => {
                 deleteMutation.mutate(
                     { textId, attachmentId: attachment.id },
@@ -547,7 +553,7 @@ function AttachmentList({ attachments, textId, projectId, canEdit }: AttachmentL
                 {attachments.map((a) => (
                     <Group key={a.id} justify="space-between" align="center" wrap="nowrap">
                         <Group gap="xs" align="center" style={{ minWidth: 0 }}>
-                            <Text size="sm">{fileTypeIcon(a.mime_type)}</Text>
+                            <FileTypeIcon mimeType={a.mime_type} />
                             <Anchor
                                 href={`${API_BASE}/api/v1/projects/texts/${textId}/attachments/${a.id}/download`}
                                 size="sm"
@@ -555,7 +561,7 @@ function AttachmentList({ attachments, textId, projectId, canEdit }: AttachmentL
                             >
                                 {a.filename}
                             </Anchor>
-                            <ChronicleDataChip>{formatBytes(a.file_size)}</ChronicleDataChip>
+                            <Badge variant="outline">{formatBytes(a.file_size)}</Badge>
                         </Group>
                         <Group gap={4} wrap="nowrap">
                             {a.mime_type === "application/pdf" && (
@@ -567,7 +573,7 @@ function AttachmentList({ attachments, textId, projectId, canEdit }: AttachmentL
                                         onClick={() => setPreviewAttachment(a)}
                                         aria-label={`PDF-Vorschau ${a.filename}`}
                                     >
-                                        <IconEye size={12} />
+                                        <Eye size={12} />
                                     </ActionIcon>
                                 </Tooltip>
                             )}
@@ -670,7 +676,7 @@ function AttachmentUploadArea({ textId, projectId }: AttachmentUploadAreaProps) 
                 <Button
                     size="xs"
                     variant="subtle"
-                    leftSection="📎"
+                    leftSection={<Paperclip size={16} aria-hidden />}
                     fullWidth
                     onClick={() => fileInputRef.current?.click()}
                 >
@@ -679,8 +685,8 @@ function AttachmentUploadArea({ textId, projectId }: AttachmentUploadAreaProps) 
             </FileDropZone>
             {uploads.map((u) => (
                 <Group key={u.filename} gap="xs" align="center">
-                    {u.status === "uploading" && <Loader size="xs" />}
-                    {u.status === "done" && <Text size="xs" c="green">✓</Text>}
+                    {u.status === "uploading" && <Text size="xs" c="dimmed">…</Text>}
+                    {u.status === "done" && <Check size={12} aria-label="hochgeladen" />}
                     {u.status === "error" && <Text size="xs" c="red">✗</Text>}
                     <Text size="xs" c={u.status === "error" ? "red" : "dimmed"}>
                         {u.filename}{u.status === "error" ? ` — ${u.error}` : ""}
@@ -741,6 +747,20 @@ function TextCard({ projectText, canEdit, projectId }: TextCardProps) {
     }
 
     function handleDelete() {
+        openConfirmModal({
+            title: "Text löschen?",
+            children: (
+                <Text size="sm" mb="md">
+                    „{projectText.header}" wird dauerhaft entfernt.
+                </Text>
+            ),
+            labels: { confirm: "Löschen", cancel: "Abbrechen" },
+            danger: true,
+            onConfirm: () => deleteText(),
+        });
+    }
+
+    function deleteText() {
         deleteMutation.mutate(projectText.id, {
             onSuccess: () => {
                 notifications.show({
@@ -761,7 +781,8 @@ function TextCard({ projectText, canEdit, projectId }: TextCardProps) {
 
     return (
         <>
-            <ChronicleCard accentColor={display?.border ? display.color : undefined}>
+            {/* DS callout: 8px edge in the category colour, no frame, no fill. */}
+            <div style={{ ...textCardStyle(display?.edge ?? null), paddingTop: 4, paddingBottom: 4 }}>
                 <Stack gap="xs">
                     <Group justify="space-between" align="flex-start">
                         <Stack gap={2} style={{ minWidth: 0 }}>
@@ -774,7 +795,7 @@ function TextCard({ projectText, canEdit, projectId }: TextCardProps) {
                                 </Text>
                                 {projectText.is_public === false && (
                                     <Group gap={3} wrap="nowrap" c="dimmed">
-                                        <IconLock size={12} aria-hidden />
+                                        <Lock size={12} aria-hidden />
                                         <Text size="xs" c="dimmed">Intern</Text>
                                     </Group>
                                 )}
@@ -817,7 +838,7 @@ function TextCard({ projectText, canEdit, projectId }: TextCardProps) {
                         <AttachmentUploadArea textId={projectText.id} projectId={projectId} />
                     )}
                 </Stack>
-            </ChronicleCard>
+            </div>
 
             <TextFormModal
                 opened={editOpened}
@@ -840,7 +861,7 @@ type ProjectTextsSectionProps = {
 
 export default function ProjectTextsSection({ projectId, canEdit }: ProjectTextsSectionProps) {
     const [createOpened, setCreateOpened] = useState(false);
-    const { data, isLoading, isError } = useProjectTexts(projectId);
+    const { data, isLoading, isError, refetch } = useProjectTexts(projectId);
     const createMutation = useCreateProjectText(projectId);
     const uploadMutation = useUploadTextAttachment(projectId);
 
@@ -891,19 +912,17 @@ export default function ProjectTextsSection({ projectId, canEdit }: ProjectTexts
 
     if (isLoading) {
         return (
-            <ChronicleCard>
-                <Loader size="sm" />
-            </ChronicleCard>
+            <Paper withBorder p="var(--card-pad)">
+                <LoadingState rows={3} />
+            </Paper>
         );
     }
 
     if (isError) {
         return (
-            <ChronicleCard>
-                <Alert color="red" variant="light">
-                    Texte konnten nicht geladen werden.
-                </Alert>
-            </ChronicleCard>
+            <Paper withBorder p="var(--card-pad)">
+                <ErrorState onRetry={() => void refetch()}>Texte konnten nicht geladen werden.</ErrorState>
+            </Paper>
         );
     }
 
@@ -915,10 +934,10 @@ export default function ProjectTextsSection({ projectId, canEdit }: ProjectTexts
 
     return (
         <>
-            <ChronicleCard>
+            <Paper withBorder p="var(--card-pad)">
                 <Stack gap="sm">
-                    <Group justify="space-between" align="center">
-                        <Title order={4}>Texte</Title>
+                    <Group className="idt-section-head" justify="space-between" align="center">
+                        <Title order={2} className="idt-title-plain">Texte</Title>
                         {canEdit && (
                             <Button size="xs" variant="light" onClick={() => setCreateOpened(true)}>
                                 Text hinzufügen
@@ -937,7 +956,7 @@ export default function ProjectTextsSection({ projectId, canEdit }: ProjectTexts
                         </Text>
                     )}
                 </Stack>
-            </ChronicleCard>
+            </Paper>
 
             <TextFormModal
                 opened={createOpened}

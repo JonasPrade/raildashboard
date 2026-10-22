@@ -1,38 +1,30 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-    Alert,
     Anchor,
+    Badge,
     Checkbox,
     Group,
-    Loader,
     Pagination,
+    Paper,
     SegmentedControl,
     Select,
-    SimpleGrid,
     Stack,
     Table,
     Text,
     TextInput,
 } from "@mantine/core";
-import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
+import { Stat, StatBand } from "../../shared/ui/Stat";
 import { useGvfgProgramEntries, useGvfgPrograms, type GvfgEntry } from "../../shared/api/queries";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { CATEGORY_LABEL, KIND_LABEL, categories, editionLabel, formatMio, num, plannedAid, sumLine } from "./gvfgFormat";
+import { LoadingState } from "../../shared/ui/LoadingState";
+import { ErrorState } from "../../shared/ui/ErrorState";
 
 const PAGE_SIZE = 50;
 
 type KindFilter = "all" | "kommunal" | "db";
 type PartFilter = "all" | "finanzrelevant" | "nachrichtlich";
-
-function Stat({ label, value }: { label: string; value: string }) {
-    return (
-        <ChronicleCard>
-            <Text size="xs" c="dimmed">{label}</Text>
-            <Text fw={600} size="lg">{value}</Text>
-        </ChronicleCard>
-    );
-}
 
 function sum(entries: GvfgEntry[], field: "cost_total" | "aid_total"): number {
     return entries.reduce((acc, e) => acc + (num(sumLine(e)?.[field]) ?? 0), 0);
@@ -42,7 +34,7 @@ export default function GvfgOverviewPage() {
     const { data: programs, isLoading: programsLoading } = useGvfgPrograms();
     const [programId, setProgramId] = useState<number | null>(null);
     const program = programs?.find((p) => p.id === programId) ?? programs?.[0] ?? null;
-    const { data: entries, isLoading, isError } = useGvfgProgramEntries(program?.id ?? null);
+    const { data: entries, isLoading, isError, refetch } = useGvfgProgramEntries(program?.id ?? null);
 
     const [land, setLand] = useState<string | null>(null);
     const [kind, setKind] = useState<KindFilter>("all");
@@ -83,7 +75,7 @@ export default function GvfgOverviewPage() {
         setPage(1);
     };
 
-    if (programsLoading) return <Group justify="center" py="xl"><Loader /></Group>;
+    if (programsLoading) return <LoadingState rows={6} />;
     if (!program) {
         return (
             <Text c="dimmed" py="xl">
@@ -158,22 +150,22 @@ export default function GvfgOverviewPage() {
                 />
             </Group>
 
-            {isLoading && <Group justify="center"><Loader /></Group>}
-            {isError && <Alert color="red" variant="light">Vorhaben konnten nicht geladen werden.</Alert>}
+            {isLoading && <LoadingState rows={6} />}
+            {isError && <ErrorState onRetry={() => void refetch()}>Vorhaben konnten nicht geladen werden.</ErrorState>}
 
             {!isLoading && !isError && (
                 <>
-                    <SimpleGrid cols={{ base: 2, sm: 4 }}>
-                        <Stat label="Vorhaben" value={String(filtered.length)} />
-                        <Stat label="Gesamtkosten (Mio. €)" value={formatMio(sum(filtered, "cost_total"))} />
-                        <Stat label="Bundesfinanzhilfen (Mio. €)" value={formatMio(sum(filtered, "aid_total"))} />
+                    <StatBand columns={4}>
+                        <Stat title="Vorhaben" value={String(filtered.length)} />
+                        <Stat title="Gesamtkosten (Mio. €)" value={formatMio(sum(filtered, "cost_total"))} />
+                        <Stat title="Bundesfinanzhilfen (Mio. €)" value={formatMio(sum(filtered, "aid_total"))} />
                         <Stat
-                            label={planned.length ? `davon ${planned[0]}–${planned[planned.length - 1]}` : "davon geplant"}
+                            title={planned.length ? `davon ${planned[0]}–${planned[planned.length - 1]}` : "davon geplant"}
                             value={formatMio(plannedSum)}
                         />
-                    </SimpleGrid>
+                    </StatBand>
 
-                    <ChronicleCard>
+                    <Paper withBorder p="var(--card-pad)">
                         <ResponsiveTable minWidth={1000} striped highlightOnHover verticalSpacing="xs">
                             <Table.Thead>
                                 <Table.Tr>
@@ -181,9 +173,9 @@ export default function GvfgOverviewPage() {
                                     <Table.Th>Vorhaben</Table.Th>
                                     <Table.Th>Fördertatbestand</Table.Th>
                                     <Table.Th>Kat.</Table.Th>
-                                    <Table.Th ta="right">Gesamtkosten</Table.Th>
-                                    <Table.Th ta="right">Finanzhilfen</Table.Th>
-                                    <Table.Th ta="right">davon geplant</Table.Th>
+                                    <Table.Th className="num">Gesamtkosten</Table.Th>
+                                    <Table.Th className="num">Finanzhilfen</Table.Th>
+                                    <Table.Th className="num">davon geplant</Table.Th>
                                     <Table.Th>Projekt</Table.Th>
                                 </Table.Tr>
                             </Table.Thead>
@@ -208,9 +200,9 @@ export default function GvfgOverviewPage() {
                                                 <Text size="xs" c="dimmed">{e.funding_rate != null ? `${e.funding_rate} %` : ""}</Text>
                                             </Table.Td>
                                             <Table.Td>{e.part === "finanzrelevant" ? categories(e) : "–"}</Table.Td>
-                                            <Table.Td ta="right">{formatMio(total?.cost_total)}</Table.Td>
-                                            <Table.Td ta="right">{formatMio(total?.aid_total)}</Table.Td>
-                                            <Table.Td ta="right">
+                                            <Table.Td className="num">{formatMio(total?.cost_total)}</Table.Td>
+                                            <Table.Td className="num">{formatMio(total?.aid_total)}</Table.Td>
+                                            <Table.Td className="num">
                                                 {e.part === "finanzrelevant" ? formatMio(plannedAid(e, program)) : "–"}
                                             </Table.Td>
                                             <Table.Td>
@@ -237,38 +229,38 @@ export default function GvfgOverviewPage() {
                                 <Pagination total={Math.ceil(filtered.length / PAGE_SIZE)} value={page} onChange={setPage} />
                             </Group>
                         )}
-                    </ChronicleCard>
+                    </Paper>
 
-                    <ChronicleCard>
+                    <Paper withBorder p="var(--card-pad)">
                         <Stack gap="xs">
                             <Text fw={600}>Summen je Land</Text>
                             <ResponsiveTable minWidth={560} striped verticalSpacing="xs">
                                 <Table.Thead>
                                     <Table.Tr>
                                         <Table.Th>Land</Table.Th>
-                                        <Table.Th ta="right">Vorhaben</Table.Th>
-                                        <Table.Th ta="right">Gesamtkosten</Table.Th>
-                                        <Table.Th ta="right">Finanzhilfen</Table.Th>
+                                        <Table.Th className="num">Vorhaben</Table.Th>
+                                        <Table.Th className="num">Gesamtkosten</Table.Th>
+                                        <Table.Th className="num">Finanzhilfen</Table.Th>
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
                                     {byLand.map(([name, rows]) => (
                                         <Table.Tr key={name}>
                                             <Table.Td>{name}</Table.Td>
-                                            <Table.Td ta="right">{rows.length}</Table.Td>
-                                            <Table.Td ta="right">{formatMio(sum(rows, "cost_total"))}</Table.Td>
-                                            <Table.Td ta="right">{formatMio(sum(rows, "aid_total"))}</Table.Td>
+                                            <Table.Td className="num">{rows.length}</Table.Td>
+                                            <Table.Td className="num">{formatMio(sum(rows, "cost_total"))}</Table.Td>
+                                            <Table.Td className="num">{formatMio(sum(rows, "aid_total"))}</Table.Td>
                                         </Table.Tr>
                                     ))}
                                 </Table.Tbody>
                             </ResponsiveTable>
                             <Text size="xs" c="dimmed">
                                 Beträge in Mio. € (∑-Zeile je Vorhaben). {CATEGORY_LABEL.A}: endgültig, {CATEGORY_LABEL.B}:
-                                vorläufig, {CATEGORY_LABEL.C}: bedingt aufgenommen. <ChronicleDataChip>nachr.</ChronicleDataChip>{" "}
+                                vorläufig, {CATEGORY_LABEL.C}: bedingt aufgenommen. <Badge variant="outline">nachr.</Badge>{" "}
                                 = nachrichtlicher Teil ohne eingeplante Finanzhilfen.
                             </Text>
                         </Stack>
-                    </ChronicleCard>
+                    </Paper>
                 </>
             )}
         </Stack>

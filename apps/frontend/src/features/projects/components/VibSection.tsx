@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import {
+    Badge,
     Button,
     Collapse,
     Group,
-    Loader,
+    Paper,
     Stack,
     Table,
     Tabs,
@@ -20,9 +22,9 @@ import {
     useProjectVibEntries,
     useUpdateVibEntry,
 } from "../../../shared/api/queries";
-import { ChronicleCard, ChronicleDataChip } from "../../../components/chronicle";
 import { useAuth } from "../../../lib/auth";
 import VibEntryEditDrawer from "../../vib-import/VibEntryEditDrawer";
+import { LoadingState } from "../../../shared/ui/LoadingState";
 
 function toVibEntrySchema(entry: VibEntryForProject): VibEntrySchema {
     return {
@@ -82,9 +84,9 @@ function VibTabContent({
         <Stack gap="md">
             <Group gap="sm" justify="space-between" align="flex-start">
                 <Group gap="sm">
-                    <ChronicleDataChip>{entry.category}</ChronicleDataChip>
+                    <Badge variant="outline">{entry.category}</Badge>
                     {entry.vib_section && (
-                        <Text size="xs" c="dimmed" ff="monospace">
+                        <Text size="xs" c="dimmed">
                             {entry.vib_section}
                         </Text>
                     )}
@@ -95,19 +97,19 @@ function VibTabContent({
                         </Text>
                     )}
                     {!entry.confirmed && (
-                        <ChronicleDataChip>unbestätigt</ChronicleDataChip>
+                        <Badge variant="outline">unbestätigt</Badge>
                     )}
                     {entry.ai_extracted && (
-                        <ChronicleDataChip>KI-extrahiert</ChronicleDataChip>
+                        <Badge variant="outline">KI-extrahiert</Badge>
                     )}
                     {entry.status_planung && (
-                        <ChronicleDataChip>Planung</ChronicleDataChip>
+                        <Badge variant="outline">Planung</Badge>
                     )}
                     {entry.status_bau && (
-                        <ChronicleDataChip>Bau</ChronicleDataChip>
+                        <Badge variant="outline">Bau</Badge>
                     )}
                     {entry.status_abgeschlossen && (
-                        <ChronicleDataChip>Abgeschlossen</ChronicleDataChip>
+                        <Badge variant="outline">Abgeschlossen</Badge>
                     )}
                 </Group>
                 {canEdit && (
@@ -222,12 +224,13 @@ function VibTabContent({
                         <Text size="sm" fw={600}>
                             PFA-Tabelle ({entry.pfa_entries.length} Einträge)
                         </Text>
-                        <Text size="xs" c="dimmed">
-                            {pfaExpanded ? "▲ ausblenden" : "▼ anzeigen"}
+                        <Text size="xs" c="dimmed" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                            {pfaExpanded ? <ChevronUp size={16} aria-hidden /> : <ChevronDown size={16} aria-hidden />}
+                            {pfaExpanded ? "ausblenden" : "anzeigen"}
                         </Text>
                     </Group>
                     <Collapse in={pfaExpanded}>
-                        <div style={{ overflow: "auto", background: "var(--bg)", border: "1px solid var(--rule)", borderRadius: 0 }}>
+                        <div style={{ overflow: "auto", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 0 }}>
                             <ResponsiveTable minWidth={720} withTableBorder withColumnBorders fz="xs" style={{ fontSize: 11 }}>
                                 <Table.Thead>
                                     <Table.Tr>
@@ -267,8 +270,9 @@ function VibTabContent({
                         <Text size="sm" fw={600}>
                             Volltext
                         </Text>
-                        <Text size="xs" c="dimmed">
-                            {rawExpanded ? "▲ ausblenden" : "▼ anzeigen"}
+                        <Text size="xs" c="dimmed" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                            {rawExpanded ? <ChevronUp size={16} aria-hidden /> : <ChevronDown size={16} aria-hidden />}
+                            {rawExpanded ? "ausblenden" : "anzeigen"}
                         </Text>
                     </Group>
                     <Collapse in={rawExpanded}>
@@ -291,14 +295,12 @@ export default function VibSection({ projectId }: { projectId: number }) {
 
     if (isLoading) {
         return (
-            <ChronicleCard>
+            <Paper withBorder p="var(--card-pad)">
                 <Stack gap="sm">
-                    <Title order={4}>Verkehrsinvestitionsberichte</Title>
-                    <Group justify="center">
-                        <Loader size="sm" />
-                    </Group>
+                    <Title order={2}>Verkehrsinvestitionsberichte</Title>
+                    <LoadingState rows={3} />
                 </Stack>
-            </ChronicleCard>
+            </Paper>
         );
     }
 
@@ -311,9 +313,9 @@ export default function VibSection({ projectId }: { projectId: number }) {
 
     return (
         <>
-            <ChronicleCard>
+            <Paper withBorder p="var(--card-pad)">
                 <Stack gap="md">
-                    <Title order={4}>Verkehrsinvestitionsberichte</Title>
+                    <Title order={2}>Verkehrsinvestitionsberichte</Title>
                     <Tabs defaultValue={String(years[0])}>
                         <Tabs.List>
                             {years.map((year) => (
@@ -341,7 +343,7 @@ export default function VibSection({ projectId }: { projectId: number }) {
                         })}
                     </Tabs>
                 </Stack>
-            </ChronicleCard>
+            </Paper>
 
             <VibEntryEditDrawer
                 entry={editingEntry}

@@ -10,7 +10,7 @@
  * Supported markdown (rendered by GuideMarkdown):
  * - paragraphs, **bold**, *italic*, ordered/unordered lists
  * - [Link](/interner/pfad) → router link, external URLs open in a new tab
- * - `Chip` → ChronicleDataChip
+ * - `Chip` → outline Badge (tag)
  * - Alert blocks:  > [!yellow] Titel   (colors: blue, yellow, green, red)
  *                  > Fließtext der Box …
  */

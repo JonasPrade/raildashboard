@@ -1,7 +1,6 @@
-import { Button, Group, Table, Text } from "@mantine/core";
+import { Badge, Button, Group, Table, Text } from "@mantine/core";
 import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
-import { ChronicleDataChip } from "../../../components/chronicle";
-import { modals } from "@mantine/modals";
+import { openConfirmModal } from "../../../shared/ui/confirmModal";
 import { notifications } from "@mantine/notifications";
 import { useNavigate } from "react-router-dom";
 import type { ParseResultPublic } from "../../../shared/api/queries";
@@ -9,7 +8,7 @@ import { useDeleteParseResult } from "../../../shared/api/queries";
 import { formatDateTime } from "../../../shared/format";
 
 function StatusBadge({ status }: { status: ParseResultPublic["status"] }) {
-    return <ChronicleDataChip>{status}</ChronicleDataChip>;
+    return <Badge variant="outline">{status}</Badge>;
 }
 
 type Props = {
@@ -22,7 +21,7 @@ export function ParseResultList({ results }: Props) {
 
     const handleDelete = (r: ParseResultPublic) => {
         const hasConfirmedData = r.confirmed_at !== null;
-        modals.openConfirmModal({
+        openConfirmModal({
             title: `Import ${r.haushalt_year} löschen?`,
             children: (
                 <Text size="sm">
@@ -32,7 +31,7 @@ export function ParseResultList({ results }: Props) {
                 </Text>
             ),
             labels: { confirm: "Löschen", cancel: "Abbrechen" },
-            confirmProps: { color: "red" },
+            danger: true,
             onConfirm: async () => {
                 try {
                     await deleteResult.mutateAsync(r.id);
@@ -56,7 +55,7 @@ export function ParseResultList({ results }: Props) {
                     <Table.Th>Dateiname</Table.Th>
                     <Table.Th>Datum</Table.Th>
                     <Table.Th>Nutzer</Table.Th>
-                    <Table.Th>Status</Table.Th>
+                    <Table.Th data-role="status">Status</Table.Th>
                     <Table.Th>Importiert am</Table.Th>
                     <Table.Th />
                 </Table.Tr>

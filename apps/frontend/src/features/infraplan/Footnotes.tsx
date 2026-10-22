@@ -8,7 +8,7 @@ export default function Footnotes({ footnotes }: { footnotes: Record<string, str
         <>
             {entries.map(([nr, text]) => (
                 <Tooltip key={nr} label={text} multiline w={300} withArrow events={{ hover: true, focus: true, touch: true }}>
-                    <sup tabIndex={0} style={{ cursor: "help", color: "var(--mantine-color-blue-6)", marginLeft: 2 }}>
+                    <sup tabIndex={0} style={{ cursor: "help", color: "var(--text-link)", marginLeft: 2 }}>
                         {nr}
                     </sup>
                 </Tooltip>

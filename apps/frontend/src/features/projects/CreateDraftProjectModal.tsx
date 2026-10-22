@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Alert, Button, Group, Modal, Stack, TextInput } from "@mantine/core";
+import { Alert, Button, Modal, Stack, TextInput } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconInfoCircle } from "@tabler/icons-react";
+import { Info } from "lucide-react";
 
 import { useCreateProject, type Project } from "../../shared/api/queries";
 import ProjectSearchSelect from "./ProjectSearchSelect";
@@ -75,7 +75,7 @@ export default function CreateDraftProjectModal({
     return (
         <Modal opened={opened} onClose={onClose} title="Projekt als Entwurf anlegen" size="lg" centered>
             <Stack gap="md">
-                <Alert variant="light" color="blue" icon={<IconInfoCircle size={16} />}>
+                <Alert variant="light" color="blue" icon={<Info size={16} />}>
                     Das Projekt wird als <strong>Entwurf</strong> gespeichert und
                     {sourceLabel ? ` mit dem ${sourceLabel}-Eintrag verknüpft` : " mit dem Eintrag verknüpft"}.
                     Du kannst es später unter <strong>Verwaltung → Entwürfe</strong> vervollständigen und finalisieren.
@@ -96,14 +96,14 @@ export default function CreateDraftProjectModal({
                     onChange={setSuperiorId}
                 />
 
-                <Group justify="flex-end" gap="sm">
-                    <Button variant="subtle" color="gray" onClick={onClose}>
+                <div className="idt-modal-footer">
+                    <Button variant="default" onClick={onClose}>
                         Abbrechen
                     </Button>
                     <Button onClick={handleSubmit} loading={create.isPending} disabled={!name.trim()}>
                         Entwurf anlegen & verknüpfen
                     </Button>
-                </Group>
+                </div>
             </Stack>
         </Modal>
     );

@@ -1,12 +1,11 @@
 import { useMemo, useState, type CSSProperties } from "react";
-import { Alert, Anchor, Badge, Box, Button, Group, Loader, Select, Stack, Text, Tooltip } from "@mantine/core";
+import { Alert, Anchor, Badge, Box, Button, Group, Select, Stack, Text, Tooltip } from "@mantine/core";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { useProjectGroupTimeline, type ProjectTimeline, type TimelineMilestone } from "../../shared/api/queries";
 import {
     LIFECYCLE_LABEL,
-    MAIN_PHASE_COLOR,
     MAIN_PHASE_LABEL,
     type LifecycleStatus,
     type MainPhase,
@@ -24,57 +23,30 @@ import {
     yearTicks,
     type TimelineRange,
 } from "./timelineLayout";
+import { gapFill, markerStyle, phaseColor, plannedFill, segmentFill } from "./timelineStyles";
+import { TIMELINE_COLOR } from "../../shared/theme/semanticColors";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 // Rows rendered per step, like the card list.
 const PAGE_SIZE = 60;
 const TRACK_HEIGHT = 16;
 const LEGEND_PHASES: MainPhase[] = ["VORPLANUNG", "GENEHMIGUNGSPLANUNG", "BAU", "IN_BETRIEB"];
 
-// Vorplanung one shade lighter: blue-6 and indigo-6 are hard to tell apart in thin bars.
-const phaseColor = (phase: MainPhase) =>
-    `var(--mantine-color-${MAIN_PHASE_COLOR[phase]}-${phase === "VORPLANUNG" ? 4 : 6})`;
-const TODAY_COLOR = "var(--led)";
+const TODAY_COLOR = TIMELINE_COLOR.today;
 
 function todayUtc(): number {
     const now = new Date();
     return Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
 }
 
-// Pause between construction stages: a thin dashed line in the BAU colour on
-// the neutral track — clearly not construction, but still one project.
-function gapFill(color: string): string {
-    return `repeating-linear-gradient(90deg, ${color} 0 4px, transparent 4px 8px)`;
-}
+// Pause between construction stages: a thin dashed line in seq-4 on the
+// neutral track — clearly not construction, but still one project.
 const GAP_LABEL = "zwischen Bauetappen";
-
-function plannedFill(color: string): string {
-    return `repeating-linear-gradient(135deg, ${color} 0 4px, color-mix(in srgb, ${color} 35%, transparent) 4px 8px)`;
-}
 
 function Marker({ milestone, range }: { milestone: TimelineMilestone; range: TimelineRange }) {
     const left = percent(toTime(milestone.date), range);
     const evidence = milestone.certainty === "EVIDENCE";
-    let style: CSSProperties;
-    if (milestone.kind === "PHASE") {
-        const color = phaseColor(milestone.phase as MainPhase);
-        const size = milestone.phase === "IN_BETRIEB" ? 12 : 9;
-        style = {
-            width: size,
-            height: size,
-            borderRadius: "50%",
-            border: `2px solid ${color}`,
-            background: evidence ? "var(--mantine-color-body)" : color,
-        };
-    } else {
-        // Rauten wie im PhaseStepper: PFB gefüllt, Parl. Befassung als Umriss.
-        style = {
-            width: 9,
-            height: 9,
-            transform: "rotate(45deg)",
-            border: "2px solid var(--info)",
-            background: milestone.kind === "PFB" ? "var(--info)" : "var(--mantine-color-body)",
-        };
-    }
+    const style: CSSProperties = markerStyle(milestone.kind, milestone.phase as MainPhase | null, evidence);
     return (
         <Tooltip label={milestoneLabel(milestone)} withArrow>
             <Box
@@ -112,10 +84,19 @@ function TimelineRow({
     const summary = row.milestones.map(milestoneLabel).join("; ");
 
     return (
-        <Box py={8} style={{ borderBottom: "1px solid var(--rule)", opacity: lifecycle === "AKTIV" ? 1 : 0.55 }}>
+        // Paused/aborted rows: the lifecycle tag plus a muted name, no opacity
+        // (text would fall below 4.5:1).
+        <Box py={8} style={{ borderBottom: "1px solid var(--border)" }}>
             <Group justify="space-between" gap="xs" wrap="nowrap" mb={6}>
                 <Group gap={6} wrap="nowrap" style={{ minWidth: 0 }}>
-                    <Anchor component={Link} to={`/projects/${row.project_id}`} size="sm" fw={600} truncate>
+                    <Anchor
+                        component={Link}
+                        to={`/projects/${row.project_id}`}
+                        size="sm"
+                        fw={600}
+                        truncate
+                        style={lifecycle === "AKTIV" ? undefined : { color: "var(--text-muted)" }}
+                    >
                         {row.name}
                     </Anchor>
                     {lifecycle !== "AKTIV" && (
@@ -124,7 +105,7 @@ function TimelineRow({
                         </Badge>
                     )}
                 </Group>
-                <Text size="xs" c="dimmed" style={{ flexShrink: 0, fontFamily: "var(--font-mono)" }}>
+                <Text size="xs" c="dimmed" className="idt-tnum" style={{ flexShrink: 0 }}>
                     {opening ? `IB ${formatMonth(opening.date)}` : row.project_number ?? ""}
                 </Text>
             </Group>
@@ -134,7 +115,7 @@ function TimelineRow({
                 style={{
                     position: "relative",
                     height: TRACK_HEIGHT,
-                    background: "var(--bg2)",
+                    background: TIMELINE_COLOR.track,
                 }}
             >
                 {ticks.map((year) => (
@@ -146,7 +127,7 @@ function TimelineRow({
                             top: 0,
                             bottom: 0,
                             width: 1,
-                            background: "var(--rule)",
+                            background: "var(--border)",
                         }}
                     />
                 ))}
@@ -161,7 +142,7 @@ function TimelineRow({
                                     top: "50%",
                                     height: 2,
                                     translate: "0 -50%",
-                                    background: gapFill(phaseColor(seg.phase)),
+                                    background: gapFill(),
                                 }}
                             />
                         </Tooltip>
@@ -174,7 +155,7 @@ function TimelineRow({
                                 width: `${percent(seg.end, range) - percent(seg.start, range)}%`,
                                 top: 3,
                                 bottom: 3,
-                                background: seg.planned ? plannedFill(phaseColor(seg.phase)) : phaseColor(seg.phase),
+                                background: segmentFill(seg.phase, seg.planned),
                             }}
                         />
                     ),
@@ -208,31 +189,31 @@ function Legend({ showGap }: { showGap: boolean }) {
             {LEGEND_PHASES.map((phase) => (
                 <Group key={phase} gap={6} wrap="nowrap">
                     {phase === "IN_BETRIEB"
-                        ? swatch(phaseColor(phase), { width: 10, borderRadius: "50%" })
+                        ? swatch(TIMELINE_COLOR.commissioning, { width: 10 })
                         : swatch(phaseColor(phase))}
                     <Text size="xs">{MAIN_PHASE_LABEL[phase]}</Text>
                 </Group>
             ))}
             <Group gap={6} wrap="nowrap">
-                {swatch(plannedFill("var(--ink3)"))}
+                {swatch(plannedFill("var(--text-muted)"), { boxShadow: "inset 0 0 0 1px var(--text-muted)" })}
                 <Text size="xs">geplant</Text>
             </Group>
             {showGap && (
                 <Group gap={6} wrap="nowrap">
-                    {swatch(gapFill(phaseColor("BAU")), { height: 2 })}
+                    {swatch(gapFill(), { height: 2 })}
                     <Text size="xs">{GAP_LABEL}</Text>
                 </Group>
             )}
             <Group gap={6} wrap="nowrap">
-                {swatch("var(--info)", { width: 9, height: 9, transform: "rotate(45deg)" })}
+                {swatch(TIMELINE_COLOR.marker, { width: 9, height: 9, transform: "rotate(45deg)" })}
                 <Text size="xs">Planfeststellung</Text>
             </Group>
             <Group gap={6} wrap="nowrap">
-                {swatch("transparent", { width: 9, height: 9, transform: "rotate(45deg)", border: "2px solid var(--info)" })}
+                {swatch("transparent", { width: 9, height: 9, transform: "rotate(45deg)", border: `2px solid ${TIMELINE_COLOR.marker}` })}
                 <Text size="xs">Parl. Befassung</Text>
             </Group>
             <Group gap={6} wrap="nowrap">
-                {swatch("transparent", { width: 9, height: 9, borderRadius: "50%", border: "2px solid var(--ink3)" })}
+                {swatch("transparent", { width: 9, height: 9, borderRadius: "50%", border: `2px solid ${TIMELINE_COLOR.marker}` })}
                 <Text size="xs">spätestens seit (Beleg)</Text>
             </Group>
             <Group gap={6} wrap="nowrap">
@@ -286,9 +267,7 @@ export default function TimelineView({
 
     if (isLoading) {
         return (
-            <Group justify="center" py="xl">
-                <Loader />
-            </Group>
+            <LoadingState rows={6} />
         );
     }
     if (isError || !data) {
@@ -337,8 +316,8 @@ export default function TimelineView({
                             top: 60,
                             zIndex: 3,
                             height: 22,
-                            background: "var(--mantine-color-body)",
-                            borderBottom: "1px solid var(--rule)",
+                            background: "var(--surface)",
+                            borderBottom: "1px solid var(--border)",
                         }}
                     >
                         {ticks.map((year) => (
@@ -351,7 +330,7 @@ export default function TimelineView({
                                     left: `${percent(Date.UTC(year, 0, 1), range)}%`,
                                     // Keep the first/last label inside the track.
                                     translate: year === ticks[0] ? "0 0" : year === ticks.at(-1) ? "-100% 0" : "-50% 0",
-                                    fontFamily: "var(--font-mono)",
+                                    fontVariantNumeric: "tabular-nums",
                                     whiteSpace: "nowrap",
                                 }}
                             >

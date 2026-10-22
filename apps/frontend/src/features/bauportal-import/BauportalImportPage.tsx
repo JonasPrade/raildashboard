@@ -2,11 +2,9 @@ import { useMemo, useState } from "react";
 import {
     Alert,
     Anchor,
-    Badge,
     Button,
     Container,
     Group,
-    Loader,
     Select,
     Stack,
     Table,
@@ -14,7 +12,7 @@ import {
     Title,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconChecks, IconExternalLink, IconRefresh } from "@tabler/icons-react";
+import { CheckCheck, ExternalLink, RefreshCw } from "lucide-react";
 
 import {
     useBauportalEntries,
@@ -35,11 +33,8 @@ import {
     UnconfirmedFilter,
     usePatchWithToast,
 } from "../import-review/shared";
-import {
-    MAIN_PHASE_COLOR,
-    MAIN_PHASE_LABEL,
-    type MainPhase,
-} from "../projects/components/progress/phaseMeta";
+import { PhaseTag } from "../projects/components/progress/PhaseBadge";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 type ProjectOption = { value: string; label: string };
 
@@ -71,7 +66,7 @@ function MatchRow({
                     {entry.url && (
                         <Anchor href={entry.url} target="_blank" rel="noreferrer" size="xs">
                             <Group gap={4} wrap="nowrap" component="span">
-                                <IconExternalLink size={12} />
+                                <ExternalLink size={12} />
                                 Bauportal
                             </Group>
                         </Anchor>
@@ -80,9 +75,7 @@ function MatchRow({
             </Table.Td>
             <Table.Td>
                 {entry.mapped_phase ? (
-                    <Badge color={MAIN_PHASE_COLOR[entry.mapped_phase as MainPhase] ?? "gray"} variant="light">
-                        {MAIN_PHASE_LABEL[entry.mapped_phase as MainPhase] ?? entry.mapped_phase}
-                    </Badge>
+                    <PhaseTag phase={entry.mapped_phase} />
                 ) : (
                     <Text size="xs" c="dimmed" title={entry.status_raw ?? undefined}>
                         kein Beitrag
@@ -215,8 +208,7 @@ export default function BauportalImportPage() {
                     </Stack>
                     <Group gap="sm">
                         <Button
-                            color="green"
-                            leftSection={<IconChecks size={16} />}
+                            leftSection={<CheckCheck size={16} />}
                             onClick={handleConfirmAll}
                             loading={confirmAll.isPending}
                             disabled={readyCount === 0}
@@ -229,7 +221,7 @@ export default function BauportalImportPage() {
                             Alle übernehmen{readyCount > 0 ? ` (${readyCount})` : ""}
                         </Button>
                         <Button
-                            leftSection={<IconRefresh size={16} />}
+                            leftSection={<RefreshCw size={16} />}
                             onClick={handleFetch}
                             loading={fetchBauportal.isPending}
                             variant="light"
@@ -249,9 +241,7 @@ export default function BauportalImportPage() {
                 </Group>
 
                 {isLoading ? (
-                    <Group justify="center" py="xl">
-                        <Loader />
-                    </Group>
+                    <LoadingState rows={6} />
                 ) : !entries || entries.length === 0 ? (
                     <Alert variant="light" title="Keine Daten">
                         Noch keine Bauportal-Einträge. Klicke auf „Bauportal abrufen", um die Liste
@@ -262,7 +252,7 @@ export default function BauportalImportPage() {
                         <Table.Thead>
                             <Table.Tr>
                                 <Table.Th>Bauportal-Projekt</Table.Th>
-                                <Table.Th>Phase</Table.Th>
+                                <Table.Th data-role="status">Phase</Table.Th>
                                 <Table.Th>Bauzeitraum</Table.Th>
                                 <Table.Th>Zuordnung</Table.Th>
                                 <Table.Th>Übernehmen</Table.Th>

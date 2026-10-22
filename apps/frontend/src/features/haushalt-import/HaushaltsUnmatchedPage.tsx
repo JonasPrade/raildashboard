@@ -1,27 +1,28 @@
 import { useState } from "react";
 import {
-    Alert,
+    Badge,
     Button,
     Container,
     Group,
-    Loader,
     NumberInput,
     Stack,
     Switch,
     Table,
     Text,
+    Title,
 } from "@mantine/core";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
-import { ChronicleHeadline, ChronicleDataChip } from "../../components/chronicle";
 import { notifications } from "@mantine/notifications";
 import RequirePermission from "../../components/RequirePermission";
 import { useUnmatchedRows, useResolveUnmatchedRow } from "../../shared/api/queries";
+import { LoadingState } from "../../shared/ui/LoadingState";
+import { ErrorState } from "../../shared/ui/ErrorState";
 
 function HaushaltsUnmatchedPageContent() {
     const [showResolved, setShowResolved] = useState(false);
     const [resolveValues, setResolveValues] = useState<Record<number, number | "">>({});
 
-    const { data: rows, isLoading, isError } = useUnmatchedRows(showResolved ? undefined : false);
+    const { data: rows, isLoading, isError, refetch } = useUnmatchedRows(showResolved ? undefined : false);
     const resolve = useResolveUnmatchedRow();
 
     const handleResolve = async (rowId: number) => {
@@ -40,7 +41,7 @@ function HaushaltsUnmatchedPageContent() {
         <Container size="xl" py="xl">
             <Stack gap="lg">
                 <Group justify="space-between">
-                    <ChronicleHeadline as="h1">Unbekannte Haushaltszeilen</ChronicleHeadline>
+                    <Title order={1}>Unbekannte Haushaltszeilen</Title>
                     <Switch
                         label="Erledigte anzeigen"
                         checked={showResolved}
@@ -48,11 +49,9 @@ function HaushaltsUnmatchedPageContent() {
                     />
                 </Group>
 
-                {isLoading && <Group justify="center"><Loader /></Group>}
+                {isLoading && <LoadingState rows={6} />}
                 {isError && (
-                    <Alert color="red" variant="light" title="Fehler">
-                        Liste konnte nicht geladen werden.
-                    </Alert>
+                    <ErrorState onRetry={() => void refetch()}>Liste konnte nicht geladen werden.</ErrorState>
                 )}
 
                 {!isLoading && !isError && (
@@ -62,7 +61,7 @@ function HaushaltsUnmatchedPageContent() {
                                 <Table.Th>Jahr</Table.Th>
                                 <Table.Th>FinVe-Nr. (roh)</Table.Th>
                                 <Table.Th>Bezeichnung (roh)</Table.Th>
-                                <Table.Th>Status</Table.Th>
+                                <Table.Th data-role="status">Status</Table.Th>
                                 <Table.Th>FinVe-ID zuweisen</Table.Th>
                             </Table.Tr>
                         </Table.Thead>
@@ -83,11 +82,11 @@ function HaushaltsUnmatchedPageContent() {
                                     <Table.Td>{row.raw_name}</Table.Td>
                                     <Table.Td>
                                         {row.resolved ? (
-                                            <ChronicleDataChip>
+                                            <Badge variant="outline" tt="none">
                                                 Erledigt (FinVe {row.resolved_finve_id})
-                                            </ChronicleDataChip>
+                                            </Badge>
                                         ) : (
-                                            <ChronicleDataChip>Offen</ChronicleDataChip>
+                                            <Badge variant="outline">Offen</Badge>
                                         )}
                                     </Table.Td>
                                     <Table.Td>

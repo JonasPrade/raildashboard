@@ -4,29 +4,28 @@ import {
     ActionIcon,
     Alert,
     Anchor,
+    Badge,
+    Button,
     Container,
     Group,
-    Loader,
+    Paper,
     Stack,
     Text,
+    Title,
     Tooltip,
 } from "@mantine/core";
-import { IconChevronLeft, IconPencil, IconPlus, IconTrash } from "@tabler/icons-react";
-import { modals } from "@mantine/modals";
+import { ChevronLeft, Pencil, Plus, Trash2 } from "lucide-react";
+import { openConfirmModal } from "../../shared/ui/confirmModal";
 import { notifications } from "@mantine/notifications";
-import {
-    ChronicleHeadline,
-    ChronicleCard,
-    ChronicleDataChip,
-    ChronicleButton,
-} from "../../components/chronicle";
 import RequirePermission from "../../components/RequirePermission";
 import { useDeleteRole, useRoles, type Role } from "../../shared/api/queries";
 import { RoleFormModal } from "./RoleFormModal";
+import { LoadingState } from "../../shared/ui/LoadingState";
+import { ErrorState } from "../../shared/ui/ErrorState";
 
 function RolesAdminPageContent() {
 
-    const { data: roles, isLoading, isError } = useRoles();
+    const { data: roles, isLoading, isError, refetch } = useRoles();
     const deleteRole = useDeleteRole();
 
     const [modalOpened, setModalOpened] = useState(false);
@@ -43,7 +42,7 @@ function RolesAdminPageContent() {
     };
 
     const handleDelete = (role: Role) => {
-        modals.openConfirmModal({
+        openConfirmModal({
             title: "Rolle löschen",
             children: (
                 <Text size="sm">
@@ -52,7 +51,7 @@ function RolesAdminPageContent() {
                 </Text>
             ),
             labels: { confirm: "Löschen", cancel: "Abbrechen" },
-            confirmProps: { color: "red" },
+            danger: true,
             onConfirm: () => {
                 deleteRole.mutate(role.id, {
                     onSuccess: () =>
@@ -77,42 +76,38 @@ function RolesAdminPageContent() {
             <Stack gap="lg">
                 <Anchor component={Link} to="/admin" size="sm" c="dimmed">
                     <Group gap={4} align="center">
-                        <IconChevronLeft size={14} />
+                        <ChevronLeft size={16} />
                         Zurück zur Administration
                     </Group>
                 </Anchor>
 
                 <Group justify="space-between" align="flex-start">
                     <Stack gap="xs">
-                        <ChronicleHeadline as="h1">Rollen & Berechtigungen</ChronicleHeadline>
+                        <Title order={1}>Rollen & Berechtigungen</Title>
                         <Text c="dimmed" size="sm">
                             Rollen anlegen und ihnen granulare Bearbeitungsrechte zuweisen.
                         </Text>
                     </Stack>
-                    <ChronicleButton onClick={openCreate}>
-                        <IconPlus size={16} /> Neue Rolle
-                    </ChronicleButton>
+                    <Button onClick={openCreate}>
+                        <Plus size={16} /> Neue Rolle
+                    </Button>
                 </Group>
 
                 {isError && (
-                    <Alert color="red" variant="light" title="Fehler beim Laden">
-                        Rollen konnten nicht geladen werden.
-                    </Alert>
+                    <ErrorState onRetry={() => void refetch()}>Rollen konnten nicht geladen werden.</ErrorState>
                 )}
 
                 {isLoading ? (
-                    <Group justify="center" py="xl">
-                        <Loader />
-                    </Group>
+                    <LoadingState rows={6} />
                 ) : (
                     <Stack gap="sm">
                         {(roles ?? []).map((role) => (
-                            <ChronicleCard key={role.id}>
+                            <Paper withBorder p="var(--card-pad)" key={role.id}>
                                 <Group justify="space-between" align="center">
                                     <Stack gap={2}>
                                         <Group gap="xs" align="center">
                                             <Text size="sm" fw={500}>{role.name}</Text>
-                                            {role.is_system && <ChronicleDataChip>System</ChronicleDataChip>}
+                                            {role.is_system && <Badge variant="outline">System</Badge>}
                                         </Group>
                                         <Text size="xs" c="dimmed">
                                             {role.description || "Keine Beschreibung"}
@@ -130,7 +125,7 @@ function RolesAdminPageContent() {
                                                 onClick={() => openEdit(role)}
                                                 aria-label={`${role.name} bearbeiten`}
                                             >
-                                                <IconPencil size={18} />
+                                                <Pencil size={16} />
                                             </ActionIcon>
                                         </Tooltip>
                                         <Tooltip
@@ -144,12 +139,12 @@ function RolesAdminPageContent() {
                                                 disabled={role.is_system || deleteRole.isPending}
                                                 aria-label={`${role.name} löschen`}
                                             >
-                                                <IconTrash size={18} />
+                                                <Trash2 size={16} />
                                             </ActionIcon>
                                         </Tooltip>
                                     </Group>
                                 </Group>
-                            </ChronicleCard>
+                            </Paper>
                         ))}
 
                         {(roles ?? []).length === 0 && (

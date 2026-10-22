@@ -2,13 +2,13 @@
  * Selection panel for the constituency map layer: which projects lie in this
  * constituency, and who is responsible for them.
  */
-import { Anchor, CloseButton, Group, Loader, ScrollArea, Stack, Text } from "@mantine/core";
+import { Anchor, Badge, CloseButton, Group, ScrollArea, Stack, Text } from "@mantine/core";
 import { Link } from "react-router-dom";
 
-import { ChronicleDataChip } from "../../components/chronicle";
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { useConstituency } from "../../shared/api/queries";
 import { MandateGroup, formatWeight } from "./mandateDisplay";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 export default function ConstituencyPanel({
     constituencyId,
@@ -31,18 +31,15 @@ export default function ConstituencyPanel({
                     : { top: 12, left: 12, width: 340, maxHeight: "calc(100% - 24px)" }),
                 zIndex: 10,
                 overflowY: "auto",
-                background: "rgba(255, 255, 255, 0.95)",
-                backdropFilter: "blur(20px)",
-                WebkitBackdropFilter: "blur(20px)",
-                boxShadow: "var(--shadow-float)",
-                border: "1px solid var(--rule)",
+                background: "var(--surface)",
+                color: "var(--text-body)",
+                border: "2px solid var(--border-frame)",
+                borderRadius: 0,
                 padding: 12,
             }}
         >
             {isLoading || !data ? (
-                <Group justify="center" py="md">
-                    <Loader size="sm" />
-                </Group>
+                <LoadingState rows={4} />
             ) : (
                 <Stack gap="sm">
                     <Group justify="space-between" align="flex-start" wrap="nowrap">
@@ -63,10 +60,10 @@ export default function ConstituencyPanel({
                         <Stack gap="md" pr="xs">
                             <Stack gap={4}>
                                 <Group gap="xs" align="baseline">
-                                    <Text size="sm" fw={700} tt="uppercase" c="dimmed">
+                                    <Text component="div" className="idt-eyebrow">
                                         Projekte
                                     </Text>
-                                    <ChronicleDataChip>{data.projects.length}</ChronicleDataChip>
+                                    <Badge variant="outline">{data.projects.length}</Badge>
                                 </Group>
                                 {data.projects.length === 0 ? (
                                     <Text size="sm" c="dimmed" fs="italic">

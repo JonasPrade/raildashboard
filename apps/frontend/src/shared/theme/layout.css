@@ -1,0 +1,38 @@
+/* Layout tokens only. Colours, type and shape come from the IDT design system
+   (src/shared/theme/tokens.css, docs/DESIGN.md).
+
+   Breakpoints match Mantine (48em phone / 62em small tablet) and
+   src/shared/hooks/useBreakpoint.ts. Components read these tokens instead of
+   hard-coding pixel values, so the mobile layout is steered from one place.
+   See docs/features/feature-mobile-usability.md. */
+
+:root {
+    /* Header of the Anwendungsebene: 72px, 64px under 48em. */
+    --header-height: 72px;
+    --page-pad:      16px;
+    --card-pad:      24px;
+    /* Table row height of the Anwendungsebene. */
+    --row-h:         48px;
+    /* Map on the map page: viewport minus header, view toggle and page padding. */
+    --map-height:        800px;
+    /* Map inside the project detail card. */
+    --map-height-detail: 500px;
+}
+
+@media (max-width: 62em) {
+    :root {
+        --map-height: calc(100vh - var(--header-height) - 120px);
+        --map-height: calc(100dvh - var(--header-height) - 120px);
+    }
+}
+
+@media (max-width: 48em) {
+    :root {
+        --header-height:     64px;
+        --page-pad:          10px;
+        --card-pad:          16px;
+        --map-height:        calc(100vh - var(--header-height) - 104px);
+        --map-height:        calc(100dvh - var(--header-height) - 104px);
+        --map-height-detail: 300px;
+    }
+}

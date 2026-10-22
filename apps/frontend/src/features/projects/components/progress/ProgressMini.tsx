@@ -10,10 +10,11 @@ import {
     type MainPhase,
     visiblePhases,
 } from "./phaseMeta";
+import { LANE_STATE_COLOR } from "../../../../shared/theme/semanticColors";
 
-const ACTIVE = "var(--info)";
-const DONE = "var(--ledOk, #2f9e44)";
-const IDLE = "var(--rule)";
+const ACTIVE: string = LANE_STATE_COLOR.active;
+const DONE: string = LANE_STATE_COLOR.done;
+const IDLE: string = LANE_STATE_COLOR.idle;
 
 /**
  * Kompakte Leistungsphasen-Darstellung für die Kurzansicht eines Projekts
@@ -71,8 +72,8 @@ export default function ProgressMini({ projectId }: { projectId: number }) {
                     const inSpan = !isUnknownLeaf && idx >= minIdx && idx <= maxIdx;
                     const isDone = !isUnknownLeaf && !noCompleted && idx < minIdx;
                     // "In Betrieb" is the terminal phase — reaching it means the
-                    // project is effectively complete, so colour it green (DONE)
-                    // rather than the in-progress blue.
+                    // project is effectively complete, so it takes the done ink
+                    // (status, never green) rather than the in-progress violet.
                     let color = IDLE;
                     if (inSpan) color = phase === "IN_BETRIEB" ? DONE : ACTIVE;
                     else if (isDone) color = DONE;
@@ -88,7 +89,7 @@ export default function ProgressMini({ projectId }: { projectId: number }) {
                                     flex: 1,
                                     height: 6,
                                     minWidth: 12,
-                                    borderRadius: 3,
+                                    borderRadius: 0,
                                     backgroundColor: color,
                                     cursor: "default",
                                 }}
@@ -98,7 +99,7 @@ export default function ProgressMini({ projectId }: { projectId: number }) {
                 })}
             </Group>
             <Group gap={6} wrap="nowrap" align="baseline">
-                <Text size="xs" c="dimmed" fw={700} tt="uppercase" style={{ letterSpacing: 0.4, flexShrink: 0 }}>
+                <Text component="div" className="idt-eyebrow" style={{ flexShrink: 0 }}>
                     Planungsstand
                 </Text>
                 <Text size="xs" c={dimmed ? "dimmed" : undefined} style={{ lineHeight: 1.2 }}>

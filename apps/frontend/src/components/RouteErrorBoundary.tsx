@@ -1,5 +1,6 @@
 import { isRouteErrorResponse, useRouteError, Link } from "react-router-dom";
 import { Button, Container, Group, Stack, Text, Title } from "@mantine/core";
+import { AppFrame } from "./AppFrame";
 
 /**
  * Route-level error boundary used as `errorElement` on the root route.
@@ -7,7 +8,8 @@ import { Button, Container, Group, Stack, Text, Title } from "@mantine/core";
  * Replaces React Router's raw "Unexpected Application Error!" developer page
  * with a friendly, German, end-user-facing fallback. It distinguishes three
  * cases: a stale chunk (offer a reload), a 404-style route response, and any
- * other thrown error.
+ * other thrown error. It renders inside the regular header and footer so a
+ * broken or unknown route still offers the navigation.
  */
 function isChunkLoadError(error: unknown): boolean {
     const message =
@@ -54,30 +56,32 @@ export default function RouteErrorBoundary() {
               : null;
 
     return (
-        <Container size="sm" py="xl">
-            <Stack gap="md" align="flex-start">
-                <Title order={2}>{title}</Title>
-                <Text c="dimmed">{detail}</Text>
-                {technical && (
-                    <Text size="xs" c="dimmed" ff="monospace">
-                        {technical}
-                    </Text>
-                )}
-                <Group mt="sm">
-                    {showReload && (
-                        <Button onClick={() => window.location.reload()}>
-                            Seite neu laden
-                        </Button>
+        <AppFrame>
+            <Container size="sm" py="xl">
+                <Stack gap="md" align="flex-start">
+                    <Title order={2}>{title}</Title>
+                    <Text c="dimmed">{detail}</Text>
+                    {technical && (
+                        <Text size="xs" c="dimmed">
+                            {technical}
+                        </Text>
                     )}
-                    <Button
-                        variant={showReload ? "default" : "filled"}
-                        component={Link}
-                        to="/"
-                    >
-                        Zur Startseite
-                    </Button>
-                </Group>
-            </Stack>
-        </Container>
+                    <Group mt="sm">
+                        {showReload && (
+                            <Button onClick={() => window.location.reload()}>
+                                Seite neu laden
+                            </Button>
+                        )}
+                        <Button
+                            variant={showReload ? "default" : "filled"}
+                            component={Link}
+                            to="/"
+                        >
+                            Zur Startseite
+                        </Button>
+                    </Group>
+                </Stack>
+            </Container>
+        </AppFrame>
     );
 }

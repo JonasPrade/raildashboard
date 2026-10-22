@@ -17,17 +17,17 @@ import {
     Container,
     FileInput,
     Group,
-    Loader,
     NumberInput,
+    Paper,
     Stack,
     Text,
+    Title,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconMap, IconRefresh, IconRoute } from "@tabler/icons-react";
+import { Map as MapIcon, RefreshCw, Route } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
 import RequirePermission from "../../components/RequirePermission";
 import {
     type ParliamentStatus,
@@ -38,6 +38,8 @@ import {
     useStartParliamentImport,
 } from "../../shared/api/queries";
 import { useImportTask } from "../import-review/shared";
+import { StatusTag } from "../../shared/ui/SwatchTag";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 type ImportRun = NonNullable<ParliamentStatus["last_politician_import"]>;
 
@@ -57,13 +59,12 @@ function RunLine({ label, run }: { label: string; run: ImportRun | null | undefi
             {run ? (
                 <>
                     <Text size="sm">{formatDateTime(run.finished_at ?? run.started_at)}</Text>
-                    <Badge
+                    <StatusTag
                         size="xs"
-                        variant="light"
-                        color={run.status === "success" ? "green" : run.status === "error" ? "red" : "gray"}
+                        tone={run.status === "success" ? "done" : run.status === "error" ? "danger" : "active"}
                     >
                         {run.status === "success" ? "erfolgreich" : run.status === "error" ? "Fehler" : "läuft"}
-                    </Badge>
+                    </StatusTag>
                 </>
             ) : (
                 <Text size="sm" c="dimmed">noch nie</Text>
@@ -158,7 +159,7 @@ function ParliamentAdminPageContent() {
         <Container size="md" py="xl">
             <Stack gap="lg">
                 <Stack gap={4}>
-                    <ChronicleHeadline as="h1">Abgeordnetenstand</ChronicleHeadline>
+                    <Title order={1}>Abgeordnetenstand</Title>
                     <Text c="dimmed" size="sm">
                         Abgeordnete, Mandate und Ausschussmitgliedschaften kommen von
                         abgeordnetenwatch.de (API v2, CC0). Die Wahlkreisgeometrien werden einmal je
@@ -167,15 +168,15 @@ function ParliamentAdminPageContent() {
                 </Stack>
 
                 {isLoading ? (
-                    <Group justify="center" py="md"><Loader /></Group>
+                    <LoadingState rows={3} />
                 ) : status ? (
-                    <ChronicleCard>
+                    <Paper withBorder p="var(--card-pad)">
                         <Stack gap="xs">
                             <Group gap="xs">
                                 <Text size="sm" fw={500}>Wahlperiode:</Text>
                                 <Text size="sm">{status.period?.label ?? "noch keine importiert"}</Text>
                                 {status.is_stale && status.period && (
-                                    <Badge size="xs" color="gold" variant="light">
+                                    <Badge size="xs" color="gray" variant="outline">
                                         älter als {status.stale_after_days} Tage
                                     </Badge>
                                 )}
@@ -205,10 +206,10 @@ function ParliamentAdminPageContent() {
                                     </Text>
                                 )}
                         </Stack>
-                    </ChronicleCard>
+                    </Paper>
                 ) : null}
 
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="sm">
                         <Text fw={500}>Abgeordnetenstand aktualisieren</Text>
                         <Text size="sm" c="dimmed">
@@ -217,7 +218,7 @@ function ParliamentAdminPageContent() {
                         </Text>
                         <Group>
                             <Button
-                                leftSection={<IconRefresh size={16} />}
+                                leftSection={<RefreshCw size={16} />}
                                 loading={importBusy}
                                 onClick={() => launch(startImport, importTask, "Import konnte nicht gestartet werden")}
                             >
@@ -228,9 +229,9 @@ function ParliamentAdminPageContent() {
                             <Alert color="orange" variant="light">{importTask.warning}</Alert>
                         )}
                     </Stack>
-                </ChronicleCard>
+                </Paper>
 
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="sm">
                         <Text fw={500}>Wahlkreisgeometrien importieren</Text>
                         <Text size="sm" c="dimmed">
@@ -262,7 +263,7 @@ function ParliamentAdminPageContent() {
                                 w={110}
                             />
                             <Button
-                                leftSection={<IconMap size={16} />}
+                                leftSection={<MapIcon size={16} />}
                                 loading={geometryBusy}
                                 disabled={!geometryFile}
                                 onClick={launchGeometryImport}
@@ -274,9 +275,9 @@ function ParliamentAdminPageContent() {
                             <Alert color="orange" variant="light">{geometryTask.warning}</Alert>
                         )}
                     </Stack>
-                </ChronicleCard>
+                </Paper>
 
-                <ChronicleCard>
+                <Paper withBorder p="var(--card-pad)">
                     <Stack gap="sm">
                         <Text fw={500}>Projekt-Wahlkreis-Zuordnung neu berechnen</Text>
                         <Text size="sm" c="dimmed">
@@ -294,7 +295,7 @@ function ParliamentAdminPageContent() {
                         <Group>
                             <Button
                                 variant="light"
-                                leftSection={<IconRoute size={16} />}
+                                leftSection={<Route size={16} />}
                                 loading={linksBusy}
                                 disabled={status != null && withGeometry === 0}
                                 onClick={() => launch(startLinks, linkTask, "Neuberechnung konnte nicht gestartet werden")}
@@ -306,7 +307,7 @@ function ParliamentAdminPageContent() {
                             <Alert color="orange" variant="light">{linkTask.warning}</Alert>
                         )}
                     </Stack>
-                </ChronicleCard>
+                </Paper>
             </Stack>
         </Container>
     );

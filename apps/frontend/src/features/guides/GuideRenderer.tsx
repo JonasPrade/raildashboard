@@ -1,6 +1,5 @@
-import { Accordion, Alert, Anchor, Box, Container, Group, Stack, Text } from "@mantine/core";
+import { Accordion, Alert, Anchor, Badge, Box, Container, Group, Stack, Text, Title } from "@mantine/core";
 import { Link } from "react-router-dom";
-import { ChronicleHeadline, ChronicleDataChip } from "../../components/chronicle";
 import { useAuth } from "../../lib/auth";
 import { useGuideOverrides, type GuideOverride } from "../../shared/api/queries";
 import type { GuideDef, GuideSection } from "./guideContent";
@@ -42,8 +41,8 @@ export default function GuideRenderer({ def }: { def: GuideDef }) {
                         ← Alle Anleitungen
                     </Anchor>
                     <Group gap="xs" align="center">
-                        <ChronicleHeadline as="h1">{def.title}</ChronicleHeadline>
-                        <ChronicleDataChip>{def.chip}</ChronicleDataChip>
+                        <Title order={1}>{def.title}</Title>
+                        <Badge variant="outline">{def.chip}</Badge>
                     </Group>
                     <GuideSectionBody
                         guideSlug={def.slug}
@@ -56,7 +55,7 @@ export default function GuideRenderer({ def }: { def: GuideDef }) {
                 </Stack>
 
                 {def.prerequisites && (
-                    <Alert color="green" variant="light" title="Voraussetzungen">
+                    <Alert color="teal" variant="light" title="Voraussetzungen">
                         <Box mt="xs">
                             <GuideSectionBody
                                 guideSlug={def.slug}
@@ -74,7 +73,7 @@ export default function GuideRenderer({ def }: { def: GuideDef }) {
                         <Accordion.Item key={step.key} value={step.key}>
                             <Accordion.Control>
                                 <Group gap="sm" align="center">
-                                    <ChronicleDataChip>{idx + 1}</ChronicleDataChip>
+                                    <Badge variant="outline">{idx + 1}</Badge>
                                     <Text fw={500}>{step.title}</Text>
                                 </Group>
                             </Accordion.Control>

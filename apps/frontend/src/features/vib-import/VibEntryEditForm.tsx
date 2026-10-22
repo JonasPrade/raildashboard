@@ -1,11 +1,13 @@
 import { useState } from "react";
 import {
+    Badge,
     Box,
     Button,
     Checkbox,
     Group,
     MultiSelect,
     NumberInput,
+    Paper,
     Select,
     Stack,
     Table,
@@ -17,7 +19,6 @@ import {
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import { filterProjectOption } from "../../lib/filterProjectOption";
 import type { VibEntryProposed } from "../../shared/api/queries";
 
@@ -88,28 +89,28 @@ export default function VibEntryEditForm({
     }
 
     return (
-        <ChronicleCard>
+        <Paper withBorder p="var(--card-pad)">
             <Stack gap="md">
                 {/* Section label + AI status badges */}
                 <Group gap="xs" align="center">
                     {entry.vib_section && (
-                        <Text size="xs" c="dimmed" ff="monospace">
+                        <Text size="xs" c="dimmed" className="idt-tnum">
                             {entry.vib_section}
                         </Text>
                     )}
                     {entry.ai_extracted && (
-                        <ChronicleDataChip>KI</ChronicleDataChip>
+                        <Badge variant="outline" color="var(--text-strong)" tt="none">KI</Badge>
                     )}
                     {entry.ai_extraction_failed && (
                         <Tooltip label={entry.ai_extraction_error ?? "KI-Extraktion fehlgeschlagen"} withArrow>
-                            <ChronicleDataChip>KI fehlgeschlagen</ChronicleDataChip>
+                            <Badge variant="outline" color="var(--text-strong)" tt="none">KI fehlgeschlagen</Badge>
                         </Tooltip>
                     )}
                     {onRetryAi && (
                         <Button
                             size="xs"
                             variant="light"
-                            color={entry.ai_extraction_failed ? "orange" : "violet"}
+                            color={entry.ai_extraction_failed ? "red" : "violet"}
                             loading={isRetryingAi}
                             onClick={onRetryAi}
                         >
@@ -171,9 +172,9 @@ export default function VibEntryEditForm({
                     />
                     {hasSuggestion && (
                         <Tooltip label={`KI-Vorschlag: ${entry.suggested_project_ids.map(id => projectOptions.find(o => o.value === String(id))?.label ?? String(id)).join(", ")}`}>
-                            <ChronicleDataChip style={{ cursor: "default", marginBottom: 6 }}>
+                            <Badge variant="outline" color="var(--text-strong)" tt="none" style={{ cursor: "default", marginBottom: 6 }}>
                                 {confidence === "high" ? "✓" : confidence === "manual" ? "~" : "?"}
-                            </ChronicleDataChip>
+                            </Badge>
                         </Tooltip>
                     )}
                 </Group>
@@ -206,7 +207,6 @@ export default function VibEntryEditForm({
                     maxRows={12}
                     value={entry.bauaktivitaeten ?? ""}
                     onChange={(e) => onChange({ bauaktivitaeten: e.currentTarget.value || null })}
-                    styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
                 />
 
                 {/* Teilinbetriebnahmen */}
@@ -217,7 +217,6 @@ export default function VibEntryEditForm({
                     maxRows={12}
                     value={entry.teilinbetriebnahmen ?? ""}
                     onChange={(e) => onChange({ teilinbetriebnahmen: e.currentTarget.value || null })}
-                    styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
                 />
 
                 {/* Verkehrliche Zielsetzung */}
@@ -228,7 +227,6 @@ export default function VibEntryEditForm({
                     maxRows={12}
                     value={entry.verkehrliche_zielsetzung ?? ""}
                     onChange={(e) => onChange({ verkehrliche_zielsetzung: e.currentTarget.value || null })}
-                    styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
                 />
 
                 {/* Durchgeführte Maßnahmen */}
@@ -239,7 +237,6 @@ export default function VibEntryEditForm({
                     maxRows={12}
                     value={entry.durchgefuehrte_massnahmen ?? ""}
                     onChange={(e) => onChange({ durchgefuehrte_massnahmen: e.currentTarget.value || null })}
-                    styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
                 />
 
                 {/* Noch umzusetzende Maßnahmen */}
@@ -250,7 +247,6 @@ export default function VibEntryEditForm({
                     maxRows={12}
                     value={entry.noch_umzusetzende_massnahmen ?? ""}
                     onChange={(e) => onChange({ noch_umzusetzende_massnahmen: e.currentTarget.value || null })}
-                    styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
                 />
 
                 {/* PFA-Tabelle */}
@@ -264,7 +260,7 @@ export default function VibEntryEditForm({
                         </Button>
                     </Group>
                     {entry.pfa_entries.length > 0 ? (
-                        <ChronicleCard style={{ overflow: "auto", padding: 0 }}>
+                        <Paper withBorder p={0} style={{ overflow: "auto" }}>
                             <ResponsiveTable minWidth={720} withTableBorder withColumnBorders fz="xs" style={{ fontSize: 11 }}>
                                 <Table.Thead>
                                     <Table.Tr>
@@ -326,7 +322,7 @@ export default function VibEntryEditForm({
                                     ))}
                                 </Table.Tbody>
                             </ResponsiveTable>
-                        </ChronicleCard>
+                        </Paper>
                     ) : (
                         <Text size="xs" c="dimmed">Keine PFA-Einträge.</Text>
                     )}
@@ -348,9 +344,8 @@ export default function VibEntryEditForm({
                                 p="xs"
                                 style={{
                                     fontSize: 12,
-                                    fontFamily: "var(--mantine-font-family-monospace)",
-                                    background: "var(--mantine-color-gray-0)",
-                                    borderRadius: 4,
+                                    fontVariantNumeric: "tabular-nums",
+                                    background: "var(--surface-alt)",
                                     overflowX: "auto",
                                 }}
                                 className="vib-raw-markdown"
@@ -371,7 +366,6 @@ export default function VibEntryEditForm({
                     maxRows={12}
                     value={entry.sonstiges ?? ""}
                     onChange={(e) => onChange({ sonstiges: e.currentTarget.value || null })}
-                    styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
                 />
 
                 {/* Volltext */}
@@ -383,16 +377,10 @@ export default function VibEntryEditForm({
                         maxRows={24}
                         value={entry.raw_text}
                         onChange={(e) => onChange({ raw_text: e.currentTarget.value })}
-                        styles={{
-                            input: {
-                                fontFamily: "monospace",
-                                fontSize: 12,
-                                lineHeight: 1.6,
-                            },
-                        }}
+                        styles={{ input: { lineHeight: 1.6 } }}
                     />
                 )}
             </Stack>
-        </ChronicleCard>
+        </Paper>
     );
 }

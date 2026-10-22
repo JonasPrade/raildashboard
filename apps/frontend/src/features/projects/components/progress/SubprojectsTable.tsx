@@ -1,28 +1,24 @@
 import { useMemo, useState } from "react";
 import { Anchor, Badge, Group, Stack, Table, Text, TextInput } from "@mantine/core";
 import { ResponsiveTable } from "../../../../shared/ui/ResponsiveTable";
-import { IconSearch } from "@tabler/icons-react";
+import { Search } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import type { ProgressChild } from "../../../../shared/api/queries";
 import {
     LIFECYCLE_LABEL,
     MAIN_PHASES,
-    MAIN_PHASE_COLOR,
     MAIN_PHASE_LABEL,
     UNKNOWN_LABEL,
     type LifecycleStatus,
     type MainPhase,
     groupChildrenByPhase,
 } from "./phaseMeta";
+import { PhaseTag } from "./PhaseBadge";
 
 function phaseBadge(child: ProgressChild) {
     if (child.is_known === false) {
-        return (
-            <Badge variant="outline" color="gray">
-                {UNKNOWN_LABEL}
-            </Badge>
-        );
+        return <PhaseTag phase={null}>{UNKNOWN_LABEL}</PhaseTag>;
     }
     // A nested superior carries a span over its own subprojects, not one phase.
     const lo = child.span_min_phase as MainPhase | null;
@@ -30,24 +26,16 @@ function phaseBadge(child: ProgressChild) {
     if (child.is_superior && lo && hi && lo !== hi) {
         return (
             <Group gap={4} wrap="nowrap">
-                <Badge variant="light" color={MAIN_PHASE_COLOR[lo] ?? "gray"}>
-                    {MAIN_PHASE_LABEL[lo] ?? lo}
-                </Badge>
+                <PhaseTag phase={lo} />
                 <Text size="xs" c="dimmed">
                     –
                 </Text>
-                <Badge variant="light" color={MAIN_PHASE_COLOR[hi] ?? "gray"}>
-                    {MAIN_PHASE_LABEL[hi] ?? hi}
-                </Badge>
+                <PhaseTag phase={hi} />
             </Group>
         );
     }
     const phase = child.effective_phase as MainPhase;
-    return (
-        <Badge variant="light" color={MAIN_PHASE_COLOR[phase] ?? "gray"}>
-            {MAIN_PHASE_LABEL[phase] ?? phase}
-        </Badge>
-    );
+    return <PhaseTag phase={phase} />;
 }
 
 export default function SubprojectsTable({ children }: { children: ProgressChild[] }) {
@@ -73,15 +61,15 @@ export default function SubprojectsTable({ children }: { children: ProgressChild
                         const count = byPhase[phase]?.length ?? 0;
                         if (count === 0) return null;
                         return (
-                            <Badge key={phase} variant="light" color={MAIN_PHASE_COLOR[phase]}>
+                            <PhaseTag key={phase} phase={phase}>
                                 {count}× {MAIN_PHASE_LABEL[phase]}
-                            </Badge>
+                            </PhaseTag>
                         );
                     })}
                     {unknown.length > 0 && (
-                        <Badge variant="outline" color="gray">
+                        <PhaseTag phase={null}>
                             {unknown.length}× {UNKNOWN_LABEL}
-                        </Badge>
+                        </PhaseTag>
                     )}
                 </Group>
             </Group>
@@ -89,7 +77,7 @@ export default function SubprojectsTable({ children }: { children: ProgressChild
             <TextInput
                 size="xs"
                 placeholder="Unterprojekt suchen …"
-                leftSection={<IconSearch size={14} />}
+                leftSection={<Search size={16} />}
                 value={query}
                 onChange={(e) => setQuery(e.currentTarget.value)}
                 w={260}
@@ -99,7 +87,7 @@ export default function SubprojectsTable({ children }: { children: ProgressChild
                 <Table.Thead>
                     <Table.Tr>
                         <Table.Th>Projekt</Table.Th>
-                        <Table.Th>Planungsstand</Table.Th>
+                        <Table.Th data-role="status">Planungsstand</Table.Th>
                         <Table.Th>Lebenszyklus</Table.Th>
                     </Table.Tr>
                 </Table.Thead>
@@ -121,10 +109,8 @@ export default function SubprojectsTable({ children }: { children: ProgressChild
                             <Table.Td>{phaseBadge(child)}</Table.Td>
                             <Table.Td>
                                 {child.lifecycle_status !== "AKTIV" ? (
-                                    <Badge
-                                        size="sm"
-                                        color={child.lifecycle_status === "ABGEBROCHEN" ? "red" : "orange"}
-                                    >
+                                    // Lifecycle is no "Versäumnis": neutral tag, no red/orange.
+                                    <Badge size="sm" variant="outline" color="gray">
                                         {LIFECYCLE_LABEL[child.lifecycle_status as LifecycleStatus]}
                                     </Badge>
                                 ) : (

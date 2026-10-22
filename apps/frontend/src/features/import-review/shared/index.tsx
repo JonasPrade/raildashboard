@@ -13,15 +13,13 @@ import {
     Badge,
     Button,
     Group,
-    Loader,
     Progress,
     Stack,
     Switch,
     Text,
-    Tooltip,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconCheck, IconPlus } from "@tabler/icons-react";
+import { Check, Plus } from "lucide-react";
 import type { UseMutationResult } from "@tanstack/react-query";
 
 import {
@@ -81,7 +79,8 @@ export function ConfirmBadge({
         return (
             <Badge
                 variant="light"
-                color="green"
+                color="teal"
+                leftSection={<Check size={12} aria-hidden />}
                 style={{ cursor: "pointer" }}
                 onClick={onToggle}
                 title={revokeTitle}
@@ -96,7 +95,7 @@ export function ConfirmBadge({
             <Button
                 size="compact-xs"
                 color="blue"
-                leftSection={<IconCheck size={13} />}
+                leftSection={<Check size={13} />}
                 onClick={onToggle}
                 title={confirmTitle}
             >
@@ -114,9 +113,9 @@ export function ConfirmBadge({
 
 export function SavingIndicator() {
     return (
-        <Tooltip label="Wird gespeichert …" withArrow>
-            <Loader size={14} />
-        </Tooltip>
+        <Text span size="xs" c="dimmed" aria-live="polite">
+            schreibt …
+        </Text>
     );
 }
 
@@ -152,7 +151,7 @@ export function MissingProjectAnchor(props: MissingProjectAnchorProps) {
                 onClick={() => ("onClick" in props ? props.onClick() : setOpen(true))}
             >
                 <Group gap={2} wrap="nowrap" component="span">
-                    <IconPlus size={11} />
+                    <Plus size={11} />
                     Projekt fehlt?
                 </Group>
             </Anchor>
@@ -298,7 +297,6 @@ export function TaskProgressIndicator({
     return (
         <Stack gap={4}>
             <Group gap="xs">
-                <Loader size="xs" />
                 <Text size="sm">{label ?? defaultProgressLabel(progress)}</Text>
             </Group>
             <Progress value={value} animated={animated ?? !progress} size="sm" />

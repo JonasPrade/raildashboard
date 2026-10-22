@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Badge, Button, Collapse, Divider, Group, Stack, Table, Text } from "@mantine/core";
 import { ResponsiveTable } from "../../../../shared/ui/ResponsiveTable";
-import { IconChevronDown, IconChevronRight } from "@tabler/icons-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 import { useAuth } from "../../../../lib/auth";
 import {
@@ -67,7 +67,7 @@ export default function SourceBreakdown({ contributions, observations }: Props) 
                 variant="subtle"
                 size="xs"
                 px={0}
-                leftSection={open ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />}
+                leftSection={open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                 onClick={() => setOpen((o) => !o)}
                 style={{ alignSelf: "flex-start" }}
             >

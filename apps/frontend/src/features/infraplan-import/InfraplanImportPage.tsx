@@ -7,16 +7,16 @@ import {
     Container,
     FileInput,
     Group,
-    Loader,
     NumberInput,
+    Paper,
     Stack,
     Table,
     Tabs,
     Text,
+    Title,
 } from "@mantine/core";
-import { modals } from "@mantine/modals";
+import { openConfirmModal } from "../../shared/ui/confirmModal";
 import { notifications } from "@mantine/notifications";
-import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
 import RequirePermission from "../../components/RequirePermission";
 import {
     useDeleteInfraplanParseResult,
@@ -33,12 +33,14 @@ import { formatDateShort, formatDateTime } from "../../shared/format";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { TaskProgressIndicator, useImportTask } from "../import-review/shared";
 import InfraplanKpiSettings from "./InfraplanKpiSettings";
+import { LoadingState } from "../../shared/ui/LoadingState";
+import { STATUS_TONE } from "../../shared/theme/semanticColors";
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
-    PENDING: { label: "wartet", color: "gray" },
-    RUNNING: { label: "wird gelesen", color: "blue" },
-    SUCCESS: { label: "gelesen", color: "green" },
-    FAILURE: { label: "Fehler", color: "red" },
+    PENDING: { label: "wartet", color: STATUS_TONE.neutral },
+    RUNNING: { label: "wird gelesen", color: STATUS_TONE.active },
+    SUCCESS: { label: "gelesen", color: STATUS_TONE.done },
+    FAILURE: { label: "Fehler", color: STATUS_TONE.danger },
 };
 
 function errorDetail(error: unknown, fallback: string): string {
@@ -51,7 +53,7 @@ function Drafts({ drafts }: { drafts: InfraplanParseResultListItem[] }) {
     const reparse = useReparseInfraplan();
 
     const handleDelete = (d: InfraplanParseResultListItem) =>
-        modals.openConfirmModal({
+        openConfirmModal({
             title: "Entwurf verwerfen?",
             children: (
                 <Text size="sm">
@@ -60,7 +62,7 @@ function Drafts({ drafts }: { drafts: InfraplanParseResultListItem[] }) {
                 </Text>
             ),
             labels: { confirm: "Verwerfen", cancel: "Abbrechen" },
-            confirmProps: { color: "red" },
+            danger: true,
             onConfirm: async () => {
                 try {
                     await deleteDraft.mutateAsync(d.id);
@@ -71,7 +73,7 @@ function Drafts({ drafts }: { drafts: InfraplanParseResultListItem[] }) {
         });
 
     const handleReparse = (d: InfraplanParseResultListItem) =>
-        modals.openConfirmModal({
+        openConfirmModal({
             title: "Erneut auslesen?",
             children: (
                 <Text size="sm">
@@ -99,9 +101,9 @@ function Drafts({ drafts }: { drafts: InfraplanParseResultListItem[] }) {
                     <Table.Th>Jahrgang</Table.Th>
                     <Table.Th>Datei</Table.Th>
                     <Table.Th>Hochgeladen</Table.Th>
-                    <Table.Th>Status</Table.Th>
-                    <Table.Th ta="right">Zugeordnet / Zeilen</Table.Th>
-                    <Table.Th ta="right">Warnungen</Table.Th>
+                    <Table.Th data-role="status">Status</Table.Th>
+                    <Table.Th className="num">Zugeordnet / Zeilen</Table.Th>
+                    <Table.Th className="num">Warnungen</Table.Th>
                     <Table.Th>Übernommen</Table.Th>
                     <Table.Th />
                 </Table.Tr>
@@ -124,9 +126,9 @@ function Drafts({ drafts }: { drafts: InfraplanParseResultListItem[] }) {
                                     <Text size="xs" c="red" style={{ maxWidth: 220 }}>{d.error_message}</Text>
                                 )}
                             </Table.Td>
-                            <Table.Td ta="right">{d.row_count == null ? "–" : `${d.assigned_count} / ${d.row_count}`}</Table.Td>
-                            <Table.Td ta="right">
-                                {warnings > 0 ? <Badge color="yellow" variant="light">{warnings}</Badge> : "–"}
+                            <Table.Td className="num">{d.row_count == null ? "–" : `${d.assigned_count} / ${d.row_count}`}</Table.Td>
+                            <Table.Td className="num">
+                                {warnings > 0 ? <Badge color="gray" variant="outline">{warnings}</Badge> : "–"}
                             </Table.Td>
                             <Table.Td>
                                 {d.confirmed_at ? (
@@ -173,7 +175,7 @@ function Years({ reports }: { reports: InfraplanReport[] }) {
     const deleteReport = useDeleteInfraplanReport();
 
     const handleDelete = (r: InfraplanReport) =>
-        modals.openConfirmModal({
+        openConfirmModal({
             title: `Infraplan ${r.year} löschen?`,
             children: (
                 <Text size="sm">
@@ -183,7 +185,7 @@ function Years({ reports }: { reports: InfraplanReport[] }) {
                 </Text>
             ),
             labels: { confirm: "Jahrgang löschen", cancel: "Abbrechen" },
-            confirmProps: { color: "red" },
+            danger: true,
             onConfirm: async () => {
                 try {
                     await deleteReport.mutateAsync(r.year);
@@ -203,8 +205,8 @@ function Years({ reports }: { reports: InfraplanReport[] }) {
                 <Table.Tr>
                     <Table.Th>Jahrgang</Table.Th>
                     <Table.Th>Veröffentlicht</Table.Th>
-                    <Table.Th ta="right">Einträge</Table.Th>
-                    <Table.Th ta="right">zugeordnet</Table.Th>
+                    <Table.Th className="num">Einträge</Table.Th>
+                    <Table.Th className="num">zugeordnet</Table.Th>
                     <Table.Th>Kennzahlen</Table.Th>
                     <Table.Th />
                 </Table.Tr>
@@ -217,13 +219,13 @@ function Years({ reports }: { reports: InfraplanReport[] }) {
                             {r.title && <Text size="xs" c="dimmed">{r.title}</Text>}
                         </Table.Td>
                         <Table.Td>{r.published_on ? formatDateShort(r.published_on) : "–"}</Table.Td>
-                        <Table.Td ta="right">{r.entry_count}</Table.Td>
-                        <Table.Td ta="right">{r.assigned_count}</Table.Td>
+                        <Table.Td className="num">{r.entry_count}</Table.Td>
+                        <Table.Td className="num">{r.assigned_count}</Table.Td>
                         <Table.Td>
                             <Group gap={6} wrap="nowrap">
                                 <Text size="sm">{r.kpi_value_count} Werte</Text>
                                 {r.kpi_unchecked_count > 0 && (
-                                    <Badge color="orange" variant="light" size="sm">
+                                    <Badge color="violet" variant="light" size="sm">
                                         {r.kpi_unchecked_count} ungeprüft
                                     </Badge>
                                 )}
@@ -294,7 +296,7 @@ function InfraplanImportPageContent() {
         <Container size="lg" py="xl">
             <Stack gap="xl">
                 <Stack gap={4}>
-                    <ChronicleHeadline as="h1">Infraplan</ChronicleHeadline>
+                    <Title order={1}>Infraplan</Title>
                     <Text size="sm" c="dimmed">
                         Infraplan des Bundes (Fünfjahresplan Schiene): Maßnahmentabellen einlesen, Projekten zuordnen,
                         Kennzahlen erfassen. Schritt für Schritt in der{" "}
@@ -310,16 +312,16 @@ function InfraplanImportPageContent() {
                         <Tabs.Tab value="allgemeines">Allgemeines</Tabs.Tab>
                     </Tabs.List>
                     <Tabs.Panel value="allgemeines" pt="md">
-                        <ChronicleCard>
+                        <Paper withBorder p="var(--card-pad)">
                             <Stack gap="md">
                                 <Text fw={600}>Kennzahlen</Text>
                                 <InfraplanKpiSettings />
                             </Stack>
-                        </ChronicleCard>
+                        </Paper>
                     </Tabs.Panel>
                     <Tabs.Panel value="import" pt="md">
                         <Stack gap="xl">
-                            <ChronicleCard>
+                            <Paper withBorder p="var(--card-pad)">
                                 <Stack gap="md">
                                     <Text fw={600}>Neuer Jahrgang</Text>
                                     <Text size="sm" c="dimmed">
@@ -355,19 +357,19 @@ function InfraplanImportPageContent() {
                                     </Group>
                                     {task.isRunning && <TaskProgressIndicator progress={task.progress} warning={task.warning} />}
                                 </Stack>
-                            </ChronicleCard>
-                            <ChronicleCard>
+                            </Paper>
+                            <Paper withBorder p="var(--card-pad)">
                                 <Stack gap="md">
                                     <Text fw={600}>Entwürfe</Text>
-                                    {draftsLoading ? <Group justify="center"><Loader /></Group> : <Drafts drafts={drafts ?? []} />}
+                                    {draftsLoading ? <LoadingState rows={6} /> : <Drafts drafts={drafts ?? []} />}
                                 </Stack>
-                            </ChronicleCard>
-                            <ChronicleCard>
+                            </Paper>
+                            <Paper withBorder p="var(--card-pad)">
                                 <Stack gap="md">
                                     <Text fw={600}>Übernommene Jahrgänge</Text>
-                                    {reportsLoading ? <Group justify="center"><Loader /></Group> : <Years reports={reports ?? []} />}
+                                    {reportsLoading ? <LoadingState rows={6} /> : <Years reports={reports ?? []} />}
                                 </Stack>
-                            </ChronicleCard>
+                            </Paper>
                         </Stack>
                     </Tabs.Panel>
                 </Tabs>

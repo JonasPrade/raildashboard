@@ -4,16 +4,16 @@ import {
     Button,
     Container,
     Group,
-    Loader,
     Modal,
+    Paper,
     Stack,
     Text,
+    Title,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { ChronicleCard, ChronicleHeadline } from "../../../components/chronicle";
 import { useAuth } from "../../../lib/auth";
 import RequirePermission from "../../../components/RequirePermission";
 import {
@@ -22,6 +22,7 @@ import {
     useFinalizeProject,
     type Project,
 } from "../../../shared/api/queries";
+import { LoadingState } from "../../../shared/ui/LoadingState";
 
 function DraftsPageContent() {
     const { can } = useAuth();
@@ -63,7 +64,7 @@ function DraftsPageContent() {
         <Container size="lg" py="xl">
             <Stack gap="lg">
                 <Group justify="space-between" align="center">
-                    <ChronicleHeadline as="h1">Projekt-Entwürfe</ChronicleHeadline>
+                    <Title order={1}>Projekt-Entwürfe</Title>
                     <Button component={Link} to="/admin/projects/new" variant="light">
                         Neues Projekt
                     </Button>
@@ -75,13 +76,13 @@ function DraftsPageContent() {
                 </Text>
 
                 {isLoading ? (
-                    <Group justify="center" py="xl"><Loader /></Group>
+                    <LoadingState rows={6} />
                 ) : !drafts || drafts.length === 0 ? (
                     <Alert color="gray" variant="light">Keine Entwürfe vorhanden.</Alert>
                 ) : (
                     <Stack gap="sm">
                         {drafts.map((p) => (
-                            <ChronicleCard key={p.id}>
+                            <Paper withBorder p="var(--card-pad)" key={p.id}>
                                 <Group justify="space-between" align="center" wrap="nowrap">
                                     <Stack gap={2} style={{ minWidth: 0 }}>
                                         <Group gap={8} align="center">
@@ -107,7 +108,6 @@ function DraftsPageContent() {
                                         </Button>
                                         <Button
                                             size="xs"
-                                            color="green"
                                             loading={finalize.isPending}
                                             onClick={() => handleFinalize(p)}
                                         >
@@ -123,7 +123,7 @@ function DraftsPageContent() {
                                         </Button>
                                     </Group>
                                 </Group>
-                            </ChronicleCard>
+                            </Paper>
                         ))}
                     </Stack>
                 )}
@@ -135,14 +135,14 @@ function DraftsPageContent() {
                         Soll der Entwurf „{toDelete?.name}" endgültig gelöscht werden? Diese Aktion
                         kann nicht rückgängig gemacht werden.
                     </Text>
-                    <Group justify="flex-end">
+                    <div className="idt-modal-footer">
                         <Button variant="default" onClick={() => setToDelete(null)} disabled={del.isPending}>
                             Abbrechen
                         </Button>
-                        <Button color="red" onClick={handleDelete} loading={del.isPending}>
+                        <Button color="red" variant="filled" onClick={handleDelete} loading={del.isPending}>
                             Verwerfen
                         </Button>
-                    </Group>
+                    </div>
                 </Stack>
             </Modal>
         </Container>

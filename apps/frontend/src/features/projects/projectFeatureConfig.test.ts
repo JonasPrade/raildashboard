@@ -77,9 +77,16 @@ describe("trainCategoryLabels", () => {
             expect(cat.key.length).toBeGreaterThan(0);
             expect(typeof cat.label).toBe("string");
             expect(cat.label.length).toBeGreaterThan(0);
-            expect(typeof cat.color).toBe("string");
-            expect(cat.color.length).toBeGreaterThan(0);
+            expect(cat.color).toMatch(/^var\(--idt-chart-[1-6]\)$/);
         }
+    });
+
+    it("colours the traffic types with the first three categorical chart colours", () => {
+        expect(trainCategoryLabels.map((c) => c.color)).toEqual([
+            "var(--idt-chart-1)",
+            "var(--idt-chart-2)",
+            "var(--idt-chart-3)",
+        ]);
     });
 
     it("keys are unique", () => {

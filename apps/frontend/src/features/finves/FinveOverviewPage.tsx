@@ -1,22 +1,25 @@
 import { useMemo, useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import {
-    Alert,
+    Badge,
     Collapse,
     Group,
-    Loader,
+    Paper,
     SegmentedControl,
     Stack,
     Text,
     TextInput,
+    Title,
     UnstyledButton,
 } from "@mantine/core";
-import { ChronicleHeadline, ChronicleCard, ChronicleDataChip } from "../../components/chronicle";
 import { useFinves, type FinveListItem } from "../../shared/api/queries";
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { FinveBudgetDetails } from "./shared/FinveBudgetDetails";
 import { formatTEuro } from "../../shared/format";
 import { LinkedProjects } from "../../shared/ui/LinkedProjects";
+import { LoadingState } from "../../shared/ui/LoadingState";
+import { ErrorState } from "../../shared/ui/ErrorState";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -36,20 +39,18 @@ function FinveCard({ finve }: { finve: FinveListItem }) {
     const lastBudget = finve.budgets.at(-1);
 
     return (
-        <ChronicleCard>
+        <Paper withBorder p="var(--card-pad)">
             <Stack gap="md">
                 {/* ── Header row ─────────────────────────────────────────── */}
                 <Group justify="space-between" align="flex-start" wrap="wrap" gap="sm">
                     <Stack gap={4}>
                         <Group gap="sm" align="center">
-                            <ChronicleDataChip>
-                                {finve.id}
-                            </ChronicleDataChip>
+                            <Badge variant="outline">{finve.id}</Badge>
                             {finve.is_sammel_finve && (
-                                <ChronicleDataChip>Sammel-FinVe</ChronicleDataChip>
+                                <Badge variant="outline">Sammel-FinVe</Badge>
                             )}
                             {finve.temporary_finve_number && (
-                                <ChronicleDataChip>vorläufig</ChronicleDataChip>
+                                <Badge variant="outline">vorläufig</Badge>
                             )}
                         </Group>
                         <Text fw={600} size="md" lh={1.3}>
@@ -89,8 +90,9 @@ function FinveCard({ finve }: { finve: FinveListItem }) {
                             onClick={() => setOpen((o) => !o)}
                             style={{ alignSelf: "flex-start" }}
                         >
-                            <Text size="sm" c="blue" style={{ userSelect: "none" }}>
-                                {open ? "▲ Diagramme ausblenden" : "▼ Details & Diagramme"}
+                            <Text size="sm" c="blue" style={{ display: "inline-flex", alignItems: "center", gap: 4, userSelect: "none" }}>
+                                {open ? <ChevronUp size={16} aria-hidden /> : <ChevronDown size={16} aria-hidden />}
+                                {open ? "Diagramme ausblenden" : "Details & Diagramme"}
                             </Text>
                         </UnstyledButton>
 
@@ -100,7 +102,7 @@ function FinveCard({ finve }: { finve: FinveListItem }) {
                     </>
                 )}
             </Stack>
-        </ChronicleCard>
+        </Paper>
     );
 }
 
@@ -114,7 +116,7 @@ export default function FinveOverviewPage() {
     const [search, setSearch] = useState(searchParams.get("q") ?? "");
     const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
 
-    const { data: finves, isLoading, isError } = useFinves();
+    const { data: finves, isLoading, isError, refetch } = useFinves();
 
     const filtered = useMemo(() => {
         const q = search.trim().toLowerCase();
@@ -132,7 +134,7 @@ export default function FinveOverviewPage() {
 
     return (
         <Stack gap="lg" py="lg">
-                <ChronicleHeadline as="h2">Finanzierungsvereinbarungen</ChronicleHeadline>
+                <Title order={2}>Finanzierungsvereinbarungen</Title>
 
                 <Group wrap="wrap" gap="sm">
                     <TextInput
@@ -154,11 +156,9 @@ export default function FinveOverviewPage() {
                     />
                 </Group>
 
-                {isLoading && <Group justify="center"><Loader /></Group>}
+                {isLoading && <LoadingState rows={6} />}
                 {isError && (
-                    <Alert color="red" variant="light" title="Fehler">
-                        FinVe-Liste konnte nicht geladen werden.
-                    </Alert>
+                    <ErrorState onRetry={() => void refetch()}>FinVe-Liste konnte nicht geladen werden.</ErrorState>
                 )}
 
                 {!isLoading && !isError && (

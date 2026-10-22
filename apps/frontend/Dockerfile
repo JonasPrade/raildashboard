@@ -16,8 +16,14 @@ RUN npm ci
 # VITE_API_BASE_URL="" → API calls go to the same origin (/api/...), nginx proxies them.
 ARG VITE_API_BASE_URL=""
 ARG REACT_APP_TILE_LAYER_URL=""
+ARG REACT_APP_TILE_LAYER_URL_DARK=""
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ENV REACT_APP_TILE_LAYER_URL=$REACT_APP_TILE_LAYER_URL
+ENV REACT_APP_TILE_LAYER_URL_DARK=$REACT_APP_TILE_LAYER_URL_DARK
+# Version shown in the footer ("Fassung"): release.yml passes the short commit
+# SHA, local builds keep "dev" (vite.config.ts → __APP_VERSION__).
+ARG VITE_APP_VERSION="dev"
+ENV VITE_APP_VERSION=$VITE_APP_VERSION
 
 # Vite reads .env from envDir ("../../" relative to apps/frontend), but in
 # Docker there is no repo root above /app. We place a minimal .env here so

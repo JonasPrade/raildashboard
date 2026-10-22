@@ -1,12 +1,15 @@
 import { useState } from "react";
-import { Anchor, Collapse, Group, Loader, Stack, Table, Text, Title } from "@mantine/core";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { Anchor, Badge, Collapse, Group, Paper, Stack, Table, Text, Title } from "@mantine/core";
 import { BarChart } from "@mantine/charts";
+import "../../../shared/ui/charts.css";
+import { CHART_SERIES } from "../../../shared/theme/semanticColors";
 import "@mantine/charts/styles.css";
 import { Link } from "react-router-dom";
-import { ChronicleCard, ChronicleDataChip } from "../../../components/chronicle";
 import { type GvfgProjectEntry, useProjectGvfg } from "../../../shared/api/queries";
 import { ResponsiveTable } from "../../../shared/ui/ResponsiveTable";
 import { CATEGORY_LABEL, KIND_LABEL, editionLabel, formatMio, num, sumLine } from "../../gvfg/gvfgFormat";
+import { LoadingState } from "../../../shared/ui/LoadingState";
 
 // ---------------------------------------------------------------------------
 // GVFG-Bundesprogramm on the project page (docs/features/feature-gvfg-import.md).
@@ -40,10 +43,10 @@ function AmountTable({ entry }: { entry: GvfgProjectEntry }) {
             <Table.Thead>
                 <Table.Tr>
                     <Table.Th>Kat.</Table.Th>
-                    <Table.Th ta="right">Gesamtkosten</Table.Th>
-                    <Table.Th ta="right">zwf. Kosten</Table.Th>
-                    <Table.Th ta="right">Finanzhilfen</Table.Th>
-                    {!informational && periods.map((p) => <Table.Th key={p.label} ta="right">{p.label}</Table.Th>)}
+                    <Table.Th className="num">Gesamtkosten</Table.Th>
+                    <Table.Th className="num">zwf. Kosten</Table.Th>
+                    <Table.Th className="num">Finanzhilfen</Table.Th>
+                    {!informational && periods.map((p) => <Table.Th key={p.label} className="num">{p.label}</Table.Th>)}
                 </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -57,12 +60,12 @@ function AmountTable({ entry }: { entry: GvfgProjectEntry }) {
                                 </Text>
                             )}
                         </Table.Td>
-                        <Table.Td ta="right">{formatMio(a.cost_total)}</Table.Td>
-                        <Table.Td ta="right">{formatMio(a.cost_eligible)}</Table.Td>
-                        <Table.Td ta="right">{formatMio(a.aid_total)}</Table.Td>
+                        <Table.Td className="num">{formatMio(a.cost_total)}</Table.Td>
+                        <Table.Td className="num">{formatMio(a.cost_eligible)}</Table.Td>
+                        <Table.Td className="num">{formatMio(a.aid_total)}</Table.Td>
                         {!informational &&
                             periods.map((p) => (
-                                <Table.Td key={p.label} ta="right">
+                                <Table.Td key={p.label} className="num">
                                     {a.periods[p.label] != null ? formatMio(a.periods[p.label]) : ""}
                                 </Table.Td>
                             ))}
@@ -91,8 +94,8 @@ function PeriodChart({ entry }: { entry: GvfgProjectEntry }) {
             dataKey="period"
             type="stacked"
             series={[
-                { name: "paid", label: "ausgezahlt", color: "teal.6" },
-                { name: "planned", label: "geplant / Rest", color: "blue.6" },
+                { name: "paid", label: "ausgezahlt", color: CHART_SERIES[0] },
+                { name: "planned", label: "geplant / Rest", color: CHART_SERIES[1] },
             ]}
             valueFormatter={(v) => formatMio(v)}
             withLegend
@@ -108,8 +111,8 @@ function EditionHistory({ editions }: { editions: GvfgProjectEntry[] }) {
             <Table.Thead>
                 <Table.Tr>
                     <Table.Th>Ausgabe</Table.Th>
-                    <Table.Th ta="right">Gesamtkosten</Table.Th>
-                    <Table.Th ta="right">Finanzhilfen</Table.Th>
+                    <Table.Th className="num">Gesamtkosten</Table.Th>
+                    <Table.Th className="num">Finanzhilfen</Table.Th>
                     <Table.Th>Inbetriebnahme gepl.</Table.Th>
                 </Table.Tr>
             </Table.Thead>
@@ -120,8 +123,8 @@ function EditionHistory({ editions }: { editions: GvfgProjectEntry[] }) {
                             {editionLabel(e.program)}
                             {e.part === "nachrichtlich" ? " (nachr.)" : ""}
                         </Table.Td>
-                        <Table.Td ta="right">{formatMio(sumLine(e)?.cost_total)}</Table.Td>
-                        <Table.Td ta="right">{formatMio(sumLine(e)?.aid_total)}</Table.Td>
+                        <Table.Td className="num">{formatMio(sumLine(e)?.cost_total)}</Table.Td>
+                        <Table.Td className="num">{formatMio(sumLine(e)?.aid_total)}</Table.Td>
                         <Table.Td>{e.commissioning_planned ?? "–"}</Table.Td>
                     </Table.Tr>
                 ))}
@@ -135,14 +138,14 @@ function EntryCard({ editions }: { editions: GvfgProjectEntry[] }) {
     const entry = editions[0];
     const total = sumLine(entry);
     return (
-        <ChronicleCard>
+        <Paper withBorder p="var(--card-pad)">
             <Stack gap="sm">
                 <Group justify="space-between" align="flex-start" wrap="wrap">
                     <Stack gap={4}>
                         <Group gap="xs">
-                            <ChronicleDataChip>{entry.key}</ChronicleDataChip>
-                            <ChronicleDataChip>Ausgabe {editionLabel(entry.program)}</ChronicleDataChip>
-                            {entry.part === "nachrichtlich" && <ChronicleDataChip>nachrichtlich</ChronicleDataChip>}
+                            <Badge variant="outline">{entry.key}</Badge>
+                            <Badge variant="outline">Ausgabe {editionLabel(entry.program)}</Badge>
+                            {entry.part === "nachrichtlich" && <Badge variant="outline">nachrichtlich</Badge>}
                         </Group>
                         <Text size="sm" fw={500}>{entry.name ?? "–"}</Text>
                         <Text size="xs" c="dimmed">
@@ -155,10 +158,11 @@ function EntryCard({ editions }: { editions: GvfgProjectEntry[] }) {
                         <Text
                             size="xs"
                             c="blue"
-                            style={{ cursor: "pointer", userSelect: "none" }}
+                            style={{ display: "inline-flex", alignItems: "center", gap: 4, cursor: "pointer", userSelect: "none" }}
                             onClick={() => setOpen((o) => !o)}
                         >
-                            {open ? "Ausblenden ▲" : "Details ▼"}
+                            {open ? "Ausblenden" : "Details"}
+                            {open ? <ChevronUp size={16} aria-hidden /> : <ChevronDown size={16} aria-hidden />}
                         </Text>
                     </Group>
                 </Group>
@@ -184,7 +188,7 @@ function EntryCard({ editions }: { editions: GvfgProjectEntry[] }) {
                     </Stack>
                 </Collapse>
             </Stack>
-        </ChronicleCard>
+        </Paper>
     );
 }
 
@@ -198,7 +202,7 @@ function SubprojectEntries({ groups, projectId }: { groups: GvfgProjectEntry[][]
                         <Table.Th>Teilprojekt</Table.Th>
                         <Table.Th>Schlüssel</Table.Th>
                         <Table.Th>Ausgabe</Table.Th>
-                        <Table.Th ta="right">Finanzhilfen (Mio. €)</Table.Th>
+                        <Table.Th className="num">Finanzhilfen (Mio. €)</Table.Th>
                     </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
@@ -217,7 +221,7 @@ function SubprojectEntries({ groups, projectId }: { groups: GvfgProjectEntry[][]
                             </Table.Td>
                             <Table.Td style={{ whiteSpace: "nowrap" }}>{entry.key}</Table.Td>
                             <Table.Td>{editionLabel(entry.program)}</Table.Td>
-                            <Table.Td ta="right">{formatMio(sumLine(entry)?.aid_total)}</Table.Td>
+                            <Table.Td className="num">{formatMio(sumLine(entry)?.aid_total)}</Table.Td>
                         </Table.Tr>
                     ))}
                 </Table.Tbody>
@@ -229,17 +233,17 @@ function SubprojectEntries({ groups, projectId }: { groups: GvfgProjectEntry[][]
 export default function GvfgSection({ projectId }: { projectId: number }) {
     const { data: entries, isLoading } = useProjectGvfg(projectId);
 
-    if (isLoading) return <Loader size="sm" />;
+    if (isLoading) return <LoadingState rows={3} />;
     if (!entries || entries.length === 0) return null;
 
     const own = byKey(entries.filter((e) => e.projects.some((p) => p.id === projectId)));
     const children = byKey(entries.filter((e) => !e.projects.some((p) => p.id === projectId)));
 
     return (
-        <ChronicleCard>
+        <Paper withBorder p="var(--card-pad)">
             <Stack gap="md">
-                <Group justify="space-between" wrap="wrap">
-                    <Title order={4}>GVFG-Bundesprogramm</Title>
+                <Group className="idt-section-head" justify="space-between" wrap="wrap">
+                    <Title order={2} className="idt-title-plain">GVFG-Bundesprogramm</Title>
                     <Anchor component={Link} to="/finanzen/gvfg" size="sm">Alle GVFG-Vorhaben →</Anchor>
                 </Group>
                 {own.map((editions) => (
@@ -251,6 +255,6 @@ export default function GvfgSection({ projectId }: { projectId: number }) {
                     {CATEGORY_LABEL.C}: bedingt aufgenommen.
                 </Text>
             </Stack>
-        </ChronicleCard>
+        </Paper>
     );
 }

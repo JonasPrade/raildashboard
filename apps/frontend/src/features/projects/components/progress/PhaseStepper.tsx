@@ -1,5 +1,5 @@
 import { Box, Group, Stack, Text, Tooltip } from "@mantine/core";
-import { IconChevronRight } from "@tabler/icons-react";
+import { Check, ChevronRight } from "lucide-react";
 
 import {
     MAIN_PHASE_LABEL,
@@ -12,6 +12,7 @@ import {
     visiblePhases,
 } from "./phaseMeta";
 import { formatDateShort } from "../../../../shared/format";
+import { LANE_STATE_COLOR } from "../../../../shared/theme/semanticColors";
 
 export type StepperChild = { project_id: number; name: string };
 
@@ -25,7 +26,7 @@ type Props = {
     dimmed?: boolean;
     /** Leaf project with no phase information → nothing active, "Unbekannt". */
     unknown?: boolean;
-    /** Suppress the green "completed" marking for phases before the span — used
+    /** Suppress the "completed" marking for phases before the span — used
      * for superiors with unknown children, where we cannot claim every child
      * has passed the earlier phases. */
     noCompleted?: boolean;
@@ -51,14 +52,18 @@ type Props = {
     hiddenPhases?: readonly string[] | null;
 };
 
-const ACTIVE = "var(--info)";
-const DONE = "var(--ledOk, #2f9e44)";
-const IDLE = "var(--rule)";
+const ACTIVE: string = LANE_STATE_COLOR.active;
+const ACTIVE_FILL: string = LANE_STATE_COLOR.activeFill;
+const DONE: string = LANE_STATE_COLOR.done;
+const DONE_FRAME: string = LANE_STATE_COLOR.doneFrame;
+// Open steps, chevrons and open milestones are graphics: --text-muted reaches 3:1
+// in both schemes, the hairline token (--idt-line-strong) only 1.8:1.
+const IDLE: string = LANE_STATE_COLOR.idleLine;
 
 /**
  * Gate milestone marker rendered on a second tier *below* a timeline connector
- * (linked by a short connector), so the main flow stays intact. Green/filled when
- * abgeschlossen, blue/filled while it läuft, outline when still offen. Used for the
+ * (linked by a short connector), so the main flow stays intact. Ink/filled when
+ * abgeschlossen, violet/filled while it läuft, outline when still offen. Used for the
  * Planfeststellungsbeschluss and the parliamentary involvement.
  */
 function Milestone({
@@ -98,7 +103,10 @@ function Milestone({
                     }}
                 />
                 <Text size="xs" ta="center" fw={done ? 700 : 400} c={filled ? undefined : "dimmed"} style={{ lineHeight: 1.1, whiteSpace: "nowrap" }}>
-                    {label}{done ? " ✓" : ""}
+                    <Group gap={2} wrap="nowrap" component="span" justify="center">
+                        {label}
+                        {done && <Check size={12} strokeWidth={3} aria-label="abgeschlossen" />}
+                    </Group>
                 </Text>
                 {formattedDate && (
                     <Text ta="center" c="dimmed" style={{ fontSize: 10, lineHeight: 1.1, whiteSpace: "nowrap" }}>
@@ -145,7 +153,8 @@ export default function PhaseStepper({
             gap={4}
             wrap="nowrap"
             align="flex-start"
-            style={{ opacity: dimmed ? 0.45 : 1, overflowX: "auto" }}
+            // Paused: phase colours go grey, text keeps its contrast (no opacity).
+            style={{ filter: dimmed ? "grayscale(1)" : undefined, overflowX: "auto" }}
         >
             {phases.map((phase, pos) => {
                 const idx = mainPhaseIndex(phase);
@@ -154,9 +163,19 @@ export default function PhaseStepper({
                 const isCurrent = !unknown && (isSpan ? idx === minIdx || idx === maxIdx : idx === currentIdx);
                 const isDone = !unknown && !noCompleted && idx < minIdx;
 
-                let circleColor = IDLE;
-                if (inSpan || isCurrent) circleColor = ACTIVE;
-                else if (isDone) circleColor = DONE;
+                // Square markers after the prototype's `.step`: running = violet frame
+                // on violet-soft, done = ink frame on the surface with an ink check,
+                // open = muted frame. Done is never a green fill (Anwendungsebene).
+                const isActive = inSpan || isCurrent;
+                let frameColor = IDLE;
+                let fill = "transparent";
+                if (isActive) {
+                    frameColor = ACTIVE;
+                    fill = ACTIVE_FILL;
+                } else if (isDone) {
+                    frameColor = DONE_FRAME;
+                    fill = "var(--surface)";
+                }
 
                 const phaseChildren = childrenByPhase?.[phase] ?? [];
                 const tooltipLabel =
@@ -189,18 +208,24 @@ export default function PhaseStepper({
                                         position: "relative",
                                         width: 28,
                                         height: 28,
-                                        borderRadius: "50%",
-                                        border: `2px solid ${circleColor}`,
-                                        backgroundColor: inSpan || isCurrent || isDone ? circleColor : "transparent",
+                                        borderRadius: 0,
+                                        border: `2px solid ${frameColor}`,
+                                        backgroundColor: fill,
                                         display: "flex",
                                         alignItems: "center",
                                         justifyContent: "center",
-                                        color: inSpan || isCurrent || isDone ? "#fff" : "var(--ink, #333)",
+                                        color: isActive || isDone ? DONE : "var(--text-body)",
+                                        fontVariantNumeric: "tabular-nums",
                                         fontSize: 12,
                                         fontWeight: 700,
                                     }}
                                 >
-                                    {pos + 1}
+                                    {isDone && !isActive ? (
+                                        // Done = ink check, no colour (Anwendungsebene → Status).
+                                        <Check size={16} strokeWidth={3} aria-label="abgeschlossen" />
+                                    ) : (
+                                        pos + 1
+                                    )}
                                     {phaseChildren.length > 0 && (
                                         <Box
                                             style={{
@@ -210,9 +235,9 @@ export default function PhaseStepper({
                                                 minWidth: 16,
                                                 height: 16,
                                                 padding: "0 4px",
-                                                borderRadius: 8,
-                                                backgroundColor: "var(--board, #1f2933)",
-                                                color: "#fff",
+                                                borderRadius: 0,
+                                                backgroundColor: "var(--surface-inverse)",
+                                                color: "var(--text-on-inverse)",
                                                 fontSize: 10,
                                                 lineHeight: "16px",
                                                 textAlign: "center",
@@ -236,10 +261,10 @@ export default function PhaseStepper({
                         {nextIdx !== null && (
                             <Stack gap={4} align="center" style={{ flexShrink: 0 }}>
                                 {/* Arrow stays on the main timeline row, vertically centred
-                                    with the phase circles (28px band). */}
+                                    with the phase markers (28px band). */}
                                 <Box style={{ height: 28, display: "flex", alignItems: "center" }}>
-                                    <IconChevronRight
-                                        size={18}
+                                    <ChevronRight
+                                        size={16}
                                         style={{ color: !unknown && idx < maxIdx ? ACTIVE : IDLE }}
                                     />
                                 </Box>

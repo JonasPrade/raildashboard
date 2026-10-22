@@ -72,7 +72,7 @@ export default function GuideSectionBody({
                     autosize
                     minRows={6}
                     maxRows={24}
-                    styles={{ input: { fontFamily: "var(--mantine-font-family-monospace)", fontSize: 13 } }}
+                    styles={{ input: { fontSize: 13, fontVariantNumeric: "tabular-nums" } }}
                 />
                 <Text size="xs" c="dimmed">
                     Markdown: **fett**, - Liste, [Link](/interner/pfad), `Chip`, Hinweisbox:

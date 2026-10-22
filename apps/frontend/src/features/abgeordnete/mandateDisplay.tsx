@@ -36,7 +36,7 @@ export function CommitteeBadges({ committees }: { committees: Mandate["committee
     return (
         <Group gap={6}>
             {committees.map((committee) => (
-                <Badge key={committee.key} color="gold" variant="filled" size="sm">
+                <Badge key={committee.key} color="cyan" variant="filled" size="sm">
                     {COMMITTEE_SHORT[committee.key] ?? committee.label}
                     {committee.role_label ? ` · ${committee.role_label}` : ""}
                 </Badge>
@@ -93,7 +93,7 @@ export function MandateGroup({
     return (
         <Stack gap={6}>
             <Group gap="xs" align="baseline">
-                <Text size="sm" fw={700} tt="uppercase" c="dimmed">
+                <Text component="div" className="idt-eyebrow">
                     {title}
                 </Text>
                 {hint && (

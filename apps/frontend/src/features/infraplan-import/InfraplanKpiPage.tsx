@@ -9,8 +9,8 @@ import {
     Container,
     Group,
     Image,
-    Loader,
     NumberInput,
+    Paper,
     Select,
     SimpleGrid,
     Stack,
@@ -18,11 +18,11 @@ import {
     Tabs,
     Text,
     TextInput,
+    Title,
 } from "@mantine/core";
-import { modals } from "@mantine/modals";
+import { openConfirmModal } from "../../shared/ui/confirmModal";
 import { notifications } from "@mantine/notifications";
-import { IconPlus, IconTrash } from "@tabler/icons-react";
-import { ChronicleCard, ChronicleHeadline } from "../../components/chronicle";
+import { Plus, Trash2 } from "lucide-react";
 import RequirePermission from "../../components/RequirePermission";
 import { API_BASE } from "../../shared/api/client";
 import {
@@ -38,6 +38,7 @@ import {
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { KPI_KIND_LABEL } from "../infraplan/infraplanFormat";
 import { buildKpiPayload, invalidRows, newUid, slotKey, toFormRows, type KpiFormRow } from "./kpiForm";
+import { LoadingState } from "../../shared/ui/LoadingState";
 
 const KIND_DATA = [
     { value: "IST", label: "Ist" },
@@ -122,7 +123,7 @@ function KpiEditor({
                         <Table.Th>Teilreihe</Table.Th>
                         <Table.Th>Wert{kpi.unit ? ` (${kpi.unit})` : ""}</Table.Th>
                         <Table.Th>Quellseite</Table.Th>
-                        <Table.Th>Status</Table.Th>
+                        <Table.Th data-role="status">Status</Table.Th>
                         <Table.Th />
                     </Table.Tr>
                 </Table.Thead>
@@ -189,9 +190,9 @@ function KpiEditor({
                                 </Table.Td>
                                 <Table.Td>
                                     {status === "UNGEPRUEFT" ? (
-                                        <Badge size="xs" color="orange" variant="light">ungeprüft</Badge>
+                                        <Badge size="xs" color="violet" variant="light">ungeprüft</Badge>
                                     ) : status === "GEPRUEFT" ? (
-                                        <Badge size="xs" color="green" variant="light">geprüft</Badge>
+                                        <Badge size="xs" color="teal" variant="light">geprüft</Badge>
                                     ) : (
                                         <Badge size="xs" color="gray" variant="light">neu</Badge>
                                     )}
@@ -203,7 +204,7 @@ function KpiEditor({
                                         aria-label="Zeile entfernen"
                                         onClick={() => setRows(current.filter((x) => x.uid !== r.uid))}
                                     >
-                                        <IconTrash size={16} />
+                                        <Trash2 size={16} />
                                     </ActionIcon>
                                 </Table.Td>
                             </Table.Tr>
@@ -218,7 +219,7 @@ function KpiEditor({
                 </Text>
             )}
             <Group gap="sm" wrap="wrap">
-                <Button variant="light" leftSection={<IconPlus size={14} />} onClick={add}>
+                <Button variant="light" leftSection={<Plus size={16} />} onClick={add}>
                     Zeile hinzufügen
                 </Button>
                 <Button onClick={handleSave} loading={save.isPending} disabled={payload.length === 0 || invalid.size > 0}>
@@ -265,7 +266,7 @@ function Approval({
     }, [unchecked]);
 
     const handleApprove = () =>
-        modals.openConfirmModal({
+        openConfirmModal({
             title: `Kennzahlen ${year} freigeben?`,
             children: (
                 <Text size="sm">
@@ -286,7 +287,7 @@ function Approval({
 
     if (unchecked.length === 0) {
         return (
-            <Alert color="green" variant="light">
+            <Alert color="teal" variant="light">
                 Alle Kennzahlwerte dieses Jahrgangs sind geprüft.
             </Alert>
         );
@@ -304,7 +305,7 @@ function Approval({
                 </Button>
             </Group>
             {byPage.map(([page, list]) => (
-                <ChronicleCard key={page ?? "none"}>
+                <Paper withBorder p="var(--card-pad)" key={page ?? "none"}>
                     <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                         <Stack gap={4}>
                             <Text fw={600} size="sm">{page != null ? `Seite ${page}` : "Ohne Quellseite"}</Text>
@@ -319,7 +320,7 @@ function Approval({
                                         alt={`Infraplan ${year}, Seite ${page}`}
                                         fit="contain"
                                         radius="sm"
-                                        style={{ border: "1px solid var(--mantine-color-default-border)" }}
+                                        style={{ border: "1px solid var(--border)" }}
                                     />
                                 </Anchor>
                             ) : (
@@ -332,7 +333,7 @@ function Approval({
                                     <Table.Th>Kennzahl</Table.Th>
                                     <Table.Th>Jahr</Table.Th>
                                     <Table.Th>Art</Table.Th>
-                                    <Table.Th ta="right">Wert</Table.Th>
+                                    <Table.Th className="num">Wert</Table.Th>
                                 </Table.Tr>
                             </Table.Thead>
                             <Table.Tbody>
@@ -348,7 +349,7 @@ function Approval({
                                                 </Table.Td>
                                                 <Table.Td>{v.year}</Table.Td>
                                                 <Table.Td>{v.value_kind === "IST" ? "Ist" : "Ziel"}</Table.Td>
-                                                <Table.Td ta="right" style={{ whiteSpace: "nowrap" }}>
+                                                <Table.Td className="num" style={{ whiteSpace: "nowrap" }}>
                                                     {formatValue(v.value, kpi?.unit)}
                                                 </Table.Td>
                                             </Table.Tr>
@@ -357,7 +358,7 @@ function Approval({
                             </Table.Tbody>
                         </ResponsiveTable>
                     </SimpleGrid>
-                </ChronicleCard>
+                </Paper>
             ))}
         </Stack>
     );
@@ -389,7 +390,7 @@ function InfraplanKpiPageContent() {
         return [...groups.entries()].map(([group, items]) => ({ group, items }));
     }, [kpis, counts]);
 
-    if (kpisLoading || valuesLoading) return <Container py="xl"><Group justify="center"><Loader /></Group></Container>;
+    if (kpisLoading || valuesLoading) return <Container py="xl"><LoadingState rows={6} /></Container>;
     if (isError || !values) {
         return (
             <Container size="sm" py="xl">
@@ -409,7 +410,7 @@ function InfraplanKpiPageContent() {
             <Stack gap="lg">
                 <Stack gap={2}>
                     <Anchor component={Link} to="/admin/infraplan-import" size="sm">← Infraplan-Import</Anchor>
-                    <ChronicleHeadline as="h1">Kennzahlen Infraplan {year}</ChronicleHeadline>
+                    <Title order={1}>Kennzahlen Infraplan {year}</Title>
                     <Text size="sm" c="dimmed">
                         {values.length} Werte · {unchecked} ungeprüft · öffentlich auf{" "}
                         <Anchor component={Link} to="/infraplan" size="sm">/infraplan</Anchor> erscheinen nur geprüfte
@@ -433,7 +434,7 @@ function InfraplanKpiPageContent() {
                         />
                     </Tabs.Panel>
                     <Tabs.Panel value="edit" pt="md">
-                        <ChronicleCard>
+                        <Paper withBorder p="var(--card-pad)">
                             <Stack gap="md">
                                 <Select
                                     label="Kennzahl"
@@ -453,7 +454,7 @@ function InfraplanKpiPageContent() {
                                     </Text>
                                 )}
                             </Stack>
-                        </ChronicleCard>
+                        </Paper>
                     </Tabs.Panel>
                 </Tabs>
             </Stack>
