@@ -270,7 +270,8 @@ Infraplan-Jahrgang **jünger** ist als die neueste GVFG-Ausgabe mit demselben Sc
 (Entscheidung 22; sonst liefert der GVFG-Eintrag Lph und Inbetriebnahme). `observed_date` =
 Veröffentlichungsdatum des Jahrgangs.
 
-**Track MAIN** (Untergrenze der Hauptphase):
+**Track MAIN** (Statusbericht zur Hauptphase; mit 0.85 darf er eine FinVe-Untergrenze
+zurückstufen, gemeldet als Konflikt — `feature-project-progress.md`):
 
 | Realisierungsstand | MainPhase |
 |---|---|

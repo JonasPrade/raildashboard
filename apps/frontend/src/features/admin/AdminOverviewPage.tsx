@@ -14,6 +14,7 @@ import { LegalSettingsCard } from "./LegalSettingsCard";
 import { useAuth } from "../../lib/auth";
 import {
     useDraftProjects,
+    useProgressConflicts,
     useUnassignedFinves,
     useUnassignedGvfgEntries,
     useUnassignedInfraplanEntries,
@@ -60,6 +61,9 @@ export default function AdminOverviewPage() {
         (unassignedVibEntries?.length ?? 0) +
         (unassignedGvfgEntries?.length ?? 0) +
         (unassignedInfraplanEntries?.length ?? 0);
+
+    const { data: progressConflicts } = useProgressConflicts(canProgress);
+    const conflictCount = progressConflicts?.length ?? 0;
 
     const { data: drafts } = useDraftProjects(canCreateProject);
     const draftCount = drafts?.length ?? 0;
@@ -156,6 +160,23 @@ export default function AdminOverviewPage() {
                                 <Stack gap={4}>
                                     <Text fw={500}>Sammel-FinVe Phasen</Text>
                                     <Text size="sm" c="dimmed">Planungsphase von Sammel-FinVes zuordnen (Lph/EKrG)</Text>
+                                </Stack>
+                            </Link>
+                        </Paper>
+                    )}
+                    {canProgress && (
+                        <Paper withBorder p="var(--card-pad)">
+                            <Link to="/admin/planungsstand-konflikte" style={{ textDecoration: "none", color: "inherit" }}>
+                                <Stack gap={4}>
+                                    <Group gap={6} align="center">
+                                        <Text fw={500}>Planungsstand-Konflikte</Text>
+                                        {conflictCount > 0 && (
+                                            <Badge color="red" size="xs" variant="filled" circle>
+                                                {conflictCount}
+                                            </Badge>
+                                        )}
+                                    </Group>
+                                    <Text size="sm" c="dimmed">Neuere Berichte mit niedrigerer Phase als ältere Angaben prüfen</Text>
                                 </Stack>
                             </Link>
                         </Paper>

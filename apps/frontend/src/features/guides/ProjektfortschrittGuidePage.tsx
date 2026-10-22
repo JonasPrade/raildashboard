@@ -12,7 +12,7 @@ const DEF: GuideDef = {
             title: "Grundprinzip: abgeleitet, nicht eingetragen",
             body: `Ein Projekt hat **kein** einzelnes „Status"-Feld, das man von Hand setzt. Stattdessen sammelt das Dashboard **Beobachtungen** aus mehreren Quellen und leitet daraus einen angezeigten Planungsstand ab. So bleiben widersprüchliche Quellen sichtbar, statt sich gegenseitig zu überschreiben.
 
-Jede Beobachtung ist ein Tupel aus *Quelle, Spur, behauptetem Zustand, Beobachtungsdatum und Konfidenz*. Der angezeigte Stand („Headline") ist immer das Ergebnis einer Ableitung über alle Beobachtungen — nie ein direkt gespeicherter Wert.`,
+Jede Beobachtung ist ein Tupel aus *Quelle, Spur, behauptetem Zustand, Beobachtungsdatum und Vertrauen*. Der angezeigte Stand („Headline") ist immer das Ergebnis einer Ableitung über alle Beobachtungen — nie ein direkt gespeicherter Wert.`,
         },
         {
             key: "leistungsphasen",
@@ -51,12 +51,15 @@ Dargestellt als horizontaler Verlauf mit Kreisen und Pfeilen. Manuelle Beobachtu
         {
             key: "ableitung",
             title: "Wie der angezeigte Stand entsteht (Hybrid-Ableitung)",
-            body: `Maßgeblich ist die **glaubwürdigste** Beobachtung: Unter allen Hauptspur-Beobachtungen über der Glaubwürdigkeitsschwelle gewinnt die mit der **höchsten effektiven Konfidenz** — ihre Phase wird zur Headline. Entscheidend ist die Konfidenz, *nicht* die Phasen-Reihenfolge.
+            body: `Beobachtungen sind von zweierlei Art:
 
-Die effektive Konfidenz = Default-Vertrauen je Quellentyp × Aktualitätsverfall (*recency decay*). Deshalb verliert der „immer veraltete" VIB mit der Zeit an Gewicht, und eine frische redaktionelle Korrektur schlägt ein schwaches Automatik-Signal.
+- **Untergrenzen** (FinVe): „mindestens diese Phase". Eine FinVe für Bau bleibt wahr, egal wie alt. Sie hebt die Phase nur an und veraltet nicht.
+- **Statusberichte** (VIB, Infraplan, GVFG, Bauportal, Fulda-Runde, Medien, manuell): Stand zum jeweiligen Datum. Der **neueste** Bericht gewinnt. Nur innerhalb von **einem Jahr** vor dem neuesten Bericht entscheidet das **Vertrauen** der Quelle (bei Gleichstand die höhere Phase).
 
-> [!yellow] Bewusster Trade-off
-> Ein frisches, schwach gewichtetes Signal kann ein älteres, höheres überstimmen — der abgeleitete Stand kann für Automatik-Quellen also auch „zurückgehen". Das ist gewollt, damit aktuelle und menschliche Eingaben maßgeblich bleiben. Konflikte werden nie weggerechnet, sondern im Aufklappbereich transparent gezeigt.`,
+Das Alter macht einen Bericht nicht weniger vertrauenswürdig, es zählt über die Datumsreihenfolge. Nur sehr alte Medienmeldungen fallen ganz unter die Glaubwürdigkeitsschwelle.
+
+> [!yellow] Rückstufung = Konflikt
+> Meldet ein neuerer Bericht eine **niedrigere** Phase als ältere Angaben (z. B. FinVe „Bau", neuer VIB „Vorplanung"), stuft er nur zurück, wenn er mindestens so vertrauenswürdig ist wie die widersprechende Angabe oder manuell erfasst wurde. Sonst bleibt die höhere Phase stehen. Beides erscheint unter [Planungsstand-Konflikte](/admin/planungsstand-konflikte) und als Hinweis im Projekt. Aufgelöst wird ein Konflikt per Phasen-Override oder manueller Beobachtung.`,
         },
         {
             key: "lebenszyklus",
@@ -83,7 +86,7 @@ Eine manuelle Beobachtung kannst du als **„erwartet"** markieren (Phase + Datu
         {
             key: "eingreifen",
             title: "Wie du selbst eingreifst",
-            body: `- **Manuelle Beobachtung** (Phase + Datum, optional „erwartet") am Projekt erfassen — hohe Konfidenz, schlägt bei Bedarf Automatik-Signale.
+            body: `- **Manuelle Beobachtung** (Phase + Datum, optional „erwartet") am Projekt erfassen — hohes Vertrauen; darf als einzige Quelle ohne Konflikt zurückstufen.
 - **Phasen-Override** setzen, wenn der abgeleitete Vorschlag falsch ist — an einem Zwischenknoten fixiert er den ganzen Teilbaum.
 - **Verfahren-Drawer** für Planfeststellung / Parl. Befassung pflegen.
 - Neue Quelldaten über die Import-Workflows einspielen: [Haushalt](/admin/haushalt-import/guide), [Fulda-Runde](/admin/anleitungen/fulda), [Bauportal](/admin/anleitungen/bauportal), [VIB-Bericht](/admin/anleitungen/vib), [Medien/Presse](/admin/anleitungen/medien).`,

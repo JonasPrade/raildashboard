@@ -115,7 +115,9 @@ Themenschwerpunkt: die im v0.0.4-Rollout aufgedeckten Stabilitäts- und Tooling-
   **Out-of-Scope für v0.0.5:**
   - Auto-Extraktion aus Pressemitteilungen (eigenes Feature, Long-Term).
   - Gantt-Übersicht über mehrere Projekte (eigenes Feature, Long-Term).
-  - Konfliktauflösung / Deduplizierung zwischen Quellen — alle Einträge bleiben vorerst sichtbar.
+  - Deduplizierung zwischen Quellen — alle Einträge bleiben sichtbar. (Konfliktauflösung der
+    Headline-Phase ist seit 2026-10-22 umgesetzt: neuester Bericht gewinnt, Rückstufungen als
+    Konflikt unter Admin → „Planungsstand-Konflikte“, `feature-project-progress.md`.)
 
 - [x] **Add stations to GeoJSON beim Routenakzeptieren** — *Priorität: mittel*
   `RouteCalculatorForm.onResult` reicht jetzt die Start/Via/End-Stationen ans `GeometryManagementModal` mit. `buildNewGeometry` packt sie als Point-Features in die FeatureCollection — dedupliziert per `op.id` gegen die manuell über „Betriebsstellen hinzufügen" gewählten Punkte, sodass dieselbe OP nicht zweimal landet. Properties: `name`, `op_id`, `feature_type: "operational_point"`.

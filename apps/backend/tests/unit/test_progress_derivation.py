@@ -39,7 +39,7 @@ def _main(state: str, *, source=SourceType.MANUELL, dt=TODAY, conf=None, oid=Non
     )
 
 
-# --- Headline: highest confidence wins ---------------------------------------
+# --- Headline: newest report wins, trust within a year, bounds raise ---------
 
 
 def test_equal_confidence_resolves_to_higher_phase():
@@ -59,8 +59,8 @@ def test_equal_confidence_resolves_to_higher_phase():
 
 def test_high_confidence_manual_beats_low_confidence_derived_higher_phase():
     # Project-2019 scenario: an editor sets GENEHMIGUNGSPLANUNG at full
-    # confidence; a FinVe-derived BAU sits at a low (decayed) confidence. The
-    # manual statement must win even though BAU is the higher phase.
+    # confidence over a FinVe-derived BAU lower bound. The manual statement
+    # must win even though BAU is the higher phase.
     manual = _main("GENEHMIGUNGSPLANUNG", source=SourceType.MANUELL, conf=1.0, oid=97)
     finve = _main("BAU", source=SourceType.FINVE, dt=date(2023, 1, 1), oid=98)
     result = derive_headline([manual, finve], has_pf=False, parl_relevant=False, today=TODAY)
@@ -68,6 +68,105 @@ def test_high_confidence_manual_beats_low_confidence_derived_higher_phase():
     assert result.computed_confidence == 1.0
     decisive = [c.id for c in result.contributions if c.was_decisive]
     assert decisive == [97]
+
+
+def test_recent_vib_beats_old_finve_bound():
+    # Regression (screenshot 2026-10-22): a 15-year-old FinVe outranked the
+    # 2023 VIB because both sat on the recency floor. The FinVe is only a lower
+    # bound ("at least Bau"); the newer report says the line is in operation.
+    vib = _main("IN_BETRIEB", source=SourceType.VIB, dt=date(2023, 12, 31), oid=1)
+    finve = _main("BAU", source=SourceType.FINVE, dt=date(2011, 1, 1), oid=2)
+    result = derive_headline(
+        [vib, finve], has_pf=False, parl_relevant=False, today=date(2026, 10, 22)
+    )
+    assert result.computed_phase is MainPhase.IN_BETRIEB
+    assert [c.id for c in result.contributions if c.was_decisive] == [1]
+    assert result.conflict is None
+    assert next(c for c in result.contributions if c.id == 2).is_lower_bound is True
+
+
+def test_newer_report_wins_outside_trust_window():
+    # VIB is trusted less than the Bauportal, but two years newer.
+    old = _main("BAU", source=SourceType.BAUPORTAL, dt=date(2023, 6, 1), oid=1)
+    new = _main("IN_BETRIEB", source=SourceType.VIB, dt=date(2025, 12, 31), oid=2)
+    result = derive_headline([old, new], has_pf=False, parl_relevant=False, today=TODAY)
+    assert result.computed_phase is MainPhase.IN_BETRIEB
+    assert result.conflict is None
+
+
+def test_trust_decides_within_window():
+    # Media is three months newer than the VIB but trusted less; both fall into
+    # the same one-year window, so the VIB decides. No set-back → no conflict.
+    vib = _main("BAU", source=SourceType.VIB, dt=date(2025, 12, 31), oid=1)
+    media = _main("IN_BETRIEB", source=SourceType.MEDIEN, dt=date(2026, 3, 31), oid=2)
+    result = derive_headline([vib, media], has_pf=False, parl_relevant=False, today=TODAY)
+    assert result.computed_phase is MainPhase.BAU
+    assert result.conflict is None
+
+
+def test_weaker_newer_report_is_held_back_as_conflict():
+    finve = _main("BAU", source=SourceType.FINVE, dt=date(2015, 1, 1), oid=1)
+    vib = _main("VORPLANUNG", source=SourceType.VIB, dt=date(2025, 12, 31), oid=2)
+    result = derive_headline([finve, vib], has_pf=False, parl_relevant=False, today=TODAY)
+    assert result.computed_phase is MainPhase.BAU
+    assert [c.id for c in result.contributions if c.was_decisive] == [1]
+    conflict = result.conflict
+    assert conflict is not None
+    assert conflict.applied is False
+    assert conflict.observation_id == 2
+    assert conflict.asserted_phase is MainPhase.VORPLANUNG
+    assert conflict.contradicted_ids == [1]
+    assert conflict.contradicted_phase is MainPhase.BAU
+    assert all(c.in_conflict for c in result.contributions)
+
+
+def test_weaker_newer_report_is_held_back_against_older_report():
+    old = _main("IN_BETRIEB", source=SourceType.VIB, dt=date(2022, 12, 31), oid=1)
+    media = _main("BAU", source=SourceType.MEDIEN, dt=date(2026, 5, 1), oid=2)
+    result = derive_headline([old, media], has_pf=False, parl_relevant=False, today=TODAY)
+    assert result.computed_phase is MainPhase.IN_BETRIEB
+    assert result.conflict is not None and result.conflict.applied is False
+
+
+def test_trusted_newer_report_sets_back_and_reports_conflict():
+    finve = _main("BAU", source=SourceType.FINVE, dt=date(2015, 1, 1), oid=1)
+    infraplan = _main(
+        "GENEHMIGUNGSPLANUNG", source=SourceType.INFRAPLAN, dt=date(2026, 1, 1), oid=2
+    )
+    result = derive_headline([finve, infraplan], has_pf=False, parl_relevant=False, today=TODAY)
+    assert result.computed_phase is MainPhase.GENEHMIGUNGSPLANUNG
+    assert result.conflict is not None and result.conflict.applied is True
+
+
+def test_manual_report_sets_back_without_conflict():
+    finve = _main("BAU", source=SourceType.FINVE, dt=date(2015, 1, 1), oid=1)
+    manual = _main("VORPLANUNG", source=SourceType.MANUELL, conf=0.5, oid=2)
+    result = derive_headline([finve, manual], has_pf=False, parl_relevant=False, today=TODAY)
+    assert result.computed_phase is MainPhase.VORPLANUNG
+    assert result.conflict is None
+
+
+def test_manual_override_clears_conflict():
+    finve = _main("BAU", source=SourceType.FINVE, dt=date(2015, 1, 1), oid=1)
+    vib = _main("VORPLANUNG", source=SourceType.VIB, dt=date(2025, 12, 31), oid=2)
+    result = derive_headline(
+        [finve, vib],
+        has_pf=False,
+        parl_relevant=False,
+        manual_phase_override=MainPhase.VORPLANUNG,
+        today=TODAY,
+    )
+    assert result.conflict is None
+    assert not any(c.in_conflict for c in result.contributions)
+
+
+def test_lower_bound_does_not_age():
+    # A FinVe from 2000 keeps its full trust: financing for a phase stays true
+    # however old it is.
+    finve = _main("BAU", source=SourceType.FINVE, dt=date(2000, 1, 1), oid=1)
+    result = derive_headline([finve], has_pf=False, parl_relevant=False, today=TODAY)
+    assert result.computed_phase is MainPhase.BAU
+    assert result.contributions[0].effective_confidence == pytest.approx(0.7)
 
 
 def test_no_observations_means_not_started():
@@ -143,13 +242,12 @@ def test_structured_source_keeps_lower_bound_when_old():
 def test_fresh_manual_wins_over_decayed_vib():
     old_vib = _main("BAU", source=SourceType.VIB, dt=date(2025, 8, 1), oid=1)
     fresh_manual = _main("GENEHMIGUNGSPLANUNG", dt=TODAY, oid=2)
-    # The fresh manual observation has far higher effective confidence than the
-    # decayed VIB, so it decides the headline — even though BAU is the higher
-    # phase. (Confidence wins over phase order.)
+    # Both reports fall into the same trust window; the manual one is trusted
+    # more, so it decides the headline even though BAU is the higher phase.
     result = derive_headline([old_vib, fresh_manual], has_pf=False, parl_relevant=False, today=TODAY)
     vib_c = next(c for c in result.contributions if c.id == 1)
     man_c = next(c for c in result.contributions if c.id == 2)
-    assert vib_c.effective_confidence < man_c.effective_confidence
+    assert vib_c.trust < man_c.trust
     assert result.computed_phase is MainPhase.GENEHMIGUNGSPLANUNG
     assert man_c.was_decisive is True
 

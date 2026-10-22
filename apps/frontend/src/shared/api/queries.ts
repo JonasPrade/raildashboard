@@ -42,6 +42,8 @@ export const queryKeys = {
     projectRoutes: (projectId: number) => ["projectRoutes", projectId] as const,
     progress: ["project-progress"],
     progressFor: (projectId: number) => ["project-progress", projectId] as const,
+    // Nested under `progress`: any progress mutation refreshes the conflict list.
+    progressConflicts: ["project-progress", "conflicts"],
     sammelFinveProgress: ["sammel-finve-progress"],
     projectFinves: (projectId: number) => ["project-finves", projectId] as const,
     // Prefix-matches projectFinves, so invalidating that also refreshes this.
@@ -363,6 +365,8 @@ export type ProgressObservationCreate = components["schemas"]["ProgressObservati
 export type ProjectProgressUpdate = components["schemas"]["ProjectProgressUpdate"];
 export type TrackDocument = components["schemas"]["TrackDocumentSchema"];
 export type SourceContribution = components["schemas"]["SourceContributionSchema"];
+export type PhaseConflict = components["schemas"]["PhaseConflictSchema"];
+export type ProgressConflictRow = components["schemas"]["ProgressConflictRowSchema"];
 export type ProgressChild = components["schemas"]["ProgressChildSchema"];
 export type ProgressForecast = components["schemas"]["ProgressForecastSchema"];
 export type ForecastStep = components["schemas"]["ForecastStepSchema"];
@@ -430,6 +434,14 @@ export function useSetFinveProgressPhase() {
             // A changed mapping affects derived progress on linked projects.
             queryClient.invalidateQueries({ queryKey: queryKeys.progress });
         },
+    });
+}
+
+export function useProgressConflicts(enabled = true) {
+    return useQuery({
+        queryKey: queryKeys.progressConflicts,
+        queryFn: () => api<ProgressConflictRow[]>("/api/v1/admin/progress-conflicts"),
+        enabled,
     });
 }
 
