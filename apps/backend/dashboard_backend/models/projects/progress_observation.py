@@ -29,7 +29,14 @@ class ProgressObservation(Base):
     # The asserted lower-bound state: a MainPhase value for MAIN, a
     # ParallelState value for PF/PARL.
     asserted_state: Mapped[str] = mapped_column(String(40), nullable=False)
+    # Technical sort value; how much of it is known says ``date_precision``
+    # (a DatePrecision value) — never show the date without it.
     observed_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
+    date_precision: Mapped[str] = mapped_column(
+        String(12), nullable=False, default="EXACT", server_default="EXACT"
+    )
+    # Optional free text shown with the date („Priorisierung 2027 offen“).
+    date_label: Mapped[str | None] = mapped_column(String(120), nullable=True)
     # Per-observation confidence override (0..1). None → source-type default.
     confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)

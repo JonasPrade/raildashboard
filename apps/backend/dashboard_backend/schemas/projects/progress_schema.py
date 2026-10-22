@@ -9,7 +9,9 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, computed_field
+
+from dashboard_backend.services.date_precision import date_text
 
 # --- Literal aliases (mirror models.projects.progress_enums) -----------------
 
@@ -28,6 +30,7 @@ SourceTypeLiteral = Literal[
 # importer (feature-fulda-import.md, W3), never as a manual observation.
 ManualSourceTypeLiteral = Literal["VIB", "FINVE", "BAUPORTAL", "MEDIEN", "INFRAPLAN", "MANUELL"]
 TrackLiteral = Literal["MAIN", "PF", "PARL"]
+DatePrecisionLiteral = Literal["EXACT", "MONTH", "YEAR", "NOT_BEFORE", "ASSUMED"]
 # Documents can only be linked behind the PF / parliamentary tracks.
 DocumentTrackLiteral = Literal["PF", "PARL"]
 
@@ -74,7 +77,10 @@ class ProgressObservationSchema(BaseModel):
     source_type: SourceTypeLiteral
     track: TrackLiteral
     asserted_state: str
+    # Sort value only — shown always through ``date_text`` (with precision).
     observed_date: Optional[date] = None
+    date_precision: DatePrecisionLiteral = "EXACT"
+    date_label: Optional[str] = None
     confidence: Optional[float] = None
     note: Optional[str] = None
     is_derived: bool
@@ -82,15 +88,45 @@ class ProgressObservationSchema(BaseModel):
     username_snapshot: Optional[str] = None
     created_at: datetime
 
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def date_text(self) -> Optional[str]:
+        """Display text of the date at its precision („2028“, „nach 2031“)."""
+        return date_text(self.observed_date, self.date_precision, self.date_label)
+
+
+DATE_PRECISION_HELP = (
+    "How precisely the date is known: EXACT = published day, MONTH = only the "
+    "month (stored as the 1st), YEAR = only the year (stored as 1 Jan), "
+    "NOT_BEFORE = only a lower bound, no date (store the first possible day, "
+    "e.g. 2032-01-01 for „nach 2031“), ASSUMED = derived from a rule, not "
+    "published (e.g. Baubeginn + 6 months)."
+)
+
 
 class ProgressObservationCreate(BaseModel):
     source_type: ManualSourceTypeLiteral = "MANUELL"
     track: TrackLiteral
     asserted_state: str
     observed_date: Optional[date] = None
+    date_precision: DatePrecisionLiteral = Field(default="EXACT", description=DATE_PRECISION_HELP)
+    date_label: Optional[str] = Field(default=None, max_length=120)
     confidence: Optional[float] = None
     note: Optional[str] = None
     is_expected: bool = False
+
+
+class ProgressObservationUpdate(BaseModel):
+    """Partial change of a manual observation; omitted fields stay as they are.
+    ``clear_date_label`` removes the label (null is ambiguous with "omitted")."""
+
+    observed_date: Optional[date] = None
+    date_precision: Optional[DatePrecisionLiteral] = Field(default=None, description=DATE_PRECISION_HELP)
+    date_label: Optional[str] = Field(default=None, max_length=120)
+    clear_date_label: bool = False
+    confidence: Optional[float] = None
+    note: Optional[str] = None
+    is_expected: Optional[bool] = None
 
 
 # --- Derivation breakdown ----------------------------------------------------
@@ -193,8 +229,16 @@ class ProjectProgressUpdate(BaseModel):
 
 class ForecastStepSchema(BaseModel):
     phase: MainPhaseLiteral
+    # Sort value only — shown through ``date_text``.
     expected_date: Optional[date] = None
-    source: str  # "VIB-PFA" | "Fulda-Runde" | "BVWP" | "Schätzung"
+    # "VIB-PFA" | "Fulda-Runde" | "Infraplan" | "GVFG" | "Manuell" | "Annahme" | "BVWP" | "Schätzung"
+    source: str
+    date_precision: DatePrecisionLiteral = "EXACT"
+    date_label: Optional[str] = None
+    # Display text with precision („nach 2031“, „ca. 07/2028 (Annahme)“).
+    date_text: Optional[str] = None
+    # How an ASSUMED / derived date came about („Annahme: 6 Monate Bauzeit“).
+    derivation: Optional[str] = None
 
 
 class IbnDoubtPeriodSchema(BaseModel):
@@ -220,6 +264,7 @@ class ProgressForecastSchema(BaseModel):
     current_phase: MainPhaseLiteral
     remaining_text: Optional[str] = None
     estimated_phase_end: Optional[date] = None
+    estimated_phase_end_precision: DatePrecisionLiteral = "EXACT"
     next_steps: list[ForecastStepSchema] = []
     has_data: bool = False
     ibn_doubt: Optional[IbnDoubtSchema] = None
@@ -322,6 +367,11 @@ class TimelineMilestoneSchema(BaseModel):
     source: str  # "VIB-PFA" | "Fulda-Runde" | "Manuell" | source label for evidence
     # CONCRETE = dated milestone; EVIDENCE = "spätestens seit" from an observation.
     certainty: Literal["CONCRETE", "EVIDENCE"]
+    # ``date`` is the sort value; NOT_BEFORE = lower bound only (no date).
+    date_precision: DatePrecisionLiteral = "EXACT"
+    date_label: Optional[str] = None
+    date_text: Optional[str] = None  # display text with precision
+    derivation: Optional[str] = None  # how an ASSUMED date came about
 
 
 class TimelinePeriodSchema(BaseModel):

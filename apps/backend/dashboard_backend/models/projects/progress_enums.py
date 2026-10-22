@@ -86,3 +86,16 @@ class ObservationTrack(str, enum.Enum):
     MAIN = "MAIN"
     PF = "PF"
     PARL = "PARL"
+
+
+class DatePrecision(str, enum.Enum):
+    """How precisely a date is known (docs/features/feature-project-progress.md
+    → „Datumsqualifikation“). The stored date stays the technical sort value;
+    the precision decides how it is shown and whether it is a real point in
+    time at all."""
+
+    EXACT = "EXACT"  # published day
+    MONTH = "MONTH"  # only month known; sort value = 1st of the month
+    YEAR = "YEAR"  # only year known; sort value = 1 Jan
+    NOT_BEFORE = "NOT_BEFORE"  # only a lower bound, no date ("nach 2031")
+    ASSUMED = "ASSUMED"  # derived from a rule, not published

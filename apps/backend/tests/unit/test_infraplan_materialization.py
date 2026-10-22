@@ -130,7 +130,7 @@ def test_infraplan_date_competes_with_fulda_by_weight():
     concrete = concrete_milestone_dates(
         pfas=[], fulda=fulda, infraplan=infraplan, manual_expected=[], today=today
     )
-    assert concrete[MainPhase.IN_BETRIEB] == (date(2030, 12, 31), "Infraplan")
+    assert (concrete[MainPhase.IN_BETRIEB].date, concrete[MainPhase.IN_BETRIEB].source) == (date(2030, 12, 31), "Infraplan")
 
     manual = concrete_milestone_dates(
         pfas=[],
@@ -139,7 +139,7 @@ def test_infraplan_date_competes_with_fulda_by_weight():
         manual_expected=[(MainPhase.IN_BETRIEB, date(2032, 1, 1))],
         today=today,
     )
-    assert manual[MainPhase.IN_BETRIEB] == (date(2032, 1, 1), "Manuell")
+    assert (manual[MainPhase.IN_BETRIEB].date, manual[MainPhase.IN_BETRIEB].source) == (date(2032, 1, 1), "Manuell")
 
 
 def test_several_infraplan_rows_take_latest_year():
@@ -153,4 +153,4 @@ def test_several_infraplan_rows_take_latest_year():
         manual_expected=[],
         today=date(2026, 11, 1),
     )
-    assert concrete[MainPhase.IN_BETRIEB] == (date(2031, 12, 31), "Infraplan")
+    assert (concrete[MainPhase.IN_BETRIEB].date, concrete[MainPhase.IN_BETRIEB].source) == (date(2031, 12, 31), "Infraplan")

@@ -110,6 +110,10 @@ def test_list_is_slim_and_excludes_drafts(client, seeded):
         "active_features",
         "headline_phase",
         "lifecycle_status",
+        "construction_start_date",
+        "construction_start_precision",
+        "commissioning_date",
+        "commissioning_precision",
     }
     assert parent["project_number"] == "1-001"
     assert parent["length"] == 42.5

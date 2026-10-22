@@ -62,6 +62,13 @@ class ProjectProgress(Base):
     computed_phase: Mapped[str | None] = mapped_column(String(40), nullable=True)
     computed_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
     computed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Construction start / commissioning of the project's own forecast, with
+    # their DatePrecision — the sort and filter values of the list views
+    # (refreshed whenever the planning state is read or recomputed).
+    construction_start_date: Mapped[date_type | None] = mapped_column(Date, nullable=True)
+    construction_start_precision: Mapped[str | None] = mapped_column(String(12), nullable=True)
+    commissioning_date: Mapped[date_type | None] = mapped_column(Date, nullable=True)
+    commissioning_precision: Mapped[str | None] = mapped_column(String(12), nullable=True)
 
     # --- Manual overrides (win over computed) -------------------------------
     manual_phase_override: Mapped[str | None] = mapped_column(String(40), nullable=True)

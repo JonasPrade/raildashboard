@@ -21,6 +21,9 @@ class ProjectGroup(Base):
     skipped_phases = Column(JSON, nullable=False, default=list, server_default='[]',
         comment='MainPhase values (VORPLANUNG/GENEHMIGUNGSPLANUNG) its projects usually skip, '
                 'e.g. corridor renewals without Planfeststellung')
+    assumed_build_months = Column(Integer, nullable=True,
+        comment='assumed construction period in months for projects without a published '
+                'closure period (corridor renewals: 6); the forecast derives the commissioning')
     id_old = Column(Integer, unique=True, nullable=True,
         comment='old id from the old database, used for migration purposes')
 

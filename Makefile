@@ -19,13 +19,13 @@ ALEMBIC      := .venv/bin/alembic
         migrate migrate-create \
         backup-db restore-db list-backups \
         release-check \
-        list-users create-user change-password \
+        list-users create-user change-password refresh-progress-dates \
         gen-api \
         list-parse-results dump-parse-result summarise-parse-result \
         celery-worker \
         docker-dev-up docker-dev-down \
         docker-prod-build docker-prod-up docker-prod-down \
-        docker-migrate docker-create-user docker-backup-db docker-worker-logs \
+        docker-migrate docker-create-user docker-backup-db docker-worker-logs docker-refresh-progress-dates \
         clean clean-backend clean-frontend
 
 # ---------------------------------------------------------------------------
@@ -98,6 +98,7 @@ help:
 	@echo "    docker-prod-up     Start the production stack in the background"
 	@echo "    docker-prod-down   Stop the production stack"
 	@echo "    docker-migrate     Run Alembic migrations inside the backend container"
+	@echo "    docker-refresh-progress-dates  Fill the cached Baubeginn/IB dates (once after 20261022004)"
 	@echo "    docker-create-user Create a user inside the backend container"
 	@echo "                       Usage: make docker-create-user USERNAME=admin ROLE=admin"
 	@echo "    docker-backup-db   pg_dump (docker exec) + tar.gz of the uploads volume"
@@ -276,6 +277,14 @@ delete-user:
 	cd $(BACKEND_DIR) && PYTHONPATH=. .venv/bin/python scripts/delete_user.py --username $(USERNAME)
 
 # ---------------------------------------------------------------------------
+# Planning state
+# ---------------------------------------------------------------------------
+
+# Fill the cached Baubeginn / Inbetriebnahme (with date precision) of all projects.
+refresh-progress-dates:
+	cd $(BACKEND_DIR) && PYTHONPATH=. .venv/bin/python scripts/refresh_progress_dates.py
+
+# ---------------------------------------------------------------------------
 # Code generation
 # ---------------------------------------------------------------------------
 
@@ -351,6 +360,11 @@ docker-create-user:
 	@if [ -z "$(USERNAME)" ]; then echo "Usage: make docker-create-user USERNAME=<name> ROLE=<viewer|editor|admin>"; exit 1; fi
 	@if [ -z "$(ROLE)" ]; then echo "Usage: make docker-create-user USERNAME=<name> ROLE=<viewer|editor|admin>"; exit 1; fi
 	docker compose exec backend python scripts/create_initial_user.py --username $(USERNAME) --role $(ROLE)
+
+# Same as refresh-progress-dates, inside the running backend container
+# (once after migration 20261022004).
+docker-refresh-progress-dates:
+	docker compose exec backend python scripts/refresh_progress_dates.py
 
 # Usage: make docker-delete-user USERNAME=admin
 docker-delete-user:

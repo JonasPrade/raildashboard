@@ -1,4 +1,5 @@
 import math
+from datetime import date
 
 from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 from typing import Optional, Any
@@ -8,6 +9,7 @@ from sqlalchemy.exc import NoInspectionAvailable
 
 from dashboard_backend.models.projects.progress_enums import LifecycleStatus
 from dashboard_backend.schemas.projects.progress_schema import (
+    DatePrecisionLiteral,
     LifecycleStatusLiteral,
     MainPhaseLiteral,
 )
@@ -262,6 +264,18 @@ class ProjectListItem(BaseModel):
         default=None,
         description="Lifecycle overlay from the stored project_progress row; null without a row.",
     )
+    construction_start_date: Optional[date] = Field(
+        default=None,
+        description="Cached concrete Baubeginn of the forecast (sort value; show only with "
+        "construction_start_precision). Null without a concrete date.",
+    )
+    construction_start_precision: Optional[DatePrecisionLiteral] = None
+    commissioning_date: Optional[date] = Field(
+        default=None,
+        description="Cached concrete or assumed Inbetriebnahme (sort value; show only with "
+        "commissioning_precision).",
+    )
+    commissioning_precision: Optional[DatePrecisionLiteral] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -311,4 +325,8 @@ def _progress_summary(project: Any) -> dict[str, Any]:
     return {
         "headline_phase": phase.value if phase is not None else None,
         "lifecycle_status": lifecycle if lifecycle in _LIFECYCLE_VALUES else LifecycleStatus.AKTIV.value,
+        "construction_start_date": progress.construction_start_date,
+        "construction_start_precision": progress.construction_start_precision,
+        "commissioning_date": progress.commissioning_date,
+        "commissioning_precision": progress.commissioning_precision,
     }

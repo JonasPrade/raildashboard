@@ -100,6 +100,9 @@ class ObservationInput:
     confidence: float | None = None  # explicit per-observation override
     note: str | None = None
     id: int | None = None  # carried through for the breakdown / UI
+    # DatePrecision value of ``observed_date`` (display only; the derivation
+    # uses the date as its sort value).
+    date_precision: str = "EXACT"
 
 
 @dataclass

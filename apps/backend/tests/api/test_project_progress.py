@@ -10,7 +10,10 @@ import types
 
 import dashboard_backend.api.deps as api_deps
 import dashboard_backend.api.v1.endpoints.project_progress as progress_route
-from dashboard_backend.crud.projects.progress import DerivedObservationDeleteError
+from dashboard_backend.crud.projects.progress import (
+    DerivedObservationDeleteError,
+    DerivedObservationUpdateError,
+)
 from dashboard_backend.schemas.users import UserRole
 from tests.api.conftest import basic_auth_header
 
@@ -196,6 +199,57 @@ def test_delete_manual_observation_ok(client, create_user, monkeypatch):
         headers=basic_auth_header("editor4", "pass123"),
     )
     assert resp.status_code == 200
+
+
+def test_patch_observation_passes_only_given_fields(client, create_user, monkeypatch):
+    create_user("editor6", "pass123", UserRole.editor)
+    monkeypatch.setattr(api_deps, "get_project_by_id", _project_exists)
+    seen = {}
+
+    def _update(db, pid, oid, data, user):
+        seen.update(data)
+        return object()
+
+    monkeypatch.setattr(progress_route.progress_crud, "update_observation", _update)
+    monkeypatch.setattr(progress_route.progress_crud, "get_progress_view", lambda db, pid: _make_view(pid))
+    resp = client.patch(
+        "/api/v1/projects/1/progress/observations/5",
+        json={"date_precision": "NOT_BEFORE", "date_label": "Priorisierung 2027 offen"},
+        headers=basic_auth_header("editor6", "pass123"),
+    )
+    assert resp.status_code == 200
+    assert seen == {
+        "date_precision": "NOT_BEFORE",
+        "date_label": "Priorisierung 2027 offen",
+        "clear_date_label": False,
+    }
+
+
+def test_patch_derived_observation_rejected(client, create_user, monkeypatch):
+    create_user("editor7", "pass123", UserRole.editor)
+    monkeypatch.setattr(api_deps, "get_project_by_id", _project_exists)
+
+    def _update(db, pid, oid, data, user):
+        raise DerivedObservationUpdateError("derived")
+
+    monkeypatch.setattr(progress_route.progress_crud, "update_observation", _update)
+    resp = client.patch(
+        "/api/v1/projects/1/progress/observations/5",
+        json={"date_precision": "YEAR"},
+        headers=basic_auth_header("editor7", "pass123"),
+    )
+    assert resp.status_code == 409
+
+
+def test_patch_observation_rejects_unknown_precision(client, create_user, monkeypatch):
+    create_user("editor8", "pass123", UserRole.editor)
+    monkeypatch.setattr(api_deps, "get_project_by_id", _project_exists)
+    resp = client.patch(
+        "/api/v1/projects/1/progress/observations/5",
+        json={"date_precision": "QUARTER"},
+        headers=basic_auth_header("editor8", "pass123"),
+    )
+    assert resp.status_code == 422
 
 
 # --- Track documents ---------------------------------------------------------

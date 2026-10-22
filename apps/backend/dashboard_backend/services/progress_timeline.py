@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 from datetime import date
 
 from dashboard_backend.models.projects.progress_enums import (
+    DatePrecision,
     MainPhase,
     ObservationTrack,
     SourceType,
@@ -34,9 +35,12 @@ from dashboard_backend.services.progress_derivation import (
     ObservationInput,
     effective_confidence,
 )
+from dashboard_backend.services.date_precision import as_precision
 from dashboard_backend.services.progress_forecast import (
     ExpectedDate,
+    ManualExpected,
     PfaForecastInput,
+    as_expected,
     concrete_milestone_dates,
 )
 
@@ -73,6 +77,10 @@ class TimelineMilestone:
     source: str
     certainty: str  # CERTAINTY_CONCRETE | CERTAINTY_EVIDENCE
     phase: MainPhase | None = None  # set for KIND_PHASE
+    # How precisely the date is known; NOT_BEFORE is a lower bound, no date.
+    precision: DatePrecision = DatePrecision.EXACT
+    label: str | None = None
+    derivation: str | None = None  # how an ASSUMED date came about
 
 
 @dataclass(frozen=True)
@@ -82,9 +90,11 @@ class ConstructionUnitInput:
 
     pfas: list[PfaForecastInput] = field(default_factory=list)
     fulda: list[ExpectedDate] = field(default_factory=list)
-    manual_expected: list[tuple[MainPhase, date]] = field(default_factory=list)
+    manual_expected: list[ManualExpected] = field(default_factory=list)
     infraplan: list[ExpectedDate] = field(default_factory=list)
     gvfg: list[ExpectedDate] = field(default_factory=list)
+    # Group rule of the member (corridor renewals: 6 months of construction).
+    assumed_build_months: int | None = None
 
 
 @dataclass
@@ -97,23 +107,24 @@ class TimelineResult:
     construction_periods: list[tuple[date, date]] = field(default_factory=list)
 
 
-def _reduce_per_phase(pairs: list[tuple[MainPhase, date]]) -> list[tuple[MainPhase, date]]:
+def _reduce_per_phase(items: list[ManualExpected]) -> list[ExpectedDate]:
     """One date per phase: earliest start, but the latest in-service date.
 
     Several entries per phase arise when a superior pools its subtree (each
-    section has its own dates) — same aggregation as the PFA sections.
+    section has its own dates) — same aggregation as the PFA sections. The
+    chosen entry keeps its precision.
     """
 
-    best: dict[MainPhase, date] = {}
-    for phase, dt in pairs:
-        current = best.get(phase)
+    best: dict[MainPhase, ExpectedDate] = {}
+    for claim in map(as_expected, items):
+        current = best.get(claim.phase)
         if current is None:
-            best[phase] = dt
-        elif phase is MainPhase.IN_BETRIEB:
-            best[phase] = max(current, dt)
+            best[claim.phase] = claim
+        elif claim.phase is MainPhase.IN_BETRIEB:
+            best[claim.phase] = max(current, claim, key=lambda c: c.date)
         else:
-            best[phase] = min(current, dt)
-    return list(best.items())
+            best[claim.phase] = min(current, claim, key=lambda c: c.date)
+    return list(best.values())
 
 
 def construction_periods(
@@ -144,9 +155,15 @@ def construction_periods(
             # Only weighs VIB-PFA against Fulda dates; any day works for tests.
             today=today or date.today(),
             pfb_as_genehmigung=False,
+            assumed_build_months=unit.assumed_build_months,
         )
-        start = concrete.get(MainPhase.BAU, (None, ""))[0]
-        end = concrete.get(MainPhase.IN_BETRIEB, (None, ""))[0]
+        bau = concrete.get(MainPhase.BAU)
+        opening = concrete.get(MainPhase.IN_BETRIEB)
+        # An open lower bound is no interval end: never invent a gap from it.
+        if any(c is not None and c.precision is DatePrecision.NOT_BEFORE for c in (bau, opening)):
+            return []
+        start = bau.date if bau else None
+        end = opening.date if opening else None
         if start is None and end is None:
             continue
         if start is None:
@@ -174,10 +191,10 @@ def construction_periods(
 
 def _evidence_dates(
     observations: list[ObservationInput], today: date
-) -> dict[MainPhase, tuple[date, str]]:
+) -> dict[MainPhase, tuple[date, str, str]]:
     """Earliest dated credible MAIN observation per phase (past dates only)."""
 
-    evidence: dict[MainPhase, tuple[date, str]] = {}
+    evidence: dict[MainPhase, tuple[date, str, str]] = {}
     for obs in observations:
         if obs.track is not ObservationTrack.MAIN or obs.observed_date is None:
             continue
@@ -193,7 +210,11 @@ def _evidence_dates(
             continue
         current = evidence.get(phase)
         if current is None or obs.observed_date < current[0]:
-            evidence[phase] = (obs.observed_date, _SOURCE_LABEL.get(obs.source_type, obs.source_type.value))
+            evidence[phase] = (
+                obs.observed_date,
+                _SOURCE_LABEL.get(obs.source_type, obs.source_type.value),
+                obs.date_precision,
+            )
     return evidence
 
 
@@ -202,13 +223,14 @@ def build_timeline(
     today: date,
     pfas: list[PfaForecastInput] | None = None,
     fulda: list[ExpectedDate] | None = None,
-    manual_expected: list[tuple[MainPhase, date]] | None = None,
+    manual_expected: list[ManualExpected] | None = None,
     observations: list[ObservationInput] | None = None,
     infraplan: list[ExpectedDate] | None = None,
     gvfg: list[ExpectedDate] | None = None,
     pf_dates: list[date] | None = None,
     parl_dates: list[date] | None = None,
     construction_units: list[ConstructionUnitInput] | None = None,
+    assumed_build_months: int | None = None,
 ) -> TimelineResult:
     """Assemble the dated milestones of one timeline row.
 
@@ -227,22 +249,30 @@ def build_timeline(
         manual_expected=_reduce_per_phase(manual_expected or []),
         today=today,
         pfb_as_genehmigung=False,
+        assumed_build_months=assumed_build_months,
     )
 
     milestones: list[TimelineMilestone] = [
         TimelineMilestone(
-            kind=KIND_PHASE, date=dt, source=source, certainty=CERTAINTY_CONCRETE, phase=phase
+            kind=KIND_PHASE,
+            date=c.date,
+            source=c.source,
+            certainty=CERTAINTY_CONCRETE,
+            phase=phase,
+            precision=c.precision,
+            label=c.label,
+            derivation=c.derivation,
         )
-        for phase, (dt, source) in concrete.items()
+        for phase, c in concrete.items()
         if phase in _TIMELINE_PHASES
     ]
 
     # Evidence fills phases without a concrete date, unless a higher phase is
     # dated earlier (the observation date then can't be the phase's start).
     evidence = _evidence_dates(observations or [], today)
-    dated = {phase: dt for phase, (dt, _) in concrete.items()}
-    dated.update({phase: dt for phase, (dt, _) in evidence.items() if phase not in dated})
-    for phase, (dt, source) in evidence.items():
+    dated = {phase: c.date for phase, c in concrete.items()}
+    dated.update({phase: dt for phase, (dt, _, _) in evidence.items() if phase not in dated})
+    for phase, (dt, source, precision) in evidence.items():
         if phase in concrete:
             continue
         contradicted = any(
@@ -252,7 +282,12 @@ def build_timeline(
             continue
         milestones.append(
             TimelineMilestone(
-                kind=KIND_PHASE, date=dt, source=source, certainty=CERTAINTY_EVIDENCE, phase=phase
+                kind=KIND_PHASE,
+                date=dt,
+                source=source,
+                certainty=CERTAINTY_EVIDENCE,
+                phase=phase,
+                precision=as_precision(precision),
             )
         )
 
@@ -264,11 +299,16 @@ def build_timeline(
             )
         )
     else:
-        pfb_dates = [p.datum_pfb for p in pfas if p.datum_pfb]
-        if pfb_dates:
+        pfb = [p for p in pfas if p.datum_pfb]
+        if pfb:
+            first = min(pfb, key=lambda p: p.datum_pfb)
             milestones.append(
                 TimelineMilestone(
-                    kind=KIND_PFB, date=min(pfb_dates), source="VIB-PFA", certainty=CERTAINTY_CONCRETE
+                    kind=KIND_PFB,
+                    date=first.datum_pfb,
+                    source="VIB-PFA",
+                    certainty=CERTAINTY_CONCRETE,
+                    precision=first.datum_pfb_precision,
                 )
             )
 

@@ -145,7 +145,7 @@ def test_gvfg_date_in_the_forecast():
             ExpectedDate(MainPhase.IN_BETRIEB, date(2028, 12, 31), STAND),
         ],
     )
-    assert concrete[MainPhase.IN_BETRIEB] == (date(2028, 12, 31), "GVFG")
+    assert (concrete[MainPhase.IN_BETRIEB].date, concrete[MainPhase.IN_BETRIEB].source) == (date(2028, 12, 31), "GVFG")
 
     # A more recent Infraplan beats the older GVFG edition.
     concrete = concrete_milestone_dates(
@@ -156,4 +156,4 @@ def test_gvfg_date_in_the_forecast():
         gvfg=[ExpectedDate(MainPhase.IN_BETRIEB, date(2028, 12, 31), date(2023, 9, 1))],
         infraplan=[ExpectedDate(MainPhase.IN_BETRIEB, date(2030, 12, 31), date(2025, 10, 6))],
     )
-    assert concrete[MainPhase.IN_BETRIEB] == (date(2030, 12, 31), "Infraplan")
+    assert (concrete[MainPhase.IN_BETRIEB].date, concrete[MainPhase.IN_BETRIEB].source) == (date(2030, 12, 31), "Infraplan")
