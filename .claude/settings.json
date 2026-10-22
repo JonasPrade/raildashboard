@@ -46,12 +46,20 @@
             "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/typecheck-frontend.sh"
           }
         ]
+      },
+      {
+        "matcher": "mcp__github__create_pull_request|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/pr_auto_merge.py\""
+          }
+        ]
       }
     ],
     "Notification": [
       {
-        "hooks": [
-          ]
+        "hooks": []
       }
     ],
     "Stop": [
