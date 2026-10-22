@@ -329,6 +329,9 @@ automatisch.
   Projekten zählen die FinVe **aller** Teilprojekte mit (jede FinVe einmal, auch wenn
   mehrere Teilprojekte sie tragen); die Beschriftung nennt, wie viele davon aus
   Teilprojekten stammen. Quelle: `GET /projects/{id}/finves?include_subprojects=true`.
+  Derselbe Grundsatz gilt für den Abschnitt „Finanzierungsvereinbarungen (FinVe)“:
+  Er listet erst die eigenen FinVe, dann die der Teilprojekte, jede mit dem Hinweis
+  „Aus Teilprojekt …“ und einem Link darauf.
 - **Kein Deckungsgrad** — andere Organisationen finanzieren mit, ein Verhältnis wäre
   irreführend.
 

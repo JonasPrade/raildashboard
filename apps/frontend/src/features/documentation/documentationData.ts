@@ -205,7 +205,8 @@ export const featureHighlights: FeatureHighlight[] = [
             "Info-Symbol neben dem Namen: Tooltip mit der Erklärung der Kennzahl (z. B. Kapazitätsauslastung = Anteil der gefahrenen Trassenkilometer in überausgelasteten Netzabschnitten); die Mittelherkunft-Karte nennt das gezeigte Jahr im Titel",
             "Projektseite, Abschnitt Infraplan: Abschnitt, Realisierungsstand, geplante Inbetriebnahme, Kosten und Befassung je Jahrgang, ab dem zweiten Jahrgang Veränderungen („GWU +12 %“, „IBN 2028 → 2030“)",
             "Hinweis „Nicht mehr im Infraplan …“, wenn das Projekt im neuesten Jahrgang fehlt",
-            "Kostenblock ganz oben auf der Projektseite: Gesamtkostenprognose laut Infraplan (bei Elternprojekten ohne eigene Zeile die Summe der Teilprojekte, Fußnoten hinter dem „?“) neben den vom Bund zugesicherten FinVe-Mitteln (bei Elternprojekten inklusive aller FinVe der Teilprojekte, jede einmal) — bewusst ohne Deckungsgrad"
+            "Kostenblock ganz oben auf der Projektseite: Gesamtkostenprognose laut Infraplan (bei Elternprojekten ohne eigene Zeile die Summe der Teilprojekte, Fußnoten hinter dem „?“) neben den vom Bund zugesicherten FinVe-Mitteln (bei Elternprojekten inklusive aller FinVe der Teilprojekte, jede einmal) — bewusst ohne Deckungsgrad",
+            "Abschnitt FinVe: bei Elternprojekten auch die FinVe aller Teilprojekte, jeweils mit dem Hinweis „Aus Teilprojekt …“ und Link darauf"
         ]
     },
     {

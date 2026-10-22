@@ -11,10 +11,34 @@ import {
     Title,
 } from "@mantine/core";
 import { Link } from "react-router-dom";
-import { type FinveWithBudgets, useProjectFinves } from "../../../shared/api/queries";
+import { type FinveWithBudgets, useProjectFinvesWithSubprojects } from "../../../shared/api/queries";
 import { FinveBudgetDetails } from "../../finves/shared/FinveBudgetDetails";
 import { formatTEuro } from "../../../shared/format";
 import { LoadingState } from "../../../shared/ui/LoadingState";
+import ProjectHoverCard from "../ProjectHoverCard";
+
+// ---------------------------------------------------------------------------
+// Hint on a FinVe that only a sub-project carries (parent projects aggregate)
+// ---------------------------------------------------------------------------
+
+function SubprojectHint({ finve }: { finve: FinveWithBudgets }) {
+    if (!finve.from_subprojects || finve.subprojects.length === 0) return null;
+    return (
+        <Text size="xs" c="dimmed">
+            {finve.subprojects.length === 1 ? "Aus Teilprojekt " : "Aus Teilprojekten "}
+            {finve.subprojects.map((sub, i) => (
+                <span key={sub.id}>
+                    {i > 0 && ", "}
+                    <ProjectHoverCard projectId={sub.id}>
+                        <Anchor component={Link} to={`/projects/${sub.id}`} size="xs">
+                            {sub.name}
+                        </Anchor>
+                    </ProjectHoverCard>
+                </span>
+            ))}
+        </Text>
+    );
+}
 
 // ---------------------------------------------------------------------------
 // Single FinVe card with charts (chart/table internals live in
@@ -29,18 +53,21 @@ function FinveCard({ finve }: { finve: FinveWithBudgets }) {
     // SammelFinVe: compact tag, linked to the FinVe overview (deep-linked by id).
     if (finve.is_sammel_finve) {
         return (
-            <Anchor
-                component={Link}
-                to={`/finanzen/bedarfsplan?q=${finve.id}`}
-                underline="never"
-                style={{ color: "inherit" }}
-            >
-                <Group gap="xs" align="center">
-                    <Badge variant="outline">Sammel-FinVe</Badge>
-                    <Badge variant="outline">FinVe {finve.id}</Badge>
-                    <Text size="sm" c="dimmed">{finve.name ?? "–"}</Text>
-                </Group>
-            </Anchor>
+            <Stack gap={2}>
+                <Anchor
+                    component={Link}
+                    to={`/finanzen/bedarfsplan?q=${finve.id}`}
+                    underline="never"
+                    style={{ color: "inherit" }}
+                >
+                    <Group gap="xs" align="center">
+                        <Badge variant="outline">Sammel-FinVe</Badge>
+                        <Badge variant="outline">FinVe {finve.id}</Badge>
+                        <Text size="sm" c="dimmed">{finve.name ?? "–"}</Text>
+                    </Group>
+                </Anchor>
+                <SubprojectHint finve={finve} />
+            </Stack>
         );
     }
 
@@ -48,10 +75,13 @@ function FinveCard({ finve }: { finve: FinveWithBudgets }) {
         <Paper withBorder p="var(--card-pad)">
             <Stack gap="sm">
                 <Group justify="space-between" align="flex-start" wrap="wrap">
-                    <Group gap="sm" align="center">
-                        <Badge variant="outline">FinVe {finve.id}</Badge>
-                        <Text size="sm" fw={500}>{finve.name ?? "–"}</Text>
-                    </Group>
+                    <Stack gap={2}>
+                        <Group gap="sm" align="center">
+                            <Badge variant="outline">FinVe {finve.id}</Badge>
+                            <Text size="sm" fw={500}>{finve.name ?? "–"}</Text>
+                        </Group>
+                        <SubprojectHint finve={finve} />
+                    </Stack>
                     <Group gap="xl">
                         {finve.starting_year && (
                             <Stack gap={0} align="flex-end">
@@ -100,16 +130,18 @@ function FinveCard({ finve }: { finve: FinveWithBudgets }) {
 // ---------------------------------------------------------------------------
 
 export default function FinveSection({ projectId }: { projectId: number }) {
-    const { data: finves, isLoading } = useProjectFinves(projectId);
+    // A parent project shows the FinVes of all its sub-projects too, own ones first.
+    const { data: finves, isLoading } = useProjectFinvesWithSubprojects(projectId);
 
     if (isLoading) return <LoadingState rows={3} />;
     if (!finves || finves.length === 0) return null;
+    const ordered = [...finves].sort((a, b) => Number(a.from_subprojects) - Number(b.from_subprojects));
 
     return (
         <Paper withBorder p="var(--card-pad)">
             <Stack gap="md">
                 <Title order={2}>Finanzierungsvereinbarungen (FinVe)</Title>
-                {finves.map((finve) => (
+                {ordered.map((finve) => (
                     <FinveCard key={finve.id} finve={finve} />
                 ))}
             </Stack>

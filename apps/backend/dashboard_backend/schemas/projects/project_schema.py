@@ -75,8 +75,10 @@ class FinveWithBudgetsSchema(BaseModel):
     cost_estimate_original: Optional[int] = None
     is_sammel_finve: bool = False
     budgets: list[BudgetSummarySchema] = []
-    # Only with ``include_subprojects``: linked to a descendant, not the project itself.
+    # Only with ``include_subprojects``: linked to a descendant, not the project
+    # itself; ``subprojects`` = the descendants carrying it (by name).
     from_subprojects: bool = False
+    subprojects: list["ProjectRefSchema"] = []
 
     model_config = ConfigDict(from_attributes=True)
 

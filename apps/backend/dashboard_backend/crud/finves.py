@@ -175,18 +175,22 @@ def get_project_finves_with_budgets(
     ``include_subprojects`` adds the FinVes of all descendant projects (parent
     projects aggregate, docs/architecture.md → Principles); a FinVe linked to
     several of them is returned once. Those not linked to the project itself
-    carry ``from_subprojects``."""
+    carry ``from_subprojects``; ``subprojects`` names the descendants that
+    carry each FinVe."""
     own_ids = {f.id for f in project.finve}
     finve_ids = set(own_ids)
+    carriers: dict[int, dict[int, str]] = {}
     if include_subprojects:
         descendants = [pid for pid in subtree_ids(db, project.id) if pid != project.id]
         if descendants:
-            finve_ids.update(
-                fid
-                for (fid,) in db.query(FinveToProject.finve_id)
+            rows = (
+                db.query(FinveToProject.finve_id, Project.id, Project.name)
+                .join(Project, Project.id == FinveToProject.project_id)
                 .filter(FinveToProject.project_id.in_(descendants))
-                .distinct()
             )
+            for fid, pid, name in rows:
+                carriers.setdefault(fid, {})[pid] = name
+            finve_ids.update(carriers)
     if not finve_ids:
         return []
 
@@ -196,7 +200,15 @@ def get_project_finves_with_budgets(
     # one, while selectinload issues one flat query per level.
     finves = _finve_with_budgets_query(db).filter(Finve.id.in_(finve_ids)).order_by(Finve.id).all()
     return [
-        finve_with_budgets(finve).model_copy(update={"from_subprojects": finve.id not in own_ids})
+        finve_with_budgets(finve).model_copy(
+            update={
+                "from_subprojects": finve.id not in own_ids,
+                "subprojects": [
+                    ProjectRefSchema(id=pid, name=name)
+                    for pid, name in sorted(carriers.get(finve.id, {}).items(), key=lambda item: item[1])
+                ],
+            }
+        )
         for finve in finves
     ]
 

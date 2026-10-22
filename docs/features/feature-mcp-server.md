@@ -215,7 +215,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `list_project_filters` | Katalog der Filter von `list_projects`: Felder, Typen, Operatoren, Enum-Werte | — |
 | `get_project` | Projektdetail inkl. BVWP-Daten und Unterprojekten | — |
 | `get_project_progress` | Planungsstand inkl. Beobachtungen und Prognose; `forecast.ibn_doubt`, wenn die GVFG-Finanzreihe nach dem IBN-Jahr noch Mittel vorsieht | — |
-| `list_project_finves` | Finanzierungsvereinbarungen und Budgets eines Projekts | — |
+| `list_project_finves` | Finanzierungsvereinbarungen und Budgets eines Projekts; `include_subprojects` nimmt die FinVe aller Teilprojekte dazu (jede einmal, mit tragenden Teilprojekten) | — |
 | `list_finves` | FinVe frei suchen — auch ohne Projektzuordnung: FinVe-Nummer, Name, Bedarfsplannummer, lfd. Nr.; Filter Haushaltsjahr, Sammel-FinVe, mit/ohne Projekt | — |
 | `get_finve` | eine FinVe per Nummer mit Budgethistorie und verknüpften Projekten | — |
 | `list_gvfg_programs` | GVFG-Ausgaben mit Jahresspalten, Zahl der Vorhaben und der Vorhaben ohne Projekt | — |

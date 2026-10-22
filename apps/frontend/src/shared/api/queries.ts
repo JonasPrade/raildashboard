@@ -903,14 +903,6 @@ export type BudgetSummary = components["schemas"]["BudgetSummarySchema"];
 
 export type FinveWithBudgets = components["schemas"]["FinveWithBudgetsSchema"];
 
-export function useProjectFinves(projectId: number) {
-    return useQuery({
-        queryKey: queryKeys.projectFinves(projectId),
-        queryFn: () => api<FinveWithBudgets[]>(`/api/v1/projects/${projectId}/finves`),
-        enabled: !Number.isNaN(projectId),
-    });
-}
-
 /** FinVes of the project and all its sub-projects, each once (parent projects aggregate). */
 export function useProjectFinvesWithSubprojects(projectId: number) {
     return useQuery({

@@ -3842,6 +3842,11 @@ export interface components {
              * @default false
              */
             from_subprojects: boolean;
+            /**
+             * Subprojects
+             * @default []
+             */
+            subprojects: components["schemas"]["ProjectRefSchema"][];
         };
         /** ForecastStepSchema */
         ForecastStepSchema: {

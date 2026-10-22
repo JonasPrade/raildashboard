@@ -12,7 +12,7 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Changed
-- **Cost block at the top of the project page.** The Infraplan forecast / „Vom Bund zugesichert“ band now sits directly under the project title (first entry in the register). Infraplan footnotes moved from a superscript on the figure to a „?“ tooltip next to the label. For parent projects „Vom Bund zugesichert“ sums the FinVes of all sub-projects (each FinVe once) via the new `include_subprojects` parameter of `GET /api/v1/projects/{id}/finves`; each FinVe then carries `from_subprojects`.
+- **Cost block at the top of the project page.** The Infraplan forecast / „Vom Bund zugesichert“ band now sits directly under the project title (first entry in the register). Infraplan footnotes moved from a superscript on the figure to a „?“ tooltip next to the label. For parent projects „Vom Bund zugesichert“ sums the FinVes of all sub-projects (each FinVe once) via the new `include_subprojects` parameter of `GET /api/v1/projects/{id}/finves`; each FinVe then carries `from_subprojects` and the carrying `subprojects`. The FinVe section of a parent project lists the sub-projects' FinVes too (own ones first, each with „Aus Teilprojekt …“ and a link); the MCP tool `list_project_finves` takes the same `include_subprojects` option.
 - **Design fixes.** Stronger active marker in the app bar and drawer; the „Admin“ entry is now „Einstellungen“; the Zeitstrahl uses more distinct phase colours (`TIMELINE_PHASE_COLOR`) and a thicker, haloed „heute“ line; the project table shows the short description as a tooltip on the name; the drawing buttons in the geometry editor wrap instead of being cut off.
 
 ### Added
