@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { FinveWithBudgets } from "../../../shared/api/queries";
-import { committedFinveMio } from "./projectCost";
+import type { FinveWithBudgets, GvfgProjectEntry } from "../../../shared/api/queries";
+import { committedFinveMio, gvfgAidMio } from "./projectCost";
 
 function finve(overrides: Partial<FinveWithBudgets>): FinveWithBudgets {
     return { id: 1, is_sammel_finve: false, budgets: [], ...overrides } as FinveWithBudgets;
@@ -26,5 +26,43 @@ describe("committedFinveMio", () => {
 
     it("is null without any amount", () => {
         expect(committedFinveMio([finve({ id: 1 })])).toBeNull();
+    });
+});
+
+function gvfg(key: string, year: number, projectIds: number[], aid: string | null, cost: string | null): GvfgProjectEntry {
+    return {
+        key,
+        program: { year_from: year },
+        projects: projectIds.map((id) => ({ id, name: `P${id}` })),
+        amounts: [{ category: "SUM", aid_total: aid, cost_total: cost, periods: {} }],
+    } as unknown as GvfgProjectEntry;
+}
+
+describe("gvfgAidMio", () => {
+    it("sums the newest edition per key of the project's own entries", () => {
+        const result = gvfgAidMio(
+            [
+                gvfg("K1", 2024, [7], "10", "20"),
+                gvfg("K1", 2025, [7], "12.5", "25"),
+                gvfg("K2", 2025, [7], "3", null),
+                gvfg("K3", 2025, [8], "100", "200"),
+            ],
+            7,
+        );
+        expect(result).toEqual({ aid: 15.5, cost: 25, count: 2, fromSubprojects: false });
+    });
+
+    it("falls back to sub-project entries without own ones", () => {
+        expect(gvfgAidMio([gvfg("K3", 2025, [8], "4", "8")], 7)).toEqual({
+            aid: 4,
+            cost: 8,
+            count: 1,
+            fromSubprojects: true,
+        });
+    });
+
+    it("is null without any aid", () => {
+        expect(gvfgAidMio([gvfg("K1", 2025, [7], null, "5")], 7)).toBeNull();
+        expect(gvfgAidMio([], 7)).toBeNull();
     });
 });

@@ -48,6 +48,7 @@ import FinveSection from "./components/FinveSection";
 import GvfgSection from "./components/GvfgSection";
 import InfraplanSection from "./components/InfraplanSection";
 import ProjectCostBlock from "./components/ProjectCostBlock";
+import { gvfgAidMio } from "./components/projectCost";
 import ProgressSection from "./components/progress/ProgressSection";
 import ProjectConstituencySection from "../abgeordnete/ProjectConstituencySection";
 import TasksSection from "../todos/TasksSection";
@@ -400,26 +401,22 @@ export default function ProjectDetail() {
         .filter(({ value }) => value !== null) as Array<{ label: string; value: string }>;
 
     const tocSections: RegisterSection[] = [
+        { id: "details", label: "Projektdetails", ref: detailsRef, visible: true },
         {
             id: "costs",
             label: "Kosten",
             ref: costRef,
-            visible: infraplan?.cost_forecast != null,
+            visible: infraplan?.cost_forecast != null || gvfgAidMio(gvfgEntries ?? [], projectId) != null,
         },
-        { id: "details", label: "Projektdetails", ref: detailsRef, visible: true },
         { id: "progress", label: "Planungsstand", ref: progressRef, visible: true },
         {
-            id: "constituencies",
-            label: "Wahlkreise und Abgeordnete",
-            ref: constituenciesRef,
-            visible: user !== null,
-        },
-        { id: "texts", label: "Texte", ref: textsRef, visible: true },
-        {
-            id: "justification",
-            label: "Begründung",
-            ref: justificationRef,
-            visible: !!(project.justification?.trim()),
+            id: "subprojects",
+            label: `Unterprojekte (${subProjects.length})`,
+            ref: subProjectsRef,
+            visible: subProjects.length > 0,
+            isCollapsible: true,
+            isOpen: subProjectsOpen,
+            onOpen: () => setSubProjectsOpen(true),
         },
         {
             id: "infraplan",
@@ -428,16 +425,23 @@ export default function ProjectDetail() {
             visible: (infraplan?.entries?.length ?? 0) > 0,
         },
         {
+            id: "gvfg",
+            label: "GVFG",
+            ref: gvfgRef,
+            visible: (gvfgEntries?.length ?? 0) > 0,
+        },
+        {
             id: "finve",
             label: "FinVe",
             ref: finveRef,
             visible: true,
         },
+        { id: "texts", label: "Texte", ref: textsRef, visible: true },
         {
-            id: "gvfg",
-            label: "GVFG",
-            ref: gvfgRef,
-            visible: (gvfgEntries?.length ?? 0) > 0,
+            id: "justification",
+            label: "Begründung",
+            ref: justificationRef,
+            visible: !!(project.justification?.trim()),
         },
         {
             id: "bvwp",
@@ -458,13 +462,10 @@ export default function ProjectDetail() {
             visible: !!superiorProject,
         },
         {
-            id: "subprojects",
-            label: `Unterprojekte (${subProjects.length})`,
-            ref: subProjectsRef,
-            visible: subProjects.length > 0,
-            isCollapsible: true,
-            isOpen: subProjectsOpen,
-            onOpen: () => setSubProjectsOpen(true),
+            id: "constituencies",
+            label: "Wahlkreise und Abgeordnete",
+            ref: constituenciesRef,
+            visible: user !== null,
         },
         {
             id: "tasks",
@@ -559,11 +560,6 @@ export default function ProjectDetail() {
                         </Group>
                     )}
                 </Group>
-
-                {/* Kosten: Infraplan-Prognose neben den FinVe-Mitteln, ganz oben */}
-                <div ref={costRef}>
-                    <ProjectCostBlock projectId={projectId} />
-                </div>
 
                 {/* Zweispaltiges Layout: Details/Beschreibung links, Karte rechts */}
                 <div ref={detailsRef}>
@@ -697,85 +693,15 @@ export default function ProjectDetail() {
                 )}
                 </div>
 
+                {/* Kosten: Infraplan-Prognose neben den FinVe-Mitteln (bzw. der GVFG-Bundesförderung) */}
+                <div ref={costRef}>
+                    <ProjectCostBlock projectId={projectId} />
+                </div>
+
                 {/* Planungsstand */}
                 <div ref={progressRef}>
                     <ProgressSection projectId={projectId} />
                 </div>
-
-                {/* Wahlkreise und Abgeordnete */}
-                {user !== null && (
-                    <div ref={constituenciesRef}>
-                        <ProjectConstituencySection projectId={projectId} />
-                    </div>
-                )}
-
-                {/* Texte */}
-                <div ref={textsRef}>
-                    <ProjectTextsSection projectId={projectId} canEdit={canEdit} />
-                </div>
-
-                {/* Begründung */}
-                {project.justification && project.justification.trim() !== "" && (
-                    <div ref={justificationRef}>
-                    <Paper withBorder p="var(--card-pad)">
-                        <Stack gap="sm">
-                            <Title order={2}>Begründung</Title>
-                            <Text size="sm">{project.justification}</Text>
-                        </Stack>
-                    </Paper>
-                    </div>
-                )}
-
-                {/* Infraplan */}
-                <div ref={infraplanRef}>
-                    <InfraplanSection projectId={projectId} />
-                </div>
-
-                {/* FinVe */}
-                <div ref={finveRef}>
-                    <FinveSection projectId={projectId} />
-                </div>
-
-                {/* GVFG-Bundesprogramm */}
-                <div ref={gvfgRef}>
-                    <GvfgSection projectId={projectId} />
-                </div>
-
-                {/* BVWP-Bewertung */}
-                <div ref={bvwpRef}>
-                    <BvwpDataSection projectId={projectId} />
-                </div>
-
-                {/* Verkehrsinvestitionsberichte – nur für eingeloggte Nutzer */}
-                {user !== null && (
-                    <div ref={vibRef}>
-                        <VibSection projectId={projectId} />
-                    </div>
-                )}
-
-                {/* Übergeordnetes Projekt */}
-                {superiorProject && (
-                    <div ref={superiorRef}>
-                    <Paper withBorder p="var(--card-pad)">
-                        <Stack gap="sm">
-                            <Title order={2}>Übergeordnetes Projekt</Title>
-                            <Paper withBorder p="var(--card-pad)">
-                                <Stack gap="sm">
-                                    <ProjectSummaryCard project={superiorProject} />
-                                    <Button
-                                        size="xs"
-                                        variant="light"
-                                        component={Link}
-                                        to={`/projects/${superiorProject.id}`}
-                                    >
-                                        Zum Projekt
-                                    </Button>
-                                </Stack>
-                            </Paper>
-                        </Stack>
-                    </Paper>
-                    </div>
-                )}
 
                 {/* Unterprojekte */}
                 {subProjects.length > 0 && (
@@ -814,6 +740,81 @@ export default function ProjectDetail() {
                             </Collapse>
                         </Stack>
                     </Paper>
+                    </div>
+                )}
+
+                {/* Infraplan */}
+                <div ref={infraplanRef}>
+                    <InfraplanSection projectId={projectId} />
+                </div>
+
+                {/* GVFG-Bundesprogramm */}
+                <div ref={gvfgRef}>
+                    <GvfgSection projectId={projectId} />
+                </div>
+
+                {/* FinVe */}
+                <div ref={finveRef}>
+                    <FinveSection projectId={projectId} />
+                </div>
+
+                {/* Texte */}
+                <div ref={textsRef}>
+                    <ProjectTextsSection projectId={projectId} canEdit={canEdit} />
+                </div>
+
+                {/* Begründung */}
+                {project.justification && project.justification.trim() !== "" && (
+                    <div ref={justificationRef}>
+                    <Paper withBorder p="var(--card-pad)">
+                        <Stack gap="sm">
+                            <Title order={2}>Begründung</Title>
+                            <Text size="sm">{project.justification}</Text>
+                        </Stack>
+                    </Paper>
+                    </div>
+                )}
+
+                {/* BVWP-Bewertung */}
+                <div ref={bvwpRef}>
+                    <BvwpDataSection projectId={projectId} />
+                </div>
+
+                {/* Verkehrsinvestitionsberichte – nur für eingeloggte Nutzer */}
+                {user !== null && (
+                    <div ref={vibRef}>
+                        <VibSection projectId={projectId} />
+                    </div>
+                )}
+
+                {/* Übergeordnetes Projekt */}
+                {superiorProject && (
+                    <div ref={superiorRef}>
+                    <Paper withBorder p="var(--card-pad)">
+                        <Stack gap="sm">
+                            <Title order={2}>Übergeordnetes Projekt</Title>
+                            <Paper withBorder p="var(--card-pad)">
+                                <Stack gap="sm">
+                                    <ProjectSummaryCard project={superiorProject} />
+                                    <Button
+                                        size="xs"
+                                        variant="light"
+                                        component={Link}
+                                        to={`/projects/${superiorProject.id}`}
+                                    >
+                                        Zum Projekt
+                                    </Button>
+                                </Stack>
+                            </Paper>
+                        </Stack>
+                    </Paper>
+                    </div>
+                )}
+
+                {/* Wahlkreise und Abgeordnete */}
+                {user !== null && (
+                    <div ref={constituenciesRef}>
+                        <ProjectConstituencySection projectId={projectId} />
                     </div>
                 )}
 
