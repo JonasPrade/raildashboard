@@ -16,7 +16,7 @@ describe("PhaseStepper forecast row", () => {
         renderStepper([
             { phase: "VORPLANUNG", expected_date: null, source: "Schätzung" },
             { phase: "BAU", expected_date: null, source: "Schätzung" },
-            { phase: "IN_BETRIEB", expected_date: "2030-12-01", source: "GVFG" },
+            { phase: "IN_BETRIEB", expected_date: "2030-12-01", date_precision: "MONTH", source: "GVFG" },
         ]);
         expect(screen.getByText("Prognose")).toBeInTheDocument();
         expect(screen.getByText("12/2030")).toBeInTheDocument();

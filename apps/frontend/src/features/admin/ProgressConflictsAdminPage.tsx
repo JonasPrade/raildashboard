@@ -47,7 +47,7 @@ function Row({ row }: { row: ProgressConflictRow }) {
                 <Stack gap={4}>
                     <PhaseTag phase={conflict.asserted_phase as MainPhase} />
                     <Text size="xs" c="dimmed">
-                        {sourceLabel(conflict.source_type)} · {conflict.observed_date ?? "ohne Datum"} ·{" "}
+                        {sourceLabel(conflict.source_type)} · {conflict.date_text ?? "ohne Datum"} ·{" "}
                         {percent(conflict.trust)}
                     </Text>
                 </Stack>
@@ -57,7 +57,7 @@ function Row({ row }: { row: ProgressConflictRow }) {
                     <PhaseTag phase={conflict.contradicted_phase as MainPhase} />
                     {row.contradicted.map((c) => (
                         <Text key={c.observation_id ?? c.source_type} size="xs" c="dimmed">
-                            {sourceLabel(c.source_type)} · {c.observed_date ?? "ohne Datum"} (
+                            {sourceLabel(c.source_type)} · {c.date_text ?? "ohne Datum"} (
                             {formatAge(c.observed_date)}) · {percent(c.trust ?? 0)}
                             {c.is_lower_bound ? " · Untergrenze" : ""}
                         </Text>

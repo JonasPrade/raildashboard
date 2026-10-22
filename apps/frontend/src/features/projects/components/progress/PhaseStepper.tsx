@@ -14,13 +14,21 @@ import {
     visiblePhases,
 } from "./phaseMeta";
 import { formatDateShort } from "../../../../shared/format";
+import { formatExpected, formatQualifiedDate } from "../../../../shared/datePrecision";
 import { FORECAST_SOURCE_COLOR, LANE_STATE_COLOR } from "../../../../shared/theme/semanticColors";
 import { SwatchTag } from "../../../../shared/ui/SwatchTag";
 
 export type StepperChild = { project_id: number; name: string };
 
 /** Forecast step as delivered by the progress endpoint. */
-export type StepperForecastStep = { phase: string; expected_date?: string | null; source: string };
+export type StepperForecastStep = {
+    phase: string;
+    expected_date?: string | null;
+    source: string;
+    date_precision?: string | null;
+    date_label?: string | null;
+    derivation?: string | null;
+};
 
 type Props = {
     /** Effective (override-aware) current phase. */
@@ -71,19 +79,34 @@ const IDLE: string = LANE_STATE_COLOR.idleLine;
 const SOURCE_COLOR: Record<string, string> = FORECAST_SOURCE_COLOR;
 const SOURCE_FALLBACK_COLOR = "var(--idt-line-strong)";
 
-/** Forecast dates are period approximations → month/year only; null if unknown. */
-function formatForecastDate(dateStr: string | null | undefined): string | null {
-    if (!dateStr) return null;
-    const d = new Date(dateStr);
-    if (Number.isNaN(d.getTime())) return null;
-    return `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+/** Short cell text of a forecast date at its precision; null when no date is known.
+ * An assumed date keeps its "ca." here, the "(Annahme)" goes to the tooltip. */
+function forecastCellText(step: StepperForecastStep): string | null {
+    if (step.date_precision === "ASSUMED" && step.expected_date) {
+        return `ca. ${formatQualifiedDate(step.expected_date, "MONTH")}`;
+    }
+    return formatQualifiedDate(step.expected_date, step.date_precision);
 }
 
-/** Forecast cell in the "Prognose" row: expected month/year plus its source. */
-function ForecastCell({ phase, date, source }: { phase: MainPhase; date: string; source: string }) {
+/** Forecast cell in the "Prognose" row: qualified date plus its source. */
+function ForecastCell({ phase, date, step }: { phase: MainPhase; date: string; step: StepperForecastStep }) {
+    const source = step.source;
     return (
         <Tooltip
-            label={`${MILESTONE_LABEL[phase]} voraussichtlich ${date} · Quelle: ${source}`}
+            label={
+                <Stack gap={2}>
+                    <Text size="xs">
+                        {MILESTONE_LABEL[phase]} {formatExpected(step)} · Quelle: {source}
+                    </Text>
+                    {step.derivation && (
+                        <Text size="xs" fs="italic">
+                            {step.derivation}
+                        </Text>
+                    )}
+                </Stack>
+            }
+            multiline
+            maw={320}
             withArrow
             position="bottom"
             events={{ hover: true, focus: true, touch: true }}
@@ -190,11 +213,11 @@ export default function PhaseStepper({
         fromIdx <= boundaryIdx && boundaryIdx < toIdx;
 
     // Only forecast steps with a known date get a cell; "Termin offen" is left out.
-    const forecastByPhase: Partial<Record<MainPhase, { date: string; source: string }>> = {};
+    const forecastByPhase: Partial<Record<MainPhase, { date: string; step: StepperForecastStep }>> = {};
     for (const step of forecastSteps ?? []) {
-        const date = formatForecastDate(step.expected_date);
+        const date = forecastCellText(step);
         if (date && phases.includes(step.phase as MainPhase)) {
-            forecastByPhase[step.phase as MainPhase] = { date, source: step.source };
+            forecastByPhase[step.phase as MainPhase] = { date, step };
         }
     }
     const hasForecast = Object.keys(forecastByPhase).length > 0;
@@ -359,7 +382,7 @@ export default function PhaseStepper({
                             // Zero-width centred box: a long source tag overflows evenly instead
                             // of widening its phase column and pushing the stepper apart.
                             <Box style={{ gridRow: 4, gridColumn: column, justifySelf: "center", width: 0, display: "flex", justifyContent: "center" }}>
-                                <ForecastCell phase={phase} date={forecast.date} source={forecast.source} />
+                                <ForecastCell phase={phase} date={forecast.date} step={forecast.step} />
                             </Box>
                         )}
                     </Fragment>

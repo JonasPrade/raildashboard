@@ -94,6 +94,12 @@ migration `20261015002`.
 `progress_observation.infraplan_entry_id` (nullable, `SET NULL`) is the
 provenance of observations derived from an entry (source type `INFRAPLAN`).
 
+`progress_observation.date_precision` (EXACT/MONTH/YEAR/NOT_BEFORE/ASSUMED, default
+EXACT) and `date_label` qualify `observed_date`, which is only the sort value;
+`project_group.assumed_build_months` is the assumed construction period of the group's
+projects; `project_progress.construction_start_*` / `commissioning_*` cache the forecast
+dates for the lists (`docs/features/feature-project-progress.md` → „Datumsqualifikation“).
+
 ### ChangeTracking
 
 | Table | Description |

@@ -25,11 +25,13 @@ from dashboard_backend.models.projects.progress_enums import (
 )
 from dashboard_backend.models.projects.progress_observation import ProgressObservation
 from dashboard_backend.models.projects.project import Project
+from dashboard_backend.models.associations.project_to_project_group import ProjectToProjectGroup
 from dashboard_backend.models.projects.project_group import ProjectGroup
 from dashboard_backend.models.projects.project_progress import ProjectProgress
 from dashboard_backend.models.vib.vib_entry import VibEntry, vib_entry_project
 from dashboard_backend.models.vib.vib_pfa_entry import VibPfaEntry
 from dashboard_backend.models.vib.vib_report import VibReport
+from dashboard_backend.services.date_precision import date_text
 from dashboard_backend.services.progress_forecast import PfaForecastInput
 from dashboard_backend.services.progress_timeline import ConstructionUnitInput, build_timeline
 
@@ -133,6 +135,20 @@ def get_group_timeline(
         db, [obs for rows in expected_by_project.values() for obs in rows]
     )
 
+    # Assumed build period per project from its groups (longest wins, as in
+    # resolve_assumed_build_months).
+    build_months: dict[int, int] = {}
+    if all_ids:
+        for project_id, months in (
+            db.query(ProjectToProjectGroup.project_id, ProjectGroup.assumed_build_months)
+            .join(ProjectGroup, ProjectGroup.id == ProjectToProjectGroup.project_group_id)
+            .filter(
+                ProjectToProjectGroup.project_id.in_(all_ids),
+                ProjectGroup.assumed_build_months.isnot(None),
+            )
+        ):
+            build_months[project_id] = max(build_months.get(project_id, 0), months)
+
     progress_by_project: dict[int, ProjectProgress] = {}
     if all_ids:
         progress_by_project = {
@@ -177,6 +193,7 @@ def get_group_timeline(
                     infraplan=unit_split.infraplan,
                     gvfg=unit_split.gvfg,
                     manual_expected=unit_split.manual,
+                    assumed_build_months=build_months.get(member),
                 )
             )
 
@@ -192,6 +209,7 @@ def get_group_timeline(
             pf_dates=pf_dates,
             parl_dates=parl_dates,
             construction_units=units,
+            assumed_build_months=build_months.get(project.id),
         )
         if not result.has_credible_dates:
             continue
@@ -213,6 +231,10 @@ def get_group_timeline(
                         "date": m.date,
                         "source": m.source,
                         "certainty": m.certainty,
+                        "date_precision": m.precision.value,
+                        "date_label": m.label,
+                        "date_text": date_text(m.date, m.precision, m.label),
+                        "derivation": m.derivation,
                     }
                     for m in result.milestones
                 ],

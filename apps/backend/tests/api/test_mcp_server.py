@@ -159,6 +159,7 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
         "set_project_draft",
         "set_project_groups",
         "add_progress_observation",
+        "update_progress_observation",
         "delete_progress_observation",
         "set_phase_override",
         "upsert_project_text",

@@ -174,6 +174,8 @@ ABGEBROCHEN)`, `SourceType`, `ObservationTrack (MAIN/PF/PARL)`.
 - `parl_befassung_relevant: bool | None` (`None` = Gruppen-Default verwenden)
 - `lifecycle_status: str` (default `AKTIV`)
 - `computed_phase / computed_confidence / computed_at`
+- Termin-Cache für Listen und Filter: `construction_start_date/_precision`,
+  `commissioning_date/_precision` (→ „Datumsqualifikation“)
 - `manual_phase_override: str | None`, `manual_override_note: str | None`
 - `pf_state_override / parl_state_override: str | None`
 - Parl.-Befassung-Detailblock (ein Satz pro Projekt): `parl_befassung_text: str | None`
@@ -188,7 +190,8 @@ ABGEBROCHEN)`, `SourceType`, `ObservationTrack (MAIN/PF/PARL)`.
 **`progress_observation`** (eine Zeile je atomarer Aussage; manuell = persistent,
 VIB/FinVe = materialisiert mit `is_derived=True` + Provenienz-FKs):
 - `project_id` (FK, CASCADE, indiziert), `source_type`, `track`, `asserted_state`,
-  `observed_date`, `confidence`, `note`
+  `observed_date` (Sortierwert), `date_precision` (EXACT/MONTH/YEAR/NOT_BEFORE/ASSUMED,
+  Default EXACT), `date_label` (optional), `confidence`, `note`
 - Provenienz: `vib_entry_id`, `vib_pfa_entry_id`, `finve_id` (nullable, `SET NULL`)
 - `is_derived: bool`, `created_at`, `created_by_user_id`, `username_snapshot`
   (Provenienz-Muster aus `change_log.py`)
@@ -582,7 +585,7 @@ führt. Mapper `gvfg_entry_to_specs` in `services/progress_materialization.py`, 
     Listen (`4, 9`, `1 - 3 / 5 - 9`) sagen nichts (W1),
   - Baubeginn im oder vor dem Standjahr → `BAU` (W3).
   Die Notiz nennt alle Gründe („GVFG 2025–2029: Inbetriebnahme 2017, Lph 5 - 9“).
-- **Erwartete Inbetriebnahme** (`is_expected`, 31.12. des Jahres): „Inbetriebnahme
+- **Erwartete Inbetriebnahme** (`is_expected`, 31.12. des Jahres, Präzision MONTH = Fahrplanwechsel 12/JJJJ): „Inbetriebnahme
   tats.“ — in den Ausgaben oft ein künftiges Jahr, also die aktuelle Erwartung —, sonst
   „gepl.“; nur wenn das Jahr nicht vor dem Standjahr liegt (frühere Jahre sind
   Restarbeiten, wie beim Infraplan) und das Vorhaben nicht schon in Betrieb ist (W2).
@@ -606,6 +609,112 @@ IBN-Plausibilität nimmt dasselbe GVFG-Jahr wie die Prognose.
 
 **Datenlage:** Bei den DB-Vorhaben Baden-Württembergs (`08 D …`) druckt die Ausgabe
 2025–2029 weder Lph noch Inbetriebnahme; dort trägt nur der Baubeginn.
+
+## Datumsqualifikation
+
+Issues #243–#248 (2026-10-22). Viele Termine sind nicht als Tag bekannt: nur das Jahr
+(HLK Hagen – Unna – Hamm: „2028“), nur eine Untergrenze (PM BMV/DB InfraGO vom 09.10.2026:
+„nach 2031“) oder aus einer Regel abgeleitet (6 Monate Bauzeit). Bisher stand dafür ein
+Pauschaldatum, das wie ein echter Termin aussah.
+
+**Grundsatz** (`docs/architecture.md`): Ein Termin wird nie ohne seine Präzision angezeigt.
+Das gespeicherte Datum ist nur noch der Sortierwert.
+
+| `date_precision` | Bedeutung | Anzeige | Sortierwert |
+|---|---|---|---|
+| `EXACT` | Tag veröffentlicht (Default, alle Bestandsdaten) | 06.02.2026 | das Datum |
+| `MONTH` | nur Monat bekannt | 02/2027 | 1. des Monats |
+| `YEAR` | nur Jahr bekannt | 2028 | 01.01. |
+| `NOT_BEFORE` | nur Untergrenze, kein Termin | nach 2031 (Grenze am 01.01., sonst „frühestens 07/2032“) | Untergrenze, z. B. 2032-01-01 |
+| `ASSUMED` | aus einer Regel abgeleitet, nicht veröffentlicht | ca. 07/2028 (Annahme) | berechnetes Datum |
+
+- **Freitext `date_label`** (optional, max. 120 Zeichen) wird angehängt: „nach 2031 –
+  Priorisierung 2027 offen“. Im Zeitstrahl ersetzt er „Termin offen“.
+- **Formatter:** `services/date_precision.py` und als Zwilling `src/shared/datePrecision.ts`.
+  Die API liefert zu Beobachtungen, Quellen, Konflikten, Prognoseschritten und
+  Zeitstrahl-Meilensteinen fertige `date_text`-Felder.
+- **Inbetriebnahme, von der nur das Jahr bekannt ist** (Entscheidung W1): Das ist der
+  Fahrplanwechsel Anfang Dezember, solange nichts anderes bekannt ist. Präzision `MONTH`,
+  Anzeige 12/JJJJ, Sortierwert 31.12. (die späteste Lesart).
+  - Das gilt für die erwartete Inbetriebnahme aus Infraplan und GVFG.
+  - Es gilt auch für eine VIB-PFA-`inbetriebnahme`, die nur ein Jahr nennt
+    (`parse_commissioning_with_precision`).
+  - Der Fulda-Fallback ohne Prognosedatum (31.12. des Dokumentjahres) ist `YEAR`.
+- **VIB-Freitext:**
+  - `parse_flexible_date_with_precision` liest die Präzision mit: Tagesdatum → EXACT,
+    Monat → MONTH, Quartal/Stichwort/Jahr → YEAR.
+  - „nach 2031“, „>2031“, „ab/frühestens 2032“ → NOT_BEFORE mit dem ersten erlaubten Tag.
+  - `parse_flexible_date` selbst bleibt unverändert.
+
+### Prognose
+
+- `concrete_milestone_dates` liefert je Phase ein `ConcreteDate` mit Datum, Quelle,
+  Präzision, Label und Herleitung. Prognose und Zeitstrahl nutzen dieselbe Funktion.
+  Gebündelte Angaben (frühester Beginn, späteste Inbetriebnahme) behalten die Präzision
+  des gewählten Termins.
+- **Bauzeit-Annahme:** Projektgruppen haben `assumed_build_months`; die Migration setzt HLK
+  auf 6. Nennt keine Quelle eine Inbetriebnahme, rechnet die Prognose Baubeginn + diese Zeit.
+  - Quelle „Annahme“, Herleitung z. B. „Annahme: 6 Monate Bauzeit ab Baubeginn 2028 (Manuell)“.
+  - Präzision `ASSUMED`; bei einem `NOT_BEFORE`-Baubeginn ebenfalls `NOT_BEFORE`.
+  - Ein konkreter oder manueller Termin gewinnt immer (Daten gewinnen vor der Gruppenregel).
+  - Mehrere Gruppen mit Wert → der längste.
+- **BVWP-Schätzungen** sind `ASSUMED` und bekommen eine Herleitung („Schätzung: …“).
+  Auf einem Untergrenzen-Baubeginn bleiben sie `NOT_BEFORE`.
+- **Restdauer:** Bei einer Untergrenze wird keine Restdauer behauptet; es steht „Ende der
+  aktuellen Phase offen (nach 2031)“.
+- `next_steps[]` trägt `date_precision`, `date_label`, `date_text` und `derivation`.
+  Die Prognose-Zeile der Phasenleiste zeigt den Termin in seiner Präzision („2028“,
+  „nach 2031“, „ca. 07/2028“); „(Annahme)“, Label und Herleitung stehen im Tooltip.
+  `estimated_phase_end_precision` gehört zu `estimated_phase_end`.
+
+### Listen und Filter
+
+- `project_progress` speichert Baubeginn und Inbetriebnahme der eigenen Prognose als Cache:
+  `construction_start_date/_precision` und `commissioning_date/_precision`, nur konkrete
+  Termine und Annahmen, nie BVWP-Schätzungen.
+  - Aktualisiert wird er bei jedem Lesen des Planungsstands (`get_progress_view`) und bei
+    jedem `recompute_progress`, also auch nach Importen.
+  - Einmal nach der Migration `20261022004`: `make docker-refresh-progress-dates`
+    (`scripts/refresh_progress_dates.py`).
+  - Die Liste liest weiter nur den Cache.
+- Die Liste hat eine Spalte „Termine“ („Bau: nach 2031“, „IB: ca. 07/2028 (Annahme)“),
+  sortierbar nach dem Sortierwert.
+- **Filter** (Liste, Zeitstrahl, Karte; URL `bau_von`, `bau_bis`, `ib_von`, `ib_bis`,
+  `termin_offen=1`; `features/projects/dateFilter.ts`):
+  - Ein Zeitraum zählt `YEAR`/`MONTH`, wenn sich der Zeitraum mit dem Jahr bzw. Monat
+    überschneidet.
+  - `NOT_BEFORE` zählt **nie** als Treffer.
+  - „Termin offen“ wählt Projekte, deren Baubeginn oder Inbetriebnahme nur eine
+    Untergrenze ist.
+  - Dieselbe Regel gilt in MCP `list_projects` (`construction_start`, `commissioning`,
+    `date_open`).
+
+### Pflege
+
+- **Drawer:** Für neue Beobachtungen gibt es die Auswahl „Genauigkeit“ und das Feld
+  „Terminzusatz“. Bei bestehenden manuellen Beobachtungen lässt sich die Genauigkeit direkt
+  ändern (`PATCH /projects/{id}/progress/observations/{obs_id}`). MONTH und YEAR legen den
+  Sortierwert auf den Periodenbeginn.
+- **MCP:**
+  - `add_progress_observation` nimmt `date_precision` (Default EXACT) und `date_label`.
+  - `update_progress_observation` ändert Präzision, Label, Datum, Notiz, Vertrauen und
+    `is_expected` einer manuellen Beobachtung in place; die Änderung wird protokolliert.
+  - Abgeleitete Beobachtungen bleiben geschützt; sie bekommen ihre Präzision aus der
+    Materialisierung.
+- **Bestandsdaten:** Die Migration ändert nichts. Manuelle erwartete Inbetriebnahmen mit
+  „Annahme“ im Notiztext (z. B. HLK, 6 Monate) gewinnen als manuelle Termine weiter gegen die
+  Gruppenregel. Nach dem Deploy werden sie per MCP gelöscht, die Prognose rechnet dasselbe
+  Datum dann sichtbar als Annahme. Platzhalter-Baubeginne bekommen per
+  `update_progress_observation` `YEAR` oder `NOT_BEFORE`.
+
+### Entscheidungen (Widerspruchs-Check 2026-10-22)
+
+- **W1:** Eine abgeleitete Inbetriebnahme, von der nur das Jahr bekannt ist, behält den
+  Sortierwert 31.12. und wird als Fahrplanwechsel 12/JJJJ angezeigt (Präzision MONTH).
+- **W2:** Ob ein angekündigter Fulda-Abschluss eine Untergrenze (`NOT_BEFORE`) der Folgephase
+  ist, wird zurückgestellt, siehe #250. Bis dahin EXACT bzw. YEAR.
+- **W3:** Annahmen bekommen im Zeitstrahl einen gestrichelten Rahmen in Tintenfarbe. Die
+  gestrichelte Linie in `seq-4` bleibt die Pause zwischen Bauetappen.
 
 ## Zeitstrahl über mehrere Projekte
 
@@ -633,6 +742,7 @@ BVWP-Schätzungen.
   nur manuelle Edits auditieren.
 - **Staleness-Fenster** für Lazy-Resync definieren (nicht bei jedem GET neu rechnen).
 - **Sichtbarkeit**: GET offen (wie BVWP) oder login-gated (wie VIB) — entscheiden.
+- **Fulda-Abschluss als Untergrenze** der Folgephase (`NOT_BEFORE`): zurückgestellt, #250.
 
 ## Akzeptanzkriterien
 

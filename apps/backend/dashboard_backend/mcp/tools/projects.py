@@ -7,6 +7,7 @@ window, so lists are paginated and geometries (``geojson_representation``,
 
 from __future__ import annotations
 
+import calendar
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -68,16 +69,19 @@ from dashboard_backend.models.projects.project_text import ProjectText
 from dashboard_backend.schemas.projects import ProjectGroupCreate, ProjectSchema
 from dashboard_backend.schemas.projects.bvwp_schema import BvwpProjectDataSchema
 from dashboard_backend.schemas.projects.progress_schema import (
+    DatePrecisionLiteral,
     LifecycleStatusLiteral,
     MainPhaseLiteral,
     ManualSourceTypeLiteral,
     ProgressObservationCreate,
+    ProgressObservationUpdate,
     ProjectProgressSchema,
     TrackLiteral,
 )
 from dashboard_backend.schemas.projects.project_create_schema import ProjectCreate
 from dashboard_backend.schemas.projects.project_text_schema import ProjectTextSchema
 from dashboard_backend.schemas.projects.project_update_schema import ProjectUpdate
+from dashboard_backend.services.date_precision import date_text
 from dashboard_backend.services.geo_length import compute_geojson_length_km
 
 MAX_LIMIT = 200
@@ -127,8 +131,20 @@ def short_description(text: str | None) -> str | None:
     return first
 
 
+def _milestone_summary(value: date | None, precision: str | None) -> dict[str, Any] | None:
+    """Cached forecast date for list output: sort value, precision, label."""
+    if value is None:
+        return None
+    precision = precision or "EXACT"
+    return {"date": value.isoformat(), "precision": precision, "text": date_text(value, precision)}
+
+
 def _project_summary(
-    project: Project, phase: str | None, is_known: bool | None = None, with_description: bool = False
+    project: Project,
+    phase: str | None,
+    is_known: bool | None = None,
+    with_description: bool = False,
+    milestones: tuple | None = None,
 ) -> dict[str, Any]:
     summary = {
         "id": project.id,
@@ -141,6 +157,10 @@ def _project_summary(
     }
     if is_known is not None:
         summary["is_known"] = is_known
+    if milestones is not None:
+        start_date, start_precision, ibn_date, ibn_precision = milestones
+        summary["construction_start"] = _milestone_summary(start_date, start_precision)
+        summary["commissioning"] = _milestone_summary(ibn_date, ibn_precision)
     if with_description:
         summary["short_description"] = short_description(project.description)
         summary["aliases"] = list(project.aliases or [])
@@ -483,6 +503,44 @@ def _last_change_clause(op: str, value: Any):
     return changed < datetime.combine(day + timedelta(days=1), time.min)
 
 
+def _milestone_field(name: str, column: Any, precision: Any, description: str) -> FilterField:
+    """Cached forecast date with its precision: ``gte``/``lte`` count a YEAR or
+    MONTH date when its period overlaps the bound (2028 matches gte
+    2028-06-01); a NOT_BEFORE date („nach 2031“) is never a hit — it is no
+    date. Same rule as ``services.date_precision.in_period``."""
+
+    def clause(op: str, value: Any):
+        day = _as_date(value)
+        if op == "gte":
+            year_bound, month_bound = date(day.year, 1, 1), day.replace(day=1)
+            compare = lambda bound: column >= bound  # noqa: E731
+        else:
+            last = calendar.monthrange(day.year, day.month)[1]
+            year_bound, month_bound = date(day.year, 12, 31), day.replace(day=last)
+            compare = lambda bound: column <= bound  # noqa: E731
+        return and_(
+            column.isnot(None),
+            or_(
+                and_(precision == "YEAR", compare(year_bound)),
+                and_(precision == "MONTH", compare(month_bound)),
+                and_(
+                    or_(precision.is_(None), precision.in_(("EXACT", "ASSUMED"))),
+                    compare(day),
+                ),
+            ),
+        )
+
+    return FilterField(name, "date", description, ("gte", "lte"), clause)
+
+
+def date_open_expr():
+    """Baubeginn or Inbetriebnahme is only a lower bound („nach 2031“)."""
+    return or_(
+        ProjectProgress.construction_start_precision == "NOT_BEFORE",
+        ProjectProgress.commissioning_precision == "NOT_BEFORE",
+    )
+
+
 def _build_filter_fields() -> dict[str, FilterField]:
     effective_phase = effective_phase_expr()
     fields = [
@@ -542,6 +600,26 @@ def _build_filter_fields() -> dict[str, FilterField]:
             "Parliamentary involvement relevant (override, else newest Infraplan "
             "statement, else BSWAG* group)",
             parl_relevant_expr,
+        ),
+        _milestone_field(
+            "construction_start",
+            ProjectProgress.construction_start_date,
+            ProjectProgress.construction_start_precision,
+            "Baubeginn of the forecast (JJJJ-MM-TT; gte/lte, a year-only date matches "
+            "when its year overlaps; „nach 2031“ never matches — use date_open)",
+        ),
+        _milestone_field(
+            "commissioning",
+            ProjectProgress.commissioning_date,
+            ProjectProgress.commissioning_precision,
+            "Inbetriebnahme of the forecast incl. assumed ones (JJJJ-MM-TT; same rules "
+            "as construction_start)",
+        ),
+        _flag_field(
+            "date_open",
+            "Termin offen: Baubeginn or Inbetriebnahme known only as a lower bound "
+            "(NOT_BEFORE, „nach 2031“)",
+            lambda v: date_open_expr() if v else not_(func.coalesce(date_open_expr(), False)),
         ),
         FilterField(
             "last_change",
@@ -614,6 +692,7 @@ def list_projects(
     has_length: bool | None = None,
     lifecycle_status: LifecycleStatusLiteral | None = None,
     parl_befassung_relevant: bool | None = None,
+    date_open: bool | None = None,
     updated_since: date | None = None,
     filters: list[ProjectFilter] | None = None,
     drafts: DraftFilter = "exclude",
@@ -643,6 +722,8 @@ def list_projects(
     - lifecycle_status: AKTIV (also projects without planning state), PAUSIERT, ABGEBROCHEN
     - parl_befassung_relevant: parliamentary involvement relevant (override, else
       membership in a BSWAG* group)
+    - date_open: true = Termin offen — Baubeginn or Inbetriebnahme is only a
+      lower bound (date_precision NOT_BEFORE, „nach 2031“)
     - updated_since: only projects with a changelog entry on or after this date
     - filters: further conditions, combined with AND with everything above, as a
       list of ``{field, op, value}`` — e.g. description starts_with
@@ -653,6 +734,11 @@ def list_projects(
       entry carries ``is_draft``. Finalize or revert with set_project_draft.
     - order_by: name, id, length or last_change (newest change; projects never
       changed come last); descending reverses the order
+    Each entry carries ``construction_start`` and ``commissioning`` of the
+    forecast (``{date, precision, text}`` or null): ``date`` is only the sort
+    value — show ``text`` („2028“, „nach 2031“, „ca. 07/2028 (Annahme)“).
+    Filter them with ``filters`` on construction_start / commissioning (gte/lte;
+    a NOT_BEFORE date never matches a period).
     Returns ``total`` plus one page of compact entries; use get_project for details.
     """
     get_principal(ctx)
@@ -662,7 +748,15 @@ def list_projects(
     known = is_known_expr()
     with tool_session(ctx) as db:
         query = (
-            db.query(Project, effective_phase, known)
+            db.query(
+                Project,
+                effective_phase,
+                known,
+                ProjectProgress.construction_start_date,
+                ProjectProgress.construction_start_precision,
+                ProjectProgress.commissioning_date,
+                ProjectProgress.commissioning_precision,
+            )
             .outerjoin(ProjectProgress, ProjectProgress.project_id == Project.id)
         )
         draft_condition = draft_filter(drafts)
@@ -690,6 +784,7 @@ def list_projects(
             "has_length": has_length,
             "lifecycle_status": lifecycle_status,
             "parl_befassung_relevant": parl_befassung_relevant,
+            "date_open": date_open,
         }
         specs += [ProjectFilter(field=k, value=v) for k, v in named.items() if v is not None]
         if updated_since is not None:
@@ -721,8 +816,8 @@ def list_projects(
             "offset": offset,
             "limit": limit,
             "projects": [
-                _project_summary(project, row_phase, bool(row_known), with_description)
-                for project, row_phase, row_known in rows
+                _project_summary(project, row_phase, bool(row_known), with_description, tuple(dates))
+                for project, row_phase, row_known, *dates in rows
             ],
         }
 
@@ -760,6 +855,13 @@ def get_project_progress(project_id: int, *, ctx: Context) -> dict[str, Any]:
     parliament), observations with their trust and role (decisive, lower bound,
     in conflict), a set-back ``conflict`` (newer report with a lower phase than
     older information), subproject span and forecast.
+    Dates: ``observed_date`` / ``expected_date`` are sort values only — every
+    observation and forecast step carries ``date_precision`` (EXACT, MONTH,
+    YEAR, NOT_BEFORE = lower bound only, ASSUMED = derived by a rule) and
+    ``date_text`` („2028“, „nach 2031“, „ca. 07/2028 (Annahme)“); quote
+    ``date_text``, never the bare date. A step's ``derivation`` says how an
+    assumed date came about. Fix the precision of a manual observation with
+    update_progress_observation.
     ``forecast.ibn_doubt`` set → the GVFG-Finanzreihe still funds the project
     after the known Inbetriebnahme year; question that year and cite it."""
     get_principal(ctx)
@@ -1092,6 +1194,8 @@ def add_progress_observation(
     confidence: float | None = None,
     is_expected: bool = False,
     source_type: ManualSourceTypeLiteral = "MANUELL",
+    date_precision: DatePrecisionLiteral = "EXACT",
+    date_label: str | None = None,
     *,
     ctx: Context,
 ) -> dict[str, Any]:
@@ -1101,6 +1205,19 @@ def add_progress_observation(
       GENEHMIGUNGSPLANUNG, BAU, IN_BETRIEB)
     - track PF / PARL: asserted_state is OFFEN, LAEUFT or ABGESCHLOSSEN
     - is_expected: the date is a forecast, not a fact
+    - date_precision: how much of observed_date the source states (default
+      EXACT). Never invent a day the source does not give:
+      EXACT = a day is published (06.02.2026);
+      MONTH = only the month („Februar 2027“, stored as the 1st);
+      YEAR = only the year („2028 geplant“, stored as 1 Jan);
+      NOT_BEFORE = only a lower bound, no date („nach 2031“, „frühestens 2032“,
+      not in a published ranking) — observed_date is the first possible day,
+      e.g. 2032-01-01 for „nach 2031“; it never matches a period filter;
+      ASSUMED = not published, derived by you from a rule — say how in note.
+      Do not add the commissioning of a corridor renewal as Baubeginn + 6
+      months: the forecast derives it from the group's assumed build period.
+    - date_label: optional short text shown with the date, e.g.
+      „Priorisierung 2027 offen“ („nach 2031 – Priorisierung 2027 offen“)
     - confidence: trust of this report (default: source default). The newest
       report wins; within one year trust decides. A MANUELL observation may set
       a project back without a conflict; other sources only when they are at
@@ -1117,6 +1234,8 @@ def add_progress_observation(
             confidence=confidence,
             note=note,
             is_expected=is_expected,
+            date_precision=date_precision,
+            date_label=date_label,
         ).model_dump(exclude_unset=True)
     except ValidationError as exc:
         raise ToolError(f"Ungültige Werte: {exc}") from exc
@@ -1124,6 +1243,64 @@ def add_progress_observation(
         _project_or_error(db, project_id)
         user = load_user(db, principal)
         progress_crud.create_observation(db, project_id, payload, user)
+        view = progress_crud.get_progress_view(db, project_id)
+        return ProjectProgressSchema.model_validate(view).model_dump(mode="json")
+
+
+def update_progress_observation(
+    project_id: int,
+    observation_id: int,
+    date_precision: DatePrecisionLiteral | None = None,
+    date_label: str | None = None,
+    clear_date_label: bool = False,
+    observed_date: date | None = None,
+    note: str | None = None,
+    confidence: float | None = None,
+    is_expected: bool | None = None,
+    *,
+    ctx: Context,
+) -> dict[str, Any]:
+    """Change a manual planning-state observation in place (requires
+    ``progress.edit``) — e.g. add the date precision to an existing entry
+    instead of deleting and re-adding it. Only the given fields change; the
+    change log records old and new value. Observation ids come from
+    get_project_progress; derived observations (``is_derived``) cannot be
+    changed.
+
+    - date_precision: EXACT, MONTH, YEAR, NOT_BEFORE or ASSUMED (see
+      add_progress_observation). MONTH / YEAR move observed_date to the first
+      day of the month / year; for NOT_BEFORE set observed_date to the first
+      possible day (2032-01-01 for „nach 2031“) if it is not already
+    - date_label: short text shown with the date; clear_date_label removes it
+    Returns the recomputed planning state."""
+    principal = get_principal(ctx)
+    require(principal, "progress.edit")
+    try:
+        payload = ProgressObservationUpdate(
+            date_precision=date_precision,
+            date_label=date_label,
+            clear_date_label=clear_date_label,
+            observed_date=observed_date,
+            note=note,
+            confidence=confidence,
+            is_expected=is_expected,
+        ).model_dump(exclude_none=True)
+    except ValidationError as exc:
+        raise ToolError(f"Ungültige Werte: {exc}") from exc
+    with tool_session(ctx) as db:
+        _project_or_error(db, project_id)
+        user = load_user(db, principal)
+        try:
+            updated = progress_crud.update_observation(
+                db, project_id, observation_id, payload, user
+            )
+        except progress_crud.DerivedObservationUpdateError as exc:
+            raise ToolError(
+                "Abgeleitete Beobachtungen stammen aus den Importen und lassen sich "
+                "nicht ändern."
+            ) from exc
+        if updated is None:
+            raise ToolError(f"Beobachtung {observation_id} gehört nicht zu Projekt {project_id}.")
         view = progress_crud.get_progress_view(db, project_id)
         return ProjectProgressSchema.model_validate(view).model_dump(mode="json")
 
@@ -1322,6 +1499,7 @@ def register(server: MCPServer) -> None:
         set_project_draft,
         set_project_groups,
         add_progress_observation,
+        update_progress_observation,
         set_phase_override,
         upsert_project_text,
     ):

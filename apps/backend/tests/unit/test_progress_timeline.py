@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date
 
 from dashboard_backend.models.projects.progress_enums import (
+    DatePrecision,
     MainPhase,
     ObservationTrack,
     SourceType,
@@ -251,3 +252,53 @@ def test_build_timeline_single_unit_has_no_periods():
     unit = _stage(date(2028, 1, 1), date(2028, 7, 1))
     result = build_timeline(today=TODAY, manual_expected=unit.manual_expected, construction_units=[unit])
     assert result.construction_periods == []
+
+
+# --- Datumsqualifikation ------------------------------------------------------
+
+
+def test_milestones_carry_precision_and_assumed_commissioning():
+    result = build_timeline(
+        today=TODAY,
+        manual_expected=[
+            ExpectedDate(MainPhase.BAU, date(2028, 1, 1), precision=DatePrecision.YEAR)
+        ],
+        assumed_build_months=6,
+    )
+    [bau] = _phase(result, MainPhase.BAU)
+    [ibn] = _phase(result, MainPhase.IN_BETRIEB)
+    assert bau.precision is DatePrecision.YEAR
+    assert (ibn.date, ibn.precision, ibn.source) == (date(2028, 7, 1), DatePrecision.ASSUMED, "Annahme")
+    assert ibn.derivation.startswith("Annahme: 6 Monate Bauzeit")
+
+
+def test_not_before_member_never_splits_construction_stages():
+    # A stage that only has a lower bound („nach 2031“) has no end — no gap.
+    stage1 = ConstructionUnitInput(
+        manual_expected=[(MainPhase.BAU, date(2028, 1, 1)), (MainPhase.IN_BETRIEB, date(2028, 7, 1))]
+    )
+    stage2 = ConstructionUnitInput(
+        manual_expected=[
+            ExpectedDate(MainPhase.BAU, date(2032, 1, 1), precision=DatePrecision.NOT_BEFORE)
+        ],
+        assumed_build_months=6,
+    )
+    assert construction_periods([stage1, stage2], TODAY) == []
+
+
+def test_evidence_keeps_the_observation_precision():
+    obs = ObservationInput(
+        source_type=SourceType.MEDIEN,
+        track=ObservationTrack.MAIN,
+        asserted_state=MainPhase.BAU.value,
+        observed_date=date(2025, 1, 1),
+        confidence=1.0,
+        date_precision="YEAR",
+    )
+    result = build_timeline(
+        today=TODAY,
+        manual_expected=[(MainPhase.IN_BETRIEB, date(2027, 1, 1))],
+        observations=[obs],
+    )
+    [bau] = _phase(result, MainPhase.BAU)
+    assert (bau.certainty, bau.precision) == (CERTAINTY_EVIDENCE, DatePrecision.YEAR)

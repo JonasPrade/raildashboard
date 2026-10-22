@@ -7,7 +7,7 @@ from datetime import date
 
 import pytest
 
-from dashboard_backend.models.projects.progress_enums import MainPhase, ObservationTrack, SourceType
+from dashboard_backend.models.projects.progress_enums import DatePrecision, MainPhase, ObservationTrack, SourceType
 from dashboard_backend.services.progress_derivation import SOURCE_TYPE_DEFAULT_TRUST
 from dashboard_backend.services.progress_forecast import ExpectedDate, concrete_milestone_dates
 from dashboard_backend.services.progress_materialization import (
@@ -145,7 +145,7 @@ def test_gvfg_date_in_the_forecast():
             ExpectedDate(MainPhase.IN_BETRIEB, date(2028, 12, 31), STAND),
         ],
     )
-    assert concrete[MainPhase.IN_BETRIEB] == (date(2028, 12, 31), "GVFG")
+    assert (concrete[MainPhase.IN_BETRIEB].date, concrete[MainPhase.IN_BETRIEB].source) == (date(2028, 12, 31), "GVFG")
 
     # A more recent Infraplan beats the older GVFG edition.
     concrete = concrete_milestone_dates(
@@ -156,4 +156,9 @@ def test_gvfg_date_in_the_forecast():
         gvfg=[ExpectedDate(MainPhase.IN_BETRIEB, date(2028, 12, 31), date(2023, 9, 1))],
         infraplan=[ExpectedDate(MainPhase.IN_BETRIEB, date(2030, 12, 31), date(2025, 10, 6))],
     )
-    assert concrete[MainPhase.IN_BETRIEB] == (date(2030, 12, 31), "Infraplan")
+    assert (concrete[MainPhase.IN_BETRIEB].date, concrete[MainPhase.IN_BETRIEB].source) == (date(2030, 12, 31), "Infraplan")
+
+
+def test_expected_commissioning_is_the_timetable_change():
+    (expected,) = _expected(_specs(commissioning_planned=2028))
+    assert (expected.observed_date, expected.date_precision) == (date(2028, 12, 31), DatePrecision.MONTH)

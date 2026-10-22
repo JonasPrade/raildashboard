@@ -211,7 +211,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | Tool | Wirkung | benötigte Capability |
 |---|---|---|
 | `list_project_groups` | Projektgruppen mit Projektanzahl, optional per Freitext | — (eingeloggt) |
-| `list_projects` | Projekte suchen/filtern (Text in Name, Nummer, Beschreibung und Aliasen; Projektgruppe(n), Phase, Planungsstand bekannt, Geometrie, Länge, Lebenszyklus, Parl. Befassung, geändert seit), sortieren; `with_description` liefert je Eintrag den ersten Satz der Beschreibung und die Aliase | — (eingeloggt) |
+| `list_projects` | Projekte suchen/filtern (Text in Name, Nummer, Beschreibung und Aliasen; Projektgruppe(n), Phase, Planungsstand bekannt, Geometrie, Länge, Lebenszyklus, Parl. Befassung, geändert seit, Termin offen), sortieren; je Eintrag Bau- und IB-Termin als `{date, precision, text}`, filterbar über `construction_start`/`commissioning` (eine Untergrenze trifft nie einen Zeitraum); `with_description` liefert je Eintrag den ersten Satz der Beschreibung und die Aliase | — (eingeloggt) |
 | `list_project_filters` | Katalog der Filter von `list_projects`: Felder, Typen, Operatoren, Enum-Werte | — |
 | `get_project` | Projektdetail inkl. BVWP-Daten und Unterprojekten | — |
 | `get_project_progress` | Planungsstand inkl. Beobachtungen und Prognose; `forecast.ibn_doubt`, wenn die GVFG-Finanzreihe nach dem IBN-Jahr noch Mittel vorsieht | — |
@@ -237,7 +237,8 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `set_project_draft` | Projekt zum Entwurf machen oder Entwurf fertigstellen | `project.edit` |
 | `create_project_group` | Neue Projektgruppe anlegen (Name, eindeutiger Kurzname, Farbe, Sichtbarkeit); Duplikate (Kurzname/Name) werden abgelehnt | `projectgroup.create` |
 | `set_project_groups` | Projekt Gruppen hinzufügen/entfernen (id, Kurzname, Name) | `project.edit` |
-| `add_progress_observation` | Planungsstand-Beobachtung ergänzen | `progress.edit` |
+| `add_progress_observation` | Planungsstand-Beobachtung ergänzen, mit `date_precision` (EXACT Default, MONTH, YEAR, NOT_BEFORE, ASSUMED) und optionalem `date_label` | `progress.edit` |
+| `update_progress_observation` | manuelle Beobachtung in place ändern (Präzision, Terminzusatz, Datum, Notiz, Vertrauen, erwartet), mit Änderungsprotokoll; abgeleitete nicht | `progress.edit` |
 | `delete_progress_observation` | manuelle Beobachtung löschen (abgeleitete nicht) | `progress.edit` |
 | `set_phase_override` | manuellen Phasen-Override setzen (mit Begründung) oder aufheben | `progress.edit` |
 | `upsert_project_text` | Projekttext anlegen/ändern, inkl. Kategorie (Standard „Info“) und `is_public` | `projecttext.edit` |

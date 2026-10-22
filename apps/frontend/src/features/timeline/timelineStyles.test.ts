@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { gapFill, markerStyle, phaseColor, plannedFill, segmentFill } from "./timelineStyles";
+import { fuzzyMask, gapFill, markerStyle, openFill, phaseColor, plannedFill, segmentFill } from "./timelineStyles";
 
 describe("timelineStyles", () => {
     it("hatches the planned part in the phase colour", () => {
@@ -39,5 +39,21 @@ describe("timelineStyles", () => {
             background: "var(--surface)",
             border: "2px solid var(--text-strong)",
         });
+    });
+
+    it("draws uncertain markers hollow with a dashed rim", () => {
+        expect(markerStyle("PHASE", "IN_BETRIEB", false, "ASSUMED")).toMatchObject({
+            background: "var(--surface)",
+            border: "2px dashed var(--idt-success)",
+        });
+        expect(markerStyle("PHASE", "BAU", false, "YEAR").border).toBe("2px dashed var(--text-strong)");
+        expect(markerStyle("PHASE", "BAU", false, "EXACT").border).toBe("2px solid var(--text-strong)");
+    });
+
+    it("fades year-only edges and pales the open area", () => {
+        expect(fuzzyMask(false, false)).toBeUndefined();
+        expect(fuzzyMask(true, false)).toBe("linear-gradient(90deg, transparent 0, #000 35%, #000 100%)");
+        expect(fuzzyMask(false, true)).toBe("linear-gradient(90deg, #000 0, #000 65%, transparent 100%)");
+        expect(openFill("var(--idt-seq-5)")).toContain("color-mix(in srgb, var(--idt-seq-5) 45%, transparent)");
     });
 });

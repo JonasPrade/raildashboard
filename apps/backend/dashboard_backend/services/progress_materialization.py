@@ -21,13 +21,18 @@ from dataclasses import dataclass
 from datetime import date
 
 from dashboard_backend.models.projects.progress_enums import (
+    DatePrecision,
     MainPhase,
     ObservationTrack,
     ParallelState,
     SourceType,
 )
 from dashboard_backend.services.fulda_categories import get_category
-from dashboard_backend.services.progress_dates import parse_flexible_date
+from dashboard_backend.services.progress_dates import (
+    commissioning_in_year,
+    parse_flexible_date,
+    parse_flexible_date_with_precision,
+)
 
 # Sammel-FinVe (year-scoped pooled financing) is a much weaker signal than a
 # dedicated FinVe, so it gets an explicit low confidence instead of the FinVe
@@ -80,6 +85,8 @@ class DerivedSpec:
     gvfg_entry_id: int | None = None
     # Prognosis: feeds the forecast only, never the phase.
     is_expected: bool = False
+    # How precisely ``observed_date`` is known (year-only sources → YEAR).
+    date_precision: DatePrecision = DatePrecision.EXACT
 
 
 @dataclass(frozen=True)
@@ -104,24 +111,26 @@ def _strongest_vib_main_phase(
     return None
 
 
-def _pfa_main_phase(pfa: PfaInput) -> tuple[MainPhase | None, date | None]:
+def _pfa_main_phase(
+    pfa: PfaInput,
+) -> tuple[MainPhase | None, date | None, DatePrecision]:
     """Derive a leaf MAIN phase + its date from a single PFA's milestone dates.
 
     ``inbetriebnahme`` → IN_BETRIEB, else ``baubeginn`` → BAU, else ``datum_pfb``
     (the Planfeststellungsbeschluss concludes the approval phase) →
-    GENEHMIGUNGSPLANUNG. No parseable milestone → no MAIN contribution.
+    GENEHMIGUNGSPLANUNG. No parseable milestone → no MAIN contribution. The
+    precision of the free text comes along.
     """
 
-    ib = parse_flexible_date(pfa.inbetriebnahme)
-    if ib is not None:
-        return MainPhase.IN_BETRIEB, ib
-    bb = parse_flexible_date(pfa.baubeginn)
-    if bb is not None:
-        return MainPhase.BAU, bb
-    pfb = parse_flexible_date(pfa.datum_pfb)
-    if pfb is not None:
-        return MainPhase.GENEHMIGUNGSPLANUNG, pfb
-    return None, None
+    for phase, text in (
+        (MainPhase.IN_BETRIEB, pfa.inbetriebnahme),
+        (MainPhase.BAU, pfa.baubeginn),
+        (MainPhase.GENEHMIGUNGSPLANUNG, pfa.datum_pfb),
+    ):
+        dt, precision = parse_flexible_date_with_precision(text)
+        if dt is not None:
+            return phase, dt, precision
+    return None, None, DatePrecision.EXACT
 
 
 def _pfa_pf_spec(pfa: PfaInput, observed_date: date | None, vib_entry_id: int) -> DerivedSpec:
@@ -210,7 +219,7 @@ def pfa_to_specs(
     """
 
     specs: list[DerivedSpec] = []
-    main_phase, main_date = _pfa_main_phase(pfa)
+    main_phase, main_date, main_precision = _pfa_main_phase(pfa)
     label = pfa.nr_pfa or pfa.abschnitt_label or "PFA"
     if main_phase is not None:
         specs.append(
@@ -219,6 +228,7 @@ def pfa_to_specs(
                 track=ObservationTrack.MAIN,
                 asserted_state=main_phase.value,
                 observed_date=main_date or observed_fallback,
+                date_precision=main_precision,
                 note=f"{label}: aus PFA-Terminen",
                 vib_entry_id=vib_entry_id,
                 vib_pfa_entry_id=pfa.id,
@@ -390,10 +400,12 @@ def fulda_to_spec(
     if cat is None or cat.phase is None:
         return None
     note = f"Fulda-Runde (Drs. {drucksache})" if drucksache else "Fulda-Runde"
+    precision = DatePrecision.EXACT
     if cat.is_expected:
-        observed = expected_date or (
-            date(document_date.year, 12, 31) if document_date is not None else None
-        )
+        observed = expected_date
+        if observed is None and document_date is not None:
+            # No prognosis date printed: the answer's year is all we know.
+            observed, precision = date(document_date.year, 12, 31), DatePrecision.YEAR
     else:
         observed = document_date
     return DerivedSpec(
@@ -404,6 +416,7 @@ def fulda_to_spec(
         note=note,
         is_expected=cat.is_expected,
         fulda_announcement_id=fulda_announcement_id,
+        date_precision=precision,
     )
 
 
@@ -522,8 +535,10 @@ def infraplan_entry_to_specs(
                     ObservationTrack.MAIN,
                     MainPhase.IN_BETRIEB.value,
                     f"{label}: geplante Inbetriebnahme {ibn_year}",
-                    observed=date(ibn_year, 12, 31),
+                    observed=commissioning_in_year(ibn_year)[0],
                     is_expected=True,
+                    # Year only: the Fahrplanwechsel, shown as 12/YYYY.
+                    date_precision=commissioning_in_year(ibn_year)[1],
                 )
             )
 
@@ -636,10 +651,12 @@ def gvfg_entry_to_specs(
                 source_type=SourceType.GVFG,
                 track=ObservationTrack.MAIN,
                 asserted_state=MainPhase.IN_BETRIEB.value,
-                observed_date=date(ibn_year, 12, 31),
+                observed_date=commissioning_in_year(ibn_year)[0],
                 note=f"{label}: geplante Inbetriebnahme {ibn_year}",
                 gvfg_entry_id=gvfg_entry_id,
                 is_expected=True,
+                # Only the year is printed: the Fahrplanwechsel, shown as 12/YYYY.
+                date_precision=commissioning_in_year(ibn_year)[1],
             )
         )
     return specs

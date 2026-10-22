@@ -193,7 +193,17 @@ export type ProjectGroupGeometries = components["schemas"]["ProjectGroupGeometri
  * `withActiveFeatures` (which also carry the stored headline phase).
  */
 export type ProjectOverview = Partial<Omit<Project, "id" | "name">> &
-    Partial<Pick<ProjectListItem, "headline_phase" | "lifecycle_status">> & { id?: number | null; name: string };
+    Partial<
+        Pick<
+            ProjectListItem,
+            | "headline_phase"
+            | "lifecycle_status"
+            | "construction_start_date"
+            | "construction_start_precision"
+            | "commissioning_date"
+            | "commissioning_precision"
+        >
+    > & { id?: number | null; name: string };
 export type ProjectRoute = components["schemas"]["RouteOut"];
 export type User = components["schemas"]["UserRead"];
 export type Role = components["schemas"]["RoleRead"];
@@ -395,6 +405,19 @@ export function useAddProgressObservation(projectId: number) {
         (payload: ProgressObservationCreate) =>
             api<ProjectProgress>(`/api/v1/projects/${projectId}/progress/observations`, {
                 method: "POST",
+                json: payload,
+            }),
+        [queryKeys.progressFor(projectId), queryKeys.projectChangelog(projectId)],
+    );
+}
+
+export type ProgressObservationUpdate = components["schemas"]["ProgressObservationUpdate"];
+
+export function useUpdateProgressObservation(projectId: number) {
+    return useInvalidatingMutation(
+        ({ observationId, payload }: { observationId: number; payload: ProgressObservationUpdate }) =>
+            api<ProjectProgress>(`/api/v1/projects/${projectId}/progress/observations/${observationId}`, {
+                method: "PATCH",
                 json: payload,
             }),
         [queryKeys.progressFor(projectId), queryKeys.projectChangelog(projectId)],

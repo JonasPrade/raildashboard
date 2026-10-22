@@ -23,6 +23,8 @@ vi.mock("../../shared/api/queries", () => ({
                     source_type: "VIB",
                     asserted_phase: "VORPLANUNG",
                     observed_date: "2025-12-31",
+                    date_precision: "EXACT",
+                    date_text: "31.12.2025",
                     trust: 0.6,
                     contradicted_ids: [1],
                     contradicted_phase: "BAU",
@@ -35,6 +37,8 @@ vi.mock("../../shared/api/queries", () => ({
                         track: "MAIN",
                         asserted_state: "BAU",
                         observed_date: "2015-01-01",
+                        date_precision: "YEAR",
+                        date_text: "2015",
                         effective_confidence: 0.7,
                         was_decisive: true,
                         trust: 0.7,
@@ -59,6 +63,6 @@ describe("ProgressConflictsAdminPage", () => {
         expect(screen.getByRole("link", { name: "ABS Beispiel" })).toHaveAttribute("href", "/projects/7");
         expect(screen.getByText("zurückgehalten")).toBeInTheDocument();
         expect(screen.getByText(/1 neuere Meldung/)).toBeInTheDocument();
-        expect(screen.getByText(/FinVe · 2015-01-01/)).toHaveTextContent("Untergrenze");
+        expect(screen.getByText(/FinVe · 2015 \(/)).toHaveTextContent("Untergrenze");
     });
 });

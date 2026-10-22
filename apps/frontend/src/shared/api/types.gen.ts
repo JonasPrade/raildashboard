@@ -422,7 +422,12 @@ export interface paths {
         delete: operations["remove_observation_api_v1_projects__project_id__progress_observations__observation_id__delete"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Patch Observation
+         * @description Change a manual observation in place (date, precision, label, note …).
+         *     Derived observations are protected (409).
+         */
+        patch: operations["patch_observation_api_v1_projects__project_id__progress_observations__observation_id__patch"];
         trace?: never;
     };
     "/api/v1/projects/{project_id}/progress/tracks/{track}/documents": {
@@ -3944,6 +3949,18 @@ export interface components {
             expected_date?: string | null;
             /** Source */
             source: string;
+            /**
+             * Date Precision
+             * @default EXACT
+             * @enum {string}
+             */
+            date_precision: "EXACT" | "MONTH" | "YEAR" | "NOT_BEFORE" | "ASSUMED";
+            /** Date Label */
+            date_label?: string | null;
+            /** Date Text */
+            date_text?: string | null;
+            /** Derivation */
+            derivation?: string | null;
         };
         /** FuldaCategorySchema */
         FuldaCategorySchema: {
@@ -5631,6 +5648,14 @@ export interface components {
             asserted_phase: "NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB";
             /** Observed Date */
             observed_date?: string | null;
+            /**
+             * Date Precision
+             * @default EXACT
+             * @enum {string}
+             */
+            date_precision: "EXACT" | "MONTH" | "YEAR" | "NOT_BEFORE" | "ASSUMED";
+            /** Date Text */
+            date_text?: string | null;
             /** Trust */
             trust: number;
             /**
@@ -5811,6 +5836,12 @@ export interface components {
             /** Estimated Phase End */
             estimated_phase_end?: string | null;
             /**
+             * Estimated Phase End Precision
+             * @default EXACT
+             * @enum {string}
+             */
+            estimated_phase_end_precision: "EXACT" | "MONTH" | "YEAR" | "NOT_BEFORE" | "ASSUMED";
+            /**
              * Next Steps
              * @default []
              */
@@ -5839,6 +5870,15 @@ export interface components {
             asserted_state: string;
             /** Observed Date */
             observed_date?: string | null;
+            /**
+             * Date Precision
+             * @description How precisely the date is known: EXACT = published day, MONTH = only the month (stored as the 1st), YEAR = only the year (stored as 1 Jan), NOT_BEFORE = only a lower bound, no date (store the first possible day, e.g. 2032-01-01 for „nach 2031“), ASSUMED = derived from a rule, not published (e.g. Baubeginn + 6 months).
+             * @default EXACT
+             * @enum {string}
+             */
+            date_precision: "EXACT" | "MONTH" | "YEAR" | "NOT_BEFORE" | "ASSUMED";
+            /** Date Label */
+            date_label?: string | null;
             /** Confidence */
             confidence?: number | null;
             /** Note */
@@ -5867,6 +5907,14 @@ export interface components {
             asserted_state: string;
             /** Observed Date */
             observed_date?: string | null;
+            /**
+             * Date Precision
+             * @default EXACT
+             * @enum {string}
+             */
+            date_precision: "EXACT" | "MONTH" | "YEAR" | "NOT_BEFORE" | "ASSUMED";
+            /** Date Label */
+            date_label?: string | null;
             /** Confidence */
             confidence?: number | null;
             /** Note */
@@ -5885,6 +5933,38 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Date Text
+             * @description Display text of the date at its precision („2028“, „nach 2031“).
+             */
+            readonly date_text: string | null;
+        };
+        /**
+         * ProgressObservationUpdate
+         * @description Partial change of a manual observation; omitted fields stay as they are.
+         *     ``clear_date_label`` removes the label (null is ambiguous with "omitted").
+         */
+        ProgressObservationUpdate: {
+            /** Observed Date */
+            observed_date?: string | null;
+            /**
+             * Date Precision
+             * @description How precisely the date is known: EXACT = published day, MONTH = only the month (stored as the 1st), YEAR = only the year (stored as 1 Jan), NOT_BEFORE = only a lower bound, no date (store the first possible day, e.g. 2032-01-01 for „nach 2031“), ASSUMED = derived from a rule, not published (e.g. Baubeginn + 6 months).
+             */
+            date_precision?: ("EXACT" | "MONTH" | "YEAR" | "NOT_BEFORE" | "ASSUMED") | null;
+            /** Date Label */
+            date_label?: string | null;
+            /**
+             * Clear Date Label
+             * @default false
+             */
+            clear_date_label: boolean;
+            /** Confidence */
+            confidence?: number | null;
+            /** Note */
+            note?: string | null;
+            /** Is Expected */
+            is_expected?: boolean | null;
         };
         /** ProjectConstituenciesSchema */
         ProjectConstituenciesSchema: {
@@ -6092,6 +6172,8 @@ export interface components {
             is_default_selected: boolean;
             /** Skipped Phases */
             skipped_phases?: ("VORPLANUNG" | "GENEHMIGUNGSPLANUNG")[];
+            /** Assumed Build Months */
+            assumed_build_months?: number | null;
         };
         /**
          * ProjectGroupGeometriesSchema
@@ -6167,6 +6249,11 @@ export interface components {
              * @description Planning phases this group's projects usually skip; hidden in the progress view and forecast when all of a project's groups skip them
              */
             skipped_phases?: ("VORPLANUNG" | "GENEHMIGUNGSPLANUNG")[];
+            /**
+             * Assumed Build Months
+             * @description Assumed construction period (months) for projects without a published closure period; the forecast derives the commissioning as ASSUMED (HLK: 6)
+             */
+            assumed_build_months?: number | null;
             /** Id Old */
             id_old?: number | null;
             /**
@@ -6210,6 +6297,8 @@ export interface components {
             is_default_selected?: boolean | null;
             /** Skipped Phases */
             skipped_phases?: ("VORPLANUNG" | "GENEHMIGUNGSPLANUNG")[] | null;
+            /** Assumed Build Months */
+            assumed_build_months?: number | null;
         };
         /** ProjectInfraplanSchema */
         ProjectInfraplanSchema: {
@@ -6262,6 +6351,20 @@ export interface components {
              * @description Lifecycle overlay from the stored project_progress row; null without a row.
              */
             lifecycle_status?: ("AKTIV" | "PAUSIERT" | "ABGEBROCHEN") | null;
+            /**
+             * Construction Start Date
+             * @description Cached concrete Baubeginn of the forecast (sort value; show only with construction_start_precision). Null without a concrete date.
+             */
+            construction_start_date?: string | null;
+            /** Construction Start Precision */
+            construction_start_precision?: ("EXACT" | "MONTH" | "YEAR" | "NOT_BEFORE" | "ASSUMED") | null;
+            /**
+             * Commissioning Date
+             * @description Cached concrete or assumed Inbetriebnahme (sort value; show only with commissioning_precision).
+             */
+            commissioning_date?: string | null;
+            /** Commissioning Precision */
+            commissioning_precision?: ("EXACT" | "MONTH" | "YEAR" | "NOT_BEFORE" | "ASSUMED") | null;
         };
         /** ProjectMergeLinkCount */
         ProjectMergeLinkCount: {
@@ -7283,6 +7386,14 @@ export interface components {
             asserted_state: string;
             /** Observed Date */
             observed_date?: string | null;
+            /**
+             * Date Precision
+             * @default EXACT
+             * @enum {string}
+             */
+            date_precision: "EXACT" | "MONTH" | "YEAR" | "NOT_BEFORE" | "ASSUMED";
+            /** Date Text */
+            date_text?: string | null;
             /** Effective Confidence */
             effective_confidence: number;
             /** Was Decisive */
@@ -7400,6 +7511,18 @@ export interface components {
              * @enum {string}
              */
             certainty: "CONCRETE" | "EVIDENCE";
+            /**
+             * Date Precision
+             * @default EXACT
+             * @enum {string}
+             */
+            date_precision: "EXACT" | "MONTH" | "YEAR" | "NOT_BEFORE" | "ASSUMED";
+            /** Date Label */
+            date_label?: string | null;
+            /** Date Text */
+            date_text?: string | null;
+            /** Derivation */
+            derivation?: string | null;
         };
         /** TimelinePeriodSchema */
         TimelinePeriodSchema: {
@@ -9134,6 +9257,44 @@ export interface operations {
             };
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectProgressSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_observation_api_v1_projects__project_id__progress_observations__observation_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                observation_id: number;
+                project_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProgressObservationUpdate"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
