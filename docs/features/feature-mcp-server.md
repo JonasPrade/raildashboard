@@ -407,8 +407,9 @@ Client-seitig (Claude Code, `.mcp.json`):
     Betriebsstellen (id, op_id oder exakter Name; mehrdeutige Namen → Fehler mit
     Kandidaten) oder freie Koordinaten `{lat, lon}`; Zwischenpunkte erzwingen den Korridor.
     Ohne `apply` nur Vorschau (Distanz, Dauer, aufgelöste Wegpunkte, Ergebnis-Geometrie);
-    mit `apply` wird die Linie angehängt (`append`) oder ersetzt (`replace`), die
-    Betriebsstellen kommen wie im UI als Punkte dazu (ohne Dublette per `op_id`), und die
+    mit `apply` wird die Linie angehängt (`append`) oder ersetzt (`replace`); die
+    Betriebsstellen kommen nur mit `add_stations: true` als Punkte dazu (Standard: aus,
+    wie der Schalter im UI; ohne Dublette per `op_id`), und die
     Route wird wie bei „Übernehmen“ in `routes` gespeichert. Der `RouteService` wird pro
     Request wie die DB-Session in den Scope gelegt (in Tests: der Routing-Stub).
   - `edit_project_geometry`: `replace` (allein: Geometrie leeren) oder

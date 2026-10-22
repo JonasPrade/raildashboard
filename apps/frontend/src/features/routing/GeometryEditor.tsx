@@ -82,6 +82,8 @@ export default function GeometryEditor({
     const [deleteExisting, setDeleteExisting] = useState(false);
     const [previewFeature, setPreviewFeature] = useState<RoutePreviewFeature | null>(null);
     const [routeStations, setRouteStations] = useState<OperationalPointRef[]>([]);
+    // Route waypoints only steer the routing; they become points only on explicit request.
+    const [addRouteStations, setAddRouteStations] = useState(false);
     const [uploadedGeojson, setUploadedGeojson] = useState<string | null>(null);
     const [uploadError, setUploadError] = useState<string | null>(null);
     const [routeError, setRouteError] = useState<string | null>(null);
@@ -134,6 +136,7 @@ export default function GeometryEditor({
         setDeleteExisting(false);
         setPreviewFeature(null);
         setRouteStations([]);
+        setAddRouteStations(false);
         setUploadedGeojson(null);
         setUploadError(null);
         setRouteError(null);
@@ -259,8 +262,8 @@ export default function GeometryEditor({
      *   - false → replace (used when there is no existing geometry, or the user toggled
      *     "Bestehende Geometrie löschen"): only the newly added features are written.
      *   - true  → merge (the default when existing geometry is present): the new features
-     *     (route line, uploaded GeoJSON, route stations + manually picked operational
-     *     points) are appended to the existing ones, so nothing is silently dropped.
+     *     (route line, uploaded GeoJSON, manually picked operational points and — only
+     *     when opted in — the route stations) are appended to the existing ones, so nothing is silently dropped.
      */
     function buildFinalGeometry(keepExisting: boolean): string | null {
         const features: object[] = [];
@@ -278,9 +281,9 @@ export default function GeometryEditor({
             features.push(...parseFeatures(uploadedGeojson));
         }
 
-        // Merge route start/via/end stations + manually-added points, dedup by id.
-        // Route stations are only included when the route is actually about to be saved
-        // (i.e. previewFeature is non-null).
+        // Merge manually-added points and — only when explicitly requested — the route's
+        // start/via/end stations, dedup by id. Route stations additionally require the
+        // route to actually be saved (i.e. previewFeature is non-null).
         const seen = new Set<number>();
         const pushOnce = (op: OperationalPointRef) => {
             if (!seen.has(op.id) && op.latitude != null && op.longitude != null) {
@@ -292,7 +295,7 @@ export default function GeometryEditor({
                 });
             }
         };
-        if (previewFeature) routeStations.forEach(pushOnce);
+        if (previewFeature && addRouteStations) routeStations.forEach(pushOnce);
         selectedPoints.forEach(pushOnce);
 
         // Hand-drawn lines/points, stripped of terra-draw's internal properties.
@@ -607,6 +610,15 @@ export default function GeometryEditor({
                                     onError={setRouteError}
                                 />
 
+                                {previewFeature && routeStations.length > 0 && (
+                                    <Switch
+                                        label="Start, Ziel und Zwischenhalte als Punkte übernehmen"
+                                        description="Standardmäßig wird nur die Linie gespeichert."
+                                        checked={addRouteStations}
+                                        onChange={(e) => setAddRouteStations(e.currentTarget.checked)}
+                                    />
+                                )}
+
                                 <Divider label="Betriebsstellen hinzufügen" labelPosition="left" />
 
                                 <StationSelect
@@ -716,7 +728,7 @@ export default function GeometryEditor({
                     previewFeature={previewFeature ?? (uploadedGeojson ? buildUploadPreview(uploadedGeojson) : null)}
                     // While editing in place, terra-draw renders the saved geometry itself.
                     showExisting={!deleteExisting && !editExisting}
-                    previewPoints={selectedPoints}
+                    previewPoints={addRouteStations && previewFeature ? [...routeStations, ...selectedPoints] : selectedPoints}
                     selectionMode={selectionMode}
                     selectedIndices={selectedFeatureIndices}
                     onFeatureClick={toggleFeatureSelection}

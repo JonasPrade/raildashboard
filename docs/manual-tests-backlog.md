@@ -115,7 +115,8 @@ Rollout abgearbeitet, dann hier gestrichen.
 
 - [ ] Auf `/projects/<id>` (als editor/admin) „Geometrie verwalten" öffnen.
 - [ ] Im Modal: Start, optional Via, Ziel auswählen → „Route berechnen" → Route erscheint orange-dashed auf der Karte.
-- [ ] Direkt „Übernehmen" klicken (ohne über „Betriebsstellen hinzufügen" nochmal die gleichen OPs zu wählen).
+- [ ] Ohne den Schalter „Start, Ziel und Zwischenhalte als Punkte übernehmen" „Übernehmen" klicken → nach Refresh zeigt die Karte **nur** die Linie, keine Bahnhofspunkte.
+- [ ] Erneut routen, Schalter einschalten (Vorschau zeigt die Bahnhöfe als Punkte), direkt „Übernehmen" klicken.
 - [ ] Nach Refresh der Projektseite: Karte zeigt die Linie **und** die Start/Via/End-Bahnhöfe als Punkte.
 - [ ] In der DB: `SELECT geojson_representation FROM project WHERE id=<id>` → FeatureCollection enthält eine LineString-Feature und zusätzlich für jede Station ein Point-Feature mit `properties.feature_type = "operational_point"` und korrektem `op_id`/`name`.
 - [ ] Wenn man unter „Betriebsstellen hinzufügen" einen der Routen-Bahnhöfe nochmal manuell auswählt: nach Übernehmen ist die Station **nur einmal** im GeoJSON enthalten (Dedup über `op.id`).

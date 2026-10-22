@@ -244,7 +244,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "im Anlege-Wizard (Schritt 2) und im Bearbeiten-Modal. Die Geometrie entsteht auf vier Wegen und " +
             "wird in project.geojson_representation gespeichert.",
         details: [
-            "Route zwischen Betriebsstellen via GraphHopper berechnen",
+            "Route zwischen Betriebsstellen via GraphHopper berechnen — gespeichert wird nur die Linie; Start, Ziel und Zwischenhalte werden nur auf ausdrücklichen Wunsch (Schalter) als Punkte übernommen",
             "Einzelne Betriebsstellen als Punkte hinzufügen",
             "Fertige GeoJSON-Datei hochladen",
             "Linien und Punkte direkt auf der Karte zeichnen (terra-draw): Klicks setzen Stützpunkte, Doppelklick beendet eine Linie; im Bearbeiten-Modus Stützpunkte verschieben, einfügen und löschen",
