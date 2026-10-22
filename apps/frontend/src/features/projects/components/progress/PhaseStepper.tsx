@@ -11,6 +11,7 @@ import {
     mainPhaseIndex,
     visiblePhases,
 } from "./phaseMeta";
+import type { PhaseCompletion } from "./gvfgPhaseDates";
 import { formatDateShort } from "../../../../shared/format";
 import { LANE_STATE_COLOR } from "../../../../shared/theme/semanticColors";
 
@@ -50,6 +51,9 @@ type Props = {
     parlDate?: string | null;
     /** Planning phases left out entirely (skipped by the project's groups). */
     hiddenPhases?: readonly string[] | null;
+    /** Years in which phases ended per a source (e.g. GVFG Baubeginn), shown
+     * in the phase tooltip as "abgeschlossen 2009". */
+    completedAt?: Partial<Record<MainPhase, PhaseCompletion>>;
 };
 
 const ACTIVE: string = LANE_STATE_COLOR.active;
@@ -133,6 +137,7 @@ export default function PhaseStepper({
     parlState,
     parlDate,
     hiddenPhases,
+    completedAt,
 }: Props) {
     const phases = visiblePhases(hiddenPhases);
     const isSpan = spanMin != null && spanMax != null;
@@ -178,12 +183,22 @@ export default function PhaseStepper({
                 }
 
                 const phaseChildren = childrenByPhase?.[phase] ?? [];
+                const completion = completedAt?.[phase];
                 const tooltipLabel =
-                    phaseChildren.length > 0 ? (
+                    phaseChildren.length > 0 || completion ? (
                         <Stack gap={2}>
                             <Text size="xs" fw={700}>
-                                {MAIN_PHASE_LABEL[phase]} ({phaseChildren.length})
+                                {MAIN_PHASE_LABEL[phase]}
+                                {phaseChildren.length > 0 && ` (${phaseChildren.length})`}
                             </Text>
+                            {completion && (
+                                <Text size="xs">
+                                    abgeschlossen {completion.year}{" "}
+                                    <Text span size="xs" c="dimmed">
+                                        ({completion.source})
+                                    </Text>
+                                </Text>
+                            )}
                             {phaseChildren.slice(0, 12).map((c) => (
                                 <Text key={c.project_id} size="xs">
                                     {c.name}
