@@ -104,8 +104,40 @@ class SourceContributionSchema(BaseModel):
     track: TrackLiteral
     asserted_state: str
     observed_date: Optional[date] = None
-    effective_confidence: float
+    effective_confidence: float  # trust × recency; decides credibility only
     was_decisive: bool
+    trust: float = 0.0  # explicit confidence, else the source default (no recency)
+    is_lower_bound: bool = False  # FinVe: "at least this phase", does not age
+    in_conflict: bool = False  # side of a reported set-back conflict
+
+
+class PhaseConflictSchema(BaseModel):
+    """A newer status report asserts a lower phase than older information.
+
+    ``applied``: the report set the headline back (trust at least that of every
+    contradicting observation); otherwise it was held back.
+    """
+
+    observation_id: Optional[int] = None
+    source_type: SourceTypeLiteral
+    asserted_phase: MainPhaseLiteral
+    observed_date: Optional[date] = None
+    trust: float
+    contradicted_ids: list[Optional[int]] = []
+    contradicted_phase: MainPhaseLiteral
+    applied: bool
+
+
+class ProgressConflictRowSchema(BaseModel):
+    """One project in the admin list of planning-state conflicts."""
+
+    project_id: int
+    project_name: str
+    project_number: Optional[str] = None
+    computed_phase: MainPhaseLiteral
+    conflict: PhaseConflictSchema
+    # The contradicted observations, for the admin table.
+    contradicted: list[SourceContributionSchema] = []
 
 
 # --- Superior aggregation ----------------------------------------------------
@@ -260,6 +292,7 @@ class ProjectProgressSchema(BaseModel):
     # Breakdown.
     observations: list[ProgressObservationSchema] = []
     contributions: list[SourceContributionSchema] = []
+    conflict: Optional[PhaseConflictSchema] = None
     pf_documents: list[TrackDocumentSchema] = []
     parl_documents: list[TrackDocumentSchema] = []
 

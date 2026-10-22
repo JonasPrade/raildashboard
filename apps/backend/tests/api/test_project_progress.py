@@ -225,3 +225,44 @@ def test_link_document_pf(client, create_user, monkeypatch):
         headers=basic_auth_header("editor6", "pass123"),
     )
     assert resp.status_code == 201
+
+
+# --- Admin conflict list -----------------------------------------------------
+
+
+def test_progress_conflicts_requires_permission(client, create_user):
+    assert client.get("/api/v1/admin/progress-conflicts").status_code == 401
+    create_user("viewer9", "pass123", UserRole.viewer)
+    resp = client.get(
+        "/api/v1/admin/progress-conflicts", headers=basic_auth_header("viewer9", "pass123")
+    )
+    assert resp.status_code == 403
+
+
+def test_progress_conflicts_lists_rows(client, create_user, monkeypatch):
+    import dashboard_backend.api.v1.endpoints.admin_assignments as admin_route
+
+    create_user("editor9", "pass123", UserRole.editor)
+    row = {
+        "project_id": 7,
+        "project_name": "ABS X",
+        "project_number": None,
+        "computed_phase": "BAU",
+        "conflict": {
+            "observation_id": 2,
+            "source_type": "VIB",
+            "asserted_phase": "VORPLANUNG",
+            "observed_date": "2025-12-31",
+            "trust": 0.6,
+            "contradicted_ids": [1],
+            "contradicted_phase": "BAU",
+            "applied": False,
+        },
+        "contradicted": [],
+    }
+    monkeypatch.setattr(admin_route, "list_progress_conflicts", lambda db: [row])
+    resp = client.get(
+        "/api/v1/admin/progress-conflicts", headers=basic_auth_header("editor9", "pass123")
+    )
+    assert resp.status_code == 200
+    assert resp.json()[0]["conflict"]["applied"] is False

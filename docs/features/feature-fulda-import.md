@@ -107,7 +107,9 @@ getrennt; der Eintrag bleibt als Hinweis in der Jahres-Ansicht sichtbar.
 ## Ableitung
 
 - **IST / OHNE_FOLGEPHASE** → abgeleitete MAIN-Beobachtung, Quelle `FULDA_RUNDE`,
-  `observed_date = document.document_date`, Vertrauen 0.55 × Aktualität. Liefert **keinen**
+  `observed_date = document.document_date`, Vertrauen 0.55 (Statusbericht: der neueste Bericht
+  gewinnt, eine Rückstufung gegen eine FinVe 0.7 wird als Konflikt zurückgehalten —
+  `feature-project-progress.md`). Liefert **keinen**
   Termin für Prognose-Panel oder Zeitstrahl (nur Beleg).
 - **PROGNOSE / NEUAUFNAHME** → abgeleitete MAIN-Beobachtung mit `is_expected = True`,
   `observed_date = expected_date` (fehlt es: 31.12. des Dokumentjahres). Sie hebt die
@@ -215,7 +217,7 @@ Inhalt kurz:
 - [ ] Ein Projekt aus „Abschluss Lph 3/4 im Laufe 2026“ bleibt in seiner Phase und zeigt
       im Prognose-Panel „Bau ab 31.12.2026 (Fulda-Runde)“.
 - [ ] Ein Projekt aus der Tabelle Sammel-FinVe Lph 3/4 bekommt eine Fulda-Beobachtung
-      „Genehmigungsplanung“ mit dem Dokumentdatum und Vertrauen 0.55 × Aktualität.
+      „Genehmigungsplanung“ mit dem Dokumentdatum und Vertrauen 0.55.
 - [ ] Ein Fulda-Termin von 2026 schlägt im Prognose-Panel einen VIB-PFA-Termin aus einem
       Bericht von 2023; ein manueller erwarteter Termin schlägt beide.
 - [ ] Ohne `fulda.import` verweigern REST und MCP den Zugriff.

@@ -13,9 +13,9 @@ import enum
 class MainPhase(str, enum.Enum):
     """Ordered main planning phases (linear, always present).
 
-    The ordering is the backbone of the *lower-bound* derivation rule: most
-    sources assert a monotone lower bound, so the headline phase is the
-    ``max`` over the credible lower bounds (see ``services.progress_derivation``).
+    The ordering decides ties, lets lower bounds (FinVe) raise the headline and
+    detects set-backs (a newer report with a lower phase), see
+    ``services.progress_derivation``.
     """
 
     NICHT_GESTARTET = "NICHT_GESTARTET"

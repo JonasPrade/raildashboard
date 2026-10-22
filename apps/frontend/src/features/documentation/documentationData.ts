@@ -264,7 +264,8 @@ export const featureHighlights: FeatureHighlight[] = [
             "Lebenszyklus-Overlay (Pausiert/Abgebrochen) und einen Aufklappbereich mit der " +
             "Quellen-Aufschlüsselung. Die Anzeige ist öffentlich; Bearbeiten erfordert progress.edit.",
         details: [
-            "Headline-Phase = Beobachtung mit der höchsten effektiven Konfidenz (Recency-gewichtet); bei Gleichstand gewinnt die höhere Phase",
+            "Headline-Phase: der neueste glaubwürdige Statusbericht (VIB, Infraplan, GVFG, Bauportal, Fulda-Runde, Medien, manuell) gewinnt; nur innerhalb eines Jahres vor dem neuesten Bericht entscheidet das Vertrauen der Quelle, bei Gleichstand die höhere Phase. FinVes sind Untergrenzen („mindestens Bau“): Sie heben die Phase nur an und veralten nicht",
+            "Meldet ein neuerer Bericht eine niedrigere Phase als ältere Angaben, stuft er nur zurück, wenn er mindestens so vertrauenswürdig ist (oder manuell erfasst wurde); sonst bleibt die höhere Phase. Beides erscheint als Konflikt unter Admin → „Planungsstand-Konflikte“ und als Hinweis im Projekt; ein Phasen-Override löst ihn auf",
             "Manueller Phasen-Override gewinnt immer über den berechneten Wert (Badge 'übersteuert')",
             "Parl. Befassung ist bei BSWAG-Projektgruppen vorbelegt; nullable Override pro Projekt",
             "Pausiert/Abgebrochen überblendet die gesamte Darstellung (Banner + abgeblendeter Stepper)",
@@ -286,7 +287,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Erwartete Termine: eine manuelle Beobachtung kann als „erwarteter Termin\" markiert werden (Schalter im Beobachtungsformular). Sie speist nur die Prognose (z. B. erwartete Inbetriebnahme), zieht die aktuelle Phase nicht hoch und übersteuert dort alle automatischen Quellen (VIB-PFA/BVWP/Fulda). Zwischen VIB-PFA- und Fulda-Terminen entscheidet Glaubwürdigkeit × Aktualität des Berichts",
             "Kurzansicht (Karten-Popup, Unter-/Übergeordnet-Abschnitte): kompakte Leistungsphasen-Leiste mit aktuellem Stand; erreichte Phasen grün, „In Betrieb\" grün (= abgeschlossen), Spanne bei übergeordneten Projekten",
             "Kurzansicht beim Überfahren: Wo ein Projekt verlinkt ist (Wahlkreise und Abgeordnete, FinVe, Infraplan, GVFG, Unterprojekt-Tabelle, Zeitstrahl, Aufgaben), zeigt das Überfahren des Links mit der Maus die Kurzansicht des Projekts; auf Touch-Geräten bleibt es ein normaler Link",
-            "Tabelle „Quellen & Beobachtungen\": Spalte „Bereich\" (Planungsphasen/Planfeststellung/parl. Befassung); Vertrauen und „entscheidend\" sind nur für eingeloggte Nutzer sichtbar, ebenso die Vertrauensangabe in der Kopfzeile",
+            "Tabelle „Quellen & Beobachtungen\": Spalte „Bereich\" (Planungsphasen/Planfeststellung/parl. Befassung); Spalte „Alter“ für alle; Vertrauen (ohne Altersabschlag) und die Marken „entscheidend“, „Untergrenze“ und „Konflikt“ sind nur für Admins sichtbar, ebenso die Vertrauensangabe in der Kopfzeile",
             "Beim Anlegen eines neuen Projekts (Wizard, Schritt „Eigenschaften\") lässt sich die aktuelle Planungsphase direkt setzen (manueller Override, optional)",
             "Filter „Planungsphase\" auf der Startseite (Karte und Liste, Mehrfachauswahl): zeigt nur Projekte in den gewählten Phasen; „Unbekannt\" wählt Projekte ohne bekannten Planungsstand. Die Auswahl steht in der URL (?phase=BAU,VORPLANUNG), kombiniert sich mit Projektgruppe und Suche und bleibt beim Wechsel Karte ↔ Liste erhalten. Auf dem Telefon liegt der Filter im Bottom-Sheet „Karte einstellen\"",
             "Pausierte und abgebrochene Projekte werden nach ihrer zuletzt bekannten Phase gefiltert (der Lebenszyklus ändert die Phase nicht); die Projektkarte zeigt zusätzlich „Pausiert\"/„Abgebrochen\"",
