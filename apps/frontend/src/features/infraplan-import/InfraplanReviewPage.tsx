@@ -56,6 +56,7 @@ import {
     isAssigned,
 } from "../infraplan/infraplanFormat";
 import { LoadingState } from "../../shared/ui/LoadingState";
+import ProjectHoverCard from "../projects/ProjectHoverCard";
 
 const PAGE_SIZE = 50;
 
@@ -633,9 +634,11 @@ function InfraplanReviewPageContent() {
                                     {(record.missing_from_previous ?? []).map((m) => (
                                         <Table.Tr key={m.project_id}>
                                             <Table.Td>
-                                                <Anchor component={Link} to={`/projects/${m.project_id}`} size="sm">
-                                                    {m.project_name}
-                                                </Anchor>
+                                                <ProjectHoverCard projectId={m.project_id}>
+                                                    <Anchor component={Link} to={`/projects/${m.project_id}`} size="sm">
+                                                        {m.project_name}
+                                                    </Anchor>
+                                                </ProjectHoverCard>
                                             </Table.Td>
                                             <Table.Td>
                                                 {m.entries.map((e) => (

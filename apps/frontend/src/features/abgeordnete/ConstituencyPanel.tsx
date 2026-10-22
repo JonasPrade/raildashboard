@@ -9,6 +9,7 @@ import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { useConstituency } from "../../shared/api/queries";
 import { MandateGroup, formatWeight } from "./mandateDisplay";
 import { LoadingState } from "../../shared/ui/LoadingState";
+import ProjectHoverCard from "../projects/ProjectHoverCard";
 
 export default function ConstituencyPanel({
     constituencyId,
@@ -77,13 +78,15 @@ export default function ConstituencyPanel({
                                             wrap="nowrap"
                                             gap="xs"
                                         >
-                                            <Anchor
-                                                component={Link}
-                                                to={`/projects/${project.project_id}`}
-                                                size="sm"
-                                            >
-                                                {project.name}
-                                            </Anchor>
+                                            <ProjectHoverCard projectId={project.project_id}>
+                                                <Anchor
+                                                    component={Link}
+                                                    to={`/projects/${project.project_id}`}
+                                                    size="sm"
+                                                >
+                                                    {project.name}
+                                                </Anchor>
+                                            </ProjectHoverCard>
                                             <Text size="xs" c="dimmed" style={{ whiteSpace: "nowrap" }}>
                                                 {formatWeight(project.length_km, project.overlap_kind)}
                                             </Text>

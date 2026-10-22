@@ -35,6 +35,7 @@ import {
 } from "../../shared/api/queries";
 import { COMMITTEE_LABELS, CommitteeBadges, formatWeight } from "./mandateDisplay";
 import { LoadingState } from "../../shared/ui/LoadingState";
+import ProjectHoverCard from "../projects/ProjectHoverCard";
 
 const COMMITTEE_OPTIONS = [
     { value: "verkehr", label: "Verkehrsausschuss" },
@@ -70,9 +71,11 @@ function PoliticianProjects({ mandateId }: { mandateId: number }) {
                 {data.projects.map((project) => (
                     <Table.Tr key={project.project_id}>
                         <Table.Td>
-                            <Anchor component={Link} to={`/projects/${project.project_id}`}>
-                                {project.name}
-                            </Anchor>
+                            <ProjectHoverCard projectId={project.project_id}>
+                                <Anchor component={Link} to={`/projects/${project.project_id}`}>
+                                    {project.name}
+                                </Anchor>
+                            </ProjectHoverCard>
                         </Table.Td>
                         <Table.Td>
                             <Text size="sm" c="dimmed">
