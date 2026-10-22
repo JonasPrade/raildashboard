@@ -43,6 +43,7 @@ import MapView, { type MapViewProject } from "../map/LazyMapView";
 import { MAP_COLOR } from "../../shared/theme/semanticColors";
 import ProjectHistorySection from "../changelog/ProjectHistorySection";
 import ProjectTextsSection from "./ProjectTextsSection";
+import ProjectFamilyTreeSection from "./ProjectFamilyTreeSection";
 import { ProjectRegister, type RegisterSection } from "./ProjectRegister";
 import FinveSection from "./components/FinveSection";
 import GvfgSection from "./components/GvfgSection";
@@ -170,6 +171,7 @@ export default function ProjectDetail() {
     const superiorRef = useRef<HTMLDivElement>(null);
     const subProjectsRef = useRef<HTMLDivElement>(null);
     const tasksRef = useRef<HTMLDivElement>(null);
+    const familyTreeRef = useRef<HTMLDivElement>(null);
     const historyRef = useRef<HTMLDivElement>(null);
     const { user, can } = useAuth();
     const canEdit = can("project.edit");
@@ -472,6 +474,13 @@ export default function ProjectDetail() {
             label: "Aufgaben",
             ref: tasksRef,
             visible: user !== null,
+        },
+        {
+            id: "family-tree",
+            label: "Stammbaum",
+            ref: familyTreeRef,
+            // Drafts are outside the hierarchy (the section renders nothing for them).
+            visible: canEdit && !project.is_draft,
         },
         {
             id: "history",
@@ -822,6 +831,13 @@ export default function ProjectDetail() {
                 {user !== null && (
                     <div ref={tasksRef}>
                         <TasksSection projectId={projectId} />
+                    </div>
+                )}
+
+                {/* Stammbaum – nur für Bearbeiter und höher */}
+                {canEdit && (
+                    <div ref={familyTreeRef}>
+                        <ProjectFamilyTreeSection projectId={projectId} />
                     </div>
                 )}
 
