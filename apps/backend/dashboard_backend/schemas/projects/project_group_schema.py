@@ -18,6 +18,13 @@ class ProjectGroupSchema(BaseModel):
         description="Planning phases this group's projects usually skip; hidden in the "
         "progress view and forecast when all of a project's groups skip them",
     )
+    assumed_build_months: Optional[int] = Field(
+        default=None,
+        ge=1,
+        le=120,
+        description="Assumed construction period (months) for projects without a published "
+        "closure period; the forecast derives the commissioning as ASSUMED (HLK: 6)",
+    )
     id_old: Optional[int] = None
 
     # relationships
@@ -44,6 +51,7 @@ class ProjectGroupCreate(BaseModel):
     is_visible: bool = True
     is_default_selected: bool = False
     skipped_phases: List[SkippablePhaseLiteral] = Field(default_factory=list)
+    assumed_build_months: Optional[int] = Field(default=None, ge=1, le=120)
 
 
 class ProjectGroupGeometriesSchema(BaseModel):

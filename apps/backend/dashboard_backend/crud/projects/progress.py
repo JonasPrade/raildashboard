@@ -23,6 +23,7 @@ from dashboard_backend.models.associations.progress_track_document import (
 from dashboard_backend.models.change_tracking import ChangeLog, ChangeLogEntry
 from dashboard_backend.models.projects.document import Document
 from dashboard_backend.models.projects.progress_enums import (
+    DatePrecision,
     LifecycleStatus,
     MainPhase,
     ObservationTrack,
@@ -47,9 +48,14 @@ from dashboard_backend.services.progress_derivation import (
     derive_headline,
 )
 from dashboard_backend.services.gvfg_ibn_check import check_ibn_against_gvfg, known_ibn
-from dashboard_backend.services.progress_dates import parse_flexible_date
+from dashboard_backend.services.date_precision import as_precision, date_text, normalize_sort_date
+from dashboard_backend.services.progress_dates import (
+    parse_commissioning_with_precision,
+    parse_flexible_date_with_precision,
+)
 from dashboard_backend.services.progress_forecast import (
     BvwpDurations,
+    ConcreteDate,
     ExpectedDate,
     PfaForecastInput,
     build_forecast,
@@ -96,6 +102,10 @@ BEDARFSPLAN_GROUP_SHORT_NAME_PREFIX = "BSWAG"
 
 class DerivedObservationDeleteError(Exception):
     """Raised when a caller tries to delete a derived (materialised) observation."""
+
+
+class DerivedObservationUpdateError(Exception):
+    """Raised when a caller tries to change a derived (materialised) observation."""
 
 
 # --- Change tracking ---------------------------------------------------------
@@ -181,9 +191,11 @@ def observation_summary(observation: ProgressObservation) -> str:
         f"#{observation.id} {_TRACK_LABELS.get(observation.track, observation.track)}: "
         f"{observation.asserted_state}"
     ]
-    if observation.observed_date:
-        date_text = observation.observed_date.strftime("%d.%m.%Y")
-        parts.append(f"{date_text} (erwartet)" if observation.is_expected else date_text)
+    if observation.observed_date or observation.date_label:
+        when = date_text(
+            observation.observed_date, observation.date_precision, observation.date_label
+        )
+        parts.append(f"{when} (erwartet)" if observation.is_expected else when)
     parts.append(observation.source_type)
     if observation.confidence is not None:
         parts.append(f"Konfidenz {observation.confidence:g}")
@@ -275,6 +287,15 @@ def resolve_skipped_phases(project: Project) -> set[MainPhase]:
     return set.intersection(*per_group)
 
 
+def resolve_assumed_build_months(project: Project) -> int | None:
+    """Assumed construction period (months) from the project's groups, for
+    projects without a published closure period (corridor renewals: 6). Several
+    groups with a value → the longest; none → no assumption."""
+
+    values = [g.assumed_build_months for g in project.project_groups if g.assumed_build_months]
+    return max(values) if values else None
+
+
 def resolve_hidden_phases(skipped: set[MainPhase], in_use: set[MainPhase]) -> list[str]:
     """Skipped phases the progress view hides: data wins, so a phase still shows
     when the project (or a subproject, or a dated forecast step) sits in it."""
@@ -299,6 +320,7 @@ def _to_inputs(observations: list[ProgressObservation]) -> list[ObservationInput
                 confidence=obs.confidence,
                 note=obs.note,
                 id=obs.id,
+                date_precision=obs.date_precision or DatePrecision.EXACT.value,
             )
         )
     return inputs
@@ -319,11 +341,17 @@ def pfa_forecast_input(pfa: VibPfaEntry, report: VibReport | None) -> PfaForecas
     reported_on = None
     if report is not None:
         reported_on = report.report_date or date(report.year, 12, 31)
+    pfb, pfb_precision = parse_flexible_date_with_precision(pfa.datum_pfb)
+    start, start_precision = parse_flexible_date_with_precision(pfa.baubeginn)
+    opening, opening_precision = parse_commissioning_with_precision(pfa.inbetriebnahme)
     return PfaForecastInput(
-        datum_pfb=parse_flexible_date(pfa.datum_pfb),
-        baubeginn=parse_flexible_date(pfa.baubeginn),
-        inbetriebnahme=parse_flexible_date(pfa.inbetriebnahme),
+        datum_pfb=pfb,
+        baubeginn=start,
+        inbetriebnahme=opening,
         reported_on=reported_on,
+        datum_pfb_precision=pfb_precision,
+        baubeginn_precision=start_precision,
+        inbetriebnahme_precision=opening_precision,
     )
 
 
@@ -390,7 +418,7 @@ def expected_report_dates(
 class ExpectedSplit(NamedTuple):
     fulda: list[ExpectedDate]
     infraplan: list[ExpectedDate]
-    manual: list[tuple[MainPhase, date]]
+    manual: list[ExpectedDate]
     gvfg: list[ExpectedDate]
 
 
@@ -411,32 +439,23 @@ def split_expected(
         phase = _enum_or_none(MainPhase, obs.asserted_state)
         if phase is None or obs.observed_date is None:
             continue
+        def claim(reported_on: date | None) -> ExpectedDate:
+            return ExpectedDate(
+                phase=phase,
+                date=obs.observed_date,
+                reported_on=reported_on,
+                precision=as_precision(obs.date_precision),
+                label=obs.date_label,
+            )
+
         if obs.is_derived and obs.source_type == SourceType.FULDA_RUNDE.value:
-            split.fulda.append(
-                ExpectedDate(
-                    phase=phase,
-                    date=obs.observed_date,
-                    reported_on=reported.fulda.get(obs.fulda_announcement_id),
-                )
-            )
+            split.fulda.append(claim(reported.fulda.get(obs.fulda_announcement_id)))
         elif obs.is_derived and obs.source_type == SourceType.INFRAPLAN.value:
-            split.infraplan.append(
-                ExpectedDate(
-                    phase=phase,
-                    date=obs.observed_date,
-                    reported_on=reported.infraplan.get(obs.infraplan_entry_id),
-                )
-            )
+            split.infraplan.append(claim(reported.infraplan.get(obs.infraplan_entry_id)))
         elif obs.is_derived and obs.source_type == SourceType.GVFG.value:
-            split.gvfg.append(
-                ExpectedDate(
-                    phase=phase,
-                    date=obs.observed_date,
-                    reported_on=reported.gvfg.get(obs.gvfg_entry_id),
-                )
-            )
+            split.gvfg.append(claim(reported.gvfg.get(obs.gvfg_entry_id)))
         elif not obs.is_derived:
-            split.manual.append((phase, obs.observed_date))
+            split.manual.append(claim(None))
     return split
 
 
@@ -739,6 +758,7 @@ def sync_derived_observations_bulk(
                     infraplan_entry_id=spec.infraplan_entry_id,
                     gvfg_entry_id=spec.gvfg_entry_id,
                     is_expected=spec.is_expected,
+                    date_precision=spec.date_precision.value,
                 )
             )
 
@@ -904,9 +924,14 @@ def _build_forecast_for_project(
     effective_phase: MainPhase,
     today: date,
     skipped_phases: set[MainPhase] | None = None,
+    assumed_build_months: int | None = None,
+    progress: ProjectProgress | None = None,
 ) -> dict:
     """Gather forecast inputs (PFA dates, BVWP durations, Fulda announcements)
-    and run the pure forecast. Returns a dict matching ProgressForecastSchema."""
+    and run the pure forecast. Returns a dict matching ProgressForecastSchema.
+
+    With ``progress`` the concrete Baubeginn / Inbetriebnahme land in its list
+    cache (:func:`_store_date_cache`)."""
 
     # PFA milestone dates from linked VIB entries.
     pfa_rows = (
@@ -957,22 +982,59 @@ def _build_forecast_for_project(
         gvfg=split.gvfg,
         manual_expected=split.manual,
         skipped_phases=skipped_phases or set(),
+        assumed_build_months=assumed_build_months,
     )
+    if progress is not None:
+        _store_date_cache(progress, result.concrete)
     return {
         "current_phase": result.current_phase.value,
         "remaining_text": result.remaining_text,
         "estimated_phase_end": result.estimated_phase_end,
+        "estimated_phase_end_precision": result.estimated_phase_end_precision.value,
         "next_steps": [
             {
                 "phase": step.phase.value,
                 "expected_date": step.expected_date,
                 "source": step.source,
+                "date_precision": step.precision.value,
+                "date_label": step.label,
+                "date_text": date_text(step.expected_date, step.precision, step.label),
+                "derivation": step.derivation,
             }
             for step in result.next_steps
         ],
         "has_data": result.has_data,
         "ibn_doubt": _gvfg_ibn_doubt(db, project_id, effective_phase, split.infraplan),
     }
+
+
+def _store_date_cache(progress: ProjectProgress, concrete: dict[MainPhase, ConcreteDate]) -> None:
+    """Cache the concrete Baubeginn / Inbetriebnahme (with precision) on the
+    progress row — sort and filter values of the lists (BVWP estimates never)."""
+
+    for phase, prefix in (
+        (MainPhase.BAU, "construction_start"),
+        (MainPhase.IN_BETRIEB, "commissioning"),
+    ):
+        value = concrete.get(phase)
+        setattr(progress, f"{prefix}_date", value.date if value else None)
+        setattr(progress, f"{prefix}_precision", value.precision.value if value else None)
+
+
+def refresh_date_cache(db: Session, project: Project, today: date | None = None) -> None:
+    """Recompute the cached Baubeginn / Inbetriebnahme of one project (no
+    commit). Used after recomputes and by ``scripts/refresh_progress_dates.py``."""
+
+    today = today or date.today()
+    progress = get_or_create_progress(db, project.id)
+    _build_forecast_for_project(
+        db,
+        project.id,
+        MainPhase.NICHT_GESTARTET,
+        today,
+        assumed_build_months=resolve_assumed_build_months(project),
+        progress=progress,
+    )
 
 
 def _gvfg_ibn_doubt(
@@ -1176,6 +1238,8 @@ def _contribution_payload(c: SourceContribution) -> dict:
         "track": c.track.value,
         "asserted_state": c.asserted_state,
         "observed_date": c.observed_date,
+        "date_precision": c.date_precision,
+        "date_text": date_text(c.observed_date, c.date_precision),
         "effective_confidence": c.effective_confidence,
         "was_decisive": c.was_decisive,
         "trust": c.trust,
@@ -1192,6 +1256,8 @@ def _conflict_payload(conflict: PhaseConflict | None) -> dict | None:
         "source_type": conflict.source_type.value,
         "asserted_phase": conflict.asserted_phase.value,
         "observed_date": conflict.observed_date,
+        "date_precision": conflict.date_precision,
+        "date_text": date_text(conflict.observed_date, conflict.date_precision),
         "trust": conflict.trust,
         "contradicted_ids": conflict.contradicted_ids,
         "contradicted_phase": conflict.contradicted_phase.value,
@@ -1344,8 +1410,15 @@ def get_progress_view(db: Session, project_id: int, today: date | None = None) -
 
     skipped_phases = resolve_skipped_phases(project)
     forecast = _build_forecast_for_project(
-        db, project_id, result.effective_phase, today, skipped_phases
+        db,
+        project_id,
+        result.effective_phase,
+        today,
+        skipped_phases,
+        assumed_build_months=resolve_assumed_build_months(project),
+        progress=progress,
     )
+    db.commit()
     in_use = {effective_phase}
     for value in (
         span_min,
@@ -1488,7 +1561,11 @@ def create_observation(
         source_type=data.get("source_type", SourceType.MANUELL.value),
         track=data["track"],
         asserted_state=data["asserted_state"],
-        observed_date=data.get("observed_date"),
+        observed_date=normalize_sort_date(
+            data.get("observed_date"), data.get("date_precision", DatePrecision.EXACT.value)
+        ),
+        date_precision=data.get("date_precision", DatePrecision.EXACT.value),
+        date_label=(data.get("date_label") or "").strip() or None,
         confidence=data.get("confidence"),
         note=data.get("note"),
         is_derived=False,
@@ -1515,6 +1592,51 @@ def create_observation(
         "CREATE",
         [("observation", None, observation_summary(observation))]
         + _snapshot_diff(before, _snapshot(progress)),
+    )
+    db.commit()
+    db.refresh(observation)
+    return observation
+
+
+def update_observation(
+    db: Session, project_id: int, observation_id: int, data: dict, user: User | None
+) -> ProgressObservation | None:
+    """Change a manual observation in place (e.g. add the date precision).
+
+    ``data`` holds only the fields to change (``ProgressObservationUpdate``,
+    ``exclude_unset``). Returns ``None`` if not found and raises
+    :class:`DerivedObservationUpdateError` for derived rows (the importers
+    regenerate them).
+    """
+
+    observation = (
+        db.query(ProgressObservation)
+        .filter(
+            ProgressObservation.id == observation_id,
+            ProgressObservation.project_id == project_id,
+        )
+        .first()
+    )
+    if observation is None:
+        return None
+    if observation.is_derived:
+        raise DerivedObservationUpdateError(
+            "Derived observations are materialised from imports and cannot be changed manually."
+        )
+    before = observation_summary(observation)
+    for key in ("observed_date", "date_precision", "confidence", "note", "is_expected"):
+        if key in data and data[key] is not None:
+            setattr(observation, key, data[key])
+    if data.get("clear_date_label"):
+        observation.date_label = None
+    elif data.get("date_label") is not None:
+        observation.date_label = data["date_label"].strip() or None
+    # MONTH / YEAR dates are stored as the first day of their period.
+    observation.observed_date = normalize_sort_date(
+        observation.observed_date, observation.date_precision
+    )
+    _log_progress_change(
+        db, project_id, user, "UPDATE", [("observation", before, observation_summary(observation))]
     )
     db.commit()
     db.refresh(observation)
@@ -1636,5 +1758,6 @@ def recompute_progress(db: Session, project_id: int, today: date | None = None) 
         return False
     progress = get_or_create_progress(db, project_id)
     _ensure_fresh(db, project, progress, today, force=True)
+    refresh_date_cache(db, project, today)
     db.commit()
     return True

@@ -302,7 +302,8 @@ Jahrgang, folgt die Anzeige automatisch.
 
 **Prognose:** `concrete_milestone_dates` (`services/progress_forecast.py`) bekommt den
 Eingang `infraplan: list[(MainPhase.IN_BETRIEB, date)]` mit Quelle `"Infraplan"`.
-Datum = 31.12. des `ibn_year`, Anzeige nur als Jahr. Rangfolge: Wie VIB-PFA und Fulda
+Datum = 31.12. des `ibn_year`, Präzision MONTH: angezeigt als Fahrplanwechsel 12/JJJJ
+(`feature-project-progress.md` → „Datumsqualifikation“, Entscheidung 2026-10-22). Rangfolge: Wie VIB-PFA und Fulda
 konkurriert der Infraplan-Termin über Glaubwürdigkeit × Aktualität des Jahrgangs
 (`feature-fulda-import.md` → „Termine im Prognose-Panel“); BVWP-Schätzungen füllen nur
 Lücken, manuelle Termine gewinnen immer. Kein Eingang bei `ibn_qualifier = OFFEN`

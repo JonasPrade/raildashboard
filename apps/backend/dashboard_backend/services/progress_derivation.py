@@ -100,6 +100,9 @@ class ObservationInput:
     confidence: float | None = None  # explicit per-observation override
     note: str | None = None
     id: int | None = None  # carried through for the breakdown / UI
+    # DatePrecision value of ``observed_date`` (display only; the derivation
+    # uses the date as its sort value).
+    date_precision: str = "EXACT"
 
 
 @dataclass
@@ -119,6 +122,7 @@ class SourceContribution:
     is_lower_bound: bool = False
     # True for both sides of a reported PhaseConflict.
     in_conflict: bool = False
+    date_precision: str = "EXACT"  # display only (DatePrecision value)
 
 
 @dataclass
@@ -138,6 +142,7 @@ class PhaseConflict:
     contradicted_ids: list[int | None]
     contradicted_phase: MainPhase  # highest phase among them
     applied: bool
+    date_precision: str = "EXACT"  # display only (DatePrecision value)
 
 
 @dataclass
@@ -301,6 +306,7 @@ def _decide_main(
         contradicted_ids=[i.obs.id for i in higher],
         contradicted_phase=max((i.phase for i in higher), key=lambda p: p.order),
         applied=not blockers,
+        date_precision=current.obs.date_precision,
     )
     current.contrib.in_conflict = True
     for i in higher:
@@ -350,6 +356,7 @@ def derive_headline(
                 was_decisive=False,
                 trust=round(trust(obs), 4),
                 is_lower_bound=is_lower_bound(obs),
+                date_precision=obs.date_precision,
             )
         )
 

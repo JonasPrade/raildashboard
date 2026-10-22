@@ -1,5 +1,5 @@
 from fastapi import Depends, HTTPException, Query, Request
-from pydantic import BaseModel, TypeAdapter
+from pydantic import BaseModel, Field, TypeAdapter
 from typing import Optional
 from sqlalchemy.orm import Session
 from dashboard_backend.crud.projects.project_groups import (
@@ -46,6 +46,8 @@ class ProjectGroupUpdate(BaseModel):
     is_visible: Optional[bool] = None
     is_default_selected: Optional[bool] = None
     skipped_phases: Optional[list[SkippablePhaseLiteral]] = None
+    # Explicit null clears the build period.
+    assumed_build_months: Optional[int] = Field(default=None, ge=1, le=120)
 
 
 @router.get("/", response_model=list[ProjectGroupSchema])

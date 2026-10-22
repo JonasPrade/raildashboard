@@ -36,6 +36,13 @@ prod.sh wartet auf „healthy" (/healthz); sonst automatischer Rollback auf den 
 deploy.yml ruft danach https://dashboard.schienengruen.de/healthz von außen auf.
 ```
 
+**Einmalige Nacharbeiten nach einem Deploy** stehen im `CHANGELOG.md` beim jeweiligen
+Eintrag. Aktuell: Nach der Migration `20261022004` (Datumsqualifikation) einmal
+`docker compose exec backend python scripts/refresh_progress_dates.py`
+(`make docker-refresh-progress-dates`) auf dem Server ausführen. Das füllt den Termin-Cache
+der Projektlisten; bis dahin sind dort die Bau- und IB-Termine leer. Es ist idempotent,
+und ein Rollback braucht es nicht.
+
 **Es gibt keinen automatischen Auslöser.** Bis v0.0.15 rollte ein Version-Tag
 (`v*`) Test, Build und Ausrollen in einem Zug aus. Das nahm den Moment weg, in dem
 jemand „jetzt" sagt, und band die Auslieferung an eine Versionsnummer, obwohl das

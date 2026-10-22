@@ -500,7 +500,7 @@ direkt. Recharts-SVG-Attribute (`stroke`, `fill`) ebenfalls.
 | Gitter, Achsen | `CHART_FURNITURE`; Achsenschrift 12,5px `--idt-chart-axis`, `tabular-nums` |
 | `ChartLegend` | quadratische Swatches 12px (kein `ColorSwatch`-Kreis), 13,5px |
 | Tooltip | Papier, 2px Ink-Rahmen, kein Schatten, Radius 0 |
-| Zeitstrahl `TimelineView.tsx` (W4) | Segmente `PHASE_COLOR`; geplanter Teil (nach heute) als Schraffur `repeating-linear-gradient(135deg, <farbe> 0 4px, transparent 4px 8px)`; Etappenpause gestrichelt in `seq-4`; Inbetriebnahme-Punkt `--idt-success` (kantig, 10px); Rauten und hohle Punkte in Ink |
+| Zeitstrahl `TimelineView.tsx` (W4) | Segmente `PHASE_COLOR`; geplanter Teil (nach heute) als Schraffur `repeating-linear-gradient(135deg, <farbe> 0 4px, transparent 4px 8px)`; Etappenpause gestrichelt in `seq-4`; Inbetriebnahme-Punkt `--idt-success` (kantig, 10px); Rauten und hohle Punkte in Ink. Datumsqualifikation (2026-10-22): Jahr = weiche Kante (`mask-image`-Verlauf), Untergrenze = offener Bereich als blasse Schraffur (`color-mix` 45 %) mit Pfeil, Annahme = gestrichelter Rahmen in Ink (`timelineStyles.ts`) — bewusst verschieden von der dünnen Etappenpause (W3) |
 | Gelb | nie als Datenreihe; die eine Hervorhebungszahl je Ansicht darf `--idt-highlight` mit Ink-Kontur tragen |
 
 ### Karte

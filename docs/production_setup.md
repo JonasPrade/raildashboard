@@ -472,6 +472,13 @@ wird per Knopf: *Actions → deploy → Run workflow*, SHA leer = aktueller Stan
 `prod.sh` zieht die Images, schaltet `IMAGE_TAG` um, startet den Stack (Backup → Migration →
 App), wartet auf `/healthz` und rollt sonst automatisch auf den vorherigen SHA zurück.
 
+**Einmalige Nacharbeiten** stehen im `CHANGELOG.md` beim Eintrag. Nach der Migration
+`20261022004` (Datumsqualifikation) einmal auf dem Server ausführen:
+
+```bash
+cd /srv/raildashboard && docker compose exec backend python scripts/refresh_progress_dates.py
+```
+
 **Rollback:** derselbe Knopf mit einer früheren SHA. Von Hand auf dem Server (als `deploy`):
 
 ```bash

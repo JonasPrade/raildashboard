@@ -73,10 +73,34 @@ eines Oberprojekts ist die Spanne über die Blätter — während der Pause steh
   der Teil nach heute ist schraffiert gezeichnet (geplant; seit 2026-10-21, W4 in
   `feature-idt-design.md` — auf der Teal-Rampe des IDT-Designs wäre „heller“ unsichtbar). Inbetriebnahme als grüner Punkt,
   PFB und Parl. Befassung als Rauten, Belege als hohle Punkte. Tooltip je Marke: Meilenstein,
-  Datum, Quelle.
+  Datum mit Präzision, Quelle (bei Annahmen die Herleitung); Tooltip je Balken: Zeitraum.
 - „Heute"-Linie über alle Zeilen; Jahresachse mit Schrittweite nach Spanne (1/2/5 Jahre).
 - Pausierte/abgebrochene Projekte werden abgeblendet und markiert.
 - Mobil (360 px): Name über dem Balken, keine horizontale Scrollleiste.
+
+### Unsichere Termine (Datumsqualifikation, #246)
+
+Jeder Meilenstein trägt `date_precision`, `date_label`, `date_text` und `derivation`
+(`feature-project-progress.md` → „Datumsqualifikation“). Angezeigt wird er so:
+
+| Präzision | Darstellung |
+|---|---|
+| `EXACT` / `MONTH` | Balken mit festen Kanten wie bisher; Tooltip mit Tag bzw. Monat |
+| `YEAR` | Balken ab 01.01. mit weicher linker Kante (Verlauf) und der Beschriftung „2028“; ohne Folgetermin spannt er das ganze Jahr. Endet eine Phase an einem Jahres-Termin, ist ihre rechte Kante weich. Eine Jahres-Marke sitzt zur Jahresmitte, hohl und gestrichelt. |
+| `NOT_BEFORE` | kein geschlossener Balken und keine Marke: ein blass schraffierter, offener Bereich ab der Untergrenze bis zum rechten Rand, mit Pfeil nach rechts und „nach 2031 – Termin offen“ (bzw. dem Terminzusatz). Ist nur die Inbetriebnahme eine Untergrenze, läuft die Bauphase bis zur Grenze und geht dann in den offenen Bereich über („Inbetriebnahme nach 2031 – Termin offen“). Spätere Phasen sind unbekannt. |
+| `ASSUMED` | gestrichelter Rahmen in Tintenfarbe um den Balken (die gestrichelte Linie in `seq-4` bleibt die Etappenpause, W3); die Marke ist hohl und gestrichelt; der Tooltip nennt die Herleitung („Annahme: 6 Monate Bauzeit …“). |
+
+- **Kopfzeile:** „IB 2028“, „IB nach 2031“, „IB ca. 07/2028“; sonst MM/JJJJ.
+- **Achse:** Eine Untergrenze zählt nur mit ihrem Grenzdatum; die Achse endet wie bisher
+  mit dem Folgejahr und wird nicht künstlich gedehnt.
+- **Sortierung:** nach dem Sortierwert.
+- **Getrennte Bauetappen:** Ein Mitglied mit einer Untergrenze hebt die Aufteilung auf.
+  Eine Lücke wird nie erfunden.
+- **Legende:** erklärt „nur Jahr bekannt“, „nach … – Termin offen“ und „Annahme“.
+- **Hell und dunkel:** beide geprüft. Die Beschriftung steht auf einer Fläche in der
+  Oberflächenfarbe, damit sie auf der Schraffur lesbar bleibt.
+- **Filter:** „Baubeginn/Inbetriebnahme von–bis“ und „Termin offen“ der Filterleiste wirken
+  auch hier.
 
 ## Technik
 
@@ -103,3 +127,6 @@ eines Oberprojekts ist die Spanne über die Blätter — während der Pause steh
 - [ ] Oberprojekte mit getrennten Bauetappen (HLK 11) zeigen je Etappe ein BAU-Segment und
       dazwischen die Linie „zwischen Bauetappen"; überlappende Etappen bleiben ein Segment,
       Oberprojekte ohne Lücke sehen aus wie bisher.
+- [ ] Unsichere Termine: Jahr mit weicher Kante, Untergrenze als offener Bereich mit Pfeil
+      und „nach 2031 – Termin offen“, Annahme gestrichelt mit Herleitung im Tooltip; Legende
+      erklärt alle drei, hell und dunkel lesbar.

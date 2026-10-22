@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import date
 
+from dashboard_backend.models.projects.progress_enums import DatePrecision as P
 from dashboard_backend.models.projects.progress_enums import MainPhase
 from dashboard_backend.services.progress_forecast import (
     BvwpDurations,
@@ -177,7 +178,8 @@ def _bau(pfa_reported, fulda_reported):
         manual_expected=[],
         today=TODAY,
     )
-    return concrete[MainPhase.BAU]
+    bau = concrete[MainPhase.BAU]
+    return bau.date, bau.source
 
 
 def test_newer_fulda_beats_older_vib_even_with_a_later_date():
@@ -204,3 +206,126 @@ def test_reduce_expected_pools_subtree_claims():
     pooled = {c.phase: c for c in reduce_expected(claims)}
     assert pooled[MainPhase.BAU] == ExpectedDate(MainPhase.BAU, date(2027, 1, 1), date(2026, 6, 1))
     assert pooled[MainPhase.IN_BETRIEB].date == date(2032, 1, 1)
+
+
+# --- Datumsqualifikation: precision travels through the forecast -------------
+
+def _step(result, phase):
+    return next(s for s in result.next_steps if s.phase is phase)
+
+
+def test_not_before_construction_yields_not_before_commissioning():
+    # „nach 2031“: Baubeginn only a lower bound → the assumed opening is one too.
+    r = build_forecast(
+        effective_phase=MainPhase.NICHT_GESTARTET,
+        today=TODAY,
+        manual_expected=[ExpectedDate(MainPhase.BAU, date(2032, 1, 1), precision=P.NOT_BEFORE)],
+        assumed_build_months=6,
+    )
+    bau, ibn = _step(r, MainPhase.BAU), _step(r, MainPhase.IN_BETRIEB)
+    assert (bau.precision, bau.source) == (P.NOT_BEFORE, "Manuell")
+    assert (ibn.expected_date, ibn.precision, ibn.source) == (date(2032, 7, 1), P.NOT_BEFORE, "Annahme")
+    assert ibn.derivation == "Annahme: 6 Monate Bauzeit ab Baubeginn nach 2031 (Manuell)"
+
+
+def test_year_construction_plus_build_period_is_assumed():
+    r = build_forecast(
+        effective_phase=MainPhase.NICHT_GESTARTET,
+        today=TODAY,
+        manual_expected=[ExpectedDate(MainPhase.BAU, date(2028, 1, 1), precision=P.YEAR)],
+        assumed_build_months=6,
+    )
+    ibn = _step(r, MainPhase.IN_BETRIEB)
+    assert (ibn.expected_date, ibn.precision) == (date(2028, 7, 1), P.ASSUMED)
+    assert "6 Monate Bauzeit ab Baubeginn 2028" in ibn.derivation
+    assert _step(r, MainPhase.BAU).precision is P.YEAR
+
+
+def test_build_period_never_overrides_a_named_commissioning():
+    r = build_forecast(
+        effective_phase=MainPhase.NICHT_GESTARTET,
+        today=TODAY,
+        manual_expected=[
+            (MainPhase.BAU, date(2028, 2, 6)),
+            (MainPhase.IN_BETRIEB, date(2028, 11, 30)),
+        ],
+        assumed_build_months=6,
+    )
+    ibn = _step(r, MainPhase.IN_BETRIEB)
+    assert (ibn.expected_date, ibn.source, ibn.precision) == (date(2028, 11, 30), "Manuell", P.EXACT)
+
+
+def test_without_group_rule_no_commissioning_is_assumed():
+    r = build_forecast(
+        effective_phase=MainPhase.NICHT_GESTARTET,
+        today=TODAY,
+        manual_expected=[(MainPhase.BAU, date(2028, 1, 1))],
+    )
+    assert _step(r, MainPhase.IN_BETRIEB).expected_date is None
+
+
+def test_precision_of_derived_claims_and_pfa_dates():
+    concrete = concrete_milestone_dates(
+        pfas=[
+            PfaForecastInput(
+                baubeginn=date(2027, 12, 15),
+                baubeginn_precision=P.MONTH,
+                reported_on=TODAY,
+            )
+        ],
+        fulda=[],
+        infraplan=[ExpectedDate(MainPhase.IN_BETRIEB, date(2030, 12, 31), TODAY, precision=P.YEAR)],
+        manual_expected=[],
+        today=TODAY,
+    )
+    assert concrete[MainPhase.BAU].precision is P.MONTH
+    assert (concrete[MainPhase.IN_BETRIEB].source, concrete[MainPhase.IN_BETRIEB].precision) == (
+        "Infraplan",
+        P.YEAR,
+    )
+
+
+def test_bvwp_estimates_are_assumed():
+    r = build_forecast(
+        effective_phase=MainPhase.VORPLANUNG,
+        today=TODAY,
+        bvwp=BvwpDurations(outstanding_planning=4, build=3),
+    )
+    for phase in (MainPhase.BAU, MainPhase.IN_BETRIEB):
+        step = _step(r, phase)
+        assert (step.source, step.precision) == ("BVWP", P.ASSUMED)
+        assert step.derivation.startswith("Schätzung")
+
+
+def test_bvwp_build_on_a_lower_bound_stays_a_lower_bound():
+    r = build_forecast(
+        effective_phase=MainPhase.GENEHMIGUNGSPLANUNG,
+        today=TODAY,
+        bvwp=BvwpDurations(build=2),
+        manual_expected=[ExpectedDate(MainPhase.BAU, date(2032, 1, 1), precision=P.NOT_BEFORE)],
+    )
+    assert _step(r, MainPhase.IN_BETRIEB).precision is P.NOT_BEFORE
+
+
+def test_remaining_text_claims_no_duration_for_a_lower_bound():
+    r = build_forecast(
+        effective_phase=MainPhase.NICHT_GESTARTET,
+        today=TODAY,
+        manual_expected=[ExpectedDate(MainPhase.BAU, date(2032, 1, 1), precision=P.NOT_BEFORE)],
+        skipped_phases={MainPhase.VORPLANUNG, MainPhase.GENEHMIGUNGSPLANUNG},
+    )
+    assert r.estimated_phase_end_precision is P.NOT_BEFORE
+    assert r.remaining_text == "Ende der aktuellen Phase offen (nach 2031)"
+
+
+def test_pooled_claims_keep_the_precision_of_the_chosen_date():
+    pooled = {
+        c.phase: c
+        for c in reduce_expected(
+            [
+                ExpectedDate(MainPhase.IN_BETRIEB, date(2030, 12, 31), precision=P.YEAR),
+                ExpectedDate(MainPhase.IN_BETRIEB, date(2032, 1, 1), precision=P.NOT_BEFORE),
+            ]
+        )
+    }
+    assert pooled[MainPhase.IN_BETRIEB].precision is P.NOT_BEFORE

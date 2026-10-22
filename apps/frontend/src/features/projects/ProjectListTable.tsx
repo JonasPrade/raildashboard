@@ -1,9 +1,10 @@
 import { useMemo, useState, type MouseEvent } from "react";
-import { ActionIcon, Button, Group, Select, Table, Text, Tooltip, UnstyledButton } from "@mantine/core";
+import { ActionIcon, Button, Group, Select, Stack, Table, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 import type { ProjectOverview } from "../../shared/api/queries";
+import { qualifiedDateText } from "../../shared/datePrecision";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { SwatchTag } from "../../shared/ui/SwatchTag";
 import PhaseBadge from "./components/progress/PhaseBadge";
@@ -114,11 +115,12 @@ export function ProjectListTable({ projects, limit, onShowMore, pageSize }: Prop
 
     return (
         <>
-            <ResponsiveTable minWidth={720} highlightOnHover sortControl={sortControl}>
+            <ResponsiveTable minWidth={840} highlightOnHover sortControl={sortControl}>
                 <Table.Thead>
                     <Table.Tr>
                         <SortHead sortKey="name" sort={sort} onSort={onSort} />
                         <SortHead sortKey="phase" sort={sort} onSort={onSort} className="status" />
+                        <SortHead sortKey="dates" sort={sort} onSort={onSort} />
                         <Table.Th>Verkehrsart</Table.Th>
                         <SortHead sortKey="length" sort={sort} onSort={onSort} className="num" />
                     </Table.Tr>
@@ -171,6 +173,9 @@ export function ProjectListTable({ projects, limit, onShowMore, pageSize }: Prop
                                     <PhaseBadge phase={project.headline_phase} lifecycle={project.lifecycle_status} />
                                 </Table.Td>
                                 <Table.Td>
+                                    <ProjectDates project={project} />
+                                </Table.Td>
+                                <Table.Td>
                                     {traffic.length > 0 ? (
                                         <Group gap={6} wrap="wrap" style={{ display: "inline-flex" }}>
                                             {traffic.map(({ key, label, color }) => (
@@ -203,6 +208,25 @@ export function ProjectListTable({ projects, limit, onShowMore, pageSize }: Prop
                 </Group>
             )}
         </>
+    );
+}
+
+/** Baubeginn / Inbetriebnahme as text with precision („Bau: nach 2031“). */
+function ProjectDates({ project }: { project: ProjectOverview }) {
+    const bau = qualifiedDateText(project.construction_start_date, project.construction_start_precision);
+    const ibn = qualifiedDateText(project.commissioning_date, project.commissioning_precision);
+    if (!bau && !ibn) {
+        return (
+            <Text span c="dimmed">
+                –
+            </Text>
+        );
+    }
+    return (
+        <Stack gap={0}>
+            {bau && <Text size="sm">Bau: {bau}</Text>}
+            {ibn && <Text size="sm">IB: {ibn}</Text>}
+        </Stack>
     );
 }
 

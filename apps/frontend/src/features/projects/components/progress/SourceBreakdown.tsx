@@ -32,7 +32,7 @@ function ContributionRow({ c, showInternal }: { c: SourceContribution; showInter
             </Table.Td>
             <Table.Td>{TRACK_LABEL[c.track as ObservationTrack] ?? c.track}</Table.Td>
             <Table.Td>{stateLabel(c.track as ObservationTrack, c.asserted_state)}</Table.Td>
-            <Table.Td>{c.observed_date ?? "–"}</Table.Td>
+            <Table.Td>{c.date_text ?? "–"}</Table.Td>
             <Table.Td>{formatAge(c.observed_date)}</Table.Td>
             {showInternal && (
                 <>
@@ -166,7 +166,7 @@ export default function SourceBreakdown({ contributions, observations }: Props) 
                                                     )}
                                                 </Group>
                                             </Table.Td>
-                                            <Table.Td>{obs.observed_date ?? "–"}</Table.Td>
+                                            <Table.Td>{obs.date_text ?? "–"}</Table.Td>
                                             <Table.Td>{obs.note ?? ""}</Table.Td>
                                             <Table.Td>{obs.username_snapshot ?? "–"}</Table.Td>
                                             <Table.Td>{formatTimestamp(obs.created_at)}</Table.Td>

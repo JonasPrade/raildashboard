@@ -19,6 +19,7 @@ from dashboard_backend.routing.auth_router import AuthRouter
 from dashboard_backend.schemas.projects.progress_schema import (
     LinkDocumentInput,
     ProgressObservationCreate,
+    ProgressObservationUpdate,
     ProjectProgressSchema,
     ProjectProgressUpdate,
 )
@@ -72,6 +73,30 @@ def add_observation(
     progress_crud.create_observation(
         db, project.id, body.model_dump(exclude_unset=True), current_user
     )
+    return _view(db, project.id)
+
+
+@router.patch(
+    "/{project_id}/progress/observations/{observation_id}",
+    response_model=ProjectProgressSchema,
+)
+def patch_observation(
+    observation_id: int,
+    body: ProgressObservationUpdate,
+    current_user: User = Depends(require_permission("progress.edit")),
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+):
+    """Change a manual observation in place (date, precision, label, note …).
+    Derived observations are protected (409)."""
+    try:
+        result = progress_crud.update_observation(
+            db, project.id, observation_id, body.model_dump(exclude_none=True), current_user
+        )
+    except progress_crud.DerivedObservationUpdateError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    if result is None:
+        raise HTTPException(status_code=404, detail="Observation not found")
     return _view(db, project.id)
 
 

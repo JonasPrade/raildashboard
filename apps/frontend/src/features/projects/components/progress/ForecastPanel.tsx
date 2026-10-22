@@ -2,6 +2,7 @@ import { Alert, Group, Stack, Text, ThemeIcon, Timeline } from "@mantine/core";
 import { TriangleAlert, Clock, Flag } from "lucide-react";
 
 import type { ProgressForecast } from "../../../../shared/api/queries";
+import { formatExpected } from "../../../../shared/datePrecision";
 import { formatMio } from "../../../gvfg/gvfgFormat";
 import { MAIN_PHASE_LABEL, MILESTONE_LABEL, type MainPhase } from "./phaseMeta";
 import { FORECAST_SOURCE_COLOR } from "../../../../shared/theme/semanticColors";
@@ -9,14 +10,6 @@ import { SwatchTag } from "../../../../shared/ui/SwatchTag";
 
 const SOURCE_COLOR: Record<string, string> = FORECAST_SOURCE_COLOR;
 const SOURCE_FALLBACK_COLOR = "var(--idt-line-strong)";
-
-function formatExpected(dateStr: string | null | undefined): string {
-    if (!dateStr) return "Termin offen";
-    const d = new Date(dateStr);
-    if (Number.isNaN(d.getTime())) return "Termin offen";
-    // Dates are period approximations → show month/year only.
-    return `voraussichtlich ${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-}
 
 type IbnDoubt = NonNullable<ProgressForecast["ibn_doubt"]>;
 
@@ -87,9 +80,13 @@ export default function ForecastPanel({
                             }
                         >
                             <Text size="xs" c="dimmed">
-                                {MAIN_PHASE_LABEL[step.phase as MainPhase] ?? step.phase} ·{" "}
-                                {formatExpected(step.expected_date)}
+                                {MAIN_PHASE_LABEL[step.phase as MainPhase] ?? step.phase} · {formatExpected(step)}
                             </Text>
+                            {step.derivation && (
+                                <Text size="xs" c="dimmed" fs="italic">
+                                    {step.derivation}
+                                </Text>
+                            )}
                         </Timeline.Item>
                     ))}
                 </Timeline>

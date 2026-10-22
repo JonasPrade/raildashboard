@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from dashboard_backend.models.projects.progress_enums import MainPhase, SourceType
+from dashboard_backend.models.projects.progress_enums import DatePrecision, MainPhase, SourceType
 from dashboard_backend.services.fulda_categories import (
     FULDA_CATEGORY_LIST,
     IST,
@@ -78,3 +78,8 @@ def test_prognosis_without_date_falls_back_to_year_end():
 def test_hint_only_and_unknown_categories_yield_nothing():
     assert _spec("COMPLETES_LPH_1") is None
     assert _spec("bogus") is None
+
+
+def test_fallback_year_end_is_year_only():
+    assert _spec("NEW_BAUFINVE").date_precision is DatePrecision.YEAR
+    assert _spec("COMPLETES_LPH_3_4", expected_date=date(2027, 3, 1)).date_precision is DatePrecision.EXACT
