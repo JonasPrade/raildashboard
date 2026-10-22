@@ -11,8 +11,9 @@ import { committedFinveMio, gvfgAidMio } from "./projectCost";
 // next to it the FinVe funds committed by the federal budget — for a parent
 // project including the FinVes of all sub-projects, each once. Deliberately no
 // coverage ratio — other bodies co-finance, a ratio would mislead.
-// GVFG projects carry no FinVe: their federal aid from the GVFG-Bundesprogramm
-// stands in its place; without an Infraplan figure the GVFG total cost leads.
+// GVFG aid from the GVFG-Bundesprogramm stands next to the FinVe funds (in
+// their place when there is none); without an Infraplan figure the GVFG total
+// cost leads.
 // ---------------------------------------------------------------------------
 
 export default function ProjectCostBlock({ projectId }: { projectId: number }) {
@@ -64,7 +65,7 @@ export default function ProjectCostBlock({ projectId }: { projectId: number }) {
 
     return (
         <Stack gap="xs">
-            <StatBand columns={2}>
+            <StatBand columns={committed && gvfgAid ? 3 : 2}>
                 {forecast ? (
                     <Stat
                         value={formatMio(forecast.total_mio)}
@@ -96,8 +97,9 @@ export default function ProjectCostBlock({ projectId }: { projectId: number }) {
                         label={`${committed.count === 1 ? "Eine Finanzierungsvereinbarung" : `${committed.count} Finanzierungsvereinbarungen`}${committed.fromSubprojects > 0 ? `, davon ${committed.fromSubprojects} aus Teilprojekten` : ""} (FinVe, aktuelle Kosten laut Haushalt)`}
                     />
                 ) : (
-                    gvfgAid || <Stat value="–" title="Vom Bund zugesichert" label="Keine projektbezogene FinVe" />
+                    !gvfgAid && <Stat value="–" title="Vom Bund zugesichert" label="Keine projektbezogene FinVe" />
                 )}
+                {gvfgAid}
             </StatBand>
         </Stack>
     );

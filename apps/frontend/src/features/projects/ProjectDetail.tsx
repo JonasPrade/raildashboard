@@ -410,6 +410,15 @@ export default function ProjectDetail() {
         },
         { id: "progress", label: "Planungsstand", ref: progressRef, visible: true },
         {
+            id: "subprojects",
+            label: `Unterprojekte (${subProjects.length})`,
+            ref: subProjectsRef,
+            visible: subProjects.length > 0,
+            isCollapsible: true,
+            isOpen: subProjectsOpen,
+            onOpen: () => setSubProjectsOpen(true),
+        },
+        {
             id: "infraplan",
             label: "Infraplan",
             ref: infraplanRef,
@@ -451,15 +460,6 @@ export default function ProjectDetail() {
             label: "Übergeordnetes Projekt",
             ref: superiorRef,
             visible: !!superiorProject,
-        },
-        {
-            id: "subprojects",
-            label: `Unterprojekte (${subProjects.length})`,
-            ref: subProjectsRef,
-            visible: subProjects.length > 0,
-            isCollapsible: true,
-            isOpen: subProjectsOpen,
-            onOpen: () => setSubProjectsOpen(true),
         },
         {
             id: "constituencies",
@@ -703,6 +703,46 @@ export default function ProjectDetail() {
                     <ProgressSection projectId={projectId} />
                 </div>
 
+                {/* Unterprojekte */}
+                {subProjects.length > 0 && (
+                    <div ref={subProjectsRef}>
+                    <Paper withBorder p="var(--card-pad)">
+                        <Stack gap="sm">
+                            <Group className="idt-section-head" justify="space-between" align="center">
+                                <Title order={2} className="idt-title-plain">Unterprojekte ({subProjects.length})</Title>
+                                <Button
+                                    size="xs"
+                                    variant="subtle"
+                                    color="gray"
+                                    onClick={() => setSubProjectsOpen((o) => !o)}
+                                >
+                                    {subProjectsOpen ? "Ausblenden" : "Anzeigen"}
+                                </Button>
+                            </Group>
+                            <Collapse in={subProjectsOpen}>
+                                <Stack gap="sm">
+                                    {subProjects.map((sub) => (
+                                        <Paper key={sub.id} withBorder p="var(--card-pad)">
+                                            <Stack gap="sm">
+                                                <ProjectSummaryCard project={sub} />
+                                                <Button
+                                                    size="xs"
+                                                    variant="light"
+                                                    component={Link}
+                                                    to={`/projects/${sub.id}`}
+                                                >
+                                                    Zum Projekt
+                                                </Button>
+                                            </Stack>
+                                        </Paper>
+                                    ))}
+                                </Stack>
+                            </Collapse>
+                        </Stack>
+                    </Paper>
+                    </div>
+                )}
+
                 {/* Infraplan */}
                 <div ref={infraplanRef}>
                     <InfraplanSection projectId={projectId} />
@@ -766,46 +806,6 @@ export default function ProjectDetail() {
                                     </Button>
                                 </Stack>
                             </Paper>
-                        </Stack>
-                    </Paper>
-                    </div>
-                )}
-
-                {/* Unterprojekte */}
-                {subProjects.length > 0 && (
-                    <div ref={subProjectsRef}>
-                    <Paper withBorder p="var(--card-pad)">
-                        <Stack gap="sm">
-                            <Group className="idt-section-head" justify="space-between" align="center">
-                                <Title order={2} className="idt-title-plain">Unterprojekte ({subProjects.length})</Title>
-                                <Button
-                                    size="xs"
-                                    variant="subtle"
-                                    color="gray"
-                                    onClick={() => setSubProjectsOpen((o) => !o)}
-                                >
-                                    {subProjectsOpen ? "Ausblenden" : "Anzeigen"}
-                                </Button>
-                            </Group>
-                            <Collapse in={subProjectsOpen}>
-                                <Stack gap="sm">
-                                    {subProjects.map((sub) => (
-                                        <Paper key={sub.id} withBorder p="var(--card-pad)">
-                                            <Stack gap="sm">
-                                                <ProjectSummaryCard project={sub} />
-                                                <Button
-                                                    size="xs"
-                                                    variant="light"
-                                                    component={Link}
-                                                    to={`/projects/${sub.id}`}
-                                                >
-                                                    Zum Projekt
-                                                </Button>
-                                            </Stack>
-                                        </Paper>
-                                    ))}
-                                </Stack>
-                            </Collapse>
                         </Stack>
                     </Paper>
                     </div>

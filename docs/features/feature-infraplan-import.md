@@ -332,8 +332,8 @@ automatisch.
   Derselbe Grundsatz gilt für den Abschnitt „Finanzierungsvereinbarungen (FinVe)“:
   Er listet erst die eigenen FinVe, dann die der Teilprojekte, jede mit dem Hinweis
   „Aus Teilprojekt …“ und einem Link darauf.
-- **GVFG-Projekte** (ohne FinVe): an die Stelle von „Vom Bund zugesichert“ tritt die
-  **Bundesförderung (GVFG)** — die Finanzhilfen der ∑-Zeile, je Schlüssel die jüngste
+- **GVFG-Projekte:** daneben die **Bundesförderung (GVFG)** als eigener Wert (dritter
+  Wert neben der FinVe, ohne FinVe an deren Stelle) — die Finanzhilfen der ∑-Zeile, je Schlüssel die jüngste
   Ausgabe, eigene Vorhaben (ohne eigene die der Teilprojekte, nie beide addiert). Ohne
   Infraplan-Zahl steht der Block trotzdem, mit den GVFG-Gesamtkosten als Kopfzahl.
 - **Kein Deckungsgrad** — andere Organisationen finanzieren mit, ein Verhältnis wäre
