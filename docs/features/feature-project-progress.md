@@ -282,7 +282,12 @@ Neuer Komponentenbaum `features/projects/components/progress/`, eingehängt in
   damit nachvollziehbar ist, ob eine Übertragung aktuell oder veraltet ist
   (`username_snapshot` + `created_at` aus `progress_observation`). Dieselben Wer/Wann-Spalten
   auch in der Beobachtungstabelle des Drawers.
-- `ForecastPanel.tsx` — Restdauer + nächste Schritte.
+- `ForecastPanel.tsx` — Restdauer der aktuellen Phase + GVFG-Hinweis „Inbetriebnahme fraglich“.
+  Die nächsten Schritte stehen nicht mehr als eigene Liste darunter, sondern als Zeile
+  **„Prognose“** in der Phasenleiste (`PhaseStepper`, Prop `forecastSteps`): unter den
+  Gate-Markern (Parl./PFB) erscheint je Phasenspalte nur ein Schritt mit bekanntem Termin
+  (MM/JJJJ + Quellen-Tag); „Termin offen“ wird weggelassen, ohne datierten Schritt entfällt
+  die Zeile ganz.
 
 React-Query-Hooks in `shared/api/queries.ts`: `useProjectProgress`,
 `useUpdateProjectProgress`, `useCreate/DeleteProgressObservation`,
@@ -480,8 +485,8 @@ fließen als neue, **höchstpriorisierte** Quelle ein — *manuell übersteuert 
 Neuer Parameter `manual_expected: list[(MainPhase, date)]`; im `concrete`-Aufbau
 **nach** VIB-PFA/Fulda gesetzt (die untereinander nach Glaubwürdigkeit × Aktualität
 konkurrieren, siehe `feature-fulda-import.md`), sodass er bestehende Einträge überschreibt (nicht nur
-Lücken füllt). Quelle-Label `"Manuell"` im `ForecastStep` und farblich im
-`ForecastPanel` (`SOURCE_COLOR`). CRUD lädt alle `is_expected=True`-MAIN-Beobachtungen
+Lücken füllt). Quelle-Label `"Manuell"` im `ForecastStep` und farblich in der Prognose-Zeile
+der Phasenleiste (`PhaseStepper`, `SOURCE_COLOR`). CRUD lädt alle `is_expected=True`-MAIN-Beobachtungen
 mit Datum und trennt sie mit `split_expected`: nicht abgeleitete → „Manuell“, abgeleitete
 Fulda-Prognosen → Fulda-Eingang (mit Datum der Antwort für die Gewichtung).
 
@@ -658,6 +663,8 @@ Das gespeicherte Datum ist nur noch der Sortierwert.
 - **Restdauer:** Bei einer Untergrenze wird keine Restdauer behauptet; es steht „Ende der
   aktuellen Phase offen (nach 2031)“.
 - `next_steps[]` trägt `date_precision`, `date_label`, `date_text` und `derivation`.
+  Die Prognose-Zeile der Phasenleiste zeigt den Termin in seiner Präzision („2028“,
+  „nach 2031“, „ca. 07/2028“); „(Annahme)“, Label und Herleitung stehen im Tooltip.
   `estimated_phase_end_precision` gehört zu `estimated_phase_end`.
 
 ### Listen und Filter
