@@ -26,6 +26,7 @@ import {
 import { gapFill, markerStyle, phaseColor, plannedFill, segmentFill } from "./timelineStyles";
 import { TIMELINE_COLOR } from "../../shared/theme/semanticColors";
 import { LoadingState } from "../../shared/ui/LoadingState";
+import ProjectHoverCard from "../projects/ProjectHoverCard";
 
 // Rows rendered per step, like the card list.
 const PAGE_SIZE = 60;
@@ -89,16 +90,18 @@ function TimelineRow({
         <Box py={8} style={{ borderBottom: "1px solid var(--border)" }}>
             <Group justify="space-between" gap="xs" wrap="nowrap" mb={6}>
                 <Group gap={6} wrap="nowrap" style={{ minWidth: 0 }}>
-                    <Anchor
-                        component={Link}
-                        to={`/projects/${row.project_id}`}
-                        size="sm"
-                        fw={600}
-                        truncate
-                        style={lifecycle === "AKTIV" ? undefined : { color: "var(--text-muted)" }}
-                    >
-                        {row.name}
-                    </Anchor>
+                    <ProjectHoverCard projectId={row.project_id}>
+                        <Anchor
+                            component={Link}
+                            to={`/projects/${row.project_id}`}
+                            size="sm"
+                            fw={600}
+                            truncate
+                            style={lifecycle === "AKTIV" ? undefined : { color: "var(--text-muted)" }}
+                        >
+                            {row.name}
+                        </Anchor>
+                    </ProjectHoverCard>
                     {lifecycle !== "AKTIV" && (
                         <Badge size="xs" variant="light" color="gray" style={{ flexShrink: 0 }}>
                             {LIFECYCLE_LABEL[lifecycle]}

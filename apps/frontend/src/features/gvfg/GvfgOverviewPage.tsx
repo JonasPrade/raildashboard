@@ -20,6 +20,7 @@ import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { CATEGORY_LABEL, KIND_LABEL, categories, editionLabel, formatMio, num, plannedAid, sumLine } from "./gvfgFormat";
 import { LoadingState } from "../../shared/ui/LoadingState";
 import { ErrorState } from "../../shared/ui/ErrorState";
+import ProjectHoverCard from "../projects/ProjectHoverCard";
 
 const PAGE_SIZE = 50;
 
@@ -211,9 +212,11 @@ export default function GvfgOverviewPage() {
                                                 ) : (
                                                     <Stack gap={2}>
                                                         {e.projects.map((p) => (
-                                                            <Anchor key={p.id} component={Link} to={`/projects/${p.id}`} size="sm">
-                                                                {p.name}
-                                                            </Anchor>
+                                                            <ProjectHoverCard key={p.id} projectId={p.id}>
+                                                                <Anchor component={Link} to={`/projects/${p.id}`} size="sm">
+                                                                    {p.name}
+                                                                </Anchor>
+                                                            </ProjectHoverCard>
                                                         ))}
                                                     </Stack>
                                                 )}

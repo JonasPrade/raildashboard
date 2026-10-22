@@ -449,8 +449,9 @@ function projectQueryOptions(id: number) {
     });
 }
 
-export function useProject(id: number) {
-    return useQuery(projectQueryOptions(id));
+export function useProject(id: number, { enabled = true }: { enabled?: boolean } = {}) {
+    const options = projectQueryOptions(id);
+    return useQuery({ ...options, enabled: enabled && Number.isFinite(id) });
 }
 
 /**
