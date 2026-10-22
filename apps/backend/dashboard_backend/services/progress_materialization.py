@@ -29,6 +29,7 @@ from dashboard_backend.models.projects.progress_enums import (
 )
 from dashboard_backend.services.fulda_categories import get_category
 from dashboard_backend.services.progress_dates import (
+    commissioning_in_year,
     parse_flexible_date,
     parse_flexible_date_with_precision,
 )
@@ -534,9 +535,10 @@ def infraplan_entry_to_specs(
                     ObservationTrack.MAIN,
                     MainPhase.IN_BETRIEB.value,
                     f"{label}: geplante Inbetriebnahme {ibn_year}",
-                    observed=date(ibn_year, 12, 31),
+                    observed=commissioning_in_year(ibn_year)[0],
                     is_expected=True,
-                    date_precision=DatePrecision.YEAR,
+                    # Year only: the Fahrplanwechsel, shown as 12/YYYY.
+                    date_precision=commissioning_in_year(ibn_year)[1],
                 )
             )
 
@@ -649,12 +651,12 @@ def gvfg_entry_to_specs(
                 source_type=SourceType.GVFG,
                 track=ObservationTrack.MAIN,
                 asserted_state=MainPhase.IN_BETRIEB.value,
-                observed_date=date(ibn_year, 12, 31),
+                observed_date=commissioning_in_year(ibn_year)[0],
                 note=f"{label}: geplante Inbetriebnahme {ibn_year}",
                 gvfg_entry_id=gvfg_entry_id,
                 is_expected=True,
-                # Only the year is printed; 31 Dec stays the sort value.
-                date_precision=DatePrecision.YEAR,
+                # Only the year is printed: the Fahrplanwechsel, shown as 12/YYYY.
+                date_precision=commissioning_in_year(ibn_year)[1],
             )
         )
     return specs

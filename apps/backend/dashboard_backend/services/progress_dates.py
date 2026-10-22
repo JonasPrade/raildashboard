@@ -91,6 +91,28 @@ def parse_flexible_date_with_precision(text: str | None) -> tuple[date | None, D
 
 
 _EXACT, _MONTH, _YEAR = DatePrecision.EXACT, DatePrecision.MONTH, DatePrecision.YEAR
+# Representative day of a bare year ("2028") — mid-year.
+_BARE_YEAR = (7, 1)
+
+
+def commissioning_in_year(year: int) -> tuple[date, DatePrecision]:
+    """A commissioning known only by its year: the timetable change
+    (Fahrplanwechsel, early December) unless something else is known —
+    shown as 12/YYYY, sort value 31 Dec (the latest point of the year)."""
+
+    return date(year, 12, 31), DatePrecision.MONTH
+
+
+def parse_commissioning_with_precision(text: str | None) -> tuple[date | None, DatePrecision]:
+    """:func:`parse_flexible_date_with_precision` for an Inbetriebnahme: a bare
+    year („2028“, „voraussichtlich 2028“) becomes the Fahrplanwechsel 12/2028
+    (:func:`commissioning_in_year`). Quarters and keywords („Mitte 2028“) say
+    more about the time of year and stay as they are."""
+
+    value, precision = parse_flexible_date_with_precision(text)
+    if value is not None and precision is _YEAR and (value.month, value.day) == _BARE_YEAR:
+        return commissioning_in_year(value.year)
+    return value, precision
 
 
 def _parse(text: str | None) -> tuple[date | None, DatePrecision]:
@@ -147,6 +169,6 @@ def _parse(text: str | None) -> tuple[date | None, DatePrecision]:
     #    For a range like "2024-2026" take the earliest year mentioned.
     years = re.findall(r"\b(20\d{2}|19\d{2})\b", lowered)
     if years:
-        return _safe_date(int(min(years)), 7, 1), _YEAR
+        return _safe_date(int(min(years)), *_BARE_YEAR), _YEAR
 
     return None, _EXACT

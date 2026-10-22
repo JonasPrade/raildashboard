@@ -49,7 +49,10 @@ from dashboard_backend.services.progress_derivation import (
 )
 from dashboard_backend.services.gvfg_ibn_check import check_ibn_against_gvfg, known_ibn
 from dashboard_backend.services.date_precision import as_precision, date_text, normalize_sort_date
-from dashboard_backend.services.progress_dates import parse_flexible_date_with_precision
+from dashboard_backend.services.progress_dates import (
+    parse_commissioning_with_precision,
+    parse_flexible_date_with_precision,
+)
 from dashboard_backend.services.progress_forecast import (
     BvwpDurations,
     ConcreteDate,
@@ -340,7 +343,7 @@ def pfa_forecast_input(pfa: VibPfaEntry, report: VibReport | None) -> PfaForecas
         reported_on = report.report_date or date(report.year, 12, 31)
     pfb, pfb_precision = parse_flexible_date_with_precision(pfa.datum_pfb)
     start, start_precision = parse_flexible_date_with_precision(pfa.baubeginn)
-    opening, opening_precision = parse_flexible_date_with_precision(pfa.inbetriebnahme)
+    opening, opening_precision = parse_commissioning_with_precision(pfa.inbetriebnahme)
     return PfaForecastInput(
         datum_pfb=pfb,
         baubeginn=start,

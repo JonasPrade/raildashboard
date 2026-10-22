@@ -8,6 +8,7 @@ from datetime import date
 import pytest
 
 from dashboard_backend.models.projects.progress_enums import (
+    DatePrecision,
     MainPhase,
     ObservationTrack,
     ParallelState,
@@ -154,3 +155,9 @@ def test_several_infraplan_rows_take_latest_year():
         today=date(2026, 11, 1),
     )
     assert (concrete[MainPhase.IN_BETRIEB].date, concrete[MainPhase.IN_BETRIEB].source) == (date(2031, 12, 31), "Infraplan")
+
+
+def test_expected_commissioning_is_the_timetable_change():
+    # Only the year is printed: the Fahrplanwechsel, shown as 12/2030.
+    (expected,) = [s for s in _specs() if s.is_expected]
+    assert (expected.observed_date, expected.date_precision) == (date(2030, 12, 31), DatePrecision.MONTH)

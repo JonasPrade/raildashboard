@@ -16,6 +16,7 @@ from dashboard_backend.services.date_precision import (
     normalize_sort_date,
 )
 from dashboard_backend.services.progress_dates import (
+    parse_commissioning_with_precision,
     parse_flexible_date,
     parse_flexible_date_with_precision,
 )
@@ -119,3 +120,23 @@ def test_plain_parse_is_unchanged():
     # parse_flexible_date keeps its reading of lower bounds (the year itself).
     assert parse_flexible_date(">2024") == date(2024, 7, 1)
     assert parse_flexible_date("12/2024") == date(2024, 12, 15)
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        # A bare year is the Fahrplanwechsel: 12/YYYY, sort value 31 Dec.
+        ("2028", (date(2028, 12, 31), P.MONTH)),
+        ("voraussichtlich 2030", (date(2030, 12, 31), P.MONTH)),
+        # More than the year is known: unchanged.
+        ("Mitte 2028", (date(2028, 7, 15), P.YEAR)),
+        ("2. Quartal 2028", (date(2028, 5, 15), P.YEAR)),
+        ("03/2028", (date(2028, 3, 15), P.MONTH)),
+        ("nach 2031", (date(2032, 1, 1), P.NOT_BEFORE)),
+        (None, (None, P.EXACT)),
+    ],
+)
+def test_commissioning_year_is_the_timetable_change(text, expected):
+    assert parse_commissioning_with_precision(text) == expected
+    if expected[1] is P.MONTH and expected[0].month == 12:
+        assert format_date(*expected) == f"12/{expected[0].year}"

@@ -89,6 +89,17 @@ On container start, `docker-entrypoint.sh` waits for the database to be ready, o
 
 Use `make docker-prod-up` / `make docker-prod-down` from the repository root to manage the production stack. See [`docs/production_setup.md`](../../docs/production_setup.md) for the full deployment guide.
 
+## Planning-state dates (date precision)
+
+Planning-state dates carry a `date_precision` (EXACT, MONTH, YEAR, NOT_BEFORE, ASSUMED); the stored date is only the sort value and every display goes through `dashboard_backend/services/date_precision.py` (`date_text`). `project_progress` caches the forecast's Baubeginn and Inbetriebnahme with their precision for the list views and `list_projects`. Fill the cache for all projects once after migration `20261022004` (and whenever the lists look stale):
+
+```bash
+make refresh-progress-dates            # local
+make docker-refresh-progress-dates     # inside the running backend container
+```
+
+Details: `docs/features/feature-project-progress.md` → „Datumsqualifikation“.
+
 ## Authentication API
 
 Session-based login using a signed `httpOnly` cookie (no credentials stored on the client).
