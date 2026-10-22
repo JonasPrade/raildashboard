@@ -321,6 +321,7 @@ Siehe: `docs/features/feature-tasks.md`
 - [x] Capabilities `todo.create`/`todo.edit`/`todo.delete` (Gruppe „Aufgaben"), in editor-Systemrolle geseedet (Migration `e4a1b2c3d5f6`)
 - [x] Frontend: zentrale Seite `/tasks` (Spalten Offen/In Arbeit/Erledigt, Schnell-Erfassung, Filter), Edit-Drawer, Aufgaben-Sektion auf der Projektdetailseite; Nav-Link „Aufgaben" (login-gated)
 - [x] Optionaler Projektbezug (`project_id` nullable, `ON DELETE SET NULL`), Mehrfachzuweisung, Priorität + Fälligkeit (überfällig hervorgehoben)
+- [x] Tags (m:n, Tag „@LLM“ für Aufgaben an das LLM), Tag-Filter und Textsuche, eigener Aufgaben-Verlauf; „Tags verwalten“ (umbenennen, beschreiben, löschen), zweites Tag „@Jonas“ für den Teil vor dem LLM; MCP `list_todos` mit `tag`/`search`/`offset`, `list_todo_tags`, `update_todo_tag` (Migration `20261022003`, „@LLM“ aus Titeln ins Tag übernommen)
 
 ### Claude Code Setup
 - [x] Hooks (pre-edit `.env` guard, post-edit reminders for `make gen-api`, Alembic, roadmap sync, macOS notifications)

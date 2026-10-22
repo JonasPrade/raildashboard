@@ -1,4 +1,4 @@
-"""Data migration 20261022001 corrects the imported GVFG edition 2023 in place."""
+"""Data migration 20261022002 corrects the imported GVFG edition 2023 in place."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pathlib import Path
 from dashboard_backend.models.gvfg import GvfgEntry, GvfgEntryAmount, GvfgProgram
 from dashboard_backend.models.projects.project import Project
 
-_PATH = Path(__file__).resolve().parents[2] / "alembic" / "versions" / "20261022001_fix_gvfg_2023_parse.py"
+_PATH = Path(__file__).resolve().parents[2] / "alembic" / "versions" / "20261022002_fix_gvfg_2023_parse.py"
 _spec = importlib.util.spec_from_file_location("fix_gvfg_2023", _PATH)
 migration = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(migration)

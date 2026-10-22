@@ -168,7 +168,7 @@ der **neuesten Ausgabe** zählen in der Admin-Übersicht „Nicht zugeordnet“ 
   Beim Bestätigen ersetzt ein Lauf mit finanzrelevantem Teil die Jahresspalten der
   Ausgabe (ein Anhang ergänzt nur), damit ein erneuter Import falsch gelesene Spalten
   entfernt; die Zuordnungen schlägt der Review aus dem vorigen Import wieder vor.
-  Die schon importierte Ausgabe 2023–2027 korrigiert die Datenmigration `20261022001`
+  Die schon importierte Ausgabe 2023–2027 korrigiert die Datenmigration `20261022002`
   an Ort und Stelle (Spalten umbenannt, 16 D 4520_A, 09 G 7034_A, fehlendes
   03 D 4505_A mit den Projekten der neuesten Ausgabe) — kein erneuter Upload nötig.
 - **Summenprüfung:** „Summe über <Land>“ und „Kat. A/C“ je Tabelle gegen die

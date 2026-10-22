@@ -6,6 +6,7 @@ import {
     MultiSelect,
     Select,
     Stack,
+    TagsInput,
     Textarea,
     TextInput,
 } from "@mantine/core";
@@ -14,6 +15,7 @@ import { notifications } from "@mantine/notifications";
 import {
     useCreateTodo,
     useProjectOptions,
+    useTodoTags,
     useUpdateTodo,
     useUserOptions,
     type Todo,
@@ -21,6 +23,7 @@ import {
     type TodoStatus,
 } from "../../shared/api/queries";
 import { PRIORITY_LABELS, PRIORITY_ORDER, STATUS_LABELS, STATUS_ORDER } from "./todoConstants";
+import TodoHistory from "./TodoHistory";
 
 type Props = {
     opened: boolean;
@@ -40,6 +43,7 @@ export default function TodoEditDrawer({ opened, onClose, todo, defaultProjectId
     const updateTodo = useUpdateTodo();
     const { data: projects } = useProjectOptions();
     const { data: users } = useUserOptions(opened);
+    const { data: allTags } = useTodoTags(opened);
 
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
@@ -48,6 +52,7 @@ export default function TodoEditDrawer({ opened, onClose, todo, defaultProjectId
     const [dueDate, setDueDate] = useState<string>("");
     const [projectId, setProjectId] = useState<string | null>(null);
     const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
+    const [tags, setTags] = useState<string[]>([]);
 
     // Reset the form whenever the drawer (re)opens for a different task.
     useEffect(() => {
@@ -65,6 +70,7 @@ export default function TodoEditDrawer({ opened, onClose, todo, defaultProjectId
                   : null,
         );
         setAssigneeIds((todo?.assignees ?? []).map((a) => String(a.id)));
+        setTags((todo?.tags ?? []).map((t) => t.name));
     }, [opened, todo, defaultProjectId]);
 
     const projectOptions = useMemo(
@@ -104,6 +110,7 @@ export default function TodoEditDrawer({ opened, onClose, todo, defaultProjectId
                         project_id: projectId ? Number(projectId) : null,
                         clear_project: !projectId,
                         assignee_ids,
+                        tags,
                     },
                 });
             } else {
@@ -115,6 +122,7 @@ export default function TodoEditDrawer({ opened, onClose, todo, defaultProjectId
                     due_date: dueDate || null,
                     project_id: projectId ? Number(projectId) : null,
                     assignee_ids,
+                    tags,
                 });
             }
             notifications.show({ color: "teal", message: isEdit ? "Aufgabe gespeichert." : "Aufgabe erstellt." });
@@ -192,6 +200,16 @@ export default function TodoEditDrawer({ opened, onClose, todo, defaultProjectId
                     searchable
                     clearable
                 />
+                <TagsInput
+                    label="Tags"
+                    description="„@LLM“: vom LLM über MCP zu erledigen · zusammen mit „@Jonas“: erst Jonas’ Teil, dann das LLM"
+                    placeholder="Tag wählen oder neu eingeben (Enter)"
+                    data={(allTags ?? []).map((t) => t.name)}
+                    value={tags}
+                    onChange={setTags}
+                    maxLength={50}
+                    clearable
+                />
                 <Group justify="flex-end" mt="sm">
                     <Button variant="subtle" color="gray" onClick={onClose}>
                         Abbrechen
@@ -200,6 +218,7 @@ export default function TodoEditDrawer({ opened, onClose, todo, defaultProjectId
                         {isEdit ? "Speichern" : "Erstellen"}
                     </Button>
                 </Group>
+                {isEdit && todo && <TodoHistory todoId={todo.id} />}
             </Stack>
         </Drawer>
     );

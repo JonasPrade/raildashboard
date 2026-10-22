@@ -15,16 +15,16 @@ the edition does not have to be uploaded and reviewed again:
 Nothing happens without an imported 2023 edition. Data only, no schema
 change; the downgrade leaves the corrected data in place.
 
-Revision ID: 20261022001
-Revises: 20261021004
+Revision ID: 20261022002
+Revises: 20261022001
 Create Date: 2026-10-22
 """
 
 from alembic import op
 import sqlalchemy as sa
 
-revision = "20261022001"
-down_revision = "20261021004"
+revision = "20261022002"
+down_revision = "20261022001"
 branch_labels = None
 depends_on = None
 

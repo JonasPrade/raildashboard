@@ -2,7 +2,9 @@
 
 A task either belongs to one project (``project_id``) or is a free standalone
 note (``project_id is None``). Assignment to users is many-to-many through
-``todo_assignee``. See ``docs/features/feature-tasks.md``.
+``todo_assignee``, tags are many-to-many through ``todo_tag_link``. Every
+change is recorded in ``todo_change_log`` (the project ``change_log`` needs a
+project, which standalone tasks lack). See ``docs/features/feature-tasks.md``.
 """
 
 from __future__ import annotations
@@ -27,6 +29,32 @@ class TodoAssignee(Base):
     )
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+
+
+class TodoTag(Base):
+    """A free label for tasks (e.g. ``@LLM``). Names are unique, case-insensitive."""
+
+    __tablename__ = "todo_tag"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, nullable=False
+    )
+
+
+class TodoTagLink(Base):
+    """Association of a tag to a to-do (many-to-many)."""
+
+    __tablename__ = "todo_tag_link"
+
+    todo_id: Mapped[int] = mapped_column(
+        ForeignKey("todo.id", ondelete="CASCADE"), primary_key=True
+    )
+    tag_id: Mapped[int] = mapped_column(
+        ForeignKey("todo_tag.id", ondelete="CASCADE"), primary_key=True, index=True
     )
 
 
@@ -76,6 +104,12 @@ class Todo(Base):
         secondary="todo_assignee",
         lazy="selectin",
     )
+    tags: Mapped[list[TodoTag]] = relationship(
+        "TodoTag",
+        secondary="todo_tag_link",
+        lazy="selectin",
+        order_by="TodoTag.name",
+    )
     # Lazy "select" (not "joined"): a many-to-one whose FK is NULL resolves to
     # None without emitting SQL, so standalone tasks never touch the project
     # table (keeps the test schema, which omits ``project``, working).
@@ -85,3 +119,46 @@ class Todo(Base):
 
     def __repr__(self) -> str:  # pragma: no cover - debugging aid
         return f"<Todo(id={self.id}, status={self.status}, title={self.title!r})>"
+
+
+class TodoChangeLog(Base):
+    """One change event on a to-do (what, when, by whom)."""
+
+    __tablename__ = "todo_change_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    # SET NULL so the history survives the task's deletion
+    todo_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("todo.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    todo_title_snapshot: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    user_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    username_snapshot: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    # CREATE / PATCH / DELETE / MIGRATION
+    action: Mapped[str] = mapped_column(String(20), nullable=False, default="PATCH")
+
+    entries: Mapped[list[TodoChangeLogEntry]] = relationship(
+        "TodoChangeLogEntry",
+        back_populates="changelog",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
+
+class TodoChangeLogEntry(Base):
+    """Per-field change record linked to a TodoChangeLog entry."""
+
+    __tablename__ = "todo_change_log_entry"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    changelog_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("todo_change_log.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    field_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    old_value: Mapped[str | None] = mapped_column(Text, nullable=True)
+    new_value: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    changelog: Mapped[TodoChangeLog] = relationship("TodoChangeLog", back_populates="entries")

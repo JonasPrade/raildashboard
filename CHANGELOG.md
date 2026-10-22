@@ -12,6 +12,7 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Added
+- **Tags for tasks (#173).** Tasks carry any number of tags (`todo_tag`, `todo_tag_link`), set in the edit drawer and filterable on `/tasks`, which also gets a text search over title and description. The tag `@LLM` marks a task the LLM is to do (fully or in part) through MCP; migration `20261022003` moves the „@LLM“ marker out of existing titles into that tag (downgrade puts it back). Every task change is now logged in its own history (`todo_change_log`), shown in the drawer. MCP: `create_todo`/`update_todo` take `tags`, `list_todos` filters by `tag`, searches with `search` and pages with `offset`, new tools `list_todo_tags` and `update_todo_tag`. „Tags verwalten“ on `/tasks` renames, describes and deletes tags (`PATCH`/`DELETE /api/v1/todos/tags/{id}`), logged on every affected task. A second tag `@Jonas` marks a part Jonas does first; the migration sets it on `@LLM` tasks with a „Für Jonas:“ part.
 - **GVFG-Bundesprogramm as a planning-state source.** The newest GVFG edition of a Vorhaben now yields derived observations (source `GVFG`, trust 0.75, dated on the edition's Stand): Inbetriebnahme tats. before the Stand year or Lph 9 → In Betrieb, Lph ≥ 5 or a Baubeginn up to the Stand year → Bau, Lph 3–4 → Genehmigungsplanung, Lph 1–2 → Vorplanung, plus the expected commissioning (tats., else gepl.) in the forecast and timeline. A more recent Infraplan row of the same key still wins (decision 22). Confirming an edition and assigning Vorhaben recompute the projects at once. The IBN plausibility check reads the same year. Expand-only migration `20261022001` (`progress_observation.gvfg_entry_id`).
 
 ### Changed
@@ -330,7 +331,7 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   „Kat: C“ and a key without underscore („03 D 4505 A“, previously missing) are read.
   Confirming a parse with the financial part now replaces the edition's year columns,
   so a re-import removes wrongly read ones.
-  The data migration `20261022001` applies the same corrections to the already
+  The data migration `20261022002` applies the same corrections to the already
   imported edition 2023–2027 on the next deploy (no re-upload); it does nothing without
   that edition.
 - **Infraplan: full stops read as "�".** Some prints of the Infraplan 2026 map the table
