@@ -24,6 +24,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import {
     type Project,
+    invalidateAfterGeometryChange,
     updateProject,
     useDeleteProject,
     useProject,
@@ -190,7 +191,8 @@ export default function ProjectDetail() {
         mutationFn: (values: ProjectEditFormValues) => updateProject(projectId, createUpdatePayload(values)),
         onSuccess: (updatedProject) => {
             queryClient.setQueryData(queryKeys.project(projectId), updatedProject);
-            queryClient.invalidateQueries({ queryKey: queryKeys.projects });
+            // A changed parent moves the project in or out of the overview map.
+            invalidateAfterGeometryChange(queryClient, updatedProject);
             setEditOpened(false);
             notifications.show({
                 color: "green",

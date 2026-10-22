@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { queryOptions, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type QueryClient, queryOptions, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "./client";
 import type { components } from "./types.gen";
@@ -765,7 +765,8 @@ export function useRevertProjectField(projectId: number) {
             }),
         onSuccess: (updatedProject) => {
             queryClient.setQueryData(queryKeys.project(projectId), updatedProject);
-            queryClient.invalidateQueries({ queryKey: queryKeys.projects });
+            // The reverted field may be the geometry.
+            invalidateAfterGeometryChange(queryClient, updatedProject);
             queryClient.invalidateQueries({ queryKey: queryKeys.projectChangelog(projectId) });
         },
     });
@@ -1714,6 +1715,19 @@ export function useConfirmRoute(projectId: number) {
     );
 }
 
+/**
+ * Refresh everything that renders a project's geometry: project lists, the
+ * overview map (group geometries, cached per group) and the parent, whose
+ * geometry the backend may have rebuilt from its subprojects.
+ */
+export function invalidateAfterGeometryChange(queryClient: QueryClient, project: Project) {
+    queryClient.invalidateQueries({ queryKey: queryKeys.projects });
+    queryClient.invalidateQueries({ queryKey: queryKeys.projectGroups });
+    if (project.superior_project_id != null) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.project(project.superior_project_id) });
+    }
+}
+
 export function useUpdateProjectGeometry(projectId: number) {
     const queryClient = useQueryClient();
     return useMutation({
@@ -1721,7 +1735,7 @@ export function useUpdateProjectGeometry(projectId: number) {
             updateProject(projectId, { geojson_representation }),
         onSuccess: (updatedProject) => {
             queryClient.setQueryData(queryKeys.project(projectId), updatedProject);
-            queryClient.invalidateQueries({ queryKey: queryKeys.projects });
+            invalidateAfterGeometryChange(queryClient, updatedProject);
         },
     });
 }
@@ -1738,7 +1752,7 @@ export function useUpdateProjectGeojsonSource(projectId: number) {
             updateProject(projectId, { geojson_from_subprojects }),
         onSuccess: (updatedProject) => {
             queryClient.setQueryData(queryKeys.project(projectId), updatedProject);
-            queryClient.invalidateQueries({ queryKey: queryKeys.projects });
+            invalidateAfterGeometryChange(queryClient, updatedProject);
         },
     });
 }
