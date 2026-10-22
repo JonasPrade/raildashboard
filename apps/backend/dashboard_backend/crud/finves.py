@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session, joinedload, selectinload
 
+from dashboard_backend.crud.projects.projects import subtree_ids
 from dashboard_backend.models.associations.finve_to_project import FinveToProject
 from dashboard_backend.models.haushalt.budget_titel_entry import BudgetTitelEntry
 from dashboard_backend.models.projects.budget import Budget
@@ -165,10 +166,27 @@ def set_finve_progress_phase(db: Session, finve_id: int, phase: str | None):
     return finve
 
 
-def get_project_finves_with_budgets(db: Session, project: Project) -> list[FinveWithBudgetsSchema]:
+def get_project_finves_with_budgets(
+    db: Session, project: Project, include_subprojects: bool = False
+) -> list[FinveWithBudgetsSchema]:
     """FinVes linked to a project, each with its full budget history including
-    the per-Haushaltstitel breakdown (budgets sorted by year)."""
-    finve_ids = [f.id for f in project.finve]
+    the per-Haushaltstitel breakdown (budgets sorted by year).
+
+    ``include_subprojects`` adds the FinVes of all descendant projects (parent
+    projects aggregate, docs/architecture.md → Principles); a FinVe linked to
+    several of them is returned once. Those not linked to the project itself
+    carry ``from_subprojects``."""
+    own_ids = {f.id for f in project.finve}
+    finve_ids = set(own_ids)
+    if include_subprojects:
+        descendants = [pid for pid in subtree_ids(db, project.id) if pid != project.id]
+        if descendants:
+            finve_ids.update(
+                fid
+                for (fid,) in db.query(FinveToProject.finve_id)
+                .filter(FinveToProject.project_id.in_(descendants))
+                .distinct()
+            )
     if not finve_ids:
         return []
 
@@ -176,8 +194,11 @@ def get_project_finves_with_budgets(db: Session, project: Project) -> list[Finve
     # for the two collection hops: a joined load multiplies the rows
     # (finves × budgets × titel_entries) and repeats every parent column in each
     # one, while selectinload issues one flat query per level.
-    finves = _finve_with_budgets_query(db).filter(Finve.id.in_(finve_ids)).all()
-    return [finve_with_budgets(finve) for finve in finves]
+    finves = _finve_with_budgets_query(db).filter(Finve.id.in_(finve_ids)).order_by(Finve.id).all()
+    return [
+        finve_with_budgets(finve).model_copy(update={"from_subprojects": finve.id not in own_ids})
+        for finve in finves
+    ]
 
 
 def _finve_with_budgets_query(db: Session):
