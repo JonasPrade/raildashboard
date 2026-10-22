@@ -526,7 +526,9 @@ den GVFG-Zeilen des Infraplans (Kat. A/C, 77 Zeilen):
   GVFG-Ausgabe vs. Veröffentlichungsdatum des Infraplans). Diese Quelle fließt in
   Planungsstand, Prognose und Kostenblock; die andere bleibt in ihrem Abschnitt
   sichtbar. Beim Gleichstand gewinnt der Infraplan. Die Prüfung erfolgt beim
-  Materialisieren über den normalisierten Schlüssel.
+  Materialisieren über den normalisierten Schlüssel. Die Richtung „GVFG-Ausgabe ist
+  jünger“ liefert seit 2026-10-22 die Quelle `GVFG` (`feature-project-progress.md` →
+  „Planungsstand aus dem GVFG-Bundesprogramm“); vorher fiel die Angabe dann ganz weg.
 - **Entschieden (2026-10-15) — Summen überall:** Auch reine GVFG-Elternprojekte bilden
   Summen über ihre Teilprojekte. Das ist ein projektweiter Grundsatz
   (`docs/architecture.md` → „Grundsätze“); `feature-gvfg-import.md` ist angepasst.

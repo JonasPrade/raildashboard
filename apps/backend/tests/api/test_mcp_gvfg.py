@@ -242,3 +242,91 @@ def test_aid_after_commissioning_questions_it(mcp_client, admin_token, db_sessio
     # U4: commissioning 2030, no aid after it.
     u4 = _payload(_call(mcp_client, admin_token, "list_project_gvfg", {"project_id": seed["u4"].id}))
     assert u4["ibn_doubt"] is None
+
+
+def _gvfg_observations(progress):
+    return [o for o in progress["observations"] if o["source_type"] == "GVFG"]
+
+
+def test_newest_edition_feeds_the_planning_state(mcp_client, admin_token, db_session):
+    seed = _seed(db_session)
+    s60 = Project(name="S-Bahn Stuttgart S60", project_number="08 D 120_S", is_draft=False)
+    old = _entry(seed["old"], "08 D 120_S", "S-Bahn Stuttgart S60", land="Baden-Württemberg", kind="db")
+    old.commissioning_planned = None
+    old.lph = "1 - 2"
+    new = _entry(seed["new"], "08 D 120_S", "S-Bahn Stuttgart S60", land="Baden-Württemberg", kind="db")
+    new.commissioning_planned, new.commissioning_actual, new.construction_start = 2026, 2028, 2004
+    old.projects = [s60]
+    new.projects = [s60]
+    db_session.add_all([s60, old, new])
+    db_session.commit()
+
+    progress = _payload(_call(mcp_client, admin_token, "get_project_progress", {"project_id": s60.id}))
+    observations = _gvfg_observations(progress)
+    # Only the newest edition: Baubeginn 2004 → Bau, IBN 2028 expected.
+    assert sorted((o["asserted_state"], o["is_expected"]) for o in observations) == [
+        ("BAU", False),
+        ("IN_BETRIEB", True),
+    ]
+    assert {o["observed_date"] for o in observations if not o["is_expected"]} == {"2025-07-18"}
+    assert (progress["computed_phase"], progress["is_known"]) == ("BAU", True)
+    steps = {s["phase"]: s for s in progress["forecast"]["next_steps"]}
+    assert (steps["IN_BETRIEB"]["expected_date"], steps["IN_BETRIEB"]["source"]) == ("2028-12-31", "GVFG")
+
+
+def test_more_recent_infraplan_row_replaces_the_edition(mcp_client, admin_token, db_session):
+    from dashboard_backend.models.infraplan import InfraplanEntry, InfraplanEntryProject, InfraplanReport
+
+    seed = _seed(db_session)
+    project = Project(name="S-Bahn Stuttgart S60", project_number="08 D 120_S", is_draft=False)
+    entry = _entry(seed["new"], "08 D 120_S", "S-Bahn Stuttgart S60", land="Baden-Württemberg", kind="db")
+    entry.construction_start = 2004
+    entry.projects = [project]
+    report = InfraplanReport(year=2026, title="Infraplan 2026", published_on=date(2026, 10, 6))
+    row = InfraplanEntry(report=report, section="GVFG_A", lfd_nr=1, primary_number="08 D 120_S",
+                         lph_from=3, lph_to=4)
+    db_session.add_all([project, entry, report, row])
+    db_session.flush()
+    db_session.add(InfraplanEntryProject(entry_id=row.id, project_id=project.id))
+    db_session.commit()
+
+    progress = _payload(_call(mcp_client, admin_token, "get_project_progress", {"project_id": project.id}))
+    assert _gvfg_observations(progress) == []
+    assert [(o["source_type"], o["asserted_state"]) for o in progress["observations"]] == [
+        ("INFRAPLAN", "GENEHMIGUNGSPLANUNG")
+    ]
+
+
+def test_assigning_an_entry_recomputes_the_project(mcp_client, admin_token, db_session):
+    seed = _seed(db_session)
+    seed["open_new"].lph = "9"
+    db_session.commit()
+    before = _payload(_call(mcp_client, admin_token, "get_project_progress", {"project_id": seed["karlsruhe"].id}))
+    assert before["is_known"] is False
+
+    _payload(
+        _call(mcp_client, admin_token, "assign_gvfg_entry",
+              {"entry_id": seed["open_new"].id, "project_ids": [seed["karlsruhe"].id]})
+    )
+    after = _payload(_call(mcp_client, admin_token, "get_project_progress", {"project_id": seed["karlsruhe"].id}))
+    assert (after["computed_phase"], after["is_known"]) == ("IN_BETRIEB", True)
+
+
+def test_ibn_doubt_reads_the_same_year_as_the_forecast(mcp_client, admin_token, db_session):
+    seed = _seed(db_session)
+    # gepl. 2025 would question the date (50 Mio. € in 2026); tats. 2026 is the
+    # year the edition states now, and nothing is planned after it.
+    entry = _entry(seed["new"], "02 G 600_A", "Stadtbahn Steilshoop", lines=[
+        ("SUM", "160", "120", {"1967–2023": "30", "2025": "40", "2026": "50"}),
+    ])
+    entry.commissioning_planned, entry.commissioning_actual = 2025, 2026
+    project = Project(name="Stadtbahn Steilshoop", project_number="02 G 600_A", is_draft=False)
+    entry.projects = [project]
+    db_session.add_all([entry, project])
+    db_session.commit()
+
+    payload = _payload(_call(mcp_client, admin_token, "list_project_gvfg", {"project_id": project.id}))
+    assert payload["ibn_doubt"] is None
+    progress = _payload(_call(mcp_client, admin_token, "get_project_progress", {"project_id": project.id}))
+    steps = {s["phase"]: s for s in progress["forecast"]["next_steps"]}
+    assert (steps["IN_BETRIEB"]["expected_date"], steps["IN_BETRIEB"]["source"]) == ("2026-12-31", "GVFG")

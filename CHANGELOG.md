@@ -11,6 +11,9 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 
 ## [Unreleased]
 
+### Added
+- **GVFG-Bundesprogramm as a planning-state source.** The newest GVFG edition of a Vorhaben now yields derived observations (source `GVFG`, trust 0.75, dated on the edition's Stand): Inbetriebnahme tats. before the Stand year or Lph 9 → In Betrieb, Lph ≥ 5 or a Baubeginn up to the Stand year → Bau, Lph 3–4 → Genehmigungsplanung, Lph 1–2 → Vorplanung, plus the expected commissioning (tats., else gepl.) in the forecast and timeline. A more recent Infraplan row of the same key still wins (decision 22). Confirming an edition and assigning Vorhaben recompute the projects at once. The IBN plausibility check reads the same year. Expand-only migration `20261022001` (`progress_observation.gvfg_entry_id`).
+
 ### Changed
 - **Design fixes.** Stronger active marker in the app bar and drawer; the „Admin“ entry is now „Einstellungen“; the Zeitstrahl uses more distinct phase colours (`TIMELINE_PHASE_COLOR`) and a thicker, haloed „heute“ line; the project table shows the short description as a tooltip on the name; the drawing buttons in the geometry editor wrap instead of being cut off.
 

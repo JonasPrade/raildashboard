@@ -5701,7 +5701,7 @@ export interface components {
              * Source Type
              * @enum {string}
              */
-            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "INFRAPLAN" | "MANUELL";
+            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "INFRAPLAN" | "GVFG" | "MANUELL";
             /**
              * Track
              * @enum {string}
@@ -5916,7 +5916,7 @@ export interface components {
             public: boolean;
             /**
              * Color
-             * @default #FF0000
+             * @default #6E50FA
              */
             color: string;
             /**
@@ -5988,7 +5988,7 @@ export interface components {
             public: boolean;
             /**
              * Color
-             * @default #FF0000
+             * @default #6E50FA
              */
             color: string;
             /**
@@ -7116,7 +7116,7 @@ export interface components {
              * Source Type
              * @enum {string}
              */
-            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "INFRAPLAN" | "MANUELL";
+            source_type: "VIB" | "FINVE" | "FULDA_RUNDE" | "BAUPORTAL" | "MEDIEN" | "INFRAPLAN" | "GVFG" | "MANUELL";
             /**
              * Track
              * @enum {string}

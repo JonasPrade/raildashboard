@@ -240,6 +240,7 @@ Siehe: `docs/features/feature-new-project-wizard.md`
 - [x] **GVFG-Import (Etappe 1)** — Parser, Datenmodell, Import mit Review unter `/admin/gvfg-import`, Lese-API.
 - [x] **GVFG-Anzeige** — Menü „Finanzen“ mit „Bedarfsplan Schiene“ und „GVFG“, Übersicht `/finanzen/gvfg`, Abschnitt „GVFG“ auf der Projektseite (inkl. Teilprojekte), offene Zuordnungen im Admin.
 - [x] **GVFG-MCP-Tools** — `list_gvfg_programs`, `list_gvfg_entries`, `get_gvfg_entry` (Verlauf über die Ausgaben), `list_project_gvfg` und das Zuordnungs-Tool `assign_gvfg_entry`.
+- [x] **GVFG als Planungsstand-Quelle** — Die neueste GVFG-Ausgabe liefert Lph, Baubeginn und Inbetriebnahme als Quelle `GVFG` in Planungsstand und Prognose; ein jüngerer Infraplan-Eintrag gewinnt. Siehe `docs/features/feature-project-progress.md` → „Planungsstand aus dem GVFG-Bundesprogramm“.
 - [ ] **GVFG-Vergleich** — Reiter „Änderungen zur Vorausgabe“. Vorher Dubletten im GVFG-Bestand bereinigen.
   Siehe: `docs/features/feature-gvfg-import.md`
 

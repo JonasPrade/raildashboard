@@ -21,6 +21,8 @@ export const FORECAST_SOURCE_COLOR = {
     "Fulda-Runde": "var(--idt-chart-2)",
     BVWP: "var(--idt-chart-3)",
     "Schätzung": "var(--idt-chart-4)",
+    Infraplan: "var(--idt-chart-5)",
+    GVFG: "var(--idt-chart-6)",
 } as const;
 
 // Planning state of the stepper, milestones and parallel lanes. These are status,

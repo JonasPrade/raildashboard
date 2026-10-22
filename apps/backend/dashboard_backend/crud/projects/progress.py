@@ -58,6 +58,8 @@ from dashboard_backend.services.progress_materialization import (
     bauportal_to_spec,
     finve_to_spec,
     fulda_to_spec,
+    gvfg_entry_to_specs,
+    gvfg_ibn_year,
     infraplan_entry_to_specs,
     infraplan_parl_relevant,
     media_to_spec,
@@ -73,7 +75,7 @@ from dashboard_backend.models.projects.fulda_announcement import FuldaAnnounceme
 from dashboard_backend.models.projects.fulda_document import FuldaDocument
 from dashboard_backend.models.projects.media_report import MediaReport
 from dashboard_backend.models.projects.bvwp_project_data import BvwpProjectData
-from dashboard_backend.models.gvfg import GvfgEntry, GvfgProgram
+from dashboard_backend.models.gvfg import GvfgEntry, GvfgProgram, gvfg_entry_project
 from dashboard_backend.models.infraplan import (
     InfraplanEntry,
     InfraplanEntryProject,
@@ -328,6 +330,12 @@ class ReportedOn(NamedTuple):
 
     fulda: dict[int, date]  # Fulda announcement id → answer date
     infraplan: dict[int, date]  # Infraplan entry id → publication date
+    gvfg: dict[int, date]  # GVFG entry id → Stand of its edition
+
+
+def _gvfg_stand(program: GvfgProgram) -> date:
+    """Stand of an edition; 1 Jan of its first year when none was printed."""
+    return program.stand or date(program.year_from, 1, 1)
 
 
 def _infraplan_report_date(report: InfraplanReport) -> date:
@@ -365,20 +373,30 @@ def expected_report_dates(
             .join(InfraplanReport, InfraplanReport.id == InfraplanEntry.report_id)
             .filter(InfraplanEntry.id.in_(entry_ids))
         }
-    return ReportedOn(fulda=fulda, infraplan=infraplan)
+    gvfg_ids = {o.gvfg_entry_id for o in observations if o.is_derived and o.gvfg_entry_id}
+    gvfg: dict[int, date] = {}
+    if gvfg_ids:
+        gvfg = {
+            entry_id: _gvfg_stand(program)
+            for entry_id, program in db.query(GvfgEntry.id, GvfgProgram)
+            .join(GvfgProgram, GvfgProgram.id == GvfgEntry.program_id)
+            .filter(GvfgEntry.id.in_(gvfg_ids))
+        }
+    return ReportedOn(fulda=fulda, infraplan=infraplan, gvfg=gvfg)
 
 
 class ExpectedSplit(NamedTuple):
     fulda: list[ExpectedDate]
     infraplan: list[ExpectedDate]
     manual: list[tuple[MainPhase, date]]
+    gvfg: list[ExpectedDate]
 
 
 def split_expected(
     observations: list[ProgressObservation], reported: ReportedOn
 ) -> ExpectedSplit:
     """Split dated expected MAIN observations into Fulda prognoses, Infraplan
-    commissioning years and manual entries.
+    and GVFG commissioning years and manual entries.
 
     Derived claims carry the date of their report (``reported``, from
     :func:`expected_report_dates`) so the forecast can weigh them against
@@ -386,7 +404,7 @@ def split_expected(
     always win.
     """
 
-    split = ExpectedSplit([], [], [])
+    split = ExpectedSplit([], [], [], [])
     for obs in observations:
         phase = _enum_or_none(MainPhase, obs.asserted_state)
         if phase is None or obs.observed_date is None:
@@ -405,6 +423,14 @@ def split_expected(
                     phase=phase,
                     date=obs.observed_date,
                     reported_on=reported.infraplan.get(obs.infraplan_entry_id),
+                )
+            )
+        elif obs.is_derived and obs.source_type == SourceType.GVFG.value:
+            split.gvfg.append(
+                ExpectedDate(
+                    phase=phase,
+                    date=obs.observed_date,
+                    reported_on=reported.gvfg.get(obs.gvfg_entry_id),
                 )
             )
         elif not obs.is_derived:
@@ -684,7 +710,11 @@ def sync_derived_observations_bulk(
             specs_by_project[project_id].append(fulda_spec)
 
     # --- Infraplan entries linked to these projects (newest year per project) ---
-    pf_evidence_projects |= _add_infraplan_specs(db, project_ids, specs_by_project)
+    infraplan_evidence, infraplan_gvfg = _add_infraplan_specs(db, project_ids, specs_by_project)
+    pf_evidence_projects |= infraplan_evidence
+
+    # --- GVFG-Bundesprogramm: newest edition per Vorhaben linked to the projects ---
+    _add_gvfg_specs(db, project_ids, specs_by_project, infraplan_gvfg)
 
     for project_id, specs in specs_by_project.items():
         for spec in specs:
@@ -705,6 +735,7 @@ def sync_derived_observations_bulk(
                     media_report_id=spec.media_report_id,
                     fulda_announcement_id=spec.fulda_announcement_id,
                     infraplan_entry_id=spec.infraplan_entry_id,
+                    gvfg_entry_id=spec.gvfg_entry_id,
                     is_expected=spec.is_expected,
                 )
             )
@@ -744,11 +775,13 @@ def _gvfg_stand_by_key(db: Session, keys: set[str]) -> dict[str, date]:
 
 def _add_infraplan_specs(
     db: Session, project_ids: list[int], specs_by_project: dict[int, list[DerivedSpec]]
-) -> set[int]:
+) -> tuple[set[int], set[tuple[int, str]]]:
     """Infraplan rows linked to the projects; only each project's newest year
     counts. A GVFG row yields phase and date only when the Infraplan is at
     least as recent as the newest GVFG edition with the same key. Returns the
-    projects with ``durchgängiges Baurecht`` (Planfeststellung evidence)."""
+    projects with ``durchgängiges Baurecht`` (Planfeststellung evidence) and
+    the (project, GVFG key) pairs whose Infraplan row won that comparison —
+    the GVFG edition then stays out (:func:`_add_gvfg_specs`)."""
 
     rows = (
         db.query(InfraplanEntry, InfraplanReport, InfraplanEntryProject.project_id)
@@ -758,8 +791,9 @@ def _add_infraplan_specs(
         .all()
     )
     pf_evidence: set[int] = set()
+    gvfg_won: set[tuple[int, str]] = set()
     if not rows:
-        return pf_evidence
+        return pf_evidence, gvfg_won
     newest_year: dict[int, int] = {}
     for _entry, report, project_id in rows:
         newest_year[project_id] = max(newest_year.get(project_id, report.year), report.year)
@@ -775,8 +809,11 @@ def _add_infraplan_specs(
         published = _infraplan_report_date(report)
         include = True
         if entry.section.startswith("GVFG"):
-            rival = gvfg_stand.get(normalize_key(entry.primary_number) or "")
+            key = normalize_key(entry.primary_number) or ""
+            rival = gvfg_stand.get(key)
             include = rival is None or published >= rival
+            if include and key:
+                gvfg_won.add((project_id, key))
         specs_by_project[project_id].extend(
             infraplan_entry_to_specs(
                 infraplan_entry_id=entry.id,
@@ -796,7 +833,46 @@ def _add_infraplan_specs(
         )
         if include and entry.baurecht:
             pf_evidence.add(project_id)
-    return pf_evidence
+    return pf_evidence, gvfg_won
+
+
+def _add_gvfg_specs(
+    db: Session,
+    project_ids: list[int],
+    specs_by_project: dict[int, list[DerivedSpec]],
+    infraplan_won: set[tuple[int, str]],
+) -> None:
+    """GVFG Vorhaben linked to the projects, each from the newest edition that
+    lists its key for the project. Skipped where the project's Infraplan row
+    with the same key is at least as recent (decision 22: the more recent
+    source wins, the Infraplan on a tie)."""
+
+    rows = (
+        db.query(GvfgEntry, GvfgProgram, gvfg_entry_project.c.project_id)
+        .join(gvfg_entry_project, gvfg_entry_project.c.entry_id == GvfgEntry.id)
+        .join(GvfgProgram, GvfgProgram.id == GvfgEntry.program_id)
+        .filter(gvfg_entry_project.c.project_id.in_(project_ids))
+        .all()
+    )
+    newest: dict[tuple[int, str], tuple[GvfgEntry, GvfgProgram]] = {}
+    for entry, program, project_id in rows:
+        current = newest.get((project_id, entry.key))
+        if current is None or program.year_from > current[1].year_from:
+            newest[(project_id, entry.key)] = (entry, program)
+    for (project_id, key), (entry, program) in newest.items():
+        if (project_id, key) in infraplan_won:
+            continue
+        specs_by_project[project_id].extend(
+            gvfg_entry_to_specs(
+                gvfg_entry_id=entry.id,
+                edition=f"{program.year_from}–{program.year_to}",
+                stand=_gvfg_stand(program),
+                lph=entry.lph,
+                construction_start=entry.construction_start,
+                commissioning_planned=entry.commissioning_planned,
+                commissioning_actual=entry.commissioning_actual,
+            )
+        )
 
 
 def _ensure_fresh(
@@ -876,6 +952,7 @@ def _build_forecast_for_project(
         bvwp=bvwp,
         fulda=split.fulda,
         infraplan=split.infraplan,
+        gvfg=split.gvfg,
         manual_expected=split.manual,
         skipped_phases=skipped_phases or set(),
     )
@@ -914,8 +991,13 @@ def _gvfg_ibn_doubt(
         return None
     edition = f"{program.year_from}–{program.year_to}"
 
-    planned = [e.commissioning_planned for e in entries if e.commissioning_planned]
-    gvfg = (program.stand or date(program.year_from, 1, 1), max(planned), edition) if planned else None
+    # Same year as the forecast reads from the edition (tats., else gepl.).
+    planned = [
+        year
+        for e in entries
+        if (year := gvfg_ibn_year(e.commissioning_planned, e.commissioning_actual))
+    ]
+    gvfg = (_gvfg_stand(program), max(planned), edition) if planned else None
     claims = [c for c in infraplan if c.phase is MainPhase.IN_BETRIEB]
     infraplan_ibn = None
     if claims:
