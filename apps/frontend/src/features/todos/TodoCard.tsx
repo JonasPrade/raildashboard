@@ -1,4 +1,4 @@
-import { Card, Group, Select, Stack, Text, Tooltip, ActionIcon, Avatar } from "@mantine/core";
+import { Badge, Card, Group, Select, Stack, Text, Tooltip, ActionIcon, Avatar } from "@mantine/core";
 import { Pencil, Trash2, Calendar, Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Todo, TodoStatus } from "../../shared/api/queries";
@@ -58,6 +58,23 @@ export default function TodoCard({
                     <Text size="sm" c="dimmed" lineClamp={3}>
                         {todo.description}
                     </Text>
+                )}
+
+                {(todo.tags ?? []).length > 0 && (
+                    <Group gap={4} wrap="wrap">
+                        {(todo.tags ?? []).map((tag) => (
+                            <Badge
+                                key={tag.id}
+                                size="sm"
+                                variant="outline"
+                                radius={0}
+                                color="var(--text-strong)"
+                                title={tag.description ?? undefined}
+                            >
+                                {tag.name}
+                            </Badge>
+                        ))}
+                    </Group>
                 )}
 
                 <Group gap="xs" wrap="wrap">

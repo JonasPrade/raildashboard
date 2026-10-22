@@ -17,8 +17,10 @@ from dashboard_backend.database import get_db
 from dashboard_backend.models.users import User
 from dashboard_backend.routing.auth_router import AuthRouter
 from dashboard_backend.schemas.todos.todo_schema import (
+    TodoChangeLogSchema,
     TodoCreate,
     TodoSchema,
+    TodoTagSchema,
     TodoUpdate,
 )
 
@@ -33,6 +35,8 @@ def list_todos(
     project_id: int | None = Query(default=None),
     created_by_id: int | None = Query(default=None),
     include_done: bool = Query(default=True),
+    tag: str | None = Query(default=None, description="Tag name (case-insensitive)"),
+    q: str | None = Query(default=None, description="Text search in title and description"),
     current_user: User = Depends(require_auth()),
     db: Session = Depends(get_db),
 ):
@@ -45,7 +49,30 @@ def list_todos(
         project_id=project_id,
         created_by_id=created_by_id,
         include_done=include_done,
+        tag=tag,
+        search=q,
     )
+
+
+@router.get("/tags", response_model=list[TodoTagSchema])
+def list_todo_tags(
+    current_user: User = Depends(require_auth()),
+    db: Session = Depends(get_db),
+):
+    """All tags with their task count (logged-in users only)."""
+    return todos_crud.list_tags(db)
+
+
+@router.get("/{todo_id}/history", response_model=list[TodoChangeLogSchema])
+def get_todo_history(
+    todo_id: int,
+    current_user: User = Depends(require_auth()),
+    db: Session = Depends(get_db),
+):
+    """Change history of one task, newest first."""
+    if todos_crud.get_todo(db, todo_id) is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return todos_crud.list_todo_history(db, todo_id)
 
 
 @router.get("/{todo_id}", response_model=TodoSchema)
@@ -76,7 +103,9 @@ def update_todo(
     current_user: User = Depends(require_permission("todo.edit")),
     db: Session = Depends(get_db),
 ):
-    updated = todos_crud.update_todo(db, todo_id, body.model_dump(exclude_unset=True))
+    updated = todos_crud.update_todo(
+        db, todo_id, body.model_dump(exclude_unset=True), current_user
+    )
     if updated is None:
         raise HTTPException(status_code=404, detail="Task not found")
     return updated
@@ -88,5 +117,5 @@ def delete_todo(
     current_user: User = Depends(require_permission("todo.delete")),
     db: Session = Depends(get_db),
 ):
-    if not todos_crud.delete_todo(db, todo_id):
+    if not todos_crud.delete_todo(db, todo_id, current_user):
         raise HTTPException(status_code=404, detail="Task not found")

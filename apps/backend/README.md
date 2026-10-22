@@ -130,7 +130,7 @@ and check the key's capabilities before writing. Tools: `list_project_groups`, `
 (free FinVe search by number, name or Bedarfsplan number), `list_gvfg_programs`,
 `list_gvfg_entries`, `get_gvfg_entry` (with the key's history across editions),
 `list_project_gvfg` (GVFG-Bundesprogramm), `get_project_texts`,
-`list_text_types`, `list_text_categories`, `list_todos`, `search_operational_points`, `get_project_geometry`,
+`list_text_types`, `list_text_categories`, `list_todos`, `list_todo_tags`, `search_operational_points`, `get_project_geometry`,
 `list_data_gaps`, `check_geometry` (data maintenance across many projects), `list_skills`,
 `get_skill` (skills from `.claude/skills` marked `metadata: mcp: true`; the image carries
 them as `/app/skills` via the named build context `skills`) (read)
@@ -250,14 +250,16 @@ User-facing task list (Aufgaben), **distinct from the Celery `/tasks/{task_id}` 
 
 | Endpoint | Auth | Description |
 |---|---|---|
-| `GET /api/v1/todos/` | Logged-in | List tasks; filters `status`, `priority`, `assignee_id`, `project_id`, `created_by_id`, `include_done` |
+| `GET /api/v1/todos/` | Logged-in | List tasks; filters `status`, `priority`, `assignee_id`, `project_id`, `created_by_id`, `include_done`, `tag`, `q` (text search) |
+| `GET /api/v1/todos/tags` | Logged-in | All tags with task count |
 | `GET /api/v1/todos/{id}` | Logged-in | Single task |
+| `GET /api/v1/todos/{id}/history` | Logged-in | Change history, newest first |
 | `POST /api/v1/todos/` | `todo.create` | Create |
-| `PATCH /api/v1/todos/{id}` | `todo.edit` | Partial update incl. `assignee_ids`, `clear_due_date`, `clear_project` |
+| `PATCH /api/v1/todos/{id}` | `todo.edit` | Partial update incl. `assignee_ids`, `tags`, `clear_due_date`, `clear_project` |
 | `DELETE /api/v1/todos/{id}` | `todo.delete` | Delete |
 | `GET /api/v1/users/options` | Logged-in | Minimal `{id, username}` list for the assignee picker |
 
-A task optionally links to one project (`project_id`, `ON DELETE SET NULL`) or is a free note, and assigns to multiple users via the `todo_assignee` m:n table. Status `OPEN`/`IN_PROGRESS`/`DONE` (DONE stamps `completed_at`), priority `LOW`/`MEDIUM`/`HIGH`, optional `due_date`. The `todo.*` capabilities ship with the editor system role. See `docs/features/feature-tasks.md`.
+A task optionally links to one project (`project_id`, `ON DELETE SET NULL`) or is a free note, and assigns to multiple users via the `todo_assignee` m:n table. Status `OPEN`/`IN_PROGRESS`/`DONE` (DONE stamps `completed_at`), priority `LOW`/`MEDIUM`/`HIGH`, optional `due_date`. Tags (`todo_tag`, m:n via `todo_tag_link`) are written as names — unknown ones are created, matching is case-insensitive; `@LLM` marks work for the LLM via MCP. Every create/update/delete is logged in `todo_change_log` / `todo_change_log_entry`. The `todo.*` capabilities ship with the editor system role. See `docs/features/feature-tasks.md`.
 
 ## Shared PDF text extraction
 

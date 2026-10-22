@@ -1010,6 +1010,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/todos/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Todo Tags
+         * @description All tags with their task count (logged-in users only).
+         */
+        get: operations["list_todo_tags_api_v1_todos_tags_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/todos/{todo_id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Todo History
+         * @description Change history of one task, newest first.
+         */
+        get: operations["get_todo_history_api_v1_todos__todo_id__history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/todos/{todo_id}": {
         parameters: {
             query?: never;
@@ -5916,7 +5956,7 @@ export interface components {
             public: boolean;
             /**
              * Color
-             * @default #FF0000
+             * @default #6E50FA
              */
             color: string;
             /**
@@ -5988,7 +6028,7 @@ export interface components {
             public: boolean;
             /**
              * Color
-             * @default #FF0000
+             * @default #6E50FA
              */
             color: string;
             /**
@@ -7302,6 +7342,33 @@ export interface components {
             /** Vorhalten Future */
             vorhalten_future?: number | null;
         };
+        /** TodoChangeLogEntrySchema */
+        TodoChangeLogEntrySchema: {
+            /** Field Name */
+            field_name: string;
+            /** Old Value */
+            old_value: string | null;
+            /** New Value */
+            new_value: string | null;
+        };
+        /** TodoChangeLogSchema */
+        TodoChangeLogSchema: {
+            /** Id */
+            id: number;
+            /** Todo Id */
+            todo_id: number | null;
+            /** Username Snapshot */
+            username_snapshot: string | null;
+            /**
+             * Timestamp
+             * Format: date-time
+             */
+            timestamp: string;
+            /** Action */
+            action: string;
+            /** Entries */
+            entries: components["schemas"]["TodoChangeLogEntrySchema"][];
+        };
         /** TodoCreate */
         TodoCreate: {
             /** Title */
@@ -7326,6 +7393,8 @@ export interface components {
             project_id?: number | null;
             /** Assignee Ids */
             assignee_ids?: number[];
+            /** Tags */
+            tags?: string[];
         };
         /** TodoProjectRef */
         TodoProjectRef: {
@@ -7361,6 +7430,8 @@ export interface components {
             project: components["schemas"]["TodoProjectRef"] | null;
             /** Assignees */
             assignees: components["schemas"]["TodoUserRef"][];
+            /** Tags */
+            tags?: components["schemas"]["TodoTagRef"][];
             /** Created By Id */
             created_by_id: number | null;
             /** Created By Username */
@@ -7378,6 +7449,29 @@ export interface components {
             /** Completed At */
             completed_at: string | null;
         };
+        /** TodoTagRef */
+        TodoTagRef: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+        };
+        /** TodoTagSchema */
+        TodoTagSchema: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Todo Count
+             * @default 0
+             */
+            todo_count: number;
+        };
         /** TodoUpdate */
         TodoUpdate: {
             /** Title */
@@ -7394,6 +7488,8 @@ export interface components {
             project_id?: number | null;
             /** Assignee Ids */
             assignee_ids?: number[] | null;
+            /** Tags */
+            tags?: string[] | null;
             /** Clear Due Date */
             clear_due_date?: boolean | null;
             /** Clear Project */
@@ -10141,6 +10237,10 @@ export interface operations {
                 project_id?: number | null;
                 created_by_id?: number | null;
                 include_done?: boolean;
+                /** @description Tag name (case-insensitive) */
+                tag?: string | null;
+                /** @description Text search in title and description */
+                q?: string | null;
             };
             header?: never;
             path?: never;
@@ -10192,6 +10292,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TodoSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_todo_tags_api_v1_todos_tags_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodoTagSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_todo_history_api_v1_todos__todo_id__history_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                todo_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodoChangeLogSchema"][];
                 };
             };
             /** @description Validation Error */

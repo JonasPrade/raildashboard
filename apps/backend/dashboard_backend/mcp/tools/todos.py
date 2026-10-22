@@ -1,4 +1,8 @@
-"""To-do (Aufgaben) tools."""
+"""To-do (Aufgaben) tools.
+
+Tags label tasks; ``@LLM`` marks a task that the LLM is to do (fully or in
+part) through MCP — filter with ``list_todos(tag="@LLM")``.
+"""
 
 from __future__ import annotations
 
@@ -25,6 +29,7 @@ def _todo_dict(todo) -> dict[str, Any]:
     data = TodoSchema.model_validate(todo).model_dump(mode="json")
     data["assignees"] = [a["username"] for a in data["assignees"]]
     data["project"] = data["project"]["name"] if data["project"] else None
+    data["tags"] = [t["name"] for t in data["tags"]]
     return data
 
 
@@ -34,14 +39,20 @@ def list_todos(
     project_id: int | None = None,
     assignee_id: int | None = None,
     include_done: bool = False,
+    tag: str | None = None,
+    search: str | None = None,
     limit: int = 50,
+    offset: int = 0,
     *,
     ctx: Context,
 ) -> dict[str, Any]:
     """List tasks (open work first, then by due date). Done tasks are hidden
-    unless include_done is true."""
+    unless include_done is true. tag filters by tag name (e.g. "@LLM", see
+    list_todo_tags); search matches title and description. Page with
+    limit/offset; total counts all matches."""
     get_principal(ctx)
     limit = max(1, min(limit, MAX_LIMIT))
+    offset = max(0, offset)
     with tool_session(ctx) as db:
         todos = todos_crud.list_todos(
             db,
@@ -50,8 +61,22 @@ def list_todos(
             assignee_id=assignee_id,
             project_id=project_id,
             include_done=include_done,
+            tag=tag,
+            search=search,
         )
-        return {"total": len(todos), "todos": [_todo_dict(t) for t in todos[:limit]]}
+        return {
+            "total": len(todos),
+            "offset": offset,
+            "todos": [_todo_dict(t) for t in todos[offset : offset + limit]],
+        }
+
+
+def list_todo_tags(*, ctx: Context) -> dict[str, Any]:
+    """All task tags with their description and number of tasks. "@LLM" marks
+    tasks the LLM is to do (fully or in part) through MCP."""
+    get_principal(ctx)
+    with tool_session(ctx) as db:
+        return {"tags": todos_crud.list_tags(db)}
 
 
 def create_todo(
@@ -61,10 +86,12 @@ def create_todo(
     due_date: date | None = None,
     project_id: int | None = None,
     assignee_ids: list[int] | None = None,
+    tags: list[str] | None = None,
     *,
     ctx: Context,
 ) -> dict[str, Any]:
-    """Create a task (requires ``todo.create``), optionally linked to a project."""
+    """Create a task (requires ``todo.create``), optionally linked to a project.
+    tags are names; unknown ones are created (e.g. ["@LLM"])."""
     principal = get_principal(ctx)
     require(principal, "todo.create")
     try:
@@ -75,6 +102,7 @@ def create_todo(
             due_date=due_date,
             project_id=project_id,
             assignee_ids=assignee_ids or [],
+            tags=tags or [],
         ).model_dump(exclude_unset=True)
     except ValidationError as exc:
         raise ToolError(f"Ungültige Werte: {exc}") from exc
@@ -92,13 +120,14 @@ def update_todo(
     due_date: date | None = None,
     project_id: int | None = None,
     assignee_ids: list[int] | None = None,
+    tags: list[str] | None = None,
     clear_due_date: bool = False,
     clear_project: bool = False,
     *,
     ctx: Context,
 ) -> dict[str, Any]:
     """Change a task (requires ``todo.edit``). Only passed fields change;
-    assignee_ids replaces the full assignee set. Use clear_due_date /
+    assignee_ids and tags replace the full set ([] removes all). Use clear_due_date /
     clear_project to remove those values."""
     principal = get_principal(ctx)
     require(principal, "todo.edit")
@@ -110,6 +139,7 @@ def update_todo(
         "due_date": due_date,
         "project_id": project_id,
         "assignee_ids": assignee_ids,
+        "tags": tags,
     }
     raw = {key: value for key, value in fields.items() if value is not None}
     if clear_due_date:
@@ -123,7 +153,8 @@ def update_todo(
     except ValidationError as exc:
         raise ToolError(f"Ungültige Werte: {exc}") from exc
     with tool_session(ctx) as db:
-        updated = todos_crud.update_todo(db, todo_id, payload)
+        user = load_user(db, principal)
+        updated = todos_crud.update_todo(db, todo_id, payload, user)
         if updated is None:
             raise ToolError(f"Aufgabe {todo_id} nicht gefunden.")
         return _todo_dict(updated)
@@ -131,5 +162,6 @@ def update_todo(
 
 def register(server: MCPServer) -> None:
     server.add_tool(list_todos, annotations=READ_ONLY)
+    server.add_tool(list_todo_tags, annotations=READ_ONLY)
     server.add_tool(create_todo, annotations=WRITE)
     server.add_tool(update_todo, annotations=WRITE)

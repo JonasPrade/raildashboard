@@ -164,6 +164,7 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
         "upsert_project_text",
         "merge_projects",
         "list_todos",
+        "list_todo_tags",
         "create_todo",
         "update_todo",
         "search_operational_points",
@@ -392,6 +393,32 @@ def test_create_todo_end_to_end(mcp_client, admin_token, db_session):
     assert updated["status"] == "DONE"
     listed = _payload(_call(mcp_client, admin_token, "list_todos", {"include_done": True}))
     assert [t["id"] for t in listed["todos"]] == [todo.id]
+
+
+def test_todo_tags_search_and_paging(mcp_client, admin_token):
+    for i in range(3):
+        _call(mcp_client, admin_token, "create_todo", {"title": f"Infraplan {i}", "tags": ["@LLM"]})
+    other = _payload(_call(mcp_client, admin_token, "create_todo", {"title": "Anrufen"}))
+    assert other["tags"] == []
+
+    page = _payload(
+        _call(mcp_client, admin_token, "list_todos", {"tag": "@llm", "limit": 2, "offset": 2})
+    )
+    assert page["total"] == 3
+    assert page["offset"] == 2
+    assert len(page["todos"]) == 1
+    assert page["todos"][0]["tags"] == ["@LLM"]
+
+    found = _payload(_call(mcp_client, admin_token, "list_todos", {"search": "anruf"}))
+    assert [t["id"] for t in found["todos"]] == [other["id"]]
+
+    updated = _payload(
+        _call(mcp_client, admin_token, "update_todo", {"todo_id": other["id"], "tags": ["Doku"]})
+    )
+    assert updated["tags"] == ["Doku"]
+
+    tags = _payload(_call(mcp_client, admin_token, "list_todo_tags"))["tags"]
+    assert {t["name"]: t["todo_count"] for t in tags} == {"@LLM": 3, "Doku": 1}
 
 
 def test_write_tool_needs_capability(mcp_client, db_session):
