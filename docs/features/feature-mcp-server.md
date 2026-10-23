@@ -219,6 +219,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `list_project_finves` | Finanzierungsvereinbarungen und Budgets eines Projekts; `include_subprojects` nimmt die FinVe aller Teilprojekte dazu (jede einmal, mit tragenden Teilprojekten) | — |
 | `list_finves` | FinVe frei suchen — auch ohne Projektzuordnung: FinVe-Nummer, Name, Bedarfsplannummer, lfd. Nr.; Filter Haushaltsjahr, Sammel-FinVe, mit/ohne Projekt | — |
 | `get_finve` | eine FinVe per Nummer mit Budgethistorie und verknüpften Projekten | — |
+| `link_finve` | FinVe den genannten Projekten zuordnen (dauerhaft, ohne Haushaltsjahr); bestehende Zuordnungen bleiben, unbekannte Projekte brechen ab, der Planungsstand der neu zugeordneten Projekte wird neu berechnet | `assignment.manage` |
 | `unlink_finve` | Zuordnung einer FinVe zu den genannten Projekten lösen (bei Sammel-FinVe alle Jahre); andere Projekte bleiben, der Planungsstand der Projekte wird neu berechnet | `assignment.manage` |
 | `list_gvfg_programs` | GVFG-Ausgaben mit Jahresspalten, Zahl der Vorhaben und der Vorhaben ohne Projekt | — |
 | `list_gvfg_entries` | Vorhaben einer Ausgabe (Standard: neueste) suchen: Schlüssel in jeder Schreibweise, Name, Stadt; Filter Land, kommunal/DB, Teil, Fördertatbestand, mit/ohne Projekt | — |

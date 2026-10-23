@@ -1,6 +1,6 @@
 """MCP FinVe search: list_finves and get_finve find FinVes independent of a
-project link (by number, name or Bedarfsplan number); unlink_finve removes
-wrong project links."""
+project link (by number, name or Bedarfsplan number); link_finve adds missing
+and unlink_finve removes wrong project links."""
 
 from __future__ import annotations
 
@@ -148,3 +148,48 @@ def test_unlink_finve_requires_assignment_manage(mcp_client, create_user, db_ses
     assert result["isError"] is True
     assert "assignment.manage" in result["content"][0]["text"]
     assert db_session.query(FinveToProject).filter_by(finve_id=2001).count() == 1
+
+
+def test_link_finve_adds_links_and_keeps_existing(mcp_client, admin_token, db_session):
+    project = _seed(db_session)
+    other = Project(name="ABS 38 Mühldorf–Freilassing", is_draft=False)
+    db_session.add(other)
+    db_session.commit()
+
+    payload = _payload(_call(mcp_client, admin_token, "link_finve",
+                             {"finve_id": 2001, "project_ids": [project.id, other.id]}))
+    assert payload["linked"] == [other.id]
+    assert payload["already_linked"] == [project.id]
+    assert payload["projects"] == sorted(
+        [{"id": project.id, "name": project.name}, {"id": other.id, "name": other.name}],
+        key=lambda p: p["id"],
+    )
+    db_session.expire_all()
+    rows = db_session.query(FinveToProject).filter_by(finve_id=2001).all()
+    assert sorted(r.project_id for r in rows) == sorted([project.id, other.id])
+    assert all(r.haushalt_year is None for r in rows)
+
+
+def test_link_finve_errors(mcp_client, admin_token, db_session):
+    project = _seed(db_session)
+    missing = _call(mcp_client, admin_token, "link_finve",
+                    {"finve_id": 9999, "project_ids": [project.id]})
+    assert missing["isError"] is True
+    assert "nicht gefunden" in missing["content"][0]["text"]
+    empty = _call(mcp_client, admin_token, "link_finve", {"finve_id": 2002, "project_ids": []})
+    assert empty["isError"] is True
+    unknown = _call(mcp_client, admin_token, "link_finve",
+                    {"finve_id": 2002, "project_ids": [project.id, 987654]})
+    assert unknown["isError"] is True
+    assert "987654" in unknown["content"][0]["text"]
+    assert db_session.query(FinveToProject).filter_by(finve_id=2002).count() == 0
+
+
+def test_link_finve_requires_assignment_manage(mcp_client, create_user, db_session):
+    project = _seed(db_session)
+    admin = create_user("admin", "adminpass", UserRole.admin)
+    token = _key_for(db_session, admin, scopes=["mcp.access"])
+    result = _call(mcp_client, token, "link_finve", {"finve_id": 2002, "project_ids": [project.id]})
+    assert result["isError"] is True
+    assert "assignment.manage" in result["content"][0]["text"]
+    assert db_session.query(FinveToProject).filter_by(finve_id=2002).count() == 0

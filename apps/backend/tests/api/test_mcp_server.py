@@ -149,6 +149,7 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
         "list_project_finves",
         "list_finves",
         "get_finve",
+        "link_finve",
         "unlink_finve",
         "get_project_texts",
         "list_text_types",
