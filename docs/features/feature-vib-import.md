@@ -695,6 +695,122 @@ falsche Felder und Berichtsdaten richtigstellen, dann bestätigen.
 
 ---
 
+## Phase 8: PFA-Abschnitte → Teilprojekte (Vorschlag + Anlegen)
+
+> Status: **Evaluation, Entscheidungen offen** (2026-10-23). Konzept der Zuordnung:
+> `feature-project-progress.md` → „VIB-PFA-Abschnitte → Unterprojekte“.
+
+### Ausgangslage (VIB 2023, Stand 2026-10-23)
+
+171 PFA-Zeilen in 11 Vorhaben, **0** einem Teilprojekt zugeordnet. Der Vorschlag
+(`suggest_subproject_for_pfa`) vergleicht `abschnitt_label + nr_pfa + oertlichkeit` per
+SequenceMatcher mit den Namen der **direkten** Kinder der zugeordneten Projekte
+(Schwelle 0.35). Stichproben aus dem Bestand:
+
+| Vorhaben | Teilprojekte im Bestand | Heutiger Vorschlag |
+|---|---|---|
+| B.4.1.23 Karlsruhe–Basel (31 PFA) | Enkel unter 1504: „… Abschnitt 1 Karlsruhe – Rastatt Süd“, „Abschnitt 2-6“, „Abschnitt 7“, „8“, „9“ (`project_number` `2-005-V02-Abschnitt7`) | findet die Enkel nicht; PFA 1 → 1504 (Zwischenknoten), PFA 7.1 → „ABS Kehl – Appenweier“ (**falsch**) |
+| B.4.1.8 Nürnberg–Erfurt (27 PFA) | 16 Kinder, `project_number` z. B. `BSWAG 2023 FD 4 PF 15-16`, `PF 11, 14`, `PFA 1+2`, `PF 23-25` | 6 richtig über den Namen; PFA 11 → „Teilmaßnahme 5“, PFA 14 → „Teilmaßnahme 4“ (**falsch**); 19 ohne Vorschlag, obwohl die Nummer passt |
+| B.4.2.16 RRX (13 PFA) | „RRX Abschnitt 1 … 6“ | 9 richtig, 1.2 und 3.1/3.2 fehlen (Nummer passt) |
+| B.4.1.1 VDE 1 (15 PFA) | 2 Kinder, eins davon praktisch das Oberprojekt selbst | 2 Vorschläge auf das Quasi-Duplikat (**falsch**); für die Abschnitte gibt es keine Teilprojekte |
+
+Befund: Die **Abschnittsnummer** ist das stärkste Signal und wird nicht genutzt; der
+Teilbaum ist zu flach; der Namensvergleich ist zu großzügig und schlägt Zwischenknoten
+und thematisch fremde Geschwister vor. Für einen Teil der Vorhaben (VDE 1, viele
+abgeschlossene Altabschnitte) gibt es gar kein passendes Teilprojekt.
+
+### Vorschlagslogik — Optionen
+
+Reihenfolge der Signale, jedes liefert einen **Grund** (`suggested_reason`) wie bei den
+Vorhaben-Vorschlägen:
+
+1. **Vorjahr** — dieselbe PFA-Zeile (gleiche normalisierte `nr_pfa`, sonst gleiche
+   normalisierte `oertlichkeit`) im selben Vorhaben (gleiche Sektion oder `same_vib_name`)
+   eines früheren **bestätigten** Berichts war einem Teilprojekt zugeordnet → dieses,
+   sofern es noch im Teilbaum liegt. Grund „Vorjahr: VIB 20xx bestätigt“.
+2. **Abschnittsnummer** — Nummern aus `nr_pfa` (`7.1`, `2–6`, `16a`, `3.0a`) gegen
+   Nummern in Name **und** `project_number` des Kandidaten nach einem Schlüsselwort
+   (`Abschnitt`, `PFA`, `PF`, `PA`, `StA`, `BA`), inkl. Listen und Bereichen
+   (`PF 11, 14`, `PF 15-16`, `PF 23-25`, `PFA 1+2`, `Abschnitt 2-6`). Exakte Nummer
+   schlägt Hauptnummer (`7.1` → „Abschnitt 7“). Grund „Abschnittsnummer 7.1 ↔ Abschnitt 7“.
+3. **Name** — wie heute, aber normalisiert (`(a)`/`(e)`, `Bf`/`Hbf`, km-Angaben,
+   Fußnotenziffern `¹ ² ⁵`, Strichvarianten), Schwelle **0.5** und Abstand zum
+   Zweitbesten; nur Ortsnamen-Token zählen (kein Treffer allein über „VDE“, „ABS“,
+   „Nürnberg“, wenn das im Oberprojekt-Namen steht). Grund „Namensähnlichkeit 0.62“.
+4. **Geometrie** (optional, siehe Frage F3) — Endpunkte der Örtlichkeit („A–B“) auf
+   Betriebsstellen abbilden (Namensabgleich, eingegrenzt auf die Bounding Box des
+   Oberprojekts) und prüfen, ob beide Punkte nahe (≤ 1,5 km) an der GeoJSON-Linie eines
+   Kandidaten liegen. Grund „Geometrie: A und B liegen auf dem Teilprojekt“.
+
+**Kandidaten**: der ganze Teilbaum unter allen zugeordneten Projekten (rekursiv, ohne
+die zugeordneten Projekte selbst). Bei gleicher Stärke gewinnt das **tiefere** Projekt
+(Blatt vor Zwischenknoten); ein Zwischenknoten wird nur vorgeschlagen, wenn er die
+Nummer genau trägt und keines seiner Kinder passt.
+
+Erwartung aus den Stichproben (Nummer + Teilbaum, ohne Geometrie; nachgemessen wird beim
+Bau mit Tests, die die Stichproben nachbilden): Bei Karlsruhe–Basel, Nürnberg–Erfurt und
+RRX trägt fast jede Zeile eine Nummer, die ein Teilprojekt in Name oder `project_number`
+führt; die falschen Treffer von heute entfallen, weil die Nummer vor dem Namen kommt und
+die Namensschwelle steigt.
+
+**Geometrie — Abwägung:** In den Stichproben bringt sie keinen Treffer, den Nummer und
+Name nicht schon liefern; sie hilft dort, wo Teilprojekte weder Nummer noch Ortsnamen
+tragen. Kosten: Betriebsstellen-Namen sind mehrdeutig („Freiburg“, Abzweige), Örtlichkeiten
+oft keine zwei Orte („Bf Schwerin“, „ESTW Düsseldorf“, „Stadtgebiet Essen“), viele
+Teilprojekte haben keine Geometrie. Empfehlung: **nicht in dieser Phase**, als späteres
+Signal vormerken.
+
+### Vorschläge übernehmen
+
+Heute muss der Agent jede Zeile einzeln mit `assign_vib_pfa` setzen. Optionen:
+(a) wie heute, nur Vorschlag; (b) neues Tool `apply_vib_pfa_suggestions(entry_id |
+report_id)` übernimmt **nur starke** Vorschläge (Vorjahr, Abschnittsnummer eindeutig) —
+Vorbild `apply_infraplan_suggestions`; (c) `add_vib_entries` füllt starke Vorschläge
+direkt vor. Empfehlung **(b)**: sichtbarer, prüfbarer Schritt; der Eintrag bleibt
+unbestätigt, bis `confirm_vib_report` läuft. Dazu `assign_vib_pfas(entry_id,
+[{pfa_id, project_id}])` als Sammelzuordnung, damit 30 Zeilen nicht 30 Aufrufe brauchen.
+
+### Teilprojekte aus PFA-Abschnitten anlegen
+
+Bisher bewusst nicht („nur bestehende Unterprojekte“). Für Vorhaben ohne passende
+Teilprojekte bleibt der Stand dann am Oberprojekt — als **eine** Phase für einen ganzen
+Korridor.
+
+| Option | Was | Für | Gegen |
+|---|---|---|---|
+| A | Nie anlegen (heute) | keine Projekt-Inflation | Stand bleibt plattgedrückt, wo Abschnitte auseinanderlaufen |
+| B | **Auf Anforderung** per MCP: `create_vib_pfa_subprojects(entry_id, items[{pfa_ids, parent_id, name?, note?}])` legt je Item ein **Entwurfsprojekt** (`is_draft`, ohne Geometrie) unter `parent_id` an und ordnet die Zeilen zu | Vorbild Infraplan; der Agent bündelt mehrere Zeilen eines Abschnitts (z. B. alle „7.1“-Zeilen NBS/ABS) zu einem Teilprojekt; Mensch entscheidet | ein Tool mehr; Entwürfe müssen später gepflegt werden |
+| C | Automatisch je PFA-Zeile | vollständig | 171 neue Projekte für 2023, viele Altabschnitte (1990er) ohne Erkenntniswert, Dubletten zu späteren Teilprojekten |
+
+Empfehlung **B** mit Regeln:
+- Nur **auf Wunsch des Nutzers** (Skill fragt, wie bei fehlenden Projekten in Schritt 4).
+- `parent_id` muss im Teilbaum der zugeordneten Projekte liegen.
+- Granularität **Abschnitt, nicht Zeile**: Zeilen mit derselben Hauptnummer bzw.
+  demselben `abschnitt_label` gehören in ein Teilprojekt.
+- Nur anlegen, wo es den Stand verbessert: Abschnitte mit **unterschiedlichem** Stand
+  im selben Vorhaben, laufende oder geplante Abschnitte. Vollständig in Betrieb
+  genommene Altabschnitte bleiben am Vorhaben.
+- Name: `abschnitt_label` bzw. „PFA <nr> <Örtlichkeit>“, Vorschlag aus dem Tool,
+  überschreibbar; `project_number` bleibt leer.
+- Geometrie optional danach über `route_project_geometry` (bestehendes Tool), nicht im
+  Anlege-Tool.
+- Entwürfe erscheinen in der Entwurfsliste (`list_projects(drafts="only")`) zur Pflege.
+
+### Offene Fragen an den Nutzer
+
+- **F1** Teilprojekte aus PFA anlegen: A / **B** / C?
+- **F2** Übernahme starker Vorschläge: (a) / **(b)** / (c)?
+- **F3** Geometrie-Abgleich jetzt bauen oder vormerken (**vormerken**)?
+- weitere aus dem Widerspruchs-Check (siehe Entscheidungen Phase 8)
+
+### Entscheidungen Phase 8
+
+| # | Datum | Entscheidung |
+|---|---|---|
+| | | *offen* |
+
+---
+
 ## Nicht im Scope
 
 - Automatischer Import ohne Human Review (auch über MCP: Bestätigen bleibt ein eigener Schritt)
