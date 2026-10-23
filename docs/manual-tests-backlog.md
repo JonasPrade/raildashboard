@@ -11,6 +11,19 @@ Test-Checkliste des ermöglichenden Issues hochgezogen und hier entfernt.
 
 ---
 
+## VIB-PFA → Teilprojekte #256 — Lauf auf VIB 2023 (braucht Deploy)
+
+Erst nach dem Deploy prüfbar (MCP-Tools laufen gegen prod) und erst, wenn der parallele
+Prüfmodus für VIB 2023 abgeschlossen ist:
+
+- [ ] `get_vib_entry` für B.4.1.23 (Karlsruhe–Basel): PFA 7.1 schlägt „… Abschnitt 7 …“ mit Grund „Abschnittsnummer“ vor, nicht „ABS Kehl – Appenweier“.
+- [ ] `get_vib_entry` für B.4.1.8 (Nürnberg–Erfurt): PFA 11 und 14 schlagen „VDE 8 Teilabschnittt Nürnberg Hbf – Fürth“ vor (nicht „Teilmaßnahme 5/4“).
+- [ ] `apply_vib_pfa_suggestions(report_id=2)` ausführen, Ergebnis je Zeile sichten, Fehlgriffe mit `assign_vib_pfa` korrigieren, `confirm_vib_report` — auf der Projektseite von „Projektbündel 7“ zeigen die Abschnitte 7/8/9 danach eigene Stände.
+- [ ] Projektseite „Projektbündel 7“ → VIB-Abschnitt: das Teilprojekt-Select der PFA 7.1 ist mit „Abschnitt 7“ vorbelegt.
+- [ ] Optional mit Nutzerwunsch: `create_vib_pfa_subprojects` für ein Vorhaben ohne passende Teilprojekte; Entwurf erscheint unter `list_projects(drafts="only")`.
+
+---
+
 ## Haushalt-Parser-Refactor #90 — Golden-Vergleich mit Referenz-PDF (erledigt 2026-09-08)
 
 Erledigt durch `tests/unit/test_haushalt_parse_2027.py`: Der Golden-Lauf läuft
