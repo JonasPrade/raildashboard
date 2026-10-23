@@ -45,7 +45,11 @@ def _subtrees(db: Session, root_ids: list[int]) -> dict[int, set[int]]:
     while frontier:
         rows = (
             db.query(Project.id, Project.superior_project_id)
-            .filter(Project.superior_project_id.in_(frontier), Project.is_draft.is_(False))
+            .filter(
+                Project.superior_project_id.in_(frontier),
+                Project.is_draft.is_(False),
+                Project.is_archived.is_(False),
+            )
             .all()
         )
         frontier = []
@@ -79,7 +83,11 @@ def get_group_timeline(
     query = (
         db.query(Project.id, Project.name, Project.project_number, Project.superior_project_id)
         .join(Project.project_groups)
-        .filter(ProjectGroup.id == group_id, Project.is_draft.is_(False))
+        .filter(
+            ProjectGroup.id == group_id,
+            Project.is_draft.is_(False),
+            Project.is_archived.is_(False),
+        )
     )
     if only_superior:
         query = query.filter(Project.superior_project_id.is_(None))

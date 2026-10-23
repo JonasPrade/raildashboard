@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Index, JSON, String, Float, Boolean, ForeignKey, Text
+from sqlalchemy import Column, DateTime, Integer, Index, JSON, String, Float, Boolean, ForeignKey, Text
 from sqlalchemy.orm import relationship
 
 from dashboard_backend.models.base import Base
@@ -23,6 +23,14 @@ class Project(Base):
     # explicitly finalized. Drafts are hidden from the public list/map (see
     # get_projects) and managed under /admin/drafts.
     is_draft = Column(Boolean, nullable=False, default=False, server_default="false")
+
+    # Archive state: a project replaced or superseded by other projects. Archived
+    # projects keep their history but count nowhere — not in lists/maps nor in any
+    # parent aggregation (docs/features/feature-project-archive.md). The reason is
+    # mandatory when archiving.
+    is_archived = Column(Boolean, nullable=False, default=False, server_default="false")
+    archived_reason = Column(Text, nullable=True)
+    archived_at = Column(DateTime, nullable=True)
 
     # which train category is affected by the project
     effects_passenger_long_rail = Column(Boolean, default=False)

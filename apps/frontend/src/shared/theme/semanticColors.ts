@@ -70,6 +70,10 @@ export const STATUS_TONE = {
 } as const;
 export type StatusTone = keyof typeof STATUS_TONE;
 
+// "Archiviert" (feature-project-archive.md): a neutral notice, not an error —
+// the project was replaced, nothing is wrong with it.
+export const ARCHIVE_TONE = STATUS_TONE.neutral;
+
 // Anwendungsebene status rule: only red carries colour.
 export const TODO_STATUS_STYLE = {
     OPEN: { color: "var(--text-muted)", weight: 400 },

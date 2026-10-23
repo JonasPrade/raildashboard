@@ -167,7 +167,7 @@ def _pfa_dict(pfa: VibPfaEntry, suggestion: PfaSuggestion | None = None) -> dict
 
 
 def _subtree(db: Session, root_ids: list[int]) -> dict[int, tuple[Project, int]]:
-    """All descendants of ``root_ids`` as {id: (project, depth)} (depth 1 = child)."""
+    """All non-archived descendants of ``root_ids`` as {id: (project, depth)} (depth 1 = child)."""
     out: dict[int, tuple[Project, int]] = {}
     frontier, depth = list(root_ids), 0
     while frontier:
@@ -183,7 +183,7 @@ def _subtree(db: Session, root_ids: list[int]) -> dict[int, tuple[Project, int]]
                     Project.is_draft,
                 )
             )
-            .filter(Project.superior_project_id.in_(frontier))
+            .filter(Project.superior_project_id.in_(frontier), Project.is_archived.is_(False))
             .all()
         )
         frontier = [p.id for p in rows if p.id not in out]
@@ -404,6 +404,7 @@ class _Matcher:
                     Project.id, Project.name, Project.description, Project.superior_project_id
                 )
             )
+            .filter(Project.is_archived.is_(False))
             .all()
         )
         self.by_id = {p.id: p for p in self.projects}

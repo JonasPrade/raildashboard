@@ -30,6 +30,7 @@ export default function AdminOverviewPage() {
     const canInfraplan = can("infraplan.import");
     const canVib = can("vib.import");
     const canCreateProject = can("project.create");
+    const canDeleteProject = can("project.delete");
     const canProjectGroups = can("projectgroup.create") || can("projectgroup.edit");
     const canUsers = can("user.manage");
     const canRoles = can("role.manage");
@@ -45,6 +46,7 @@ export default function AdminOverviewPage() {
         canInfraplan ||
         canVib ||
         canCreateProject ||
+        canDeleteProject ||
         canProjectGroups ||
         canUsers ||
         canRoles ||
@@ -244,6 +246,16 @@ export default function AdminOverviewPage() {
                                         )}
                                     </Group>
                                     <Text size="sm" c="dimmed">Begonnene, noch nicht finalisierte Projekte fertigstellen</Text>
+                                </Stack>
+                            </Link>
+                        </Paper>
+                    )}
+                    {canDeleteProject && (
+                        <Paper withBorder p="var(--card-pad)">
+                            <Link to="/admin/archive" style={{ textDecoration: "none", color: "inherit" }}>
+                                <Stack gap={4}>
+                                    <Text fw={500}>Archiv</Text>
+                                    <Text size="sm" c="dimmed">Ersetzte und überholte Projekte ansehen und wiederherstellen</Text>
                                 </Stack>
                             </Link>
                         </Paper>

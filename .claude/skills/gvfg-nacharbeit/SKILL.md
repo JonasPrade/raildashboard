@@ -85,6 +85,10 @@ Je Entwurf:
 - Sonst bleibt er Entwurf. Fertigstellen (`set_project_draft(id, false)`) nur, wenn der
   Nutzer es will und das Projekt Daten hat (mindestens Beschreibung; Geometrie per
   `route_project_geometry`/`edit_project_geometry` ist ein eigener Schritt).
+- Ein Projekt, das durch **andere** Projekte ersetzt wurde (keine Dublette), wird nicht
+  als Entwurf geparkt, sondern mit `archive_project(id, reason)` archiviert — erst
+  nachdem seine GVFG-Zuordnung umgehängt ist (`assign_gvfg_entry`), sonst lehnt das Tool
+  ab. Nur auf Wunsch des Nutzers.
 
 Gruppen setzt `assign_gvfg_entry` selbst („GVFG“, Land 08 auch „GVFG BW“) und entfernt
 nie welche — keine Gruppen von Hand nachziehen.

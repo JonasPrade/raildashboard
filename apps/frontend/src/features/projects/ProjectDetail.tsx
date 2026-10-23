@@ -45,6 +45,7 @@ import { MAP_COLOR } from "../../shared/theme/semanticColors";
 import ProjectHistorySection from "../changelog/ProjectHistorySection";
 import ProjectTextsSection from "./ProjectTextsSection";
 import ProjectFamilyTreeSection from "./ProjectFamilyTreeSection";
+import { ArchiveBanner, ArchiveProjectModal } from "./ProjectArchive";
 import { ProjectRegister, type RegisterSection } from "./ProjectRegister";
 import FinveSection from "./components/FinveSection";
 import GvfgSection from "./components/GvfgSection";
@@ -214,6 +215,7 @@ export default function ProjectDetail() {
     });
 
     const deleteMutation = useDeleteProject();
+    const [archiveOpened, setArchiveOpened] = useState(false);
 
     const project = data;
 
@@ -481,8 +483,9 @@ export default function ProjectDetail() {
             id: "family-tree",
             label: "Stammbaum",
             ref: familyTreeRef,
-            // Drafts are outside the hierarchy (the section renders nothing for them).
-            visible: canEdit && !project.is_draft,
+            // Drafts and archived projects are outside the hierarchy (the section
+            // renders nothing for them).
+            visible: canEdit && !project.is_draft && !project.is_archived,
         },
         {
             id: "history",
@@ -535,6 +538,11 @@ export default function ProjectDetail() {
                                         </Menu.Item>
                                     )}
                                     {canDelete && (
+                                        <Menu.Item onClick={() => setArchiveOpened(true)}>
+                                            {project.is_archived ? "Wiederherstellen" : "Archivieren"}
+                                        </Menu.Item>
+                                    )}
+                                    {canDelete && (
                                         <Menu.Item color="red" onClick={handleDelete}>
                                             Löschen
                                         </Menu.Item>
@@ -559,6 +567,11 @@ export default function ProjectDetail() {
                                 </>
                             )}
                             {canDelete && (
+                                <Button variant="default" onClick={() => setArchiveOpened(true)}>
+                                    {project.is_archived ? "Wiederherstellen" : "Archivieren"}
+                                </Button>
+                            )}
+                            {canDelete && (
                                 <Button
                                     variant="outline"
                                     color="red"
@@ -571,6 +584,15 @@ export default function ProjectDetail() {
                         </Group>
                     )}
                 </Group>
+
+                <ArchiveBanner project={project} />
+                {canDelete && (
+                    <ArchiveProjectModal
+                        project={project}
+                        opened={archiveOpened}
+                        onClose={() => setArchiveOpened(false)}
+                    />
+                )}
 
                 {/* Zweispaltiges Layout: Details/Beschreibung links, Karte rechts */}
                 <div ref={detailsRef}>
