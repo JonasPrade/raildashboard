@@ -49,6 +49,8 @@ unter *Einstellungen → Planungsstand-Konflikte* „Alle Projekte neu berechnen
 (`make docker-recompute-progress`) ausführen. Das schreibt Planungsstand und Termin-Cache
 aller Projekte neu (schließt `refresh_progress_dates.py` ein), ist idempotent und braucht
 keinen Rollback.
+Aktuell nötig nach dem Fix für VIB-PFA-Prognosen (#262): erst danach verschwinden die
+falschen „In Betrieb“-Beobachtungen aus „vsl.“-Terminen in allen Listen.
 
 **Es gibt keinen automatischen Auslöser.** Bis v0.0.15 rollte ein Version-Tag
 (`v*`) Test, Build und Ausrollen in einem Zug aus. Das nahm den Moment weg, in dem

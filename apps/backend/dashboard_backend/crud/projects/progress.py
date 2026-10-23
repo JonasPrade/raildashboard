@@ -64,6 +64,7 @@ from dashboard_backend.services.progress_forecast import (
 from dashboard_backend.services.progress_materialization import (
     DerivedSpec,
     PfaInput,
+    assigned_pfas_to_specs,
     bauportal_to_spec,
     finve_to_spec,
     fulda_to_spec,
@@ -73,7 +74,6 @@ from dashboard_backend.services.progress_materialization import (
     infraplan_parl_relevant,
     media_to_spec,
     pfa_has_pf_evidence,
-    pfa_to_specs,
     vib_entry_to_specs,
 )
 from dashboard_backend.models.projects.bauportal_status import BauportalStatus
@@ -621,9 +621,10 @@ def sync_derived_observations_bulk(
         .filter(VibPfaEntry.project_id.in_(project_ids), VibEntry.confirmed.is_(True))
         .all()
     )
+    # One leaf takes the sections of one VIB entry together (a finished section
+    # must not outrank one still under construction).
+    assigned_by_leaf: dict[tuple[int, int], tuple[VibEntry, list[PfaInput]]] = {}
     for pfa, entry in assigned_pfa_rows:
-        report = entry.report
-        observed = date(report.year, 12, 31) if report is not None else None
         pfa_input = PfaInput(
             id=pfa.id,
             nr_pfa=pfa.nr_pfa,
@@ -634,10 +635,14 @@ def sync_derived_observations_bulk(
         )
         if pfa_has_pf_evidence([pfa_input]):
             pf_evidence_projects.add(pfa.project_id)
-        specs_by_project[pfa.project_id].extend(
-            pfa_to_specs(
-                pfa=pfa_input,
-                vib_entry_id=entry.id,
+        assigned_by_leaf.setdefault((pfa.project_id, entry.id), (entry, []))[1].append(pfa_input)
+    for (project_id, entry_id), (entry, pfa_inputs) in assigned_by_leaf.items():
+        report = entry.report
+        observed = date(report.year, 12, 31) if report is not None else None
+        specs_by_project[project_id].extend(
+            assigned_pfas_to_specs(
+                pfas=sorted(pfa_inputs, key=lambda p: p.id),
+                vib_entry_id=entry_id,
                 observed_fallback=observed,
             )
         )

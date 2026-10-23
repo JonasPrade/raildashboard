@@ -13,6 +13,7 @@ representative day within the period (mid-month, mid-quarter, mid-year).
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from datetime import date
 
 from dashboard_backend.models.projects.progress_enums import DatePrecision
@@ -113,6 +114,67 @@ def parse_commissioning_with_precision(text: str | None) -> tuple[date | None, D
     if value is not None and precision is _YEAR and (value.month, value.day) == _BARE_YEAR:
         return commissioning_in_year(value.year)
     return value, precision
+
+
+# Hedges that make a VIB date a prognosis rather than a fact, as printed in
+# the PFA tables: „vsl. 2027“, „vsl 2035“, „vsl.2026“, „offen vsl. 2028“,
+# „voraussichtlich Ende 2027“, „ca. 2026“, „geplant 2029“, „ab/nach 2031“,
+# „frühestens 07/2032“, „bis 2025“, „>2031“.
+_TENTATIVE = re.compile(
+    r"\b(?:vsl|vorauss\w*|geplant\w*|prognos\w*|ca|circa|etwa|"
+    r"ab|nach|bis|frühestens|fruehestens|spätestens|spaetestens|nicht\s+vor|"
+    r"angestrebt|avisiert|offen)\b|[>~]"
+)
+# A milestone reported as reached without a date („erfolgt“, „erfolgte“).
+_DONE = re.compile(r"\berfolgt")
+# Footnote markers glued to a cell („2002¹“, „offen²“).
+_FOOTNOTES = str.maketrans("", "", "¹²³⁴⁵⁶⁷⁸⁹⁰")
+
+
+@dataclass(frozen=True)
+class Milestone:
+    """A VIB milestone cell read as fact or prognosis.
+
+    ``is_expected`` is True for a hedged date („vsl. 2027“) and for any date
+    after the report's ``as_of`` day. ``value`` is None for a fact without a
+    date („erfolgt“).
+    """
+
+    value: date | None
+    precision: DatePrecision
+    is_expected: bool
+
+
+def read_milestone(
+    text: str | None, as_of: date | None, *, commissioning: bool = False
+) -> Milestone | None:
+    """Read a PFA milestone cell (``datum_pfb``, ``baubeginn``,
+    ``inbetriebnahme``) as of the report's ``as_of`` day.
+
+    Returns None when the cell states nothing („offen“, „-“, no date). A
+    hedge word or a date after ``as_of`` makes it a prognosis; a period that
+    contains ``as_of`` („12/2024“ in the VIB 2024) has its representative day
+    on or before it and counts as reached. ``commissioning`` reads a bare year
+    as the Fahrplanwechsel (:func:`parse_commissioning_with_precision`).
+    """
+
+    if text is None:
+        return None
+    text = text.translate(_FOOTNOTES)
+    parse = parse_commissioning_with_precision if commissioning else parse_flexible_date_with_precision
+    value, precision = parse(text)
+    lowered = text.lower()
+    tentative = bool(_TENTATIVE.search(lowered))
+    if value is None:
+        if _DONE.search(lowered) and not tentative:
+            return Milestone(None, _EXACT, False)
+        return None
+    expected = (
+        tentative
+        or precision is DatePrecision.NOT_BEFORE
+        or (as_of is not None and value > as_of)
+    )
+    return Milestone(value, precision, expected)
 
 
 def _parse(text: str | None) -> tuple[date | None, DatePrecision]:
