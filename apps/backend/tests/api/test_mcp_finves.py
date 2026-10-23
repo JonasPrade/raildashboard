@@ -1,14 +1,17 @@
 """MCP FinVe search: list_finves and get_finve find FinVes independent of a
-project link (by number, name or Bedarfsplan number)."""
+project link (by number, name or Bedarfsplan number); unlink_finve removes
+wrong project links."""
 
 from __future__ import annotations
 
 from dashboard_backend.models.associations.finve_to_project import FinveToProject
+from dashboard_backend.schemas.users import UserRole
 from dashboard_backend.models.projects.budget import Budget
 from dashboard_backend.models.projects.finve import Finve
 from dashboard_backend.models.projects.project import Project
 from tests.api.test_mcp_server import (  # noqa: F401 - fixtures
     _call,
+    _key_for,
     _payload,
     admin_token,
     mcp_client,
@@ -93,3 +96,55 @@ def test_get_finve(mcp_client, admin_token, db_session):
     missing = _call(mcp_client, admin_token, "get_finve", {"finve_id": 9999})
     assert missing["isError"] is True
     assert "nicht gefunden" in missing["content"][0]["text"]
+
+
+def test_unlink_finve_removes_only_the_given_projects(mcp_client, admin_token, db_session):
+    project = _seed(db_session)
+    other = Project(name="ABS 38 Mühldorf–Freilassing", is_draft=False)
+    unrelated = Project(name="NBS Hamburg–Hannover", is_draft=False)
+    db_session.add_all([other, unrelated])
+    db_session.flush()
+    db_session.add(FinveToProject(project_id=other.id, finve_id=2001))
+    db_session.commit()
+
+    payload = _payload(_call(mcp_client, admin_token, "unlink_finve",
+                             {"finve_id": 2001, "project_ids": [project.id, unrelated.id]}))
+    assert payload["removed"] == [project.id]
+    assert payload["not_linked"] == [unrelated.id]
+    assert payload["projects"] == [{"id": other.id, "name": other.name}]
+    db_session.expire_all()
+    remaining = db_session.query(FinveToProject.project_id).filter_by(finve_id=2001).all()
+    assert [r[0] for r in remaining] == [other.id]
+
+
+def test_unlink_sammel_finve_removes_year_scoped_links(mcp_client, admin_token, db_session):
+    project = _seed(db_session)
+    # One row only: SQLite ignores the partial unique indexes, so a second year collides.
+    db_session.add(FinveToProject(project_id=project.id, finve_id=4001, haushalt_year=2025))
+    db_session.commit()
+    payload = _payload(_call(mcp_client, admin_token, "unlink_finve",
+                             {"finve_id": 4001, "project_ids": [project.id]}))
+    assert payload["removed"] == [project.id]
+    assert payload["projects"] == []
+    db_session.expire_all()
+    assert db_session.query(FinveToProject).filter_by(finve_id=4001).count() == 0
+
+
+def test_unlink_finve_errors(mcp_client, admin_token, db_session):
+    project = _seed(db_session)
+    missing = _call(mcp_client, admin_token, "unlink_finve",
+                    {"finve_id": 9999, "project_ids": [project.id]})
+    assert missing["isError"] is True
+    assert "nicht gefunden" in missing["content"][0]["text"]
+    empty = _call(mcp_client, admin_token, "unlink_finve", {"finve_id": 2001, "project_ids": []})
+    assert empty["isError"] is True
+
+
+def test_unlink_finve_requires_assignment_manage(mcp_client, create_user, db_session):
+    project = _seed(db_session)
+    admin = create_user("admin", "adminpass", UserRole.admin)
+    token = _key_for(db_session, admin, scopes=["mcp.access"])
+    result = _call(mcp_client, token, "unlink_finve", {"finve_id": 2001, "project_ids": [project.id]})
+    assert result["isError"] is True
+    assert "assignment.manage" in result["content"][0]["text"]
+    assert db_session.query(FinveToProject).filter_by(finve_id=2001).count() == 1
