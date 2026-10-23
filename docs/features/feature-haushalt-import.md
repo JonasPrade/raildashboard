@@ -331,6 +331,7 @@ Neue Titel in künftigen PDFs werden automatisch registriert.
 - **Erläuterung-Continuation**: `_is_erlaeuterung_continuation` erkennt Folgeseiten langer Erläuterungen (keine "Erläuterung:"-Präfix, aber Bullet-Chars)
 - **Fuzzy-Matching**: `suggest_per_erlaeuterung_project` (1:1 pro Unterzeile), `suggest_projects_for_sv_erlaeuterung` (dedup, für Parent-FinVe)
 - **Jahrestracking**: `finve_to_project.haushalt_year` — `NULL` = permanent (reguläre FinVes), `<year>` = jahresspezifisch (SV-FinVes); historische Projektzu-/abgänge bleiben erhalten
+- **Bestätigen und feste Zuordnungen** (2026-10-23, `feature-finve-zuordnung.md` → W1): Für reguläre FinVes wendet das Bestätigen nur die Änderungen des Prüfers gegenüber der Projektliste beim Parsen an (`permanent_link_delta`); eine nach dem Parsen von Hand geänderte Zuordnung bleibt. SV-FinVes gleichen ihre Jahres-Zuordnungen weiter vollständig ab.
 
 ---
 

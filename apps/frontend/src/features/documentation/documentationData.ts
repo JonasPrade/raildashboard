@@ -221,7 +221,8 @@ export const featureHighlights: FeatureHighlight[] = [
             "Hinweis „Nicht mehr im Infraplan …“, wenn das Projekt im neuesten Jahrgang fehlt",
             "Kostenblock auf der Projektseite direkt unter Projektdetails und Karte: Gesamtkostenprognose laut Infraplan (bei Elternprojekten ohne eigene Zeile die Summe der Teilprojekte, Fußnoten hinter dem „?“) neben den vom Bund zugesicherten FinVe-Mitteln (bei Elternprojekten inklusive aller FinVe der Teilprojekte, jede einmal); bei GVFG-Projekten steht daneben die Bundesförderung laut GVFG-Bundesprogramm (ohne FinVe an deren Stelle) — bewusst ohne Deckungsgrad",
             "Reihenfolge der Projektseite: Projektdetails und Karte, Kosten, Planungsstand, Unterprojekte, Infraplan, GVFG, FinVe, Texte, BVWP, Verkehrsinvestitionsberichte, übergeordnetes Projekt, dann Wahlkreise und Abgeordnete, Aufgaben, Stammbaum (nur Bearbeiter) und Versionshistorie",
-            "Abschnitt FinVe: bei Elternprojekten auch die FinVe aller Teilprojekte, jeweils mit dem Hinweis „Aus Teilprojekt …“ und Link darauf"
+            "Abschnitt FinVe: bei Elternprojekten auch die FinVe aller Teilprojekte, jeweils mit dem Hinweis „Aus Teilprojekt …“ und Link darauf",
+            "FinVe-Zuordnung bearbeiten (Recht „Finanzierungsvereinbarungen einarbeiten“): „Zuordnung bearbeiten“ im Abschnitt FinVe zeigt „Zuordnung entfernen“ an den eigenen festen Zuordnungen und „FinVe hinzufügen“ (Suche nach Nummer oder Name); geerbte FinVe der Teilprojekte und Jahres-Zuordnungen von Sammel-FinVe sind hier nicht entfernbar. Jede Änderung steht im Änderungsprotokoll und berechnet den Planungsstand neu"
         ]
     },
     {
@@ -378,6 +379,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Timeline in ProjectDetail — date, user, old → new value per field (login-gated)",
             "\"Zurücksetzen\" button per entry reverts the field to its previous value (editor/admin only)",
             "Project group changes are logged too (shown with short names) and can be reverted",
+            "FinVe assignment changes appear as \"FinVe-Zuordnung\" (FinVe numbers before → after) and can be reverted; the revert needs the FinVe edit permission and recomputes the planning state",
             "Planning-state changes (flags, overrides, PF/parliament details, observations added or deleted, linked documents) appear as \"Planungsstand\" entries — from the UI and from MCP alike; they are history only, without revert",
             "Implemented in `features/changelog/ProjectHistorySection.tsx` + `useRevertProjectField` hook"
         ]
@@ -403,7 +405,8 @@ export const featureHighlights: FeatureHighlight[] = [
             "Jede Karte zeigt FinVe-Nr., Name, Typ-Badge, Startjahr, Kosten",
             "Verknüpfte Projekte als anklickbare Mini-Cards (Link zur Projektdetailseite)",
             "Ausklappbare Budget-Diagramme: Budgetverteilung (BarChart), Kostenentwicklung (LineChart), Haushaltstiteln-Detailtabelle",
-            "Sammel-FinVes erhalten violettes Badge; vorläufige FinVe-Nummern werden markiert"
+            "Sammel-FinVes erhalten violettes Badge; vorläufige FinVe-Nummern werden markiert",
+            "„Projekte bearbeiten“ (Recht „Finanzierungsvereinbarungen einarbeiten“): Drawer mit den zugeordneten Projekten — feste Zuordnungen entfernen, Projekte über die Projektsuche hinzufügen; Jahres-Zuordnungen von Sammel-FinVe aus dem Haushaltsimport sind als „Haushaltsjahr“ markiert und bleiben"
         ]
     },
     {
@@ -439,6 +442,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Die Spaltenzuordnung entsteht aus der Kopfzeile des PDFs (KI nur als Rückfallebene für die Überschriften); alle Zahlenwerte werden deterministisch übernommen",
             "Review page: rows classified as Neu (green) / Änderung (yellow) / Unbekannt (red)",
             "New FinVes: project assignment via multi-select before confirming",
+            "Confirming applies only the reviewer's changes to the permanent project links — a link edited by hand after the parse stays as it is",
             "Confirm button is disabled once a parse result is already imported (double-import guard)",
             "Unbekannte Zeilen page: assign a FinVe-ID to unresolved rows",
             "Route /admin/haushalt-import — visible for editor and admin roles only",
@@ -537,7 +541,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "The token (rdb_…) is shown exactly once, together with a ready-made .mcp.json snippet; only its hash is stored",
             "Presets: \"Nur lesen\" (default) or \"Wie mein Nutzer\" (adds write tools); every key expires after 90 days",
             "Read tools: project groups, projects (search/filter by text, group, phase), project detail incl. BVWP, planning state, FinVes with budgets, texts, tasks",
-            "Write tools: create (sub)projects, compute the length from the geometry, update project fields and group assignment, add/delete planning-state observations, set/clear the phase override, create/update texts and tasks — all in the changelog",
+            "Write tools: create (sub)projects, compute the length from the geometry, update project fields and group assignment, add/remove projects of a FinVe (update_finve_projects), add/delete planning-state observations, set/clear the phase override, create/update texts and tasks — all in the changelog",
             "Keys also work against the REST API (Authorization: Bearer …), narrowed to their scopes without the admin bypass",
             "Details: docs/features/feature-mcp-server.md"
         ]

@@ -4,6 +4,7 @@ from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from dashboard_backend.core.security import require_permission
+from dashboard_backend.crud.finve_links import FinveLinkConflict, FinveLinkError
 from dashboard_backend.crud.admin_assignments import (
     assign_finve_to_projects,
     assign_vib_entry_to_projects,
@@ -78,15 +79,19 @@ def assign_finve(
     finve_id: int,
     body: AssignProjectsInput,
     db: Session = Depends(get_db),
-    _current_user: User = _require_editor,
+    current_user: User = _require_editor,
 ) -> None:
     finve = get_finve(db, finve_id)
     if not finve:
         raise HTTPException(status_code=404, detail="FinVe not found")
     if not body.project_ids:
         raise HTTPException(status_code=422, detail="project_ids must not be empty")
-    assign_finve_to_projects(db, finve_id, body.project_ids)
-    db.commit()
+    try:
+        assign_finve_to_projects(db, finve_id, body.project_ids, current_user)
+    except FinveLinkConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except FinveLinkError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.patch("/unassigned-vib-entries/{entry_id}/assign", response_model=None, status_code=204)

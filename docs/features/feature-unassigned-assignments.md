@@ -11,7 +11,7 @@ Provide editors and admins with a single page (`/admin/unassigned`) that surface
 - Inline project assignment (searchable MultiSelect) per row
 - Header badge showing total unassigned count (editor/admin only)
 
-Out of scope: creating new projects from this page (future roadmap item).
+Out of scope: creating new projects from this page (future roadmap item). Changing or removing links of FinVes that are already assigned: see `feature-finve-zuordnung.md` — the assign endpoint here uses the same function (logged per project, planning state recomputed).
 
 ## Acceptance Criteria
 
@@ -45,7 +45,7 @@ AssignProjectsInput { project_ids: list[int] }
 
 - `list_unassigned_finves(db)` — LEFT OUTER JOIN `finve_to_project`, filter `finve_to_project.id IS NULL`
 - `list_unassigned_vib_entries(db)` — LEFT OUTER JOIN `vib_entry_project`, filter `vib_entry_project.vib_entry_id IS NULL`
-- `assign_finve_to_projects(db, finve_id, project_ids)` — inserts rows into `finve_to_project` (haushalt_year=NULL); skips duplicates
+- `assign_finve_to_projects(db, finve_id, project_ids, user)` — adds permanent rows to `finve_to_project` (haushalt_year=NULL) via `crud/finve_links.py`; skips duplicates, logs `finve_ids` per project and recomputes the planning state
 - `assign_vib_entry_to_projects(db, entry_id, project_ids)` — inserts rows into `vib_entry_project`; skips duplicates
 
 ### Router

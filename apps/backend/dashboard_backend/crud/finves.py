@@ -38,7 +38,7 @@ def list_finves(db: Session) -> list[FinveListItemSchema]:
     # Load all (finve_id, project_id, project_name) rows; deduplicate because
     # SV-FinVes may have multiple rows per (finve_id, project_id) across years.
     raw = (
-        db.query(FinveToProject.finve_id, Project.id, Project.name)
+        db.query(FinveToProject.finve_id, Project.id, Project.name, FinveToProject.haushalt_year)
         .join(Project, Project.id == FinveToProject.project_id)
         .filter(FinveToProject.finve_id.in_(finve_ids))
         .all()
@@ -46,7 +46,10 @@ def list_finves(db: Session) -> list[FinveListItemSchema]:
 
     seen: set[tuple[int, int]] = set()
     projects_by_finve: dict[int, list[ProjectRefSchema]] = {}
-    for finve_id, project_id, project_name in raw:
+    permanent_by_finve: dict[int, set[int]] = {}
+    for finve_id, project_id, project_name, haushalt_year in raw:
+        if haushalt_year is None:
+            permanent_by_finve.setdefault(finve_id, set()).add(project_id)
         key = (finve_id, project_id)
         if key not in seen:
             seen.add(key)
@@ -90,6 +93,7 @@ def list_finves(db: Session) -> list[FinveListItemSchema]:
                 project_count=len(linked),
                 project_names=[p.name for p in linked],
                 projects=linked,
+                permanent_project_ids=sorted(permanent_by_finve.get(f.id, ())),
                 budgets=budget_schemas,
             )
         )
@@ -178,6 +182,12 @@ def get_project_finves_with_budgets(
     carry ``from_subprojects``; ``subprojects`` names the descendants that
     carry each FinVe."""
     own_ids = {f.id for f in project.finve}
+    permanent_ids = {
+        fid
+        for (fid,) in db.query(FinveToProject.finve_id).filter(
+            FinveToProject.project_id == project.id, FinveToProject.haushalt_year.is_(None)
+        )
+    }
     finve_ids = set(own_ids)
     carriers: dict[int, dict[int, str]] = {}
     if include_subprojects:
@@ -203,6 +213,7 @@ def get_project_finves_with_budgets(
         finve_with_budgets(finve).model_copy(
             update={
                 "from_subprojects": finve.id not in own_ids,
+                "linked_permanently": finve.id in permanent_ids,
                 "subprojects": [
                     ProjectRefSchema(id=pid, name=name)
                     for pid, name in sorted(carriers.get(finve.id, {}).items(), key=lambda item: item[1])
