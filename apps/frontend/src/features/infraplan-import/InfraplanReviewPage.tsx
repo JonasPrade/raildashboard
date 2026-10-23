@@ -143,6 +143,10 @@ function AssignCell({
                                     key={s.project_id}
                                     label={`Vorschlag (${REASON_LABEL[s.reason] ?? s.reason}${
                                         s.detail ? `: ${s.detail}` : ""
+                                    }${
+                                        s.redirected_from != null
+                                            ? `; umgelenkt von Projekt ${s.redirected_from} (ersetzt)`
+                                            : ""
                                     }) übernehmen`}
                                     withArrow
                                 >

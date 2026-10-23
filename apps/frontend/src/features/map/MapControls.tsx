@@ -13,6 +13,9 @@ type Props = {
     onPointSizeChange: (value: number) => void;
     onlySuperior: boolean;
     onOnlySuperiorChange: (value: boolean) => void;
+    /** Replaced and aborted projects shown (`?beendet=1`); omitted → no switch. */
+    showEnded?: boolean;
+    onShowEndedChange?: (value: boolean) => void;
     searchTerm: string;
     onSearchChange: (value: string) => void;
     phaseFilter: PhaseFilterValue[];
@@ -41,6 +44,8 @@ export default function MapControls({
     onPointSizeChange,
     onlySuperior,
     onOnlySuperiorChange,
+    showEnded = false,
+    onShowEndedChange,
     searchTerm,
     onSearchChange,
     phaseFilter,
@@ -99,6 +104,14 @@ export default function MapControls({
                 onChange={(e) => onOnlySuperiorChange(e.currentTarget.checked)}
                 size={isMobile ? "md" : "sm"}
             />
+            {onShowEndedChange && (
+                <Switch
+                    label="Beendete Projekte einblenden"
+                    checked={showEnded}
+                    onChange={(e) => onShowEndedChange(e.currentTarget.checked)}
+                    size={isMobile ? "md" : "sm"}
+                />
+            )}
         </>
     );
 

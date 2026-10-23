@@ -380,7 +380,7 @@ export interface paths {
         head?: never;
         /**
          * Patch Progress
-         * @description Update flags, lifecycle and manual overrides.
+         * @description Update flags, lifecycle (incl. successor of a replaced project) and manual overrides.
          */
         patch: operations["patch_progress_api_v1_projects__project_id__progress_patch"];
         trace?: never;
@@ -5343,6 +5343,8 @@ export interface components {
          *     earlier year), ALIAS (Deutschlandtakt id), CONTEXT (subproject of the
          *     parent named by the Bezeichnung), FUZZY (name). ``detail`` says what
          *     matched; ``previous_note`` is the note of the earlier year's assignment.
+         *     ``redirected_from``: the hit was on this replaced project and moved to its
+         *     successor (feature-project-replacement.md).
          */
         InfraplanSuggestion: {
             /** Project Id */
@@ -5360,6 +5362,8 @@ export interface components {
             previous_year?: number | null;
             /** Previous Note */
             previous_note?: string | null;
+            /** Redirected From */
+            redirected_from?: number | null;
         };
         /**
          * InfraplanWarning
@@ -5379,6 +5383,18 @@ export interface components {
             page?: number | null;
             /** Message */
             message: string;
+        };
+        /**
+         * LifecycleProjectRef
+         * @description Successor / replaced project named in the lifecycle overlay.
+         */
+        LifecycleProjectRef: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Project Number */
+            project_number?: string | null;
         };
         /** LinkDocumentInput */
         LinkDocumentInput: {
@@ -5785,7 +5801,7 @@ export interface components {
              * Lifecycle Status
              * @enum {string}
              */
-            lifecycle_status: "AKTIV" | "PAUSIERT" | "ABGEBROCHEN";
+            lifecycle_status: "AKTIV" | "PAUSIERT" | "ABGEBROCHEN" | "ERSETZT";
             /**
              * Is Known
              * @default true
@@ -6350,7 +6366,7 @@ export interface components {
              * Lifecycle Status
              * @description Lifecycle overlay from the stored project_progress row; null without a row.
              */
-            lifecycle_status?: ("AKTIV" | "PAUSIERT" | "ABGEBROCHEN") | null;
+            lifecycle_status?: ("AKTIV" | "PAUSIERT" | "ABGEBROCHEN" | "ERSETZT") | null;
             /**
              * Construction Start Date
              * @description Cached concrete Baubeginn of the forecast (sort value; show only with construction_start_precision). Null without a concrete date.
@@ -6488,7 +6504,17 @@ export interface components {
              * Lifecycle Status
              * @enum {string}
              */
-            lifecycle_status: "AKTIV" | "PAUSIERT" | "ABGEBROCHEN";
+            lifecycle_status: "AKTIV" | "PAUSIERT" | "ABGEBROCHEN" | "ERSETZT";
+            /** Lifecycle Note */
+            lifecycle_note?: string | null;
+            /** Lifecycle Date */
+            lifecycle_date?: string | null;
+            replaced_by?: components["schemas"]["LifecycleProjectRef"] | null;
+            /**
+             * Replaces
+             * @default []
+             */
+            replaces: components["schemas"]["LifecycleProjectRef"][];
             /** Pf State */
             pf_state?: ("OFFEN" | "LAEUFT" | "ABGESCHLOSSEN") | null;
             /** Parl State */
@@ -6561,7 +6587,13 @@ export interface components {
             /** Parl Befassung Relevant */
             parl_befassung_relevant?: boolean | null;
             /** Lifecycle Status */
-            lifecycle_status?: ("AKTIV" | "PAUSIERT" | "ABGEBROCHEN") | null;
+            lifecycle_status?: ("AKTIV" | "PAUSIERT" | "ABGEBROCHEN" | "ERSETZT") | null;
+            /** Replaced By Project Id */
+            replaced_by_project_id?: number | null;
+            /** Lifecycle Note */
+            lifecycle_note?: string | null;
+            /** Lifecycle Date */
+            lifecycle_date?: string | null;
             /** Manual Phase Override */
             manual_phase_override?: ("NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB") | null;
             /** Manual Override Note */
@@ -6590,6 +6622,8 @@ export interface components {
             clear_parl_state_override?: boolean | null;
             /** Clear Pf State Override */
             clear_pf_state_override?: boolean | null;
+            /** Clear Lifecycle Date */
+            clear_lifecycle_date?: boolean | null;
         };
         /** ProjectRefSchema */
         ProjectRefSchema: {
@@ -6985,7 +7019,7 @@ export interface components {
              * Lifecycle Status
              * @enum {string}
              */
-            lifecycle_status: "AKTIV" | "PAUSIERT" | "ABGEBROCHEN";
+            lifecycle_status: "AKTIV" | "PAUSIERT" | "ABGEBROCHEN" | "ERSETZT";
             /**
              * Milestones
              * @default []

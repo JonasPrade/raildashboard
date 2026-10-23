@@ -275,14 +275,15 @@ export const featureHighlights: FeatureHighlight[] = [
             "Die ProjectDetail-Seite zeigt einen abgeleiteten Planungsstand: einen horizontalen " +
             "Phasen-Stepper (Nicht gestartet → Vorplanung → Genehmigungsplanung → Bau → In Betrieb), " +
             "bedingte Parallelspuren für Planfeststellung und parlamentarische Befassung, ein " +
-            "Lebenszyklus-Overlay (Pausiert/Abgebrochen) und einen Aufklappbereich mit der " +
+            "Lebenszyklus-Overlay (Pausiert/Abgebrochen/Ersetzt) und einen Aufklappbereich mit der " +
             "Quellen-Aufschlüsselung. Die Anzeige ist öffentlich; Bearbeiten erfordert progress.edit.",
         details: [
             "Headline-Phase: der neueste glaubwürdige Statusbericht (VIB, Infraplan, GVFG, Bauportal, Fulda-Runde, Medien, manuell) gewinnt; nur innerhalb eines Jahres vor dem neuesten Bericht entscheidet das Vertrauen der Quelle, bei Gleichstand die höhere Phase. FinVes sind Untergrenzen („mindestens Bau“): Sie heben die Phase nur an und veralten nicht",
             "Meldet ein neuerer Bericht eine niedrigere Phase als ältere Angaben, stuft er nur zurück, wenn er mindestens so vertrauenswürdig ist (oder manuell erfasst wurde); sonst bleibt die höhere Phase. Beides erscheint als Konflikt unter Admin → „Planungsstand-Konflikte“ und als Hinweis im Projekt; ein Phasen-Override löst ihn auf",
             "Manueller Phasen-Override gewinnt immer über den berechneten Wert (Badge 'übersteuert')",
             "Parl. Befassung ist bei BSWAG-Projektgruppen vorbelegt; nullable Override pro Projekt",
-            "Pausiert/Abgebrochen überblendet die gesamte Darstellung (Banner + abgeblendeter Stepper)",
+            "Pausiert/Abgebrochen/Ersetzt überblendet die gesamte Darstellung (Banner + abgeblendeter Stepper); Begründung und „seit“-Datum lassen sich zu jedem dieser Zustände im Bearbeiten-Drawer erfassen",
+            "Ersetzt: Wird ein Projekt durch ein anderes abgelöst (z. B. BVWP-Vorhaben durch ein eigenständiges Deutschlandtakt-Vorhaben), wählt man im Bearbeiten-Drawer „Ersetzt“ und das Nachfolgeprojekt. Das alte Projekt zeigt „Ersetzt durch …“ mit Link und behält seine Historie, der Nachfolger zeigt „Ersetzt …“. Ein ersetztes Teilprojekt zählt nicht mehr in Phasenspanne, Unterprojekt-Verteilung, Zeitstrahl und Summen des Oberprojekts; Importvorschläge auf das alte Projekt gehen an den Nachfolger. Für Dubletten gibt es stattdessen das Zusammenführen",
             "Übergeordnete Projekte zeigen eine Phasen-Spanne (min..max) + eine durchsuchbare Unterprojekt-Tabelle mit Status-Verteilung (z. B. „3× Bau · 1× Vorplanung · 2× Unbekannt“); die Spanne wird rekursiv über beliebig tiefe Unterprojekt-Ebenen gebildet — ein Unterprojekt mit eigenen Unterprojekten zeigt seine eigene Sub-Spanne (Marker „Gruppe“)",
             "Hover über einen Phasen-Kreis im Stepper listet die Unterprojekte dieser Phase auf",
             "Projekte ohne Datengrundlage werden klar als „Unbekannt“ markiert (nicht als „Nicht gestartet“)",
@@ -306,7 +307,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Tabelle „Quellen & Beobachtungen\": Spalte „Bereich\" (Planungsphasen/Planfeststellung/parl. Befassung); Spalte „Alter“ für alle; Vertrauen (ohne Altersabschlag) und die Marken „entscheidend“, „Untergrenze“ und „Konflikt“ sind nur für Admins sichtbar, ebenso die Vertrauensangabe in der Kopfzeile",
             "Beim Anlegen eines neuen Projekts (Wizard, Schritt „Eigenschaften\") lässt sich die aktuelle Planungsphase direkt setzen (manueller Override, optional)",
             "Filter „Planungsphase\" auf der Startseite (Karte und Liste, Mehrfachauswahl): zeigt nur Projekte in den gewählten Phasen; „Unbekannt\" wählt Projekte ohne bekannten Planungsstand. Die Auswahl steht in der URL (?phase=BAU,VORPLANUNG), kombiniert sich mit Projektgruppe und Suche und bleibt beim Wechsel Karte ↔ Liste erhalten. Auf dem Telefon liegt der Filter im Bottom-Sheet „Karte einstellen\"",
-            "Pausierte und abgebrochene Projekte werden nach ihrer zuletzt bekannten Phase gefiltert (der Lebenszyklus ändert die Phase nicht); die Projektkarte zeigt zusätzlich „Pausiert\"/„Abgebrochen\"",
+            "Abgebrochene und ersetzte Projekte sind in Karte, Liste und Zeitstrahl ausgeblendet; der Schalter „Beendete Projekte einblenden\" (URL ?beendet=1) holt sie zurück. Pausierte und eingeblendete beendete Projekte werden nach ihrer zuletzt bekannten Phase gefiltert (der Lebenszyklus ändert die Phase nicht); die Projektkarte zeigt zusätzlich „Pausiert\"/„Abgebrochen\"/„Ersetzt\"",
             "Termine in Liste und Filter: Die Liste zeigt je Projekt „Bau: …“ und „IB: …“ mit Genauigkeit (sortierbar). Im Filter wählt man Baubeginn und Inbetriebnahme nach Jahren (von–bis) und „Termin offen“; ein Termin „nach 2031“ zählt in keinem Zeitraum, nur unter „Termin offen“. Die Filter stehen in der URL und wirken in Liste, Zeitstrahl und Karte",
             "Listenansicht: jede Projektkarte trägt einen Phasen-Badge (gleiche Farben wie die Unterprojekt-Tabelle). Grundlage ist der zuletzt berechnete Planungsstand; übergeordnete Projekte zeigen dort ihre eigene Phase, nicht die Spanne der Unterprojekte"
         ]

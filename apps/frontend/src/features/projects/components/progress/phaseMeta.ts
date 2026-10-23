@@ -11,7 +11,7 @@ export type MainPhase =
     | "IN_BETRIEB";
 
 export type ParallelState = "OFFEN" | "LAEUFT" | "ABGESCHLOSSEN";
-export type LifecycleStatus = "AKTIV" | "PAUSIERT" | "ABGEBROCHEN";
+export type LifecycleStatus = "AKTIV" | "PAUSIERT" | "ABGEBROCHEN" | "ERSETZT";
 export type ObservationTrack = "MAIN" | "PF" | "PARL";
 export type SourceType =
     | "VIB"
@@ -84,7 +84,10 @@ export const LIFECYCLE_LABEL: Record<LifecycleStatus, string> = {
     AKTIV: "Aktiv",
     PAUSIERT: "Pausiert",
     ABGEBROCHEN: "Abgebrochen",
+    ERSETZT: "Ersetzt",
 };
+
+export const LIFECYCLE_STATUSES: LifecycleStatus[] = ["AKTIV", "PAUSIERT", "ABGEBROCHEN", "ERSETZT"];
 
 export const TRACK_LABEL: Record<ObservationTrack, string> = {
     MAIN: "Planungsphasen",
@@ -142,13 +145,16 @@ export function formatTimestamp(iso: string | null | undefined): string {
 }
 
 /** Bucket subprojects by their effective phase; ``is_known === false`` →
- * separate "unknown" bucket (not counted as NICHT_GESTARTET). */
-export function groupChildrenByPhase<T extends { effective_phase: string; is_known?: boolean }>(
-    children: T[],
-): { byPhase: Partial<Record<MainPhase, T[]>>; unknown: T[] } {
+ * separate "unknown" bucket (not counted as NICHT_GESTARTET). Replaced
+ * subprojects (ERSETZT) count nowhere — their successor carries the scheme
+ * (feature-project-replacement.md, W3). */
+export function groupChildrenByPhase<
+    T extends { effective_phase: string; is_known?: boolean; lifecycle_status?: string },
+>(children: T[]): { byPhase: Partial<Record<MainPhase, T[]>>; unknown: T[] } {
     const byPhase: Partial<Record<MainPhase, T[]>> = {};
     const unknown: T[] = [];
     for (const c of children) {
+        if (c.lifecycle_status === "ERSETZT") continue;
         if (c.is_known === false) {
             unknown.push(c);
             continue;

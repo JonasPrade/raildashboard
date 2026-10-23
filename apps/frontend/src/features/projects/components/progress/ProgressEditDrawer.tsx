@@ -34,6 +34,7 @@ import {
 } from "../../../../shared/api/queries";
 import {
     LIFECYCLE_LABEL,
+    LIFECYCLE_STATUSES,
     MAIN_PHASE_LABEL,
     PARALLEL_STATES,
     PARALLEL_STATE_LABEL,
@@ -48,6 +49,7 @@ import {
     type ParallelState,
     type SourceType,
 } from "./phaseMeta";
+import ProjectSearchSelect from "../../ProjectSearchSelect";
 import {
     DATE_PRECISIONS,
     DATE_PRECISION_META,
@@ -83,6 +85,9 @@ type Draft = {
     phaseOverride: MainPhase | null; // null = computed (no override)
     overrideNote: string;
     lifecycle: LifecycleStatus;
+    successorId: number | null; // ERSETZT only
+    lifecycleNote: string;
+    lifecycleDate: string; // ISO date or ""
     hasPf: boolean;
     parlOverride: boolean | null; // null = group standard
     // Planfeststellung + parliamentary involvement details.
@@ -106,6 +111,9 @@ function initDraft(progress: ProjectProgress): Draft {
         phaseOverride: progress.is_overridden ? (progress.effective_phase as MainPhase) : null,
         overrideNote: progress.manual_override_note ?? "",
         lifecycle: progress.lifecycle_status as LifecycleStatus,
+        successorId: progress.replaced_by?.id ?? null,
+        lifecycleNote: progress.lifecycle_note ?? "",
+        lifecycleDate: progress.lifecycle_date ?? "",
         hasPf: progress.has_planfeststellung,
         parlOverride: progress.parl_befassung_relevant_override ?? null,
         pfStateOverride: (progress.pf_state_override as ParallelState | null) ?? null,
@@ -122,6 +130,15 @@ function initDraft(progress: ProjectProgress): Draft {
     };
 }
 
+function lifecycleDirty(draft: Draft, progress: ProjectProgress): boolean {
+    return (
+        draft.lifecycle !== progress.lifecycle_status ||
+        draft.successorId !== (progress.replaced_by?.id ?? null) ||
+        (draft.lifecycleNote || "") !== (progress.lifecycle_note ?? "") ||
+        (draft.lifecycleDate || "") !== (progress.lifecycle_date ?? "")
+    );
+}
+
 function isDirty(draft: Draft, progress: ProjectProgress): boolean {
     const currentOverride = progress.is_overridden
         ? (progress.effective_phase as MainPhase)
@@ -130,7 +147,7 @@ function isDirty(draft: Draft, progress: ProjectProgress): boolean {
     return (
         draft.phaseOverride !== currentOverride ||
         (draft.overrideNote || "") !== (progress.manual_override_note ?? "") ||
-        draft.lifecycle !== progress.lifecycle_status ||
+        lifecycleDirty(draft, progress) ||
         draft.hasPf !== progress.has_planfeststellung ||
         draft.parlOverride !== currentParl ||
         draft.pfStateOverride !== ((progress.pf_state_override as ParallelState | null) ?? null) ||
@@ -160,8 +177,16 @@ function scalarPayload(draft: Draft, progress: ProjectProgress): ProjectProgress
     if ((draft.overrideNote || "") !== (progress.manual_override_note ?? "")) {
         payload.manual_override_note = draft.overrideNote || null;
     }
-    if (draft.lifecycle !== progress.lifecycle_status) {
+    // Lifecycle fields go together: AKTIV clears successor, note and date on the
+    // server; every other status sends its note and date as they stand.
+    if (lifecycleDirty(draft, progress)) {
         payload.lifecycle_status = draft.lifecycle;
+        if (draft.lifecycle !== "AKTIV") {
+            if (draft.lifecycle === "ERSETZT") payload.replaced_by_project_id = draft.successorId;
+            payload.lifecycle_note = draft.lifecycleNote.trim();
+            if (draft.lifecycleDate) payload.lifecycle_date = draft.lifecycleDate;
+            else payload.clear_lifecycle_date = true;
+        }
     }
     if (draft.hasPf !== progress.has_planfeststellung) {
         payload.has_planfeststellung = draft.hasPf;
@@ -384,8 +409,13 @@ export default function ProgressEditDrawer({ projectId, progress, opened, onClos
             notifications.show({ color: "green", message: "Planungsstand gespeichert." });
             reset();
             onClose();
-        } catch {
-            notifications.show({ color: "red", message: "Speichern fehlgeschlagen." });
+        } catch (error) {
+            // A refused lifecycle change (422) explains itself in ``detail``.
+            const detail = (error as { details?: { detail?: unknown } } | null)?.details?.detail;
+            notifications.show({
+                color: "red",
+                message: typeof detail === "string" ? detail : "Speichern fehlgeschlagen.",
+            });
         } finally {
             setSaving(false);
         }
@@ -466,11 +496,38 @@ export default function ProgressEditDrawer({ projectId, progress, opened, onClos
                         label="Lebenszyklus"
                         w={170}
                         value={active.lifecycle}
-                        data={(["AKTIV", "PAUSIERT", "ABGEBROCHEN"] as LifecycleStatus[]).map(
-                            (s) => ({ value: s, label: LIFECYCLE_LABEL[s] }),
-                        )}
+                        data={LIFECYCLE_STATUSES.map((s) => ({ value: s, label: LIFECYCLE_LABEL[s] }))}
                         onChange={(v) => v && set({ lifecycle: v as LifecycleStatus })}
                     />
+                    {active.lifecycle === "ERSETZT" && (
+                        <ProjectSearchSelect
+                            label="Ersetzt durch"
+                            description="Das Nachfolgeprojekt. Beide Projekte bleiben bestehen — für Dubletten gibt es das Zusammenführen."
+                            value={active.successorId}
+                            onChange={(id) => set({ successorId: id })}
+                        />
+                    )}
+                    {active.lifecycle !== "AKTIV" && (
+                        <Group align="flex-start" wrap="wrap">
+                            <Textarea
+                                size="xs"
+                                label="Begründung"
+                                autosize
+                                minRows={2}
+                                style={{ flex: "1 1 260px" }}
+                                value={active.lifecycleNote}
+                                onChange={(e) => set({ lifecycleNote: e.currentTarget.value })}
+                            />
+                            <TextInput
+                                size="xs"
+                                type="date"
+                                label="Seit"
+                                w={170}
+                                value={active.lifecycleDate}
+                                onChange={(e) => set({ lifecycleDate: e.currentTarget.value })}
+                            />
+                        </Group>
+                    )}
                 </Stack>
 
                 <Divider />
@@ -849,7 +906,11 @@ export default function ProgressEditDrawer({ projectId, progress, opened, onClos
                         <Button variant="default" onClick={handleClose}>
                             Abbrechen
                         </Button>
-                        <Button onClick={handleSave} loading={saving} disabled={!dirty}>
+                        <Button
+                            onClick={handleSave}
+                            loading={saving}
+                            disabled={!dirty || (active.lifecycle === "ERSETZT" && active.successorId === null)}
+                        >
                             Speichern
                         </Button>
                     </Group>

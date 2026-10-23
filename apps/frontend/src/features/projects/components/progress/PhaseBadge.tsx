@@ -53,11 +53,11 @@ export function PhaseTag({
 
 /**
  * Compact planning-phase badge for overview cards. Same tag as the
- * SubprojectsTable; a paused/aborted project gets a second grey lifecycle badge
- * (the lifecycle never changes the phase itself).
+ * SubprojectsTable; a paused/aborted/replaced project gets a second grey
+ * lifecycle badge (the lifecycle never changes the phase itself).
  */
 export default function PhaseBadge({ phase, lifecycle }: Props) {
-    const paused = lifecycle === "PAUSIERT" || lifecycle === "ABGEBROCHEN";
+    const paused = !!lifecycle && lifecycle !== "AKTIV" && lifecycle in LIFECYCLE_LABEL;
     return (
         <Group gap={4} wrap="wrap">
             {isMainPhase(phase) ? (

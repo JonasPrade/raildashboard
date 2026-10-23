@@ -32,6 +32,7 @@ import {
     serializePhaseParam,
     type PhaseFilterValue,
 } from "../projects/phaseFilter";
+import { ENDED_PARAM, filterEndedProjects, parseShowEnded } from "../projects/lifecycleFilter";
 import ConstituencyPanel from "../abgeordnete/ConstituencyPanel";
 import MapControls from "./MapControls";
 import TimelineView from "../timeline/TimelineView";
@@ -106,6 +107,16 @@ export default function MapPage() {
         setSearchParams((prev) => {
             if (serialized) prev.set(PHASE_PARAM, serialized);
             else prev.delete(PHASE_PARAM);
+            return prev;
+        });
+    };
+
+    // --- Ended projects: hidden unless ?beendet=1 (feature-project-replacement.md, W2).
+    const showEnded = parseShowEnded(searchParams.get(ENDED_PARAM));
+    const handleShowEndedChange = (checked: boolean) => {
+        setSearchParams((prev) => {
+            if (checked) prev.set(ENDED_PARAM, "1");
+            else prev.delete(ENDED_PARAM);
             return prev;
         });
     };
@@ -194,11 +205,11 @@ export default function MapPage() {
                 }
             });
         });
-        const allProjects = Array.from(projectMap.values());
+        const allProjects = filterEndedProjects(Array.from(projectMap.values()), showEnded);
         return onlySuperior
             ? allProjects.filter((p) => p.superior_project_id == null)
             : allProjects;
-    }, [selectedGroups, onlySuperior, geometries]);
+    }, [selectedGroups, onlySuperior, showEnded, geometries]);
 
     // Defer the search term for the map filter: the text input stays snappy
     // while the (cheap, but setData-triggering) map update lags a beat behind.
@@ -234,7 +245,7 @@ export default function MapPage() {
     }, [searchParams]);
 
     // Start from the first page again whenever the shown list changes.
-    const listKey = `${selectedGroupId}|${onlySuperior}|${deferredSearch}|${phaseParam ?? ""}`;
+    const listKey = `${selectedGroupId}|${onlySuperior}|${deferredSearch}|${phaseParam ?? ""}|${showEnded}`;
     const [prevListKey, setPrevListKey] = useState(listKey);
     if (listKey !== prevListKey) {
         setPrevListKey(listKey);
@@ -308,6 +319,10 @@ export default function MapPage() {
                                 <Text size="sm"> — Aktiviere diesen Schalter, um Teilprojekte auszublenden.</Text>
                             </List.Item>
                             <List.Item>
+                                <Text size="sm" span fw={500}>Beendete Projekte einblenden</Text>
+                                <Text size="sm"> — Abgebrochene und durch ein anderes Projekt ersetzte Projekte sind ausgeblendet; dieser Schalter holt sie zurück.</Text>
+                            </List.Item>
+                            <List.Item>
                                 <Text size="sm" span fw={500}>Zeitstrahl</Text>
                                 <Text size="sm"> — Zeigt die Projekte einer Gruppe mit belastbaren Terminen (Baubeginn, Inbetriebnahme, Planfeststellung) auf einer Jahresachse.</Text>
                             </List.Item>
@@ -333,7 +348,7 @@ export default function MapPage() {
         const selectedGroup = selectedGroupId
             ? groups.find((group) => group.id === selectedGroupId)
             : undefined;
-        const rawProjects = (selectedGroup?.projects ?? []).map(withActiveFeatures);
+        const rawProjects = filterEndedProjects(selectedGroup?.projects ?? [], showEnded).map(withActiveFeatures);
         const superiorFiltered = onlySuperior
             ? rawProjects.filter((p) => p.superior_project_id == null)
             : rawProjects;
@@ -416,6 +431,8 @@ export default function MapPage() {
                             onPhasesChange={handlePhaseFilterChange}
                             onlySuperior={onlySuperior}
                             onOnlySuperiorChange={handleOnlySuperiorChange}
+                            showEnded={showEnded}
+                            onShowEndedChange={handleShowEndedChange}
                             dateFilter={dateFilter}
                             onDateFilterChange={handleDateFilterChange}
                             shown={projects.length}
@@ -605,6 +622,8 @@ export default function MapPage() {
                         onPointSizeChange={setPointSize}
                         onlySuperior={onlySuperior}
                         onOnlySuperiorChange={handleOnlySuperiorChange}
+                        showEnded={showEnded}
+                        onShowEndedChange={handleShowEndedChange}
                         searchTerm={localSearch}
                         onSearchChange={setLocalSearch}
                         phaseFilter={selectedPhases}

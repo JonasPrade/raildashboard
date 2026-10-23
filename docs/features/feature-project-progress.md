@@ -172,14 +172,15 @@ Neue Dateien unter `apps/backend/dashboard_backend/models/projects/`, registrier
 
 **Enums:** `MainPhase` (geordnet, mit `order`-Helfer für `max()`-Untergrenzen),
 `ParallelState (OFFEN/LAEUFT/ABGESCHLOSSEN)`, `LifecycleStatus (AKTIV/PAUSIERT/
-ABGEBROCHEN)`, `SourceType`, `ObservationTrack (MAIN/PF/PARL)`.
+ABGEBROCHEN/ERSETZT)`, `SourceType`, `ObservationTrack (MAIN/PF/PARL)`.
 
 **`project_progress`** (1:1 zum Blatt-Projekt; ersetzt die auskommentierte Relation in
 `project.py:118`):
 - `project_id` (FK unique, CASCADE)
 - `has_planfeststellung: bool`
 - `parl_befassung_relevant: bool | None` (`None` = Gruppen-Default verwenden)
-- `lifecycle_status: str` (default `AKTIV`)
+- `lifecycle_status: str` (default `AKTIV`); `replaced_by_project_id` (FK, SET NULL, nur bei
+  `ERSETZT`), `lifecycle_note`, `lifecycle_date` (→ `feature-project-replacement.md`)
 - `computed_phase / computed_confidence / computed_at`
 - Termin-Cache für Listen und Filter: `construction_start_date/_precision`,
   `commissioning_date/_precision` (→ „Datumsqualifikation“)

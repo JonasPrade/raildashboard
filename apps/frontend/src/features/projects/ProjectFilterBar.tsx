@@ -18,6 +18,9 @@ type Props = {
     onPhasesChange: (values: PhaseFilterValue[]) => void;
     onlySuperior: boolean;
     onOnlySuperiorChange: (checked: boolean) => void;
+    /** Replaced and aborted projects shown (`?beendet=1`). */
+    showEnded: boolean;
+    onShowEndedChange: (checked: boolean) => void;
     dateFilter: DateFilter;
     onDateFilterChange: (filter: DateFilter) => void;
     /** Hits after all filters, and the size of the group they come from. */
@@ -99,6 +102,8 @@ export function ProjectFilterBar({
     onPhasesChange,
     onlySuperior,
     onOnlySuperiorChange,
+    showEnded,
+    onShowEndedChange,
     dateFilter,
     onDateFilterChange,
     shown,
@@ -144,6 +149,7 @@ export function ProjectFilterBar({
                 <FilterMark key={mark.label} label={mark.label} onRemove={() => onDateFilterChange(mark.without)} />
             ))}
             {onlySuperior && <FilterMark label="Nur Hauptprojekte" onRemove={() => onOnlySuperiorChange(false)} />}
+            {showEnded && <FilterMark label="Mit beendeten Projekten" onRemove={() => onShowEndedChange(false)} />}
             <Popover width={300} position="bottom-start">
                 <Popover.Target>
                     <Button variant="default" leftSection={<Filter size={16} />}>
@@ -175,6 +181,12 @@ export function ProjectFilterBar({
                             label="Nur Hauptprojekte"
                             checked={onlySuperior}
                             onChange={(e) => onOnlySuperiorChange(e.currentTarget.checked)}
+                        />
+                        <Switch
+                            label="Beendete Projekte einblenden"
+                            description="Abgebrochene und durch ein anderes Projekt ersetzte Projekte"
+                            checked={showEnded}
+                            onChange={(e) => onShowEndedChange(e.currentTarget.checked)}
                         />
                     </Stack>
                 </Popover.Dropdown>

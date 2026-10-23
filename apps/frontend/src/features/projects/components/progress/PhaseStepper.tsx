@@ -37,7 +37,7 @@ type Props = {
     /** Superior span (min..max over children); highlights a range instead of one. */
     spanMin?: MainPhase | null;
     spanMax?: MainPhase | null;
-    /** Dimmed when the lifecycle overlay (PAUSIERT/ABGEBROCHEN) is active. */
+    /** Dimmed when the lifecycle overlay (any status but AKTIV) is active. */
     dimmed?: boolean;
     /** Leaf project with no phase information → nothing active, "Unbekannt". */
     unknown?: boolean;

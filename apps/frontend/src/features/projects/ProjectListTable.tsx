@@ -129,9 +129,9 @@ export function ProjectListTable({ projects, limit, onShowMore, pageSize }: Prop
                     {visible.map((project) => {
                         const id = typeof project.id === "number" ? project.id : null;
                         const traffic = trainCategoryLabels.filter(({ key }) => Boolean(project[key]));
-                        // Paused/aborted: the PAUSIERT tag says it, the name turns muted —
-                        // no opacity on the row (text would fall below 4.5:1).
-                        const paused = project.lifecycle_status === "PAUSIERT" || project.lifecycle_status === "ABGEBROCHEN";
+                        // Paused/aborted/replaced: the lifecycle tag says it, the name turns
+                        // muted — no opacity on the row (text would fall below 4.5:1).
+                        const paused = Boolean(project.lifecycle_status) && project.lifecycle_status !== "AKTIV";
                         const nameColor = paused ? "var(--text-muted)" : "var(--text-strong)";
                         return (
                             <Table.Tr
