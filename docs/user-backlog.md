@@ -13,3 +13,5 @@ Nichts wird gelöscht, ohne vorher in ein Issue überführt zu sein.
 ---
 
 <!-- Neue Einträge hierunter, einer pro Bulletpoint: -->
+
+- **VIB-PFA: Geometrie als Vorschlagssignal** (vorgemerkt 2026-10-23, `feature-vib-import.md` → Phase 8, P4): Endpunkte der PFA-Örtlichkeit („A–B“) auf Betriebsstellen abbilden (eingegrenzt auf die Bounding Box des Oberprojekts) und prüfen, ob beide nahe an der Linie eines Teilprojekts liegen — hilft, wo Teilprojekte weder Abschnittsnummer noch Ortsnamen tragen.

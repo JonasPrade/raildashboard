@@ -17,6 +17,7 @@ from sqlalchemy import case, func
 from sqlalchemy.orm import Session, joinedload, load_only, selectinload
 
 from dashboard_backend.crud._importer_common import ensure_projects_exist, recompute_for
+from dashboard_backend.crud.changelog import create_changelog_for_create
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.users import User
 from dashboard_backend.models.vib.vib_entry import VibEntry
@@ -24,6 +25,9 @@ from dashboard_backend.models.vib.vib_entry_project import vib_entry_project
 from dashboard_backend.models.vib.vib_pfa_entry import VibPfaEntry
 from dashboard_backend.models.vib.vib_report import VibReport
 from dashboard_backend.tasks.vib_matching import (
+    PfaSuggestion,
+    pfa_row_key,
+    place_stop_tokens,
     rank_projects_for_vib_entry,
     same_vib_name,
     suggest_subproject_for_pfa,
@@ -149,12 +153,132 @@ def _entry_summary(entry: VibEntry) -> dict:
     }
 
 
-def _pfa_dict(pfa: VibPfaEntry, suggested: int | None = None) -> dict:
+def _pfa_dict(pfa: VibPfaEntry, suggestion: PfaSuggestion | None = None) -> dict:
     return {
         "id": pfa.id,
         **{key: getattr(pfa, key) for key in _PFA_FIELDS},
-        "suggested_project_id": suggested,
+        "suggested_project_id": suggestion.project_id if suggestion else None,
+        "suggested_reason": suggestion.reason if suggestion else None,
+        "suggestion_strong": suggestion.strong if suggestion else None,
     }
+
+
+# --- PFA → subproject (feature-vib-import.md → Phase 8) -----------------------
+
+
+def _subtree(db: Session, root_ids: list[int]) -> dict[int, tuple[Project, int]]:
+    """All descendants of ``root_ids`` as {id: (project, depth)} (depth 1 = child)."""
+    out: dict[int, tuple[Project, int]] = {}
+    frontier, depth = list(root_ids), 0
+    while frontier:
+        depth += 1
+        rows = (
+            db.query(Project)
+            .options(
+                load_only(
+                    Project.id,
+                    Project.name,
+                    Project.project_number,
+                    Project.superior_project_id,
+                    Project.is_draft,
+                )
+            )
+            .filter(Project.superior_project_id.in_(frontier))
+            .all()
+        )
+        frontier = [p.id for p in rows if p.id not in out]
+        for p in rows:
+            out.setdefault(p.id, (p, depth))
+    return out
+
+
+def _pfa_candidates(db: Session, entry: VibEntry) -> dict[int, tuple[Project, int]]:
+    """Subprojects a PFA row of ``entry`` may go to: the whole subtree below its
+    projects, plus assigned projects that sit inside another assigned one."""
+    linked_ids = [p.id for p in entry.projects]
+    if not linked_ids:
+        return {}
+    return _subtree(db, linked_ids)
+
+
+def _previous_pfa_assignments(db: Session, entry: VibEntry) -> tuple[dict, dict, int | None]:
+    """PFA rows of the newest earlier confirmed report's same Vorhaben.
+
+    Returns ({(nr, place): project_id}, {nr: project_id or None if ambiguous},
+    year). Same Vorhaben = same section or the same normalised name.
+    """
+    report_year = entry.report.year if entry.report is not None else None
+    query = (
+        db.query(VibEntry)
+        .join(VibReport, VibReport.id == VibEntry.vib_report_id)
+        .options(selectinload(VibEntry.pfa_entries), joinedload(VibEntry.report))
+        .filter(VibEntry.vib_report_id != entry.vib_report_id, VibEntry.confirmed.is_(True))
+    )
+    if report_year is not None:
+        query = query.filter(VibReport.year < report_year)
+    for old in query.order_by(VibReport.year.desc()).all():
+        if old.vib_section != entry.vib_section and not same_vib_name(
+            entry.vib_name_raw, old.vib_name_raw
+        ):
+            continue
+        rows = [pfa for pfa in old.pfa_entries if pfa.project_id is not None]
+        if not rows:
+            continue
+        by_key: dict[tuple[str, str], int] = {}
+        by_nr: dict[str, int | None] = {}
+        for pfa in rows:
+            nr, place = pfa_row_key(pfa.nr_pfa, pfa.oertlichkeit)
+            by_key[(nr, place)] = pfa.project_id
+            if nr:
+                by_nr[nr] = pfa.project_id if by_nr.get(nr, pfa.project_id) == pfa.project_id else None
+        return by_key, by_nr, old.report.year
+    return {}, {}, None
+
+
+class _PfaMatcher:
+    """Subproject suggestions for the PFA rows of one entry: previous year →
+    section number → place name. ``root_id`` narrows the candidates to the
+    subtree of one project (project page) instead of all the entry's projects."""
+
+    def __init__(self, db: Session, entry: VibEntry, root_id: int | None = None):
+        self.candidates = _subtree(db, [root_id]) if root_id is not None else _pfa_candidates(db, entry)
+        self.stop = place_stop_tokens(entry.vib_name_raw, *(p.name for p in entry.projects))
+        self.by_key, self.by_nr, self.year = (
+            _previous_pfa_assignments(db, entry) if self.candidates else ({}, {}, None)
+        )
+
+    def suggest(self, pfa: VibPfaEntry) -> PfaSuggestion | None:
+        if not self.candidates:
+            return None
+        nr, place = pfa_row_key(pfa.nr_pfa, pfa.oertlichkeit)
+        previous = self.by_key.get((nr, place))
+        if previous is None and nr and not place:
+            previous = self.by_nr.get(nr)
+        if previous is None and place:
+            matches = {pid for (_, p), pid in self.by_key.items() if p == place}
+            previous = matches.pop() if len(matches) == 1 else None
+        if previous is not None and previous in self.candidates:
+            return PfaSuggestion(previous, "vorjahr", f"Vorjahr: VIB {self.year} bestätigt", True)
+        return suggest_subproject_for_pfa(
+            pfa.nr_pfa,
+            pfa.oertlichkeit,
+            pfa.abschnitt_label,
+            list(self.candidates.values()),
+            self.stop,
+        )
+
+
+def pfa_suggestions_below(db: Session, entry: VibEntry, root_id: int) -> dict[int, PfaSuggestion]:
+    """Suggestions for the open PFA rows of ``entry`` among the subprojects of
+    ``root_id`` — {pfa_id: suggestion}."""
+    matcher = _PfaMatcher(db, entry, root_id)
+    out: dict[int, PfaSuggestion] = {}
+    for pfa in entry.pfa_entries:
+        if pfa.project_id is None:
+            suggestion = matcher.suggest(pfa)
+            if suggestion is not None:
+                out[pfa.id] = suggestion
+    return out
 
 
 def _entry_detail(db: Session, entry: VibEntry) -> dict:
@@ -164,27 +288,25 @@ def _entry_detail(db: Session, entry: VibEntry) -> dict:
     data.update({key: getattr(entry, key) for key in _ENTRY_FIELDS})
     data["report_year"] = entry.report.year if entry.report is not None else None
 
-    linked_ids = [p.id for p in entry.projects]
-    subprojects = (
-        db.query(Project)
-        .options(load_only(Project.id, Project.name, Project.superior_project_id))
-        .filter(Project.superior_project_id.in_(linked_ids))
-        .all()
-        if linked_ids
-        else []
-    )
-    names = {p.id: p.name for p in subprojects}
+    matcher = _PfaMatcher(db, entry)
+    names = {pid: p.name for pid, (p, _) in matcher.candidates.items()}
     pfas = []
     for pfa in sorted(entry.pfa_entries, key=lambda p: p.id):
-        suggested = None
-        if pfa.project_id is None and subprojects:
-            text = " ".join(t for t in (pfa.abschnitt_label, pfa.nr_pfa, pfa.oertlichkeit) if t)
-            suggested = suggest_subproject_for_pfa(text, subprojects)
-        row = _pfa_dict(pfa, suggested)
-        row["suggested_project_name"] = names.get(suggested) if suggested else None
+        suggestion = matcher.suggest(pfa) if pfa.project_id is None else None
+        row = _pfa_dict(pfa, suggestion)
+        row["suggested_project_name"] = names.get(suggestion.project_id) if suggestion else None
         pfas.append(row)
     data["pfa_entries"] = pfas
-    data["subprojects"] = [{"id": p.id, "name": p.name} for p in subprojects]
+    data["subprojects"] = [
+        {
+            "id": p.id,
+            "name": p.name,
+            "superior_project_id": p.superior_project_id,
+            "depth": depth,
+            "is_draft": bool(p.is_draft),
+        }
+        for p, depth in sorted(matcher.candidates.values(), key=lambda x: (x[1], x[0].name or ""))
+    ]
     return data
 
 
@@ -550,6 +672,198 @@ def assign_pfa(db: Session, pfa_id: int, project_id: int | None) -> dict | None:
     db.commit()
     recompute_for(db, affected)
     return get_entry(db, entry.id)
+
+
+def assign_pfas(db: Session, entry_id: int, items: list[tuple[int, int | None]]) -> dict | None:
+    """Assign many PFA rows of one entry at once (``(pfa_id, project_id)``);
+    the project must lie below the entry's projects. All or nothing; unconfirms."""
+
+    entry = _load_entry(db, entry_id)
+    if entry is None:
+        return None
+    rows = {pfa.id: pfa for pfa in entry.pfa_entries}
+    candidates = _pfa_candidates(db, entry)
+    for pfa_id, project_id in items:
+        if pfa_id not in rows:
+            raise VibValidationError(f"PFA-Zeile {pfa_id} gehört nicht zu Eintrag {entry_id}.")
+        if project_id is not None and project_id not in candidates:
+            raise VibValidationError(
+                f"Projekt {project_id} liegt nicht unter den Projekten des Eintrags — "
+                "erst den Eintrag zuordnen (assign_vib_entry) oder assign_vib_pfa nehmen."
+            )
+    affected = _unconfirm(db, entry)
+    for pfa_id, project_id in items:
+        rows[pfa_id].project_id = project_id
+    db.commit()
+    recompute_for(db, affected)
+    return get_entry(db, entry_id)
+
+
+def apply_pfa_suggestions(db: Session, report_id: int, entry_ids: list[int] | None = None) -> list[dict]:
+    """Take over the strong PFA suggestions (previous year, unique section
+    number) for open rows; weak ones (name) stay a suggestion. Unconfirms each
+    changed entry. Returns per changed entry the applied rows."""
+
+    query = (
+        db.query(VibEntry)
+        .options(
+            selectinload(VibEntry.pfa_entries),
+            selectinload(VibEntry.projects),
+            joinedload(VibEntry.report),
+        )
+        .filter(VibEntry.vib_report_id == report_id)
+    )
+    if entry_ids is not None:
+        query = query.filter(VibEntry.id.in_(entry_ids))
+    out: list[dict] = []
+    affected: set[int] = set()
+    for entry in sorted(query.all(), key=lambda e: _section_key(e.vib_section)):
+        open_rows = [pfa for pfa in entry.pfa_entries if pfa.project_id is None]
+        if not open_rows:
+            continue
+        matcher = _PfaMatcher(db, entry)
+        applied = []
+        for pfa in sorted(open_rows, key=lambda p: p.id):
+            suggestion = matcher.suggest(pfa)
+            if suggestion is None or not suggestion.strong:
+                continue
+            applied.append((pfa, suggestion))
+        if not applied:
+            continue
+        affected |= _unconfirm(db, entry)
+        names = {pid: p.name for pid, (p, _) in matcher.candidates.items()}
+        for pfa, suggestion in applied:
+            pfa.project_id = suggestion.project_id
+        out.append(
+            {
+                "entry_id": entry.id,
+                "vib_section": entry.vib_section,
+                "applied": [
+                    {
+                        "pfa_id": pfa.id,
+                        "nr_pfa": pfa.nr_pfa,
+                        "oertlichkeit": pfa.oertlichkeit,
+                        "project_id": s.project_id,
+                        "project_name": names.get(s.project_id),
+                        "reason": s.reason,
+                    }
+                    for pfa, s in applied
+                ],
+                "still_open": sum(1 for pfa in entry.pfa_entries if pfa.project_id is None),
+            }
+        )
+    db.commit()
+    recompute_for(db, affected)
+    return out
+
+
+def _default_subproject_name(rows: list[VibPfaEntry]) -> str:
+    """'PFA 7.1 Appenweier-Hohberg' from the rows; the label when it is shared."""
+    numbers = list(dict.fromkeys(r.nr_pfa.strip() for r in rows if r.nr_pfa and r.nr_pfa.strip()))
+    places = list(
+        dict.fromkeys(
+            r.oertlichkeit.strip()
+            for r in rows
+            if r.oertlichkeit and r.oertlichkeit.strip() and r.oertlichkeit.strip() not in ("ABS", "NBS")
+        )
+    )
+    labels = {r.abschnitt_label.strip() for r in rows if r.abschnitt_label and r.abschnitt_label.strip()}
+    parts = []
+    if numbers:
+        parts.append("PFA " + ", ".join(numbers))
+    if places:
+        parts.append(" / ".join(places[:2]))
+    elif len(labels) == 1:
+        parts.append(labels.pop())
+    return (" ".join(parts) or "PFA-Abschnitt")[:255]
+
+
+def create_pfa_subprojects(
+    db: Session,
+    entry_id: int,
+    items: list[tuple[list[int], int, str | None]],
+    user: User | None,
+) -> list[dict] | None:
+    """Create a draft project (no geometry) per item ``(pfa_ids, parent_id,
+    name)`` under ``parent_id`` and assign the rows to it. The parent must be
+    one of the entry's projects or lie below them; rows must belong to the entry
+    and be unassigned. A failing item does not stop the others; one commit.
+
+    A parent without children so far becomes an interim node: its own state
+    then gives way to the span of its subprojects — the result says so
+    (``parent_was_leaf``) and the skill tells the agent what to check."""
+
+    entry = _load_entry(db, entry_id)
+    if entry is None:
+        return None
+    rows = {pfa.id: pfa for pfa in entry.pfa_entries}
+    allowed = set(_pfa_candidates(db, entry)) | {p.id for p in entry.projects}
+    year = entry.report.year if entry.report is not None else None
+    results: list[dict] = []
+    created_any = False
+    affected: set[int] = set()
+    for index, (pfa_ids, parent_id, name) in enumerate(items):
+        label = f"Item {index + 1}"
+        error = None
+        picked = [rows.get(pid) for pid in pfa_ids]
+        if not pfa_ids:
+            error = "Keine PFA-Zeilen angegeben."
+        elif any(p is None for p in picked):
+            missing = [pid for pid, p in zip(pfa_ids, picked) if p is None]
+            error = f"PFA-Zeilen {missing} gehören nicht zu Eintrag {entry_id}."
+        elif parent_id not in allowed:
+            error = (
+                f"Projekt {parent_id} ist weder Projekt des Eintrags noch liegt es darunter."
+            )
+        elif any(p.project_id is not None for p in picked):
+            taken = [p.id for p in picked if p.project_id is not None]
+            error = f"PFA-Zeilen {taken} sind schon zugeordnet — erst mit assign_vib_pfa lösen."
+        if error is not None:
+            results.append({"item": label, "ok": False, "error": error})
+            continue
+        parent = db.get(Project, parent_id)
+        was_leaf = (
+            db.query(Project.id).filter(Project.superior_project_id == parent_id).first() is None
+        )
+        project = Project(
+            name=((name or "").strip() or _default_subproject_name(picked))[:255],
+            superior_project_id=parent_id,
+            is_draft=True,
+        )
+        db.add(project)
+        db.flush()
+        create_changelog_for_create(
+            db,
+            project,
+            {"name": project.name, "superior_project_id": parent_id, "is_draft": True},
+            getattr(user, "id", None),
+            getattr(user, "username", None),
+        )
+        if not created_any:
+            affected |= _unconfirm(db, entry)
+            created_any = True
+        for pfa in picked:
+            pfa.project_id = project.id
+        affected |= {parent_id}
+        result = {
+            "item": label,
+            "ok": True,
+            "project_id": project.id,
+            "name": project.name,
+            "parent_id": parent_id,
+            "pfa_ids": list(pfa_ids),
+            "parent_was_leaf": was_leaf,
+        }
+        if was_leaf:
+            result["warning"] = (
+                f"„{parent.name}“ hatte bisher keine Teilprojekte: sein Stand ergibt sich jetzt "
+                "nur noch aus der Spanne seiner Teilprojekte. Übrige PFA-Zeilen und eigene "
+                f"Quellen des Projekts prüfen (Skill vib-import, Schritt 5; VIB {year})."
+            )
+        results.append(result)
+    db.commit()
+    recompute_for(db, affected)
+    return results
 
 
 def delete_entry(db: Session, entry_id: int) -> bool:

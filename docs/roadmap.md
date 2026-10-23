@@ -341,6 +341,7 @@ Siehe: `docs/features/feature-vib-import.md`
 - [x] **API** — Celery task `extract_vib_blocks`; image endpoints `GET /draft/{task_id}/images` + `/image/{id}`; single-entry AI extraction endpoint
 - [x] **Review-UI** — `VibStructurePreviewPage` with Markdown rendering, quality indicators, sub-section badges; `VibReviewPage` with editable sub-block fields and inline PFA table; per-entry "KI extrahieren" button; m:n project assignment (`project_ids`)
 - [ ] **VIB über MCP + Skill (Vorrang vor dem Upload)** — Agent liest den VIB selbst (Skill `.claude/skills/vib-import/`) und schreibt Bericht, Vorhaben, PFA-Tabelle und Zuordnungen mit Begründung über MCP-Tools (Recht `vib.import`); `vib_entry.confirmed` — nur bestätigte Einträge materialisieren; Prüfmodus für vorhandene Jahrgänge; Upload bleibt als zweiter Weg. Siehe `feature-vib-import.md` → Phase 7.
+- [x] **VIB-PFA → Teilprojekte** — Vorschlag aus dem ganzen Teilbaum (Vorjahr → Abschnittsnummer → Ortsname, mit Grund), starke Vorschläge per Tool übernehmen, Teilprojekt-Entwürfe je Abschnitt auf Anforderung anlegen. Geometrie-Abgleich vorgemerkt. Siehe `feature-vib-import.md` → Phase 8.
 
 ### Rebrand · Richtung F (Bahnhofshalle Tag)
 

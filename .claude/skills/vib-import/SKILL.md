@@ -109,12 +109,40 @@ Namensähnlichkeit, mit Grund) zurück und ordnet höchstens den besten Vorschla
 
 ## 5. PFA-Abschnitte Teilprojekten zuordnen
 
-`get_vib_entry(entry_id)` zeigt je PFA-Zeile einen Teilprojekt-Vorschlag
-(`suggested_project_id`) aus den Teilprojekten der zugeordneten Projekte und die Liste
-`subprojects`. Gibt es ein Teilprojekt für den Abschnitt, `assign_vib_pfa(pfa_id,
-project_id)`. Ohne passendes Teilprojekt bleibt die Zeile am Vorhaben — das ist richtig
-und kein Fehler. Sobald eine Zeile einem Teilprojekt gehört, bekommt das Oberprojekt
-seinen Stand über die Teilprojekte.
+Erst wenn das Vorhaben seinen Projekten zugeordnet ist (Schritt 4) — die Vorschläge kommen
+aus dem **ganzen Teilbaum** unter diesen Projekten.
+
+1. `get_vib_entry(entry_id)` zeigt je offener PFA-Zeile `suggested_project_id` mit
+   `suggested_reason` und `suggestion_strong`, dazu `subprojects` (Teilbaum mit `depth`):
+   - **stark**: „Vorjahr: VIB 20xx bestätigt“ oder „Abschnittsnummer 7.1 ↔ 7 in …“
+     (Nummer in Name oder Projektnummer, z. B. `Abschnitt 7`, `PF 15-16`).
+   - **schwach**: „Namensähnlichkeit …“ — nur ein Hinweis, immer selbst prüfen.
+2. `apply_vib_pfa_suggestions(report_id)` übernimmt alle starken Vorschläge (auch nur für
+   einzelne Vorhaben mit `entry_ids`). Sieh dir das Ergebnis an: Eine falsch gelesene
+   Nummer (z. B. Fortsetzungszeilen, die alle `nr_pfa` „1“ tragen) landet sonst im falschen
+   Abschnitt — korrigieren mit `assign_vib_pfa`.
+3. Übrige Zeilen selbst zuordnen: mehrere auf einmal mit `assign_vib_pfas(entry_id,
+   items)`, einzeln mit `assign_vib_pfa`. Ein Blatt (Teilprojekt ohne eigene Kinder) ist
+   besser als ein Zwischenknoten. Zeilen ohne passendes Teilprojekt bleiben am Vorhaben —
+   das ist richtig und kein Fehler.
+4. **Fehlende Teilprojekte nur auf Wunsch des Nutzers anlegen**:
+   `create_vib_pfa_subprojects(entry_id, items)`, je **Abschnitt** ein Item (alle Zeilen
+   derselben Nummer bzw. derselben Gruppenzeile zusammen, z. B. NBS- und ABS-Zeile von 7.1),
+   `parent_id` = Projekt des Vorhabens oder ein Projekt darunter, `name` sprechend
+   („PFA 7.1 Appenweier–Hohberg“). Das Tool legt **Entwürfe ohne Geometrie** an. Lohnt nur,
+   wo Abschnitte desselben Vorhabens **unterschiedlich weit** sind und noch laufen oder
+   geplant sind; vollständig in Betrieb genommene Altabschnitte bleiben am Vorhaben.
+   Geometrie danach, wenn gewünscht, mit `route_project_geometry`.
+5. Meldet ein Item `parent_was_leaf: true`, war das Elternprojekt bisher ein Blatt: Sein
+   eigener Stand zählt ab jetzt nicht mehr, nur die Spanne seiner Teilprojekte. Dann:
+   - die übrigen PFA-Zeilen desselben Vorhabens ebenfalls zuordnen oder anlegen, damit kein
+     Abschnitt unsichtbar wird;
+   - `get_project_progress(parent_id)` ansehen — eigene Beobachtungen (FinVe, Fulda,
+     manuell) am Elternprojekt, die nun nicht mehr zählen, dem Nutzer nennen;
+   - im Bericht unter „Selbst entschieden“ aufführen.
+
+Sobald eine Zeile einem Teilprojekt gehört, bekommt das Oberprojekt seinen Stand über die
+Teilprojekte. Jede Zuordnung macht das Vorhaben unbestätigt — am Ende `confirm_vib_report`.
 
 ## 6. Bestätigen und berichten
 
@@ -127,7 +155,7 @@ seinen Stand über die Teilprojekte.
    - **Bericht:** Jahr, Drucksache, Datum, Anzahl Vorhaben je Kategorie.
    - **Übernommen:** zugeordnet und bestätigt.
    - **Selbst entschieden:** abweichende Zuordnungen, Mehrfachzuordnungen,
-     PFA→Teilprojekt — je mit Begründung.
+     PFA→Teilprojekt, angelegte Teilprojekt-Entwürfe — je mit Begründung.
    - **Offen:** Vorhaben ohne Projekt und warum; Stellen, die du nicht lesen konntest.
 
 ## 7. Prüfmodus: vorhandenen Jahrgang korrigieren
@@ -143,6 +171,8 @@ Für Jahrgänge, die über den alten Upload kamen und Fehler haben.
      gesetzt), Kenndaten falsch → `update_vib_entry(entry_id, changes)`.
    - PFA-Tabelle verstümmelt → `set_vib_pfa_entries` (vorhandene `project_id` der
      Zeilen mitgeben, sonst geht die Teilprojekt-Zuordnung verloren).
+   - PFA-Zeilen ohne Teilprojekt → wie in Schritt 5: `apply_vib_pfa_suggestions`
+     (starke Vorschläge), Rest prüfen; Teilprojekte nur auf Wunsch des Nutzers anlegen.
    - Doppeltes oder falsch erkanntes Vorhaben → `delete_vib_entry`.
    - Fehlendes Vorhaben → `add_vib_entries`.
 3. Jede Korrektur macht das Vorhaben unbestätigt. Am Ende `confirm_vib_report` —
