@@ -240,6 +240,7 @@ class _Matcher:
         self.projects = (
             db.query(Project)
             .options(load_only(Project.id, Project.name, Project.superior_project_id))
+            .filter(Project.is_archived.is_(False))
             .all()
         )
         self.children: dict[int, list[Project]] = {}

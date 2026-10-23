@@ -43,6 +43,8 @@ INSTRUCTIONS = (
     "Jahrgänge mit get_project_infraplan; den Import eines hochgeladenen Jahrgangs "
     "führt der Skill infraplan-import. "
     "Schreibende Tools wirken sofort und stehen im Änderungsprotokoll. "
+    "Ersetzte oder überholte Projekte mit archive_project archivieren (nicht auf "
+    "Entwurf setzen), Dubletten mit merge_projects zusammenführen. "
     "Projektlängen kommen aus der Geometrie (compute_project_length mit apply), "
     "nicht aus veröffentlichten Angaben. Geometrie: Bahnstrecken mit "
     "route_project_geometry über das Schienennetz routen (Betriebsstellen mit "

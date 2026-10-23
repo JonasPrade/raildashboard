@@ -236,6 +236,8 @@ Siehe: `docs/features/feature-new-project-wizard.md`
 
 - [x] **Projekte zusammenführen** — MCP-Tool `merge_projects` und `POST /projects/merge`: Dublette in das bleibende Projekt überführen (Verknüpfungen, Historie, Unterprojekte), alte id leitet um. Vorstufe zur GVFG-Datenpflege.
   Siehe: `docs/features/feature-project-merge.md`
+- [x] **Projekte archivieren** — eigenes Kennzeichen „Archiviert“ mit Pflicht-Begründung für ersetzte/überholte Projekte: zählt nirgends mehr (Listen, Karte, Summen, Eltern-Aggregation), bleibt per URL erreichbar, Admin-Seite „Archiv“, MCP `archive_project`/`unarchive_project`.
+  Siehe: `docs/features/feature-project-archive.md`
 
 ### GVFG-Bundesprogramm *(Backend + Frontend)*
 

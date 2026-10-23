@@ -128,7 +128,7 @@ def list_data_gaps(
     child = aliased(Project)
     aggregating = and_(
         Project.geojson_from_subprojects.is_(True),
-        exists().where(child.superior_project_id == Project.id),
+        exists().where(child.superior_project_id == Project.id, child.is_archived.is_(False)),
     )
     has_route = exists().where(Route.project_id == Project.id)
     last_observation = (
@@ -353,7 +353,7 @@ def check_geometry(
         group = _resolve_group(db, project_group)
         projects = (
             db.query(Project)
-            .filter(Project.is_draft.is_(False))
+            .filter(Project.is_draft.is_(False), Project.is_archived.is_(False))
             .filter(Project.project_groups.any(ProjectGroup.id == group.id))
             .order_by(Project.name, Project.id)
             .all()

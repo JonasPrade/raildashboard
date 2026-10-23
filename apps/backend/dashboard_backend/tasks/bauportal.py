@@ -66,7 +66,8 @@ def import_bauportal(db: Session, records: list[dict] | None = None) -> dict:
     if records is None:
         records = fetch_bauportal_projects()
 
-    projects = db.query(Project).all()
+    # Archived projects are no matching candidates (feature-project-archive.md).
+    projects = db.query(Project).filter(Project.is_archived.is_(False)).all()
 
     existing = {row.bauportal_id: row for row in db.query(BauportalStatus).all()}
     created = updated = skipped = 0

@@ -95,6 +95,10 @@ Regeln für Grenzfälle:
   eigenständiges Entwurfsprojekt, das die Nummer der Zeile übernimmt.
 - **Kein Raten:** Was nach diesen Regeln nicht eindeutig ist, kommt auf die Prüfliste
   im Bericht und bleibt offen.
+- **Archivierte Projekte** (ersetzt/überholt) sind keine Kandidaten und erscheinen nicht
+  in `list_projects`. Ersetzt eine neue Zeile ein altes Teilprojekt, das alte nicht auf
+  Entwurf setzen, sondern dem Nutzer vorschlagen, es mit `archive_project(id, reason)`
+  zu archivieren.
 - Eine Zeile darf mehreren Projekten gehören (Sammel-GWU, Fußnote „bezieht sich auf
   Teil A 20 und Teil A 33“), mehrere Zeilen einem Projekt.
 - Kostenverweise (`cost_ref_raw`, „Ref. Teil B 20“) und Fußnoten brauchen nichts — das

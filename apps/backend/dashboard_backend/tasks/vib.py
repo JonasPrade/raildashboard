@@ -867,7 +867,8 @@ def run_vib_parse(
     )
     db = Session()
     try:
-        all_projects = db.query(Project).all()
+        # Archived projects are no matching candidates (feature-project-archive.md).
+        all_projects = db.query(Project).filter(Project.is_archived.is_(False)).all()
         logger.info("Loaded %d projects for VIB auto-matching", len(all_projects))
 
         result, ocr_raw_text, ocr_model, ocr_status, ocr_images = _parse_vib_pdf(

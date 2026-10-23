@@ -1107,7 +1107,8 @@ def _load_subtree(db: Session, root_id: int) -> dict[int, list[Project]]:
     """Load all descendants of ``root_id`` with one IN-query per depth level.
 
     Returns ``{parent_id: [children]}``; project_groups are eager-loaded because
-    the leaf derivation reads them (``resolve_parl_relevant``).
+    the leaf derivation reads them (``resolve_parl_relevant``). Archived projects
+    are no subprojects and stay out of the span.
     """
     children_by_parent: dict[int, list[Project]] = {}
     frontier = [root_id]
@@ -1115,7 +1116,7 @@ def _load_subtree(db: Session, root_id: int) -> dict[int, list[Project]]:
         rows = (
             db.query(Project)
             .options(selectinload(Project.project_groups))
-            .filter(Project.superior_project_id.in_(frontier))
+            .filter(Project.superior_project_id.in_(frontier), Project.is_archived.is_(False))
             .all()
         )
         frontier = []
@@ -1279,13 +1280,15 @@ def list_progress_conflicts(db: Session, today: date | None = None) -> list[dict
     ``STALENESS_WINDOW`` old, importers recompute their projects anyway).
     Superior projects are skipped: their headline spans the leaves, their own
     observations don't count. A manual phase override resolves the conflict.
+    Archived projects count nowhere: they are neither listed nor make their
+    parent a superior.
     """
 
     today = today or date.today()
     superior_ids = {
         pid
         for (pid,) in db.query(Project.superior_project_id)
-        .filter(Project.superior_project_id.isnot(None))
+        .filter(Project.superior_project_id.isnot(None), Project.is_archived.is_(False))
         .distinct()
     }
 
@@ -1311,7 +1314,9 @@ def list_progress_conflicts(db: Session, today: date | None = None) -> list[dict
     }
     projects = {
         p.id: p
-        for p in db.query(Project).filter(Project.id.in_(by_project)).all()
+        for p in db.query(Project)
+        .filter(Project.id.in_(by_project), Project.is_archived.is_(False))
+        .all()
     }
 
     rows: list[dict] = []
@@ -1380,7 +1385,7 @@ def get_progress_view(db: Session, project_id: int, today: date | None = None) -
     # depth spans its leaf descendants (not a mid-level node's stale summary).
     is_superior = (
         db.query(Project.id)
-        .filter(Project.superior_project_id == project_id)
+        .filter(Project.superior_project_id == project_id, Project.is_archived.is_(False))
         .first()
         is not None
     )

@@ -141,6 +141,19 @@ aus dem **ganzen Teilbaum** unter diesen Projekten.
      manuell) am Elternprojekt, die nun nicht mehr zählen, dem Nutzer nennen;
    - im Bericht unter „Selbst entschieden“ aufführen.
 
+6. **Ersetzte Teilprojekte archivieren, nicht auf Entwurf setzen.** Ersetzen neue
+   PFA-Abschnitts-Teilprojekte alte Teilmaßnahmen (andere Schnitte als im Vorjahr), mit
+   dem Nutzer klären und dann je altes Teilprojekt
+   `archive_project(project_id, reason)` — `reason` nennt Bericht, Abschnitt und die
+   neuen Teilprojekte („Ersetzt durch PFA-Abschnitte laut VIB 2024 (B.4.2.14), neue
+   Teilprojekte …“). Ein archiviertes Projekt behält seine VIB-Historie und Geometrie,
+   zählt aber nirgends mehr (Elternkarte, Stand-Spanne, Summen, Listen) — Geometrie also
+   **nicht** leeren. Abgelehnt wird es, solange FinVe- oder GVFG-Zuordnungen oder nicht
+   archivierte Teilprojekte daran hängen: die Meldung nennt sie, erst umhängen. Ein
+   wirklich abgebrochenes Vorhaben (Lebenszyklus ABGEBROCHEN) wird nie archiviert.
+   Dubletten dagegen mit `merge_projects` zusammenführen. Im Bericht unter „Selbst
+   entschieden“ aufführen.
+
 Sobald eine Zeile einem Teilprojekt gehört, bekommt das Oberprojekt seinen Stand über die
 Teilprojekte. Jede Zuordnung macht das Vorhaben unbestätigt — am Ende `confirm_vib_report`.
 

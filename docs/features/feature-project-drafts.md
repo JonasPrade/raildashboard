@@ -63,6 +63,13 @@ serverseitig — es fehlte bislang nur:
 - Admin-Übersicht: Karte „Projekt-Entwürfe" mit Anzahl-Badge.
 - Resume-Route: `/admin/projects/new/:projectId`.
 
+## Abgrenzung zu „Archiviert"
+
+Ein Entwurf ist ein **noch nicht fertiges** Projekt; ein archiviertes Projekt ist ein
+**ersetztes/überholtes** (`feature-project-archive.md`). Ersetzte Teilprojekte werden
+archiviert, nicht auf Entwurf gesetzt. Die Entwurfsliste zeigt keine archivierten
+Projekte. Entwürfe fließen weiterhin in die Eltern-Aggregation ein (offen: #265).
+
 ## Akzeptanzkriterien
 
 - [ ] Ein im Wizard begonnenes Projekt ist ein Entwurf (`is_draft = true`) und

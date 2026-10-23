@@ -61,6 +61,7 @@ def create_from_input(
         projects = (
             db.query(Project)
             .options(load_only(Project.id, Project.name))
+            .filter(Project.is_archived.is_(False))
             .all()
         )
         suggested_project_id = suggest_project_for_bauportal(

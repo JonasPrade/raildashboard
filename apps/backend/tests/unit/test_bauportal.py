@@ -98,6 +98,11 @@ class _FakeQuery:
     def __init__(self, items):
         self._items = items
 
+    def filter(self, *_criteria):
+        # The archive filter (feature-project-archive.md): the fake projects are
+        # all active, so the criterion changes nothing here.
+        return self
+
     def all(self):
         return self._items
 
