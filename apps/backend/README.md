@@ -623,6 +623,13 @@ MCP tools in `dashboard_backend/mcp/tools/vib.py` (DB layer `crud/vib_agent.py`,
 and only feed the planning state after `confirm_vib_report`; the upload below writes
 confirmed entries and stays as the second way.
 
+PFA rows → subprojects (Phase 8): `get_vib_entry` suggests a subproject per open PFA row
+from the whole subtree below the entry's projects — previous year's confirmed row, then the
+section number (`nr_pfa` "7.1" ↔ "Abschnitt 7" / "PF 15-16" in name or `project_number`),
+then place names — with a reason and a strong/weak flag (`tasks/vib_matching.py`).
+`apply_vib_pfa_suggestions` takes over the strong ones, `assign_vib_pfas` assigns many rows,
+`create_vib_pfa_subprojects` creates draft subprojects (no geometry) for sections on request.
+
 Yearly import of the Bundestag printed paper „Verkehrsinvestitionsbericht für das Berichtsjahr XXXX". Only **Section B** (Schienenwege der Eisenbahnen des Bundes) is imported; sections C and D are ignored.
 
 ### Import workflow

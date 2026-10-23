@@ -184,9 +184,11 @@ def list_vib_entries(
 
 def get_vib_entry(entry_id: int, *, ctx: Context) -> dict[str, Any]:
     """One Vorhaben with all fields and its PFA rows (requires ``vib.import``).
-    Each unassigned PFA row carries a subproject suggestion from the
-    subprojects of the assigned projects; unconfirmed entries also list the
-    project suggestions with their reason."""
+    Each unassigned PFA row carries a subproject suggestion from the whole
+    subtree below the assigned projects (``subprojects``, with depth) and its
+    reason: previous year → section number → place name; ``suggestion_strong``
+    marks the ones apply_vib_pfa_suggestions takes over. Unconfirmed entries
+    also list the project suggestions with their reason."""
     require(get_principal(ctx), PERMISSION)
     with tool_session(ctx) as db:
         entry = vib_agent.get_entry(db, entry_id)
@@ -279,6 +281,89 @@ def assign_vib_pfa(pfa_id: int, project_id: int | None, *, ctx: Context) -> dict
         return _json(entry)
 
 
+class VibPfaAssignment(BaseModel):
+    pfa_id: int
+    project_id: int | None = Field(description="Teilprojekt, oder null zum Lösen")
+
+
+def assign_vib_pfas(
+    entry_id: int, items: list[VibPfaAssignment], *, ctx: Context
+) -> dict[str, Any]:
+    """Assign many PFA rows of one Vorhaben at once (requires ``vib.import``),
+    all or nothing; unconfirms the Vorhaben. Each project must lie below the
+    Vorhaben's projects (see ``subprojects`` in get_vib_entry). Returns the
+    whole Vorhaben."""
+    require(get_principal(ctx), PERMISSION)
+    if not items:
+        raise ToolError("Keine Zeilen übergeben.")
+    with tool_session(ctx) as db:
+        entry = _guard(
+            vib_agent.assign_pfas, db, entry_id, [(i.pfa_id, i.project_id) for i in items]
+        )
+        if entry is None:
+            raise ToolError(f"Eintrag {entry_id} gibt es nicht.")
+        return _json(entry)
+
+
+def apply_vib_pfa_suggestions(
+    report_id: int, entry_ids: list[int] | None = None, *, ctx: Context
+) -> dict[str, Any]:
+    """Take over the strong PFA → subproject suggestions of a report
+    (requires ``vib.import``): previous year confirmed, or a unique section
+    number ('7.1' ↔ 'Abschnitt 7', 'PF 15-16'). Name-only suggestions stay
+    suggestions. entry_ids limits it. Changed Vorhaben become unconfirmed —
+    look at the applied rows, then confirm_vib_report."""
+    require(get_principal(ctx), PERMISSION)
+    with tool_session(ctx) as db:
+        if vib_agent.get_report(db, report_id) is None:
+            raise ToolError(f"Bericht {report_id} gibt es nicht.")
+        changed = vib_agent.apply_pfa_suggestions(db, report_id, entry_ids)
+        return {"applied_rows": sum(len(e["applied"]) for e in changed), "entries": changed}
+
+
+class VibPfaSubprojectItem(BaseModel):
+    """Rows of one PFA section and where its new subproject goes."""
+
+    pfa_ids: list[int] = Field(description="PFA-Zeilen des Abschnitts (z. B. alle Zeilen von 7.1)")
+    parent_id: int = Field(description="Projekt des Vorhabens oder ein Projekt darunter")
+    name: str | None = Field(
+        None, max_length=255, description="Name; sonst 'PFA <Nr> <Örtlichkeit>' aus den Zeilen"
+    )
+
+
+def create_vib_pfa_subprojects(
+    entry_id: int, items: list[VibPfaSubprojectItem], *, ctx: Context
+) -> dict[str, Any]:
+    """Create a draft subproject (no geometry) per PFA section and assign its
+    rows to it (requires ``vib.import``) — only when the user wants missing
+    subprojects created. One item = one section; bundle its rows (e.g. NBS and
+    ABS row of 7.1). parent_id must be a project of the Vorhaben or below it.
+    A failing item does not stop the others (``ok`` / ``error`` per item);
+    ``parent_was_leaf`` warns that the parent now gets its state from its
+    subprojects only. Unconfirms the Vorhaben. Geometry afterwards with
+    route_project_geometry."""
+    principal = get_principal(ctx)
+    require(principal, PERMISSION)
+    if not items:
+        raise ToolError("Keine Abschnitte übergeben.")
+    if len(items) > 50:
+        raise ToolError("Höchstens 50 Abschnitte je Aufruf.")
+    with tool_session(ctx) as db:
+        results = vib_agent.create_pfa_subprojects(
+            db,
+            entry_id,
+            [(i.pfa_ids, i.parent_id, i.name) for i in items],
+            load_user(db, principal),
+        )
+        if results is None:
+            raise ToolError(f"Eintrag {entry_id} gibt es nicht.")
+        return {
+            "ok": sum(1 for r in results if r["ok"]),
+            "failed": sum(1 for r in results if not r["ok"]),
+            "items": results,
+        }
+
+
 def delete_vib_entry(entry_id: int, *, ctx: Context) -> dict[str, Any]:
     """Delete a wrong Vorhaben with its PFA rows (requires ``vib.import``);
     its observations go too."""
@@ -315,6 +400,9 @@ def register(server: MCPServer) -> None:
         set_vib_pfa_entries,
         assign_vib_entry,
         assign_vib_pfa,
+        assign_vib_pfas,
+        apply_vib_pfa_suggestions,
+        create_vib_pfa_subprojects,
         confirm_vib_report,
     ):
         server.add_tool(fn, annotations=WRITE)

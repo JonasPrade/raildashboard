@@ -25,7 +25,7 @@ from dashboard_backend.models.users import User
 from dashboard_backend.services.fulda_categories import ATTRIBUTED_TO, get_category
 from dashboard_backend.tasks.vib_matching import (
     suggest_projects_for_vib_entry,
-    suggest_subproject_for_pfa,
+    suggest_subproject_by_name,
 )
 
 AUTO_SUGGESTION_NOTE = "Automatischer Vorschlag (Namensabgleich), ungeprüft"
@@ -260,7 +260,7 @@ class _Matcher:
         candidates = [c for sid in superior_ids for c in self.children.get(sid, [])]
         if not candidates:
             return superior_ids
-        sub_id = suggest_subproject_for_pfa(abschnitt, candidates)
+        sub_id = suggest_subproject_by_name(abschnitt, candidates)
         return [sub_id] if sub_id is not None else superior_ids
 
 

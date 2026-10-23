@@ -145,10 +145,14 @@ einem **Blatt-Unterprojekt** zugeordnet (1:1, nullable, `SET NULL`):
   geschrieben — der Superior bekommt seinen Stand allein über die Spanne der Kinder.
   Ohne Zuordnung verhält sich alles **rückwärtskompatibel** wie bisher.
 - **Zuordnung per Vorschlag + Editor-Bestätigung:** Im VIB-Review/-Edit bzw. über MCP
-  (`get_vib_entry`, `assign_vib_pfa`, `feature-vib-import.md` → Phase 7) wird je PFA ein
-  Unterprojekt vorgeschlagen (Fuzzy-Match `nr_pfa`/`abschnitt_label`/`oertlichkeit` gegen
-  die Unterprojekt-Namen) und vom Editor bestätigt/korrigiert. Nicht zugeordnete Abschnitte
-  bleiben „offen". Es werden nur **bestehende** Unterprojekte angeboten (kein Auto-Anlegen).
+  (`get_vib_entry`, `assign_vib_pfa(s)`, `apply_vib_pfa_suggestions`,
+  `feature-vib-import.md` → Phase 7/8) wird je PFA ein Unterprojekt aus dem ganzen Teilbaum
+  vorgeschlagen (Vorjahr → Abschnittsnummer in Name/Projektnummer → Ortsname, mit Grund) und
+  vom Editor bestätigt/korrigiert. Nicht zugeordnete Abschnitte bleiben „offen". Fehlt ein
+  Unterprojekt, legt es der Agent **nur auf Wunsch** als Entwurf an
+  (`create_vib_pfa_subprojects`, entschieden 2026-10-23, P1); kein Auto-Anlegen. Wird dabei
+  ein bisheriges Blatt zum Zwischenknoten, gilt für ihn die rekursive Aggregation oben —
+  das Tool warnt, der Skill regelt das Nacharbeiten (P3).
 
 **Dokumente:** Hinter **Planfeststellung** und **Parlamentarischer Befassung** sollen sich
 **Dokumente verlinken** lassen (bestehendes `Document`-Modell wiederverwenden).

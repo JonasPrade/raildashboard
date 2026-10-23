@@ -36,7 +36,8 @@ Rechtemodell — ein Key kann nie mehr als der Nutzer, dem er gehört.
   Jeder Import gated über sein eigenes `*.import`-Recht. Umgesetzt bzw. geplant:
   **Fulda-Runde** (Agent liest das PDF selbst, kein Upload, siehe
   `feature-fulda-import.md`), **VIB** (Agent liest das PDF selbst, der Upload bleibt als
-  zweiter Weg, siehe `feature-vib-import.md` → Phase 7) und **Infraplan** (Tools nach dem
+  zweiter Weg, siehe `feature-vib-import.md` → Phase 7; Teilprojekt-Entwürfe aus PFA-Abschnitten
+  auf Anforderung mit `create_vib_pfa_subprojects`, Phase 8) und **Infraplan** (Tools nach dem
   Upload, siehe `feature-infraplan-import.md` → „MCP & Skill“). Skills für diese Abläufe liegen in
   `.claude/skills/` und kommen vom Server (nächster Punkt).
 - **Skills kommen vom MCP (2026-10-17):** Skills für die Arbeit über den MCP werden
