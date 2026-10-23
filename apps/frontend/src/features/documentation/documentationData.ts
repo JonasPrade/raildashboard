@@ -251,6 +251,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Abgelehnt, solange FinVe- oder GVFG-Zuordnungen oder nicht archivierte Unterprojekte am Projekt hängen (die Meldung nennt sie) oder der Lebenszyklus „Abgebrochen“ ist",
             "Admin-Seite /admin/archive: alle archivierten Projekte mit Begründung, Datum und übergeordnetem Projekt, „Wiederherstellen“",
             "Archivieren und Wiederherstellen stehen in der Versionshistorie; MCP: archive_project, unarchive_project",
+            "Ersetzt durch: Ersetzt genau ein Projekt das archivierte, wählt man es beim Archivieren als Nachfolger. Das archivierte Projekt zeigt „Ersetzt durch …“ mit Link, der Nachfolger „Ersetzt …“. Hatte ein Import im Vorjahr das archivierte Projekt zugeordnet, schlägt er jetzt den Nachfolger vor (mit Hinweis). Wiederherstellen löst die Verbindung",
             "Nur mit dem Recht project.delete (wie Löschen)"
         ]
     },
@@ -298,7 +299,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Meldet ein neuerer Bericht eine niedrigere Phase als ältere Angaben, stuft er nur zurück, wenn er mindestens so vertrauenswürdig ist (oder manuell erfasst wurde); sonst bleibt die höhere Phase. Beides erscheint als Konflikt unter Admin → „Planungsstand-Konflikte“ und als Hinweis im Projekt; ein Phasen-Override löst ihn auf",
             "Manueller Phasen-Override gewinnt immer über den berechneten Wert (Badge 'übersteuert')",
             "Parl. Befassung ist bei BSWAG-Projektgruppen vorbelegt; nullable Override pro Projekt",
-            "Pausiert/Abgebrochen überblendet die gesamte Darstellung (Banner + abgeblendeter Stepper)",
+            "Pausiert/Abgebrochen überblendet die gesamte Darstellung (Banner + abgeblendeter Stepper); Begründung und „seit“-Datum lassen sich im Bearbeiten-Drawer erfassen und stehen im Banner. Ein durch ein anderes Projekt ersetztes Projekt wird archiviert (mit Nachfolger), nicht über den Lebenszyklus",
             "Übergeordnete Projekte zeigen eine Phasen-Spanne (min..max) + eine durchsuchbare Unterprojekt-Tabelle mit Status-Verteilung (z. B. „3× Bau · 1× Vorplanung · 2× Unbekannt“); die Spanne wird rekursiv über beliebig tiefe Unterprojekt-Ebenen gebildet — ein Unterprojekt mit eigenen Unterprojekten zeigt seine eigene Sub-Spanne (Marker „Gruppe“)",
             "Hover über einen Phasen-Kreis im Stepper listet die Unterprojekte dieser Phase auf",
             "Projekte ohne Datengrundlage werden klar als „Unbekannt“ markiert (nicht als „Nicht gestartet“)",

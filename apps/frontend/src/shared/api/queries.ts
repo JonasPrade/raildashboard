@@ -32,6 +32,7 @@ export const queryKeys = {
     projectTexts: (projectId: number) => ["projectTexts", projectId] as const,
     projectDrafts: ["projectDrafts"],
     projectArchive: ["projectArchive"],
+    projectReplacement: (id: number) => ["projectReplacement", id] as const,
     projectGroups: ["projectGroups"],
     // Nested under `projectGroups`: invalidating the group list refreshes the
     // map geometries as well.
@@ -713,6 +714,17 @@ export function useDeleteProject() {
 
 export type ArchivedProject = components["schemas"]["ArchivedProjectSchema"];
 export type ProjectArchiveResult = components["schemas"]["ProjectArchiveResult"];
+export type ProjectReplacement = components["schemas"]["ProjectReplacementSchema"];
+
+/** Successor of an archived, replaced project and the archived projects this one
+ * replaces (feature-project-archive.md → „Ersetzt durch“). */
+export function useProjectReplacement(projectId: number) {
+    return useQuery({
+        queryKey: queryKeys.projectReplacement(projectId),
+        enabled: Number.isFinite(projectId),
+        queryFn: () => api<ProjectReplacement>(`/api/v1/projects/${projectId}/replacement`),
+    });
+}
 
 /** Archived projects for the admin archive page (feature-project-archive.md). */
 export function useArchivedProjects(enabled = true) {
@@ -732,6 +744,8 @@ function invalidateAfterArchiveChange(queryClient: QueryClient, project: Project
     invalidateAfterGeometryChange(queryClient, project);
     queryClient.invalidateQueries({ queryKey: queryKeys.projectDrafts });
     queryClient.invalidateQueries({ queryKey: queryKeys.projectArchive });
+    // Both ends of a successor link show it.
+    queryClient.invalidateQueries({ queryKey: ["projectReplacement"] });
     queryClient.invalidateQueries({ queryKey: queryKeys.progress });
     if (project.id != null) {
         queryClient.setQueryData(queryKeys.project(project.id), project);
@@ -739,14 +753,23 @@ function invalidateAfterArchiveChange(queryClient: QueryClient, project: Project
     }
 }
 
-/** Archive a replaced/superseded project; the reason is mandatory. */
+/** Archive a replaced/superseded project; the reason is mandatory, the
+ * successor optional. */
 export function useArchiveProject() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ projectId, reason }: { projectId: number; reason: string }) =>
+        mutationFn: ({
+            projectId,
+            reason,
+            replacedByProjectId = null,
+        }: {
+            projectId: number;
+            reason: string;
+            replacedByProjectId?: number | null;
+        }) =>
             api<ProjectArchiveResult>(`/api/v1/projects/${projectId}/archive`, {
                 method: "POST",
-                json: { reason },
+                json: { reason, replaced_by_project_id: replacedByProjectId },
             }),
         onSuccess: (result) => invalidateAfterArchiveChange(queryClient, result.project),
     });

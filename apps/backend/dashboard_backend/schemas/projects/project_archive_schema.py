@@ -16,7 +16,7 @@ class ProjectArchiveRequest(BaseModel):
     )
 
 
-class ProjectRefSchema(BaseModel):
+class ReplacementProjectRef(BaseModel):
     id: int
     name: str
     project_number: Optional[str] = None
@@ -25,8 +25,8 @@ class ProjectRefSchema(BaseModel):
 class ProjectReplacementSchema(BaseModel):
     """Successor of an archived project and the archived projects this one replaces."""
 
-    replaced_by: Optional[ProjectRefSchema] = None
-    replaces: list[ProjectRefSchema] = []
+    replaced_by: Optional[ReplacementProjectRef] = None
+    replaces: list[ReplacementProjectRef] = []
 
 
 class ProjectUnarchiveRequest(BaseModel):

@@ -1,22 +1,65 @@
-import { Alert, Button, Modal, Stack, Text, Textarea } from "@mantine/core";
+import { Alert, Anchor, Button, Modal, Stack, Text, Textarea } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
-import { type Project, useArchiveProject, useUnarchiveProject } from "../../shared/api/queries";
+import {
+    type Project,
+    type ProjectReplacement,
+    useArchiveProject,
+    useProjectReplacement,
+    useUnarchiveProject,
+} from "../../shared/api/queries";
 import { ARCHIVE_TONE } from "../../shared/theme/semanticColors";
 import { formatArchivedAt } from "./archiveFormat";
+import ProjectSearchSelect from "./ProjectSearchSelect";
+
+type ProjectRef = NonNullable<ProjectReplacement["replaced_by"]>;
+
+function ProjectLink({ project }: { project: ProjectRef }) {
+    return (
+        <Anchor component={Link} to={`/projects/${project.id}`} fw={600}>
+            {project.name}
+            {project.project_number ? ` (${project.project_number})` : ""}
+        </Anchor>
+    );
+}
 
 // Archivieren (docs/features/feature-project-archive.md): ein ersetztes oder
 // überholtes Projekt verschwindet aus allen Listen und Summen, bleibt aber per
 // URL erreichbar. Das UI-Wort ist „Archiviert", nie „Status" (Lebenszyklus).
 
-/** Hinweis oben auf der Detailseite eines archivierten Projekts. */
+/** Hinweis oben auf der Detailseite eines archivierten Projekts, mit dem
+ * Nachfolger („Ersetzt durch …“); ein Nachfolger zeigt umgekehrt, welche
+ * archivierten Projekte er ersetzt (feature-project-archive.md → „Ersetzt durch“). */
 export function ArchiveBanner({ project }: { project: Project }) {
-    if (!project.is_archived) return null;
+    const { data: replacement } = useProjectReplacement(project.id ?? Number.NaN);
+    const replaces = replacement?.replaces ?? [];
+    const backReference =
+        replaces.length > 0 ? (
+            <Alert color={ARCHIVE_TONE} variant="light" title="Nachfolgeprojekt">
+                <Text size="sm">
+                    Ersetzt{" "}
+                    {replaces.map((old, index) => (
+                        <span key={old.id}>
+                            {index > 0 && ", "}
+                            <ProjectLink project={old} />
+                        </span>
+                    ))}{" "}
+                    (archiviert).
+                </Text>
+            </Alert>
+        ) : null;
+    if (!project.is_archived) return backReference;
     const date = formatArchivedAt(project.archived_at);
     return (
         <Alert color={ARCHIVE_TONE} variant="light" title={date ? `Archiviert am ${date}` : "Archiviert"}>
             <Stack gap={4}>
+                {replacement?.replaced_by && (
+                    <Text size="sm">
+                        Ersetzt durch <ProjectLink project={replacement.replaced_by} />.
+                    </Text>
+                )}
                 <Text size="sm">
                     Dieses Projekt wurde ersetzt oder ist überholt. Es erscheint in keiner Liste,
                     keiner Karte und zählt beim übergeordneten Projekt nicht mit.
@@ -42,12 +85,14 @@ export function ArchiveProjectModal({ project, opened, onClose }: ArchiveModalPr
     const archive = useArchiveProject();
     const unarchive = useUnarchiveProject();
     const [reason, setReason] = useState("");
+    const [successorId, setSuccessorId] = useState<number | null>(null);
     const [error, setError] = useState<string | null>(null);
     const restoring = Boolean(project.is_archived);
     const pending = archive.isPending || unarchive.isPending;
 
     const close = () => {
         setReason("");
+        setSuccessorId(null);
         setError(null);
         onClose();
     };
@@ -64,7 +109,11 @@ export function ArchiveProjectModal({ project, opened, onClose }: ArchiveModalPr
                     message: `„${project.name}" zählt wieder in Listen und beim übergeordneten Projekt.`,
                 });
             } else {
-                await archive.mutateAsync({ projectId: project.id, reason: reason.trim() });
+                await archive.mutateAsync({
+                    projectId: project.id,
+                    reason: reason.trim(),
+                    replacedByProjectId: successorId,
+                });
                 notifications.show({
                     color: "green",
                     title: "Projekt archiviert",
@@ -109,6 +158,14 @@ export function ArchiveProjectModal({ project, opened, onClose }: ArchiveModalPr
                     value={reason}
                     onChange={(e) => setReason(e.currentTarget.value)}
                 />
+                {!restoring && (
+                    <ProjectSearchSelect
+                        label="Ersetzt durch (optional)"
+                        description="Wenn genau ein Projekt dieses ersetzt: Beide Seiten verweisen dann aufeinander, und Importvorschläge gehen an den Nachfolger."
+                        value={successorId}
+                        onChange={setSuccessorId}
+                    />
+                )}
                 {error && (
                     <Alert color="red" variant="light">
                         {error}

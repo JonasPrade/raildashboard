@@ -179,6 +179,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/replacement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Project Replacement
+         * @description Public: the successor of an archived, replaced project and the archived
+         *     projects this one replaces (feature-project-archive.md → „Ersetzt durch“).
+         */
+        get: operations["read_project_replacement_api_v1_projects__project_id__replacement_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/unarchive": {
         parameters: {
             query?: never;
@@ -5465,6 +5486,8 @@ export interface components {
             previous_year?: number | null;
             /** Previous Note */
             previous_note?: string | null;
+            /** Redirected From */
+            redirected_from?: number | null;
         };
         /**
          * InfraplanWarning
@@ -6078,6 +6101,11 @@ export interface components {
              * @description Why the project is archived (mandatory).
              */
             reason: string;
+            /**
+             * Replaced By Project Id
+             * @description The project that replaced this one (optional; not itself, no draft, not archived).
+             */
+            replaced_by_project_id?: number | null;
         };
         /** ProjectArchiveResult */
         ProjectArchiveResult: {
@@ -6613,6 +6641,10 @@ export interface components {
              * @enum {string}
              */
             lifecycle_status: "AKTIV" | "PAUSIERT" | "ABGEBROCHEN";
+            /** Lifecycle Note */
+            lifecycle_note?: string | null;
+            /** Lifecycle Date */
+            lifecycle_date?: string | null;
             /** Pf State */
             pf_state?: ("OFFEN" | "LAEUFT" | "ABGESCHLOSSEN") | null;
             /** Parl State */
@@ -6686,6 +6718,10 @@ export interface components {
             parl_befassung_relevant?: boolean | null;
             /** Lifecycle Status */
             lifecycle_status?: ("AKTIV" | "PAUSIERT" | "ABGEBROCHEN") | null;
+            /** Lifecycle Note */
+            lifecycle_note?: string | null;
+            /** Lifecycle Date */
+            lifecycle_date?: string | null;
             /** Manual Phase Override */
             manual_phase_override?: ("NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB") | null;
             /** Manual Override Note */
@@ -6714,6 +6750,8 @@ export interface components {
             clear_parl_state_override?: boolean | null;
             /** Clear Pf State Override */
             clear_pf_state_override?: boolean | null;
+            /** Clear Lifecycle Date */
+            clear_lifecycle_date?: boolean | null;
         };
         /** ProjectRefSchema */
         ProjectRefSchema: {
@@ -6721,6 +6759,18 @@ export interface components {
             id: number;
             /** Name */
             name: string;
+        };
+        /**
+         * ProjectReplacementSchema
+         * @description Successor of an archived project and the archived projects this one replaces.
+         */
+        ProjectReplacementSchema: {
+            replaced_by?: components["schemas"]["ReplacementProjectRef"] | null;
+            /**
+             * Replaces
+             * @default []
+             */
+            replaces: components["schemas"]["ReplacementProjectRef"][];
         };
         /** ProjectSchema */
         ProjectSchema: {
@@ -6752,6 +6802,8 @@ export interface components {
             archived_reason?: string | null;
             /** Archived At */
             archived_at?: string | null;
+            /** Replaced By Project Id */
+            replaced_by_project_id?: number | null;
             /**
              * Effects Passenger Long Rail
              * @default false
@@ -7334,6 +7386,15 @@ export interface components {
              * @default false
              */
             temporary_finve_number: boolean;
+        };
+        /** ReplacementProjectRef */
+        ReplacementProjectRef: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Project Number */
+            project_number?: string | null;
         };
         /** RevertFieldRequest */
         RevertFieldRequest: {
@@ -8904,6 +8965,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectArchiveResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_project_replacement_api_v1_projects__project_id__replacement_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectReplacementSchema"];
                 };
             };
             /** @description Validation Error */

@@ -83,6 +83,8 @@ type Draft = {
     phaseOverride: MainPhase | null; // null = computed (no override)
     overrideNote: string;
     lifecycle: LifecycleStatus;
+    lifecycleNote: string; // PAUSIERT / ABGEBROCHEN only
+    lifecycleDate: string; // ISO date or ""
     hasPf: boolean;
     parlOverride: boolean | null; // null = group standard
     // Planfeststellung + parliamentary involvement details.
@@ -106,6 +108,8 @@ function initDraft(progress: ProjectProgress): Draft {
         phaseOverride: progress.is_overridden ? (progress.effective_phase as MainPhase) : null,
         overrideNote: progress.manual_override_note ?? "",
         lifecycle: progress.lifecycle_status as LifecycleStatus,
+        lifecycleNote: progress.lifecycle_note ?? "",
+        lifecycleDate: progress.lifecycle_date ?? "",
         hasPf: progress.has_planfeststellung,
         parlOverride: progress.parl_befassung_relevant_override ?? null,
         pfStateOverride: (progress.pf_state_override as ParallelState | null) ?? null,
@@ -122,6 +126,14 @@ function initDraft(progress: ProjectProgress): Draft {
     };
 }
 
+function lifecycleDirty(draft: Draft, progress: ProjectProgress): boolean {
+    return (
+        draft.lifecycle !== progress.lifecycle_status ||
+        (draft.lifecycleNote || "") !== (progress.lifecycle_note ?? "") ||
+        (draft.lifecycleDate || "") !== (progress.lifecycle_date ?? "")
+    );
+}
+
 function isDirty(draft: Draft, progress: ProjectProgress): boolean {
     const currentOverride = progress.is_overridden
         ? (progress.effective_phase as MainPhase)
@@ -130,7 +142,7 @@ function isDirty(draft: Draft, progress: ProjectProgress): boolean {
     return (
         draft.phaseOverride !== currentOverride ||
         (draft.overrideNote || "") !== (progress.manual_override_note ?? "") ||
-        draft.lifecycle !== progress.lifecycle_status ||
+        lifecycleDirty(draft, progress) ||
         draft.hasPf !== progress.has_planfeststellung ||
         draft.parlOverride !== currentParl ||
         draft.pfStateOverride !== ((progress.pf_state_override as ParallelState | null) ?? null) ||
@@ -160,8 +172,14 @@ function scalarPayload(draft: Draft, progress: ProjectProgress): ProjectProgress
     if ((draft.overrideNote || "") !== (progress.manual_override_note ?? "")) {
         payload.manual_override_note = draft.overrideNote || null;
     }
-    if (draft.lifecycle !== progress.lifecycle_status) {
+    // Status, reason and date go together; AKTIV clears reason and date on the server.
+    if (lifecycleDirty(draft, progress)) {
         payload.lifecycle_status = draft.lifecycle;
+        if (draft.lifecycle !== "AKTIV") {
+            payload.lifecycle_note = draft.lifecycleNote.trim();
+            if (draft.lifecycleDate) payload.lifecycle_date = draft.lifecycleDate;
+            else payload.clear_lifecycle_date = true;
+        }
     }
     if (draft.hasPf !== progress.has_planfeststellung) {
         payload.has_planfeststellung = draft.hasPf;
@@ -471,6 +489,31 @@ export default function ProgressEditDrawer({ projectId, progress, opened, onClos
                         )}
                         onChange={(v) => v && set({ lifecycle: v as LifecycleStatus })}
                     />
+                    {active.lifecycle !== "AKTIV" && (
+                        <Group align="flex-start" wrap="wrap">
+                            <Textarea
+                                size="xs"
+                                label="Begründung"
+                                autosize
+                                minRows={2}
+                                style={{ flex: "1 1 260px" }}
+                                value={active.lifecycleNote}
+                                onChange={(e) => set({ lifecycleNote: e.currentTarget.value })}
+                            />
+                            <TextInput
+                                size="xs"
+                                type="date"
+                                label="Seit"
+                                w={170}
+                                value={active.lifecycleDate}
+                                onChange={(e) => set({ lifecycleDate: e.currentTarget.value })}
+                            />
+                        </Group>
+                    )}
+                    <Text size="xs" c="dimmed">
+                        Durch ein anderes Projekt ersetzt? Dann das Projekt über „Archivieren“
+                        oben auf der Projektseite archivieren und den Nachfolger angeben.
+                    </Text>
                 </Stack>
 
                 <Divider />

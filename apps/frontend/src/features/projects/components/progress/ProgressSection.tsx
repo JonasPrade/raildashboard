@@ -148,7 +148,11 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
                     </Alert>
                 )}
 
-                <LifecycleOverlay status={lifecycle} />
+                <LifecycleOverlay
+                    status={lifecycle}
+                    note={progress.lifecycle_note}
+                    date={progress.lifecycle_date}
+                />
 
                 <PhaseStepper
                     current={effectivePhase}
