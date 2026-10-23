@@ -43,6 +43,13 @@ Eintrag. Aktuell: Nach der Migration `20261022004` (Datumsqualifikation) einmal
 der Projektlisten; bis dahin sind dort die Bau- und IB-Termine leer. Es ist idempotent,
 und ein Rollback braucht es nicht.
 
+Ändert ein Deploy die Ableitung des Planungsstands (z. B. eine neue Quelle), danach einmal
+unter *Einstellungen → Planungsstand-Konflikte* „Alle Projekte neu berechnen“ drücken oder
+`docker compose exec backend python scripts/recompute_progress.py`
+(`make docker-recompute-progress`) ausführen. Das schreibt Planungsstand und Termin-Cache
+aller Projekte neu (schließt `refresh_progress_dates.py` ein), ist idempotent und braucht
+keinen Rollback.
+
 **Es gibt keinen automatischen Auslöser.** Bis v0.0.15 rollte ein Version-Tag
 (`v*`) Test, Build und Ausrollen in einem Zug aus. Das nahm den Moment weg, in dem
 jemand „jetzt" sagt, und band die Auslieferung an eine Versionsnummer, obwohl das

@@ -10,6 +10,7 @@ resync; the seams (``STALENESS_WINDOW``, ``is_derived`` guard) already exist.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
@@ -1761,3 +1762,65 @@ def recompute_progress(db: Session, project_id: int, today: date | None = None) 
     refresh_date_cache(db, project, today)
     db.commit()
     return True
+
+
+RECOMPUTE_BATCH = 100
+
+
+def _cached_known(progress: ProjectProgress) -> bool:
+    """``is_known`` as the list views read it from the cache (``list_projects``)."""
+    return (progress.computed_confidence or 0) > 0 or progress.manual_phase_override is not None
+
+
+def recompute_all_progress(
+    db: Session,
+    today: date | None = None,
+    *,
+    batch_size: int = RECOMPUTE_BATCH,
+    on_batch: Callable[[int, int], None] | None = None,
+) -> dict:
+    """Re-materialise the planning state of every project at once.
+
+    The lazy resync (``_ensure_fresh``) only touches a project when it is read,
+    so a new derivation rule (e.g. the GVFG source) reaches the list views,
+    filters and ``list_data_gaps`` only project by project. This pass resyncs
+    the derived observations, the cached headline and the date cache of all
+    projects in batches of ``batch_size`` (one commit per batch).
+
+    ``on_batch(done, total)`` reports progress after each batch. Returns counts
+    for the admin page: projects, known before/after, changed phases.
+    """
+
+    today = today or date.today()
+    ids = [pid for (pid,) in db.query(Project.id).order_by(Project.id)]
+    known_before = known_after = changed = 0
+    for start in range(0, len(ids), batch_size):
+        chunk = ids[start : start + batch_size]
+        projects = (
+            db.query(Project)
+            .options(selectinload(Project.project_groups))
+            .filter(Project.id.in_(chunk))
+            .all()
+        )
+        progress_by_id = _bulk_get_or_create_progress(db, chunk)
+        before = {pid: (p.computed_phase, _cached_known(p)) for pid, p in progress_by_id.items()}
+        sync_derived_observations_bulk(db, chunk)
+        relevance = infraplan_parl_relevance(db, chunk)
+        for project in projects:
+            progress = progress_by_id[project.id]
+            derive_for_project(db, project, progress, today, infraplan_relevance=relevance)
+            refresh_date_cache(db, project, today)
+            old_phase, old_known = before[project.id]
+            known_before += old_known
+            known_after += _cached_known(progress)
+            # A progress row created by this pass has no previous phase to change.
+            changed += old_phase is not None and old_phase != progress.computed_phase
+        db.commit()
+        if on_batch is not None:
+            on_batch(min(start + batch_size, len(ids)), len(ids))
+    return {
+        "projects": len(ids),
+        "known_before": known_before,
+        "known_after": known_after,
+        "phase_changed": changed,
+    }

@@ -681,6 +681,18 @@ Das gespeicherte Datum ist nur noch der Sortierwert.
   - Einmal nach der Migration `20261022004`: `make docker-refresh-progress-dates`
     (`scripts/refresh_progress_dates.py`).
   - Die Liste liest weiter nur den Cache.
+- **Alles neu berechnen (2026-10-23):** Der Lazy-Resync rechnet ein Projekt erst neu, wenn
+  es gelesen wird. Ändert ein Deploy die Ableitungsregeln (z. B. die Quelle `GVFG`), zeigen
+  Liste, Filter und `list_data_gaps` sonst tagelang den alten Cache. `recompute_all_progress`
+  (`crud/projects/progress.py`) leitet für **alle** Projekte in Stapeln zu 100 die
+  Beobachtungen neu ab und schreibt Phase, Konfidenz und Termin-Cache (ein Commit je Stapel,
+  idempotent). Auslöser:
+  - Admin-Seite „Planungsstand · Konflikte“ → „Alle Projekte neu berechnen“ (Recht
+    `progress.edit`, `POST /api/v1/admin/progress-recompute`, Celery-Task
+    `tasks/progress.py`, Fortschritt je Stapel, am Ende Projekte, bekannt vorher → nachher
+    und geänderte Phasen),
+  - Skript `scripts/recompute_progress.py` (`make docker-recompute-progress`); es ersetzt
+    `refresh_progress_dates.py`, weil es den Termin-Cache mitschreibt.
 - Die Liste hat eine Spalte „Termine“ („Bau: nach 2031“, „IB: ca. 07/2028 (Annahme)“),
   sortierbar nach dem Sortierwert.
 - **Filter** (Liste, Zeitstrahl, Karte; URL `bau_von`, `bau_bis`, `ib_von`, `ib_bis`,
