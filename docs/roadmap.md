@@ -240,6 +240,8 @@ Siehe: `docs/features/feature-new-project-wizard.md`
   Siehe: `docs/features/feature-project-merge.md`
 - [x] **Projekte archivieren** — eigenes Kennzeichen „Archiviert“ mit Pflicht-Begründung für ersetzte/überholte Projekte: zählt nirgends mehr (Listen, Karte, Summen, Eltern-Aggregation), bleibt per URL erreichbar, Admin-Seite „Archiv“, MCP `archive_project`/`unarchive_project`.
   Siehe: `docs/features/feature-project-archive.md`
+- [ ] **Ersetzt durch (#261)** — Archiv mit optionalem Nachfolgeprojekt: Banner „Ersetzt durch …“, Rückverweis am Nachfolger, Importvorschläge auf den Nachfolger umgelenkt; dazu Begründung und „seit“-Datum für Pausiert/Abgebrochen.
+  Siehe: `docs/features/feature-project-archive.md` → „Ersetzt durch“
 
 ### GVFG-Bundesprogramm *(Backend + Frontend)*
 

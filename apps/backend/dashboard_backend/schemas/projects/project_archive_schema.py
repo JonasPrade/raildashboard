@@ -10,6 +10,23 @@ from dashboard_backend.schemas.projects.project_schema import ProjectSchema
 
 class ProjectArchiveRequest(BaseModel):
     reason: str = Field(min_length=1, description="Why the project is archived (mandatory).")
+    replaced_by_project_id: Optional[int] = Field(
+        default=None,
+        description="The project that replaced this one (optional; not itself, no draft, not archived).",
+    )
+
+
+class ReplacementProjectRef(BaseModel):
+    id: int
+    name: str
+    project_number: Optional[str] = None
+
+
+class ProjectReplacementSchema(BaseModel):
+    """Successor of an archived project and the archived projects this one replaces."""
+
+    replaced_by: Optional[ReplacementProjectRef] = None
+    replaces: list[ReplacementProjectRef] = []
 
 
 class ProjectUnarchiveRequest(BaseModel):

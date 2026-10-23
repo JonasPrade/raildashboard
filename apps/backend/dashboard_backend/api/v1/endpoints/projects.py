@@ -26,6 +26,7 @@ from dashboard_backend.crud.projects.archive import (
     ArchiveError,
     archive_project,
     get_archived_projects,
+    replacement,
     unarchive_project,
 )
 from dashboard_backend.crud.projects.bvwp import get_bvwp_data
@@ -65,6 +66,7 @@ from dashboard_backend.schemas.projects.project_archive_schema import (
     ArchivedProjectSchema,
     ProjectArchiveRequest,
     ProjectArchiveResult,
+    ProjectReplacementSchema,
     ProjectUnarchiveRequest,
 )
 from dashboard_backend.schemas.projects.link_finves_schema import LinkFinvesInput
@@ -178,12 +180,29 @@ def archive_project_endpoint(
     (400, naming the links) while FinVe/GVFG links or non-archived subprojects
     exist, or when the lifecycle is ABGEBROCHEN. Recorded in the changelog."""
     try:
-        result = archive_project(db, project_id, body.reason, current_user.id, current_user.username)
+        result = archive_project(
+            db,
+            project_id,
+            body.reason,
+            current_user.id,
+            current_user.username,
+            replaced_by_project_id=body.replaced_by_project_id,
+        )
     except ArchiveError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if result is None:
         raise HTTPException(status_code=404, detail="Project not found")
     return result
+
+
+@router.get("/{project_id}/replacement", response_model=ProjectReplacementSchema)
+def read_project_replacement(
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+):
+    """Public: the successor of an archived, replaced project and the archived
+    projects this one replaces (feature-project-archive.md → „Ersetzt durch“)."""
+    return replacement(db, project.id)
 
 
 @router.post("/{project_id}/unarchive", response_model=ProjectSchema)

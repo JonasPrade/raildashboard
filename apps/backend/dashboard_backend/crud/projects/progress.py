@@ -121,6 +121,8 @@ _TRACKED_PROGRESS_FIELDS = (
     "has_planfeststellung",
     "parl_befassung_relevant",
     "lifecycle_status",
+    "lifecycle_note",
+    "lifecycle_date",
     "manual_phase_override",
     "manual_override_note",
     "pf_state_override",
@@ -1456,6 +1458,8 @@ def get_progress_view(db: Session, project_id: int, today: date | None = None) -
         ),
         "parl_befassung_relevant_override": progress.parl_befassung_relevant,
         "lifecycle_status": result.lifecycle.value,
+        "lifecycle_note": progress.lifecycle_note,
+        "lifecycle_date": progress.lifecycle_date,
         "pf_state": result.pf_state.value if result.pf_state else None,
         "parl_state": result.parl_state.value if result.parl_state else None,
         "pf_state_override": progress.pf_state_override,
@@ -1537,6 +1541,18 @@ def update_progress(
         progress.parl_state_override = None
     if payload.get("clear_pf_state_override"):
         progress.pf_state_override = None
+
+    # Reason and start date belong to PAUSIERT / ABGEBROCHEN; AKTIV clears them.
+    if progress.lifecycle_status == LifecycleStatus.AKTIV.value:
+        progress.lifecycle_note = None
+        progress.lifecycle_date = None
+    else:
+        if "lifecycle_note" in payload:
+            progress.lifecycle_note = (payload["lifecycle_note"] or "").strip() or None
+        if payload.get("lifecycle_date") is not None:
+            progress.lifecycle_date = payload["lifecycle_date"]
+        if payload.get("clear_lifecycle_date"):
+            progress.lifecycle_date = None
 
     # Setting any Planfeststellung signal (state or editorial detail) implies the
     # track is relevant — otherwise the data would be silently ignored by the

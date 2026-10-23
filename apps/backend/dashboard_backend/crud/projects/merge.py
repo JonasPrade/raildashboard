@@ -60,6 +60,7 @@ _KEEP_FIELDS = {
     "is_archived",
     "archived_reason",
     "archived_at",
+    "replaced_by_project_id",
     "old_id",
     "superior_project_old_id",
     "geojson_from_subprojects",
@@ -504,6 +505,13 @@ def _apply(
     #    changelog, redirects that targeted it).
     for plan in link_plans:
         _execute_link(db, plan, survivor_id)
+    # A survivor archived as "replaced by" the merged project would now name
+    # itself as successor (feature-project-archive.md → „Ersetzt durch“).
+    db.execute(
+        update(Project.__table__)
+        .where(Project.id == survivor_id, Project.replaced_by_project_id == survivor_id)
+        .values(replaced_by_project_id=None)
+    )
 
     # 6. Delete the merged project and leave a redirect behind.
     db.expunge(merged)

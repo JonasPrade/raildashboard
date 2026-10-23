@@ -123,15 +123,31 @@ def _refresh_ancestors(db: Session, project: Project) -> None:
         progress_crud.recompute_progress(db, ancestor_id)
 
 
+def _check_successor(db: Session, project_id: int, successor_id: int) -> None:
+    """A successor exists, is not the project itself, no draft and not archived —
+    so no ring can form (feature doc → „Ersetzt durch“)."""
+    if successor_id == project_id:
+        raise ArchiveError("Ein Projekt kann sich nicht selbst ersetzen.")
+    successor = get_project_by_id(db, successor_id)
+    if successor is None:
+        raise ArchiveError(f"Nachfolgeprojekt {successor_id} gibt es nicht.")
+    if successor.is_draft:
+        raise ArchiveError(f"Nachfolgeprojekt {successor_id} ist ein Entwurf.")
+    if successor.is_archived:
+        raise ArchiveError(f"Nachfolgeprojekt {successor_id} ist selbst archiviert.")
+
+
 def archive_project(
     db: Session,
     project_id: int,
     reason: str,
     user_id: int | None,
     username: str | None,
+    replaced_by_project_id: int | None = None,
 ) -> dict[str, Any] | None:
-    """Archive *project_id* with a mandatory *reason*. Returns ``{project,
-    kept_links}`` or None if the project does not exist; raises ArchiveError."""
+    """Archive *project_id* with a mandatory *reason* and, optionally, the project
+    that replaced it. Returns ``{project, kept_links}`` or None if the project does
+    not exist; raises ArchiveError."""
     project = get_project_by_id(db, project_id)
     if project is None:
         return None
@@ -140,6 +156,8 @@ def archive_project(
         raise ArchiveError("Zum Archivieren ist eine Begründung nötig.")
     if project.is_archived:
         raise ArchiveError(f"Projekt {project_id} ist bereits archiviert.")
+    if replaced_by_project_id is not None:
+        _check_successor(db, project_id, replaced_by_project_id)
     blocking = _blocking_links(db, project)
     if blocking:
         raise ArchiveError(
@@ -147,11 +165,14 @@ def archive_project(
             "Verknüpfungen bestehen — erst umhängen: " + "; ".join(blocking)
         )
 
-    update = {"is_archived": True, "archived_reason": reason}
+    update: dict[str, Any] = {"is_archived": True, "archived_reason": reason}
+    if replaced_by_project_id is not None:
+        update["replaced_by_project_id"] = replaced_by_project_id
     create_changelog_for_patch(db, project, update, user_id, username, action="ARCHIVE")
     project.is_archived = True
     project.archived_reason = reason
     project.archived_at = datetime.utcnow()
+    project.replaced_by_project_id = replaced_by_project_id
     db.commit()
     db.refresh(project)
 
@@ -182,17 +203,107 @@ def unarchive_project(
         )
 
     reason = (reason or "").strip() or None
-    update = {"is_archived": False, "archived_reason": reason}
+    update: dict[str, Any] = {"is_archived": False, "archived_reason": reason}
+    if project.replaced_by_project_id is not None:
+        update["replaced_by_project_id"] = None
     create_changelog_for_patch(db, project, update, user_id, username, action="UNARCHIVE")
     project.is_archived = False
     project.archived_reason = None
     project.archived_at = None
+    project.replaced_by_project_id = None
     db.commit()
     db.refresh(project)
 
     _refresh_ancestors(db, project)
     db.refresh(project)
     return project
+
+
+def _ref(pid: int, name: str, number: str | None) -> dict[str, Any]:
+    return {"id": pid, "name": name, "project_number": number}
+
+
+def replacement(db: Session, project_id: int) -> dict[str, Any]:
+    """``replaced_by`` (successor of an archived project, or None) and ``replaces``
+    (archived projects naming this one as their successor)."""
+    successor = None
+    successor_id = db.query(Project.replaced_by_project_id).filter(Project.id == project_id).scalar()
+    if successor_id is not None:
+        row = (
+            db.query(Project.id, Project.name, Project.project_number)
+            .filter(Project.id == successor_id)
+            .first()
+        )
+        successor = _ref(*row) if row else None
+    replaces = [
+        _ref(*row)
+        for row in db.query(Project.id, Project.name, Project.project_number)
+        .filter(Project.replaced_by_project_id == project_id, Project.is_archived.is_(True))
+        .order_by(Project.name, Project.id)
+    ]
+    return {"replaced_by": successor, "replaces": replaces}
+
+
+def successor_map(db: Session) -> dict[int, int]:
+    """Archived project → the first non-archived project its successor chain leads
+    to. Importers hand a suggestion on with it (feature doc → R3); an archived
+    project without (reachable) successor is not in the map."""
+    direct = dict(
+        db.query(Project.id, Project.replaced_by_project_id).filter(
+            Project.is_archived.is_(True), Project.replaced_by_project_id.isnot(None)
+        )
+    )
+    archived = {pid for (pid,) in db.query(Project.id).filter(Project.is_archived.is_(True))}
+    final: dict[int, int] = {}
+    for start in direct:
+        seen, current = {start}, direct[start]
+        while current in direct and current not in seen:
+            seen.add(current)
+            current = direct[current]
+        if current not in archived:
+            final[start] = current
+    return final
+
+
+def redirect_replaced(
+    project_ids: list[int], successors: dict[int, int]
+) -> tuple[list[int], dict[int, int]]:
+    """Swap archived projects for their successors, order kept, no duplicates.
+    Returns the new ids and ``{successor: archived}`` for every swap."""
+    out: list[int] = []
+    redirected: dict[int, int] = {}
+    for pid in project_ids:
+        target = successors.get(pid, pid)
+        if target != pid:
+            redirected.setdefault(target, pid)
+        if target not in out:
+            out.append(target)
+    return out, redirected
+
+
+def archived_warnings(db: Session, project_ids: list[int | None]) -> list[str]:
+    """One line per archived project among *project_ids*, naming its successor —
+    for the MCP assignment tools (a manual assignment stays allowed)."""
+    ids = sorted({pid for pid in project_ids if pid is not None})
+    if not ids:
+        return []
+    rows = (
+        db.query(Project.id, Project.name, Project.replaced_by_project_id)
+        .filter(Project.id.in_(ids), Project.is_archived.is_(True))
+        .order_by(Project.id)
+        .all()
+    )
+    successors = dict(
+        db.query(Project.id, Project.name).filter(
+            Project.id.in_({succ for _, _, succ in rows if succ is not None})
+        )
+    )
+    return [
+        f"Projekt {pid} „{name}“ ist archiviert"
+        + (f" und ersetzt durch {succ} „{successors.get(succ, '')}“" if succ is not None else "")
+        + " — Zuordnung gespeichert; meist gehört sie zum Nachfolger."
+        for pid, name, succ in rows
+    ]
 
 
 def get_archived_projects(db: Session) -> list[dict[str, Any]]:

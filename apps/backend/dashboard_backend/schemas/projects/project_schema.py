@@ -147,6 +147,8 @@ class ProjectSchema(BaseModel):
     is_archived: bool = False
     archived_reason: Optional[str] = None
     archived_at: Optional[datetime] = None
+    # Successor of an archived, replaced project (feature-project-archive.md → „Ersetzt durch“).
+    replaced_by_project_id: Optional[int] = None
 
     effects_passenger_long_rail: Optional[bool] = False
     effects_passenger_local_rail: Optional[bool] = False

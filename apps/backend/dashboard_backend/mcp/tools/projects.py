@@ -32,6 +32,7 @@ from dashboard_backend.crud.projects import progress as progress_crud
 from dashboard_backend.crud.projects.archive import (
     ArchiveError,
     archive_project as archive_project_crud,
+    replacement as replacement_crud,
     unarchive_project as unarchive_project_crud,
 )
 from dashboard_backend.crud.projects.bvwp import get_bvwp_data
@@ -857,6 +858,8 @@ def get_project(project_id: int, *, ctx: Context) -> dict[str, Any]:
             if bvwp
             else None
         )
+        # Successor of an archived, replaced project / archived projects it replaces.
+        data.update(replacement_crud(db, project.id))
         return data
 
 
@@ -1488,7 +1491,9 @@ def merge_projects(
             raise ToolError(str(exc)) from exc
 
 
-def archive_project(project_id: int, reason: str, *, ctx: Context) -> dict[str, Any]:
+def archive_project(
+    project_id: int, reason: str, replaced_by_project_id: int | None = None, *, ctx: Context
+) -> dict[str, Any]:
     """Archive a project that was replaced or superseded by other projects
     (requires ``project.delete``), e.g. old Teilmaßnahmen replaced by PFA-section
     subprojects. ``reason`` is mandatory and names what replaced it. An archived
@@ -1497,6 +1502,10 @@ def archive_project(project_id: int, reason: str, *, ctx: Context) -> dict[str, 
     the map, subproject lists, import candidates, nor in its parent's geometry,
     planning-state span or sums. Not for duplicates (merge_projects) and never
     for a really cancelled project (lifecycle ABGEBROCHEN stays visible).
+    ``replaced_by_project_id`` names the successor when one project replaced
+    this one (not itself, no draft, not archived): the detail page then links
+    both ways, get_project shows ``replaced_by`` / ``replaces``, and last year's
+    import assignments to this project are suggested for the successor.
     Refused while FinVe or GVFG links or non-archived subprojects exist — the
     error names them; move them first. Recorded in the changelog. Returns the
     project and ``kept_links`` (historical links that stay on the project)."""
@@ -1506,7 +1515,14 @@ def archive_project(project_id: int, reason: str, *, ctx: Context) -> dict[str, 
         _project_or_error(db, project_id)
         user = load_user(db, principal)
         try:
-            result = archive_project_crud(db, project_id, reason, user.id, user.username)
+            result = archive_project_crud(
+                db,
+                project_id,
+                reason,
+                user.id,
+                user.username,
+                replaced_by_project_id=replaced_by_project_id,
+            )
         except ArchiveError as exc:
             raise ToolError(str(exc)) from exc
         return {"project": _project_dict(result["project"]), "kept_links": result["kept_links"]}
