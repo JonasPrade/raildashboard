@@ -11,6 +11,18 @@ Test-Checkliste des ermöglichenden Issues hochgezogen und hier entfernt.
 
 ---
 
+## VIB-PFA-Prognosen #262 — Planungsstand nach Neuberechnung (braucht Deploy)
+
+Erst nach dem Deploy und einmal „Alle Projekte neu berechnen“ (Einstellungen →
+Planungsstand · Konflikte) prüfbar:
+
+- [ ] Projektseite Teilprojekt 2972 „Gaschwitz–Crimmitschau/Werdau“ → Planungsstand zeigt **Bau** (nicht „In Betrieb“); in den Quellen eine VIB-Zeile „… aus PFA-Terminen (3 von 15 Abschnitten)“ und eine erwartete Inbetriebnahme 12/2027.
+- [ ] `get_project_progress` für 2205, 2206, 2207, 2862, 2863 (Karlsruhe–Basel): keine VIB-Beobachtung „IN_BETRIEB“ mit `is_expected=false` und Datum nach 2024; 2206/2207/2862/2863 auf Bau, 2205 ohne VIB-Phase (nur erwartete Termine).
+- [ ] PF-Spur von 2205 (alle PFB „vsl.“) steht auf „läuft“, nicht „abgeschlossen“.
+- Bei Fehler: Beobachtungen per `get_project_progress` an #262 hängen.
+
+---
+
 ## VIB-PFA → Teilprojekte #256 — Lauf auf VIB 2023 (braucht Deploy)
 
 Erst nach dem Deploy prüfbar (MCP-Tools laufen gegen prod) und erst, wenn der parallele
