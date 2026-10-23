@@ -28,6 +28,7 @@ from dashboard_backend.schemas.admin_assignments import (
 )
 from dashboard_backend.schemas.gvfg import GvfgEntrySchema
 from dashboard_backend.schemas.projects.progress_schema import ProgressConflictRowSchema
+from dashboard_backend.schemas.tasks import TaskLaunchResponse
 router = AuthRouter()
 
 _require_editor = Depends(require_permission("assignment.manage"))
@@ -41,6 +42,19 @@ def get_progress_conflicts(
     """Projects whose planning state has a set-back conflict (newer report with
     a lower phase than older information)."""
     return list_progress_conflicts(db)
+
+
+@router.post("/progress-recompute", response_model=TaskLaunchResponse, status_code=202)
+def start_progress_recompute(
+    _current_user: User = Depends(require_permission("progress.edit")),
+) -> TaskLaunchResponse:
+    """Recompute the planning state of every project (Celery) — needed after a
+    deploy that changes the derivation; the lazy resync only covers projects
+    that are read."""
+    from dashboard_backend.tasks.progress import recompute_all_progress_task
+
+    task = recompute_all_progress_task.delay()
+    return TaskLaunchResponse(task_id=task.id)
 
 
 @router.get("/unassigned-finves", response_model=list[UnassignedFinveSchema])

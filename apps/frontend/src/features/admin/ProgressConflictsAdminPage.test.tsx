@@ -1,5 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MantineProvider } from "@mantine/core";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi } from "vitest";
 
@@ -9,7 +10,11 @@ vi.mock("../../lib/auth", () => ({
     useAuth: () => ({ can: () => true }),
 }));
 
-vi.mock("../../shared/api/queries", () => ({
+const startRecompute = vi.fn();
+
+vi.mock("../../shared/api/queries", async (importOriginal) => ({
+    ...(await importOriginal<typeof import("../../shared/api/queries")>()),
+    useStartProgressRecomputeAll: () => ({ mutate: startRecompute, isPending: false }),
     useProgressConflicts: () => ({
         isLoading: false,
         data: [
@@ -51,18 +56,30 @@ vi.mock("../../shared/api/queries", () => ({
     }),
 }));
 
-describe("ProgressConflictsAdminPage", () => {
-    it("lists a held-back conflict with its project and sources", () => {
-        render(
+function renderPage() {
+    render(
+        <QueryClientProvider client={new QueryClient()}>
             <MantineProvider>
                 <MemoryRouter>
                     <ProgressConflictsAdminPage />
                 </MemoryRouter>
-            </MantineProvider>,
-        );
+            </MantineProvider>
+        </QueryClientProvider>,
+    );
+}
+
+describe("ProgressConflictsAdminPage", () => {
+    it("lists a held-back conflict with its project and sources", () => {
+        renderPage();
         expect(screen.getByRole("link", { name: "ABS Beispiel" })).toHaveAttribute("href", "/projects/7");
         expect(screen.getByText("zurückgehalten")).toBeInTheDocument();
         expect(screen.getByText(/1 neuere Meldung/)).toBeInTheDocument();
         expect(screen.getByText(/FinVe · 2015 \(/)).toHaveTextContent("Untergrenze");
+    });
+
+    it("starts the recompute of all projects", () => {
+        renderPage();
+        fireEvent.click(screen.getByRole("button", { name: "Alle Projekte neu berechnen" }));
+        expect(startRecompute).toHaveBeenCalledTimes(1);
     });
 });
