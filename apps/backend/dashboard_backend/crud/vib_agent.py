@@ -16,6 +16,7 @@ from datetime import date, datetime, timezone
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session, joinedload, load_only, selectinload
 
+from dashboard_backend.crud.projects.archive import successor_map
 from dashboard_backend.crud._importer_common import ensure_projects_exist, recompute_for
 from dashboard_backend.crud.changelog import create_changelog_for_create
 from dashboard_backend.models.projects.project import Project
@@ -408,6 +409,9 @@ class _Matcher:
             .all()
         )
         self.by_id = {p.id: p for p in self.projects}
+        # Archived project → successor: last year's assignment to a replaced
+        # project hands over (feature-project-archive.md → „Ersetzt durch“).
+        self.successors = successor_map(db)
         # Confirmed, assigned entries of other reports (newest first) — the
         # editor's earlier decision is the strongest hint.
         self.history = (
@@ -427,15 +431,20 @@ class _Matcher:
         for old in self.history:
             if old.projects and same_vib_name(name, old.vib_name_raw):
                 for p in sorted(old.projects, key=lambda p: p.name or ""):
-                    if p.id not in seen:
+                    reason = f"Vorjahr: VIB {old.report.year} bestätigt"
+                    target = self.successors.get(p.id, p.id)
+                    if target != p.id:
+                        reason += f" · umgelenkt von „{p.name}“ (archiviert, ersetzt)"
+                    # An archived project without successor is no candidate.
+                    if target in self.by_id and target not in seen:
                         out.append(
                             {
-                                "project_id": p.id,
-                                "project_name": p.name,
-                                "reason": f"Vorjahr: VIB {old.report.year} bestätigt",
+                                "project_id": target,
+                                "project_name": self.by_id[target].name,
+                                "reason": reason,
                             }
                         )
-                        seen.add(p.id)
+                        seen.add(target)
                 break  # newest matching report only
         for pid, kind, score in rank_projects_for_vib_entry(name, self.projects)[:5]:
             if pid in seen:

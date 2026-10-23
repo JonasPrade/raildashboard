@@ -54,6 +54,10 @@ nächste Schritte). Darstellung als horizontaler Verlauf mit **Kreisen + Pfeilen
    Nicht in die Phasenkette gemischt; **nicht** standardmäßig angezeigt. Bei
    `PAUSIERT`/`ABGEBROCHEN` wird die **gesamte** Darstellung überblendet
    (Banner + abgeblendeter Stepper); die zuletzt bekannte Phase bleibt erhalten.
+   Begründung und „seit“-Datum (`lifecycle_note`, `lifecycle_date`) lassen sich zu
+   PAUSIERT/ABGEBROCHEN erfassen und stehen im Banner; AKTIV leert beide (2026-10-23, #261).
+   Ein durch ein anderes Projekt **ersetztes** Projekt wird archiviert, mit Nachfolger
+   (`feature-project-archive.md` → „Ersetzt durch“), nicht über den Lebenszyklus.
 
 **Ableitung = HYBRID** (Regel neu gefasst 2026-10-22): Ein Algorithmus erzeugt einen
 *Vorschlag* für die Headline-Phase, der redaktionell **übersteuerbar** bleibt (Phasen-Override).
@@ -194,7 +198,8 @@ ABGEBROCHEN)`, `SourceType`, `ObservationTrack (MAIN/PF/PARL)`.
 - `project_id` (FK unique, CASCADE)
 - `has_planfeststellung: bool`
 - `parl_befassung_relevant: bool | None` (`None` = Gruppen-Default verwenden)
-- `lifecycle_status: str` (default `AKTIV`)
+- `lifecycle_status: str` (default `AKTIV`); `lifecycle_note: str | None`,
+  `lifecycle_date: date | None` (Begründung/seit, nur bei PAUSIERT/ABGEBROCHEN)
 - `computed_phase / computed_confidence / computed_at`
 - Termin-Cache für Listen und Filter: `construction_start_date/_precision`,
   `commissioning_date/_precision` (→ „Datumsqualifikation“)

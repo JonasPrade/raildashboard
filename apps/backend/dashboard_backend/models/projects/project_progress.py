@@ -57,6 +57,9 @@ class ProjectProgress(Base):
         String(20), nullable=False, default=LifecycleStatus.AKTIV.value,
         server_default=LifecycleStatus.AKTIV.value,
     )
+    # Reason and start date of PAUSIERT / ABGEBROCHEN (cleared on AKTIV).
+    lifecycle_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    lifecycle_date: Mapped[date_type | None] = mapped_column(Date, nullable=True)
 
     # --- Cached derivation output -------------------------------------------
     computed_phase: Mapped[str | None] = mapped_column(String(40), nullable=True)

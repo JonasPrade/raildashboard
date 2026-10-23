@@ -97,7 +97,7 @@ Regeln für Grenzfälle:
   im Bericht und bleibt offen.
 - **Archivierte Projekte** (ersetzt/überholt) sind keine Kandidaten und erscheinen nicht
   in `list_projects`. Ersetzt eine neue Zeile ein altes Teilprojekt, das alte nicht auf
-  Entwurf setzen, sondern dem Nutzer vorschlagen, es mit `archive_project(id, reason)`
+  Entwurf setzen, sondern dem Nutzer vorschlagen, es mit `archive_project(id, reason, replaced_by_project_id)` (Nachfolger, wenn genau ein Projekt das alte ersetzt)
   zu archivieren.
 - Eine Zeile darf mehreren Projekten gehören (Sammel-GWU, Fußnote „bezieht sich auf
   Teil A 20 und Teil A 33“), mehrere Zeilen einem Projekt.
@@ -113,6 +113,11 @@ das Projekt sicher gefunden, das Alias mit `update_project(id, {"aliases": [...]
 ergänzen (bestehende Aliase mitsenden, die Liste wird ersetzt) — im nächsten Jahr ist
 der Treffer dann sicher. D-Nummern des Dashboards sind nicht die DT-Nummern des
 Infraplans; nie aus der Nummer allein schließen.
+
+**Archivierte Projekte mit Nachfolger:** Eine Vorjahres-Zuordnung auf ein archiviertes,
+ersetztes Projekt ist schon auf den Nachfolger umgelenkt (Hinweis „umgelenkt …“ bzw.
+`redirected_from`). Ordnest du trotzdem ein archiviertes Projekt zu, meldet das Tool es in
+`warnings` samt Nachfolger. `get_project` zeigt `replaced_by` / `replaces`.
 
 ## 5. Bestätigen
 

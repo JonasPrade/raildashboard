@@ -115,6 +115,10 @@ def build_suggestions(db: Session, entries: list[dict[str, Any]]) -> dict[str, A
     """
     by_key, refs = _project_index(db)
     previous = _previous_links(db)
+    # Imported here: crud.projects.archive reaches crud.projects.progress, which reads GVFG.
+    from dashboard_backend.crud.projects.archive import redirect_replaced, successor_map
+
+    successors = successor_map(db)
     by_base: dict[str, list[_ProjectRef]] = defaultdict(list)
     for key, projects in by_key.items():
         by_base[key_without_suffix(key)].extend(projects)
@@ -130,7 +134,13 @@ def build_suggestions(db: Session, entries: list[dict[str, Any]]) -> dict[str, A
         selected: list[int] = []
 
         if previous.get(key):
-            selected = [pid for pid in previous[key] if pid in lookup]
+            # Last edition's link to an archived, replaced project goes to the
+            # successor (feature-project-archive.md → „Ersetzt durch“).
+            redirected_ids, redirected = redirect_replaced(previous[key], successors)
+            selected = [pid for pid in redirected_ids if pid in lookup]
+            for new_id, old_id in redirected.items():
+                if new_id in lookup:
+                    flags.append(f"Vorausgabe: Projekt {old_id} ist archiviert – umgelenkt auf „{lookup[new_id].name}“")
             source = "previous"
         exact = by_key.get(key, [])
         for ref in exact:

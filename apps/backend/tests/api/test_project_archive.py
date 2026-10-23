@@ -283,3 +283,136 @@ def test_mcp_archive_refusal_names_links(mcp_client, admin_token, db_session):
     result = _call(mcp_client, admin_token, "archive_project", {"project_id": parent.id, "reason": REASON})
     assert result["isError"] is True
     assert "Teilprojekte" in result["content"][0]["text"]
+
+
+# --- Ersetzt durch (#261) ----------------------------------------------------
+
+
+def test_archive_with_successor_links_both_ways(client, create_user, db_session):
+    create_user("admin", "pass123", UserRole.admin)
+    headers = basic_auth_header("admin", "pass123")
+    _, old, new = _family(db_session)
+
+    resp = client.post(
+        f"/api/v1/projects/{old.id}/archive",
+        json={"reason": REASON, "replaced_by_project_id": new.id},
+        headers=headers,
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["project"]["replaced_by_project_id"] == new.id
+
+    assert client.get(f"/api/v1/projects/{old.id}/replacement").json() == {
+        "replaced_by": {"id": new.id, "name": "PFA 1", "project_number": None},
+        "replaces": [],
+    }
+    assert client.get(f"/api/v1/projects/{new.id}/replacement").json() == {
+        "replaced_by": None,
+        "replaces": [{"id": old.id, "name": "Alte Teilmaßnahme", "project_number": None}],
+    }
+    log = db_session.query(ChangeLog).filter_by(project_id=old.id, action="ARCHIVE").one()
+    assert {e.field_name: e.new_value for e in log.entries}["replaced_by_project_id"] == str(new.id)
+
+    # Restoring clears the successor (the changelog keeps it).
+    client.post(f"/api/v1/projects/{old.id}/unarchive", json={}, headers=headers)
+    db_session.refresh(old)
+    assert old.replaced_by_project_id is None
+    assert client.get(f"/api/v1/projects/{new.id}/replacement").json()["replaces"] == []
+
+
+@pytest.mark.parametrize(
+    "successor, message",
+    [("self", "selbst ersetzen"), ("missing", "gibt es nicht"), ("draft", "Entwurf"), ("archived", "selbst archiviert")],
+)
+def test_archive_rejects_invalid_successor(db_session, successor, message):
+    parent, old, new = _family(db_session)
+    other = Project(name="Anderes", is_draft=successor == "draft")
+    db_session.add(other)
+    db_session.commit()
+    if successor == "archived":
+        archive_crud.archive_project(db_session, other.id, REASON, None, None)
+    target = {"self": old.id, "missing": 999999}.get(successor, other.id)
+    with pytest.raises(archive_crud.ArchiveError, match=message):
+        archive_crud.archive_project(db_session, old.id, REASON, None, None, replaced_by_project_id=target)
+    db_session.refresh(old)
+    assert old.is_archived is False
+
+
+def test_successor_map_follows_chain_and_redirects():
+    from dashboard_backend.crud.projects.archive import redirect_replaced
+
+    ids, redirected = redirect_replaced([1, 2, 3], {1: 3, 2: 4})
+    assert ids == [3, 4]
+    assert redirected == {3: 1, 4: 2}
+
+
+def test_successor_map_skips_archived_without_reachable_successor(db_session):
+    a, b, c = (Project(name=n) for n in ("A", "B", "C"))
+    db_session.add_all([a, b, c])
+    db_session.commit()
+    archive_crud.archive_project(db_session, a.id, REASON, None, None, replaced_by_project_id=b.id)
+    archive_crud.archive_project(db_session, b.id, REASON, None, None, replaced_by_project_id=c.id)
+    assert archive_crud.successor_map(db_session) == {a.id: c.id, b.id: c.id}
+    archive_crud.archive_project(db_session, c.id, REASON, None, None)
+    assert archive_crud.successor_map(db_session) == {}
+
+
+def test_mcp_archive_with_successor_and_assignment_warning(mcp_client, admin_token, db_session):
+    _, old, new = _family(db_session)
+    result = _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "archive_project",
+            {"project_id": old.id, "reason": REASON, "replaced_by_project_id": new.id},
+        )
+    )
+    assert result["project"]["replaced_by_project_id"] == new.id
+    detail = _payload(_call(mcp_client, admin_token, "get_project", {"project_id": new.id}))
+    assert detail["replaces"] == [{"id": old.id, "name": "Alte Teilmaßnahme", "project_number": None}]
+    assert archive_crud.archived_warnings(db_session, [old.id, new.id]) == [
+        f"Projekt {old.id} „Alte Teilmaßnahme“ ist archiviert und ersetzt durch {new.id} „PFA 1“"
+        " — Zuordnung gespeichert; meist gehört sie zum Nachfolger."
+    ]
+
+
+def test_merge_moves_successor_links(db_session, monkeypatch):
+    from dashboard_backend.crud.projects import merge as merge_crud
+
+    monkeypatch.setattr(merge_crud.progress_crud, "sync_derived_observations", lambda db, pid: None)
+    monkeypatch.setattr(merge_crud.progress_crud, "recompute_progress", lambda db, pid: True)
+    old, survivor, merged = (Project(name=n) for n in ("Alt", "Neu", "Neu doppelt"))
+    db_session.add_all([old, survivor, merged])
+    db_session.commit()
+    archive_crud.archive_project(db_session, old.id, REASON, None, None, replaced_by_project_id=merged.id)
+    old_id, survivor_id = old.id, survivor.id
+
+    merge_crud.merge_projects(db_session, survivor_id, merged.id, apply=True)
+    db_session.expire_all()
+    assert db_session.get(Project, old_id).replaced_by_project_id == survivor_id
+
+
+def test_previous_edition_link_goes_to_successor(db_session, monkeypatch):
+    from dashboard_backend.crud import gvfg as gvfg_crud
+
+    old = Project(name="Stadtbahn alt", project_number="08 D 1_A")
+    new = Project(name="Stadtbahn neu")
+    db_session.add_all([old, new])
+    db_session.commit()
+    archive_crud.archive_project(db_session, old.id, REASON, None, None, replaced_by_project_id=new.id)
+    monkeypatch.setattr(gvfg_crud, "_previous_links", lambda db: {"08 D 1_A": [old.id]})
+
+    out = gvfg_crud.build_suggestions(db_session, [{"key": "08 D 1_A", "name": "Stadtbahn"}])["by_key"]["08 D 1_A"]
+    assert out["selected"] == [new.id]
+    assert any("umgelenkt" in flag for flag in out["flags"])
+
+
+def test_infraplan_hit_on_archived_project_moves_to_successor():
+    from dashboard_backend.tasks.infraplan_matching import ProjectRef, suggest_rows
+
+    # The archived project is no candidate (load_projects skips it); its number
+    # still comes from last year's confirmed link.
+    projects = [ProjectRef(2, "NBS/ABS Bielefeld – Seelze")]
+    row = {"row_key": "A-1", "section": "A", "primary_number": "2-016-V01"}
+    out = suggest_rows([row], projects, {"2-016-V01": [1]}, successors={1: 2})["A-1"]
+    assert out[0]["project_id"] == 2
+    assert out[0]["redirected_from"] == 1

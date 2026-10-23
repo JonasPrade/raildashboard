@@ -119,6 +119,56 @@ Hinweis-Banner „Archiviert" mit Begründung und Datum.
 - [ ] Beide Wege (REST, MCP) schreiben einen ARCHIVE/UNARCHIVE-Eintrag ins Änderungsprotokoll.
 - [ ] Migration nur additiv.
 
+## Ersetzt durch: Nachfolgeprojekt (#261)
+
+Ein archiviertes Projekt kann auf sein **Nachfolgeprojekt** verweisen. Anlass:
+1477 „ABS/NBS Hannover – Bielefeld (BVWP)“ wird durch 1535 „NBS/ABS Bielefeld –
+Seelze“ ersetzt; bisher nur über Projekttexte (Warnung/Info mit Weblink) abgebildet.
+
+**Entscheidungen (Widerspruchs-Check 2026-10-23, vom Nutzer entschieden):** Der erste
+Plan für #261 sah einen Lebenszyklus `ERSETZT` am Planungsstand vor (mit eigenem
+Ausblenden und eigener Ausnahme bei der Aggregation). Das widersprach W4 dieses
+Dokuments (eigenes Kennzeichen am Projekt, nicht im Lebenszyklus) und hätte zwei
+Mechanismen für denselben Sachverhalt ergeben.
+
+| # | Entscheidung |
+|---|---|
+| R1 | Kein Lebenszyklus `ERSETZT`. Der Nachfolger ist ein optionales Feld des **Archivs**; Ausblenden und Aggregation regelt das Archiv wie oben. |
+| R2 | Begründung und „seit“-Datum für PAUSIERT/ABGEBROCHEN bleiben als eigene Felder am Planungsstand (`lifecycle_note`, `lifecycle_date`), unabhängig vom Archiv (`feature-project-progress.md` → Lebenszyklus). |
+| R3 | Importvorschläge, die auf ein archiviertes Projekt mit Nachfolger zeigen würden (Übernahme aus dem Vorjahr), gehen an den Nachfolger, mit Hinweis. Ohne Nachfolger entfällt der Vorschlag wie bisher. Bestätigte Zuordnungen bleiben unangetastet. |
+| R4 | Für 1477 → 1535 wird die Sammel-FinVe 763 auf 1535 umgehängt (W5 bleibt: keine Ausnahme für Projekte mit FinVe). |
+
+**Datenmodell:** `project.replaced_by_project_id` (FK `project.id`, `ON DELETE SET NULL`,
+nullable, Expand-only-Migration `20261023002`). Nur bei archivierten Projekten gesetzt;
+Wiederherstellen leert ihn (das Änderungsprotokoll behält ihn).
+
+**Regeln beim Archivieren mit Nachfolger:** Der Nachfolger existiert, ist nicht das
+Projekt selbst, kein Entwurf und nicht archiviert. Damit kann kein Ring entstehen. Wird
+ein Nachfolger später selbst archiviert (mit eigenem Nachfolger), folgen die
+Importvorschläge der Kette bis zum ersten nicht archivierten Projekt.
+
+**Anzeige:** Das Archiv-Banner zeigt „Ersetzt durch <Projekt>“ mit Link; der Nachfolger
+zeigt „Ersetzt <Projekt>“ (Rückverweis, auch mehrere). Beides liefert
+`GET /api/v1/projects/{id}/replacement` (`replaced_by`, `replaces`; öffentlich wie die
+Detailseite). Im Archiv-Dialog wählt man den Nachfolger optional per Projektsuche.
+
+**MCP:** `archive_project(project_id, reason, replaced_by_project_id=None)`;
+`get_project` liefert `replaced_by` und `replaces`. Zuordnungs-Tools (VIB, Fulda,
+Infraplan, GVFG) melden in `warnings`, wenn ein archiviertes Projekt zugeordnet wird,
+mit dem Nachfolger.
+
+**Zusammenführen:** Die Spalte liegt am Projekt, die allgemeine Umbiegung der
+Fremdschlüssel erfasst sie: Verweise auf das verworfene Projekt zeigen danach auf das
+bleibende. Das bleibende Projekt behält seinen eigenen Nachfolger (wie seinen
+Archiv-Zustand); würde es auf sich selbst zeigen, wird der Verweis geleert.
+
+**Akzeptanzkriterien:**
+- [ ] Archivieren nimmt optional einen Nachfolger (Dialog und MCP); die Regeln oben greifen.
+- [ ] Banner „Ersetzt durch …“ mit Link am alten, „Ersetzt …“ am neuen Projekt.
+- [ ] Ein Vorjahres-Vorschlag auf ein archiviertes Projekt mit Nachfolger zeigt auf den Nachfolger.
+- [ ] Wiederherstellen leert den Nachfolger; Löschen des Nachfolgers leert den Verweis.
+- [ ] 1477 ist archiviert mit Nachfolger 1535; FinVe 763 hängt an 1535.
+
 ## Nacharbeit nach dem Deploy
 
 Die 8 Puttgarden-Teilmaßnahmen 1716, 1717, 1718, 1719, 1720, 1722, 1691, 1693

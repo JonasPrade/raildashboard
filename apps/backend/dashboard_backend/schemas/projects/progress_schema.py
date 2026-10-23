@@ -208,6 +208,9 @@ class ProjectProgressUpdate(BaseModel):
     has_planfeststellung: Optional[bool] = None
     parl_befassung_relevant: Optional[bool] = None  # null clears → group default
     lifecycle_status: Optional[LifecycleStatusLiteral] = None
+    # Reason and start date of PAUSIERT / ABGEBROCHEN; AKTIV clears both.
+    lifecycle_note: Optional[str] = None  # "" clears
+    lifecycle_date: Optional[date] = None
     manual_phase_override: Optional[MainPhaseLiteral] = None
     manual_override_note: Optional[str] = None
     pf_state_override: Optional[ParallelStateLiteral] = None
@@ -226,6 +229,7 @@ class ProjectProgressUpdate(BaseModel):
     clear_parl_relevant: Optional[bool] = None
     clear_parl_state_override: Optional[bool] = None
     clear_pf_state_override: Optional[bool] = None
+    clear_lifecycle_date: Optional[bool] = None
 
 
 # --- Forecast (Phase 3) ------------------------------------------------------
@@ -321,6 +325,8 @@ class ProjectProgressSchema(BaseModel):
     parl_befassung_relevant: bool  # resolved (override ?? group default)
     parl_befassung_relevant_override: Optional[bool] = None  # raw stored value
     lifecycle_status: LifecycleStatusLiteral
+    lifecycle_note: Optional[str] = None
+    lifecycle_date: Optional[date] = None
 
     # Resolved parallel tracks (null when the track is inactive).
     pf_state: Optional[ParallelStateLiteral] = None

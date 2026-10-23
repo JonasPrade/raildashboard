@@ -86,12 +86,17 @@ Je Entwurf:
   Nutzer es will und das Projekt Daten hat (mindestens Beschreibung; Geometrie per
   `route_project_geometry`/`edit_project_geometry` ist ein eigener Schritt).
 - Ein Projekt, das durch **andere** Projekte ersetzt wurde (keine Dublette), wird nicht
-  als Entwurf geparkt, sondern mit `archive_project(id, reason)` archiviert — erst
+  als Entwurf geparkt, sondern mit `archive_project(id, reason, replaced_by_project_id)` (Nachfolger, wenn genau ein Projekt das alte ersetzt) archiviert — erst
   nachdem seine GVFG-Zuordnung umgehängt ist (`assign_gvfg_entry`), sonst lehnt das Tool
   ab. Nur auf Wunsch des Nutzers.
 
 Gruppen setzt `assign_gvfg_entry` selbst („GVFG“, Land 08 auch „GVFG BW“) und entfernt
 nie welche — keine Gruppen von Hand nachziehen.
+
+**Archivierte Projekte mit Nachfolger:** Eine Vorjahres-Zuordnung auf ein archiviertes,
+ersetztes Projekt ist schon auf den Nachfolger umgelenkt (Hinweis „umgelenkt …“ bzw.
+`redirected_from`). Ordnest du trotzdem ein archiviertes Projekt zu, meldet das Tool es in
+`warnings` samt Nachfolger. `get_project` zeigt `replaced_by` / `replaces`.
 
 ## 5. Gegenprobe und Bericht
 
