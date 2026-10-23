@@ -479,6 +479,14 @@ App), wartet auf `/healthz` und rollt sonst automatisch auf den vorherigen SHA z
 cd /srv/raildashboard && docker compose exec backend python scripts/refresh_progress_dates.py
 ```
 
+Ändert ein Deploy die Ableitung des Planungsstands (z. B. die Quelle GVFG), danach einmal
+alle Projekte neu berechnen: im Admin-Bereich unter „Planungsstand-Konflikte“ der Knopf
+„Alle Projekte neu berechnen“ (läuft im Worker) oder auf dem Server
+
+```bash
+cd /srv/raildashboard && docker compose exec backend python scripts/recompute_progress.py
+```
+
 **Rollback:** derselbe Knopf mit einer früheren SHA. Von Hand auf dem Server (als `deploy`):
 
 ```bash

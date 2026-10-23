@@ -1,9 +1,18 @@
 import { Link } from "react-router-dom";
-import { Alert, Badge, Container, Paper, Stack, Table, Text, Title } from "@mantine/core";
+import { Alert, Badge, Button, Container, Group, Paper, Stack, Table, Text, Title } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
+import { useQueryClient } from "@tanstack/react-query";
+import { RefreshCw } from "lucide-react";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 
 import RequirePermission from "../../components/RequirePermission";
-import { type ProgressConflictRow, useProgressConflicts } from "../../shared/api/queries";
+import {
+    type ProgressConflictRow,
+    queryKeys,
+    useProgressConflicts,
+    useStartProgressRecomputeAll,
+} from "../../shared/api/queries";
+import { TaskProgressIndicator, useImportTask } from "../import-review/shared";
 import {
     SOURCE_LABEL,
     formatAge,
@@ -82,6 +91,84 @@ function Row({ row }: { row: ProgressConflictRow }) {
     );
 }
 
+type RecomputeStats = {
+    projects: number;
+    known_before: number;
+    known_after: number;
+    phase_changed: number;
+};
+
+/**
+ * „Alle Projekte neu berechnen“ — the full resync after a deploy that changes
+ * the derivation. Single projects resync lazily when read, so list views,
+ * filters and data gaps otherwise lag behind for days.
+ */
+function RecomputeAllCard() {
+    const queryClient = useQueryClient();
+    const start = useStartProgressRecomputeAll();
+    const task = useImportTask({
+        onSuccess: (result) => {
+            task.reset();
+            queryClient.invalidateQueries({ queryKey: queryKeys.projects });
+            queryClient.invalidateQueries({ queryKey: ["project-progress"] });
+            const stats = result as RecomputeStats | null;
+            notifications.show({
+                color: "green",
+                title: "Planungsstand neu berechnet",
+                message: stats
+                    ? `${stats.projects} Projekte · bekannt ${stats.known_before} → ${stats.known_after} · ` +
+                      `${stats.phase_changed} Phasen geändert`
+                    : "Der neue Stand ist sichtbar.",
+            });
+        },
+        onFailure: (error) =>
+            notifications.show({
+                color: "red",
+                title: "Neuberechnung fehlgeschlagen",
+                message: error ?? "Unbekannter Fehler — Details im Worker-Log.",
+                autoClose: false,
+            }),
+    });
+    const busy = start.isPending || task.taskId !== null;
+
+    const launch = () =>
+        start.mutate(undefined, {
+            onSuccess: (response) => task.start(response.task_id),
+            onError: (error) =>
+                notifications.show({
+                    color: "red",
+                    title: "Neuberechnung konnte nicht gestartet werden",
+                    message: error instanceof Error ? error.message : "Unbekannter Fehler.",
+                }),
+        });
+
+    return (
+        <Paper withBorder p="var(--card-pad)">
+            <Stack gap="sm">
+                <Text fw={500}>Alle Projekte neu berechnen</Text>
+                <Text size="sm" c="dimmed">
+                    Leitet den Planungsstand aller Projekte neu aus den Quellen ab (VIB, FinVe, Infraplan,
+                    GVFG, …) und aktualisiert Phase, Baubeginn und Inbetriebnahme in Listen und Filtern. Nötig
+                    nach einem Update mit geänderten Berechnungsregeln — sonst rechnet ein Projekt erst neu,
+                    wenn es geöffnet wird. Dauert einige Minuten.
+                </Text>
+                <Group>
+                    <Button variant="light" leftSection={<RefreshCw size={16} />} loading={busy} onClick={launch}>
+                        Alle Projekte neu berechnen
+                    </Button>
+                </Group>
+                {task.isRunning && (
+                    <TaskProgressIndicator
+                        progress={task.progress}
+                        label={task.progress?.step_label ?? "Wartet auf den Worker …"}
+                        warning={task.warning}
+                    />
+                )}
+            </Stack>
+        </Paper>
+    );
+}
+
 function ProgressConflictsAdminPageContent() {
     const { data, isLoading } = useProgressConflicts();
     const rows = data ?? [];
@@ -100,6 +187,8 @@ function ProgressConflictsAdminPageContent() {
                         Beobachtung.
                     </Text>
                 </Stack>
+
+                <RecomputeAllCard />
 
                 {heldBack > 0 && (
                     <Alert color="orange" variant="light">

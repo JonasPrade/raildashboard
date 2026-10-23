@@ -82,6 +82,9 @@
     ]
   },
   "enabledPlugins": {
-    "frontend-design@claude-plugins-official": true
+    "frontend-design@claude-plugins-official": true,
+    "bank-rechtsabteilung@synced": false,
+    "vereinsrecht-vereinsmanager@synced": false,
+    "social-media-skills@synced": false
   }
 }
