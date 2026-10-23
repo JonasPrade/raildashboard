@@ -468,6 +468,14 @@ export function useProgressConflicts(enabled = true) {
     });
 }
 
+/** Recompute the planning state of every project (Celery) — after a deploy
+ *  that changes the derivation; returns the task id to poll. */
+export function useStartProgressRecomputeAll() {
+    return useMutation({
+        mutationFn: () => api<TaskLaunchResponse>("/api/v1/admin/progress-recompute", { method: "POST" }),
+    });
+}
+
 export function useRecomputeProgress(projectId: number) {
     return useInvalidatingMutation(
         () =>

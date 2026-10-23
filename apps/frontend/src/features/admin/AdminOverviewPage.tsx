@@ -176,7 +176,7 @@ export default function AdminOverviewPage() {
                                             </Badge>
                                         )}
                                     </Group>
-                                    <Text size="sm" c="dimmed">Neuere Berichte mit niedrigerer Phase als ältere Angaben prüfen</Text>
+                                    <Text size="sm" c="dimmed">Neuere Berichte mit niedrigerer Phase als ältere Angaben prüfen; alle Projekte neu berechnen</Text>
                                 </Stack>
                             </Link>
                         </Paper>

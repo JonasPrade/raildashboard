@@ -106,6 +106,22 @@ def link_project_to_finves(db: Session, project_id: int, finve_ids: list[int]) -
             db.add(FinveToProject(finve_id=finve_id, project_id=project_id, haushalt_year=None))
 
 
+def unlink_finve_from_projects(db: Session, finve_id: int, project_ids: list[int]) -> list[int]:
+    """Delete every finve_to_project row between the FinVe and these projects —
+    the permanent one and, for Sammel-FinVes, all year-scoped ones. Returns the
+    project ids that actually had a link."""
+    if not project_ids:
+        return []
+    query = db.query(FinveToProject).filter(
+        FinveToProject.finve_id == finve_id,
+        FinveToProject.project_id.in_(project_ids),
+    )
+    removed = sorted({row.project_id for row in query.all()})
+    query.delete(synchronize_session=False)
+    db.flush()
+    return removed
+
+
 def assign_vib_entry_to_projects(db: Session, entry_id: int, project_ids: list[int]) -> None:
     """Insert vib_entry_project rows. Skips existing links."""
     rows = db.execute(
