@@ -240,6 +240,22 @@ export const featureHighlights: FeatureHighlight[] = [
         ]
     },
     {
+        title: "Projekte archivieren (ersetzt oder überholt)",
+        description:
+            "Ein Projekt, das durch andere Projekte ersetzt wurde oder überholt ist, wird archiviert statt gelöscht " +
+            "oder als Entwurf geparkt. Es behält seine Historie (VIB, Infraplan, Geometrie, Versionshistorie), zählt " +
+            "aber nirgends mehr. Für Dubletten ist „Zusammenführen“ da; ein abgebrochenes Projekt bleibt sichtbar.",
+        details: [
+            "Detailseite: „Archivieren“ (Begründung Pflicht) neben „Löschen“; archivierte Projekte zeigen oben einen Hinweis mit Begründung und Datum und sind per Link weiter erreichbar",
+            "Archivierte Projekte fehlen in Liste, Karte, Projektgruppen, Auswahllisten, Unterprojekten, Zeitstrahl, Abgeordneten-Listen, Entwürfen und als Vorschlag in den Importen",
+            "Beim übergeordneten Projekt zählen sie nicht mit: weder in der Geometrie noch in der Spanne des Planungsstands noch in Summen über Teilprojekte",
+            "Abgelehnt, solange FinVe- oder GVFG-Zuordnungen oder nicht archivierte Unterprojekte am Projekt hängen (die Meldung nennt sie) oder der Lebenszyklus „Abgebrochen“ ist",
+            "Admin-Seite /admin/archive: alle archivierten Projekte mit Begründung, Datum und übergeordnetem Projekt, „Wiederherstellen“",
+            "Archivieren und Wiederherstellen stehen in der Versionshistorie; MCP: archive_project, unarchive_project",
+            "Nur mit dem Recht project.delete (wie Löschen)"
+        ]
+    },
+    {
         title: "Projektgeometrie erstellen & bearbeiten",
         description:
             "Editors und Admins legen die Geometrie eines Projekts über den geteilten Geometrie-Editor an — " +
@@ -320,7 +336,7 @@ export const featureHighlights: FeatureHighlight[] = [
         details: [
             "Schritt 1 des Wizards legt das Projekt als Entwurf an (is_draft=true)",
             "'Projekt fertigstellen' setzt is_draft=false (öffentlich sichtbar); 'Als Entwurf speichern' verlässt den Wizard ohne Finalisierung",
-            "Admin-Seite /admin/drafts: Weiter bearbeiten, Fertigstellen, Verwerfen",
+            "Admin-Seite /admin/drafts: Weiter bearbeiten, Fertigstellen, Verwerfen (archivierte Projekte erscheinen hier nicht)",
             "GET /projects/ liefert nur finalisierte Projekte; GET /projects/drafts die Entwürfe (project.create)",
             "Nur für editor/admin sichtbar"
         ]

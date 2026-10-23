@@ -31,6 +31,7 @@ export const queryKeys = {
     allProjectTexts: ["projectTexts"],
     projectTexts: (projectId: number) => ["projectTexts", projectId] as const,
     projectDrafts: ["projectDrafts"],
+    projectArchive: ["projectArchive"],
     projectGroups: ["projectGroups"],
     // Nested under `projectGroups`: invalidating the group list refreshes the
     // map geometries as well.
@@ -468,6 +469,14 @@ export function useProgressConflicts(enabled = true) {
     });
 }
 
+/** Recompute the planning state of every project (Celery) — after a deploy
+ *  that changes the derivation; returns the task id to poll. */
+export function useStartProgressRecomputeAll() {
+    return useMutation({
+        mutationFn: () => api<TaskLaunchResponse>("/api/v1/admin/progress-recompute", { method: "POST" }),
+    });
+}
+
 export function useRecomputeProgress(projectId: number) {
     return useInvalidatingMutation(
         () =>
@@ -700,6 +709,60 @@ export function useDeleteProject() {
             queryKeys.projectDrafts,
         ],
     );
+}
+
+export type ArchivedProject = components["schemas"]["ArchivedProjectSchema"];
+export type ProjectArchiveResult = components["schemas"]["ProjectArchiveResult"];
+
+/** Archived projects for the admin archive page (feature-project-archive.md). */
+export function useArchivedProjects(enabled = true) {
+    return useQuery({
+        queryKey: queryKeys.projectArchive,
+        enabled,
+        queryFn: () => api<ArchivedProject[]>("/api/v1/projects/archived"),
+    });
+}
+
+/**
+ * Archiving or restoring takes a project out of (or back into) every list and
+ * its parent's aggregation — refresh the lists, the map, the drafts and the
+ * parent (its geometry and planning state were recomputed).
+ */
+function invalidateAfterArchiveChange(queryClient: QueryClient, project: Project) {
+    invalidateAfterGeometryChange(queryClient, project);
+    queryClient.invalidateQueries({ queryKey: queryKeys.projectDrafts });
+    queryClient.invalidateQueries({ queryKey: queryKeys.projectArchive });
+    queryClient.invalidateQueries({ queryKey: queryKeys.progress });
+    if (project.id != null) {
+        queryClient.setQueryData(queryKeys.project(project.id), project);
+        queryClient.invalidateQueries({ queryKey: queryKeys.projectChangelog(project.id) });
+    }
+}
+
+/** Archive a replaced/superseded project; the reason is mandatory. */
+export function useArchiveProject() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ projectId, reason }: { projectId: number; reason: string }) =>
+            api<ProjectArchiveResult>(`/api/v1/projects/${projectId}/archive`, {
+                method: "POST",
+                json: { reason },
+            }),
+        onSuccess: (result) => invalidateAfterArchiveChange(queryClient, result.project),
+    });
+}
+
+/** Restore an archived project; the reason is an optional changelog note. */
+export function useUnarchiveProject() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ projectId, reason }: { projectId: number; reason?: string }) =>
+            api<Project>(`/api/v1/projects/${projectId}/unarchive`, {
+                method: "POST",
+                json: { reason: reason || null },
+            }),
+        onSuccess: (project) => invalidateAfterArchiveChange(queryClient, project),
+    });
 }
 
 export function useLinkFinvesToProject(projectId: number) {

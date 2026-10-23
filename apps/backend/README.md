@@ -151,7 +151,8 @@ and `create_project`, `create_project_group`, `compute_project_length`, `update_
 `update_todo`, `update_todo_tag`, `route_project_geometry` (GraphHopper route, preview or apply),
 `edit_project_geometry` (draw lines/points, add operational points, delete features),
 `assign_gvfg_entry` (needs `assignment.manage`: replace a GVFG Vorhaben's projects, optionally
-in every edition) (write),
+in every edition), `update_finve_projects` (needs `finve.edit`: add/remove a FinVe's permanent
+project links, logged per project and with the planning state recomputed) (write),
 and `merge_projects` (destructive, needs `project.merge`: merge a duplicate into another
 project, preview by default, `apply=true` deletes the duplicate and leaves a `project_redirect`;
 same logic as `POST /api/v1/projects/merge`, see `docs/features/feature-project-merge.md`).

@@ -158,6 +158,8 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
         "compute_project_length",
         "update_project",
         "set_project_draft",
+        "archive_project",
+        "unarchive_project",
         "set_project_groups",
         "add_progress_observation",
         "update_progress_observation",

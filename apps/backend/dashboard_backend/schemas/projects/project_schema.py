@@ -1,5 +1,5 @@
 import math
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 from typing import Optional, Any
@@ -143,6 +143,10 @@ class ProjectSchema(BaseModel):
     # Other names and ids ("DT 38", "Gäubahn") — matched by the Infraplan import.
     aliases: Optional[list[str]] = None
     is_draft: bool = False
+    # Archived: replaced/superseded, counts nowhere (feature-project-archive.md).
+    is_archived: bool = False
+    archived_reason: Optional[str] = None
+    archived_at: Optional[datetime] = None
 
     effects_passenger_long_rail: Optional[bool] = False
     effects_passenger_local_rail: Optional[bool] = False
@@ -214,9 +218,9 @@ class ProjectSchema(BaseModel):
 
 # Boolean project properties (train categories + infrastructure features).
 # Derived from ProjectSchema so a new flag column shows up in the slim list
-# automatically. ``is_draft`` and ``geojson_from_subprojects`` are state, not
+# automatically. ``is_draft``, ``is_archived`` and ``geojson_from_subprojects`` are state, not
 # properties of the measure.
-_NON_FEATURE_FLAGS = {"is_draft", "geojson_from_subprojects"}
+_NON_FEATURE_FLAGS = {"is_draft", "is_archived", "geojson_from_subprojects"}
 PROJECT_FLAG_FIELDS: tuple[str, ...] = tuple(
     name
     for name, field in ProjectSchema.model_fields.items()

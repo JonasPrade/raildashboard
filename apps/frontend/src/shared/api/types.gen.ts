@@ -136,6 +136,69 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/archived": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Archived Projects
+         * @description Archived projects for the admin archive page, newest first
+         *     (feature-project-archive.md).
+         */
+        get: operations["read_archived_projects_api_v1_projects_archived_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archive Project Endpoint
+         * @description Archive a replaced or superseded project with a mandatory reason. Refused
+         *     (400, naming the links) while FinVe/GVFG links or non-archived subprojects
+         *     exist, or when the lifecycle is ABGEBROCHEN. Recorded in the changelog.
+         */
+        post: operations["archive_project_endpoint_api_v1_projects__project_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Unarchive Project Endpoint
+         * @description Restore an archived project. Recorded in the changelog.
+         */
+        post: operations["unarchive_project_endpoint_api_v1_projects__project_id__unarchive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/finalize": {
         parameters: {
             query?: never;
@@ -219,7 +282,7 @@ export interface paths {
         };
         /**
          * Read Subprojects
-         * @description Direct subprojects of a project, drafts excluded.
+         * @description Direct subprojects of a project, drafts and archived projects excluded.
          */
         get: operations["read_subprojects_api_v1_projects__project_id__subprojects_get"];
         put?: never;
@@ -2406,6 +2469,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/progress-recompute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Progress Recompute
+         * @description Recompute the planning state of every project (Celery) — needed after a
+         *     deploy that changes the derivation; the lazy resync only covers projects
+         *     that are read.
+         */
+        post: operations["start_progress_recompute_api_v1_admin_progress_recompute_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/unassigned-finves": {
         parameters: {
             query?: never;
@@ -3135,6 +3220,26 @@ export interface components {
             datenschutz_url?: string | null;
             /** Datenschutz Markdown */
             datenschutz_markdown?: string | null;
+        };
+        /**
+         * ArchivedProjectSchema
+         * @description One row of the admin archive page.
+         */
+        ArchivedProjectSchema: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Project Number */
+            project_number?: string | null;
+            /** Archived Reason */
+            archived_reason?: string | null;
+            /** Archived At */
+            archived_at?: string | null;
+            /** Superior Project Id */
+            superior_project_id?: number | null;
+            /** Superior Project Name */
+            superior_project_name?: string | null;
         };
         /** AssignProjectsInput */
         AssignProjectsInput: {
@@ -6028,6 +6133,25 @@ export interface components {
             /** Is Expected */
             is_expected?: boolean | null;
         };
+        /** ProjectArchiveRequest */
+        ProjectArchiveRequest: {
+            /**
+             * Reason
+             * @description Why the project is archived (mandatory).
+             */
+            reason: string;
+        };
+        /** ProjectArchiveResult */
+        ProjectArchiveResult: {
+            project: components["schemas"]["ProjectSchema"];
+            /**
+             * Kept Links
+             * @description Historical source links the project keeps (VIB, PFA, Infraplan, Fulda, Bauportal, media) — they no longer reach the parent.
+             */
+            kept_links?: {
+                [key: string]: number;
+            };
+        };
         /** ProjectConstituenciesSchema */
         ProjectConstituenciesSchema: {
             /** Project Id */
@@ -6682,6 +6806,15 @@ export interface components {
              */
             is_draft: boolean;
             /**
+             * Is Archived
+             * @default false
+             */
+            is_archived: boolean;
+            /** Archived Reason */
+            archived_reason?: string | null;
+            /** Archived At */
+            archived_at?: string | null;
+            /**
              * Effects Passenger Long Rail
              * @default false
              */
@@ -7058,6 +7191,14 @@ export interface components {
              * @default []
              */
             construction_periods: components["schemas"]["TimelinePeriodSchema"][];
+        };
+        /** ProjectUnarchiveRequest */
+        ProjectUnarchiveRequest: {
+            /**
+             * Reason
+             * @description Optional note for the changelog.
+             */
+            reason?: string | null;
         };
         /**
          * ProjectUpdate
@@ -8757,6 +8898,111 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_archived_projects_api_v1_projects_archived_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArchivedProjectSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_project_endpoint_api_v1_projects__project_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectArchiveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectArchiveResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unarchive_project_endpoint_api_v1_projects__project_id__unarchive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectUnarchiveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectSchema"];
                 };
             };
             /** @description Validation Error */
@@ -13115,6 +13361,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProgressConflictRowSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_progress_recompute_api_v1_admin_progress_recompute_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskLaunchResponse"];
                 };
             };
             /** @description Validation Error */

@@ -189,3 +189,14 @@ def test_delta_new_finve_takes_suggestions():
 
 def test_delta_without_parsed_row_only_adds():
     assert permanent_link_delta(None, [7]) == ({7}, set())
+
+
+def test_archived_project_gets_no_finve(client, db_session, create_user):
+    create_user("editor_fl", "pass", UserRole.editor)
+    _, _, other = _seed(db_session)
+    other.is_archived = True
+    other.archived_reason = "ersetzt"
+    db_session.commit()
+    resp = _patch(client, 900008, {"add_project_ids": [other.id]})
+    assert resp.status_code == 409
+    assert "archiviert" in resp.json()["detail"]

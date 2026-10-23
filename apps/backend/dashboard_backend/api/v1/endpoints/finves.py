@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from dashboard_backend.core.security import require_permission
 from dashboard_backend.crud.finve_links import (
+    FinveLinkConflict,
     FinveLinkError,
     permanent_projects,
     update_finve_projects,
@@ -76,6 +77,8 @@ def patch_finve_projects(
             remove_project_ids=body.remove_project_ids,
             user=current_user,
         )
+    except FinveLinkConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except FinveLinkError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return FinveProjectsSchema(

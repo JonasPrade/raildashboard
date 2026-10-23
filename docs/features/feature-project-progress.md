@@ -133,10 +133,28 @@ sind nur eine Vorhaben-Zusammenfassung und würden das ganze Projekt auf **eine*
 plattdrücken. Stattdessen wird jede PFA-Zeile per neuer FK **`vib_pfa_entry.project_id`**
 einem **Blatt-Unterprojekt** zugeordnet (1:1, nullable, `SET NULL`):
 
-- **Pro-PFA-MAIN-Ableitung** aus den (bisher ungenutzten) Abschnittsterminen:
-  `inbetriebnahme` → `IN_BETRIEB`, sonst `baubeginn` → `BAU`, sonst `datum_pfb`
-  (Planfeststellungsbeschluss) → `GENEHMIGUNGSPLANUNG`; kein Termin → kein MAIN-Beitrag
-  (PF-Spur bleibt). `observed_date` = jeweiliges Termin-Datum, sonst Berichtsjahresende.
+- **Pro-PFA-MAIN-Ableitung** aus den Abschnittsterminen: `inbetriebnahme` → `IN_BETRIEB`,
+  sonst `baubeginn` → `BAU`, sonst `datum_pfb` (Planfeststellungsbeschluss) →
+  `GENEHMIGUNGSPLANUNG`; kein Termin → kein MAIN-Beitrag (PF-Spur bleibt).
+  - **Nur erreichte Meilensteine zählen** (`progress_dates.read_milestone`, entschieden
+    2026-10-23, #262): Ein Termin mit Vorbehalt („vsl. 2027“, „vsl 2035“, „voraussichtlich“,
+    „geplant“, „ca.“, „ab/nach/bis/frühestens …“, „offen vsl. 2028“) oder ein Datum nach dem
+    Berichtsjahresende ist eine **Prognose**. Ein Zeitraum, der das Jahresende enthält
+    („12/2024“ im VIB 2024), gilt als erreicht; „erfolgt“ ist ein erreichter Meilenstein ohne
+    Datum (Datum = Berichtsjahresende). Fußnotenzeichen („2002¹“) werden ignoriert.
+  - **Ein Blatt, ein Vorhaben, eine Beobachtung:** Die einem Blatt zugeordneten PFA eines
+    VIB-Vorhabens entscheiden gemeinsam (`assigned_pfas_to_specs`). Das Blatt ist
+    `IN_BETRIEB` nur, wenn kein Abschnitt mehr offen ist; sonst gilt die höchste erreichte
+    Phase der offenen Abschnitte (fertige Teilstücke + Abschnitte im Bau → `BAU`). Offene
+    Abschnitte ganz ohne erreichten Meilenstein → kein MAIN-Beitrag. Getrennte
+    Beobachtungen je Abschnitt würden über „neuester Bericht / bei Gleichstand höhere
+    Phase“ ein fertiges Teilstück gewinnen lassen.
+  - `observed_date` = spätester erreichter Meilenstein der maßgeblichen Abschnitte, sonst
+    Berichtsjahresende.
+  - **Erwartet** (`is_expected`, nur Zeitstrahl/Quellen, nie die Phase): `BAU` zum frühesten
+    ausstehenden Baubeginn, solange noch kein Abschnitt baut; `IN_BETRIEB` zur spätesten
+    ausstehenden Inbetriebnahme (Jahr → Fahrplanwechsel 12/JJJJ).
+  - PF-Spur je Abschnitt: `ABGESCHLOSSEN` nur bei erreichtem PFB, ein „vsl.“-PFB → `LAEUFT`.
 - **Routing:** Beim Sync eines Unterprojekts werden die ihm zugeordneten PFAs
   (`project_id == self`) direkt ausgewertet — unabhängig davon, an welches Projekt der
   übergeordnete VIB-Eintrag verknüpft ist. So liegt der Status am Blatt.
@@ -681,6 +699,18 @@ Das gespeicherte Datum ist nur noch der Sortierwert.
   - Einmal nach der Migration `20261022004`: `make docker-refresh-progress-dates`
     (`scripts/refresh_progress_dates.py`).
   - Die Liste liest weiter nur den Cache.
+- **Alles neu berechnen (2026-10-23):** Der Lazy-Resync rechnet ein Projekt erst neu, wenn
+  es gelesen wird. Ändert ein Deploy die Ableitungsregeln (z. B. die Quelle `GVFG`), zeigen
+  Liste, Filter und `list_data_gaps` sonst tagelang den alten Cache. `recompute_all_progress`
+  (`crud/projects/progress.py`) leitet für **alle** Projekte in Stapeln zu 100 die
+  Beobachtungen neu ab und schreibt Phase, Konfidenz und Termin-Cache (ein Commit je Stapel,
+  idempotent). Auslöser:
+  - Admin-Seite „Planungsstand · Konflikte“ → „Alle Projekte neu berechnen“ (Recht
+    `progress.edit`, `POST /api/v1/admin/progress-recompute`, Celery-Task
+    `tasks/progress.py`, Fortschritt je Stapel, am Ende Projekte, bekannt vorher → nachher
+    und geänderte Phasen),
+  - Skript `scripts/recompute_progress.py` (`make docker-recompute-progress`); es ersetzt
+    `refresh_progress_dates.py`, weil es den Termin-Cache mitschreibt.
 - Die Liste hat eine Spalte „Termine“ („Bau: nach 2031“, „IB: ca. 07/2028 (Annahme)“),
   sortierbar nach dem Sortierwert.
 - **Filter** (Liste, Zeitstrahl, Karte; URL `bau_von`, `bau_bis`, `ib_von`, `ib_bis`,
@@ -739,7 +769,7 @@ BVWP-Schätzungen.
   aufzulösen per Phasen-Override / Lebenszyklus.
 - **Sammel-FinVe** (`is_sammel_finve`, jahres-skaliert) mit geringerem Vertrauen.
 - **Datum der Beobachtung = Datum der Aussage**: pro-PFA-MAIN-Beobachtungen tragen das
-  Meilensteindatum (`baubeginn`/`datum_pfb`), Bauportal das erste Abrufdatum
+  Meilensteindatum (`baubeginn`/`datum_pfb`, nur erreichte Meilensteine), Bauportal das erste Abrufdatum
   (`fetched_at`). Für „neuester Bericht gewinnt“ zählen sie damit als älter als ihr Bericht.
 - **Superior ohne/gemischte Kinder** sowie Superior, das selbst Blatt ist (keine Kinder).
 - **Derived-Observation-Churn**: regenerierte `is_derived`-Zeilen nicht ins Changelog;
@@ -780,7 +810,7 @@ BVWP-Schätzungen.
 ### Umsetzungsdetails (Phasen 2–4)
 
 - **Materialisierung** (`services/progress_materialization.py`, rein/unit-getestet):
-  VIB-Status → stärkste MAIN-Untergrenze; PFA → PF-Spur (`datum_pfb` → ABGESCHLOSSEN,
+  VIB-Status → stärkste MAIN-Untergrenze; PFA → PF-Spur (erreichtes `datum_pfb` → ABGESCHLOSSEN,
   sonst LAEUFT); reguläre FinVe → MAIN = Bau. **Sammel-FinVe**: Phase aus der Leistungsphase
   im Namen (`parse_sammel_finve_phase`: Lph 1/2 → VORPLANUNG, Lph 3/4 → GENEHMIGUNGSPLANUNG;
   **nicht** auf EKrG-Nummern wie „3/2010" triggern), sonst manuelle Zuordnung über

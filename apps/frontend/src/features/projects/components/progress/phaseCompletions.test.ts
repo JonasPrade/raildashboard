@@ -110,6 +110,17 @@ describe("vibPhaseCompletions", () => {
         expect(result).toEqual({});
     });
 
+    it("skips „vsl“ without a full stop, as printed in the VIB 2024", () => {
+        const result = vibPhaseCompletions(
+            [vib(2023, [{ datum_pfb: "vsl 2016", inbetriebnahme: "vsl 2019" }])],
+            7,
+            false,
+            [],
+            today,
+        );
+        expect(result).toEqual({});
+    });
+
     it("leaves out sections assigned to other projects on a leaf", () => {
         const result = vibPhaseCompletions(
             [vib(2023, [{ datum_pfb: "2015" }, { datum_pfb: null, project_id: 8 }])],

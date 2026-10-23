@@ -80,7 +80,9 @@ def _project_index(db: Session) -> tuple[dict[str, list[_ProjectRef]], list[_Pro
     by_key: dict[str, list[_ProjectRef]] = defaultdict(list)
     refs = []
     for pid, name, number, draft in db.execute(
-        select(Project.id, Project.name, Project.project_number, Project.is_draft)
+        select(Project.id, Project.name, Project.project_number, Project.is_draft).where(
+            Project.is_archived.is_(False)
+        )
     ):
         ref = _ProjectRef(pid, name, number, bool(draft))
         refs.append(ref)
@@ -436,7 +438,12 @@ def project_entries(db: Session, project_id: int, with_subprojects: bool = False
     newest edition first."""
     ids = [project_id]
     if with_subprojects:
-        ids += [pid for (pid,) in db.query(Project.id).filter(Project.superior_project_id == project_id)]
+        ids += [
+            pid
+            for (pid,) in db.query(Project.id).filter(
+                Project.superior_project_id == project_id, Project.is_archived.is_(False)
+            )
+        ]
     rows = (
         db.query(GvfgEntry)
         .join(gvfg_entry_project, gvfg_entry_project.c.entry_id == GvfgEntry.id)

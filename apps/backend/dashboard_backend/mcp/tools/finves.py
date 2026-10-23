@@ -1,4 +1,5 @@
-"""FinVe (Finanzierungsvereinbarung) tools: free search across all FinVes.
+"""FinVe (Finanzierungsvereinbarung) tools: free search across all FinVes and
+editing their project links.
 
 ``list_project_finves`` only reaches FinVes already linked to a project; these
 tools find FinVes by number, name or Bedarfsplan number — including those not

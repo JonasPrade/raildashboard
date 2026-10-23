@@ -25,8 +25,10 @@ Year-scoped links of Sammel-FinVes come from the Haushalt import, record which
 project a Sammel-FinVe financed in which year and stay untouched; they are shown
 but cannot be removed here.
 
-Out of scope: marking FinVes of archived projects (follow-up task Nr. 75 in the
-dashboard, picked up once archiving exists).
+**Archived projects** (`feature-project-archive.md`): archiving requires a project
+without FinVe links, so adding a FinVe to an archived project is refused (409).
+Follow-up task Nr. 75 (mark FinVes of archived projects) is therefore moot and
+closed.
 
 ## Behaviour
 
@@ -69,7 +71,9 @@ keeps guarding the list of open assignments and its assign button.
 
 ## MCP
 
-`update_finve_projects` (annotation WRITE, requires `finve.edit`): `note` is a
+`update_finve_projects` (annotation WRITE, requires `finve.edit`) replaces the
+earlier tool `unlink_finve` (decided 2026-10-23: one logged write path; unlike
+`unlink_finve` it keeps Sammel-FinVe year links and needs `finve.edit`). `note` is a
 free reason kept in the tool result (the changelog has no comment column).
 Returns the FinVe's permanent projects afterwards and the recomputed project ids.
 
@@ -93,3 +97,4 @@ Returns the FinVe's permanent projects afterwards and the recomputed project ids
 | W2 | 2026-10-23 | Permission `finve.edit` for all link edits (a) |
 | W3 | 2026-10-23 | Remove only own links; inherited ones show a hint (a); archived projects → task Nr. 75 |
 | W4 | 2026-10-23 | Existing assign paths use the new function (logged + recomputed) (a) |
+| W5 | 2026-10-23 | `update_finve_projects` replaces the parallel MCP tool `unlink_finve`; task Nr. 75 closed (archiving excludes FinVe links) |

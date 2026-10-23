@@ -237,6 +237,8 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `compute_project_length` | Länge aus der Geometrie berechnen, optional übernehmen | — / `project.edit` mit `apply` |
 | `update_project` | Projektfelder ändern | `project.edit` |
 | `set_project_draft` | Projekt zum Entwurf machen oder Entwurf fertigstellen | `project.edit` |
+| `archive_project` | Ersetztes/überholtes Projekt archivieren (Pflicht-Begründung); zählt danach nirgends mehr, abgelehnt bei FinVe-/GVFG-Zuordnung, aktiven Teilprojekten oder ABGEBROCHEN; Änderungsprotokoll (siehe `feature-project-archive.md`) | `project.delete` |
+| `unarchive_project` | Archiviertes Projekt wiederherstellen (Begründung optional), Änderungsprotokoll | `project.delete` |
 | `create_project_group` | Neue Projektgruppe anlegen (Name, eindeutiger Kurzname, Farbe, Sichtbarkeit); Duplikate (Kurzname/Name) werden abgelehnt | `projectgroup.create` |
 | `set_project_groups` | Projekt Gruppen hinzufügen/entfernen (id, Kurzname, Name) | `project.edit` |
 | `add_progress_observation` | Planungsstand-Beobachtung ergänzen, mit `date_precision` (EXACT Default, MONTH, YEAR, NOT_BEFORE, ASSUMED) und optionalem `date_label` | `progress.edit` |

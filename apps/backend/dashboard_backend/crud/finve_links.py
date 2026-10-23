@@ -32,6 +32,10 @@ class FinveLinkError(ValueError):
     """A FinVe or project of a link change does not exist."""
 
 
+class FinveLinkConflict(FinveLinkError):
+    """The change is not allowed, e.g. a FinVe added to an archived project."""
+
+
 def permanent_finve_ids(db: Session, project_id: int) -> list[int]:
     """Sorted ids of the FinVes permanently linked to a project."""
     rows = (
@@ -82,6 +86,18 @@ def change_finve_links(
         raise FinveLinkError("Eine Zuordnung steht sowohl beim Hinzufügen als auch beim Entfernen.")
     _require_existing(db, Project, (p for p, _ in add), "Projekt(e)")
     _require_existing(db, Finve, (f for _, f in add), "FinVe(s)")
+    # Archiving requires a project without FinVe links (crud/projects/archive.py),
+    # so an archived project cannot get one either.
+    archived = sorted(
+        r[0]
+        for r in db.query(Project.id).filter(
+            Project.id.in_({p for p, _ in add}), Project.is_archived.is_(True)
+        )
+    )
+    if archived:
+        raise FinveLinkConflict(
+            f"Projekt(e) archiviert, keine FinVe-Zuordnung möglich: {', '.join(map(str, archived))}"
+        )
 
     project_ids = {p for p, _ in add | remove}
     before = {pid: permanent_finve_ids(db, pid) for pid in project_ids}

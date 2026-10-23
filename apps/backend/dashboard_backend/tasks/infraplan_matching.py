@@ -845,7 +845,7 @@ def load_projects(db: Session) -> list[ProjectRef]:
                 Project.project_number,
                 Project.aliases,
                 Project.description,
-            )
+            ).where(Project.is_archived.is_(False))
         )
     ]
 
