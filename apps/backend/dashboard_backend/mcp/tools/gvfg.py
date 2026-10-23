@@ -15,6 +15,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from sqlalchemy import case, exists, func, or_
 from sqlalchemy.orm import selectinload
 
+from dashboard_backend.crud.projects.projects import replacement_warnings
 from dashboard_backend.crud import gvfg as gvfg_crud
 from dashboard_backend.crud.projects import progress as progress_crud
 from dashboard_backend.mcp.context import get_principal, load_user, require, tool_session
@@ -257,7 +258,11 @@ def assign_gvfg_entry(
             gvfg_crud.set_entry_projects(db, targets, project_ids, load_user(db, principal))
         except gvfg_crud.GvfgConfirmError as exc:
             raise ToolError(str(exc)) from exc
-        return {"updated": [_entry_summary(e, e.program) for e in targets]}
+        out: dict[str, Any] = {"updated": [_entry_summary(e, e.program) for e in targets]}
+        warnings = replacement_warnings(db, project_ids)
+        if warnings:
+            out["warnings"] = warnings
+        return out
 
 
 def register(server: MCPServer) -> None:

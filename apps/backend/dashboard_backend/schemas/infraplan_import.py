@@ -31,7 +31,9 @@ class InfraplanSuggestion(BaseModel):
     year or the project's own number), GVFG_KEY, PREVIOUS_YEAR (same text in an
     earlier year), ALIAS (Deutschlandtakt id), CONTEXT (subproject of the
     parent named by the Bezeichnung), FUZZY (name). ``detail`` says what
-    matched; ``previous_note`` is the note of the earlier year's assignment."""
+    matched; ``previous_note`` is the note of the earlier year's assignment.
+    ``redirected_from``: the hit was on this replaced project and moved to its
+    successor (feature-project-replacement.md)."""
 
     project_id: int
     confidence: float
@@ -39,6 +41,7 @@ class InfraplanSuggestion(BaseModel):
     detail: Optional[str] = None
     previous_year: Optional[int] = None
     previous_note: Optional[str] = None
+    redirected_from: Optional[int] = None
 
 
 class InfraplanParsedRow(BaseModel):

@@ -181,7 +181,7 @@ def get_project_finves_with_budgets(
     finve_ids = set(own_ids)
     carriers: dict[int, dict[int, str]] = {}
     if include_subprojects:
-        descendants = [pid for pid in subtree_ids(db, project.id) if pid != project.id]
+        descendants = [pid for pid in subtree_ids(db, project.id, skip_replaced=True) if pid != project.id]
         if descendants:
             rows = (
                 db.query(FinveToProject.finve_id, Project.id, Project.name)

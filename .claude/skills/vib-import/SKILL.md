@@ -107,6 +107,12 @@ Namensähnlichkeit, mit Grund) zurück und ordnet höchstens den besten Vorschla
 5. Unklar (mehrere plausible Projekte, Projekt fehlt): `project_ids: []` mit Begründung,
    Vorhaben bleibt offen. Fehlende Projekte legst du nur an, wenn der Nutzer das will.
 
+**Ersetzte Projekte:** Ein Vorschlag auf ein ersetztes Projekt ist schon auf den Nachfolger
+umgelenkt (Grund bzw. Hinweis „umgelenkt von … (ersetzt)“). Die Zuordnungs-Tools melden in
+`warnings`, wenn du trotzdem ein ersetztes Projekt zuordnest — dann gehört die Meldung meist
+zum Nachfolger (`replaced_by_project_id`). `list_projects` zeigt ersetzte Projekte nur mit
+`include_ended=true`.
+
 ## 5. PFA-Abschnitte Teilprojekten zuordnen
 
 Erst wenn das Vorhaben seinen Projekten zugeordnet ist (Schritt 4) — die Vorschläge kommen

@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session, joinedload, load_only, selectinload
 
 from dashboard_backend.crud._importer_common import ensure_projects_exist, recompute_for
 from dashboard_backend.crud.changelog import create_changelog_for_create
+from dashboard_backend.crud.projects.projects import successor_map
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.users import User
 from dashboard_backend.models.vib.vib_entry import VibEntry
@@ -407,6 +408,7 @@ class _Matcher:
             .all()
         )
         self.by_id = {p.id: p for p in self.projects}
+        self.successors = successor_map(db)
         # Confirmed, assigned entries of other reports (newest first) — the
         # editor's earlier decision is the strongest hint.
         self.history = (
@@ -442,6 +444,25 @@ class _Matcher:
             reason = "gleiche VDE-Nummer" if kind == "vde" else f"Namensähnlichkeit {score:.2f}"
             out.append({"project_id": pid, "project_name": self.by_id[pid].name, "reason": reason})
             seen.add(pid)
+        return self._redirect(out)
+
+    def _redirect(self, suggestions: list[dict]) -> list[dict]:
+        """A replaced project hands its suggestion on to the successor; the
+        reason keeps its prefix (``_prefill`` reads it) and names the old one
+        (feature-project-replacement.md, W5)."""
+        out: list[dict] = []
+        seen: set[int] = set()
+        for s in suggestions:
+            target = self.successors.get(s["project_id"])
+            if target is not None and target in self.by_id:
+                s = {
+                    "project_id": target,
+                    "project_name": self.by_id[target].name,
+                    "reason": f"{s['reason']} · umgelenkt von „{s['project_name']}“ (ersetzt)",
+                }
+            if s["project_id"] not in seen:
+                out.append(s)
+                seen.add(s["project_id"])
         return out
 
 

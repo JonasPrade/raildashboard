@@ -243,11 +243,15 @@ def worker_db(tmp_path, monkeypatch):
         InfraplanReport,
     )
     from dashboard_backend.models.projects.project import Project
+    from dashboard_backend.models.projects.project_progress import ProjectProgress
     from dashboard_backend.models.users import User
 
     engine = create_engine(f"sqlite:///{tmp_path / 'worker.db'}")
-    # The task also reads projects and earlier years for its suggestions.
-    for model in (Project, User, InfraplanParseResult, InfraplanReport, InfraplanEntry, InfraplanEntryProject):
+    # The task also reads projects, their successors (replaced projects) and
+    # earlier years for its suggestions.
+    for model in (
+        Project, ProjectProgress, User, InfraplanParseResult, InfraplanReport, InfraplanEntry, InfraplanEntryProject
+    ):
         model.__table__.create(engine)
     factory = sessionmaker(bind=engine)
     monkeypatch.setattr(database, "Session", factory)

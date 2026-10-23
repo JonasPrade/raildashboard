@@ -20,6 +20,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from dashboard_backend.crud.changelog import create_changelog_for_create, create_changelog_for_patch
+from dashboard_backend.crud.projects.projects import redirect_replaced, replaced_project_ids, successor_map
 from dashboard_backend.models.gvfg import (
     GvfgEntry,
     GvfgEntryAmount,
@@ -113,6 +114,7 @@ def build_suggestions(db: Session, entries: list[dict[str, Any]]) -> dict[str, A
     """
     by_key, refs = _project_index(db)
     previous = _previous_links(db)
+    successors = successor_map(db)
     by_base: dict[str, list[_ProjectRef]] = defaultdict(list)
     for key, projects in by_key.items():
         by_base[key_without_suffix(key)].extend(projects)
@@ -153,6 +155,12 @@ def build_suggestions(db: Session, entries: list[dict[str, Any]]) -> dict[str, A
             for score, ref in scored:
                 if score >= _NAME_THRESHOLD:
                     candidates.append({"id": ref.id, "score": round(score, 2), "reason": "name"})
+        # A replaced project hands the suggestion on to its successor
+        # (feature-project-replacement.md, W5).
+        selected, redirected = redirect_replaced(selected, successors)
+        for new_id, old_id in redirected.items():
+            if new_id in lookup and old_id in lookup:
+                flags.append(f"„{lookup[old_id].name}“ ist ersetzt – umgelenkt auf „{lookup[new_id].name}“")
         if selected and name:
             best = max((name_score(name, lookup[pid].name) for pid in selected), default=0.0)
             if best < _NAME_THRESHOLD:
@@ -432,11 +440,13 @@ def program_entries(db: Session, program_id: int) -> list[GvfgEntry]:
 
 def project_entries(db: Session, project_id: int, with_subprojects: bool = False) -> list[GvfgEntry]:
     """GVFG entries linked to a project (and, optionally, to its direct
-    subprojects — a parent shows them as "Förderung in Teilprojekten"),
-    newest edition first."""
+    subprojects — a parent shows them as "Förderung in Teilprojekten"; replaced
+    subprojects are left out, feature-project-replacement.md W3), newest edition first."""
     ids = [project_id]
     if with_subprojects:
-        ids += [pid for (pid,) in db.query(Project.id).filter(Project.superior_project_id == project_id)]
+        children = [pid for (pid,) in db.query(Project.id).filter(Project.superior_project_id == project_id)]
+        replaced = replaced_project_ids(db, children)
+        ids += [pid for pid in children if pid not in replaced]
     rows = (
         db.query(GvfgEntry)
         .join(gvfg_entry_project, gvfg_entry_project.c.entry_id == GvfgEntry.id)

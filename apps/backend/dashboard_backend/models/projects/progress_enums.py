@@ -60,11 +60,21 @@ _PARALLEL_STATE_ORDER: dict["ParallelState", int] = {
 
 
 class LifecycleStatus(str, enum.Enum):
-    """Orthogonal lifecycle overlay; does not change the phase value."""
+    """Orthogonal lifecycle overlay; does not change the phase value.
+
+    ERSETZT: replaced by another project (``replaced_by_project_id``); it stays
+    with its history but leaves parent aggregations and the default lists
+    (docs/features/feature-project-replacement.md)."""
 
     AKTIV = "AKTIV"
     PAUSIERT = "PAUSIERT"
     ABGEBROCHEN = "ABGEBROCHEN"
+    ERSETZT = "ERSETZT"
+
+
+# Lifecycle states of projects that no longer run; hidden from the default
+# project lists and map (feature-project-replacement.md, W2).
+ENDED_LIFECYCLES = frozenset({LifecycleStatus.ABGEBROCHEN.value, LifecycleStatus.ERSETZT.value})
 
 
 class SourceType(str, enum.Enum):

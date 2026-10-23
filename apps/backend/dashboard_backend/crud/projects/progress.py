@@ -108,6 +108,11 @@ class DerivedObservationUpdateError(Exception):
     """Raised when a caller tries to change a derived (materialised) observation."""
 
 
+class LifecycleError(ValueError):
+    """Invalid lifecycle change (successor missing, self, draft or a ring).
+    The message is German and shown to the editor as is."""
+
+
 # --- Change tracking ---------------------------------------------------------
 #
 # Every user-triggered planning-state change lands in the project ``change_log``
@@ -120,6 +125,9 @@ _TRACKED_PROGRESS_FIELDS = (
     "has_planfeststellung",
     "parl_befassung_relevant",
     "lifecycle_status",
+    "replaced_by_project_id",
+    "lifecycle_note",
+    "lifecycle_date",
     "manual_phase_override",
     "manual_override_note",
     "pf_state_override",
@@ -1445,6 +1453,23 @@ def get_progress_view(db: Session, project_id: int, today: date | None = None) -
         ),
         "parl_befassung_relevant_override": progress.parl_befassung_relevant,
         "lifecycle_status": result.lifecycle.value,
+        "lifecycle_note": progress.lifecycle_note,
+        "lifecycle_date": progress.lifecycle_date,
+        "replaced_by": next(iter(_project_refs(db, [progress.replaced_by_project_id])), None)
+        if result.lifecycle is LifecycleStatus.ERSETZT
+        else None,
+        "replaces": _project_refs(
+            db,
+            [
+                pid
+                for (pid,) in db.query(ProjectProgress.project_id)
+                .filter(
+                    ProjectProgress.replaced_by_project_id == project_id,
+                    ProjectProgress.lifecycle_status == LifecycleStatus.ERSETZT.value,
+                )
+                .order_by(ProjectProgress.project_id)
+            ],
+        ),
         "pf_state": result.pf_state.value if result.pf_state else None,
         "parl_state": result.parl_state.value if result.parl_state else None,
         "pf_state_override": progress.pf_state_override,
@@ -1467,6 +1492,21 @@ def get_progress_view(db: Session, project_id: int, today: date | None = None) -
         "hidden_phases": resolve_hidden_phases(skipped_phases, in_use),
         "forecast": forecast,
     }
+
+
+def _project_refs(db: Session, project_ids: list[int | None]) -> list[dict]:
+    """``{id, name, project_number}`` per id, in the given order (missing ids dropped)."""
+
+    ids = [pid for pid in project_ids if pid is not None]
+    if not ids:
+        return []
+    rows = {
+        pid: {"id": pid, "name": name, "project_number": number}
+        for pid, name, number in db.query(Project.id, Project.name, Project.project_number).filter(
+            Project.id.in_(ids)
+        )
+    }
+    return [rows[pid] for pid in ids if pid in rows]
 
 
 def _track_documents(db: Session, project_id: int, track: ObservationTrack) -> list[dict]:
@@ -1496,11 +1536,13 @@ def update_progress(
         return None
     progress = get_or_create_progress(db, project_id)
     before = _snapshot(progress)
+    # Lifecycle first: it validates before it writes, so a LifecycleError
+    # leaves the row untouched.
+    _apply_lifecycle(db, project_id, progress, payload)
 
     simple_fields = {
         "has_planfeststellung",
         "parl_befassung_relevant",
-        "lifecycle_status",
         "manual_phase_override",
         "manual_override_note",
         "pf_state_override",
@@ -1542,6 +1584,75 @@ def update_progress(
     db.commit()
     db.refresh(progress)
     return progress
+
+
+def _apply_lifecycle(db: Session, project_id: int, progress: ProjectProgress, payload: dict) -> None:
+    """Lifecycle status, successor, note and date (feature-project-replacement.md).
+
+    AKTIV clears the rest; ERSETZT needs a successor that exists, is no draft,
+    is not the project itself and does not lead back to it; every other status
+    has no successor. Raises :class:`LifecycleError` before anything is written.
+    """
+
+    status = payload.get("lifecycle_status") or progress.lifecycle_status
+    if status == LifecycleStatus.AKTIV.value:
+        progress.lifecycle_status = status
+        progress.replaced_by_project_id = None
+        progress.lifecycle_note = None
+        progress.lifecycle_date = None
+        return
+
+    successor_id = None
+    if status == LifecycleStatus.ERSETZT.value:
+        successor_id = payload.get("replaced_by_project_id", progress.replaced_by_project_id)
+        _check_successor(db, project_id, successor_id)
+    elif payload.get("replaced_by_project_id") is not None:
+        raise LifecycleError("Ein Nachfolgeprojekt gibt es nur beim Status „Ersetzt“.")
+
+    progress.lifecycle_status = status
+    progress.replaced_by_project_id = successor_id
+    if "lifecycle_note" in payload:
+        progress.lifecycle_note = (payload["lifecycle_note"] or "").strip() or None
+    if payload.get("lifecycle_date") is not None:
+        progress.lifecycle_date = payload["lifecycle_date"]
+    if payload.get("clear_lifecycle_date"):
+        progress.lifecycle_date = None
+
+
+def _check_successor(db: Session, project_id: int, successor_id: int | None) -> None:
+    if successor_id is None:
+        raise LifecycleError("Für „Ersetzt“ fehlt das Nachfolgeprojekt.")
+    if successor_id == project_id:
+        raise LifecycleError("Ein Projekt kann sich nicht selbst ersetzen.")
+    successor = db.query(Project.id, Project.is_draft).filter(Project.id == successor_id).first()
+    if successor is None:
+        raise LifecycleError(f"Nachfolgeprojekt {successor_id} gibt es nicht.")
+    if successor.is_draft:
+        raise LifecycleError(f"Nachfolgeprojekt {successor_id} ist ein Entwurf.")
+    if project_id in successor_chain(db, successor_id):
+        raise LifecycleError(
+            f"Projekt {successor_id} wird (über Nachfolger) selbst durch dieses Projekt ersetzt."
+        )
+
+
+def successor_chain(db: Session, project_id: int) -> list[int]:
+    """``project_id`` and the successors it leads to (A → B → C), stopping at a
+    project that is not ERSETZT or at a repeat."""
+
+    chain = [project_id]
+    current = project_id
+    while True:
+        row = (
+            db.query(ProjectProgress.lifecycle_status, ProjectProgress.replaced_by_project_id)
+            .filter(ProjectProgress.project_id == current)
+            .first()
+        )
+        if row is None or row[0] != LifecycleStatus.ERSETZT.value or row[1] is None:
+            return chain
+        current = row[1]
+        if current in chain:
+            return chain
+        chain.append(current)
 
 
 def create_observation(

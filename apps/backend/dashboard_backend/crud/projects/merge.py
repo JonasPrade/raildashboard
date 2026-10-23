@@ -42,6 +42,7 @@ from dashboard_backend.crud.projects.projects import (
 from dashboard_backend.models.base import Base
 from dashboard_backend.models.change_tracking import ChangeLog, ChangeLogEntry
 from dashboard_backend.models.projects.bvwp_project_data import BvwpProjectData
+from dashboard_backend.models.projects.progress_enums import LifecycleStatus
 from dashboard_backend.models.projects.progress_observation import ProgressObservation
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.projects.project_progress import ProjectProgress
@@ -78,6 +79,9 @@ _PROGRESS_FILL_FIELDS = (
     "pf_state_override",
     "parl_state_override",
 )
+
+# Lifecycle of the merged project, taken over only when the survivor is AKTIV.
+_LIFECYCLE_FIELDS = ("lifecycle_status", "replaced_by_project_id", "lifecycle_note", "lifecycle_date")
 
 # Tables with their own rule (see _special_* below); every other foreign key to
 # project.id goes through the generic re-pointing.
@@ -276,7 +280,45 @@ def _plan_progress(db: Session, survivor_id: int, merged_id: int) -> dict[str, A
     for name in _PROGRESS_FILL_FIELDS:
         if _is_empty(getattr(mine, name)) and not _is_empty(getattr(other, name)):
             fills[name] = getattr(other, name)
+    # Lifecycle (incl. successor) only onto an active survivor, and never so that
+    # the survivor would replace itself.
+    if (
+        mine.lifecycle_status == LifecycleStatus.AKTIV.value
+        and other.lifecycle_status != LifecycleStatus.AKTIV.value
+        and other.replaced_by_project_id != survivor_id
+    ):
+        for name in _LIFECYCLE_FIELDS:
+            fills[name] = getattr(other, name)
     return fills
+
+
+def _lifecycle_warnings(db: Session, survivor_id: int, merged_id: int) -> list[str]:
+    """Successor links the merge re-points or clears (feature-project-replacement.md, W6)."""
+    warnings: list[str] = []
+    pointing = [
+        pid
+        for (pid,) in db.query(ProjectProgress.project_id).filter(
+            ProjectProgress.replaced_by_project_id == merged_id,
+            ProjectProgress.project_id != survivor_id,
+        )
+    ]
+    if pointing:
+        warnings.append(
+            "Ersetzt durch das verworfene Projekt: "
+            + ", ".join(str(pid) for pid in sorted(pointing))
+            + " — der Verweis zeigt danach auf das bleibende Projekt."
+        )
+    survivor_successor = (
+        db.query(ProjectProgress.replaced_by_project_id)
+        .filter(ProjectProgress.project_id == survivor_id)
+        .scalar()
+    )
+    if survivor_successor == merged_id:
+        warnings.append(
+            "Das bleibende Projekt war als „ersetzt durch“ das verworfene markiert — "
+            "der Lebenszyklus wird auf „Aktiv“ zurückgesetzt."
+        )
+    return warnings
 
 
 def merge_projects(
@@ -313,6 +355,7 @@ def merge_projects(
     field_changes, field_warnings = _plan_fields(db, survivor, merged, geometry_from)
     warnings += field_warnings
     progress_fills = _plan_progress(db, survivor_id, merged_id)
+    warnings += _lifecycle_warnings(db, survivor_id, merged_id)
 
     existing = _existing_tables(db)
     link_plans = [
@@ -493,8 +536,27 @@ def _apply(
         else:
             db.execute(update(bvwp).where(bvwp.c.project_id == merged_id).values(project_id=survivor_id))
     if "project_progress" in existing:
+        progress_table = ProjectProgress.__table__
         db.execute(
-            delete(ProjectProgress.__table__).where(ProjectProgress.project_id == merged_id)
+            delete(progress_table).where(progress_table.c.project_id == merged_id)
+        )
+        # Successor links to the merged project follow it; a survivor that would
+        # now replace itself becomes active again.
+        db.execute(
+            update(progress_table)
+            .where(progress_table.c.replaced_by_project_id == merged_id)
+            .values(replaced_by_project_id=survivor_id)
+        )
+        db.execute(
+            update(progress_table)
+            .where(progress_table.c.project_id == survivor_id)
+            .where(progress_table.c.replaced_by_project_id == survivor_id)
+            .values(
+                lifecycle_status=LifecycleStatus.AKTIV.value,
+                replaced_by_project_id=None,
+                lifecycle_note=None,
+                lifecycle_date=None,
+            )
         )
 
     # 5. Everything else that points at the merged project (incl. subprojects,

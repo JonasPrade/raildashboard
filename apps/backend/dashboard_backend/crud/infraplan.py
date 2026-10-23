@@ -171,7 +171,7 @@ def project_infraplan(db: Session, project_id: int) -> dict[str, Any]:
 
     forecast = cost_forecast([(e, r.year) for e, r, _l in own], by_id, from_subprojects=False)
     if forecast is None:
-        descendants = [pid for pid in subtree_ids(db, project_id) if pid != project_id]
+        descendants = [pid for pid in subtree_ids(db, project_id, skip_replaced=True) if pid != project_id]
         if descendants:
             sub = _linked(db, descendants)
             sub_by_id = _load_refs(db, [entry for entry, _r, _l in sub])

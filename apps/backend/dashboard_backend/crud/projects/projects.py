@@ -1,10 +1,12 @@
 import json
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, Iterable, List, Optional
 
 from sqlalchemy.orm import Session, selectinload
 
 from dashboard_backend.models.projects import Project
+from dashboard_backend.models.projects.progress_enums import LifecycleStatus
 from dashboard_backend.models.projects.project_group import ProjectGroup
+from dashboard_backend.models.projects.project_progress import ProjectProgress
 from dashboard_backend.services.constituency_matching import recompute_links_for_project_ids
 
 
@@ -105,16 +107,107 @@ def has_subprojects(db: Session, project_id: int) -> bool:
     )
 
 
-def subtree_ids(db: Session, root_id: int) -> List[int]:
-    """*root_id* followed by all of its descendants (any depth), one query per level."""
+def subtree_ids(db: Session, root_id: int, skip_replaced: bool = False) -> List[int]:
+    """*root_id* followed by all of its descendants (any depth), one query per level.
+
+    ``skip_replaced`` leaves out descendants whose lifecycle is ERSETZT, with their
+    own subtrees — parent sums do not count a replaced scheme twice
+    (docs/features/feature-project-replacement.md, W3)."""
     ids, frontier = [root_id], [root_id]
     while frontier:
         frontier = [
             pid for (pid,) in db.query(Project.id).filter(Project.superior_project_id.in_(frontier))
         ]
         frontier = [pid for pid in frontier if pid not in ids]
+        if skip_replaced and frontier:
+            replaced = replaced_project_ids(db, frontier)
+            frontier = [pid for pid in frontier if pid not in replaced]
         ids.extend(frontier)
     return ids
+
+
+def successor_map(db: Session) -> dict[int, int]:
+    """Replaced project → its final successor (chains A → B → C resolve to C).
+
+    Importers redirect their suggestions with it (feature-project-replacement.md,
+    W5). A ring (prevented on write) stops at the last project before the repeat."""
+    direct = dict(
+        db.query(ProjectProgress.project_id, ProjectProgress.replaced_by_project_id).filter(
+            ProjectProgress.lifecycle_status == LifecycleStatus.ERSETZT.value,
+            ProjectProgress.replaced_by_project_id.isnot(None),
+        )
+    )
+    final: dict[int, int] = {}
+    for start in direct:
+        seen, current = {start}, direct[start]
+        while current in direct and direct[current] not in seen:
+            seen.add(current)
+            current = direct[current]
+        final[start] = current
+    return final
+
+
+def redirect_replaced(
+    project_ids: Iterable[int], successors: dict[int, int]
+) -> tuple[list[int], dict[int, int]]:
+    """Swap replaced projects for their successors, order kept, no duplicates.
+
+    Returns the new ids and ``{successor: replaced}`` for every swap, so the
+    caller can say where a suggestion came from."""
+    out: list[int] = []
+    redirected: dict[int, int] = {}
+    for pid in project_ids:
+        target = successors.get(pid, pid)
+        if target != pid:
+            redirected.setdefault(target, pid)
+        if target not in out:
+            out.append(target)
+    return out, redirected
+
+
+def replacement_warnings(db: Session, project_ids: Iterable[int | None]) -> list[str]:
+    """One line per replaced project among *project_ids*, naming its successor.
+
+    Manual assignments to a replaced project stay allowed; the MCP assignment
+    tools return these lines so the agent can reconsider (W5)."""
+    ids = sorted({pid for pid in project_ids if pid is not None})
+    if not ids:
+        return []
+    rows = (
+        db.query(ProjectProgress.project_id, ProjectProgress.replaced_by_project_id)
+        .filter(
+            ProjectProgress.project_id.in_(ids),
+            ProjectProgress.lifecycle_status == LifecycleStatus.ERSETZT.value,
+        )
+        .all()
+    )
+    if not rows:
+        return []
+    names = dict(
+        db.query(Project.id, Project.name).filter(
+            Project.id.in_({pid for row in rows for pid in row if pid is not None})
+        )
+    )
+    return [
+        f"Projekt {pid} „{names.get(pid, '')}“ ist ersetzt"
+        + (f" durch {succ} „{names.get(succ, '')}“" if succ is not None else "")
+        + " — Zuordnung gespeichert; meist gehört sie zum Nachfolger."
+        for pid, succ in rows
+    ]
+
+
+def replaced_project_ids(db: Session, project_ids: Iterable[int]) -> set[int]:
+    """The ids among *project_ids* whose lifecycle is ERSETZT."""
+    ids = list(project_ids)
+    if not ids:
+        return set()
+    return {
+        pid
+        for (pid,) in db.query(ProjectProgress.project_id).filter(
+            ProjectProgress.project_id.in_(ids),
+            ProjectProgress.lifecycle_status == LifecycleStatus.ERSETZT.value,
+        )
+    }
 
 
 def recompute_geojson_for_parent(db: Session, parent_id: Optional[int]) -> None:

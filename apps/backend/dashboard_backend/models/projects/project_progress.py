@@ -57,6 +57,14 @@ class ProjectProgress(Base):
         String(20), nullable=False, default=LifecycleStatus.AKTIV.value,
         server_default=LifecycleStatus.AKTIV.value,
     )
+    # Successor of an ERSETZT project (empty for every other status). SET NULL:
+    # deleting the successor keeps the old project as ERSETZT without a link.
+    replaced_by_project_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("project.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    # Reason and start date of a lifecycle status other than AKTIV.
+    lifecycle_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    lifecycle_date: Mapped[date_type | None] = mapped_column(Date, nullable=True)
 
     # --- Cached derivation output -------------------------------------------
     computed_phase: Mapped[str | None] = mapped_column(String(40), nullable=True)

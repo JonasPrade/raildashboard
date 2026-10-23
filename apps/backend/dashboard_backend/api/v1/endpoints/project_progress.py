@@ -51,10 +51,13 @@ def patch_progress(
     project: Project = Depends(get_project_or_404),
     db: Session = Depends(get_db),
 ):
-    """Update flags, lifecycle and manual overrides."""
-    progress_crud.update_progress(
-        db, project.id, body.model_dump(exclude_unset=True), current_user
-    )
+    """Update flags, lifecycle (incl. successor of a replaced project) and manual overrides."""
+    try:
+        progress_crud.update_progress(
+            db, project.id, body.model_dump(exclude_unset=True), current_user
+        )
+    except progress_crud.LifecycleError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return _view(db, project.id)
 
 

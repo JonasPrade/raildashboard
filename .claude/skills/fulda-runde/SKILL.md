@@ -106,6 +106,12 @@ Jede Aussage genau **einmal** — die gleiche Zeile nie unter zwei Kategorien.
 5. Wirklich unklar (mehrere plausible Projekte, Projekt fehlt ganz): `project_ids: []`
    mit Begründung in `note`, Eintrag bleibt offen.
 
+**Ersetzte Projekte:** Ein Vorschlag auf ein ersetztes Projekt ist schon auf den Nachfolger
+umgelenkt (Grund bzw. Hinweis „umgelenkt von … (ersetzt)“). Die Zuordnungs-Tools melden in
+`warnings`, wenn du trotzdem ein ersetztes Projekt zuordnest — dann gehört die Meldung meist
+zum Nachfolger (`replaced_by_project_id`). `list_projects` zeigt ersetzte Projekte nur mit
+`include_ended=true`.
+
 Fehler im Eintrag korrigierst du mit `update_fulda_entry`, Fehleinträge entfernst du mit
 `delete_fulda_entry`.
 

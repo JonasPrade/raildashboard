@@ -21,6 +21,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp.server.mcpserver.utilities.types import Image
 from pydantic import BaseModel, Field
 
+from dashboard_backend.crud.projects.projects import replacement_warnings
 from dashboard_backend.crud import infraplan as infraplan_crud
 from dashboard_backend.crud import infraplan_import as crud
 from dashboard_backend.mcp.context import get_principal, load_user, require, tool_session
@@ -244,23 +245,28 @@ def assign_infraplan_row(
                 )[0]
                 if not result["ok"]:
                     raise ToolError(result["error"])
-                return {
+                out = {
                     "row_key": row_key,
                     "entry_id": result["entry_id"],
                     "project_ids": result["project_ids"],
                     "confirmed_year": record.year,
                 }
-            row = crud.patch_row(
-                db,
-                record,
-                row_key,
-                InfraplanRowPatch(project_ids=project_ids, note=note),
-                source=AGENT,
-                username=principal.username,
-            )
+            else:
+                row = crud.patch_row(
+                    db,
+                    record,
+                    row_key,
+                    InfraplanRowPatch(project_ids=project_ids, note=note),
+                    source=AGENT,
+                    username=principal.username,
+                )
+                out = _row_out(row)
         except (crud.InfraplanNotFoundError, crud.InfraplanConflictError) as exc:
             raise _errors(exc) from exc
-        return _row_out(row)
+        warnings = replacement_warnings(db, project_ids)
+        if warnings:
+            out["warnings"] = warnings
+        return out
 
 
 class RowAssignment(BaseModel):
@@ -304,12 +310,16 @@ def assign_infraplan_rows(
             else {"row_key": r.row_key, "ok": False, "error": "Eine Begründung (note) ist Pflicht."}
             for r in rows
         ]
-        return {
+        result = {
             "ok": sum(1 for r in out if r["ok"]),
             "failed": sum(1 for r in out if not r["ok"]),
             "confirmed_year": record.year if record.confirmed_at else None,
             "rows": out,
         }
+        warnings = replacement_warnings(db, (pid for r in items for pid in r.project_ids))
+        if warnings:
+            result["warnings"] = warnings
+        return result
 
 
 def create_infraplan_subproject(

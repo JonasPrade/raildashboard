@@ -313,3 +313,64 @@ def test_draft_can_be_merged_into_final_survivor(db_session, create_user):
     assert kept.is_draft is False
     assert kept.justification == "x"
     assert db_session.query(ProjectRedirect).filter_by(old_project_id=draft_id).count() == 1
+
+
+def test_successor_links_follow_the_merge(db_session):
+    """feature-project-replacement.md, W6: links to the merged project move to the
+    survivor; a survivor that would replace itself becomes active again."""
+    survivor, merged, old, other_old = (Project(name=n) for n in ("Neu", "Neu doppelt", "Alt", "Alt 2"))
+    db_session.add_all([survivor, merged, old, other_old])
+    db_session.commit()
+    db_session.add_all(
+        [
+            ProjectProgress(project_id=old.id, lifecycle_status="ERSETZT", replaced_by_project_id=merged.id),
+            ProjectProgress(
+                project_id=survivor.id,
+                lifecycle_status="ERSETZT",
+                replaced_by_project_id=merged.id,
+                lifecycle_note="vorläufig",
+            ),
+            ProjectProgress(project_id=merged.id),
+        ]
+    )
+    db_session.commit()
+    survivor_id, merged_id, old_id = survivor.id, merged.id, old.id
+
+    plan = merge_projects(db_session, survivor_id, merged_id)
+    assert any(str(old_id) in w and "bleibende" in w for w in plan["warnings"])
+    assert any("„Aktiv“ zurückgesetzt" in w for w in plan["warnings"])
+
+    merge_projects(db_session, survivor_id, merged_id, apply=True)
+    db_session.expire_all()
+    assert db_session.query(ProjectProgress).filter_by(project_id=old_id).one().replaced_by_project_id == survivor_id
+    kept = db_session.query(ProjectProgress).filter_by(project_id=survivor_id).one()
+    assert (kept.lifecycle_status, kept.replaced_by_project_id, kept.lifecycle_note) == ("AKTIV", None, None)
+
+
+def test_merged_lifecycle_fills_active_survivor(db_session):
+    survivor, merged, successor = (Project(name=n) for n in ("A", "A doppelt", "Nachfolger"))
+    db_session.add_all([survivor, merged, successor])
+    db_session.commit()
+    db_session.add_all(
+        [
+            ProjectProgress(project_id=survivor.id),
+            ProjectProgress(
+                project_id=merged.id,
+                lifecycle_status="ERSETZT",
+                replaced_by_project_id=successor.id,
+                lifecycle_note="Neu zugeschnitten",
+            ),
+        ]
+    )
+    db_session.commit()
+    survivor_id, successor_id = survivor.id, successor.id
+
+    plan = merge_projects(db_session, survivor_id, merged.id, apply=True)
+    assert "replaced_by_project_id" in plan["progress_changes"]
+    db_session.expire_all()
+    kept = db_session.query(ProjectProgress).filter_by(project_id=survivor_id).one()
+    assert (kept.lifecycle_status, kept.replaced_by_project_id, kept.lifecycle_note) == (
+        "ERSETZT",
+        successor_id,
+        "Neu zugeschnitten",
+    )

@@ -162,6 +162,7 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
         "update_progress_observation",
         "delete_progress_observation",
         "set_phase_override",
+        "set_lifecycle_status",
         "upsert_project_text",
         "merge_projects",
         "list_todos",
@@ -576,6 +577,41 @@ def test_set_and_clear_phase_override(mcp_client, admin_token, db_session, monke
         "progress.manual_phase_override": None,
         "progress.manual_override_note": None,
     }
+
+
+def test_set_lifecycle_replaced_and_list_hides_it(mcp_client, admin_token, db_session, monkeypatch):
+    monkeypatch.setattr(progress_crud, "get_progress_view", _stub_view)
+    alpha, beta = _seed_projects(db_session)
+
+    missing = _call(mcp_client, admin_token, "set_lifecycle_status", {"project_id": alpha.id, "status": "ERSETZT"})
+    assert missing["isError"] is True
+    assert "Nachfolgeprojekt" in missing["content"][0]["text"]
+
+    _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "set_lifecycle_status",
+            {
+                "project_id": alpha.id,
+                "status": "ERSETZT",
+                "replaced_by_project_id": beta.id,
+                "note": "Eigenständiges Vorhaben",
+                "since": "2023-05-01",
+            },
+        )
+    )
+    progress = db_session.query(ProjectProgress).filter_by(project_id=alpha.id).one()
+    assert (progress.lifecycle_status, progress.replaced_by_project_id) == ("ERSETZT", beta.id)
+    assert progress.lifecycle_note == "Eigenständiges Vorhaben"
+
+    listed = _payload(_call(mcp_client, admin_token, "list_projects", {}))
+    assert alpha.id not in {p["id"] for p in listed["projects"]}
+    everything = _payload(_call(mcp_client, admin_token, "list_projects", {"include_ended": True}))
+    entry = next(p for p in everything["projects"] if p["id"] == alpha.id)
+    assert (entry["lifecycle_status"], entry["replaced_by_project_id"]) == ("ERSETZT", beta.id)
+    only = _payload(_call(mcp_client, admin_token, "list_projects", {"lifecycle_status": "ERSETZT"}))
+    assert [p["id"] for p in only["projects"]] == [alpha.id]
 
 
 def test_phase_override_needs_capability(mcp_client, db_session):

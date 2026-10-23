@@ -13,6 +13,7 @@ from __future__ import annotations
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session, load_only
 
+from dashboard_backend.crud.projects.projects import redirect_replaced, successor_map
 from dashboard_backend.crud._importer_common import (
     apply_editable_fields,
     ensure_projects_exist,
@@ -242,12 +243,18 @@ class _Matcher:
             .options(load_only(Project.id, Project.name, Project.superior_project_id))
             .all()
         )
+        self.successors = successor_map(db)
         self.children: dict[int, list[Project]] = {}
         for p in self.projects:
             if p.superior_project_id is not None:
                 self.children.setdefault(p.superior_project_id, []).append(p)
 
-    def suggest(self, raw_name: str, abschnitt: str | None) -> list[int]:
+    def suggest(self, raw_name: str, abschnitt: str | None) -> tuple[list[int], dict[int, int]]:
+        """Suggested projects and ``{successor: replaced}``: a replaced project
+        hands over to its successor (feature-project-replacement.md, W5)."""
+        return redirect_replaced(self._suggest(raw_name, abschnitt), self.successors)
+
+    def _suggest(self, raw_name: str, abschnitt: str | None) -> list[int]:
         """The Abschnitt is the subproject: if it names a distinct section and a
         matching subproject exists under a matched superior, suggest that leaf;
         otherwise the superior matches."""
@@ -293,7 +300,7 @@ def add_entries(
     by_id = {p.id: p for p in matcher.projects}
     rows: list[FuldaAnnouncement] = []
     for item in items:
-        suggested = matcher.suggest(item["raw_name"], item.get("abschnitt"))
+        suggested, redirected = matcher.suggest(item["raw_name"], item.get("abschnitt"))
         row = FuldaAnnouncement(
             document_id=doc.id,
             announcement_year=doc.year,
@@ -304,7 +311,11 @@ def add_entries(
             username_snapshot=user.username if user else None,
         )
         if suggested and not row.assignment_note:
-            row.assignment_note = AUTO_SUGGESTION_NOTE
+            row.assignment_note = AUTO_SUGGESTION_NOTE + "".join(
+                f"; umgelenkt von „{by_id[old].name}“ (ersetzt)"
+                for old in redirected.values()
+                if old in by_id
+            )
         db.add(row)
         rows.append(row)
     db.commit()

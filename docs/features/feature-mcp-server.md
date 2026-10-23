@@ -212,7 +212,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | Tool | Wirkung | benötigte Capability |
 |---|---|---|
 | `list_project_groups` | Projektgruppen mit Projektanzahl, optional per Freitext | — (eingeloggt) |
-| `list_projects` | Projekte suchen/filtern (Text in Name, Nummer, Beschreibung und Aliasen; Projektgruppe(n), Phase, Planungsstand bekannt, Geometrie, Länge, Lebenszyklus, Parl. Befassung, geändert seit, Termin offen), sortieren; je Eintrag Bau- und IB-Termin als `{date, precision, text}`, filterbar über `construction_start`/`commissioning` (eine Untergrenze trifft nie einen Zeitraum); `with_description` liefert je Eintrag den ersten Satz der Beschreibung und die Aliase | — (eingeloggt) |
+| `list_projects` | Projekte suchen/filtern (Text in Name, Nummer, Beschreibung und Aliasen; Projektgruppe(n), Phase, Planungsstand bekannt, Geometrie, Länge, Lebenszyklus, Parl. Befassung, geändert seit, Termin offen), sortieren; je Eintrag Bau- und IB-Termin als `{date, precision, text}`, filterbar über `construction_start`/`commissioning` (eine Untergrenze trifft nie einen Zeitraum); `with_description` liefert je Eintrag den ersten Satz der Beschreibung und die Aliase; beendete Projekte (ABGEBROCHEN, ERSETZT) nur mit `include_ended=true` oder Lebenszyklus-Filter | — (eingeloggt) |
 | `list_project_filters` | Katalog der Filter von `list_projects`: Felder, Typen, Operatoren, Enum-Werte | — |
 | `get_project` | Projektdetail inkl. BVWP-Daten und Unterprojekten | — |
 | `get_project_progress` | Planungsstand inkl. Beobachtungen und Prognose; `forecast.ibn_doubt`, wenn die GVFG-Finanzreihe nach dem IBN-Jahr noch Mittel vorsieht | — |
@@ -242,6 +242,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `update_progress_observation` | manuelle Beobachtung in place ändern (Präzision, Terminzusatz, Datum, Notiz, Vertrauen, erwartet), mit Änderungsprotokoll; abgeleitete nicht | `progress.edit` |
 | `delete_progress_observation` | manuelle Beobachtung löschen (abgeleitete nicht) | `progress.edit` |
 | `set_phase_override` | manuellen Phasen-Override setzen (mit Begründung) oder aufheben | `progress.edit` |
+| `set_lifecycle_status` | Lebenszyklus setzen (AKTIV, PAUSIERT, ABGEBROCHEN, ERSETZT mit Nachfolger), mit Begründung und Datum (`feature-project-replacement.md`) | `progress.edit` |
 | `upsert_project_text` | Projekttext anlegen/ändern, inkl. Kategorie (Standard „Info“) und `is_public` | `projecttext.edit` |
 | `merge_projects` | Dublette in ein anderes Projekt überführen (Vorschau, mit `apply` ausführen; destruktiv) | `project.merge` |
 | `search_operational_points` | Betriebsstellen nach Name/op_id suchen (Wegpunkte, Stationen) | — |

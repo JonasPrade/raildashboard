@@ -62,6 +62,7 @@ from dashboard_backend.models.infraplan import (
     InfraplanReport,
 )
 from dashboard_backend.models.associations.text_to_project import TextToProject
+from dashboard_backend.models.projects.progress_enums import ENDED_LIFECYCLES
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.projects.project_group import ProjectGroup
 from dashboard_backend.models.projects.project_progress import ProjectProgress
@@ -145,6 +146,7 @@ def _project_summary(
     is_known: bool | None = None,
     with_description: bool = False,
     milestones: tuple | None = None,
+    lifecycle: tuple[str | None, int | None] | None = None,
 ) -> dict[str, Any]:
     summary = {
         "id": project.id,
@@ -157,6 +159,10 @@ def _project_summary(
     }
     if is_known is not None:
         summary["is_known"] = is_known
+    if lifecycle is not None and lifecycle[0] not in (None, "AKTIV"):
+        summary["lifecycle_status"] = lifecycle[0]
+        if lifecycle[1] is not None:
+            summary["replaced_by_project_id"] = lifecycle[1]
     if milestones is not None:
         start_date, start_precision, ibn_date, ibn_precision = milestones
         summary["construction_start"] = _milestone_summary(start_date, start_precision)
@@ -691,6 +697,7 @@ def list_projects(
     has_geometry: bool | None = None,
     has_length: bool | None = None,
     lifecycle_status: LifecycleStatusLiteral | None = None,
+    include_ended: bool = False,
     parl_befassung_relevant: bool | None = None,
     date_open: bool | None = None,
     updated_since: date | None = None,
@@ -719,7 +726,12 @@ def list_projects(
     - is_known: true = the planning state is backed by an observation or an
       override; false = unknown (``phase`` then shows the NICHT_GESTARTET fallback)
     - has_geometry / has_length: whether a line/point geometry or a length is stored
-    - lifecycle_status: AKTIV (also projects without planning state), PAUSIERT, ABGEBROCHEN
+    - lifecycle_status: AKTIV (also projects without planning state), PAUSIERT,
+      ABGEBROCHEN, ERSETZT (replaced by another project)
+    - include_ended: ended projects (ABGEBROCHEN, ERSETZT) are left out unless
+      this is true or lifecycle_status / a lifecycle filter asks for them. Entries
+      with a lifecycle other than AKTIV carry ``lifecycle_status`` (and
+      ``replaced_by_project_id`` for ERSETZT — use the successor instead)
     - parl_befassung_relevant: parliamentary involvement relevant (override, else
       membership in a BSWAG* group)
     - date_open: true = Termin offen — Baubeginn or Inbetriebnahme is only a
@@ -752,6 +764,8 @@ def list_projects(
                 Project,
                 effective_phase,
                 known,
+                ProjectProgress.lifecycle_status,
+                ProjectProgress.replaced_by_project_id,
                 ProjectProgress.construction_start_date,
                 ProjectProgress.construction_start_precision,
                 ProjectProgress.commissioning_date,
@@ -792,6 +806,11 @@ def list_projects(
         specs += filters or []
         for spec in specs:
             query = query.filter(filter_clause(spec))
+        # Ended projects only on request (feature-project-replacement.md, W2).
+        if not include_ended and not any(spec.field == "lifecycle_status" for spec in specs):
+            query = query.filter(
+                func.coalesce(ProjectProgress.lifecycle_status, "AKTIV").notin_(ENDED_LIFECYCLES)
+            )
         total = query.count()
 
         sort_key = {
@@ -816,8 +835,15 @@ def list_projects(
             "offset": offset,
             "limit": limit,
             "projects": [
-                _project_summary(project, row_phase, bool(row_known), with_description, tuple(dates))
-                for project, row_phase, row_known, *dates in rows
+                _project_summary(
+                    project,
+                    row_phase,
+                    bool(row_known),
+                    with_description,
+                    tuple(dates),
+                    (row_lifecycle, row_successor),
+                )
+                for project, row_phase, row_known, row_lifecycle, row_successor, *dates in rows
             ],
         }
 
@@ -1362,6 +1388,46 @@ def set_phase_override(
         return ProjectProgressSchema.model_validate(view).model_dump(mode="json")
 
 
+def set_lifecycle_status(
+    project_id: int,
+    status: LifecycleStatusLiteral,
+    replaced_by_project_id: int | None = None,
+    note: str | None = None,
+    since: date | None = None,
+    *,
+    ctx: Context,
+) -> dict[str, Any]:
+    """Set the lifecycle of a project (requires ``progress.edit``): AKTIV,
+    PAUSIERT, ABGEBROCHEN or ERSETZT (replaced by another project).
+
+    - replaced_by_project_id: the successor, required with ERSETZT and only
+      allowed there. Both projects stay; the old one keeps its history. Not a
+      merge — duplicates go through merge_projects instead.
+    - note: the reason (e.g. the source that announces the replacement)
+    - since: the date from which the status holds
+    AKTIV clears successor, note and date. A replaced project drops out of the
+    default project lists, of its parent's phase span, timeline and sums, and
+    import suggestions on it move to the successor.
+    Returns the planning state with ``replaced_by`` / ``replaces``."""
+    principal = get_principal(ctx)
+    require(principal, "progress.edit")
+    payload: dict[str, Any] = {"lifecycle_status": status}
+    if replaced_by_project_id is not None:
+        payload["replaced_by_project_id"] = replaced_by_project_id
+    if note is not None:
+        payload["lifecycle_note"] = note
+    if since is not None:
+        payload["lifecycle_date"] = since
+    with tool_session(ctx) as db:
+        _project_or_error(db, project_id)
+        try:
+            progress_crud.update_progress(db, project_id, payload, load_user(db, principal))
+        except progress_crud.LifecycleError as exc:
+            raise ToolError(str(exc)) from exc
+        view = progress_crud.get_progress_view(db, project_id)
+        return ProjectProgressSchema.model_validate(view).model_dump(mode="json")
+
+
 def upsert_project_text(
     project_id: int,
     header: str | None = None,
@@ -1501,6 +1567,7 @@ def register(server: MCPServer) -> None:
         add_progress_observation,
         update_progress_observation,
         set_phase_override,
+        set_lifecycle_status,
         upsert_project_text,
     ):
         server.add_tool(fn, annotations=WRITE)

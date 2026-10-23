@@ -22,7 +22,7 @@ MainPhaseLiteral = Literal[
 # construction and operation are always part of a project's life.
 SkippablePhaseLiteral = Literal["VORPLANUNG", "GENEHMIGUNGSPLANUNG"]
 ParallelStateLiteral = Literal["OFFEN", "LAEUFT", "ABGESCHLOSSEN"]
-LifecycleStatusLiteral = Literal["AKTIV", "PAUSIERT", "ABGEBROCHEN"]
+LifecycleStatusLiteral = Literal["AKTIV", "PAUSIERT", "ABGEBROCHEN", "ERSETZT"]
 
 
 def _known_lifecycle(value: object) -> object:
@@ -213,6 +213,17 @@ class ProgressChildSchema(BaseModel):
     span_max_phase: Optional[MainPhaseLiteral] = None
 
 
+# --- Lifecycle references ----------------------------------------------------
+
+
+class LifecycleProjectRef(BaseModel):
+    """Successor / replaced project named in the lifecycle overlay."""
+
+    id: int
+    name: str
+    project_number: Optional[str] = None
+
+
 # --- PATCH input -------------------------------------------------------------
 
 
@@ -220,6 +231,11 @@ class ProjectProgressUpdate(BaseModel):
     has_planfeststellung: Optional[bool] = None
     parl_befassung_relevant: Optional[bool] = None  # null clears → group default
     lifecycle_status: Optional[LifecycleStatusLiteral] = None
+    # Successor — required with ERSETZT, rejected with any other status.
+    # Switching to AKTIV clears successor, note and date.
+    replaced_by_project_id: Optional[int] = None
+    lifecycle_note: Optional[str] = None  # "" clears
+    lifecycle_date: Optional[date] = None
     manual_phase_override: Optional[MainPhaseLiteral] = None
     manual_override_note: Optional[str] = None
     pf_state_override: Optional[ParallelStateLiteral] = None
@@ -238,6 +254,7 @@ class ProjectProgressUpdate(BaseModel):
     clear_parl_relevant: Optional[bool] = None
     clear_parl_state_override: Optional[bool] = None
     clear_pf_state_override: Optional[bool] = None
+    clear_lifecycle_date: Optional[bool] = None
 
 
 # --- Forecast (Phase 3) ------------------------------------------------------
@@ -333,6 +350,12 @@ class ProjectProgressSchema(BaseModel):
     parl_befassung_relevant: bool  # resolved (override ?? group default)
     parl_befassung_relevant_override: Optional[bool] = None  # raw stored value
     lifecycle_status: LifecycleStatusRead
+    lifecycle_note: Optional[str] = None
+    lifecycle_date: Optional[date] = None
+    # ERSETZT: the successor (null when it was deleted). ``replaces``: projects
+    # that name this one as their successor.
+    replaced_by: Optional[LifecycleProjectRef] = None
+    replaces: list[LifecycleProjectRef] = []
 
     # Resolved parallel tracks (null when the track is inactive).
     pf_state: Optional[ParallelStateLiteral] = None

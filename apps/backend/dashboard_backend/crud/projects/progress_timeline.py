@@ -13,6 +13,7 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
+from dashboard_backend.crud.projects.projects import replaced_project_ids
 from dashboard_backend.crud.projects.progress import (
     _to_inputs,
     expected_report_dates,
@@ -37,7 +38,10 @@ from dashboard_backend.services.progress_timeline import ConstructionUnitInput, 
 
 
 def _subtrees(db: Session, root_ids: list[int]) -> dict[int, set[int]]:
-    """``{root_id: {root_id, *descendant_ids}}`` with one query per depth level."""
+    """``{root_id: {root_id, *descendant_ids}}`` with one query per depth level.
+
+    Replaced descendants (lifecycle ERSETZT) and their subtrees are left out: their
+    successor carries the scheme (feature-project-replacement.md, W3)."""
 
     children_by_parent: dict[int, list[int]] = {}
     frontier = list(root_ids)
@@ -49,7 +53,10 @@ def _subtrees(db: Session, root_ids: list[int]) -> dict[int, set[int]]:
             .all()
         )
         frontier = []
+        replaced = replaced_project_ids(db, [child_id for child_id, _ in rows])
         for child_id, parent_id in rows:
+            if child_id in replaced:
+                continue
             if child_id in seen:
                 continue  # defensive: never loop on a broken hierarchy
             seen.add(child_id)

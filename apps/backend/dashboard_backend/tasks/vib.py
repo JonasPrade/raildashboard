@@ -17,6 +17,7 @@ from dashboard_backend.schemas.vib import (
     VibParseTaskResult,
     VibPfaEntryProposed,
 )
+from dashboard_backend.crud.projects.projects import redirect_replaced, successor_map
 from dashboard_backend.tasks.vib_matching import suggest_projects_for_vib_entry
 
 logger = logging.getLogger(__name__)
@@ -581,6 +582,7 @@ def _parse_vib_pdf(
     year: int,
     all_projects: list | None = None,
     task: "Task | None" = None,
+    successors: dict[int, int] | None = None,
     start_page: int | None = None,
     end_page: int | None = None,
     strip_headers_footers: bool = True,
@@ -779,7 +781,10 @@ def _parse_vib_pdf(
         # Auto-match project
         suggested_ids: list[int] = []
         if all_projects:
-            suggested_ids = suggest_projects_for_vib_entry(name_raw, all_projects)
+            # A replaced project hands over to its successor (feature-project-replacement.md).
+            suggested_ids, _ = redirect_replaced(
+                suggest_projects_for_vib_entry(name_raw, all_projects), successors or {}
+            )
 
         entry = VibEntryProposed(
             vib_section=section_nr,
@@ -875,6 +880,7 @@ def run_vib_parse(
             year,
             all_projects=all_projects,
             task=task,
+            successors=successor_map(db),
             start_page=start_page,
             end_page=end_page,
             strip_headers_footers=strip_headers_footers,

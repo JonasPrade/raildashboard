@@ -520,6 +520,10 @@ def aggregate_tree(node: AggregationNode) -> AggregationResult:
 
     phases: list[MainPhase] = []
     for child in node.children:
+        # A replaced subproject (and its subtree) no longer counts: its successor
+        # carries the scheme (docs/features/feature-project-replacement.md, W3).
+        if child.lifecycle is LifecycleStatus.ERSETZT:
+            continue
         phases.extend(aggregate_tree(child).phases)
     span = aggregate_span(phases)
     display = span[1] if span is not None else MainPhase.NICHT_GESTARTET

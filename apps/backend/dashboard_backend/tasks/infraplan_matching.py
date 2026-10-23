@@ -736,9 +736,12 @@ def suggest_rows(
     rows: Iterable[dict[str, Any]],
     projects: list[ProjectRef],
     previous: PreviousYear | dict[str, list[int]] | None = None,
+    successors: dict[int, int] | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     """Suggestions per ``row_key``: ``[{project_id, confidence, reason, …}]``,
-    strongest first. ``previous`` may be a plain ``{primary_number: [ids]}``."""
+    strongest first. ``previous`` may be a plain ``{primary_number: [ids]}``.
+    ``successors`` (replaced → successor) moves a hit on a replaced project to
+    its successor, with ``redirected_from`` (feature-project-replacement.md, W5)."""
     if previous is None:
         previous = PreviousYear()
     elif not isinstance(previous, PreviousYear):
@@ -750,6 +753,9 @@ def suggest_rows(
         found: dict[int, dict[str, Any]] = {}
 
         def add(project_id: int, confidence: float, reason: str, **extra: Any) -> None:
+            if successors and project_id in successors:
+                extra["redirected_from"] = project_id
+                project_id = successors[project_id]
             if project_id not in index.by_id:
                 return
             current = found.get(project_id)
@@ -885,4 +891,6 @@ def previous_links(db: Session, before_year: int) -> dict[str, list[int]]:
 
 
 def suggestions_for_draft(db: Session, rows: list[dict[str, Any]], year: int) -> dict[str, list[dict[str, Any]]]:
-    return suggest_rows(rows, load_projects(db), previous_year(db, year))
+    from dashboard_backend.crud.projects.projects import successor_map
+
+    return suggest_rows(rows, load_projects(db), previous_year(db, year), successor_map(db))

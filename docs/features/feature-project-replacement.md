@@ -89,11 +89,14 @@ Ausnahme vom Grundsatz „Parent projects always aggregate“ (`docs/architectur
 
 ## Importe (Entscheidung W5, 2026-10-23)
 
-- Gemeinsamer Helfer in `crud/_importer_common.py`: Nachfolger-Auflösung
-  (`successor_map`, folgt Ketten) und Umlenken einer Projektliste.
-- **Vorschläge** (VIB, Fulda-Runde, Infraplan, GVFG), auch die Übernahme aus dem
-  Vorjahr, werden auf den Nachfolger umgelenkt. Der Vorschlag trägt den Hinweis
-  „umgelenkt von <Projekt> (ersetzt)“.
+- Gemeinsame Helfer in `crud/projects/projects.py` (dort, weil auch `crud/gvfg.py` sie
+  ohne Importzyklus braucht): `successor_map` (folgt Ketten), `redirect_replaced` und
+  `replacement_warnings`.
+- **Vorschläge** (VIB per PDF und per MCP, Fulda-Runde, Infraplan, GVFG), auch die
+  Übernahme aus dem Vorjahr, werden auf den Nachfolger umgelenkt. Hinweis: VIB im Grund
+  („… · umgelenkt von „X“ (ersetzt)“), Fulda in der `assignment_note`, GVFG als Flag,
+  Infraplan im Feld `redirected_from` des Vorschlags. PFA-Teilprojekt-Vorschläge der VIB
+  werden nicht umgelenkt (sie zeigen auf Teilprojekte des zugeordneten Vorhabens).
 - **Bestätigte Zuordnungen** bleiben unangetastet — das Setzen von `ERSETZT` hängt
   nichts um.
 - Eine Zuordnung von Hand auf ein ersetztes Projekt bleibt erlaubt. MCP-Tools für

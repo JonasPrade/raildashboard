@@ -58,6 +58,13 @@ Je Vorhaben ohne Projekt:
 Ein Vorhaben mit mehreren echten Projekten (Sammelvorhaben) bekommt alle in
 `project_ids`; das ist die Ausnahme, nicht die Regel.
 
+**Ersetzte Projekte:** Ein Vorschlag auf ein ersetztes Projekt ist schon auf den Nachfolger
+umgelenkt (Grund bzw. Hinweis „umgelenkt von … (ersetzt)“). Die Zuordnungs-Tools melden in
+`warnings`, wenn du trotzdem ein ersetztes Projekt zuordnest — dann gehört die Meldung meist
+zum Nachfolger (`replaced_by_project_id`). `list_projects` zeigt ersetzte Projekte nur mit
+`include_ended=true`.
+Ein ersetztes Projekt ist keine Dublette: nicht zusammenführen, beide bleiben bestehen.
+
 ## 3. Mehrfachzuordnungen und Dubletten
 
 Zeigt ein Vorhaben auf zwei Projekte, ist eines meist eine Dublette (gleicher
