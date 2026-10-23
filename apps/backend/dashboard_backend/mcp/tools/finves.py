@@ -1,5 +1,5 @@
 """FinVe (Finanzierungsvereinbarung) tools: free search across all FinVes and
-removing wrong project links.
+editing their project links.
 
 ``list_project_finves`` only reaches FinVes already linked to a project; these
 tools find FinVes by number, name or Bedarfsplan number — including those not
@@ -15,16 +15,17 @@ from mcp.server.mcpserver.exceptions import ToolError
 from sqlalchemy import exists, or_
 from sqlalchemy.orm import selectinload
 
-from dashboard_backend.crud._importer_common import recompute_for
-from dashboard_backend.crud.admin_assignments import unlink_finve_from_projects
+from dashboard_backend.crud.finve_links import (
+    FinveLinkError,
+    permanent_projects,
+    update_finve_projects as update_finve_projects_crud,
+)
 from dashboard_backend.crud.finves import finve_with_budgets, get_finve_with_budgets
-from dashboard_backend.mcp.context import get_principal, require, tool_session
+from dashboard_backend.mcp.context import get_principal, load_user, require, tool_session
 from dashboard_backend.mcp.tools.projects import MAX_LIMIT, READ_ONLY, WRITE
 from dashboard_backend.models.associations.finve_to_project import FinveToProject
 from dashboard_backend.models.projects.budget import Budget
 from dashboard_backend.models.projects.finve import Finve
-
-ASSIGN_PERMISSION = "assignment.manage"
 
 
 def _project_refs(finve: Finve) -> list[dict[str, Any]]:
@@ -142,33 +143,48 @@ def get_finve(finve_id: int, *, ctx: Context) -> dict[str, Any]:
         return data
 
 
-def unlink_finve(finve_id: int, project_ids: list[int], *, ctx: Context) -> dict[str, Any]:
-    """Remove the link between a FinVe and the given projects (requires
-    ``assignment.manage``). Other project links of the FinVe stay. For a
-    Sammel-FinVe every year-scoped link to these projects goes. The projects'
-    planning state is recomputed, so FinVe-derived observations disappear.
-    Returns the removed project ids, the ids that had no link, and the FinVe's
-    remaining projects. A Haushalt import can link the FinVe again."""
+def update_finve_projects(
+    finve_id: int,
+    add_project_ids: list[int] | None = None,
+    remove_project_ids: list[int] | None = None,
+    note: str | None = None,
+    *,
+    ctx: Context,
+) -> dict[str, Any]:
+    """Add projects to and/or remove projects from a FinVe (requires
+    ``finve.edit``), also for FinVes that are already assigned; other links stay.
+    Only permanent links change — the year links of a Sammel-FinVe come from the
+    Haushalt import and stay. Each changed project gets a changelog entry
+    (revertable in the UI) and a recomputed planning state: a FinVe sets a lower
+    bound there, so removing a wrong link also removes its observation.
+    note: why the link was wrong or added (returned with the result).
+    Returns the FinVe's permanent projects afterwards and the changed project ids."""
     principal = get_principal(ctx)
-    require(principal, ASSIGN_PERMISSION)
-    if not project_ids:
-        raise ToolError("project_ids darf nicht leer sein.")
+    require(principal, "finve.edit")
+    add = list(dict.fromkeys(add_project_ids or []))
+    remove = list(dict.fromkeys(remove_project_ids or []))
+    if not add and not remove:
+        raise ToolError("Keine Projekte übergeben (add_project_ids oder remove_project_ids).")
     with tool_session(ctx) as db:
-        if db.get(Finve, finve_id) is None:
-            raise ToolError(f"FinVe {finve_id} nicht gefunden.")
-        removed = unlink_finve_from_projects(db, finve_id, project_ids)
-        db.commit()
-        recompute_for(db, removed)
-        finve = db.query(Finve).options(selectinload(Finve.projects)).filter(Finve.id == finve_id).one()
+        try:
+            changed = update_finve_projects_crud(
+                db,
+                finve_id,
+                add_project_ids=add,
+                remove_project_ids=remove,
+                user=load_user(db, principal),
+            )
+        except FinveLinkError as exc:
+            raise ToolError(str(exc)) from exc
         return {
             "finve_id": finve_id,
-            "removed": removed,
-            "not_linked": sorted(set(project_ids) - set(removed)),
-            "projects": _project_refs(finve),
+            "projects": [{"id": p.id, "name": p.name} for p in permanent_projects(db, finve_id)],
+            "changed_project_ids": changed,
+            "note": note,
         }
 
 
 def register(server: MCPServer) -> None:
     server.add_tool(list_finves, annotations=READ_ONLY)
     server.add_tool(get_finve, annotations=READ_ONLY)
-    server.add_tool(unlink_finve, annotations=WRITE)
+    server.add_tool(update_finve_projects, annotations=WRITE)

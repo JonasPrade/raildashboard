@@ -776,6 +776,8 @@ export function useLinkFinvesToProject(projectId: number) {
             queryKeys.projectFinves(projectId),
             queryKeys.finves,
             queryKeys.adminUnassignedFinves,
+            queryKeys.progressFor(projectId),
+            queryKeys.projectChangelog(projectId),
         ],
     );
 }
@@ -831,6 +833,10 @@ export function useRevertProjectField(projectId: number) {
             // The reverted field may be the geometry.
             invalidateAfterGeometryChange(queryClient, updatedProject);
             queryClient.invalidateQueries({ queryKey: queryKeys.projectChangelog(projectId) });
+            // A reverted FinVe assignment (``finve_ids``) changes FinVes and planning state.
+            queryClient.invalidateQueries({ queryKey: queryKeys.projectFinves(projectId) });
+            queryClient.invalidateQueries({ queryKey: queryKeys.progressFor(projectId) });
+            queryClient.invalidateQueries({ queryKey: queryKeys.finves });
         },
     });
 }
@@ -1043,6 +1049,38 @@ export function useFinves() {
         queryKey: queryKeys.finves,
         queryFn: () => api<FinveListItem[]>("/api/v1/finves/"),
     });
+}
+
+export type FinveProjectsResult = components["schemas"]["FinveProjectsSchema"];
+
+/**
+ * Add/remove permanent project links of a FinVe (PATCH /finves/{id}/projects).
+ * Every changed project gets a changelog entry and a recomputed planning state,
+ * so all FinVe, progress and changelog views are refreshed.
+ */
+export function useUpdateFinveProjects() {
+    return useInvalidatingMutation(
+        ({
+            finveId,
+            addProjectIds = [],
+            removeProjectIds = [],
+        }: {
+            finveId: number;
+            addProjectIds?: number[];
+            removeProjectIds?: number[];
+        }) =>
+            api<FinveProjectsResult>(`/api/v1/finves/${finveId}/projects`, {
+                method: "PATCH",
+                json: { add_project_ids: addProjectIds, remove_project_ids: removeProjectIds },
+            }),
+        [
+            queryKeys.finves,
+            ["project-finves"],
+            queryKeys.progress,
+            ["project-changelog"],
+            queryKeys.adminUnassignedFinves,
+        ],
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -1685,7 +1723,13 @@ export function useAssignFinve() {
                 method: "PATCH",
                 json: { project_ids: projectIds },
             }),
-        [queryKeys.adminUnassignedFinves],
+        [
+            queryKeys.adminUnassignedFinves,
+            queryKeys.finves,
+            ["project-finves"],
+            queryKeys.progress,
+            ["project-changelog"],
+        ],
     );
 }
 

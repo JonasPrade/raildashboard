@@ -283,7 +283,7 @@ def test_link_finves_to_project_success(client, create_user, monkeypatch):
     monkeypatch.setattr(
         projects_route,
         "link_project_to_finves",
-        lambda db, project_id, finve_ids: calls.append((project_id, tuple(finve_ids))),
+        lambda db, project_id, finve_ids, user: calls.append((project_id, tuple(finve_ids))),
     )
 
     resp = client.post(

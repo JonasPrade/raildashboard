@@ -28,6 +28,7 @@ import { LoadingState } from "../../shared/ui/LoadingState";
 // German labels for all tracked project fields
 const PROJECT_FIELD_LABELS: Record<string, string> = {
     name: "Name",
+    finve_ids: "FinVe-Zuordnung",
     merged_project: "Zusammengeführt aus",
     project_number: "Projektnummer",
     description: "Beschreibung",
@@ -164,6 +165,19 @@ function formatGroupIds(value: string | null | undefined, groupNames: Map<number
     }
 }
 
+// FinVe assignments are logged as sorted FinVe-id lists → "FinVe 900008, FinVe 900010".
+function formatFinveIds(value: string | null | undefined): string {
+    if (value == null) return "–";
+    try {
+        const ids = JSON.parse(value);
+        if (!Array.isArray(ids)) return formatValue(value);
+        if (ids.length === 0) return "–";
+        return ids.map((id: number) => `FinVe ${id}`).join(", ");
+    } catch {
+        return value;
+    }
+}
+
 // "{id, name}" of the merged project → "#2754 Ausbau Holzminden – Kreiensen".
 function formatMergedProject(value: string | null | undefined): string {
     if (value == null) return "–";
@@ -181,6 +195,7 @@ function formatEntryValue(
     groupNames: Map<number, string>,
 ): string {
     if (entry.field_name === "project_group_ids") return formatGroupIds(value, groupNames);
+    if (entry.field_name === "finve_ids") return formatFinveIds(value);
     if (entry.field_name === MERGED_PROJECT_FIELD) return formatMergedProject(value);
     return formatValue(value);
 }

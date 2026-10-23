@@ -40,7 +40,7 @@ Submits via `PATCH /api/v1/projects/{id}`.
 
 Searchable MultiSelect of all existing FinVes (id + name + finve_nr). Links the selected FinVes to the new project.
 
-Backend: reuse `assign_finve_to_projects` from `crud/admin_assignments.py`. Expose via a new endpoint `POST /api/v1/projects/{id}/finves` that accepts `{ finve_ids: number[] }`.
+Backend: reuse `assign_finve_to_projects` from `crud/admin_assignments.py`. Expose via a new endpoint `POST /api/v1/projects/{id}/finves` that accepts `{ finve_ids: number[] }`. Since 2026-10-23 the endpoint goes through `crud/finve_links.py` (`link_project_to_finves`): the links are logged as `finve_ids` and the planning state is recomputed (`feature-finve-zuordnung.md`, W4).
 
 ### Step 5 — VIB-Einträge verknüpfen *(optional)*
 

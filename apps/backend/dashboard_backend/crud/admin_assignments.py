@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
+from dashboard_backend.crud.finve_links import change_finve_links, update_finve_projects
 from dashboard_backend.models.associations.finve_to_project import FinveToProject
 from dashboard_backend.models.projects.finve import Finve
+from dashboard_backend.models.users import User
 from dashboard_backend.models.vib.vib_entry import VibEntry
 from dashboard_backend.models.vib.vib_entry_project import vib_entry_project
 from dashboard_backend.models.vib.vib_report import VibReport
@@ -66,60 +68,22 @@ def get_vib_entry(db: Session, entry_id: int) -> VibEntry | None:
     return db.get(VibEntry, entry_id)
 
 
-def assign_finve_to_projects(db: Session, finve_id: int, project_ids: list[int]) -> None:
-    """Insert finve_to_project rows (haushalt_year=NULL). Skips existing links."""
-    for pid in project_ids:
-        exists = (
-            db.query(FinveToProject)
-            .filter(
-                FinveToProject.finve_id == finve_id,
-                FinveToProject.project_id == pid,
-                FinveToProject.haushalt_year.is_(None),
-            )
-            .first()
-        )
-        if not exists:
-            db.add(FinveToProject(finve_id=finve_id, project_id=pid, haushalt_year=None))
-    db.flush()
+def assign_finve_to_projects(
+    db: Session, finve_id: int, project_ids: list[int], user: User | None
+) -> None:
+    """Add permanent links FinVe → projects (existing ones stay). Logged and
+    recomputed via ``crud.finve_links``; commits."""
+    update_finve_projects(db, finve_id, add_project_ids=project_ids, user=user)
 
 
-def link_project_to_finves(db: Session, project_id: int, finve_ids: list[int]) -> None:
-    """Link many FinVes to one project in a single batched insert.
-
-    Used by the new-project wizard. Existing (project_id, finve_id, NULL)
-    links are preserved.
-    """
+def link_project_to_finves(
+    db: Session, project_id: int, finve_ids: list[int], user: User | None
+) -> None:
+    """Link many FinVes to one project (new-project wizard). Existing links are
+    preserved. Logged and recomputed via ``crud.finve_links``; commits."""
     if not finve_ids:
         return
-    existing = (
-        db.query(FinveToProject.finve_id)
-        .filter(
-            FinveToProject.finve_id.in_(finve_ids),
-            FinveToProject.project_id == project_id,
-            FinveToProject.haushalt_year.is_(None),
-        )
-        .all()
-    )
-    existing_ids = {row[0] for row in existing}
-    for finve_id in finve_ids:
-        if finve_id not in existing_ids:
-            db.add(FinveToProject(finve_id=finve_id, project_id=project_id, haushalt_year=None))
-
-
-def unlink_finve_from_projects(db: Session, finve_id: int, project_ids: list[int]) -> list[int]:
-    """Delete every finve_to_project row between the FinVe and these projects —
-    the permanent one and, for Sammel-FinVes, all year-scoped ones. Returns the
-    project ids that actually had a link."""
-    if not project_ids:
-        return []
-    query = db.query(FinveToProject).filter(
-        FinveToProject.finve_id == finve_id,
-        FinveToProject.project_id.in_(project_ids),
-    )
-    removed = sorted({row.project_id for row in query.all()})
-    query.delete(synchronize_session=False)
-    db.flush()
-    return removed
+    change_finve_links(db, add={(project_id, f) for f in finve_ids}, user=user)
 
 
 def assign_vib_entry_to_projects(db: Session, entry_id: int, project_ids: list[int]) -> None:

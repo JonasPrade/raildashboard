@@ -115,6 +115,59 @@ def delete_parse_run_result(
 # POST /confirm — import parsed data into the database
 # ---------------------------------------------------------------------------
 
+def permanent_link_delta(
+    parsed_row: dict | None, submitted: list[int]
+) -> tuple[set[int], set[int]]:
+    """Projects to add/remove on a regular FinVe's permanent links at confirm.
+
+    The baseline is the list the review started from: the links at parse time.
+    The parser only suggests projects for a FinVe it did not know yet, so a row
+    with suggestions had no links (baseline empty). Without a stored row only
+    additions are applied. Links edited between parse and confirm stay as they
+    are unless the reviewer changed the same project.
+    """
+    wanted = set(submitted)
+    if parsed_row is None:
+        return wanted, set()
+    if parsed_row.get("suggested_project_ids"):
+        baseline: set[int] = set()
+    else:
+        baseline = set(parsed_row.get("project_ids") or [])
+    return wanted - baseline, baseline - wanted
+
+
+def _apply_permanent_delta(db: Session, finve_id: int, add: set[int], remove: set[int]) -> None:
+    current = {
+        pid
+        for (pid,) in db.query(FinveToProject.project_id).filter(
+            FinveToProject.finve_id == finve_id, FinveToProject.haushalt_year.is_(None)
+        )
+    }
+    for project_id in add - current:
+        db.add(FinveToProject(finve_id=finve_id, project_id=project_id, haushalt_year=None))
+    if remove & current:
+        db.query(FinveToProject).filter(
+            FinveToProject.finve_id == finve_id,
+            FinveToProject.project_id.in_(remove & current),
+            FinveToProject.haushalt_year.is_(None),
+        ).delete(synchronize_session=False)
+
+
+def _sync_sammel_links(db: Session, finve_id: int, year: int, desired: set[int]) -> None:
+    rows = db.query(FinveToProject).filter(
+        FinveToProject.finve_id == finve_id, FinveToProject.haushalt_year == year
+    )
+    current = {r.project_id for r in rows}
+    for project_id in desired - current:
+        db.add(FinveToProject(finve_id=finve_id, project_id=project_id, haushalt_year=year))
+    if current - desired:
+        db.query(FinveToProject).filter(
+            FinveToProject.finve_id == finve_id,
+            FinveToProject.project_id.in_(current - desired),
+            FinveToProject.haushalt_year == year,
+        ).delete(synchronize_session=False)
+
+
 @router.post("/confirm", response_model=HaushaltsConfirmResponse)
 def confirm_import(
     body: HaushaltsConfirmRequest,
@@ -137,6 +190,9 @@ def confirm_import(
     from datetime import datetime
 
     finves_created = finves_updated = budgets_created = budgets_updated = unmatched_saved = 0
+    parsed_rows = {
+        r.get("row_key"): r for r in ((record.result_json or {}).get("rows") or []) if isinstance(r, dict)
+    }
 
     for row in body.rows:
         if row.status == "unmatched":
@@ -175,30 +231,16 @@ def confirm_import(
         # 5. Sync FinveToProject for new and updated FinVes
         if row.status in ("new", "update") and row.proposed_finve and finve is not None:
             finve_id = finve.id
-            is_sammel = row.proposed_finve.is_sammel_finve
-            # SV-FinVes track membership per haushalt_year; regular FinVes use NULL (permanent)
-            link_year = record.haushalt_year if is_sammel else None
-
-            desired = set(row.project_ids)
-            q = db.query(FinveToProject).filter(FinveToProject.finve_id == finve_id)
-            if is_sammel:
-                q = q.filter(FinveToProject.haushalt_year == link_year)
+            if row.proposed_finve.is_sammel_finve:
+                # SV-FinVes track membership per haushalt_year: set-sync this year's links.
+                _sync_sammel_links(db, finve_id, record.haushalt_year, set(row.project_ids))
             else:
-                q = q.filter(FinveToProject.haushalt_year.is_(None))
-            current = {r.project_id for r in q.all()}
-
-            for project_id in desired - current:
-                db.add(FinveToProject(finve_id=finve_id, project_id=project_id, haushalt_year=link_year))
-            for project_id in current - desired:
-                del_q = db.query(FinveToProject).filter(
-                    FinveToProject.finve_id == finve_id,
-                    FinveToProject.project_id == project_id,
+                # Permanent links may have been edited since the parse: apply only
+                # the reviewer's changes against the parse-time list.
+                add, remove = permanent_link_delta(
+                    parsed_rows.get(row.row_key), row.project_ids
                 )
-                if is_sammel:
-                    del_q = del_q.filter(FinveToProject.haushalt_year == link_year)
-                else:
-                    del_q = del_q.filter(FinveToProject.haushalt_year.is_(None))
-                del_q.delete(synchronize_session=False)
+                _apply_permanent_delta(db, finve_id, add, remove)
 
     # 6. Save unmatched rows if requested
     if body.unmatched_action == "save":

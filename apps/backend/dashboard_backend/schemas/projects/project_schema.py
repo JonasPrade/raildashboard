@@ -81,6 +81,9 @@ class FinveWithBudgetsSchema(BaseModel):
     # itself; ``subprojects`` = the descendants carrying it (by name).
     from_subprojects: bool = False
     subprojects: list["ProjectRefSchema"] = []
+    # Permanently linked to the project itself (``haushalt_year IS NULL``) —
+    # the only links the project page may remove; Sammel-FinVe year links are not.
+    linked_permanently: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -125,6 +128,8 @@ class FinveListItemSchema(BaseModel):
     project_count: int
     project_names: list[str]
     projects: list[ProjectRefSchema] = []
+    # Projects linked permanently (editable); the rest are Sammel-FinVe year links.
+    permanent_project_ids: list[int] = []
     budgets: list[BudgetSummarySchema] = []
 
 
