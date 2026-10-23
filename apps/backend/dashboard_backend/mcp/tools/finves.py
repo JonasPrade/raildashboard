@@ -14,9 +14,14 @@ from mcp.server.mcpserver.exceptions import ToolError
 from sqlalchemy import exists, or_
 from sqlalchemy.orm import selectinload
 
+from dashboard_backend.crud.finve_links import (
+    FinveLinkError,
+    permanent_projects,
+    update_finve_projects as update_finve_projects_crud,
+)
 from dashboard_backend.crud.finves import finve_with_budgets, get_finve_with_budgets
-from dashboard_backend.mcp.context import get_principal, tool_session
-from dashboard_backend.mcp.tools.projects import MAX_LIMIT, READ_ONLY
+from dashboard_backend.mcp.context import get_principal, load_user, require, tool_session
+from dashboard_backend.mcp.tools.projects import MAX_LIMIT, READ_ONLY, WRITE
 from dashboard_backend.models.associations.finve_to_project import FinveToProject
 from dashboard_backend.models.projects.budget import Budget
 from dashboard_backend.models.projects.finve import Finve
@@ -137,6 +142,48 @@ def get_finve(finve_id: int, *, ctx: Context) -> dict[str, Any]:
         return data
 
 
+def update_finve_projects(
+    finve_id: int,
+    add_project_ids: list[int] | None = None,
+    remove_project_ids: list[int] | None = None,
+    note: str | None = None,
+    *,
+    ctx: Context,
+) -> dict[str, Any]:
+    """Add projects to and/or remove projects from a FinVe (requires
+    ``finve.edit``), also for FinVes that are already assigned; other links stay.
+    Only permanent links change — the year links of a Sammel-FinVe come from the
+    Haushalt import and stay. Each changed project gets a changelog entry
+    (revertable in the UI) and a recomputed planning state: a FinVe sets a lower
+    bound there, so removing a wrong link also removes its observation.
+    note: why the link was wrong or added (returned with the result).
+    Returns the FinVe's permanent projects afterwards and the changed project ids."""
+    principal = get_principal(ctx)
+    require(principal, "finve.edit")
+    add = list(dict.fromkeys(add_project_ids or []))
+    remove = list(dict.fromkeys(remove_project_ids or []))
+    if not add and not remove:
+        raise ToolError("Keine Projekte übergeben (add_project_ids oder remove_project_ids).")
+    with tool_session(ctx) as db:
+        try:
+            changed = update_finve_projects_crud(
+                db,
+                finve_id,
+                add_project_ids=add,
+                remove_project_ids=remove,
+                user=load_user(db, principal),
+            )
+        except FinveLinkError as exc:
+            raise ToolError(str(exc)) from exc
+        return {
+            "finve_id": finve_id,
+            "projects": [{"id": p.id, "name": p.name} for p in permanent_projects(db, finve_id)],
+            "changed_project_ids": changed,
+            "note": note,
+        }
+
+
 def register(server: MCPServer) -> None:
     server.add_tool(list_finves, annotations=READ_ONLY)
     server.add_tool(get_finve, annotations=READ_ONLY)
+    server.add_tool(update_finve_projects, annotations=WRITE)

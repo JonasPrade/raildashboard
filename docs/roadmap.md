@@ -221,6 +221,8 @@ Siehe: `docs/features/feature-routing.md`
 - [x] **Neues Projekt aus Zuordnungsseite anlegen** — "Neues Projekt anlegen"-Button auf `/admin/unassigned` öffnet den Wizard.
   Zusätzlich hat jede Zeile (FinVe, VIB, GVFG) den Link „Projekt fehlt?“: legt das Projekt als Entwurf an und weist den Eintrag direkt zu — wie in den Import-Reviews.
 
+- [x] **FinVe-Zuordnung bearbeiten** — Projekte einer FinVe hinzufügen und entfernen, auch bei bereits zugeordneten FinVe: per MCP (`update_finve_projects`), auf der Projektseite (Abschnitt FinVe → „Zuordnung bearbeiten“) und in der FinVe-Übersicht („Projekte bearbeiten“). Änderungsprotokoll je Projekt, zurücksetzbar, Planungsstand wird neu berechnet. See: `docs/features/feature-finve-zuordnung.md`
+
 ### Neues Projekt anlegen *(Backend + Frontend)*
 
 - [x] 5-step wizard at `/admin/projects/new`: Stammdaten → Geometrie → Projekteigenschaften → FinVes → VIB. Step 1 is required; steps 2–5 are skippable. Uses `POST /api/v1/projects`, `POST /projects/{id}/finves`, `GET /import/vib/entries`, and the extracted `ProjectEditFields`.

@@ -312,7 +312,8 @@ export interface paths {
         put?: never;
         /**
          * Link Finves To Project
-         * @description Link a list of existing FinVes to this project. Existing links are preserved.
+         * @description Link a list of existing FinVes to this project. Existing links are preserved;
+         *     the change is logged and the planning state recomputed.
          */
         post: operations["link_finves_to_project_api_v1_projects__project_id__finves_post"];
         delete?: never;
@@ -1285,6 +1286,28 @@ export interface paths {
          * @description Set/clear a FinVe's manual planning-phase override; returns the refreshed list.
          */
         patch: operations["patch_finve_progress_phase_api_v1_finves__finve_id__progress_phase_patch"];
+        trace?: never;
+    };
+    "/api/v1/finves/{finve_id}/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Patch Finve Projects
+         * @description Add and/or remove permanent project links of a FinVe (Sammel-FinVe year
+         *     links stay). Each changed project gets a changelog entry ``finve_ids`` and a
+         *     recomputed planning state.
+         */
+        patch: operations["patch_finve_projects_api_v1_finves__finve_id__projects_patch"];
         trace?: never;
     };
     "/api/v1/settings/": {
@@ -3897,6 +3920,11 @@ export interface components {
              */
             projects: components["schemas"]["ProjectRefSchema"][];
             /**
+             * Permanent Project Ids
+             * @default []
+             */
+            permanent_project_ids: number[];
+            /**
              * Budgets
              * @default []
              */
@@ -3906,6 +3934,35 @@ export interface components {
         FinveProgressPhaseUpdate: {
             /** Progress Phase */
             progress_phase?: ("NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB") | null;
+        };
+        /** FinveProjectRef */
+        FinveProjectRef: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+        };
+        /**
+         * FinveProjectsSchema
+         * @description The FinVe's permanent project links after a change.
+         */
+        FinveProjectsSchema: {
+            /** Finve Id */
+            finve_id: number;
+            /** Projects */
+            projects: components["schemas"]["FinveProjectRef"][];
+            /** Changed Project Ids */
+            changed_project_ids?: number[];
+        };
+        /**
+         * FinveProjectsUpdate
+         * @description Add/remove permanent project links of one FinVe.
+         */
+        FinveProjectsUpdate: {
+            /** Add Project Ids */
+            add_project_ids?: number[];
+            /** Remove Project Ids */
+            remove_project_ids?: number[];
         };
         /** FinveWithBudgetsSchema */
         FinveWithBudgetsSchema: {
@@ -3937,6 +3994,11 @@ export interface components {
              * @default []
              */
             subprojects: components["schemas"]["ProjectRefSchema"][];
+            /**
+             * Linked Permanently
+             * @default false
+             */
+            linked_permanently: boolean;
         };
         /** ForecastStepSchema */
         ForecastStepSchema: {
@@ -11141,6 +11203,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SammelFinveProgressSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_finve_projects_api_v1_finves__finve_id__projects_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                finve_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinveProjectsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinveProjectsSchema"];
                 };
             };
             /** @description Validation Error */

@@ -15,6 +15,7 @@ from dashboard_backend.crud.changelog import (
     get_project_changelog,
 )
 from dashboard_backend.crud import parliament as parliament_crud
+from dashboard_backend.crud.finve_links import FINVE_IDS_FIELD, FinveLinkError, set_project_finves
 from dashboard_backend.crud.finves import get_project_finves_with_budgets
 from dashboard_backend.crud.projects.bvwp import get_bvwp_data
 from dashboard_backend.crud.projects.merge import MergeError, merge_projects
@@ -325,9 +326,12 @@ def link_finves_to_project(
     project: Project = Depends(get_project_or_404),
     db: Session = Depends(get_db),
 ):
-    """Link a list of existing FinVes to this project. Existing links are preserved."""
-    link_project_to_finves(db, project.id, body.finve_ids)
-    db.commit()
+    """Link a list of existing FinVes to this project. Existing links are preserved;
+    the change is logged and the planning state recomputed."""
+    try:
+        link_project_to_finves(db, project.id, body.finve_ids, current_user)
+    except FinveLinkError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return None
 
 
@@ -339,6 +343,20 @@ def read_project_changelog(
 ):
     """Return the full changelog for a project, newest entries first."""
     return get_project_changelog(db, project.id)
+
+
+def _revert_finve_ids(db: Session, project: Project, entry, current_user: User) -> Project:
+    """Set the project's permanent FinVe links back to the entry's old list.
+    FinVe links are guarded by ``finve.edit`` on top of ``project.edit``."""
+    if not current_user.has_permission("finve.edit"):
+        raise HTTPException(status_code=403, detail="Not enough privileges")
+    target = json.loads(entry.old_value) if entry.old_value is not None else []
+    try:
+        set_project_finves(db, project.id, target, user=current_user, action="REVERT")
+    except FinveLinkError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    db.refresh(project)
+    return project
 
 
 @router.post("/{project_id}/changelog/revert", response_model=ProjectSchema)
@@ -354,6 +372,8 @@ def revert_project_field(
         raise HTTPException(status_code=404, detail="Changelog entry not found")
 
     field_name = entry.field_name
+    if field_name == FINVE_IDS_FIELD:
+        return _revert_finve_ids(db, project, entry, current_user)
     if field_name not in ProjectUpdate.model_fields.keys():
         raise HTTPException(status_code=400, detail=f"Unknown field: {field_name}")
 
