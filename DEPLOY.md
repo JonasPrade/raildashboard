@@ -257,6 +257,11 @@ getaggt; erreichbar ist das nur von Hand mit `./prod.sh 2e85d73…`, nicht über
 Entrypoint kennt `db_ahead.py` nicht. Ein Rückweg auf v0.0.14 nach dem ersten Deploy
 braucht deshalb den Restore des Dumps von direkt davor (`backups/pre-migrate_…`).
 
+**Lebenszyklus `ERSETZT` (#261):** Stände vor der Vorab-Änderung „unbekannte
+Lebenszyklus-Werte als AKTIV lesen“ scheitern am Planungsstand eines ersetzten Projekts.
+Die Vorab-Änderung muss deshalb ausgerollt sein, bevor das Feature ausgerollt wird; ein
+Rückweg danach geht nur auf einen Stand ab ihr.
+
 ## Konventionen für Änderungen (Definition of Done)
 
 - [ ] `make test` ist grün (fährt auch die Image-Builds, also: Build gelingt allein aus dem Repo).
@@ -266,6 +271,9 @@ braucht deshalb den Restore des Dumps von direkt davor (`backups/pre-migrate_…
 - [ ] `/healthz` deckt neue Pflicht-Abhängigkeiten mit ab.
 - [ ] Migrationen: Alembic, rückwärtskompatibel (Expand/Contract). Spalten erst im
       Release **nach** dem löschen, ab dem der Code sie nicht mehr mappt.
+- [ ] Neue Werte in gespeicherten String-Enums (z. B. Lebenszyklus `ERSETZT`): erst
+      einen Stand ausrollen, der unbekannte Werte toleriert, dann den neuen Wert. Sonst
+      scheitert der alte Code nach einem Rollback an den neuen Zeilen.
 - [ ] Kein Zustand im Containerlayer (Uploads/DB/Backups → Volumes bzw. `backups/`).
 - [ ] `CHANGELOG.md` ergänzt.
 - [ ] `apps/backend/requirements.txt` bleibt exakt (`==`) gepinnt.

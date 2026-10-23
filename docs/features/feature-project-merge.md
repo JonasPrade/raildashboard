@@ -26,6 +26,8 @@ MCP-Tool `merge_projects`.
   `project_redirect` (alte id → neue id). `GET /projects/{alte id}` liefert das
   bleibende Projekt, die Detailseite ersetzt die URL. Kein „Geister-Projekt" mit
   `merged_into_id`, das jede Liste/Karte/Suche/MCP-Abfrage ausfiltern müsste.
+  (Ausnahme mit Absicht: ein *ersetztes* Projekt ist keine Dublette, es bleibt mit
+  Verweis auf den Nachfolger bestehen — `feature-project-replacement.md`.)
   Umleitungen, die auf das verworfene Projekt zeigten, werden auf das bleibende
   Projekt umgebogen — keine Ketten.
 - **Auch als API-Endpoint** (`POST /api/v1/projects/merge`), gleiche Logik, keine

@@ -75,7 +75,8 @@ eines Oberprojekts ist die Spanne über die Blätter — während der Pause steh
   PFB und Parl. Befassung als Rauten, Belege als hohle Punkte. Tooltip je Marke: Meilenstein,
   Datum mit Präzision, Quelle (bei Annahmen die Herleitung); Tooltip je Balken: Zeitraum.
 - „Heute"-Linie über alle Zeilen; Jahresachse mit Schrittweite nach Spanne (1/2/5 Jahre).
-- Pausierte/abgebrochene Projekte werden abgeblendet und markiert.
+- Pausierte/abgebrochene/ersetzte Projekte werden abgeblendet und markiert. Ersetzte Teilprojekte
+  zählen nicht in den Zeitstrahl ihres Oberprojekts (`feature-project-replacement.md`, W3).
 - Mobil (360 px): Name über dem Balken, keine horizontale Scrollleiste.
 
 ### Unsichere Termine (Datumsqualifikation, #246)

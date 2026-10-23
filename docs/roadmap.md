@@ -248,6 +248,8 @@ Siehe: `docs/features/feature-new-project-wizard.md`
 
 ### Sonstiges
 
+- [ ] **Projekt ersetzt durch** — Lebenszyklus `ERSETZT` mit Verweis auf das Nachfolgeprojekt, Begründung und Datum; beendete Projekte in Liste/Karte standardmäßig ausgeblendet, Importvorschläge auf den Nachfolger umgelenkt, per MCP setzbar.
+  Siehe: `docs/features/feature-project-replacement.md`
 - [ ] **BVWP-Datenimport** — Übernahme der BVWP-Daten aus der Legacy-Datenbank. Voraussetzung für die Anzeige der BVWP-Bewertung (Display-Feature bereits implementiert).
 
 - [ ] Cleanup Database structure. Evaluate

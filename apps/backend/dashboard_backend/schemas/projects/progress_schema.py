@@ -7,9 +7,9 @@ TypeScript string unions instead of opaque enum refs.
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Literal, Optional
+from typing import Annotated, Literal, Optional, get_args
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, computed_field
 
 from dashboard_backend.services.date_precision import date_text
 
@@ -23,6 +23,18 @@ MainPhaseLiteral = Literal[
 SkippablePhaseLiteral = Literal["VORPLANUNG", "GENEHMIGUNGSPLANUNG"]
 ParallelStateLiteral = Literal["OFFEN", "LAEUFT", "ABGESCHLOSSEN"]
 LifecycleStatusLiteral = Literal["AKTIV", "PAUSIERT", "ABGEBROCHEN"]
+
+
+def _known_lifecycle(value: object) -> object:
+    """Read a stored lifecycle value this code does not know as AKTIV.
+
+    A rollback to an older release must not fail on a value written by a newer
+    one (Expand/Contract, docs/features/feature-project-replacement.md → W4)."""
+    return value if value in get_args(LifecycleStatusLiteral) else "AKTIV"
+
+
+# Response fields only — input (PATCH, MCP) still rejects unknown values.
+LifecycleStatusRead = Annotated[LifecycleStatusLiteral, BeforeValidator(_known_lifecycle)]
 SourceTypeLiteral = Literal[
     "VIB", "FINVE", "FULDA_RUNDE", "BAUPORTAL", "MEDIEN", "INFRAPLAN", "GVFG", "MANUELL"
 ]
@@ -194,7 +206,7 @@ class ProgressChildSchema(BaseModel):
     project_id: int
     name: str
     effective_phase: MainPhaseLiteral  # for a nested superior: the span's upper bound
-    lifecycle_status: LifecycleStatusLiteral
+    lifecycle_status: LifecycleStatusRead
     is_known: bool = True  # False → no phase info ("Unbekannt")
     is_superior: bool = False  # True → child has its own subprojects (show the span)
     span_min_phase: Optional[MainPhaseLiteral] = None
@@ -320,7 +332,7 @@ class ProjectProgressSchema(BaseModel):
     has_planfeststellung: bool
     parl_befassung_relevant: bool  # resolved (override ?? group default)
     parl_befassung_relevant_override: Optional[bool] = None  # raw stored value
-    lifecycle_status: LifecycleStatusLiteral
+    lifecycle_status: LifecycleStatusRead
 
     # Resolved parallel tracks (null when the track is inactive).
     pf_state: Optional[ParallelStateLiteral] = None
@@ -388,7 +400,7 @@ class ProjectTimelineSchema(BaseModel):
     name: str
     project_number: Optional[str] = None
     superior_project_id: Optional[int] = None
-    lifecycle_status: LifecycleStatusLiteral
+    lifecycle_status: LifecycleStatusRead
     milestones: list[TimelineMilestoneSchema] = []
     # Superior whose subprojects build in separate stages: the disjoint
     # construction periods (union of the members' Baubeginn–IB intervals).

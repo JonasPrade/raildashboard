@@ -50,10 +50,13 @@ nächste Schritte). Darstellung als horizontaler Verlauf mit **Kreisen + Pfeilen
    - **Parl. Befassung**: Beschluss-Zustand, Datum, Anmerkung und der **DIP-Link** zur
      Bundestagsdrucksache (`parl_drucksache_url`).
 
-3. **Lebenszyklus-Overlay (orthogonal):** `AKTIV / PAUSIERT / ABGEBROCHEN`.
+3. **Lebenszyklus-Overlay (orthogonal):** `AKTIV / PAUSIERT / ABGEBROCHEN / ERSETZT`.
    Nicht in die Phasenkette gemischt; **nicht** standardmäßig angezeigt. Bei
-   `PAUSIERT`/`ABGEBROCHEN` wird die **gesamte** Darstellung überblendet
+   `PAUSIERT`/`ABGEBROCHEN`/`ERSETZT` wird die **gesamte** Darstellung überblendet
    (Banner + abgeblendeter Stepper); die zuletzt bekannte Phase bleibt erhalten.
+   Jeder Status außer `AKTIV` kann Begründung und Datum tragen; `ERSETZT` verweist auf
+   das Nachfolgeprojekt. Ausblenden in Listen/Karte und Ausnahme bei der
+   Oberprojekt-Aggregation: [`feature-project-replacement.md`](feature-project-replacement.md).
 
 **Ableitung = HYBRID** (Regel neu gefasst 2026-10-22): Ein Algorithmus erzeugt einen
 *Vorschlag* für die Headline-Phase, der redaktionell **übersteuerbar** bleibt (Phasen-Override).
@@ -276,7 +279,8 @@ Neuer Komponentenbaum `features/projects/components/progress/`, eingehängt in
   (read-only) der Detailblock: Datum, Link zur Bundestagsdrucksache, Freitext. Bearbeitet
   wird er im `ProgressEditDrawer` (Beschluss-Select = `parl_state_override`, Datum, Link,
   Anmerkung — Teil des Skalar-Entwurfs).
-- `LifecycleOverlay.tsx` — Banner/Abblendung bei `PAUSIERT`/`ABGEBROCHEN`.
+- `LifecycleOverlay.tsx` — Banner/Abblendung bei `PAUSIERT`/`ABGEBROCHEN`/`ERSETZT`, mit Begründung,
+  Datum und Link auf den Nachfolger.
 - `SourceBreakdown.tsx` — `<Collapse>` mit Beitrag je Quelle (Typ, Aussage, Datum,
   **Alter**; für Admins zusätzlich Vertrauen ohne Altersabschlag und die Marken
   „entscheidend“, „Untergrenze“, „Konflikt“). Ein Konflikt erscheint für Bearbeitende als
@@ -339,10 +343,11 @@ Teil dieses Pakets.
 - **URL-Param** `?phase=BAU,VORPLANUNG,UNBEKANNT` (MainPhase-Werte + `UNBEKANNT`, kanonische
   Reihenfolge, unbekannte Token werden verworfen). Er kombiniert sich (UND) mit `?group` und
   `?search` und bleibt wie `?search` beim Wechsel Karte ↔ Liste und in geteilten Links erhalten.
-- **Pausierte/abgebrochene Projekte** (`lifecycle_status ≠ AKTIV`) werden nach ihrer
-  Headline-Phase gefiltert wie alle anderen: der Lebenszyklus ist ein Overlay und ändert den
-  Phasenwert nicht (gleiche Regel wie in der Ableitung). Auf der Projektkarte erscheint
-  zusätzlich ein grauer Lebenszyklus-Badge.
+- **Lebenszyklus** (geändert 2026-10-23, W2 in `feature-project-replacement.md`): Ersetzte und
+  abgebrochene Projekte sind standardmäßig ausgeblendet; der Schalter „Beendete Projekte
+  einblenden“ (`?beendet=1`) holt sie zurück. Eingeblendet und pausierte Projekte werden nach
+  ihrer Headline-Phase gefiltert wie alle anderen (der Lebenszyklus ändert den Phasenwert nicht);
+  auf der Projektkarte erscheint zusätzlich ein grauer Lebenszyklus-Badge.
 - **Platzierung:** Desktop-Karte im schwebenden `MapControls`-Panel unter der Suche; Telefon im
   Bottom-Sheet „Karte einstellen" (ein aktiver Phasenfilter markiert den Einstellungs-Button mit
   einem Punkt, der Zähler „x von y Projekten" erscheint über der Karte); Listenansicht in der
