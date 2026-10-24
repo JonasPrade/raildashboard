@@ -15,7 +15,20 @@ from dashboard_backend.crud.changelog import (
     get_project_changelog,
 )
 from dashboard_backend.crud import parliament as parliament_crud
+from dashboard_backend.crud.finve_links import (
+    FINVE_IDS_FIELD,
+    FinveLinkConflict,
+    FinveLinkError,
+    set_project_finves,
+)
 from dashboard_backend.crud.finves import get_project_finves_with_budgets
+from dashboard_backend.crud.projects.archive import (
+    ArchiveError,
+    archive_project,
+    get_archived_projects,
+    replacement,
+    unarchive_project,
+)
 from dashboard_backend.crud.projects.bvwp import get_bvwp_data
 from dashboard_backend.crud.projects.merge import MergeError, merge_projects
 from dashboard_backend.crud.projects.projects import (
@@ -49,6 +62,13 @@ from dashboard_backend.schemas.projects.project_schema import (
     ProjectOptionSchema,
 )
 from dashboard_backend.schemas.projects.bvwp_schema import BvwpProjectDataSchema
+from dashboard_backend.schemas.projects.project_archive_schema import (
+    ArchivedProjectSchema,
+    ProjectArchiveRequest,
+    ProjectArchiveResult,
+    ProjectReplacementSchema,
+    ProjectUnarchiveRequest,
+)
 from dashboard_backend.schemas.projects.link_finves_schema import LinkFinvesInput
 from dashboard_backend.schemas.projects.project_create_schema import ProjectCreate
 from dashboard_backend.schemas.projects.project_merge_schema import (
@@ -137,6 +157,71 @@ def read_draft_projects(
     return get_draft_projects(db)
 
 
+# NOTE: must be declared before GET /{project_id} so "archived" is not captured
+# as a project id.
+@router.get("/archived", response_model=list[ArchivedProjectSchema])
+def read_archived_projects(
+    current_user: User = Depends(require_permission("project.delete")),
+    db: Session = Depends(get_db),
+):
+    """Archived projects for the admin archive page, newest first
+    (feature-project-archive.md)."""
+    return get_archived_projects(db)
+
+
+@router.post("/{project_id}/archive", response_model=ProjectArchiveResult)
+def archive_project_endpoint(
+    project_id: int,
+    body: ProjectArchiveRequest,
+    current_user: User = Depends(require_permission("project.delete")),
+    db: Session = Depends(get_db),
+):
+    """Archive a replaced or superseded project with a mandatory reason. Refused
+    (400, naming the links) while FinVe/GVFG links or non-archived subprojects
+    exist, or when the lifecycle is ABGEBROCHEN. Recorded in the changelog."""
+    try:
+        result = archive_project(
+            db,
+            project_id,
+            body.reason,
+            current_user.id,
+            current_user.username,
+            replaced_by_project_id=body.replaced_by_project_id,
+        )
+    except ArchiveError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if result is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return result
+
+
+@router.get("/{project_id}/replacement", response_model=ProjectReplacementSchema)
+def read_project_replacement(
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+):
+    """Public: the successor of an archived, replaced project and the archived
+    projects this one replaces (feature-project-archive.md → „Ersetzt durch“)."""
+    return replacement(db, project.id)
+
+
+@router.post("/{project_id}/unarchive", response_model=ProjectSchema)
+def unarchive_project_endpoint(
+    project_id: int,
+    body: ProjectUnarchiveRequest,
+    current_user: User = Depends(require_permission("project.delete")),
+    db: Session = Depends(get_db),
+):
+    """Restore an archived project. Recorded in the changelog."""
+    try:
+        project = unarchive_project(db, project_id, body.reason, current_user.id, current_user.username)
+    except ArchiveError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return project
+
+
 @router.post("/{project_id}/finalize", response_model=ProjectSchema)
 def finalize_project_endpoint(
     project_id: int,
@@ -209,7 +294,7 @@ def read_subprojects(
     project: Project = Depends(get_project_or_404),
     db: Session = Depends(get_db),
 ):
-    """Direct subprojects of a project, drafts excluded."""
+    """Direct subprojects of a project, drafts and archived projects excluded."""
     return get_subprojects(db, project.id)
 
 
@@ -325,9 +410,14 @@ def link_finves_to_project(
     project: Project = Depends(get_project_or_404),
     db: Session = Depends(get_db),
 ):
-    """Link a list of existing FinVes to this project. Existing links are preserved."""
-    link_project_to_finves(db, project.id, body.finve_ids)
-    db.commit()
+    """Link a list of existing FinVes to this project. Existing links are preserved;
+    the change is logged and the planning state recomputed."""
+    try:
+        link_project_to_finves(db, project.id, body.finve_ids, current_user)
+    except FinveLinkConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except FinveLinkError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return None
 
 
@@ -339,6 +429,20 @@ def read_project_changelog(
 ):
     """Return the full changelog for a project, newest entries first."""
     return get_project_changelog(db, project.id)
+
+
+def _revert_finve_ids(db: Session, project: Project, entry, current_user: User) -> Project:
+    """Set the project's permanent FinVe links back to the entry's old list.
+    FinVe links are guarded by ``finve.edit`` on top of ``project.edit``."""
+    if not current_user.has_permission("finve.edit"):
+        raise HTTPException(status_code=403, detail="Not enough privileges")
+    target = json.loads(entry.old_value) if entry.old_value is not None else []
+    try:
+        set_project_finves(db, project.id, target, user=current_user, action="REVERT")
+    except FinveLinkError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    db.refresh(project)
+    return project
 
 
 @router.post("/{project_id}/changelog/revert", response_model=ProjectSchema)
@@ -354,6 +458,8 @@ def revert_project_field(
         raise HTTPException(status_code=404, detail="Changelog entry not found")
 
     field_name = entry.field_name
+    if field_name == FINVE_IDS_FIELD:
+        return _revert_finve_ids(db, project, entry, current_user)
     if field_name not in ProjectUpdate.model_fields.keys():
         raise HTTPException(status_code=400, detail=f"Unknown field: {field_name}")
 

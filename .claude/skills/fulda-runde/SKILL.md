@@ -109,6 +109,11 @@ Jede Aussage genau **einmal** — die gleiche Zeile nie unter zwei Kategorien.
 Fehler im Eintrag korrigierst du mit `update_fulda_entry`, Fehleinträge entfernst du mit
 `delete_fulda_entry`.
 
+**Archivierte Projekte mit Nachfolger:** Archivierte Projekte sind keine Vorschläge.
+Ordnest du trotzdem eines zu, meldet `assign_fulda_entry` es in `warnings` samt
+Nachfolger — meist gehört die Aussage zum Nachfolger. `get_project` zeigt
+`replaced_by` / `replaces`.
+
 ## 5. Bestätigen
 
 `list_fulda_entries(document_id, only_open=true)` — keine „ungeprüft“-Notiz darf übrig

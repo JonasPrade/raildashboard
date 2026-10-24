@@ -31,6 +31,8 @@ export const queryKeys = {
     allProjectTexts: ["projectTexts"],
     projectTexts: (projectId: number) => ["projectTexts", projectId] as const,
     projectDrafts: ["projectDrafts"],
+    projectArchive: ["projectArchive"],
+    projectReplacement: (id: number) => ["projectReplacement", id] as const,
     projectGroups: ["projectGroups"],
     // Nested under `projectGroups`: invalidating the group list refreshes the
     // map geometries as well.
@@ -468,6 +470,14 @@ export function useProgressConflicts(enabled = true) {
     });
 }
 
+/** Recompute the planning state of every project (Celery) — after a deploy
+ *  that changes the derivation; returns the task id to poll. */
+export function useStartProgressRecomputeAll() {
+    return useMutation({
+        mutationFn: () => api<TaskLaunchResponse>("/api/v1/admin/progress-recompute", { method: "POST" }),
+    });
+}
+
 export function useRecomputeProgress(projectId: number) {
     return useInvalidatingMutation(
         () =>
@@ -702,6 +712,82 @@ export function useDeleteProject() {
     );
 }
 
+export type ArchivedProject = components["schemas"]["ArchivedProjectSchema"];
+export type ProjectArchiveResult = components["schemas"]["ProjectArchiveResult"];
+export type ProjectReplacement = components["schemas"]["ProjectReplacementSchema"];
+
+/** Successor of an archived, replaced project and the archived projects this one
+ * replaces (feature-project-archive.md → „Ersetzt durch“). */
+export function useProjectReplacement(projectId: number) {
+    return useQuery({
+        queryKey: queryKeys.projectReplacement(projectId),
+        enabled: Number.isFinite(projectId),
+        queryFn: () => api<ProjectReplacement>(`/api/v1/projects/${projectId}/replacement`),
+    });
+}
+
+/** Archived projects for the admin archive page (feature-project-archive.md). */
+export function useArchivedProjects(enabled = true) {
+    return useQuery({
+        queryKey: queryKeys.projectArchive,
+        enabled,
+        queryFn: () => api<ArchivedProject[]>("/api/v1/projects/archived"),
+    });
+}
+
+/**
+ * Archiving or restoring takes a project out of (or back into) every list and
+ * its parent's aggregation — refresh the lists, the map, the drafts and the
+ * parent (its geometry and planning state were recomputed).
+ */
+function invalidateAfterArchiveChange(queryClient: QueryClient, project: Project) {
+    invalidateAfterGeometryChange(queryClient, project);
+    queryClient.invalidateQueries({ queryKey: queryKeys.projectDrafts });
+    queryClient.invalidateQueries({ queryKey: queryKeys.projectArchive });
+    // Both ends of a successor link show it.
+    queryClient.invalidateQueries({ queryKey: ["projectReplacement"] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.progress });
+    if (project.id != null) {
+        queryClient.setQueryData(queryKeys.project(project.id), project);
+        queryClient.invalidateQueries({ queryKey: queryKeys.projectChangelog(project.id) });
+    }
+}
+
+/** Archive a replaced/superseded project; the reason is mandatory, the
+ * successor optional. */
+export function useArchiveProject() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({
+            projectId,
+            reason,
+            replacedByProjectId = null,
+        }: {
+            projectId: number;
+            reason: string;
+            replacedByProjectId?: number | null;
+        }) =>
+            api<ProjectArchiveResult>(`/api/v1/projects/${projectId}/archive`, {
+                method: "POST",
+                json: { reason, replaced_by_project_id: replacedByProjectId },
+            }),
+        onSuccess: (result) => invalidateAfterArchiveChange(queryClient, result.project),
+    });
+}
+
+/** Restore an archived project; the reason is an optional changelog note. */
+export function useUnarchiveProject() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ projectId, reason }: { projectId: number; reason?: string }) =>
+            api<Project>(`/api/v1/projects/${projectId}/unarchive`, {
+                method: "POST",
+                json: { reason: reason || null },
+            }),
+        onSuccess: (project) => invalidateAfterArchiveChange(queryClient, project),
+    });
+}
+
 export function useLinkFinvesToProject(projectId: number) {
     return useInvalidatingMutation(
         (finveIds: number[]) =>
@@ -713,6 +799,8 @@ export function useLinkFinvesToProject(projectId: number) {
             queryKeys.projectFinves(projectId),
             queryKeys.finves,
             queryKeys.adminUnassignedFinves,
+            queryKeys.progressFor(projectId),
+            queryKeys.projectChangelog(projectId),
         ],
     );
 }
@@ -768,6 +856,10 @@ export function useRevertProjectField(projectId: number) {
             // The reverted field may be the geometry.
             invalidateAfterGeometryChange(queryClient, updatedProject);
             queryClient.invalidateQueries({ queryKey: queryKeys.projectChangelog(projectId) });
+            // A reverted FinVe assignment (``finve_ids``) changes FinVes and planning state.
+            queryClient.invalidateQueries({ queryKey: queryKeys.projectFinves(projectId) });
+            queryClient.invalidateQueries({ queryKey: queryKeys.progressFor(projectId) });
+            queryClient.invalidateQueries({ queryKey: queryKeys.finves });
         },
     });
 }
@@ -980,6 +1072,38 @@ export function useFinves() {
         queryKey: queryKeys.finves,
         queryFn: () => api<FinveListItem[]>("/api/v1/finves/"),
     });
+}
+
+export type FinveProjectsResult = components["schemas"]["FinveProjectsSchema"];
+
+/**
+ * Add/remove permanent project links of a FinVe (PATCH /finves/{id}/projects).
+ * Every changed project gets a changelog entry and a recomputed planning state,
+ * so all FinVe, progress and changelog views are refreshed.
+ */
+export function useUpdateFinveProjects() {
+    return useInvalidatingMutation(
+        ({
+            finveId,
+            addProjectIds = [],
+            removeProjectIds = [],
+        }: {
+            finveId: number;
+            addProjectIds?: number[];
+            removeProjectIds?: number[];
+        }) =>
+            api<FinveProjectsResult>(`/api/v1/finves/${finveId}/projects`, {
+                method: "PATCH",
+                json: { add_project_ids: addProjectIds, remove_project_ids: removeProjectIds },
+            }),
+        [
+            queryKeys.finves,
+            ["project-finves"],
+            queryKeys.progress,
+            ["project-changelog"],
+            queryKeys.adminUnassignedFinves,
+        ],
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -1622,7 +1746,13 @@ export function useAssignFinve() {
                 method: "PATCH",
                 json: { project_ids: projectIds },
             }),
-        [queryKeys.adminUnassignedFinves],
+        [
+            queryKeys.adminUnassignedFinves,
+            queryKeys.finves,
+            ["project-finves"],
+            queryKeys.progress,
+            ["project-changelog"],
+        ],
     );
 }
 

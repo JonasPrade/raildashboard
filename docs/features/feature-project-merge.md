@@ -28,6 +28,12 @@ MCP-Tool `merge_projects`.
   `merged_into_id`, das jede Liste/Karte/Suche/MCP-Abfrage ausfiltern müsste.
   Umleitungen, die auf das verworfene Projekt zeigten, werden auf das bleibende
   Projekt umgebogen — keine Ketten.
+  **Ausnahme (2026-10-23):** Das Kennzeichen „Archiviert"
+  ([`feature-project-archive.md`](feature-project-archive.md)) ist bewusst ein solches
+  überall gefiltertes Projekt — aber für einen anderen Fall: Zusammenführen bleibt für
+  **Dubletten** (ein Projekt geht im anderen auf); Archivieren ist für **ersetzte oder
+  überholte** Projekte, die ihre eigene Historie behalten. `merge_projects` lässt den
+  Archiv-Zustand des bleibenden Projekts unverändert.
 - **Auch als API-Endpoint** (`POST /api/v1/projects/merge`), gleiche Logik, keine
   eigene Oberfläche vorerst.
 
@@ -39,8 +45,8 @@ MCP-Tool `merge_projects`.
   aus dem verworfenen Projekt gefüllt.
 - **Eigenschafts-Flags** (`nbs`, `abs`, `elektrification`, …) werden mit ODER
   verknüpft.
-- Nicht übernommen: `id`, `name`, `is_draft`, `old_id`, `superior_project_old_id`,
-  `geojson_from_subprojects` — sie bleiben wie beim bleibenden Projekt.
+- Nicht übernommen: `id`, `name`, `is_draft`, `is_archived`, `archived_reason`,
+  `archived_at`, `old_id`, `superior_project_old_id`, `geojson_from_subprojects` — sie bleiben wie beim bleibenden Projekt.
 - `superior_project_id` wird nur gefüllt, wenn das bleibende Projekt keines hat
   und die Hierarchie gültig bleibt.
 

@@ -254,6 +254,7 @@ def project_counts_by_constituency(db: Session, constituency_ids: Iterable[int])
         .filter(
             ProjectToConstituency.constituency_id.in_(ids),
             Project.is_draft.is_(False),
+            Project.is_archived.is_(False),
         )
         .group_by(ProjectToConstituency.constituency_id)
         .all()
@@ -268,6 +269,7 @@ def projects_for_constituency(db: Session, constituency_id: int) -> list[Constit
         .filter(
             ProjectToConstituency.constituency_id == constituency_id,
             Project.is_draft.is_(False),
+            Project.is_archived.is_(False),
         )
         .order_by(ProjectToConstituency.length_km.desc(), Project.name)
         .all()
@@ -295,6 +297,7 @@ def projects_for_politician(db: Session, constituency: Constituency | None) -> l
         .filter(
             ProjectToConstituency.constituency_id == constituency.id,
             Project.is_draft.is_(False),
+            Project.is_archived.is_(False),
         )
         .order_by(ProjectToConstituency.length_km.desc(), Project.name)
         .all()

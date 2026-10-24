@@ -14,6 +14,7 @@ from mcp.server.mcpserver import Context, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import BaseModel, Field
 
+from dashboard_backend.crud.projects.archive import archived_warnings
 from dashboard_backend.crud import fulda as fulda_crud
 from dashboard_backend.crud._importer_common import ProjectNotFoundError
 from dashboard_backend.mcp.context import get_principal, load_user, require, tool_session
@@ -212,7 +213,11 @@ def assign_fulda_entry(
             raise ToolError(str(exc)) from exc
         if entry is None:
             raise ToolError(f"Eintrag {entry_id} gibt es nicht.")
-        return _entry_out(entry)
+        out = _entry_out(entry)
+        warnings = archived_warnings(db, project_ids)
+        if warnings:
+            out["warnings"] = warnings
+        return out
 
 
 def update_fulda_entry(

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Index, JSON, String, Float, Boolean, ForeignKey, Text
+from sqlalchemy import Column, DateTime, Integer, Index, JSON, String, Float, Boolean, ForeignKey, Text
 from sqlalchemy.orm import relationship
 
 from dashboard_backend.models.base import Base
@@ -23,6 +23,19 @@ class Project(Base):
     # explicitly finalized. Drafts are hidden from the public list/map (see
     # get_projects) and managed under /admin/drafts.
     is_draft = Column(Boolean, nullable=False, default=False, server_default="false")
+
+    # Archive state: a project replaced or superseded by other projects. Archived
+    # projects keep their history but count nowhere — not in lists/maps nor in any
+    # parent aggregation (docs/features/feature-project-archive.md). The reason is
+    # mandatory when archiving.
+    is_archived = Column(Boolean, nullable=False, default=False, server_default="false")
+    archived_reason = Column(Text, nullable=True)
+    archived_at = Column(DateTime, nullable=True)
+    # Successor of an archived project that another project replaced (#261, feature
+    # doc → „Ersetzt durch“). SET NULL: deleting the successor keeps the archive.
+    replaced_by_project_id = Column(
+        Integer, ForeignKey('project.id', ondelete='SET NULL'), nullable=True, index=True
+    )
 
     # which train category is affected by the project
     effects_passenger_long_rail = Column(Boolean, default=False)
@@ -128,7 +141,9 @@ class Project(Base):
         back_populates='projects'
     )
 
-    superior_project = relationship('Project', remote_side='Project.id')
+    superior_project = relationship(
+        'Project', remote_side='Project.id', foreign_keys='Project.superior_project_id'
+    )
 
     # Stored planning-state row (1:1, may be absent). Read-only and never
     # lazy-loaded: list endpoints eager-load it in bulk (see

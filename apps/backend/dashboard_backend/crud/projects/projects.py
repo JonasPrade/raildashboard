@@ -9,22 +9,22 @@ from dashboard_backend.services.constituency_matching import recompute_links_for
 
 
 def get_projects(db: Session):
-    """Gibt alle finalisierten Projekte zurück (Entwürfe ausgeblendet)."""
+    """Gibt alle finalisierten Projekte zurück (Entwürfe und archivierte ausgeblendet)."""
     # ProjectSchema serializes project_groups — eager-load to avoid 1+N queries.
     return (
         db.query(Project)
         .options(selectinload(Project.project_groups))
-        .filter(Project.is_draft.is_(False))
+        .filter(Project.is_draft.is_(False), Project.is_archived.is_(False))
         .all()
     )
 
 
 def get_draft_projects(db: Session):
-    """Gibt alle noch nicht finalisierten Projekte (Entwürfe) zurück."""
+    """Gibt alle noch nicht finalisierten Projekte (Entwürfe) zurück — ohne archivierte."""
     return (
         db.query(Project)
         .options(selectinload(Project.project_groups))
-        .filter(Project.is_draft.is_(True))
+        .filter(Project.is_draft.is_(True), Project.is_archived.is_(False))
         .all()
     )
 
@@ -43,14 +43,14 @@ def get_project_options(db: Session) -> List[Any]:
             Project.project_number,
             Project.superior_project_id,
         )
-        .filter(Project.is_draft.is_(False))
+        .filter(Project.is_draft.is_(False), Project.is_archived.is_(False))
         .order_by(Project.name)
         .all()
     )
 
 
 def get_subprojects(db: Session, project_id: int):
-    """Direct children of *project_id* (drafts excluded), ordered by name.
+    """Direct children of *project_id* (drafts and archived excluded), ordered by name.
 
     The detail page needs the children in full (map geometry + summary cards).
     Fetching them by parent beats loading every project and filtering client-side.
@@ -61,6 +61,7 @@ def get_subprojects(db: Session, project_id: int):
         .filter(
             Project.superior_project_id == project_id,
             Project.is_draft.is_(False),
+            Project.is_archived.is_(False),
         )
         .order_by(Project.name)
         .all()
@@ -96,21 +97,28 @@ def extract_features(geojson_str: Optional[str]) -> List[Any]:
 
 
 def has_subprojects(db: Session, project_id: int) -> bool:
-    """True if at least one project has *project_id* as its superior project."""
+    """True if at least one non-archived project has *project_id* as its superior
+    project — an archived project is not a subproject (feature-project-archive.md)."""
     return (
         db.query(Project.id)
-        .filter(Project.superior_project_id == project_id)
+        .filter(Project.superior_project_id == project_id, Project.is_archived.is_(False))
         .first()
         is not None
     )
 
 
 def subtree_ids(db: Session, root_id: int) -> List[int]:
-    """*root_id* followed by all of its descendants (any depth), one query per level."""
+    """*root_id* followed by all of its descendants (any depth), one query per level.
+
+    Archived descendants are skipped: they count in no parent sum.
+    """
     ids, frontier = [root_id], [root_id]
     while frontier:
         frontier = [
-            pid for (pid,) in db.query(Project.id).filter(Project.superior_project_id.in_(frontier))
+            pid
+            for (pid,) in db.query(Project.id).filter(
+                Project.superior_project_id.in_(frontier), Project.is_archived.is_(False)
+            )
         ]
         frontier = [pid for pid in frontier if pid not in ids]
         ids.extend(frontier)
@@ -120,8 +128,8 @@ def subtree_ids(db: Session, root_id: int) -> List[int]:
 def recompute_geojson_for_parent(db: Session, parent_id: Optional[int]) -> None:
     """Recompute and persist the geojson_representation of *parent_id* and its ancestors.
 
-    At each level, all direct children's geojson_representations are flattened into a
-    FeatureCollection and stored on the parent, then the walk continues upwards. The
+    At each level, all direct non-archived children's geojson_representations are
+    flattened into a FeatureCollection and stored on the parent, then the walk continues upwards. The
     walk stops at the root — `_seen` guards against a corrupt cyclic chain.
 
     A parent with `geojson_from_subprojects = False` owns its geometry: it is left
@@ -142,7 +150,7 @@ def recompute_geojson_for_parent(db: Session, parent_id: Optional[int]) -> None:
 
         children = (
             db.query(Project)
-            .filter(Project.superior_project_id == parent.id)
+            .filter(Project.superior_project_id == parent.id, Project.is_archived.is_(False))
             .all()
         )
 
@@ -202,11 +210,12 @@ def check_superior_project(
     *,
     exists: Callable[[int], bool],
     parent_of: Callable[[int], Optional[int]],
+    is_archived: Callable[[int], bool] = lambda _pid: False,
 ) -> None:
     """Pure hierarchy rules — the data is supplied via *exists* / *parent_of*.
 
-    Rejects unknown parents, self-references and any parent that already sits below the
-    project in the tree (which would create a cycle). *project_id* is None while the
+    Rejects unknown or archived parents, self-references and any parent that already
+    sits below the project in the tree (which would create a cycle). *project_id* is None while the
     project is still being created — only the existence check applies then.
 
     Raises ProjectHierarchyError with a user-facing (German) message.
@@ -222,6 +231,11 @@ def check_superior_project(
     if not exists(superior_project_id):
         raise ProjectHierarchyError(
             f"Das übergeordnete Projekt mit der ID {superior_project_id} existiert nicht."
+        )
+
+    if is_archived(superior_project_id):
+        raise ProjectHierarchyError(
+            f"Das übergeordnete Projekt mit der ID {superior_project_id} ist archiviert."
         )
 
     if project_id is not None and project_id in ancestor_ids(superior_project_id, parent_of):
@@ -242,6 +256,9 @@ def validate_superior_project(
         parent_of=lambda pid: db.query(Project.superior_project_id)
         .filter(Project.id == pid)
         .scalar(),
+        is_archived=lambda pid: bool(
+            db.query(Project.is_archived).filter(Project.id == pid).scalar()
+        ),
     )
 
 

@@ -107,6 +107,11 @@ Namensähnlichkeit, mit Grund) zurück und ordnet höchstens den besten Vorschla
 5. Unklar (mehrere plausible Projekte, Projekt fehlt): `project_ids: []` mit Begründung,
    Vorhaben bleibt offen. Fehlende Projekte legst du nur an, wenn der Nutzer das will.
 
+**Archivierte Projekte mit Nachfolger:** Eine Vorjahres-Zuordnung auf ein archiviertes,
+ersetztes Projekt ist schon auf den Nachfolger umgelenkt (Hinweis „umgelenkt …“ bzw.
+`redirected_from`). Ordnest du trotzdem ein archiviertes Projekt zu, meldet das Tool es in
+`warnings` samt Nachfolger. `get_project` zeigt `replaced_by` / `replaces`.
+
 ## 5. PFA-Abschnitte Teilprojekten zuordnen
 
 Erst wenn das Vorhaben seinen Projekten zugeordnet ist (Schritt 4) — die Vorschläge kommen
@@ -140,6 +145,19 @@ aus dem **ganzen Teilbaum** unter diesen Projekten.
    - `get_project_progress(parent_id)` ansehen — eigene Beobachtungen (FinVe, Fulda,
      manuell) am Elternprojekt, die nun nicht mehr zählen, dem Nutzer nennen;
    - im Bericht unter „Selbst entschieden“ aufführen.
+
+6. **Ersetzte Teilprojekte archivieren, nicht auf Entwurf setzen.** Ersetzen neue
+   PFA-Abschnitts-Teilprojekte alte Teilmaßnahmen (andere Schnitte als im Vorjahr), mit
+   dem Nutzer klären und dann je altes Teilprojekt
+   `archive_project(project_id, reason)` (ersetzt genau ein neues Teilprojekt das alte: `replaced_by_project_id` dazu) — `reason` nennt Bericht, Abschnitt und die
+   neuen Teilprojekte („Ersetzt durch PFA-Abschnitte laut VIB 2024 (B.4.2.14), neue
+   Teilprojekte …“). Ein archiviertes Projekt behält seine VIB-Historie und Geometrie,
+   zählt aber nirgends mehr (Elternkarte, Stand-Spanne, Summen, Listen) — Geometrie also
+   **nicht** leeren. Abgelehnt wird es, solange FinVe- oder GVFG-Zuordnungen oder nicht
+   archivierte Teilprojekte daran hängen: die Meldung nennt sie, erst umhängen. Ein
+   wirklich abgebrochenes Vorhaben (Lebenszyklus ABGEBROCHEN) wird nie archiviert.
+   Dubletten dagegen mit `merge_projects` zusammenführen. Im Bericht unter „Selbst
+   entschieden“ aufführen.
 
 Sobald eine Zeile einem Teilprojekt gehört, bekommt das Oberprojekt seinen Stand über die
 Teilprojekte. Jede Zuordnung macht das Vorhaben unbestätigt — am Ende `confirm_vib_report`.

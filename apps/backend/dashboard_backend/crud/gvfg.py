@@ -80,7 +80,9 @@ def _project_index(db: Session) -> tuple[dict[str, list[_ProjectRef]], list[_Pro
     by_key: dict[str, list[_ProjectRef]] = defaultdict(list)
     refs = []
     for pid, name, number, draft in db.execute(
-        select(Project.id, Project.name, Project.project_number, Project.is_draft)
+        select(Project.id, Project.name, Project.project_number, Project.is_draft).where(
+            Project.is_archived.is_(False)
+        )
     ):
         ref = _ProjectRef(pid, name, number, bool(draft))
         refs.append(ref)
@@ -113,6 +115,10 @@ def build_suggestions(db: Session, entries: list[dict[str, Any]]) -> dict[str, A
     """
     by_key, refs = _project_index(db)
     previous = _previous_links(db)
+    # Imported here: crud.projects.archive reaches crud.projects.progress, which reads GVFG.
+    from dashboard_backend.crud.projects.archive import redirect_replaced, successor_map
+
+    successors = successor_map(db)
     by_base: dict[str, list[_ProjectRef]] = defaultdict(list)
     for key, projects in by_key.items():
         by_base[key_without_suffix(key)].extend(projects)
@@ -128,7 +134,13 @@ def build_suggestions(db: Session, entries: list[dict[str, Any]]) -> dict[str, A
         selected: list[int] = []
 
         if previous.get(key):
-            selected = [pid for pid in previous[key] if pid in lookup]
+            # Last edition's link to an archived, replaced project goes to the
+            # successor (feature-project-archive.md → „Ersetzt durch“).
+            redirected_ids, redirected = redirect_replaced(previous[key], successors)
+            selected = [pid for pid in redirected_ids if pid in lookup]
+            for new_id, old_id in redirected.items():
+                if new_id in lookup:
+                    flags.append(f"Vorausgabe: Projekt {old_id} ist archiviert – umgelenkt auf „{lookup[new_id].name}“")
             source = "previous"
         exact = by_key.get(key, [])
         for ref in exact:
@@ -436,7 +448,12 @@ def project_entries(db: Session, project_id: int, with_subprojects: bool = False
     newest edition first."""
     ids = [project_id]
     if with_subprojects:
-        ids += [pid for (pid,) in db.query(Project.id).filter(Project.superior_project_id == project_id)]
+        ids += [
+            pid
+            for (pid,) in db.query(Project.id).filter(
+                Project.superior_project_id == project_id, Project.is_archived.is_(False)
+            )
+        ]
     rows = (
         db.query(GvfgEntry)
         .join(gvfg_entry_project, gvfg_entry_project.c.entry_id == GvfgEntry.id)

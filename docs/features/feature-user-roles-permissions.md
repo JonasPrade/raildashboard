@@ -87,7 +87,7 @@ Initialer Katalog (aus den heutigen Gates abgeleitet):
 | `projectgroup.edit` | Projektgruppen bearbeiten/löschen | admin |
 | `haushalt.import` | Haushaltsberichte importieren | editor, admin |
 | `vib.import` | VIB importieren | editor, admin |
-| `finve.edit` | Finanzierungsvereinbarungen einarbeiten | editor, admin |
+| `finve.edit` | Finanzierungsvereinbarungen einarbeiten — auch FinVe-Projekt-Zuordnungen hinzufügen/entfernen und zurücksetzen (`feature-finve-zuordnung.md`, W2 2026-10-23) | editor, admin |
 | `projecttext.edit` | Projekttexte bearbeiten | editor, admin |
 | `assignment.manage` | Offene Zuordnungen verwalten | editor, admin |
 | `user.manage` | Nutzer verwalten | admin |

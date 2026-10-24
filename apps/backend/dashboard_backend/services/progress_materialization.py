@@ -8,7 +8,9 @@ rows with ``is_derived=True``.
 Mapping (per feature-project-progress.md):
 - VIB ``status_planung`` → MAIN ≥ VORPLANUNG, ``status_bau`` → ≥ BAU,
   ``status_abgeschlossen`` → ≥ IN_BETRIEB. PFA fields drive the PF track
-  (and the forecast, handled elsewhere).
+  (and the forecast, handled elsewhere); PFAs assigned to a leaf give its MAIN
+  phase from the milestones actually reached — prognoses („vsl. 2027“) are
+  expected observations.
 - FinVe link → MAIN ≥ BAU; Sammel-FinVe weaker (lower explicit confidence).
 - GVFG-Bundesprogramm (newest edition) → MAIN from Inbetriebnahme, Lph and
   Baubeginn, plus the expected commissioning.
@@ -29,9 +31,10 @@ from dashboard_backend.models.projects.progress_enums import (
 )
 from dashboard_backend.services.fulda_categories import get_category
 from dashboard_backend.services.progress_dates import (
+    Milestone,
     commissioning_in_year,
     parse_flexible_date,
-    parse_flexible_date_with_precision,
+    read_milestone,
 )
 
 # Sammel-FinVe (year-scoped pooled financing) is a much weaker signal than a
@@ -111,34 +114,72 @@ def _strongest_vib_main_phase(
     return None
 
 
-def _pfa_main_phase(
-    pfa: PfaInput,
-) -> tuple[MainPhase | None, date | None, DatePrecision]:
-    """Derive a leaf MAIN phase + its date from a single PFA's milestone dates.
+@dataclass(frozen=True)
+class _Section:
+    """One PFA read as of the report's year-end: the last milestone reached
+    (``phase``) and the milestones still expected."""
 
-    ``inbetriebnahme`` → IN_BETRIEB, else ``baubeginn`` → BAU, else ``datum_pfb``
-    (the Planfeststellungsbeschluss concludes the approval phase) →
-    GENEHMIGUNGSPLANUNG. No parseable milestone → no MAIN contribution. The
-    precision of the free text comes along.
-    """
+    pfa: PfaInput
+    phase: MainPhase | None
+    reached: Milestone | None
+    expected_bau: Milestone | None
+    expected_ibn: Milestone | None
 
-    for phase, text in (
-        (MainPhase.IN_BETRIEB, pfa.inbetriebnahme),
-        (MainPhase.BAU, pfa.baubeginn),
-        (MainPhase.GENEHMIGUNGSPLANUNG, pfa.datum_pfb),
+    @property
+    def is_open(self) -> bool:
+        """Not in operation yet, and the table says something about it."""
+        if self.phase is MainPhase.IN_BETRIEB:
+            return False
+        return self.phase is not None or self.expected_bau is not None or self.expected_ibn is not None
+
+
+def _read_section(pfa: PfaInput, as_of: date | None) -> _Section:
+    """Milestones of one PFA: Inbetriebnahme → IN_BETRIEB, else Baubeginn →
+    BAU, else PFB (concludes the approval phase) → GENEHMIGUNGSPLANUNG — only
+    milestones actually reached by ``as_of`` count; a hedged or later date
+    („vsl. 2027“, „2027“ in the VIB 2024) is expected."""
+
+    ibn = read_milestone(pfa.inbetriebnahme, as_of, commissioning=True)
+    start = read_milestone(pfa.baubeginn, as_of)
+    pfb = read_milestone(pfa.datum_pfb, as_of)
+    phase, reached = None, None
+    for candidate, milestone in (
+        (MainPhase.IN_BETRIEB, ibn),
+        (MainPhase.BAU, start),
+        (MainPhase.GENEHMIGUNGSPLANUNG, pfb),
     ):
-        dt, precision = parse_flexible_date_with_precision(text)
-        if dt is not None:
-            return phase, dt, precision
-    return None, None, DatePrecision.EXACT
+        if milestone is not None and not milestone.is_expected:
+            phase, reached = candidate, milestone
+            break
+
+    def pending(milestone: Milestone | None) -> Milestone | None:
+        return milestone if milestone is not None and milestone.is_expected else None
+
+    return _Section(
+        pfa=pfa,
+        phase=phase,
+        reached=reached,
+        expected_bau=pending(start) if phase in (None, MainPhase.GENEHMIGUNGSPLANUNG) else None,
+        expected_ibn=pending(ibn) if phase is not MainPhase.IN_BETRIEB else None,
+    )
+
+
+def _pfa_label(pfa: PfaInput) -> str:
+    return pfa.nr_pfa or pfa.abschnitt_label or "PFA"
+
+
+def _labels(sections: list[_Section]) -> str:
+    return ", ".join(dict.fromkeys(_pfa_label(s.pfa) for s in sections))
 
 
 def _pfa_pf_spec(pfa: PfaInput, observed_date: date | None, vib_entry_id: int) -> DerivedSpec:
-    """PF-track spec for one PFA: ABGESCHLOSSEN once a PFB date exists, else LAEUFT."""
+    """PF-track spec for one PFA: ABGESCHLOSSEN once the PFB has been issued by
+    the report's year-end (``observed_date``), else LAEUFT — a PFB „vsl. 2027“
+    is still pending."""
 
-    pfb_date = parse_flexible_date(pfa.datum_pfb)
-    label = pfa.nr_pfa or pfa.abschnitt_label or "PFA"
-    if pfb_date is not None:
+    pfb = read_milestone(pfa.datum_pfb, observed_date)
+    label = _pfa_label(pfa)
+    if pfb is not None and not pfb.is_expected:
         return DerivedSpec(
             source_type=SourceType.VIB,
             track=ObservationTrack.PF,
@@ -148,12 +189,13 @@ def _pfa_pf_spec(pfa: PfaInput, observed_date: date | None, vib_entry_id: int) -
             vib_entry_id=vib_entry_id,
             vib_pfa_entry_id=pfa.id,
         )
+    pending = f" (PFB {pfa.datum_pfb})" if pfb is not None else ""
     return DerivedSpec(
         source_type=SourceType.VIB,
         track=ObservationTrack.PF,
         asserted_state=ParallelState.LAEUFT.value,
         observed_date=observed_date,
-        note=f"{label}: Planfeststellung läuft",
+        note=f"{label}: Planfeststellung läuft{pending}",
         vib_entry_id=vib_entry_id,
         vib_pfa_entry_id=pfa.id,
     )
@@ -204,37 +246,97 @@ def vib_entry_to_specs(
     return specs
 
 
-def pfa_to_specs(
+def assigned_pfas_to_specs(
     *,
-    pfa: PfaInput,
+    pfas: list[PfaInput],
     vib_entry_id: int,
     observed_fallback: date | None,
 ) -> list[DerivedSpec]:
-    """Build derived specs for one PFA assigned to a leaf subproject.
+    """Build derived specs for the PFAs of one VIB entry assigned to one leaf
+    subproject (so the status lands on the subproject, not the flattened parent).
 
-    Emits a MAIN spec derived from the section's own milestone dates (so the
-    status lands on the subproject, not the flattened parent) plus the PF-track
-    spec. ``observed_fallback`` (the report year-end) is used when the MAIN
-    milestone itself carries no parseable date.
+    ``observed_fallback`` is the report's year-end: the day the table speaks
+    for. Only milestones reached by then are facts (:func:`_read_section`).
+
+    - **One MAIN spec per leaf and entry.** The leaf is IN_BETRIEB only when no
+      section is still open; otherwise it takes the highest phase reached among
+      the open sections (finished sections next to sections under construction
+      → BAU). Separate per-section reports would let a finished section win on
+      the newest date or on the higher phase of a tie. Dated on the latest
+      milestone of those sections (``observed_fallback`` when undated,
+      „erfolgt“). Open sections without any milestone reached yet → no MAIN.
+    - **Expected** (``is_expected``) Bau at the earliest pending Baubeginn while
+      no section is building yet, and IN_BETRIEB at the latest pending
+      Inbetriebnahme — they feed the timeline / breakdown, never the phase.
+    - One PF-track spec per section.
     """
 
+    sections = [_read_section(pfa, observed_fallback) for pfa in pfas]
+    open_sections = [s for s in sections if s.is_open]
+    if open_sections:
+        candidates = [s for s in open_sections if s.phase is not None]
+    else:
+        candidates = [s for s in sections if s.phase is MainPhase.IN_BETRIEB]
+
     specs: list[DerivedSpec] = []
-    main_phase, main_date, main_precision = _pfa_main_phase(pfa)
-    label = pfa.nr_pfa or pfa.abschnitt_label or "PFA"
-    if main_phase is not None:
+    phase = max((s.phase for s in candidates), key=lambda p: p.order, default=None)
+    if phase is not None:
+        at_phase = [s for s in candidates if s.phase is phase]
+
+        def reached_on(section: _Section) -> date | None:
+            return section.reached.value or observed_fallback
+
+        decisive = max(at_phase, key=lambda s: reached_on(s) or date.min)
+        count = f" ({len(at_phase)} von {len(sections)} Abschnitten)" if len(sections) > 1 else ""
         specs.append(
             DerivedSpec(
                 source_type=SourceType.VIB,
                 track=ObservationTrack.MAIN,
-                asserted_state=main_phase.value,
-                observed_date=main_date or observed_fallback,
-                date_precision=main_precision,
-                note=f"{label}: aus PFA-Terminen",
+                asserted_state=phase.value,
+                observed_date=reached_on(decisive),
+                date_precision=decisive.reached.precision,
+                note=f"{_labels(at_phase)}: aus PFA-Terminen{count}",
                 vib_entry_id=vib_entry_id,
-                vib_pfa_entry_id=pfa.id,
+                vib_pfa_entry_id=decisive.pfa.id,
             )
         )
-    specs.append(_pfa_pf_spec(pfa, observed_fallback, vib_entry_id))
+
+    if phase is None or phase.order < MainPhase.BAU.order:
+        pending_bau = [s for s in sections if s.expected_bau is not None]
+        if pending_bau:
+            first = min(pending_bau, key=lambda s: s.expected_bau.value)
+            specs.append(
+                DerivedSpec(
+                    source_type=SourceType.VIB,
+                    track=ObservationTrack.MAIN,
+                    asserted_state=MainPhase.BAU.value,
+                    observed_date=first.expected_bau.value,
+                    date_precision=first.expected_bau.precision,
+                    note=f"{_pfa_label(first.pfa)}: Baubeginn {first.pfa.baubeginn}",
+                    vib_entry_id=vib_entry_id,
+                    vib_pfa_entry_id=first.pfa.id,
+                    is_expected=True,
+                )
+            )
+    if open_sections:
+        pending_ibn = [s for s in sections if s.expected_ibn is not None]
+        if pending_ibn:
+            last = max(pending_ibn, key=lambda s: s.expected_ibn.value)
+            specs.append(
+                DerivedSpec(
+                    source_type=SourceType.VIB,
+                    track=ObservationTrack.MAIN,
+                    asserted_state=MainPhase.IN_BETRIEB.value,
+                    observed_date=last.expected_ibn.value,
+                    date_precision=last.expected_ibn.precision,
+                    note=f"{_pfa_label(last.pfa)}: Inbetriebnahme {last.pfa.inbetriebnahme}",
+                    vib_entry_id=vib_entry_id,
+                    vib_pfa_entry_id=last.pfa.id,
+                    is_expected=True,
+                )
+            )
+
+    specs.extend(_pfa_pf_spec(pfa, observed_fallback, vib_entry_id) for pfa in pfas)
     return specs
 
 

@@ -34,7 +34,9 @@ def _with_projects():
         for name in (*PROJECT_LIST_ITEM_COLUMNS, *PROJECT_FLAG_FIELDS)
     ]
     return (
-        selectinload(ProjectGroup.projects.and_(Project.is_draft.is_(False))).options(
+        selectinload(
+            ProjectGroup.projects.and_(Project.is_draft.is_(False), Project.is_archived.is_(False))
+        ).options(
             load_only(*columns, raiseload=True),
             selectinload(Project.progress).load_only(
                 ProjectProgress.project_id,
@@ -73,7 +75,7 @@ def get_project_groups(db: Session):
     return db.query(ProjectGroup).options(*_with_projects()).all()
 
 def get_group_geometry_sources(db: Session, group_id: int, only_superior: bool):
-    """``(project_id, geojson_representation)`` rows of a group's non-draft projects.
+    """``(project_id, geojson_representation)`` rows of a group's non-draft, non-archived projects.
 
     Selects the two columns only. With *only_superior* the subprojects are
     skipped: a parent's geometry already contains its children's.
@@ -84,6 +86,7 @@ def get_group_geometry_sources(db: Session, group_id: int, only_superior: bool):
         .filter(
             ProjectGroup.id == group_id,
             Project.is_draft.is_(False),
+            Project.is_archived.is_(False),
             Project.geojson_representation.isnot(None),
         )
     )

@@ -82,7 +82,7 @@ export function gvfgPhaseCompletions(
 type Pfa = VibEntryForProject["pfa_entries"][number];
 
 // Forecast wording ("voraussichtlich Ende 2027") is no completion.
-const FORECAST = /vorauss|vsl\.|geplant|prognos/i;
+const FORECAST = /vorauss|\bvsl\b|geplant|prognos/i;
 
 const MONTHS: Record<string, number> = {
     jan: 1, feb: 2, mär: 3, mae: 3, mrz: 3, apr: 4, mai: 5, jun: 6,

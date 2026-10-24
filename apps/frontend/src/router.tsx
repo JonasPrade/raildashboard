@@ -46,6 +46,7 @@ const TasksPage = lazyWithRetry(() => import("./features/todos/TasksPage"));
 const AbgeordnetePage = lazyWithRetry(() => import("./features/abgeordnete/AbgeordnetePage"));
 const ParliamentAdminPage = lazyWithRetry(() => import("./features/admin/ParliamentAdminPage"));
 const DraftsPage =lazyWithRetry(() => import("./features/admin/drafts/DraftsPage"));
+const ArchivePage = lazyWithRetry(() => import("./features/admin/archive/ArchivePage"));
 const AnleitungenPage = lazyWithRetry(() => import("./features/guides/AnleitungenPage"));
 const ProjektfortschrittGuidePage = lazyWithRetry(() => import("./features/guides/ProjektfortschrittGuidePage"));
 const FuldaGuidePage = lazyWithRetry(() => import("./features/guides/FuldaGuidePage"));
@@ -223,6 +224,10 @@ export const router = createBrowserRouter([
             {
                 path: "admin/drafts",
                 element: <DraftsPage />,
+            },
+            {
+                path: "admin/archive",
+                element: <ArchivePage />,
             },
             {
                 path: "admin/anleitungen",

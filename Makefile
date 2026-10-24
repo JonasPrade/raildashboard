@@ -19,13 +19,13 @@ ALEMBIC      := .venv/bin/alembic
         migrate migrate-create \
         backup-db restore-db list-backups \
         release-check \
-        list-users create-user change-password refresh-progress-dates \
+        list-users create-user change-password refresh-progress-dates recompute-progress \
         gen-api \
         list-parse-results dump-parse-result summarise-parse-result \
         celery-worker \
         docker-dev-up docker-dev-down \
         docker-prod-build docker-prod-up docker-prod-down \
-        docker-migrate docker-create-user docker-backup-db docker-worker-logs docker-refresh-progress-dates \
+        docker-migrate docker-create-user docker-backup-db docker-worker-logs docker-refresh-progress-dates docker-recompute-progress \
         clean clean-backend clean-frontend
 
 # ---------------------------------------------------------------------------
@@ -99,6 +99,7 @@ help:
 	@echo "    docker-prod-down   Stop the production stack"
 	@echo "    docker-migrate     Run Alembic migrations inside the backend container"
 	@echo "    docker-refresh-progress-dates  Fill the cached Baubeginn/IB dates (once after 20261022004)"
+	@echo "    docker-recompute-progress  Recompute the planning state of all projects (after rule changes)"
 	@echo "    docker-create-user Create a user inside the backend container"
 	@echo "                       Usage: make docker-create-user USERNAME=admin ROLE=admin"
 	@echo "    docker-backup-db   pg_dump (docker exec) + tar.gz of the uploads volume"
@@ -284,6 +285,11 @@ delete-user:
 refresh-progress-dates:
 	cd $(BACKEND_DIR) && PYTHONPATH=. .venv/bin/python scripts/refresh_progress_dates.py
 
+# Re-derive the planning state of every project (also the admin button
+# „Alle Projekte neu berechnen“ on /admin/planungsstand-konflikte).
+recompute-progress:
+	cd $(BACKEND_DIR) && PYTHONPATH=. .venv/bin/python scripts/recompute_progress.py
+
 # ---------------------------------------------------------------------------
 # Code generation
 # ---------------------------------------------------------------------------
@@ -365,6 +371,10 @@ docker-create-user:
 # (once after migration 20261022004).
 docker-refresh-progress-dates:
 	docker compose exec backend python scripts/refresh_progress_dates.py
+
+# Same as recompute-progress, inside the running backend container.
+docker-recompute-progress:
+	docker compose exec backend python scripts/recompute_progress.py
 
 # Usage: make docker-delete-user USERNAME=admin
 docker-delete-user:

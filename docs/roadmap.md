@@ -221,6 +221,8 @@ Siehe: `docs/features/feature-routing.md`
 - [x] **Neues Projekt aus Zuordnungsseite anlegen** — "Neues Projekt anlegen"-Button auf `/admin/unassigned` öffnet den Wizard.
   Zusätzlich hat jede Zeile (FinVe, VIB, GVFG) den Link „Projekt fehlt?“: legt das Projekt als Entwurf an und weist den Eintrag direkt zu — wie in den Import-Reviews.
 
+- [x] **FinVe-Zuordnung bearbeiten** — Projekte einer FinVe hinzufügen und entfernen, auch bei bereits zugeordneten FinVe: per MCP (`update_finve_projects`), auf der Projektseite (Abschnitt FinVe → „Zuordnung bearbeiten“) und in der FinVe-Übersicht („Projekte bearbeiten“). Änderungsprotokoll je Projekt, zurücksetzbar, Planungsstand wird neu berechnet. See: `docs/features/feature-finve-zuordnung.md`
+
 ### Neues Projekt anlegen *(Backend + Frontend)*
 
 - [x] 5-step wizard at `/admin/projects/new`: Stammdaten → Geometrie → Projekteigenschaften → FinVes → VIB. Step 1 is required; steps 2–5 are skippable. Uses `POST /api/v1/projects`, `POST /projects/{id}/finves`, `GET /import/vib/entries`, and the extracted `ProjectEditFields`.
@@ -231,11 +233,15 @@ Siehe: `docs/features/feature-new-project-wizard.md`
 
 - [x] **API-Keys als Auth-Weg** — persönliche Bearer-Tokens neben Session-Cookie und HTTP Basic, mit Widerruf, Ablauf und optionaler Rechte-Einschränkung pro Key. Eigenständig nützlich, Voraussetzung für den MCP-Server.
 
-- [x] **MCP-Server** — Streamable-HTTP-Endpunkt `/mcp` im Backend, der Projekte, Finanzierung und Planungsstand als MCP-Tools für KI-Assistenten bereitstellt. Rechte kommen aus dem bestehenden Capability-Katalog; Importe dürfen seit 2026-10-17 eigene Tools bekommen (Fulda-Runde, Infraplan). OAuth folgt erst mit dem Authentik-Umzug, die Key-Auth bleibt danach bestehen. Zugriff vorerst nur für Admins (`mcp.access`), Keys laufen nach 90 Tagen ab. Geometrie-Tools inkl. GraphHopper-Routing und Zeichnen aus Koordinaten ergänzt. FinVe frei suchbar (`list_finves`, `get_finve`), auch ohne Projektzuordnung; fehlende FinVe-Zuordnungen setzt `link_finve`, falsche löst `unlink_finve`. Skills kommen vom Server (`list_skills`, `get_skill`) — immer passend zum deployten Stand; in claude.ai liegt nur der Einstiegs-Skill `schienendashboard`.
+- [x] **MCP-Server** — Streamable-HTTP-Endpunkt `/mcp` im Backend, der Projekte, Finanzierung und Planungsstand als MCP-Tools für KI-Assistenten bereitstellt. Rechte kommen aus dem bestehenden Capability-Katalog; Importe dürfen seit 2026-10-17 eigene Tools bekommen (Fulda-Runde, Infraplan). OAuth folgt erst mit dem Authentik-Umzug, die Key-Auth bleibt danach bestehen. Zugriff vorerst nur für Admins (`mcp.access`), Keys laufen nach 90 Tagen ab. Geometrie-Tools inkl. GraphHopper-Routing und Zeichnen aus Koordinaten ergänzt. FinVe frei suchbar (`list_finves`, `get_finve`), auch ohne Projektzuordnung; FinVe-Zuordnungen lassen sich mit `update_finve_projects` hinzufügen und lösen. Skills kommen vom Server (`list_skills`, `get_skill`) — immer passend zum deployten Stand; in claude.ai liegt nur der Einstiegs-Skill `schienendashboard`.
   Siehe: `docs/features/feature-mcp-server.md`
 
 - [x] **Projekte zusammenführen** — MCP-Tool `merge_projects` und `POST /projects/merge`: Dublette in das bleibende Projekt überführen (Verknüpfungen, Historie, Unterprojekte), alte id leitet um. Vorstufe zur GVFG-Datenpflege.
   Siehe: `docs/features/feature-project-merge.md`
+- [x] **Projekte archivieren** — eigenes Kennzeichen „Archiviert“ mit Pflicht-Begründung für ersetzte/überholte Projekte: zählt nirgends mehr (Listen, Karte, Summen, Eltern-Aggregation), bleibt per URL erreichbar, Admin-Seite „Archiv“, MCP `archive_project`/`unarchive_project`.
+  Siehe: `docs/features/feature-project-archive.md`
+- [ ] **Ersetzt durch (#261)** — Archiv mit optionalem Nachfolgeprojekt: Banner „Ersetzt durch …“, Rückverweis am Nachfolger, Importvorschläge auf den Nachfolger umgelenkt; dazu Begründung und „seit“-Datum für Pausiert/Abgebrochen.
+  Siehe: `docs/features/feature-project-archive.md` → „Ersetzt durch“
 
 ### GVFG-Bundesprogramm *(Backend + Frontend)*
 

@@ -221,7 +221,8 @@ export const featureHighlights: FeatureHighlight[] = [
             "Hinweis „Nicht mehr im Infraplan …“, wenn das Projekt im neuesten Jahrgang fehlt",
             "Kostenblock auf der Projektseite direkt unter Projektdetails und Karte: Gesamtkostenprognose laut Infraplan (bei Elternprojekten ohne eigene Zeile die Summe der Teilprojekte, Fußnoten hinter dem „?“) neben den vom Bund zugesicherten FinVe-Mitteln (bei Elternprojekten inklusive aller FinVe der Teilprojekte, jede einmal); bei GVFG-Projekten steht daneben die Bundesförderung laut GVFG-Bundesprogramm (ohne FinVe an deren Stelle) — bewusst ohne Deckungsgrad",
             "Reihenfolge der Projektseite: Projektdetails und Karte, Kosten, Planungsstand, Unterprojekte, Infraplan, GVFG, FinVe, Texte, BVWP, Verkehrsinvestitionsberichte, übergeordnetes Projekt, dann Wahlkreise und Abgeordnete, Aufgaben, Stammbaum (nur Bearbeiter) und Versionshistorie",
-            "Abschnitt FinVe: bei Elternprojekten auch die FinVe aller Teilprojekte, jeweils mit dem Hinweis „Aus Teilprojekt …“ und Link darauf"
+            "Abschnitt FinVe: bei Elternprojekten auch die FinVe aller Teilprojekte, jeweils mit dem Hinweis „Aus Teilprojekt …“ und Link darauf",
+            "FinVe-Zuordnung bearbeiten (Recht „Finanzierungsvereinbarungen einarbeiten“): „Zuordnung bearbeiten“ im Abschnitt FinVe zeigt „Zuordnung entfernen“ an den eigenen festen Zuordnungen und „FinVe hinzufügen“ (Suche nach Nummer oder Name); geerbte FinVe der Teilprojekte und Jahres-Zuordnungen von Sammel-FinVe sind hier nicht entfernbar. Jede Änderung steht im Änderungsprotokoll und berechnet den Planungsstand neu"
         ]
     },
     {
@@ -236,6 +237,23 @@ export const featureHighlights: FeatureHighlight[] = [
             "Alte Links funktionieren weiter: /projects/<alte id> springt auf das bleibende Projekt",
             "Die Historie der Dublette wandert mit, dazu ein Eintrag „MERGE“",
             "Nur mit dem Recht project.merge (keiner Standardrolle zugeordnet, also Admins)"
+        ]
+    },
+    {
+        title: "Projekte archivieren (ersetzt oder überholt)",
+        description:
+            "Ein Projekt, das durch andere Projekte ersetzt wurde oder überholt ist, wird archiviert statt gelöscht " +
+            "oder als Entwurf geparkt. Es behält seine Historie (VIB, Infraplan, Geometrie, Versionshistorie), zählt " +
+            "aber nirgends mehr. Für Dubletten ist „Zusammenführen“ da; ein abgebrochenes Projekt bleibt sichtbar.",
+        details: [
+            "Detailseite: „Archivieren“ (Begründung Pflicht) neben „Löschen“; archivierte Projekte zeigen oben einen Hinweis mit Begründung und Datum und sind per Link weiter erreichbar",
+            "Archivierte Projekte fehlen in Liste, Karte, Projektgruppen, Auswahllisten, Unterprojekten, Zeitstrahl, Abgeordneten-Listen, Entwürfen und als Vorschlag in den Importen",
+            "Beim übergeordneten Projekt zählen sie nicht mit: weder in der Geometrie noch in der Spanne des Planungsstands noch in Summen über Teilprojekte",
+            "Abgelehnt, solange FinVe- oder GVFG-Zuordnungen oder nicht archivierte Unterprojekte am Projekt hängen (die Meldung nennt sie) oder der Lebenszyklus „Abgebrochen“ ist",
+            "Admin-Seite /admin/archive: alle archivierten Projekte mit Begründung, Datum und übergeordnetem Projekt, „Wiederherstellen“",
+            "Archivieren und Wiederherstellen stehen in der Versionshistorie; MCP: archive_project, unarchive_project",
+            "Ersetzt durch: Ersetzt genau ein Projekt das archivierte, wählt man es beim Archivieren als Nachfolger. Das archivierte Projekt zeigt „Ersetzt durch …“ mit Link, der Nachfolger „Ersetzt …“. Hatte ein Import im Vorjahr das archivierte Projekt zugeordnet, schlägt er jetzt den Nachfolger vor (mit Hinweis). Wiederherstellen löst die Verbindung",
+            "Nur mit dem Recht project.delete (wie Löschen)"
         ]
     },
     {
@@ -282,7 +300,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Meldet ein neuerer Bericht eine niedrigere Phase als ältere Angaben, stuft er nur zurück, wenn er mindestens so vertrauenswürdig ist (oder manuell erfasst wurde); sonst bleibt die höhere Phase. Beides erscheint als Konflikt unter Admin → „Planungsstand-Konflikte“ und als Hinweis im Projekt; ein Phasen-Override löst ihn auf",
             "Manueller Phasen-Override gewinnt immer über den berechneten Wert (Badge 'übersteuert')",
             "Parl. Befassung ist bei BSWAG-Projektgruppen vorbelegt; nullable Override pro Projekt",
-            "Pausiert/Abgebrochen überblendet die gesamte Darstellung (Banner + abgeblendeter Stepper)",
+            "Pausiert/Abgebrochen überblendet die gesamte Darstellung (Banner + abgeblendeter Stepper); Begründung und „seit“-Datum lassen sich im Bearbeiten-Drawer erfassen und stehen im Banner. Ein durch ein anderes Projekt ersetztes Projekt wird archiviert (mit Nachfolger), nicht über den Lebenszyklus",
             "Übergeordnete Projekte zeigen eine Phasen-Spanne (min..max) + eine durchsuchbare Unterprojekt-Tabelle mit Status-Verteilung (z. B. „3× Bau · 1× Vorplanung · 2× Unbekannt“); die Spanne wird rekursiv über beliebig tiefe Unterprojekt-Ebenen gebildet — ein Unterprojekt mit eigenen Unterprojekten zeigt seine eigene Sub-Spanne (Marker „Gruppe“)",
             "Hover über einen Phasen-Kreis im Stepper listet die Unterprojekte dieser Phase auf",
             "Projekte ohne Datengrundlage werden klar als „Unbekannt“ markiert (nicht als „Nicht gestartet“)",
@@ -319,7 +337,7 @@ export const featureHighlights: FeatureHighlight[] = [
         details: [
             "Schritt 1 des Wizards legt das Projekt als Entwurf an (is_draft=true)",
             "'Projekt fertigstellen' setzt is_draft=false (öffentlich sichtbar); 'Als Entwurf speichern' verlässt den Wizard ohne Finalisierung",
-            "Admin-Seite /admin/drafts: Weiter bearbeiten, Fertigstellen, Verwerfen",
+            "Admin-Seite /admin/drafts: Weiter bearbeiten, Fertigstellen, Verwerfen (archivierte Projekte erscheinen hier nicht)",
             "GET /projects/ liefert nur finalisierte Projekte; GET /projects/drafts die Entwürfe (project.create)",
             "Nur für editor/admin sichtbar"
         ]
@@ -361,6 +379,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Timeline in ProjectDetail — date, user, old → new value per field (login-gated)",
             "\"Zurücksetzen\" button per entry reverts the field to its previous value (editor/admin only)",
             "Project group changes are logged too (shown with short names) and can be reverted",
+            "FinVe assignment changes appear as \"FinVe-Zuordnung\" (FinVe numbers before → after) and can be reverted; the revert needs the FinVe edit permission and recomputes the planning state",
             "Planning-state changes (flags, overrides, PF/parliament details, observations added or deleted, linked documents) appear as \"Planungsstand\" entries — from the UI and from MCP alike; they are history only, without revert",
             "Implemented in `features/changelog/ProjectHistorySection.tsx` + `useRevertProjectField` hook"
         ]
@@ -386,7 +405,8 @@ export const featureHighlights: FeatureHighlight[] = [
             "Jede Karte zeigt FinVe-Nr., Name, Typ-Badge, Startjahr, Kosten",
             "Verknüpfte Projekte als anklickbare Mini-Cards (Link zur Projektdetailseite)",
             "Ausklappbare Budget-Diagramme: Budgetverteilung (BarChart), Kostenentwicklung (LineChart), Haushaltstiteln-Detailtabelle",
-            "Sammel-FinVes erhalten violettes Badge; vorläufige FinVe-Nummern werden markiert"
+            "Sammel-FinVes erhalten violettes Badge; vorläufige FinVe-Nummern werden markiert",
+            "„Projekte bearbeiten“ (Recht „Finanzierungsvereinbarungen einarbeiten“): Drawer mit den zugeordneten Projekten — feste Zuordnungen entfernen, Projekte über die Projektsuche hinzufügen; Jahres-Zuordnungen von Sammel-FinVe aus dem Haushaltsimport sind als „Haushaltsjahr“ markiert und bleiben"
         ]
     },
     {
@@ -422,6 +442,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Die Spaltenzuordnung entsteht aus der Kopfzeile des PDFs (KI nur als Rückfallebene für die Überschriften); alle Zahlenwerte werden deterministisch übernommen",
             "Review page: rows classified as Neu (green) / Änderung (yellow) / Unbekannt (red)",
             "New FinVes: project assignment via multi-select before confirming",
+            "Confirming applies only the reviewer's changes to the permanent project links — a link edited by hand after the parse stays as it is",
             "Confirm button is disabled once a parse result is already imported (double-import guard)",
             "Unbekannte Zeilen page: assign a FinVe-ID to unresolved rows",
             "Route /admin/haushalt-import — visible for editor and admin roles only",
@@ -520,7 +541,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "The token (rdb_…) is shown exactly once, together with a ready-made .mcp.json snippet; only its hash is stored",
             "Presets: \"Nur lesen\" (default) or \"Wie mein Nutzer\" (adds write tools); every key expires after 90 days",
             "Read tools: project groups, projects (search/filter by text, group, phase), project detail incl. BVWP, planning state, FinVes with budgets, texts, tasks",
-            "Write tools: create (sub)projects, compute the length from the geometry, update project fields and group assignment, add/delete planning-state observations, set/clear the phase override, create/update texts and tasks — all in the changelog",
+            "Write tools: create (sub)projects, compute the length from the geometry, update project fields and group assignment, add/remove projects of a FinVe (update_finve_projects), add/delete planning-state observations, set/clear the phase override, create/update texts and tasks — all in the changelog",
             "Keys also work against the REST API (Authorization: Bearer …), narrowed to their scopes without the admin bypass",
             "Details: docs/features/feature-mcp-server.md"
         ]

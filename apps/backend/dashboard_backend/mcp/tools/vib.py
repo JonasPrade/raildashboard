@@ -17,6 +17,7 @@ from mcp.server.mcpserver import Context, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import BaseModel, Field
 
+from dashboard_backend.crud.projects.archive import archived_warnings
 from dashboard_backend.crud import vib_agent
 from dashboard_backend.crud._importer_common import ProjectNotFoundError
 from dashboard_backend.mcp.context import get_principal, load_user, require, tool_session
@@ -265,7 +266,11 @@ def assign_vib_entry(
         entry = _guard(vib_agent.assign_entry, db, entry_id, project_ids, note.strip())
         if entry is None:
             raise ToolError(f"Eintrag {entry_id} gibt es nicht.")
-        return _json(entry)
+        out = _json(entry)
+        warnings = archived_warnings(db, project_ids)
+        if warnings:
+            out["warnings"] = warnings
+        return out
 
 
 def assign_vib_pfa(pfa_id: int, project_id: int | None, *, ctx: Context) -> dict[str, Any]:

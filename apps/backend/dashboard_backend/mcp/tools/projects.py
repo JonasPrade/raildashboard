@@ -29,6 +29,12 @@ from dashboard_backend.crud.changelog import (
 )
 from dashboard_backend.crud.finves import get_project_finves_with_budgets
 from dashboard_backend.crud.projects import progress as progress_crud
+from dashboard_backend.crud.projects.archive import (
+    ArchiveError,
+    archive_project as archive_project_crud,
+    replacement as replacement_crud,
+    unarchive_project as unarchive_project_crud,
+)
 from dashboard_backend.crud.projects.bvwp import get_bvwp_data
 from dashboard_backend.crud.projects.merge import MergeError, resolve_redirect
 from dashboard_backend.crud.projects.merge import merge_projects as merge_projects_crud
@@ -292,7 +298,7 @@ def _resolve_group_ids(db: Session, values: list[str]) -> set[int]:
 
 def list_project_groups(search: str | None = None, *, ctx: Context) -> dict[str, Any]:
     """Project groups (e.g. Bedarfsplan, Deutschlandtakt) with id, short name,
-    name and the number of (non-draft) projects. ``search`` is a case-insensitive
+    name and the number of (non-draft, non-archived) projects. ``search`` is a case-insensitive
     substring of short name or name. Use the short name or id as ``project_group``
     in list_projects."""
     get_principal(ctx)
@@ -300,7 +306,9 @@ def list_project_groups(search: str | None = None, *, ctx: Context) -> dict[str,
     with tool_session(ctx) as db:
         query = (
             db.query(ProjectGroup, project_count)
-            .outerjoin(ProjectGroup.projects.and_(Project.is_draft.is_(False)))
+            .outerjoin(
+                ProjectGroup.projects.and_(Project.is_draft.is_(False), Project.is_archived.is_(False))
+            )
             .group_by(ProjectGroup.id)
         )
         if search:
@@ -674,12 +682,14 @@ DraftFilter = Literal["exclude", "only", "include"]
 
 
 def draft_filter(drafts: DraftFilter):
-    """SQL condition on Project.is_draft for a ``drafts`` argument (None = no condition)."""
+    """SQL condition on Project.is_draft for a ``drafts`` argument. Archived
+    projects are excluded in every mode (feature-project-archive.md)."""
+    not_archived = Project.is_archived.is_(False)
     if drafts == "exclude":
-        return Project.is_draft.is_(False)
+        return and_(Project.is_draft.is_(False), not_archived)
     if drafts == "only":
-        return Project.is_draft.is_(True)
-    return None
+        return and_(Project.is_draft.is_(True), not_archived)
+    return not_archived
 
 
 def list_projects(
@@ -704,7 +714,8 @@ def list_projects(
     *,
     ctx: Context,
 ) -> dict[str, Any]:
-    """Search projects (drafts excluded unless ``drafts`` says otherwise), sorted by name unless ``order_by`` says otherwise.
+    """Search projects (drafts excluded unless ``drafts`` says otherwise, archived
+    projects always excluded), sorted by name unless ``order_by`` says otherwise.
 
     - search: case-insensitive substring of name, project number, description
       or an alias ("DT 38", "Gäubahn")
@@ -847,6 +858,8 @@ def get_project(project_id: int, *, ctx: Context) -> dict[str, Any]:
             if bvwp
             else None
         )
+        # Successor of an archived, replaced project / archived projects it replaces.
+        data.update(replacement_crud(db, project.id))
         return data
 
 
@@ -1478,6 +1491,59 @@ def merge_projects(
             raise ToolError(str(exc)) from exc
 
 
+def archive_project(
+    project_id: int, reason: str, replaced_by_project_id: int | None = None, *, ctx: Context
+) -> dict[str, Any]:
+    """Archive a project that was replaced or superseded by other projects
+    (requires ``project.delete``), e.g. old Teilmaßnahmen replaced by PFA-section
+    subprojects. ``reason`` is mandatory and names what replaced it. An archived
+    project keeps its history (VIB, Infraplan, changelog, geometry) and stays
+    readable with get_project, but counts nowhere: not in list_projects, groups,
+    the map, subproject lists, import candidates, nor in its parent's geometry,
+    planning-state span or sums. Not for duplicates (merge_projects) and never
+    for a really cancelled project (lifecycle ABGEBROCHEN stays visible).
+    ``replaced_by_project_id`` names the successor when one project replaced
+    this one (not itself, no draft, not archived): the detail page then links
+    both ways, get_project shows ``replaced_by`` / ``replaces``, and last year's
+    import assignments to this project are suggested for the successor.
+    Refused while FinVe or GVFG links or non-archived subprojects exist — the
+    error names them; move them first. Recorded in the changelog. Returns the
+    project and ``kept_links`` (historical links that stay on the project)."""
+    principal = get_principal(ctx)
+    require(principal, "project.delete")
+    with tool_session(ctx) as db:
+        _project_or_error(db, project_id)
+        user = load_user(db, principal)
+        try:
+            result = archive_project_crud(
+                db,
+                project_id,
+                reason,
+                user.id,
+                user.username,
+                replaced_by_project_id=replaced_by_project_id,
+            )
+        except ArchiveError as exc:
+            raise ToolError(str(exc)) from exc
+        return {"project": _project_dict(result["project"]), "kept_links": result["kept_links"]}
+
+
+def unarchive_project(project_id: int, reason: str | None = None, *, ctx: Context) -> dict[str, Any]:
+    """Restore an archived project (requires ``project.delete``); ``reason`` is
+    an optional note for the changelog. The project counts again in lists and in
+    its parent's aggregation. Returns the project."""
+    principal = get_principal(ctx)
+    require(principal, "project.delete")
+    with tool_session(ctx) as db:
+        _project_or_error(db, project_id)
+        user = load_user(db, principal)
+        try:
+            project = unarchive_project_crud(db, project_id, reason, user.id, user.username)
+        except ArchiveError as exc:
+            raise ToolError(str(exc)) from exc
+        return _project_dict(project)
+
+
 def register(server: MCPServer) -> None:
     for fn in (
         list_project_groups,
@@ -1497,6 +1563,8 @@ def register(server: MCPServer) -> None:
         compute_project_length,
         update_project,
         set_project_draft,
+        archive_project,
+        unarchive_project,
         set_project_groups,
         add_progress_observation,
         update_progress_observation,

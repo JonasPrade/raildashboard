@@ -28,6 +28,7 @@ import { LoadingState } from "../../shared/ui/LoadingState";
 // German labels for all tracked project fields
 const PROJECT_FIELD_LABELS: Record<string, string> = {
     name: "Name",
+    finve_ids: "FinVe-Zuordnung",
     merged_project: "Zusammengeführt aus",
     project_number: "Projektnummer",
     description: "Beschreibung",
@@ -86,6 +87,8 @@ const PROJECT_FIELD_LABELS: Record<string, string> = {
     geojson_representation: "GeoJSON-Geometrie",
     geojson_from_subprojects: "Geometrie aus Unterprojekten",
     project_group_ids: "Projektgruppen",
+    is_archived: "Archiviert",
+    archived_reason: "Begründung (Archiv)",
 };
 
 // Planning-state changes share the project changelog under a "progress." prefix.
@@ -162,6 +165,19 @@ function formatGroupIds(value: string | null | undefined, groupNames: Map<number
     }
 }
 
+// FinVe assignments are logged as sorted FinVe-id lists → "FinVe 900008, FinVe 900010".
+function formatFinveIds(value: string | null | undefined): string {
+    if (value == null) return "–";
+    try {
+        const ids = JSON.parse(value);
+        if (!Array.isArray(ids)) return formatValue(value);
+        if (ids.length === 0) return "–";
+        return ids.map((id: number) => `FinVe ${id}`).join(", ");
+    } catch {
+        return value;
+    }
+}
+
 // "{id, name}" of the merged project → "#2754 Ausbau Holzminden – Kreiensen".
 function formatMergedProject(value: string | null | undefined): string {
     if (value == null) return "–";
@@ -179,6 +195,7 @@ function formatEntryValue(
     groupNames: Map<number, string>,
 ): string {
     if (entry.field_name === "project_group_ids") return formatGroupIds(value, groupNames);
+    if (entry.field_name === "finve_ids") return formatFinveIds(value);
     if (entry.field_name === MERGED_PROJECT_FIELD) return formatMergedProject(value);
     return formatValue(value);
 }
@@ -195,6 +212,10 @@ function actionLabel(action: string): string {
             return "Gelöscht";
         case "MERGE":
             return "Zusammengeführt";
+        case "ARCHIVE":
+            return "Archiviert";
+        case "UNARCHIVE":
+            return "Wiederhergestellt";
         default:
             return action;
     }
@@ -203,10 +224,14 @@ function actionLabel(action: string): string {
 // The merged project's id/name, recorded by a project merge — history only.
 const MERGED_PROJECT_FIELD = "merged_project";
 
+// Archive actions are undone with "Wiederherstellen"/"Archivieren", not field by field.
+const ARCHIVE_ACTIONS = new Set(["ARCHIVE", "UNARCHIVE"]);
+
 // Planning-state entries are history only; a creation has no earlier value to restore.
 function isRevertible(log: ChangeLog, entry: ChangeLogEntry): boolean {
     return (
         log.action !== "CREATE" &&
+        !ARCHIVE_ACTIONS.has(log.action) &&
         !isProgressField(entry.field_name) &&
         entry.field_name !== MERGED_PROJECT_FIELD
     );

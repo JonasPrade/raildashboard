@@ -12,6 +12,7 @@ celery_app = Celery(
         "dashboard_backend.tasks.gvfg",
         "dashboard_backend.tasks.infraplan",
         "dashboard_backend.tasks.parliament",
+        "dashboard_backend.tasks.progress",
     ],
 )
 

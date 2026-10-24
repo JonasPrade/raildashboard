@@ -219,8 +219,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `list_project_finves` | Finanzierungsvereinbarungen und Budgets eines Projekts; `include_subprojects` nimmt die FinVe aller Teilprojekte dazu (jede einmal, mit tragenden Teilprojekten) | — |
 | `list_finves` | FinVe frei suchen — auch ohne Projektzuordnung: FinVe-Nummer, Name, Bedarfsplannummer, lfd. Nr.; Filter Haushaltsjahr, Sammel-FinVe, mit/ohne Projekt | — |
 | `get_finve` | eine FinVe per Nummer mit Budgethistorie und verknüpften Projekten | — |
-| `link_finve` | FinVe den genannten Projekten zuordnen (dauerhaft, ohne Haushaltsjahr); bestehende Zuordnungen bleiben, unbekannte Projekte brechen ab, der Planungsstand der neu zugeordneten Projekte wird neu berechnet | `assignment.manage` |
-| `unlink_finve` | Zuordnung einer FinVe zu den genannten Projekten lösen (bei Sammel-FinVe alle Jahre); andere Projekte bleiben, der Planungsstand der Projekte wird neu berechnet | `assignment.manage` |
+| `update_finve_projects` | Projekte einer FinVe hinzufügen und entfernen, auch bei bereits zugeordneten FinVe; nur feste Verknüpfungen (Jahres-Links der Sammel-FinVe bleiben); Änderungsprotokoll je Projekt (`finve_ids`, zurücksetzbar) und Neuberechnung des Planungsstands (`docs/features/feature-finve-zuordnung.md`) | `finve.edit` |
 | `list_gvfg_programs` | GVFG-Ausgaben mit Jahresspalten, Zahl der Vorhaben und der Vorhaben ohne Projekt | — |
 | `list_gvfg_entries` | Vorhaben einer Ausgabe (Standard: neueste) suchen: Schlüssel in jeder Schreibweise, Name, Stadt; Filter Land, kommunal/DB, Teil, Fördertatbestand, mit/ohne Projekt | — |
 | `get_gvfg_entry` | ein Vorhaben mit ∑/A/B/C-Zeilen und Verlauf desselben Schlüssels über alle Ausgaben | — |
@@ -238,6 +237,8 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `compute_project_length` | Länge aus der Geometrie berechnen, optional übernehmen | — / `project.edit` mit `apply` |
 | `update_project` | Projektfelder ändern | `project.edit` |
 | `set_project_draft` | Projekt zum Entwurf machen oder Entwurf fertigstellen | `project.edit` |
+| `archive_project` | Ersetztes/überholtes Projekt archivieren (Pflicht-Begründung, optional `replaced_by_project_id` = Nachfolger: Verweis in beide Richtungen, Vorjahres-Vorschläge der Importe gehen an ihn); zählt danach nirgends mehr, abgelehnt bei FinVe-/GVFG-Zuordnung, aktiven Teilprojekten oder ABGEBROCHEN; Änderungsprotokoll (siehe `feature-project-archive.md`) | `project.delete` |
+| `unarchive_project` | Archiviertes Projekt wiederherstellen (Begründung optional), Änderungsprotokoll | `project.delete` |
 | `create_project_group` | Neue Projektgruppe anlegen (Name, eindeutiger Kurzname, Farbe, Sichtbarkeit); Duplikate (Kurzname/Name) werden abgelehnt | `projectgroup.create` |
 | `set_project_groups` | Projekt Gruppen hinzufügen/entfernen (id, Kurzname, Name) | `project.edit` |
 | `add_progress_observation` | Planungsstand-Beobachtung ergänzen, mit `date_precision` (EXACT Default, MONTH, YEAR, NOT_BEFORE, ASSUMED) und optionalem `date_label` | `progress.edit` |

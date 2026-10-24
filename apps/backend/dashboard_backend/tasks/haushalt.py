@@ -1654,7 +1654,8 @@ def run_haushalt_parse(
             finve_projects.setdefault(finve_id, []).append(project_id)
 
         # Load all projects for auto-suggestion matching
-        all_projects = db.query(Project).all()
+        # Archived projects are no matching candidates (feature-project-archive.md).
+        all_projects = db.query(Project).filter(Project.is_archived.is_(False)).all()
         logger.info("Loaded %d projects for auto-suggestion matching", len(all_projects))
 
         task_result, document = _parse_pdf(

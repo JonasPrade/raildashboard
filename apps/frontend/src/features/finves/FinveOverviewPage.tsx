@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import {
     Badge,
+    Button,
     Collapse,
     Group,
     Paper,
@@ -13,6 +14,7 @@ import {
     Title,
     UnstyledButton,
 } from "@mantine/core";
+import { useAuth } from "../../lib/auth";
 import { useFinves, type FinveListItem } from "../../shared/api/queries";
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { FinveBudgetDetails } from "./shared/FinveBudgetDetails";
@@ -21,6 +23,7 @@ import { LinkedProjects } from "../../shared/ui/LinkedProjects";
 import { LoadingState } from "../../shared/ui/LoadingState";
 import { ErrorState } from "../../shared/ui/ErrorState";
 import ProjectHoverCard from "../projects/ProjectHoverCard";
+import FinveProjectsDrawer from "./FinveProjectsDrawer";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -33,7 +36,7 @@ type TypeFilter = "all" | "regular" | "sammel";
 // shared with the project-detail FinveSection)
 // ---------------------------------------------------------------------------
 
-function FinveCard({ finve }: { finve: FinveListItem }) {
+function FinveCard({ finve, onEditProjects }: { finve: FinveListItem; onEditProjects?: () => void }) {
     const [open, setOpen] = useState(false);
 
     const hasBudgets = finve.budgets.length > 0;
@@ -86,6 +89,11 @@ function FinveCard({ finve }: { finve: FinveListItem }) {
                     projects={finve.projects}
                     wrapLink={(id, link) => <ProjectHoverCard projectId={id}>{link}</ProjectHoverCard>}
                 />
+                {onEditProjects && (
+                    <Button size="xs" variant="default" onClick={onEditProjects} style={{ alignSelf: "flex-start" }}>
+                        Projekte bearbeiten
+                    </Button>
+                )}
 
                 {/* ── Expandable charts / budget details ─────────────────── */}
                 {hasBudgets && (
@@ -121,6 +129,11 @@ export default function FinveOverviewPage() {
     const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
 
     const { data: finves, isLoading, isError, refetch } = useFinves();
+    const { can } = useAuth();
+    const canEditLinks = can("finve.edit");
+    // Id, not object: the drawer reads the refetched list after every change.
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const editing = (finves ?? []).find((f) => f.id === editingId) ?? null;
 
     const filtered = useMemo(() => {
         const q = search.trim().toLowerCase();
@@ -178,10 +191,15 @@ export default function FinveOverviewPage() {
                         )}
 
                         {filtered.map((finve) => (
-                            <FinveCard key={finve.id} finve={finve} />
+                            <FinveCard
+                                key={finve.id}
+                                finve={finve}
+                                onEditProjects={canEditLinks ? () => setEditingId(finve.id) : undefined}
+                            />
                         ))}
                     </Stack>
                 )}
+                <FinveProjectsDrawer finve={editing} onClose={() => setEditingId(null)} />
         </Stack>
     );
 }

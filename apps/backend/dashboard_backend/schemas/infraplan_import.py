@@ -39,6 +39,8 @@ class InfraplanSuggestion(BaseModel):
     detail: Optional[str] = None
     previous_year: Optional[int] = None
     previous_note: Optional[str] = None
+    # The hit was on this archived, replaced project and went to its successor.
+    redirected_from: Optional[int] = None
 
 
 class InfraplanParsedRow(BaseModel):
