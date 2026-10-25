@@ -254,6 +254,8 @@ Siehe: `docs/features/feature-new-project-wizard.md`
 
 ### Sonstiges
 
+- [ ] **Überlappende Projektgeometrien auf der Karte** — Projekte auf derselben Strecke oder am selben Bahnhof werden alle sichtbar und auswählbar: Mehrfachauswahl beim Klick (Liste im Popup), parallele Spuren für überlappende Linien (Überlappung serverseitig ermittelt, zoomabhängiger Versatz), Zähler an mehrfach belegten Bahnhöfen. See: `docs/features/feature-map-overlapping-geometries.md`
+
 - [ ] **BVWP-Datenimport** — Übernahme der BVWP-Daten aus der Legacy-Datenbank. Voraussetzung für die Anzeige der BVWP-Bewertung (Display-Feature bereits implementiert).
 
 - [ ] Cleanup Database structure. Evaluate
