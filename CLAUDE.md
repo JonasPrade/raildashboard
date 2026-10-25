@@ -36,7 +36,7 @@ Vor jeder Änderung am Deploy-Ablauf beide zuerst lesen.
   `ghcr.io/jonasprade/raildashboard-{backend,frontend,db,graphhopper}:<commit-sha>` nach GHCR.
 - `deploy.yml` (`workflow_dispatch`): SHA leer = `master`, Rollback = frühere SHA. Prod zieht,
   baut nie. Einen Deploy startet nur ein Mensch.
-- Tags (`make release-check`, `CHANGELOG.md`) benennen Stände, rollen aber nichts aus.
+- Tags (`CHANGELOG.md`) benennen Stände, rollen aber nichts aus.
 
 Konsequenzen für Änderungen:
 - **Ein Kommando prüft alles: `make test`.** Es läuft in den `test`/`check`-Stufen der

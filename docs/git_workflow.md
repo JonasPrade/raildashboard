@@ -11,4 +11,4 @@
 
 ### Cutting a release tag
 
-Before `git tag vX.Y.Z`, `make release-check MILESTONE=vX.Y.Z` must exit 0. It blocks the release if the milestone still has open issues (incl. `Needs User Test`). Background and workflow: see `AGENT.md` → Release Gate and `docs/github-projects.md`.
+Before `git tag vX.Y.Z`, no issue whose change is already on `master` may still be in board status `Needs User Test`. Milestones are not used; see `AGENT.md` → Release Gate and `docs/github-projects.md`.

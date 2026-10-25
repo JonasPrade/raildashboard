@@ -669,8 +669,7 @@ Die Regel „kein dritter Breakpoint“ aus `feature-mobile-usability.md` bleibt
 Epic #217; Stufe 1 #218; Stufe 2 #219 (depends on #218); Stufe 3 #220 (depends on
 #218); Stufe 4 #221 (depends on #219, #220); Human Task Impressum/Datenschutz #222
 (depends on #219). Während der Umsetzung kamen hinzu: #224 (DS-`tokens.css` ohne Dunkel-Block),
-#225 (roter Kleintext 4,1:1), #226 (Inline-Bearbeitung / `SaveStatus`), #227 (Erklärtexte → Doku). Alle `area:design`, `bot:claude-code`, ohne Milestone, bis der
-Nutzer eine Version zuweist. Die Texte unten sind der Stand beim Anlegen.
+#225 (roter Kleintext 4,1:1), #226 (Inline-Bearbeitung / `SaveStatus`), #227 (Erklärtexte → Doku). Alle `area:design`, `bot:claude-code`. Die Texte unten sind der Stand beim Anlegen.
 
 **Epic — IDT-Design: Dashboard auf das Design der Initiative Deutschlandtakt umstellen** (`type:ui`)
 - Aufgabe: Richtung F vollständig durch das IDT-Design ersetzen (DS + Anwendungsebene + Dunkelfassung), in vier Stufen.

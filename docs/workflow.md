@@ -150,7 +150,7 @@ mehr erkennt.
   laufen mehrere Dienste; ein gemeinsamer Pfad wäre mehrdeutig. Im Repo heißt die Datei wie
   im Standard, `deploy/prod.sh`.
 
-- **Tags und `make release-check` bleiben, rollen aber nichts mehr aus.** Ein Tag benennt
+- **Tags bleiben, rollen aber nichts mehr aus.** Ein Tag benennt
   einen Stand, `CHANGELOG.md` beschreibt ihn. Ausgerollt wird per Knopf über die SHA.
 
 - **Die Umgebung `production` ist Ablage, kein Tor.** Required Reviewers gibt es auf Free,
