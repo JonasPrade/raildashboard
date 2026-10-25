@@ -55,7 +55,7 @@ falschen „In Betrieb“-Beobachtungen aus „vsl.“-Terminen in allen Listen.
 **Es gibt keinen automatischen Auslöser.** Bis v0.0.15 rollte ein Version-Tag
 (`v*`) Test, Build und Ausrollen in einem Zug aus. Das nahm den Moment weg, in dem
 jemand „jetzt" sagt, und band die Auslieferung an eine Versionsnummer, obwohl das
-Image am Commit hängt. Tags, `make release-check` und `CHANGELOG.md` bleiben
+Image am Commit hängt. Tags und `CHANGELOG.md` bleiben
 nützlich, um Stände zu benennen; ausgerollt wird über den SHA.
 
 ## Server-Layout (`/srv/raildashboard/` auf vmd92747, Benutzer `deploy`)

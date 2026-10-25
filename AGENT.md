@@ -50,7 +50,7 @@ Manuelle Verifikation läuft über das **GitHub-Projects-Board**, nicht mehr üb
 
 ### Release Gate
 
-Eine Version `v0.0.x` wird erst getaggt, wenn ihr Milestone **kein** offenes Issue und **kein** Issue im Status `Needs User Test` mehr hat. `make release-check` fragt diesen Zustand per `gh` ab und muss 0 zurückgeben, bevor der Release-Tag gesetzt wird.
+Ein Tag `vX.Y.Z` wird erst gesetzt, wenn im Board **kein** Issue mehr im Status `Needs User Test` steht, dessen Änderung schon auf `master` liegt. Milestones werden nicht genutzt (seit 2026-10-26); `make release-check` ist damit entfallen.
 
 ## Release & Deploy (dispatch per commit SHA)
 
@@ -61,9 +61,9 @@ Begründungen und Ausnahmen in `docs/workflow.md`, die Handschritte in
 
 - Jeder Push auf `master` fährt `make test` und baut danach die vier Images
   (`backend`, `frontend`, `db`, `graphhopper`), getaggt mit der Commit-SHA (+ `latest`).
-- Ein Tag `vX.Y.Z` benennt einen Stand, rollt aber nichts aus. Beim Cut weiterhin
-  `make release-check MILESTONE=vX.Y.Z` und `CHANGELOG.md` (`[Unreleased]` → datierter
-  Abschnitt, Keep-a-Changelog-Format).
+- Ein Tag `vX.Y.Z` benennt einen Stand, rollt aber nichts aus. Beim Cut das Release-Gate
+  oben prüfen und `CHANGELOG.md` nachziehen (`[Unreleased]` → datierter Abschnitt,
+  Keep-a-Changelog-Format).
 - Vor der Migration sichert der One-shot-Dienst `backup` die Datenbank; schlägt das fehl,
   startet das neue Backend nicht und `prod.sh` rollt zurück.
 

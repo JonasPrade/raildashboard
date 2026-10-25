@@ -172,7 +172,7 @@ Production images are built in CI and pulled on the server — the server never 
 Every push to `master` runs `make test` and pushes the images tagged with the commit SHA
 (`release.yml`). Deploying is a deliberate click: *Actions → deploy → Run workflow*, SHA
 empty = current `master`, rollback = an earlier SHA. Version tags still name releases
-(`make release-check`, `CHANGELOG.md`) but no longer deploy.
+(`CHANGELOG.md`) but no longer deploy.
 
 ```bash
 make test        # the full check, identical to CI (docker)

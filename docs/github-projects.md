@@ -43,15 +43,12 @@ Issues zeigt auf das passende Feature-Doc.
 | **Needs User Test** | Implementierung steht, manuelle Verifikation durch den User nötig |
 | **Done** | Abgeschlossen |
 
-### Milestones = Release-Versionen
+### Keine Milestones
 
-**Abweichung von der Vorlage:** Milestones sind hier **Release-Versionen**
-(`v0.0.5`, `v0.0.6`, …), nicht Implementierungs-Phasen. Mehrstufige Features
-(z. B. ProjectProgress Phase 1–6) werden über `Depends on:`-Ketten *innerhalb*
-eines Milestones modelliert, nicht über mehrere Milestones.
-
-Punkte ohne Versionszuordnung bekommen **keinen** Milestone und liegen in
-`Backlog`, bis der User sie einer Version zuweist.
+**Abweichung von der Vorlage:** Milestones werden nicht genutzt (seit
+2026-10-26). Ausgerollt wird per Commit-SHA (`DEPLOY.md`), ein Tag benennt nur
+einen Stand. Reihenfolge und Zustand stehen im Board; mehrstufige Features
+(z. B. ProjectProgress Phase 1–6) werden über `Depends on:`-Ketten modelliert.
 
 ### Labels — zwei orthogonale Achsen (genau ein Wert je Achse)
 
@@ -84,9 +81,8 @@ Punkte ohne Versionszuordnung bekommen **keinen** Milestone und liegen in
 
 ### Issue-Format
 
-- **Titel:** Versions-Präfix + prägnante Beschreibung, z. B.
-  `v0.0.5 ProjectProgress – Phase 1: Daten + API`. Punkte ohne Version: ohne
-  Präfix.
+- **Titel:** prägnante Beschreibung ohne Versions-Präfix, z. B.
+  `ProjectProgress – Phase 1: Daten + API`.
 - **Body:**
   - `## Aufgabe` — was zu tun ist, 1–3 Sätze.
   - `## Akzeptanzkriterien` — überprüfbare Checkliste.
@@ -95,7 +91,6 @@ Punkte ohne Versionszuordnung bekommen **keinen** Milestone und liegen in
   - `## Abhängigkeiten` — `Depends on: #<n>` (Issue-Nummern im zweiten Durchlauf
     nachtragen).
 - **Labels:** genau ein `area:`, genau ein `type:`, ggf. Sonder-Labels.
-- **Milestone:** zugehörige Version (oder keiner).
 
 ## User-Backlog — `docs/user-backlog.md`
 
@@ -109,7 +104,7 @@ Claude Code verarbeitet Einträge zu Beginn einer Sitzung oder auf Zuruf
 2. Verstehen: Feature-Doc + betroffenen Code + Memory prüfen. Bei Unklarheit
    **kompakte Rückfrage mit konkreten Optionen**, keine Suggestivfragen.
 3. In Issue-Format gießen (Aufgabe, Akzeptanzkriterien, Konzept-Verweis,
-   Abhängigkeiten, Labels, Milestone).
+   Abhängigkeiten, Labels).
 4. Status auf `Backlog` (Abhängigkeit offen) oder `Ready` (sofort startbar).
 5. Label `bot:claude-code` setzen.
 6. Bulletpoint aus `docs/user-backlog.md` entfernen, Issue-Link im Commit
@@ -148,18 +143,17 @@ haben. Zu vage zum Klären → zurück an den User, nicht raten.
 ## Release-Gate (ersetzt `review-checklist.md` / `make release-check`)
 
 **Abweichung von der alten raildashboard-Praxis:** Das frühere Gate
-(`docs/review-checklist.md` + `make release-check`) wird durch das Board-Modell
+(`docs/review-checklist.md` + `make release-check`) ist durch das Board-Modell
 abgelöst:
 
 - **Sofort testbare** manuelle Verifikation → Status `Needs User Test` + konkrete
   Test-Checkliste im Issue-Kommentar (was klicken, welches Ergebnis erwarten,
   wie bei Fehler reagieren).
 - **Aufgeschobene** Tests → `docs/manual-tests-backlog.md`.
-- **Release-Gate:** Eine Version `v0.0.x` wird erst getaggt, wenn ihr Milestone
-  **kein** offenes Issue und **kein** Issue in `Needs User Test` mehr hat.
-
-`make release-check` wird auf diese Board-Abfrage umgebaut oder entfernt (siehe
-AGENT.md → Release Gate).
+- **Release-Gate:** Ein Tag `vX.Y.Z` wird erst gesetzt, wenn im Board **kein**
+  Issue mehr in `Needs User Test` steht, dessen Änderung schon auf `master` liegt.
+  Geprüft wird in der Board-Ansicht; `make release-check` ist mit den Milestones
+  entfallen.
 
 ## Workflow pro Issue
 
@@ -219,7 +213,7 @@ gh api graphql -f query='mutation {
 ## Authentifizierung
 
 `gh` CLI ist als `JonasPrade` eingeloggt; Token-Scopes enthalten bereits
-`project` und `repo` — Board, Felder, Labels, Milestones und Issues lassen sich
+`project` und `repo` — Board, Felder, Labels und Issues lassen sich
 anlegen.
 
 **Achtung:** Der `workflow`-Scope **fehlt** aktuell. Sobald das CI-Issue

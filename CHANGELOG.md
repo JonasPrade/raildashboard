@@ -76,6 +76,7 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
   migration `20261021002`. The Mittelherkunft card names the shown year in its title.
 
 ### Removed
+- **`make release-check` and GitHub milestones.** Milestones are no longer used; before a version tag the board must show no issue in `Needs User Test` whose change is already on `master` (AGENT.md → Release Gate).
 - **`@tabler/icons-react`** (replaced by `lucide-react`) and **Google Fonts** (Archivo Narrow, IBM Plex, Inter TTF; only the self-hosted `InterVariable` remains).
 - **Chronicle and Tafel components** (`components/chronicle`, `components/tafel`: `ChronicleCard`/`Button`/`Headline`/`DataChip`, `KpiCard`, `MiniBoard`, `Ticker`, `FlapText`, …) and the Direction-F tokens; `ProjectTableOfContents` (replaced by `ProjectRegister`).
 

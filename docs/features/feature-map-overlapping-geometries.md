@@ -122,13 +122,15 @@ Zoom 12 stehen sie im Abstand `lineWidth + 2` px nebeneinander. Der Linienbreite
 skaliert den Abstand mit. Projekte ohne Überlappung behalten Spur 0 und sehen aus wie heute.
 
 **Was als Überlappung zählt.** Zwei Projekte überlappen, wenn ihre Linien auf einer
-gemeinsamen Länge über der Schwelle (siehe *Offene Entscheidungen* W4) innerhalb eines
-Puffers von 25 m zueinander verlaufen. Nur Linien, keine Punkte (dafür ist D da). Nicht
-gezählt werden:
+gemeinsamen Länge von mindestens 500 m **oder** mindestens 50 % der kürzeren Linie (dann
+mindestens 100 m) innerhalb eines Puffers von 25 m zueinander verlaufen (W4). Nur Linien,
+keine Punkte (dafür ist D da). Archivierte Projekte und Entwürfe zählen nicht (sie stehen nicht
+auf der Karte; „ein archiviertes Projekt zählt nirgends“, `architecture.md` → Principles).
 
-- archivierte Projekte und Entwürfe (sie stehen nicht auf der Karte; „ein archiviertes
-  Projekt zählt nirgends“, `architecture.md` → Principles),
-- Paare aus Vorfahr und Nachfahr (W5, Vorschlag).
+Über- und Unterprojekte zählen wie alle anderen (W5). Ob beide auf der Karte stehen, regelt
+der Schalter „Nur Hauptprojekte“: Ist er an (Standard), sind die Unterprojekte nicht geladen,
+und das Überprojekt bleibt auf dem Gleis, weil nur sichtbare Projekte Spuren belegen (W1).
+Ist er aus, liegen Über- und Unterprojekt nebeneinander statt deckungsgleich.
 
 Die 25 m decken Abweichungen zwischen zwei Routings desselben Gleises und zwischen
 Richtungsgleisen ab (Gleismittenabstand ~4 m, Routing-Abweichung einige Meter), ohne
@@ -136,19 +138,24 @@ parallel geführte, getrennte Strecken (S-Bahn neben Fernbahn mit eigenem Bahnk�
 meist > 25 m) zusammenzuziehen.
 
 **Spurzuweisung.** Aus den Paaren entsteht ein Graph (Knoten = Projekte, Kanten =
-Überlappungen). Benachbarte Projekte bekommen unterschiedliche Spuren, Greedy-Färbung mit
-der kleinsten freien Spur. Die Zuweisung soll **stabil** sein: eine Geometrieänderung an
-Projekt P darf nur P und notfalls dessen neue Nachbarn umspuren, nicht das halbe Netz.
-Details W1 und W3.
+Überlappungen). Benachbarte Projekte bekommen unterschiedliche Spuren, jeweils die kleinste
+freie. Zwei Stufen (W1):
+
+1. **Server, über alle Projekte:** jedes Projekt hat eine gespeicherte Spur. Sie ist
+   **stabil** (W3): Ändert sich die Geometrie von Projekt P, behält P seine Spur, solange
+   kein Überlappungspartner sie hat, sonst bekommt P die kleinste freie. Die Partner
+   behalten ihre. Nach absteigendem Grad neu gefärbt wird nur bei der Erstbefüllung.
+2. **Browser, nur sichtbare Projekte:** Der Server liefert je Projekt die gespeicherte Spur
+   und die IDs seiner Partner. Die Karte färbt nur die gerade sichtbaren Projekte (nach
+   Gruppe, Planungsphase, Datum, Suche und „Nur Hauptprojekte“), in der Reihenfolge
+   gespeicherte Spur, dann ID. Ein Projekt, dessen Partner ausgeblendet ist, liegt so auf
+   dem Gleis, und zwei gleichzeitig eingeblendete Gruppen kollidieren trotzdem nicht.
 
 **Richtung.** `line-offset` versetzt relativ zur Zeichenrichtung der Linie. Zwei Projekte,
 deren Linien in entgegengesetzter Richtung digitalisiert sind, landeten mit Spur 1 und 2 auf
-derselben Seite. Der Server liefert die vereinfachten Linienteile deshalb in einheitlicher
-Richtung aus (W2).
-
-**Filter.** Die Karte filtert Projekte zusätzlich nach Gruppe, Planungsphase, Datum und
-Suchbegriff. Was mit der Spur eines Projekts geschieht, dessen Überlappungspartner gerade
-ausgeblendet ist, regelt W1.
+derselben Seite. Der Server liefert die vereinfachten Linienteile deshalb einheitlich
+ausgerichtet aus: Start westlich des Endes, bei gleichem Längengrad südlich (W2). Das trifft
+den Normalfall; nur Schleifen und U-förmige Teile können unsauber bleiben.
 
 ### Baustein D · Zähler an Bahnhöfen
 
@@ -157,7 +164,7 @@ ausgeblendet ist, regelt W1.
   selbst) werden zu **einem** Punkt zusammengefasst. Mehrere Punkte desselben Projekts an
   derselben Stelle zählen einmal.
 - Darstellung: größerer Kreis (Vorschlag `pointSize + 5`) mit Ink-Rand und der Anzahl als
-  Text in der Mitte. Füllfarbe: Gruppenfarbe der Mehrheit der beteiligten Projekte, bei
+  Text in der Mitte, in der Schrift des Design Systems (Inter, `--font-sans`, fett). Füllfarbe: Gruppenfarbe der Mehrheit der beteiligten Projekte, bei
   Gleichstand die des ersten (nach der Reihenfolge der Projekte auf der Karte).
 - Punkte mit nur einem Projekt bleiben unverändert.
 - Klick öffnet dieselbe Liste wie A. Hover auf den Zählerpunkt hebt alle beteiligten
@@ -165,18 +172,18 @@ ausgeblendet ist, regelt W1.
   Listeneintrag) hebt auch die Zählerpunkte hervor, an denen es beteiligt ist.
 - Der Punktgrößen-Slider skaliert den Zählerpunkt mit.
 
-## Offene Entscheidungen
+## Entscheidungen
 
-Aus dem Widerspruchs-Check (2026-10-25). Die Empfehlung ist jeweils der Vorschlag dieses
-Dokuments; **entschieden ist noch nichts**, Issues mit Bezug bleiben bis dahin im Backlog.
+Aus dem Widerspruchs-Check (2026-10-25), entschieden von Jonas am 2026-10-26.
 
-| # | Frage | Optionen | Empfehlung |
-|---|---|---|---|
-| W1 | Spur global oder je sichtbarer Auswahl? Mit einer global vergebenen Spur steht ein Projekt neben dem Gleis, obwohl sein Partner gerade ausgeblendet ist (andere Gruppe, Phasen-, Datums- oder Suchfilter). | (a) global, wie im Auftrag; (b) Server liefert je Projekt die globale Spur **und** die IDs seiner Überlappungspartner, das Frontend färbt nur die sichtbaren Projekte (globale Spur als Vorzug, dann ID); (c) Spur je Gruppe | (b): Einzelprojekte bleiben immer auf dem Gleis, zwei Gruppen kollidieren trotzdem nicht, und die Färbung im Browser ist bei ein paar hundert Kanten trivial |
-| W2 | Zeichenrichtung | (a) Server richtet jeden vereinfachten Linienteil einheitlich aus (Start westlich des Endes, bei gleichem Längengrad südlich), im geometries-Endpoint; (b) Ausrichtung je Paar am gemeinsamen Abschnitt; (c) hinnehmen | (a): eine Zeile in `geometry_simplify.py`, trifft den Normalfall; nur Schleifen und U-förmige Teile bleiben unsauber |
-| W3 | Stabilität der Spur | (a) inkrementell: P behält seine Spur, solange kein Nachbar sie hat, sonst kleinste freie; Nachbarn bleiben; Vollfärbung (absteigender Grad) nur beim Backfill; (b) bei jeder Änderung global neu färben | (a) |
-| W4 | Schwelle für „überlappt“ | (a) gemeinsame Länge ≥ 500 m; (b) ≥ 500 m **oder** ≥ 50 % der kürzeren Linie (mindestens 100 m); (c) anderer Wert | (b): mit (a) bliebe ein kurzes Projekt (Weichenumbau, Kreuzungsbahnhof, 300 m) unter einem langen Korridor unsichtbar, genau der Fall, den das Feature lösen soll |
-| W5 | Vorfahr/Nachfahr-Paare | (a) aus dem Graphen ausnehmen (sie überlappen immer, das ist der ausgeklammerte Elternband-Fall); (b) mitzählen | (a): sonst rückt ein Überprojekt auf der Standardansicht „Nur Hauptprojekte“ wegen unsichtbarer Kinder vom Gleis, und `check_geometry` meldete bei jedem Überprojekt alle Kinder |
+| # | Frage | Entscheidung |
+|---|---|---|
+| W1 | Spur global oder je sichtbarer Auswahl? | Server speichert eine globale Spur und liefert die Überlappungspartner mit; der Browser färbt nur die sichtbaren Projekte (globale Spur als Vorzug, dann ID). |
+| W2 | Zeichenrichtung | Server richtet jeden vereinfachten Linienteil einheitlich aus (Start westlich des Endes, bei gleichem Längengrad südlich). |
+| W3 | Stabilität der Spur | Inkrementell: P behält seine Spur, solange kein Partner sie hat, sonst die kleinste freie; Partner bleiben. Vollfärbung nur bei der Erstbefüllung. |
+| W4 | Schwelle für „überlappt“ | Gemeinsame Länge ≥ 500 m **oder** ≥ 50 % der kürzeren Linie (mindestens 100 m). |
+| W5 | Über-/Unterprojekt-Paare | Keine Sonderbehandlung, sie zählen wie alle anderen. Ob beide sichtbar sind, regelt der Schalter „Nur Hauptprojekte“; mit W1 belegen unsichtbare Unterprojekte keine Spur. In `check_geometry` erscheinen sie nicht als Befund (dort sind sie erwartet, keine Dublette). |
+| D1 | Schrift im Zähler | Design-System-Schrift Inter. MapLibre kann für Kartentext keine woff2-Datei verwenden, sondern bräuchte eigens erzeugte Glyphen-Dateien. Deshalb zeichnet MapLibre nur den Kreis, die Zahl liegt als HTML-Element darüber (siehe *Frontend*). |
 
 ## Akzeptanzkriterien
 
@@ -211,7 +218,7 @@ Dokuments; **entschieden ist noch nichts**, Issues mit Bezug bleiben bis dahin i
 - [ ] Linienbreiten-Slider vergrößern: Linien werden dicker, der Abstand wächst mit, sie
       berühren sich nicht.
 - [ ] Ein Projekt ohne Überlappung liegt bei jedem Zoom auf dem Gleis.
-- [ ] (W1 b) Phasenfilter so setzen, dass nur eines von zwei überlappenden Projekten sichtbar
+- [ ] Phasenfilter so setzen, dass nur eines von zwei überlappenden Projekten sichtbar
       ist: es liegt auf dem Gleis.
 - [ ] Geometrie eines Projekts per „Geometrie verwalten“ ändern (z. B. neu routen), Karte neu
       laden: unbeteiligte Projekte behalten ihre Seite.
@@ -226,7 +233,7 @@ Dokuments; **entschieden ist noch nichts**, Issues mit Bezug bleiben bis dahin i
       `overlaps` mit Partner-ID, Name und gemeinsamer Länge in km.
 - [ ] Zwei fast deckungsgleiche Projekte (je ≥ 90 % der eigenen Länge gemeinsam): der Befund
       trägt den Hinweis auf eine mögliche Dublette und `merge_projects`.
-- [ ] Ein Überprojekt meldet seine eigenen Unterprojekte nicht als Überlappung (W5 a).
+- [ ] Ein Überprojekt meldet seine eigenen Unterprojekte nicht als Überlappung (W5).
 
 ### D · Zähler an Bahnhöfen
 
@@ -297,11 +304,11 @@ recompute_overlaps_for_project_ids(db, ids)
     Hash unverändert → überspringen
     Bounding-Box, line_km, Hash schreiben
     Kandidaten: Bounding-Box-Schnitt per SQL (Box um 25 m erweitert), ohne P, ohne
-      archivierte und Entwürfe, ohne Vorfahren und Nachfahren von P (W5)
+      archivierte und Entwürfe (Über-/Unterprojekte zählen mit, W5)
     je Kandidat Q: shared = min(len(Q ∩ buffer(P, 25 m)), len(P ∩ buffer(Q, 25 m)))
       Schwelle (W4) erfüllt → Paar schreiben, sonst Paar löschen
     Spur von P neu bestimmen (W3)
-recompute_all_overlaps(db) → Stats   # Backfill, Vollfärbung nach absteigendem Grad
+recompute_all_overlaps(db) → Stats   # Erstbefüllung, Vollfärbung nach absteigendem Grad
 ```
 
 Geparste und projizierte Kandidatenlinien werden wie in `geometry_simplify.py` je
@@ -321,7 +328,7 @@ Default leer):
 ```python
 class MapLaneSchema(BaseModel):
     lane: int = 0
-    overlaps: list[int] = []   # nur bei W1 (b): IDs der Überlappungspartner
+    overlaps: list[int] = []   # IDs der Überlappungspartner (W1)
 
 lanes: dict[int, MapLaneSchema] = {}   # nur Projekte mit lane > 0 oder Partnern
 ```
@@ -330,19 +337,22 @@ lanes: dict[int, MapLaneSchema] = {}   # nur Projekte mit lane > 0 oder Partnern
 Ausrichtung der Linienteile (W2) in `geometry_simplify._simplify`, damit der Cache sie
 mitnimmt.
 
-**Backfill.** Bis zum ersten Lauf ist `lanes` leer und die Karte sieht aus wie heute; die
-Migration rechnet deshalb nichts. Vollständiger Lauf als Celery-Task
-`recompute_all_overlaps_task`, ausgelöst über `POST /api/v1/admin/overlap-recompute`
-(wie `progress-recompute`, Recht wie dort), zusätzlich als Skript
-`scripts/recompute_project_overlaps.py` für den Host. Nach dem ersten Deploy einmal
-auslösen (in `CHANGELOG.md` und `docs/production_setup.md` vermerken).
+**Erstbefüllung.** Die Überlappungen werden beim Speichern eines Projekts berechnet. Nach
+dem Deploy ist die Tabelle aber leer, denn die vorhandenen Projekte wurden ja noch nicht neu
+gespeichert. Sie muss deshalb einmal für alle Projekte gefüllt werden. Das läuft
+**automatisch**: Findet das Backend beim Start eine leere `project_map_geometry`, stößt es
+einmal die Celery-Aufgabe `recompute_all_overlaps_task` an (läuft im Worker, blockiert den
+Start nicht). Bis sie fertig ist, ist `lanes` leer und die Karte sieht aus wie heute. Für
+einen späteren Neuaufbau von Hand gibt es zusätzlich `POST /api/v1/admin/overlap-recompute`
+(wie `progress-recompute`, Recht wie dort). Kein Handschritt nach dem Deploy.
 
 ### MCP
 
 - `services/geometry_check.py` / `mcp/tools/data_quality.py`: neuer Befund `overlaps` in
   `check_geometry`, gelesen aus `project_overlap` (keine Neuberechnung im Tool): je Partner
   `project_id`, `name`, `shared_km`, `share_self`, `share_other`, größte zuerst, höchstens
-  fünf. Sind beide Anteile ≥ 90 %, trägt der Eintrag `possible_duplicate: true` mit dem
+  fünf. Eigene Vor- und Nachfahren (Über-/Unterprojekte) erscheinen nicht: sie überlappen
+  zwangsläufig und sind keine Dublette (W5). Sind beide Anteile ≥ 90 %, trägt der Eintrag `possible_duplicate: true` mit dem
   Hinweis auf `merge_projects` (erst ohne `apply`).
 - Doku im selben Commit: `docs/features/feature-mcp-server.md` (Befundtabelle unter
   *Datenpflege*), Server-Instruktionen in `mcp/server.py`, falls sie Befunde aufzählen, und
@@ -356,7 +366,7 @@ auslösen (in `CHANGELOG.md` und `docs/production_setup.md` vermerken).
   - A: Treffer-Rechteck, Deduplizierung, Hover-Menge, Popup-Zustand
     `{ kind: "list" | "single", projects, x, y }`, neue Komponente für die Liste.
   - B1: Feature-Property `laneOffset` aus der Spur; `line-offset` wie oben; Slider-Effekt
-    setzt `line-offset` mit. Bei W1 (b) die Färbung der sichtbaren Projekte als reine
+    setzt `line-offset` mit. Die Färbung der sichtbaren Projekte (W1) als reine
     Funktion (`assignVisibleLanes(projects, lanes)`) mit Unit-Test. Die Hover-Breite
     `lineWidth + 4` darf die Nachbarspur kurz überdecken. Soll die hervorgehobene Linie
     oben liegen: `line-sort-key` ist eine Layout-Eigenschaft und kann `feature-state` nicht
@@ -364,10 +374,12 @@ auslösen (in `CHANGELOG.md` und `docs/production_setup.md` vermerken).
     ["literal", ids]])` über der normalen.
   - D: Punkt-Features je gerundeter Koordinate statt je Projekt; synthetische Feature-IDs
     mit Lookup `featureId → projectIds` und `projectId → featureIds` für Hover; Layer
-    `project-points-counter` (`circle`) und `project-points-count` (`symbol`, `text-field`
-    = Anzahl), gefiltert auf Anzahl > 1. Die Schrift für `text-field` braucht eine
-    Glyphs-URL im Style; heute hat der Style keine. Bei der Umsetzung klären: eigene
-    Glyphs ausliefern oder den Zähler als HTML-Marker zeichnen (kein neues Paket).
+    `project-points-counter` (`circle`, gefiltert auf Anzahl > 1) trägt Farbe, Rand,
+    Klick und Hover. Die Zahl (D1) ist ein `maplibregl.Marker` je Zählerpunkt mit einem
+    `<span>` in `--font-sans`, fett, `pointer-events: none`, damit Klick und Hover beim
+    Kreis darunter ankommen. Kein `symbol`-Layer: der bräuchte eine Glyphs-URL, die der
+    Style nicht hat, und eigens erzeugte Glyphen-Dateien der Inter. Die Marker werden bei
+    jeder Datenänderung neu gesetzt; es sind nur die mehrfach belegten Punkte.
 - `MapPage.tsx`: Spurdaten aus `useProjectGroupGeometries` an `MapViewProject` hängen.
 - `shared/api/queries.ts`: `combineGeometries` führt `lanes` mit; `make gen-api`.
 - `shared/theme/semanticColors.ts`: Farbe für den Zählerrand und -text (`MAP_COLOR`, Ink)
@@ -392,24 +404,24 @@ auslösen (in `CHANGELOG.md` und `docs/production_setup.md` vermerken).
 | `apps/backend/dashboard_backend/services/geometry_simplify.py` | B1 | Ausrichtung (W2) |
 | `apps/backend/dashboard_backend/schemas/projects/project_group_schema.py` | B1 | `lanes` |
 | `apps/backend/dashboard_backend/api/v1/endpoints/project_groups.py` | B1 | `lanes` ausliefern |
-| `apps/backend/dashboard_backend/api/v1/endpoints/admin_assignments.py`, `tasks/` | B1 | Backfill-Task + Endpoint |
-| `apps/backend/scripts/recompute_project_overlaps.py` (neu) | B1 | Backfill auf dem Host |
+| `apps/backend/dashboard_backend/api/v1/endpoints/admin_assignments.py`, `tasks/` | B1 | Task + Endpoint für den Neuaufbau |
+| Backend-Start (Lifespan) | B1 | Erstbefüllung anstoßen, wenn die Tabelle leer ist |
 | `apps/backend/dashboard_backend/services/geometry_check.py`, `mcp/tools/data_quality.py` | MCP | Befund `overlaps` |
 | `docs/features/feature-mcp-server.md`, `.claude/skills/gvfg-nacharbeit/SKILL.md` | MCP | Doku, Skill |
-| `CHANGELOG.md`, `docs/production_setup.md` | B1 | Backfill nach Deploy |
+| `CHANGELOG.md`, `docs/production_setup.md` | B1 | Erstbefüllung beim ersten Start vermerken |
 
 ### Migration
 
 Eine Revision (`make migrate-create MSG="add project overlap tables"`), nur neue Tabellen,
 keine Änderung an `project`. Ein Rollback auf den alten Code ignoriert die Tabellen
-(Expand/Contract). Kein Backfill in der Migration: leere Tabellen bedeuten Spur 0 für alle,
+(Expand/Contract). Die Migration befüllt nichts (Erstbefüllung siehe oben): leere Tabellen bedeuten Spur 0 für alle,
 also das heutige Bild. Keine neue harte Abhängigkeit für `/healthz`.
 
 ## Verifikation
 
 - Backend: Unit-Tests für `project_overlap.py` mit synthetischen Linien (deckungsgleich,
-  versetzt um 10 m und 40 m, kurz unter lang, gegenläufig, Vorfahr/Nachfahr, archiviert),
-  Spurzuweisung inkl. Stabilität; API-Test für `lanes` und ETag im geometries-Endpoint;
+  versetzt um 10 m und 40 m, kurz unter lang, gegenläufig, Über-/Unterprojekt, archiviert),
+  Spurzuweisung inkl. Stabilität; Erstbefüllung beim Start nur bei leerer Tabelle; API-Test für `lanes` und ETag im geometries-Endpoint;
   Test für den Befund `overlaps` in `check_geometry`.
 - Frontend: Unit-Tests für Deduplizierung der Treffer, `assignVisibleLanes`,
   Punktzusammenfassung und Mehrheitsfarbe; Komponententest für die Liste.

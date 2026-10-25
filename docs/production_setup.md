@@ -493,7 +493,7 @@ cd /srv/raildashboard && docker compose exec backend python scripts/recompute_pr
 cd /srv/raildashboard && ./prod.sh <40-stellige-sha>
 ```
 
-Ein Version-Tag (`make release-check MILESTONE=vX.Y.Z`, `CHANGELOG.md`, `git tag`) benennt
+Ein Version-Tag (Release-Gate im Board, `CHANGELOG.md`, `git tag`) benennt
 einen Stand, rollt aber nichts aus.
 
 ### Entwicklung: nur DB in Docker
