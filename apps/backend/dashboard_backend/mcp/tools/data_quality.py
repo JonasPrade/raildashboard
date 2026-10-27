@@ -20,7 +20,12 @@ from sqlalchemy import and_, exists, func, not_, or_, select
 from sqlalchemy.orm import Session, aliased, selectinload
 
 from dashboard_backend.crud import infraplan_import as infraplan_crud
-from dashboard_backend.crud.projects.projects import extract_features, has_subprojects
+from dashboard_backend.crud.projects.projects import (
+    ancestor_ids,
+    extract_features,
+    has_subprojects,
+    subtree_ids,
+)
 from dashboard_backend.mcp.context import get_principal, tool_session
 from dashboard_backend.mcp.tools.projects import (
     MAX_LIMIT,
@@ -47,8 +52,10 @@ from dashboard_backend.services.geometry_check import (
     DEFAULT_STATION_DISTANCE_KM,
     Station,
     check_features,
+    overlap_finding,
     place_names_from_project_name,
 )
+from dashboard_backend.services.project_overlap import overlap_partners
 
 GapLiteral = Literal[
     "no_geometry",
@@ -293,6 +300,13 @@ def _check_project(
         gap_tolerance_km=gap_tolerance_km,
         max_station_distance_km=max_station_distance_km,
     )
+    # A parent's line is the union of its subprojects': that overlap is expected,
+    # not a finding (W5 of feature-map-overlapping-geometries.md).
+    parent_of = lambda pid: db.query(Project.superior_project_id).filter(Project.id == pid).scalar()  # noqa: E731
+    family = set(subtree_ids(db, project.id)) | set(ancestor_ids(project.id, parent_of))
+    overlaps = overlap_finding(overlap_partners(db, project.id, exclude=family))
+    if overlaps is not None:
+        findings.append(overlaps)
     has_route = db.query(exists().where(Route.project_id == project.id)).scalar()
     return {
         "id": project.id,
@@ -330,6 +344,9 @@ def check_geometry(
       ("Stuttgart – Ulm") resolves to an operational point (exact name, else
       "<name> Hbf") more than ``max_station_distance_km`` away from the line
     - length_mismatch / length_missing: stored length vs. length from geometry
+    - overlaps: other projects on the same track (shared km, share of each;
+      ``possible_duplicate`` when both share ≥ 90 % — check with merge_projects).
+      Own parent and subprojects are left out, their overlap is expected
     - no_geometry / no_line
     Places in the name that match no operational point are listed as
     ``unresolved_places`` (not a finding). For a group, ``only_findings`` (default)

@@ -30,6 +30,10 @@ DEFAULT_STATION_DISTANCE_KM = 3.0
 LENGTH_TOLERANCE_KM = 0.5
 LENGTH_TOLERANCE_SHARE = 0.02
 MAX_REPORTED_GAPS = 5
+# Overlap partners listed per project, largest shared length first.
+MAX_REPORTED_OVERLAPS = 5
+# Both projects share at least this much of their own line: likely the same project twice.
+DUPLICATE_SHARE = 0.9
 # Words tried per side when matching place names ("Bad Friedrichshall Hbf").
 MAX_PLACE_WORDS = 4
 
@@ -231,6 +235,45 @@ def _length_finding(stored_km: float | None, computed_km: float | None) -> dict[
         "stored_length_km": stored_km,
         "computed_length_km": computed_km,
     }
+
+
+def overlap_finding(partners: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Projects this one shares a track with (``project_overlap``,
+    docs/features/feature-map-overlapping-geometries.md).
+
+    *partners*: ``project_id``, ``name``, ``shared_km``, ``share_self``,
+    ``share_other``. Not a fault in itself — an upgrade and an electrification
+    of the same line rightly overlap — but a pair that covers almost all of both
+    lines is likely one project entered twice.
+    """
+    if not partners:
+        return None
+    ordered = sorted(partners, key=lambda p: (-p["shared_km"], p["project_id"]))
+    listed = []
+    for partner in ordered[:MAX_REPORTED_OVERLAPS]:
+        entry = {
+            "project_id": partner["project_id"],
+            "name": partner["name"],
+            "shared_km": _round(partner["shared_km"]),
+            "share_self": _round(partner["share_self"]),
+            "share_other": _round(partner["share_other"]),
+        }
+        if partner["share_self"] >= DUPLICATE_SHARE and partner["share_other"] >= DUPLICATE_SHARE:
+            entry["possible_duplicate"] = True
+        listed.append(entry)
+    duplicates = [p for p in listed if p.get("possible_duplicate")]
+    first = listed[0]
+    message = (
+        f"Überlappt mit Projekt {first['project_id']} „{first['name']}“ auf {first['shared_km']} km"
+        + (f" und {len(ordered) - 1} weiteren." if len(ordered) > 1 else ".")
+    )
+    if duplicates:
+        message += (
+            " Fast deckungsgleich mit "
+            + ", ".join(str(p["project_id"]) for p in duplicates)
+            + ": mögliche Dublette, mit merge_projects (erst ohne apply) prüfen."
+        )
+    return {"check": "overlaps", "message": message, "total": len(ordered), "partners": listed}
 
 
 def check_features(
