@@ -176,6 +176,7 @@ export default function MapPage() {
     const selectedGroupIdsForMap = useMemo(() => selectedGroups.map((g) => g.id), [selectedGroups]);
     const {
         geometries,
+        lanes,
         isLoading: geometriesLoading,
         isError: geometriesError,
     } = useProjectGroupGeometries(view === "map" ? selectedGroupIdsForMap : [], onlySuperior);
@@ -190,6 +191,7 @@ export default function MapPage() {
                         ...withActiveFeatures(project),
                         groupColor,
                         geometry: geometries.get(project.id),
+                        mapLane: lanes.get(project.id),
                     });
                 }
             });
@@ -198,7 +200,7 @@ export default function MapPage() {
         return onlySuperior
             ? allProjects.filter((p) => p.superior_project_id == null)
             : allProjects;
-    }, [selectedGroups, onlySuperior, geometries]);
+    }, [selectedGroups, onlySuperior, geometries, lanes]);
 
     // Defer the search term for the map filter: the text input stays snappy
     // while the (cheap, but setData-triggering) map update lags a beat behind.

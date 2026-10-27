@@ -7,6 +7,7 @@ import type { ConstituencyFeatureCollection, ProjectOverview } from "../../share
 import { usePrefetchProjectPage } from "../projects/usePrefetchProjectPage";
 import ProjectSummaryCard from "../projects/ProjectSummaryCard";
 import MapOverlapList from "./MapOverlapList";
+import { type LaneInfo, assignVisibleLanes, laneOffset, lineOffsetExpression } from "./mapLanes";
 import {
     PROJECT_LAYERS,
     hitBox,
@@ -31,6 +32,9 @@ export type MapViewProject = ProjectOverview & {
      * full `Project`s (detail page) carry.
      */
     geometry?: unknown;
+    /** Stored lane and overlap partners from the geometries endpoint; the map
+     *  draws projects that share a track side by side (B1). */
+    mapLane?: LaneInfo | null;
 };
 
 type GeoJSONGeometry = {
@@ -277,6 +281,9 @@ export default function MapView({
     const featureCacheRef = useRef(new Map<number, FeatureCacheEntry>());
     const { lineFeatureCollection, pointFeatureCollection } = useMemo(() => {
         const cache = featureCacheRef.current;
+        // Lanes depend on which projects are shown, so they are applied on top
+        // of the cached features instead of being cached with them.
+        const lanes = assignVisibleLanes(projects);
         const lines: GeoJSONFeature[] = [];
         const points: GeoJSONFeature[] = [];
         for (const project of projects) {
@@ -298,7 +305,14 @@ export default function MapView({
                 };
                 cache.set(project.id, entry);
             }
-            if (entry.line) lines.push(entry.line);
+            if (entry.line) {
+                const offset = laneOffset(lanes.get(project.id) ?? 0);
+                lines.push(
+                    offset === 0
+                        ? entry.line
+                        : { ...entry.line, properties: { ...entry.line.properties, laneOffset: offset } },
+                );
+            }
             if (entry.point) points.push(entry.point);
         }
         return {
@@ -399,6 +413,9 @@ export default function MapView({
                                 8,
                                 4,
                             ],
+                            // Projects sharing a track fan out from zoom 8 to 12 (B1).
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            "line-offset": lineOffsetExpression(4) as any,
                         },
                     },
                     {
@@ -589,7 +606,8 @@ export default function MapView({
         };
     }, [isMapReady, onConstituencySelect]);
 
-    // Update line-width expression when the slider changes
+    // Update line-width and the lane offset (it scales with the width) when the
+    // slider changes
     useEffect(() => {
         if (!isMapReady) return;
         const mapInstance = mapInstanceRef.current;
@@ -600,6 +618,8 @@ export default function MapView({
             lineWidth + 4,
             lineWidth,
         ]);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        mapInstance.setPaintProperty("project-routes-line", "line-offset", lineOffsetExpression(lineWidth) as any);
     }, [lineWidth, isMapReady]);
 
     // Update circle-radius expression when the point size slider changes
