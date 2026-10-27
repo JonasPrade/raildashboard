@@ -1035,3 +1035,17 @@
 @media (pointer: coarse) {
     .idt-map-overlap-row { min-height: 44px; }
 }
+
+/* ── Map: count on a station counter (features/map/MapView.tsx, block D) ───
+   An HTML marker over the circle so the count uses the design-system font;
+   it lets clicks and hover through to the circle. Colour is set per counter
+   (ink or paper, whichever reads better on the group colour). */
+.idt-map-counter {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+    user-select: none;
+}

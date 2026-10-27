@@ -51,3 +51,15 @@ describe("sortProjectsByName", () => {
         expect(sortProjectsByName(projects).map((p) => p.id)).toEqual([4, 1, 9, 2, 3]);
     });
 });
+
+describe("projectIdsFromFeatures with station counters", () => {
+    it("expands a counter into its projects", () => {
+        const clusters = new Map([[1, [4, 5, 6]]]);
+        const features = [
+            { properties: { projectId: 5 } },
+            { properties: { clusterId: 1, count: 3 } },
+            { properties: { clusterId: 99 } },
+        ];
+        expect(projectIdsFromFeatures(features, clusters)).toEqual([5, 4, 6]);
+    });
+});
