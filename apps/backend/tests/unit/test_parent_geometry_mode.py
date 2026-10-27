@@ -20,6 +20,10 @@ from dashboard_backend.models.associations.project_to_constituency import (
     ProjectToConstituency,
 )
 from dashboard_backend.models.projects.project import Project
+from dashboard_backend.models.projects.project_map_geometry import (
+    ProjectMapGeometry,
+    ProjectOverlap,
+)
 
 
 @pytest.fixture()
@@ -35,6 +39,8 @@ def db():
     # The geometry cascade also refreshes the constituency links of every
     # project it touches, so the link table has to exist here.
     ProjectToConstituency.__table__.create(bind=engine)
+    ProjectMapGeometry.__table__.create(bind=engine)
+    ProjectOverlap.__table__.create(bind=engine)
     session = sessionmaker(bind=engine)()
     try:
         yield session

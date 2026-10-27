@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session, selectinload
 from dashboard_backend.models.projects import Project
 from dashboard_backend.models.projects.project_group import ProjectGroup
 from dashboard_backend.services.constituency_matching import recompute_links_for_project_ids
+from dashboard_backend.services.project_overlap import recompute_overlaps_for_project_ids
 
 
 def get_projects(db: Session):
@@ -125,6 +126,14 @@ def subtree_ids(db: Session, root_id: int) -> List[int]:
     return ids
 
 
+def refresh_derived_geometry(db: Session, project_ids: List[int]) -> None:
+    """Everything materialised from a project geometry: constituency links and
+    map overlaps (docs/features/feature-map-overlapping-geometries.md). One entry
+    point, so no write path refreshes one and forgets the other."""
+    recompute_links_for_project_ids(db, project_ids)
+    recompute_overlaps_for_project_ids(db, project_ids)
+
+
 def recompute_geojson_for_parent(db: Session, parent_id: Optional[int]) -> None:
     """Recompute and persist the geojson_representation of *parent_id* and its ancestors.
 
@@ -173,8 +182,9 @@ def recompute_geojson_for_parent(db: Session, parent_id: Optional[int]) -> None:
         current_id = parent.superior_project_id
 
     # The aggregated geometry just changed at every level walked — the
-    # constituency links of those projects are stale in exactly the same way.
-    recompute_links_for_project_ids(db, touched)
+    # constituency links and map overlaps of those projects are stale in exactly
+    # the same way.
+    refresh_derived_geometry(db, touched)
 
 
 def recompute_parent_geojson(db: Session, project: Project) -> None:
@@ -276,7 +286,7 @@ def create_project(db: Session, data: dict) -> Project:
     db.commit()
     db.refresh(project)
     if project.geojson_representation:
-        recompute_links_for_project_ids(db, [project.id])
+        refresh_derived_geometry(db, [project.id])
     return project
 
 
@@ -303,6 +313,8 @@ def update_project(db: Session, project_id: int, update_data: dict, project: Pro
         project.project_groups = db.query(ProjectGroup).filter(ProjectGroup.id.in_(group_ids)).all()
 
     geojson_changed = "geojson_representation" in update_data
+    # A draft is not on the map, so finalising or re-drafting changes its overlaps.
+    draft_changed = "is_draft" in update_data and update_data["is_draft"] != project.is_draft
 
     previous_superior_id = project.superior_project_id
     superior_changed = (
@@ -322,9 +334,11 @@ def update_project(db: Session, project_id: int, update_data: dict, project: Pro
     db.refresh(project)
 
     if geojson_changed:
-        # The project's own geometry changed — its constituency links follow. The
-        # ancestors are handled by the cascade below, which recomputes theirs.
-        recompute_links_for_project_ids(db, [project.id])
+        # The project's own geometry changed — its constituency links and map
+        # overlaps follow. The ancestors are handled by the cascade below.
+        refresh_derived_geometry(db, [project.id])
+    elif draft_changed:
+        recompute_overlaps_for_project_ids(db, [project.id])
 
     if switched_to_aggregated and has_subprojects(db, project.id):
         # Rebuild the project's own geometry from its subprojects. The walk starts at the
@@ -349,6 +363,7 @@ def finalize_project(db: Session, project_id: int):
     project.is_draft = False
     db.commit()
     db.refresh(project)
+    recompute_overlaps_for_project_ids(db, [project.id])
     return project
 
 

@@ -631,7 +631,8 @@ export interface paths {
          *
          *     Lines are simplified (~20 m tolerance) and coordinates rounded to ~1 m;
          *     projects without geometry are omitted. The exact geometry stays on
-         *     ``GET /projects/{id}``. The response carries an ETag.
+         *     ``GET /projects/{id}``. ``lanes`` names the projects that share a track with
+         *     another one (their stored lane and partners). The response carries an ETag.
          */
         get: operations["read_project_group_geometries_api_v1_project_groups__group_id__geometries_get"];
         put?: never;
@@ -2506,6 +2507,28 @@ export interface paths {
          *     that are read.
          */
         post: operations["start_progress_recompute_api_v1_admin_progress_recompute_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/overlap-recompute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Overlap Recompute
+         * @description Rebuild the map overlaps and lanes of every project (Celery). Saving a
+         *     project keeps them current; this is for a full rebuild, e.g. after a bulk
+         *     geometry import.
+         */
+        post: operations["start_overlap_recompute_api_v1_admin_overlap_recompute_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5616,6 +5639,22 @@ export interface components {
              */
             committees: components["schemas"]["CommitteeRoleSchema"][];
         };
+        /**
+         * MapLaneSchema
+         * @description Stored lane of a project and the projects it shares a track with.
+         *
+         *     The map recolours only the projects it shows, preferring the stored lane
+         *     (docs/features/feature-map-overlapping-geometries.md → B1).
+         */
+        MapLaneSchema: {
+            /**
+             * Lane
+             * @default 0
+             */
+            lane: number;
+            /** Overlaps */
+            overlaps?: number[];
+        };
         /** MediaEntrySchema */
         MediaEntrySchema: {
             /** Id */
@@ -6410,6 +6449,13 @@ export interface components {
             /** Geometries */
             geometries: {
                 [key: string]: unknown;
+            };
+            /**
+             * Lanes
+             * @description Projects with a lane above 0 or overlap partners; all others are on lane 0
+             */
+            lanes?: {
+                [key: string]: components["schemas"]["MapLaneSchema"];
             };
         };
         /** ProjectGroupRef */
@@ -13467,6 +13513,37 @@ export interface operations {
         };
     };
     start_progress_recompute_api_v1_admin_progress_recompute_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskLaunchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_overlap_recompute_api_v1_admin_overlap_recompute_post: {
         parameters: {
             query?: never;
             header?: never;
