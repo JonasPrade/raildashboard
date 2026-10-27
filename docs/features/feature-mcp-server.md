@@ -495,6 +495,7 @@ Einzelstationen zerfällt zu Recht in viele Teile):
 | `gaps` | Linienteile, deren Enden sich nicht bis auf `gap_tolerance_km` nähern, bilden getrennte Komponenten; die Lücken sind die Kanten eines minimalen Spannbaums zwischen den Komponenten (größte zuerst, mit Koordinaten) |
 | `far_from_start` / `far_from_end` | Erster/letzter Ort im Projektnamen (Trenner: Gedankenstrich, oder Bindestrich mit Leerzeichen; Klammern entfallen; längster passender Wortausschnitt zuerst) wird über exakten Namen, sonst „<Name> Hbf“, zur Betriebsstelle aufgelöst; Befund, wenn kein Linienpunkt näher als `max_station_distance_km` liegt. Nicht auflösbare Orte stehen unter `unresolved_places` |
 | `length_mismatch` / `length_missing` | gespeicherte vs. aus der Geometrie berechnete Länge (gleiche Rechnung wie `compute_project_length`); Abweichung > max(0,5 km, 2 %) |
+| `overlaps` | Andere Projekte auf derselben Strecke (aus `project_overlap`, `feature-map-overlapping-geometries.md`): je Partner `project_id`, `name`, `shared_km`, `share_self`, `share_other`, größte zuerst, höchstens fünf, `total` zählt alle. Teilen beide ≥ 90 % ihrer Linie, trägt der Eintrag `possible_duplicate` (mögliche Dublette → `merge_projects`, erst ohne `apply`). Eigene Über- und Unterprojekte erscheinen nicht, ihre Überlappung ist gewollt |
 | `no_geometry` / `no_line` | keine Geometrie bzw. nur Punkte |
 
 Für eine Gruppe listet `only_findings` nur Projekte mit Befund; `checked` zählt alle

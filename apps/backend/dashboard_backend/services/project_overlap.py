@@ -463,5 +463,36 @@ def map_lanes(db: Session, project_ids: Iterable[int]) -> dict[int, dict[str, An
     return {pid: entry for pid, entry in result.items() if entry["lane"] or entry["overlaps"]}
 
 
+def overlap_partners(db: Session, project_id: int, exclude: Iterable[int] = ()) -> list[dict[str, Any]]:
+    """Stored overlap partners of one project with names and both shares,
+    for ``check_geometry``. *exclude*: ids to leave out (its own family)."""
+    skip = set(exclude)
+    rows = (
+        db.query(ProjectOverlap)
+        .filter(
+            or_(ProjectOverlap.project_a_id == project_id, ProjectOverlap.project_b_id == project_id)
+        )
+        .all()
+    )
+    partners = []
+    for row in rows:
+        if row.project_a_id == project_id:
+            other, share_self, share_other = row.project_b_id, row.share_a, row.share_b
+        else:
+            other, share_self, share_other = row.project_a_id, row.share_b, row.share_a
+        if other in skip:
+            continue
+        partners.append(
+            {"project_id": other, "shared_km": row.shared_km, "share_self": share_self, "share_other": share_other}
+        )
+    if partners:
+        names = dict(
+            db.query(Project.id, Project.name).filter(Project.id.in_([p["project_id"] for p in partners]))
+        )
+        for partner in partners:
+            partner["name"] = names.get(partner["project_id"])
+    return partners
+
+
 def is_empty(db: Session) -> bool:
     return db.query(ProjectMapGeometry.project_id).first() is None

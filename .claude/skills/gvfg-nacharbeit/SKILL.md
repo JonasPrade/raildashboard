@@ -64,6 +64,10 @@ Zeigt ein Vorhaben auf zwei Projekte, ist eines meist eine Dublette (gleicher
 Schlüssel, andere Schreibweise oder vom Import neu angelegt).
 
 1. Beide mit `get_project` ansehen. Echte Dublette oder zwei verschiedene Vorhaben?
+   Ein Indiz ist die Geometrie: `check_geometry(project_id=…)` meldet unter `overlaps`
+   Projekte auf derselben Strecke; `possible_duplicate` heißt, beide Linien decken sich
+   fast vollständig. Allein kein Beweis — Ausbau und Elektrifizierung derselben Strecke
+   überlappen zu Recht.
 2. Bleibendes Projekt wählen, in dieser Reihenfolge: kein Entwurf und in Gruppe GVFG →
    manuell gepflegte Daten → bessere Geometrie → Beschreibung mit Fördersatz.
 3. `merge_projects(survivor_id, merged_id)` **ohne** `apply`, Plan lesen (Felder,

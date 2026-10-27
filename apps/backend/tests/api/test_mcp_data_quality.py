@@ -320,6 +320,38 @@ def test_check_geometry_group(mcp_client, admin_token, db_session):
     assert everything["total"] == 3
 
 
+def test_check_geometry_reports_overlaps_and_duplicates(mcp_client, admin_token, db_session):
+    from dashboard_backend.crud.projects.projects import update_project
+
+    corridor = [[9.0 + i * 0.004, 51.0] for i in range(51)]
+    names = ["Korridor", "Korridor (doppelt)", "Elektrifizierung Teilstück", "Teilabschnitt"]
+    a, twin, section, parent = (Project(name=n) for n in names)
+    db_session.add_all([a, twin, section, parent])
+    db_session.commit()
+    child = Project(name="Kind", superior_project_id=parent.id)
+    db_session.add(child)
+    db_session.commit()
+    update_project(db_session, a.id, {"geojson_representation": _collection(_line(*corridor))})
+    update_project(db_session, twin.id, {"geojson_representation": _collection(_line(*corridor))})
+    update_project(db_session, section.id, {"geojson_representation": _collection(_line(*corridor[10:30]))})
+    # parent aggregates its child; both lie on the corridor too
+    update_project(db_session, child.id, {"geojson_representation": _collection(_line(*corridor[35:50]))})
+
+    result = _payload(_call(mcp_client, admin_token, "check_geometry", {"project_id": a.id}))
+    overlaps = next(f for f in result["findings"] if f["check"] == "overlaps")
+    partners = {p["project_id"]: p for p in overlaps["partners"]}
+    assert set(partners) == {twin.id, section.id, parent.id, child.id}
+    assert partners[twin.id]["possible_duplicate"] is True
+    assert "possible_duplicate" not in partners[section.id]
+    assert partners[section.id]["share_other"] == 1.0
+    assert "merge_projects" in overlaps["message"]
+
+    # A parent does not report its own subproject.
+    family = _payload(_call(mcp_client, admin_token, "check_geometry", {"project_id": parent.id}))
+    family_overlaps = next(f for f in family["findings"] if f["check"] == "overlaps")
+    assert child.id not in {p["project_id"] for p in family_overlaps["partners"]}
+
+
 def test_check_geometry_needs_exactly_one_target(mcp_client, admin_token, db_session):
     complete, *_ = _seed(db_session)
     assert _call(mcp_client, admin_token, "check_geometry")["isError"]
