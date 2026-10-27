@@ -13,6 +13,7 @@ celery_app = Celery(
         "dashboard_backend.tasks.infraplan",
         "dashboard_backend.tasks.parliament",
         "dashboard_backend.tasks.progress",
+        "dashboard_backend.tasks.project_overlap",
     ],
 )
 

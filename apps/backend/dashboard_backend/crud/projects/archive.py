@@ -36,6 +36,7 @@ from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.projects.project_progress import ProjectProgress
 from dashboard_backend.models.vib.vib_entry_project import vib_entry_project
 from dashboard_backend.models.vib.vib_pfa_entry import VibPfaEntry
+from dashboard_backend.services.project_overlap import recompute_overlaps_for_project_ids
 
 
 class ArchiveError(ValueError):
@@ -176,6 +177,8 @@ def archive_project(
     db.commit()
     db.refresh(project)
 
+    # An archived project is not on the map: it leaves (or rejoins) the overlaps.
+    recompute_overlaps_for_project_ids(db, [project.id])
     _refresh_ancestors(db, project)
     db.refresh(project)
     return {"project": project, "kept_links": kept_links(db, project.id)}
@@ -214,6 +217,8 @@ def unarchive_project(
     db.commit()
     db.refresh(project)
 
+    # An archived project is not on the map: it leaves (or rejoins) the overlaps.
+    recompute_overlaps_for_project_ids(db, [project.id])
     _refresh_ancestors(db, project)
     db.refresh(project)
     return project

@@ -51,6 +51,7 @@ cp .env.example .env
 | `CELERY_BROKER_URL` | `redis://redis:6379/0` | Redis im Docker-Netzwerk (kein Passwort nötig, da nicht nach außen exponiert) |
 | `CELERY_RESULT_BACKEND` | `redis://redis:6379/0` | Wie `CELERY_BROKER_URL` |
 | `IMPORT_STAGING_DIR` | `/app/uploads/import-staging` | Ablage hochgeladener Import-PDFs, bis der Celery-Task sie gelesen hat. Muss im von Backend **und** Worker gemounteten `uploads`-Volume liegen |
+| `START_BACKGROUND_JOBS` | `true` | Aufgaben, die das Backend beim Start selbst einreiht: heute die Erstbefüllung der Karten-Überlappungen, wenn `project_map_geometry` leer ist (`docs/features/feature-map-overlapping-geometries.md`). Nur die Testsuite setzt `false` |
 | `INFRAPLAN_PDF_DIR` | `/app/uploads/infraplan` | Hochgeladene Infraplan-PDFs, je Entwurf aufbewahrt (erneutes Auslesen, Seitenbilder der Kennzahl-Diagramme). Ebenfalls im `uploads`-Volume; wird beim ersten Zugriff angelegt und von `/healthz` auf Schreibbarkeit geprüft |
 
 ### Optionale RINF-API-Zugangsdaten

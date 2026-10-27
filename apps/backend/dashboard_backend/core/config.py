@@ -73,6 +73,9 @@ class Settings(BaseSettings):
     # MCP endpoint (/mcp, Streamable HTTP) for AI assistants, authenticated with
     # personal API keys. False = the route is not mounted at all.
     mcp_enabled: bool = True
+    # Jobs the backend queues by itself at start (today: the initial fill of the
+    # map overlaps when their tables are empty). Off in the test suite.
+    start_background_jobs: bool = True
 
     model_config = SettingsConfigDict(
         env_file=_find_env_file(),

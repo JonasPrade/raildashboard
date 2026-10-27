@@ -9,7 +9,9 @@ GeoJSON document into a compact, simplified FeatureCollection:
   (topology-preserving Douglas-Peucker, ``TOLERANCE_DEG``),
 - all point parts are collected into one MultiPoint and kept as they are,
 - coordinates are rounded to ``COORD_PRECISION`` decimals (~1 m) and reduced
-  to 2D; feature properties are dropped (the map never reads them).
+  to 2D; feature properties are dropped (the map never reads them),
+- every line part runs west to east, so parallel lanes offset to the same
+  side for every project.
 
 Polygons are ignored, matching the map, which only renders lines and points.
 The detail page keeps using the exact geometry from ``GET /projects/{id}``.
@@ -157,7 +159,18 @@ def _add_line(lines: list, coords: Any) -> None:
     # Rounding can collapse neighbouring vertices; drop the repeats.
     deduped = [rounded[0]] + [c for prev, c in zip(rounded, rounded[1:]) if c != prev]
     if len(deduped) >= 2:
-        lines.append(deduped)
+        lines.append(_canonical_direction(deduped))
+
+
+def _canonical_direction(part: list[list[float]]) -> list[list[float]]:
+    """Run the part west to east (south to north when start and end share a
+    longitude). The map offsets parallel lanes to the right of the drawing
+    direction; two projects digitised in opposite directions would otherwise
+    land on the same side (feature-map-overlapping-geometries.md, W2)."""
+    start, end = part[0], part[-1]
+    if (start[0], start[1]) > (end[0], end[1]):
+        return part[::-1]
+    return part
 
 
 def _feature(geom_type: str, coordinates: list) -> dict:

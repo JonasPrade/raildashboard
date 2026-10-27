@@ -58,6 +58,19 @@ def start_progress_recompute(
     return TaskLaunchResponse(task_id=task.id)
 
 
+@router.post("/overlap-recompute", response_model=TaskLaunchResponse, status_code=202)
+def start_overlap_recompute(
+    _current_user: User = Depends(require_permission("project.edit")),
+) -> TaskLaunchResponse:
+    """Rebuild the map overlaps and lanes of every project (Celery). Saving a
+    project keeps them current; this is for a full rebuild, e.g. after a bulk
+    geometry import."""
+    from dashboard_backend.tasks.project_overlap import recompute_all_overlaps_task
+
+    task = recompute_all_overlaps_task.delay()
+    return TaskLaunchResponse(task_id=task.id)
+
+
 @router.get("/unassigned-finves", response_model=list[UnassignedFinveSchema])
 def get_unassigned_finves(
     db: Session = Depends(get_db),

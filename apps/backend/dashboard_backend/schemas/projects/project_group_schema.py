@@ -54,6 +54,17 @@ class ProjectGroupCreate(BaseModel):
     assumed_build_months: Optional[int] = Field(default=None, ge=1, le=120)
 
 
+class MapLaneSchema(BaseModel):
+    """Stored lane of a project and the projects it shares a track with.
+
+    The map recolours only the projects it shows, preferring the stored lane
+    (docs/features/feature-map-overlapping-geometries.md → B1).
+    """
+
+    lane: int = 0
+    overlaps: List[int] = Field(default_factory=list)
+
+
 class ProjectGroupGeometriesSchema(BaseModel):
     """Simplified map geometries of one group's projects, keyed by project id.
 
@@ -66,3 +77,7 @@ class ProjectGroupGeometriesSchema(BaseModel):
     only_superior: bool
     tolerance: float = Field(description="Simplification tolerance in degrees")
     geometries: dict[int, Any]
+    lanes: dict[int, MapLaneSchema] = Field(
+        default_factory=dict,
+        description="Projects with a lane above 0 or overlap partners; all others are on lane 0",
+    )
