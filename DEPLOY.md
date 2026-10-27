@@ -52,6 +52,11 @@ keinen Rollback.
 Aktuell nötig nach dem Fix für VIB-PFA-Prognosen (#262): erst danach verschwinden die
 falschen „In Betrieb“-Beobachtungen aus „vsl.“-Terminen in allen Listen.
 
+Kein Handschritt braucht die Migration `20261027001` (Überlappungen auf der Karte): Findet das
+Backend beim Start die Tabelle `project_map_geometry` leer, stößt es selbst einmal die
+Celery-Aufgabe `recompute_all_overlaps_task` an (Worker, blockiert weder Start noch
+`/healthz`). Bis sie fertig ist, zeichnet die Karte alle Projekte wie bisher.
+
 **Es gibt keinen automatischen Auslöser.** Bis v0.0.15 rollte ein Version-Tag
 (`v*`) Test, Build und Ausrollen in einem Zug aus. Das nahm den Moment weg, in dem
 jemand „jetzt" sagt, und band die Auslieferung an eine Versionsnummer, obwohl das

@@ -37,6 +37,7 @@ from dashboard_backend.crud.projects.projects import (
     get_project_by_id,
     has_subprojects,
     recompute_geojson_for_parent,
+    refresh_derived_geometry,
     validate_superior_project,
 )
 from dashboard_backend.models.base import Base
@@ -47,7 +48,6 @@ from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.projects.project_progress import ProjectProgress
 from dashboard_backend.models.projects.project_redirect import ProjectRedirect
 from dashboard_backend.models.routes.route import Route
-from dashboard_backend.services.constituency_matching import recompute_links_for_project_ids
 
 GeometrySource = Literal["survivor", "merged"]
 
@@ -535,7 +535,7 @@ def _apply(
     if survivor.geojson_from_subprojects and has_subprojects(db, survivor_id):
         recompute_geojson_for_parent(db, survivor_id)
     else:
-        recompute_links_for_project_ids(db, [survivor_id])
+        refresh_derived_geometry(db, [survivor_id])
         recompute_geojson_for_parent(db, survivor.superior_project_id)
     if old_parent_of_merged not in (None, survivor.superior_project_id):
         recompute_geojson_for_parent(db, old_parent_of_merged)

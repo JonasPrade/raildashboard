@@ -20,6 +20,10 @@ from dashboard_backend.models.associations.project_to_constituency import (
     ProjectToConstituency,
 )
 from dashboard_backend.models.associations.text_to_project import TextToProject
+from dashboard_backend.models.projects.project_map_geometry import (
+    ProjectMapGeometry,
+    ProjectOverlap,
+)
 from dashboard_backend.models.associations.project_to_project_group import (
     ProjectToProjectGroup,
 )
@@ -136,6 +140,8 @@ TABLES = [
     CommitteeMembership.__table__,
     ParliamentImportRun.__table__,
     ProjectToConstituency.__table__,  # FK to project (absent here) is unenforced in SQLite
+    ProjectMapGeometry.__table__,  # map overlaps, refreshed with every geometry write
+    ProjectOverlap.__table__,
     ProjectToProjectGroup.__table__,  # must follow project + project_group (FK dependency)
     ProjectProgress.__table__,  # FK to project; read by the MCP list_projects phase filter
     ProgressObservation.__table__,  # read by the group timeline

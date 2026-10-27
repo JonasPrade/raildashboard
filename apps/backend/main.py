@@ -1,4 +1,5 @@
 # main.py
+import threading
 from collections.abc import AsyncIterator, Iterator
 from contextlib import asynccontextmanager, contextmanager
 
@@ -30,8 +31,19 @@ def _mcp_route_service():
 mcp_endpoint = McpEndpoint(_mcp_session, _mcp_route_service) if settings.mcp_enabled else None
 
 
+def _start_background_jobs() -> None:
+    # Initial fill of the map overlaps after the deploy that adds the tables
+    # (docs/features/feature-map-overlapping-geometries.md). In a thread: the
+    # check touches the database and the broker, and the start must not wait.
+    from dashboard_backend.tasks.project_overlap import start_initial_fill_if_empty
+
+    threading.Thread(target=start_initial_fill_if_empty, name="overlap-initial-fill", daemon=True).start()
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    if settings.start_background_jobs:
+        _start_background_jobs()
     if mcp_endpoint is None:
         yield
         return

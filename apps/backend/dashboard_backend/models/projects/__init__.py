@@ -8,6 +8,7 @@ from .fulda_document import FuldaDocument
 from .media_report import MediaReport
 from .project import Project
 from .project_group import ProjectGroup
+from .project_map_geometry import ProjectMapGeometry, ProjectOverlap
 from .project_progress import ProjectProgress
 from .project_redirect import ProjectRedirect
 from .progress_observation import ProgressObservation

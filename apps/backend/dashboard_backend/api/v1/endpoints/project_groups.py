@@ -25,6 +25,7 @@ from dashboard_backend.schemas.projects.progress_schema import (
 )
 from dashboard_backend.core.http_cache import etag_json_response
 from dashboard_backend.services.geometry_simplify import TOLERANCE_DEG, simplify_geojson_text
+from dashboard_backend.services.project_overlap import map_lanes
 from dashboard_backend.routing.auth_router import AuthRouter
 from dashboard_backend.core.security import require_permission
 
@@ -82,7 +83,8 @@ def read_project_group_geometries(
 
     Lines are simplified (~20 m tolerance) and coordinates rounded to ~1 m;
     projects without geometry are omitted. The exact geometry stays on
-    ``GET /projects/{id}``. The response carries an ETag.
+    ``GET /projects/{id}``. ``lanes`` names the projects that share a track with
+    another one (their stored lane and partners). The response carries an ETag.
     """
     if not get_project_group_ref(db, group_id):
         raise HTTPException(status_code=404, detail="ProjectGroup not found")
@@ -98,6 +100,7 @@ def read_project_group_geometries(
         only_superior=only_superior,
         tolerance=TOLERANCE_DEG,
         geometries=geometries,
+        lanes=map_lanes(db, geometries.keys()),
     )
     return etag_json_response(request, payload, _geometries_adapter)
 

@@ -344,6 +344,42 @@ def test_geometries_etag_revalidation(client, seeded):
     assert client.get(url, headers={"If-None-Match": etag}).status_code == 304
 
 
+def test_geometries_without_overlaps_have_no_lanes(client, seeded):
+    body = client.get(f"/api/v1/project_groups/{seeded['group'].id}/geometries").json()
+    assert body["lanes"] == {}
+
+
+def test_geometries_carry_lanes_and_partners_across_groups(client, seeded, db_session):
+    """A partner in another group is named, and its change revalidates this group."""
+    from dashboard_backend.crud.projects.projects import update_project
+
+    corridor = [[9.0 + i * 0.004, 51.0] for i in range(51)]
+    section = corridor[10:40]
+    a = Project(name="Korridor")
+    b = Project(name="Elektrifizierung")
+    db_session.add_all([a, b])
+    db_session.flush()
+    seeded["group"].projects.append(a)
+    seeded["other"] = db_session.query(ProjectGroup).filter_by(short_name="AN").one()
+    seeded["other"].projects.append(b)
+    db_session.commit()
+    update_project(db_session, a.id, {"geojson_representation": _feature_collection({"type": "LineString", "coordinates": corridor})})
+    update_project(db_session, b.id, {"geojson_representation": _feature_collection({"type": "LineString", "coordinates": section})})
+
+    url = f"/api/v1/project_groups/{seeded['group'].id}/geometries"
+    resp = client.get(url)
+    lanes = resp.json()["lanes"]
+    assert set(lanes) == {str(a.id)}
+    assert lanes[str(a.id)]["overlaps"] == [b.id]
+    etag = resp.headers["etag"]
+
+    # The partner in the other group moves away: same group, new answer.
+    update_project(db_session, b.id, {"geojson_representation": _feature_collection({"type": "LineString", "coordinates": [[9.0, 52.0], [9.2, 52.0]]})})
+    resp = client.get(url, headers={"If-None-Match": etag})
+    assert resp.status_code == 200
+    assert resp.json()["lanes"] == {}
+
+
 def test_geometries_are_much_smaller_than_source(client, seeded):
     resp = client.get(f"/api/v1/project_groups/{seeded['group'].id}/geometries")
     source = len(seeded["parent"].geojson_representation)

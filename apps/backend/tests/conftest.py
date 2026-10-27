@@ -16,6 +16,8 @@ os.environ.setdefault("CELERY_RESULT_BACKEND", "cache+memory://")
 os.environ.setdefault("LLM_BASE_URL", "")
 os.environ.setdefault("LLM_API_KEY", "")
 os.environ.setdefault("LLM_MODEL", "test-model")
+# No start-up jobs (initial fill of the map overlaps) against the test database.
+os.environ.setdefault("START_BACKGROUND_JOBS", "false")
 # Required Settings field with no default — provide a dummy so the suite is hermetic
 # and does not depend on a developer's local .env (CI has none). setdefault keeps any
 # real value from the environment/.env when present.
