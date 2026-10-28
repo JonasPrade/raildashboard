@@ -119,6 +119,10 @@ export const MAP_COLOR = {
     constituency: "#00373C",
     stroke: "#FFF6F0",
     danger: "#D64545",
+    /** Rim of a station counter (several projects at one point) and dark count text. */
+    counterRim: "#00373C",
+    /** Count text on a dark group colour. */
+    counterTextLight: "#FFF6F0",
 } as const;
 
 export const GROUP_COLOR_SWATCHES = ["#6E50FA", "#00DCFA", "#00373C", "#3A6068", "#B3A6FF", "#7FE9FB"] as const;

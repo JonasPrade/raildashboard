@@ -8,6 +8,7 @@ import { usePrefetchProjectPage } from "../projects/usePrefetchProjectPage";
 import ProjectSummaryCard from "../projects/ProjectSummaryCard";
 import MapOverlapList from "./MapOverlapList";
 import { type LaneInfo, assignVisibleLanes, laneOffset, lineOffsetExpression } from "./mapLanes";
+import { counterTextColor, groupSharedPoints } from "./mapPoints";
 import {
     PROJECT_LAYERS,
     hitBox,
@@ -206,16 +207,41 @@ type Popup = {
     y: number;
 };
 
+/** Station counters (D): which projects a counter stands for, and back. */
+type ClusterLookup = {
+    projectsOf: Map<number, number[]>;
+    clustersOf: Map<number, number[]>;
+};
+
+const EMPTY_CLUSTERS: ClusterLookup = { projectsOf: new Map(), clustersOf: new Map() };
+
 /** Project ids under *point*, each once (docs/features/feature-map-overlapping-geometries.md → A). */
-const queryProjectIds = (mapInstance: maplibregl.Map, point: { x: number; y: number }): number[] =>
+const queryProjectIds = (
+    mapInstance: maplibregl.Map,
+    point: { x: number; y: number },
+    clusters: ClusterLookup,
+): number[] =>
     projectIdsFromFeatures(
         mapInstance.queryRenderedFeatures(hitBox(point, hitTolerancePx(isCoarsePointer())), {
             layers: PROJECT_LAYERS,
         }),
+        clusters.projectsOf,
     );
 
-/** Move the `hover` feature-state from the projects in *previous* to *next*. */
-const applyHover = (mapInstance: maplibregl.Map, previous: Set<number>, next: number[]): Set<number> => {
+const clustersOfProjects = (ids: Iterable<number>, clusters: ClusterLookup): Set<number> => {
+    const result = new Set<number>();
+    for (const id of ids) for (const clusterId of clusters.clustersOf.get(id) ?? []) result.add(clusterId);
+    return result;
+};
+
+/** Move the `hover` feature-state from the projects in *previous* to *next*,
+ *  including the station counters they take part in. */
+const applyHover = (
+    mapInstance: maplibregl.Map,
+    previous: Set<number>,
+    next: number[],
+    clusters: ClusterLookup,
+): Set<number> => {
     const nextSet = new Set(next);
     for (const id of previous) {
         if (nextSet.has(id)) continue;
@@ -226,6 +252,14 @@ const applyHover = (mapInstance: maplibregl.Map, previous: Set<number>, next: nu
         if (previous.has(id)) continue;
         mapInstance.setFeatureState({ source: "project-routes", id }, { hover: true });
         mapInstance.setFeatureState({ source: "project-points", id }, { hover: true });
+    }
+    const previousClusters = clustersOfProjects(previous, clusters);
+    const nextClusters = clustersOfProjects(nextSet, clusters);
+    for (const id of previousClusters) {
+        if (!nextClusters.has(id)) mapInstance.setFeatureState({ source: "project-point-clusters", id }, { hover: false });
+    }
+    for (const id of nextClusters) {
+        if (!previousClusters.has(id)) mapInstance.setFeatureState({ source: "project-point-clusters", id }, { hover: true });
     }
     return nextSet;
 };
@@ -244,6 +278,7 @@ export default function MapView({
     const mapContainerRef = useRef<HTMLDivElement | null>(null);
     const mapInstanceRef = useRef<maplibregl.Map | null>(null);
     const hoverIdsRef = useRef<Set<number>>(new Set());
+    const clustersRef = useRef<ClusterLookup>(EMPTY_CLUSTERS);
     const overlayRef = useRef<HTMLDivElement | null>(null);
     const ignoreOutsideClickRef = useRef(false);
     // Keep a ref so the click handler (inside the init useEffect) always sees
@@ -265,7 +300,7 @@ export default function MapView({
     const setHover = (ids: number[]) => {
         const mapInstance = mapInstanceRef.current;
         if (!mapInstance) return;
-        hoverIdsRef.current = applyHover(mapInstance, hoverIdsRef.current, ids);
+        hoverIdsRef.current = applyHover(mapInstance, hoverIdsRef.current, ids, clustersRef.current);
     };
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -279,13 +314,13 @@ export default function MapView({
     // prebuilt features instead of re-parsing every geojson_representation.
     // A changed geometry or group color invalidates that project's entry.
     const featureCacheRef = useRef(new Map<number, FeatureCacheEntry>());
-    const { lineFeatureCollection, pointFeatureCollection } = useMemo(() => {
+    const { lineFeatureCollection, pointFeatureCollection, clusterFeatureCollection, clusterLookup } = useMemo(() => {
         const cache = featureCacheRef.current;
         // Lanes depend on which projects are shown, so they are applied on top
         // of the cached features instead of being cached with them.
         const lanes = assignVisibleLanes(projects);
         const lines: GeoJSONFeature[] = [];
-        const points: GeoJSONFeature[] = [];
+        const pointEntries: { project: MapViewProject; feature: GeoJSONFeature }[] = [];
         for (const project of projects) {
             const cached = cache.get(project.id);
             let entry: FeatureCacheEntry;
@@ -313,9 +348,54 @@ export default function MapView({
                         : { ...entry.line, properties: { ...entry.line.properties, laneOffset: offset } },
                 );
             }
-            if (entry.point) points.push(entry.point);
+            if (entry.point) pointEntries.push({ project, feature: entry.point });
         }
+
+        // Station counters (D): a spot shared by several projects becomes one
+        // counter; each project keeps a point feature only for its own spots.
+        const grouped = groupSharedPoints(
+            pointEntries.map(({ project, feature }) => ({
+                id: project.id,
+                groupColor: project.groupColor,
+                points: (feature.geometry?.coordinates ?? []) as number[][],
+            })),
+        );
+        const points: GeoJSONFeature[] = [];
+        for (const { project, feature } of pointEntries) {
+            const own = grouped.singles.get(project.id);
+            if (!own) continue;
+            const all = (feature.geometry?.coordinates ?? []) as number[][];
+            points.push(
+                own.length === all.length
+                    ? feature
+                    : { ...feature, geometry: { type: "MultiPoint", coordinates: own } },
+            );
+        }
+        const lookup: ClusterLookup = { projectsOf: new Map(), clustersOf: new Map() };
+        const clusterFeatures: GeoJSONFeature[] = grouped.clusters.map((cluster) => {
+            lookup.projectsOf.set(cluster.id, cluster.projectIds);
+            for (const projectId of cluster.projectIds) {
+                lookup.clustersOf.set(projectId, [...(lookup.clustersOf.get(projectId) ?? []), cluster.id]);
+            }
+            return {
+                id: cluster.id,
+                type: "Feature",
+                geometry: { type: "Point", coordinates: cluster.coordinate },
+                properties: {
+                    clusterId: cluster.id,
+                    count: cluster.projectIds.length,
+                    groupColor: cluster.color,
+                    textColor: counterTextColor(cluster.color),
+                },
+            };
+        });
+
         return {
+            clusterFeatureCollection: {
+                type: "FeatureCollection",
+                features: clusterFeatures,
+            } as GeoJSONFeatureCollection,
+            clusterLookup: lookup,
             lineFeatureCollection: {
                 type: "FeatureCollection",
                 features: lines,
@@ -356,6 +436,10 @@ export default function MapView({
                         data: { type: "FeatureCollection", features: [] },
                     },
                     "project-points": {
+                        type: "geojson",
+                        data: { type: "FeatureCollection", features: [] },
+                    },
+                    "project-point-clusters": {
                         type: "geojson",
                         data: { type: "FeatureCollection", features: [] },
                     },
@@ -434,6 +518,24 @@ export default function MapView({
                             "circle-stroke-color": MAP_COLOR.stroke,
                         },
                     },
+                    // Station counters (D): several projects at one spot. The
+                    // count is an HTML marker on top, in the design-system font.
+                    {
+                        id: "project-point-clusters-circle",
+                        type: "circle",
+                        source: "project-point-clusters",
+                        paint: {
+                            "circle-color": ["coalesce", ["get", "groupColor"], MAP_COLOR.default],
+                            "circle-radius": [
+                                "case",
+                                ["boolean", ["feature-state", "hover"], false],
+                                13,
+                                10,
+                            ],
+                            "circle-stroke-width": 2,
+                            "circle-stroke-color": MAP_COLOR.counterRim,
+                        },
+                    },
                 ],
             },
             center: [10.0, 51.0],
@@ -449,9 +551,9 @@ export default function MapView({
         // Single map-level mousemove over both project layers: every project
         // under the pointer is highlighted, not only the topmost one.
         const handleMouseMove = (event: maplibregl.MapMouseEvent) => {
-            const ids = queryProjectIds(mapInstance, event.point);
+            const ids = queryProjectIds(mapInstance, event.point, clustersRef.current);
             mapInstance.getCanvas().style.cursor = ids.length > 0 ? "pointer" : "";
-            hoverIdsRef.current = applyHover(mapInstance, hoverIdsRef.current, ids);
+            hoverIdsRef.current = applyHover(mapInstance, hoverIdsRef.current, ids, clustersRef.current);
         };
 
         // Clear hover when mouse leaves the map canvas entirely. Not when it
@@ -461,7 +563,7 @@ export default function MapView({
             mapInstance.getCanvas().style.cursor = "";
             const target = event.relatedTarget;
             if (target instanceof Node && overlayRef.current?.contains(target)) return;
-            hoverIdsRef.current = applyHover(mapInstance, hoverIdsRef.current, []);
+            hoverIdsRef.current = applyHover(mapInstance, hoverIdsRef.current, [], clustersRef.current);
         };
 
         mapInstance.on("mousemove", handleMouseMove);
@@ -494,7 +596,7 @@ export default function MapView({
         // One handler for lines and points: a click collects every project at
         // the spot. One hit opens its summary, several open the list.
         const handleMapClick = (event: maplibregl.MapMouseEvent) => {
-            const projects = queryProjectIds(mapInstance, event.point)
+            const projects = queryProjectIds(mapInstance, event.point, clustersRef.current)
                 .map((id) => projectsRef.current.find((p) => p.id === id))
                 .filter((p): p is MapViewProject => p !== undefined);
             if (projects.length === 0) {
@@ -518,28 +620,58 @@ export default function MapView({
         };
     }, [isMapReady, clickable]);
 
-    // Update both GeoJSON sources whenever project data changes
+    // Update the GeoJSON sources whenever project data changes
     useEffect(() => {
         if (!isMapReady) return;
         const mapInstance = mapInstanceRef.current;
         if (!mapInstance) return;
         const lineSource = mapInstance.getSource("project-routes") as maplibregl.GeoJSONSource | undefined;
         const pointSource = mapInstance.getSource("project-points") as maplibregl.GeoJSONSource | undefined;
+        const clusterSource = mapInstance.getSource("project-point-clusters") as
+            | maplibregl.GeoJSONSource
+            | undefined;
+        // Counter ids are only valid for one grouping: drop the hover before
+        // they change meaning; the next pointer move sets it again.
+        hoverIdsRef.current = applyHover(mapInstance, hoverIdsRef.current, [], clustersRef.current);
+        clustersRef.current = clusterLookup;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (lineSource) lineSource.setData(lineFeatureCollection as any);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (pointSource) pointSource.setData(pointFeatureCollection as any);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (clusterSource) clusterSource.setData(clusterFeatureCollection as any);
 
         // Fit once, on the first data that has coordinates; later updates (e.g. a
         // refetch) must not yank the view away from where the user has panned.
         if (fitToProjects && !hasFittedRef.current) {
-            const bounds = featureBounds([lineFeatureCollection, pointFeatureCollection]);
+            const bounds = featureBounds([lineFeatureCollection, pointFeatureCollection, clusterFeatureCollection]);
             if (bounds) {
                 mapInstance.fitBounds(bounds, { padding: 40, maxZoom: 13, duration: 0 });
                 hasFittedRef.current = true;
             }
         }
-    }, [lineFeatureCollection, pointFeatureCollection, isMapReady, fitToProjects]);
+    }, [lineFeatureCollection, pointFeatureCollection, clusterFeatureCollection, clusterLookup, isMapReady, fitToProjects]);
+
+    // The count of each station counter as an HTML marker: map text would need
+    // glyph files, a marker uses the design-system font. Clicks and hover pass
+    // through to the circle underneath.
+    useEffect(() => {
+        if (!isMapReady) return undefined;
+        const mapInstance = mapInstanceRef.current;
+        if (!mapInstance) return undefined;
+        const markers = clusterFeatureCollection.features.map((feature) => {
+            const element = document.createElement("span");
+            element.className = "idt-map-counter";
+            element.textContent = String(feature.properties.count);
+            element.style.color = String(feature.properties.textColor);
+            return new maplibregl.Marker({ element, anchor: "center" })
+                .setLngLat(feature.geometry?.coordinates as [number, number])
+                .addTo(mapInstance);
+        });
+        return () => {
+            for (const marker of markers) marker.remove();
+        };
+    }, [clusterFeatureCollection, isMapReady]);
 
     // Constituency layer: data, visibility and the selected outline.
     useEffect(() => {
@@ -586,7 +718,7 @@ export default function MapView({
 
         const handleClick = (event: maplibregl.MapMouseEvent) => {
             // A project click wins: the outline is context, not the subject.
-            if (queryProjectIds(mapInstance, event.point).length > 0) return;
+            if (queryProjectIds(mapInstance, event.point, clustersRef.current).length > 0) return;
 
             const hits = mapInstance.queryRenderedFeatures(event.point, {
                 layers: ["constituencies-fill"],
@@ -632,6 +764,12 @@ export default function MapView({
             ["boolean", ["feature-state", "hover"], false],
             pointSize + 3,
             pointSize,
+        ]);
+        mapInstance.setPaintProperty("project-point-clusters-circle", "circle-radius", [
+            "case",
+            ["boolean", ["feature-state", "hover"], false],
+            pointSize + 8,
+            pointSize + 5,
         ]);
     }, [pointSize, isMapReady]);
 
