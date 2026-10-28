@@ -153,8 +153,9 @@ aus dem **ganzen Teilbaum** unter diesen Projekten.
    neuen Teilprojekte („Ersetzt durch PFA-Abschnitte laut VIB 2024 (B.4.2.14), neue
    Teilprojekte …“). Ein archiviertes Projekt behält seine VIB-Historie und Geometrie,
    zählt aber nirgends mehr (Elternkarte, Stand-Spanne, Summen, Listen) — Geometrie also
-   **nicht** leeren. Abgelehnt wird es, solange FinVe- oder GVFG-Zuordnungen oder nicht
-   archivierte Teilprojekte daran hängen: die Meldung nennt sie, erst umhängen. Ein
+   **nicht** leeren. Abgelehnt wird es, solange feste FinVe-, GVFG-Zuordnungen oder nicht
+   archivierte Teilprojekte daran hängen: die Meldung nennt sie, erst umhängen
+   (Sammel-FinVe-Jahresverknüpfungen blockieren nicht, sie bleiben als Historie). Ein
    wirklich abgebrochenes Vorhaben (Lebenszyklus ABGEBROCHEN) wird nie archiviert.
    Dubletten dagegen mit `merge_projects` zusammenführen. Im Bericht unter „Selbst
    entschieden“ aufführen.

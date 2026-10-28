@@ -26,9 +26,10 @@ project a Sammel-FinVe financed in which year and stay untouched; they are shown
 but cannot be removed here.
 
 **Archived projects** (`feature-project-archive.md`): archiving requires a project
-without FinVe links, so adding a FinVe to an archived project is refused (409).
-Follow-up task Nr. 75 (mark FinVes of archived projects) is therefore moot and
-closed.
+without permanent FinVe links, so adding a FinVe to an archived project is refused
+(409). Sammel-FinVe year links do not block archiving (W5a): they stay on the
+archived project as history, are listed last and marked „archiviert“ in the FinVe
+overview and drawer, and no longer count (`project_count`, `project_names`).
 
 ## Behaviour
 

@@ -37,10 +37,11 @@ class ProjectUnarchiveRequest(BaseModel):
 
 class ProjectArchiveResult(BaseModel):
     project: ProjectSchema
-    kept_links: dict[str, int] = Field(
+    kept_links: dict[str, int | list[int]] = Field(
         default_factory=dict,
         description="Historical source links the project keeps (VIB, PFA, Infraplan, "
-        "Fulda, Bauportal, media) — they no longer reach the parent.",
+        "Fulda, Bauportal, media: counts; sammel_finve_year_links: the Sammel-FinVe "
+        "numbers) — they no longer reach the parent.",
     )
 
 

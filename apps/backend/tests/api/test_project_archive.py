@@ -157,6 +157,98 @@ def test_archive_refused_with_finve_link(db_session):
     assert old.is_archived is False
 
 
+def _sammel_year_links(db, project):
+    """Sammel-FinVes 763 and 1168 with a Haushalt year link, as for project 1471.
+    (One year each: SQLite ignores the partial unique indexes.)"""
+    for fid, name in ((763, "SV Lph. 1/2 A"), (1168, "SV Lph. 3/ 4")):
+        db.add(Finve(id=fid, name=name, is_sammel_finve=True))
+        db.flush()
+        db.add(FinveToProject(project_id=project.id, finve_id=fid, haushalt_year=2027))
+    db.commit()
+
+
+def test_archive_keeps_sammel_finve_year_links(db_session):
+    _, old, _ = _family(db_session)
+    _sammel_year_links(db_session, old)
+
+    result = archive_crud.archive_project(db_session, old.id, REASON, None, None)
+
+    assert result["project"].is_archived is True
+    assert result["kept_links"] == {"sammel_finve_year_links": [763, 1168]}
+    # Kept as history: neither deleted nor moved.
+    links = db_session.query(FinveToProject).filter(FinveToProject.project_id == old.id).count()
+    assert links == 2
+
+
+def test_archive_refused_with_permanent_sammel_finve_link(db_session):
+    _, old, _ = _family(db_session)
+    _sammel_year_links(db_session, old)
+    db_session.add(Finve(id=900, name="SV Lph. 5", is_sammel_finve=True))
+    db_session.flush()
+    db_session.add(FinveToProject(project_id=old.id, finve_id=900, haushalt_year=None))
+    db_session.commit()
+
+    with pytest.raises(archive_crud.ArchiveError, match=r"FinVe: 900 \(SV Lph. 5\)") as exc:
+        archive_crud.archive_project(db_session, old.id, REASON, None, None)
+    assert "763" not in str(exc.value) and "1168" not in str(exc.value)
+
+
+def test_archive_refused_with_gvfg_link(db_session):
+    from datetime import date
+
+    from dashboard_backend.models.gvfg import GvfgEntry, GvfgProgram
+
+    _, old, _ = _family(db_session)
+    _sammel_year_links(db_session, old)
+    program = GvfgProgram(
+        year_from=2025, year_to=2029, title="GVFG 2025–2029", stand=date(2025, 7, 18), periods=[]
+    )
+    entry = GvfgEntry(
+        program=program, key="07 G 7050_A", key_raw="07 G 7050 _A", land="Rheinland-Pfalz",
+        kind="kommunal", part="finanzrelevant", name="Mainz-Finthen",
+    )
+    entry.projects.append(old)
+    db_session.add(program)
+    db_session.commit()
+
+    with pytest.raises(archive_crud.ArchiveError, match=r"GVFG: 07 G 7050_A \(2025\)"):
+        archive_crud.archive_project(db_session, old.id, REASON, None, None)
+
+
+def test_sammel_year_links_do_not_lift_the_subproject_block(db_session):
+    parent, _, _ = _family(db_session)
+    _sammel_year_links(db_session, parent)
+    with pytest.raises(archive_crud.ArchiveError, match="Teilprojekte"):
+        archive_crud.archive_project(db_session, parent.id, REASON, None, None)
+
+
+def test_archived_project_leaves_sammel_finve_evaluations(db_session):
+    from dashboard_backend.crud.finves import (
+        get_project_finves_with_budgets,
+        list_finves,
+        list_sammel_finves_progress,
+    )
+
+    parent, old, new = _family(db_session)
+    _sammel_year_links(db_session, old)
+    db_session.add(FinveToProject(project_id=new.id, finve_id=763, haushalt_year=2027))
+    db_session.commit()
+    archive_crud.archive_project(db_session, old.id, REASON, None, None)
+
+    by_id = {f.id: f for f in list_finves(db_session)}
+    assert by_id[763].project_count == 1
+    assert by_id[763].project_names == ["PFA 1"]
+    assert [(p.id, p.is_archived) for p in by_id[763].projects] == [(new.id, False), (old.id, True)]
+    assert by_id[1168].project_count == 0
+
+    progress = {f.finve_id: [p.id for p in f.projects] for f in list_sammel_finves_progress(db_session)}
+    assert progress == {763: [new.id], 1168: []}
+
+    # The parent's FinVe sums only reach 763 through the active subproject.
+    parent_finves = get_project_finves_with_budgets(db_session, parent, include_subprojects=True)
+    assert [(f.id, [p.id for p in f.subprojects]) for f in parent_finves] == [(763, [new.id])]
+
+
 def test_archive_refused_with_active_subprojects(db_session):
     parent, old, new = _family(db_session)
     with pytest.raises(archive_crud.ArchiveError, match="Teilprojekte") as exc:

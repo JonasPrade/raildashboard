@@ -237,7 +237,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `compute_project_length` | Länge aus der Geometrie berechnen, optional übernehmen | — / `project.edit` mit `apply` |
 | `update_project` | Projektfelder ändern | `project.edit` |
 | `set_project_draft` | Projekt zum Entwurf machen oder Entwurf fertigstellen | `project.edit` |
-| `archive_project` | Ersetztes/überholtes Projekt archivieren (Pflicht-Begründung, optional `replaced_by_project_id` = Nachfolger: Verweis in beide Richtungen, Vorjahres-Vorschläge der Importe gehen an ihn); zählt danach nirgends mehr, abgelehnt bei FinVe-/GVFG-Zuordnung, aktiven Teilprojekten oder ABGEBROCHEN; Änderungsprotokoll (siehe `feature-project-archive.md`) | `project.delete` |
+| `archive_project` | Ersetztes/überholtes Projekt archivieren (Pflicht-Begründung, optional `replaced_by_project_id` = Nachfolger: Verweis in beide Richtungen, Vorjahres-Vorschläge der Importe gehen an ihn); zählt danach nirgends mehr, abgelehnt bei fester FinVe-Zuordnung, GVFG-Zuordnung, aktiven Teilprojekten oder ABGEBROCHEN (Sammel-FinVe-Jahresverknüpfungen blockieren nicht, sie bleiben als Historie und stehen in `kept_links.sammel_finve_year_links`); Änderungsprotokoll (siehe `feature-project-archive.md`) | `project.delete` |
 | `unarchive_project` | Archiviertes Projekt wiederherstellen (Begründung optional), Änderungsprotokoll | `project.delete` |
 | `create_project_group` | Neue Projektgruppe anlegen (Name, eindeutiger Kurzname, Farbe, Sichtbarkeit); Duplikate (Kurzname/Name) werden abgelehnt | `projectgroup.create` |
 | `set_project_groups` | Projekt Gruppen hinzufügen/entfernen (id, Kurzname, Name) | `project.edit` |

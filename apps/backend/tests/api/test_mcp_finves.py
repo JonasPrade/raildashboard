@@ -147,3 +147,20 @@ def test_update_finve_projects_requires_finve_edit(mcp_client, create_user, db_s
     assert result["isError"] is True
     assert "finve.edit" in result["content"][0]["text"]
     assert db_session.query(FinveToProject).filter_by(finve_id=2001).count() == 1
+
+
+def test_get_finve_marks_archived_projects(mcp_client, admin_token, db_session):
+    project = _seed(db_session)
+    archived = Project(name="Optimiertes Alpha-E mit Bremen", is_draft=False, is_archived=True)
+    db_session.add(archived)
+    db_session.flush()
+    db_session.add_all([
+        FinveToProject(project_id=project.id, finve_id=4001, haushalt_year=2027),
+        FinveToProject(project_id=archived.id, finve_id=4001, haushalt_year=2027),
+    ])
+    db_session.commit()
+    payload = _payload(_call(mcp_client, admin_token, "get_finve", {"finve_id": 4001}))
+    assert payload["projects"] == [
+        {"id": project.id, "name": project.name},
+        {"id": archived.id, "name": archived.name, "is_archived": True},
+    ]

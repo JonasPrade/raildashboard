@@ -5,6 +5,8 @@ import { Group, Stack, Text } from "@mantine/core";
 export interface LinkedProject {
     id: number;
     name: string;
+    /** Archived projects stay listed as history, marked and dimmed. */
+    is_archived?: boolean;
 }
 
 /**
@@ -43,7 +45,14 @@ export function LinkedProjects({
                                 }}
                             >
                                 <Text size="xs" c="dimmed" className="idt-tnum">{p.id}</Text>
-                                <Text size="xs" fw={500} c="var(--text-strong)">{p.name}</Text>
+                                <Text size="xs" fw={500} c={p.is_archived ? "dimmed" : "var(--text-strong)"}>
+                                    {p.name}
+                                </Text>
+                                {p.is_archived && (
+                                    <Text size="xs" c="dimmed" fs="italic">
+                                        archiviert
+                                    </Text>
+                                )}
                             </Link>,
                         )}
                     </Fragment>

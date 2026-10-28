@@ -159,6 +159,11 @@ function DataRow({
 
                 <Table.Td style={{ minWidth: 200 }}>
                     <Text size="xs">{row.name}</Text>
+                    {(row.review_notes ?? []).map((note) => (
+                        <Text key={note} size="xs" c="orange.8" mt={2}>
+                            {note}
+                        </Text>
+                    ))}
                 </Table.Td>
 
                 {/* Projektzuordnung */}

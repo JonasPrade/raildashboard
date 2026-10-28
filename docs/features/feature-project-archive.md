@@ -26,6 +26,7 @@ einfließen. Sie tauchen dadurch fälschlich unter `/admin/drafts` auf.
 | W3 | `feature-project-merge.md` lehnt ein filter-überall-„Geister-Projekt" ab | Archivieren ist eine **bewusst dokumentierte Ausnahme**: Zusammenführen bleibt für Dubletten (ein Projekt geht im anderen auf); Archivieren ist für ersetzte/überholte Projekte, die ihre eigene Historie behalten. Beide Docs verweisen aufeinander. |
 | W4 | `lifecycle_status` (AKTIV/PAUSIERT/ABGEBROCHEN) hängt am `project_progress` | Eigenes Kennzeichen **am Projekt** (`is_archived`), nicht im Lebenszyklus. Ein real **abgebrochenes** Projekt (ABGEBROCHEN) wird **nie** archiviert, es bleibt sichtbar. UI-Wort „Archiviert", nicht „Status" (das Wort ist für den Lebenszyklus belegt). |
 | W5 | Summen aus FinVe/GVFG würden beim Elternprojekt fehlen | Archivieren wird **abgelehnt**, solange FinVe- oder GVFG-Zuordnungen am Projekt hängen; die Fehlermeldung nennt die Verknüpfungen (erst umhängen). |
+| W5a | Sammel-FinVe-Jahresverknüpfungen (`haushalt_year` gesetzt, Sammel-FinVe) aus dem Haushaltsimport ließen sich weder über `update_finve_projects` noch in der Oberfläche lösen; Projekte, die in anderen Vorhaben aufgegangen sind (1471 „Optimiertes Alpha-E mit Bremen“ → Projektbündel 2 und 3), blieben dadurch dauerhaft aktiv | **Ausnahme von W5 (vom Nutzer entschieden 2026-10-28):** Sammel-FinVe-Jahresverknüpfungen blockieren nicht. Sie bleiben als Historie am archivierten Projekt (nicht gelöscht, nicht umgehängt — die Nachfolger laufen meist schon selbst in der Sammel-FinVe, Umhängen ergäbe Doppelzählungen) und stehen in `kept_links` als `sammel_finve_year_links`. Feste FinVe-Verknüpfungen (`haushalt_year IS NULL`), GVFG und nicht archivierte Teilprojekte blockieren weiter. |
 | W6 | Berechtigung | Wie Löschen: `project.delete`. |
 
 ### Folgeentscheidungen (bei der Umsetzung getroffen, 2026-10-23)
@@ -73,6 +74,15 @@ Zusätzlich (anders als Entwürfe, W1/W2):
 - **Stand-Aggregation** (`_load_subtree`, `is_superior`) und `list_progress_conflicts`,
 - **Summen über Teilprojekte** (`subtree_ids`: FinVe-, Infraplan-Übersicht; GVFG-Förderung in Teilprojekten),
 - **Entwurfsliste** (`GET /projects/drafts`, Badge in der Admin-Übersicht).
+- **Sammel-FinVe-Auswertungen** (W5a): In der FinVe-Übersicht (`GET /finves/`) zählt
+  ein archiviertes Projekt nicht in `project_count`/`project_names`; in `projects`
+  steht es zuletzt mit `is_archived: true` (Karte und Drawer zeigen „archiviert“,
+  MCP `get_finve`/`list_finves` ebenso). Die Admin-Seite Sammel-FinVe-Planungsstand
+  lässt es weg; Elternsummen und Stand-Spanne erreicht es ohnehin nicht (`subtree_ids`).
+- **Haushaltsimport** (W5a): Die Übernahme der Vorjahres-Zuordnungen ersetzt ein
+  archiviertes Projekt durch seinen Nachfolger (Kette wie R3) oder lässt es weg; die
+  Zeile trägt dann einen Prüfhinweis (`review_notes`, in der Prüftabelle orange).
+  Bleibt eine Sammel-FinVe ohne Projekt, laufen die Namensvorschläge wieder.
 
 Archivieren und Wiederherstellen berechnen die Geometrie und den Stand des
 Elternprojekts (und seiner Vorfahren) neu.
@@ -84,7 +94,9 @@ Hinweis-Banner „Archiviert" mit Begründung und Datum.
 
 - `POST /api/v1/projects/{id}/archive` `{reason}` → `ProjectArchiveResult`
   (`project`, `kept_links`) — `project.delete`; 400 mit Liste der Verknüpfungen bei
-  FinVe/GVFG/Teilprojekten/ABGEBROCHEN.
+  festen FinVe-Verknüpfungen/GVFG/Teilprojekten/ABGEBROCHEN. `kept_links` zählt die
+  Historien-Verknüpfungen und listet unter `sammel_finve_year_links` die Nummern der
+  Sammel-FinVes mit Jahresverknüpfung.
 - `POST /api/v1/projects/{id}/unarchive` `{reason?}` → `ProjectSchema` — `project.delete`.
 - `GET /api/v1/projects/archived` → `ArchivedProjectSchema[]` (Name, Begründung, Datum,
   Elternprojekt) — `project.delete`.
@@ -106,8 +118,14 @@ Hinweis-Banner „Archiviert" mit Begründung und Datum.
 ## Akzeptanzkriterien
 
 - [ ] Archivieren verlangt eine nicht leere Begründung und `project.delete`.
-- [ ] Mit FinVe-/GVFG-Zuordnung, nicht archivierten Teilprojekten oder ABGEBROCHEN
-      wird abgelehnt; die Meldung nennt die Verknüpfungen.
+- [ ] Mit fester FinVe-Zuordnung, GVFG-Zuordnung, nicht archivierten Teilprojekten oder
+      ABGEBROCHEN wird abgelehnt; die Meldung nennt die Verknüpfungen.
+- [ ] Nur Sammel-FinVe-Jahresverknüpfungen: Archivieren gelingt, die Verknüpfungen
+      bleiben und stehen in `kept_links.sammel_finve_year_links`; das Projekt zählt in
+      der Sammel-FinVe nicht mehr mit und ist dort als „archiviert“ markiert.
+- [ ] Der nächste Haushaltsimport übernimmt die Sammel-FinVe-Zuordnung nicht auf das
+      archivierte Projekt, sondern schlägt den Nachfolger vor oder lässt die Zeile offen,
+      jeweils mit Prüfhinweis.
 - [ ] Ein archiviertes Teilprojekt fehlt in Liste, Karte, Gruppen, Picker,
       Teilprojekten, Zeitleiste, MCP-Listen und Import-Kandidaten.
 - [ ] Die Elterngeometrie enthält die Geometrie des archivierten Teilprojekts nicht
@@ -136,7 +154,7 @@ Mechanismen für denselben Sachverhalt ergeben.
 | R1 | Kein Lebenszyklus `ERSETZT`. Der Nachfolger ist ein optionales Feld des **Archivs**; Ausblenden und Aggregation regelt das Archiv wie oben. |
 | R2 | Begründung und „seit“-Datum für PAUSIERT/ABGEBROCHEN bleiben als eigene Felder am Planungsstand (`lifecycle_note`, `lifecycle_date`), unabhängig vom Archiv (`feature-project-progress.md` → Lebenszyklus). |
 | R3 | Importvorschläge, die auf ein archiviertes Projekt mit Nachfolger zeigen würden (Übernahme aus dem Vorjahr), gehen an den Nachfolger, mit Hinweis. Ohne Nachfolger entfällt der Vorschlag wie bisher. Bestätigte Zuordnungen bleiben unangetastet. |
-| R4 | Für 1477 → 1535 wird die Sammel-FinVe 763 auf 1535 umgehängt (W5 bleibt: keine Ausnahme für Projekte mit FinVe). |
+| R4 | Für 1477 → 1535 wird die Sammel-FinVe 763 auf 1535 umgehängt (damals galt W5 ohne Ausnahme; seit W5a blockieren Sammel-FinVe-Jahresverknüpfungen nicht mehr). |
 
 **Datenmodell:** `project.replaced_by_project_id` (FK `project.id`, `ON DELETE SET NULL`,
 nullable, Expand-only-Migration `20261023002`). Nur bei archivierten Projekten gesetzt;
@@ -175,3 +193,7 @@ Die 8 Puttgarden-Teilmaßnahmen 1716, 1717, 1718, 1719, 1720, 1722, 1691, 1693
 archivieren (Begründung „Ersetzt durch PFA-Abschnitte laut VIB 2024 (B.4.2.14), neue
 Teilprojekte 2964–2970, 1715, 1721") und ihren Entwurfs-Status zurücknehmen — als
 Checkliste im Issue #264, erst nach dem Deploy.
+
+Nach dem Deploy von W5a: Projekt 1471 „Optimiertes Alpha-E mit Bremen“ archivieren
+(Begründung: aufgegangen in den Projektbündeln 2 und 3, BSWAG 2023). Die
+Sammel-FinVes 763 und 1168 bleiben unverändert; `kept_links` nennt sie.

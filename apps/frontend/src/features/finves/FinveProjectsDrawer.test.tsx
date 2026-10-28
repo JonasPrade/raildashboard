@@ -41,11 +41,11 @@ const finve = {
     budgets: [],
 } as unknown as FinveListItem;
 
-function renderDrawer() {
+function renderDrawer(item: FinveListItem = finve) {
     return render(
         <MantineProvider>
             <MemoryRouter>
-                <FinveProjectsDrawer finve={finve} onClose={() => {}} />
+                <FinveProjectsDrawer finve={item} onClose={() => {}} />
             </MemoryRouter>
         </MantineProvider>,
     );
@@ -58,6 +58,15 @@ describe("FinveProjectsDrawer", () => {
         renderDrawer();
         expect(screen.getAllByRole("button", { name: "Entfernen" })).toHaveLength(1);
         expect(screen.getByText("Haushaltsjahr")).toBeInTheDocument();
+    });
+
+    it("marks the year links of an archived project", () => {
+        renderDrawer({
+            ...finve,
+            projects: [...finve.projects, { id: 1471, name: "Optimiertes Alpha-E mit Bremen", is_archived: true }],
+        } as FinveListItem);
+        expect(screen.getByText("Archiviert")).toBeInTheDocument();
+        expect(screen.getAllByRole("button", { name: "Entfernen" })).toHaveLength(1);
     });
 
     it("removes a project from the FinVe", async () => {

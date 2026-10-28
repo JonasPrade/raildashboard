@@ -6213,10 +6213,10 @@ export interface components {
             project: components["schemas"]["ProjectSchema"];
             /**
              * Kept Links
-             * @description Historical source links the project keeps (VIB, PFA, Infraplan, Fulda, Bauportal, media) — they no longer reach the parent.
+             * @description Historical source links the project keeps (VIB, PFA, Infraplan, Fulda, Bauportal, media: counts; sammel_finve_year_links: the Sammel-FinVe numbers) — they no longer reach the parent.
              */
             kept_links?: {
-                [key: string]: number;
+                [key: string]: number | number[];
             };
         };
         /** ProjectConstituenciesSchema */
@@ -6867,6 +6867,11 @@ export interface components {
             id: number;
             /** Name */
             name: string;
+            /**
+             * Is Archived
+             * @default false
+             */
+            is_archived: boolean;
         };
         /**
          * ProjectReplacementSchema
