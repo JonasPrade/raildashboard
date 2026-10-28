@@ -189,6 +189,8 @@ export type ProjectGroup = components["schemas"]["ProjectGroupSchema"];
 /** A project as the group list delivers it: metadata only, no geometry. */
 export type ProjectListItem = components["schemas"]["ProjectListItem"];
 export type ProjectGroupGeometries = components["schemas"]["ProjectGroupGeometriesSchema"];
+/** Stored lane and overlap partners of a project (feature-map-overlapping-geometries.md → B1). */
+export type MapLane = components["schemas"]["MapLaneSchema"];
 /**
  * What overview cards (list card, map popup) render: any subset of a project's
  * fields. Full `Project`s fit, and so do list items expanded with
@@ -533,13 +535,18 @@ type GeometriesQueryResult = { data?: ProjectGroupGeometries; isPending: boolean
 // function would build a new Map on every render and re-trigger the map update.
 function combineGeometries(results: GeometriesQueryResult[]) {
     const geometries = new Map<number, unknown>();
+    const lanes = new Map<number, MapLane>();
     for (const result of results) {
         for (const [id, geometry] of Object.entries(result.data?.geometries ?? {})) {
             geometries.set(Number(id), geometry);
         }
+        for (const [id, lane] of Object.entries(result.data?.lanes ?? {})) {
+            lanes.set(Number(id), lane);
+        }
     }
     return {
         geometries,
+        lanes,
         isLoading: results.some((result) => result.isPending),
         isError: results.some((result) => result.isError),
     };
@@ -548,7 +555,8 @@ function combineGeometries(results: GeometriesQueryResult[]) {
 /**
  * Simplified map geometries for the given groups, one request (and cache
  * entry) per group so toggling a group only loads that group. Returns a
- * merged `projectId → GeoJSON` map plus whether any group is still loading.
+ * merged `projectId → GeoJSON` map, the projects' lanes for parallel drawing
+ * and whether any group is still loading.
  */
 export function useProjectGroupGeometries(groupIds: number[], onlySuperior: boolean) {
     return useQueries({

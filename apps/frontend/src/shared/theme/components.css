@@ -1011,3 +1011,41 @@
     }
     .idt-stepper-steps:not([data-orientation="vertical"]) > .idt-step-separator { display: none; }
 }
+
+/* ── Map: list of overlapping projects (features/map/MapOverlapList.tsx) ────
+   Same look as the combobox entries: hairlines between rows, surface-alt on
+   hover and focus. Rows are buttons; on a finger device they get 44px. */
+.idt-map-overlap-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-body);
+    text-align: left;
+}
+.idt-map-overlap-row:last-child { border-bottom: none; }
+.idt-map-overlap-row:hover,
+.idt-map-overlap-row:focus-visible {
+    background-color: var(--surface-alt);
+    color: var(--text-strong);
+}
+.idt-map-overlap-row:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+@media (pointer: coarse) {
+    .idt-map-overlap-row { min-height: 44px; }
+}
+
+/* ── Map: count on a station counter (features/map/MapView.tsx, block D) ───
+   An HTML marker over the circle so the count uses the design-system font;
+   it lets clicks and hover through to the circle. Colour is set per counter
+   (ink or paper, whichever reads better on the group colour). */
+.idt-map-counter {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+    user-select: none;
+}

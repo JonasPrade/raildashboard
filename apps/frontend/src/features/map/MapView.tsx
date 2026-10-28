@@ -6,6 +6,17 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import type { ConstituencyFeatureCollection, ProjectOverview } from "../../shared/api/queries";
 import { usePrefetchProjectPage } from "../projects/usePrefetchProjectPage";
 import ProjectSummaryCard from "../projects/ProjectSummaryCard";
+import MapOverlapList from "./MapOverlapList";
+import { type LaneInfo, assignVisibleLanes, laneOffset, lineOffsetExpression } from "./mapLanes";
+import { counterTextColor, groupSharedPoints } from "./mapPoints";
+import {
+    PROJECT_LAYERS,
+    hitBox,
+    hitTolerancePx,
+    isCoarsePointer,
+    projectIdsFromFeatures,
+    sortProjectsByName,
+} from "./mapHits";
 import { featureBounds } from "./featureBounds";
 import { LIGHT_TILE_URL as tileLayerUrl, swapRasterTiles, useTileUrl } from "../../shared/geo/useTileUrl";
 import { MAP_COLOR } from "../../shared/theme/semanticColors";
@@ -22,6 +33,9 @@ export type MapViewProject = ProjectOverview & {
      * full `Project`s (detail page) carry.
      */
     geometry?: unknown;
+    /** Stored lane and overlap partners from the geometries endpoint; the map
+     *  draws projects that share a track side by side (B1). */
+    mapLane?: LaneInfo | null;
 };
 
 type GeoJSONGeometry = {
@@ -184,10 +198,70 @@ type Props = {
     selectedConstituencyId?: number | null;
 };
 
-type SelectedProject = {
-    project: MapViewProject;
+/** The click popup: every project hit at the clicked spot, and the one whose
+ *  summary is open (null = the list of all hits). */
+type Popup = {
+    projects: MapViewProject[];
+    selectedId: number | null;
     x: number;
     y: number;
+};
+
+/** Station counters (D): which projects a counter stands for, and back. */
+type ClusterLookup = {
+    projectsOf: Map<number, number[]>;
+    clustersOf: Map<number, number[]>;
+};
+
+const EMPTY_CLUSTERS: ClusterLookup = { projectsOf: new Map(), clustersOf: new Map() };
+
+/** Project ids under *point*, each once (docs/features/feature-map-overlapping-geometries.md → A). */
+const queryProjectIds = (
+    mapInstance: maplibregl.Map,
+    point: { x: number; y: number },
+    clusters: ClusterLookup,
+): number[] =>
+    projectIdsFromFeatures(
+        mapInstance.queryRenderedFeatures(hitBox(point, hitTolerancePx(isCoarsePointer())), {
+            layers: PROJECT_LAYERS,
+        }),
+        clusters.projectsOf,
+    );
+
+const clustersOfProjects = (ids: Iterable<number>, clusters: ClusterLookup): Set<number> => {
+    const result = new Set<number>();
+    for (const id of ids) for (const clusterId of clusters.clustersOf.get(id) ?? []) result.add(clusterId);
+    return result;
+};
+
+/** Move the `hover` feature-state from the projects in *previous* to *next*,
+ *  including the station counters they take part in. */
+const applyHover = (
+    mapInstance: maplibregl.Map,
+    previous: Set<number>,
+    next: number[],
+    clusters: ClusterLookup,
+): Set<number> => {
+    const nextSet = new Set(next);
+    for (const id of previous) {
+        if (nextSet.has(id)) continue;
+        mapInstance.setFeatureState({ source: "project-routes", id }, { hover: false });
+        mapInstance.setFeatureState({ source: "project-points", id }, { hover: false });
+    }
+    for (const id of nextSet) {
+        if (previous.has(id)) continue;
+        mapInstance.setFeatureState({ source: "project-routes", id }, { hover: true });
+        mapInstance.setFeatureState({ source: "project-points", id }, { hover: true });
+    }
+    const previousClusters = clustersOfProjects(previous, clusters);
+    const nextClusters = clustersOfProjects(nextSet, clusters);
+    for (const id of previousClusters) {
+        if (!nextClusters.has(id)) mapInstance.setFeatureState({ source: "project-point-clusters", id }, { hover: false });
+    }
+    for (const id of nextClusters) {
+        if (!previousClusters.has(id)) mapInstance.setFeatureState({ source: "project-point-clusters", id }, { hover: true });
+    }
+    return nextSet;
 };
 
 export default function MapView({
@@ -203,7 +277,8 @@ export default function MapView({
 }: Props) {
     const mapContainerRef = useRef<HTMLDivElement | null>(null);
     const mapInstanceRef = useRef<maplibregl.Map | null>(null);
-    const hoverFeatureIdRef = useRef<string | number | null>(null);
+    const hoverIdsRef = useRef<Set<number>>(new Set());
+    const clustersRef = useRef<ClusterLookup>(EMPTY_CLUSTERS);
     const overlayRef = useRef<HTMLDivElement | null>(null);
     const ignoreOutsideClickRef = useRef(false);
     // Keep a ref so the click handler (inside the init useEffect) always sees
@@ -211,14 +286,22 @@ export default function MapView({
     const projectsRef = useRef<MapViewProject[]>(projects);
     const [isMapReady, setIsMapReady] = useState(false);
     const hasFittedRef = useRef(false);
-    const [selectedProject, setSelectedProject] = useState<SelectedProject | null>(null);
+    const [popup, setPopup] = useState<Popup | null>(null);
     const prefetchProjectPage = usePrefetchProjectPage();
+    const selectedProject =
+        popup?.selectedId != null ? popup.projects.find((p) => p.id === popup.selectedId) ?? null : null;
 
     // The popup's "Auswählen" is the next likely click: load the detail page
     // (chunk + data) while the user is still reading the summary.
     useEffect(() => {
-        if (selectedProject?.project.id != null) prefetchProjectPage(selectedProject.project.id);
-    }, [selectedProject, prefetchProjectPage]);
+        if (popup?.selectedId != null) prefetchProjectPage(popup.selectedId);
+    }, [popup?.selectedId, prefetchProjectPage]);
+
+    const setHover = (ids: number[]) => {
+        const mapInstance = mapInstanceRef.current;
+        if (!mapInstance) return;
+        hoverIdsRef.current = applyHover(mapInstance, hoverIdsRef.current, ids, clustersRef.current);
+    };
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
 
@@ -231,10 +314,13 @@ export default function MapView({
     // prebuilt features instead of re-parsing every geojson_representation.
     // A changed geometry or group color invalidates that project's entry.
     const featureCacheRef = useRef(new Map<number, FeatureCacheEntry>());
-    const { lineFeatureCollection, pointFeatureCollection } = useMemo(() => {
+    const { lineFeatureCollection, pointFeatureCollection, clusterFeatureCollection, clusterLookup } = useMemo(() => {
         const cache = featureCacheRef.current;
+        // Lanes depend on which projects are shown, so they are applied on top
+        // of the cached features instead of being cached with them.
+        const lanes = assignVisibleLanes(projects);
         const lines: GeoJSONFeature[] = [];
-        const points: GeoJSONFeature[] = [];
+        const pointEntries: { project: MapViewProject; feature: GeoJSONFeature }[] = [];
         for (const project of projects) {
             const cached = cache.get(project.id);
             let entry: FeatureCacheEntry;
@@ -254,10 +340,62 @@ export default function MapView({
                 };
                 cache.set(project.id, entry);
             }
-            if (entry.line) lines.push(entry.line);
-            if (entry.point) points.push(entry.point);
+            if (entry.line) {
+                const offset = laneOffset(lanes.get(project.id) ?? 0);
+                lines.push(
+                    offset === 0
+                        ? entry.line
+                        : { ...entry.line, properties: { ...entry.line.properties, laneOffset: offset } },
+                );
+            }
+            if (entry.point) pointEntries.push({ project, feature: entry.point });
         }
+
+        // Station counters (D): a spot shared by several projects becomes one
+        // counter; each project keeps a point feature only for its own spots.
+        const grouped = groupSharedPoints(
+            pointEntries.map(({ project, feature }) => ({
+                id: project.id,
+                groupColor: project.groupColor,
+                points: (feature.geometry?.coordinates ?? []) as number[][],
+            })),
+        );
+        const points: GeoJSONFeature[] = [];
+        for (const { project, feature } of pointEntries) {
+            const own = grouped.singles.get(project.id);
+            if (!own) continue;
+            const all = (feature.geometry?.coordinates ?? []) as number[][];
+            points.push(
+                own.length === all.length
+                    ? feature
+                    : { ...feature, geometry: { type: "MultiPoint", coordinates: own } },
+            );
+        }
+        const lookup: ClusterLookup = { projectsOf: new Map(), clustersOf: new Map() };
+        const clusterFeatures: GeoJSONFeature[] = grouped.clusters.map((cluster) => {
+            lookup.projectsOf.set(cluster.id, cluster.projectIds);
+            for (const projectId of cluster.projectIds) {
+                lookup.clustersOf.set(projectId, [...(lookup.clustersOf.get(projectId) ?? []), cluster.id]);
+            }
+            return {
+                id: cluster.id,
+                type: "Feature",
+                geometry: { type: "Point", coordinates: cluster.coordinate },
+                properties: {
+                    clusterId: cluster.id,
+                    count: cluster.projectIds.length,
+                    groupColor: cluster.color,
+                    textColor: counterTextColor(cluster.color),
+                },
+            };
+        });
+
         return {
+            clusterFeatureCollection: {
+                type: "FeatureCollection",
+                features: clusterFeatures,
+            } as GeoJSONFeatureCollection,
+            clusterLookup: lookup,
             lineFeatureCollection: {
                 type: "FeatureCollection",
                 features: lines,
@@ -298,6 +436,10 @@ export default function MapView({
                         data: { type: "FeatureCollection", features: [] },
                     },
                     "project-points": {
+                        type: "geojson",
+                        data: { type: "FeatureCollection", features: [] },
+                    },
+                    "project-point-clusters": {
                         type: "geojson",
                         data: { type: "FeatureCollection", features: [] },
                     },
@@ -355,6 +497,9 @@ export default function MapView({
                                 8,
                                 4,
                             ],
+                            // Projects sharing a track fan out from zoom 8 to 12 (B1).
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            "line-offset": lineOffsetExpression(4) as any,
                         },
                     },
                     {
@@ -373,6 +518,24 @@ export default function MapView({
                             "circle-stroke-color": MAP_COLOR.stroke,
                         },
                     },
+                    // Station counters (D): several projects at one spot. The
+                    // count is an HTML marker on top, in the design-system font.
+                    {
+                        id: "project-point-clusters-circle",
+                        type: "circle",
+                        source: "project-point-clusters",
+                        paint: {
+                            "circle-color": ["coalesce", ["get", "groupColor"], MAP_COLOR.default],
+                            "circle-radius": [
+                                "case",
+                                ["boolean", ["feature-state", "hover"], false],
+                                13,
+                                10,
+                            ],
+                            "circle-stroke-width": 2,
+                            "circle-stroke-color": MAP_COLOR.counterRim,
+                        },
+                    },
                 ],
             },
             center: [10.0, 51.0],
@@ -385,65 +548,22 @@ export default function MapView({
             setIsMapReady(true);
         });
 
-        // Single map-level mousemove: checks both project layers for smooth
-        // transitions between lines and points of the same project.
+        // Single map-level mousemove over both project layers: every project
+        // under the pointer is highlighted, not only the topmost one.
         const handleMouseMove = (event: maplibregl.MapMouseEvent) => {
-            const features = mapInstance.queryRenderedFeatures(event.point, {
-                layers: ["project-routes-line", "project-points-circle"],
-            });
-            const feature = features[0];
-            const newId = feature?.id !== undefined && feature?.id !== null ? feature.id : null;
-
-            if (newId === null) {
-                mapInstance.getCanvas().style.cursor = "";
-                if (hoverFeatureIdRef.current !== null) {
-                    mapInstance.setFeatureState(
-                        { source: "project-routes", id: hoverFeatureIdRef.current },
-                        { hover: false },
-                    );
-                    mapInstance.setFeatureState(
-                        { source: "project-points", id: hoverFeatureIdRef.current },
-                        { hover: false },
-                    );
-                    hoverFeatureIdRef.current = null;
-                }
-                return;
-            }
-
-            mapInstance.getCanvas().style.cursor = "pointer";
-
-            if (hoverFeatureIdRef.current !== null && hoverFeatureIdRef.current !== newId) {
-                mapInstance.setFeatureState(
-                    { source: "project-routes", id: hoverFeatureIdRef.current },
-                    { hover: false },
-                );
-                mapInstance.setFeatureState(
-                    { source: "project-points", id: hoverFeatureIdRef.current },
-                    { hover: false },
-                );
-            }
-
-            if (hoverFeatureIdRef.current !== newId) {
-                hoverFeatureIdRef.current = newId;
-                mapInstance.setFeatureState({ source: "project-routes", id: newId }, { hover: true });
-                mapInstance.setFeatureState({ source: "project-points", id: newId }, { hover: true });
-            }
+            const ids = queryProjectIds(mapInstance, event.point, clustersRef.current);
+            mapInstance.getCanvas().style.cursor = ids.length > 0 ? "pointer" : "";
+            hoverIdsRef.current = applyHover(mapInstance, hoverIdsRef.current, ids, clustersRef.current);
         };
 
-        // Clear hover when mouse leaves the map canvas entirely
-        const handleMouseLeaveCanvas = () => {
+        // Clear hover when mouse leaves the map canvas entirely. Not when it
+        // moves onto the popup: React fires the list entry's mouseenter before
+        // this native mouseleave, and clearing here would drop that highlight.
+        const handleMouseLeaveCanvas = (event: MouseEvent) => {
             mapInstance.getCanvas().style.cursor = "";
-            if (hoverFeatureIdRef.current !== null) {
-                mapInstance.setFeatureState(
-                    { source: "project-routes", id: hoverFeatureIdRef.current },
-                    { hover: false },
-                );
-                mapInstance.setFeatureState(
-                    { source: "project-points", id: hoverFeatureIdRef.current },
-                    { hover: false },
-                );
-                hoverFeatureIdRef.current = null;
-            }
+            const target = event.relatedTarget;
+            if (target instanceof Node && overlayRef.current?.contains(target)) return;
+            hoverIdsRef.current = applyHover(mapInstance, hoverIdsRef.current, [], clustersRef.current);
         };
 
         mapInstance.on("mousemove", handleMouseMove);
@@ -473,66 +593,85 @@ export default function MapView({
         if (!mapInstance) return undefined;
         if (!clickable) return undefined;
 
-        const handleProjectClick = (
-            event: maplibregl.MapLayerMouseEvent,
-        ) => {
-            const feature = event.features?.[0];
-            if (!feature || !isRecord(feature.properties)) return;
-
-            const projectIdValue = feature.properties.projectId;
-            const projectId =
-                typeof projectIdValue === "number" ? projectIdValue : Number(projectIdValue);
-            if (!Number.isFinite(projectId)) return;
-
-            const project = projectsRef.current.find((p) => p.id === projectId);
-            if (!project) return;
-
-            ignoreOutsideClickRef.current = true;
-            setSelectedProject({ project, x: event.point.x, y: event.point.y });
-        };
-
+        // One handler for lines and points: a click collects every project at
+        // the spot. One hit opens its summary, several open the list.
         const handleMapClick = (event: maplibregl.MapMouseEvent) => {
-            const features = mapInstance.queryRenderedFeatures(event.point, {
-                layers: ["project-routes-line", "project-points-circle"],
-            });
-            if (features.length === 0) {
-                setSelectedProject(null);
+            const projects = queryProjectIds(mapInstance, event.point, clustersRef.current)
+                .map((id) => projectsRef.current.find((p) => p.id === id))
+                .filter((p): p is MapViewProject => p !== undefined);
+            if (projects.length === 0) {
+                setPopup(null);
+                return;
             }
+            const sorted = sortProjectsByName(projects);
+            ignoreOutsideClickRef.current = true;
+            setPopup({
+                projects: sorted,
+                selectedId: sorted.length === 1 ? sorted[0].id : null,
+                x: event.point.x,
+                y: event.point.y,
+            });
         };
 
-        mapInstance.on("click", "project-routes-line", handleProjectClick);
-        mapInstance.on("click", "project-points-circle", handleProjectClick);
         mapInstance.on("click", handleMapClick);
 
         return () => {
-            mapInstance.off("click", "project-routes-line", handleProjectClick);
-            mapInstance.off("click", "project-points-circle", handleProjectClick);
             mapInstance.off("click", handleMapClick);
         };
     }, [isMapReady, clickable]);
 
-    // Update both GeoJSON sources whenever project data changes
+    // Update the GeoJSON sources whenever project data changes
     useEffect(() => {
         if (!isMapReady) return;
         const mapInstance = mapInstanceRef.current;
         if (!mapInstance) return;
         const lineSource = mapInstance.getSource("project-routes") as maplibregl.GeoJSONSource | undefined;
         const pointSource = mapInstance.getSource("project-points") as maplibregl.GeoJSONSource | undefined;
+        const clusterSource = mapInstance.getSource("project-point-clusters") as
+            | maplibregl.GeoJSONSource
+            | undefined;
+        // Counter ids are only valid for one grouping: drop the hover before
+        // they change meaning; the next pointer move sets it again.
+        hoverIdsRef.current = applyHover(mapInstance, hoverIdsRef.current, [], clustersRef.current);
+        clustersRef.current = clusterLookup;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (lineSource) lineSource.setData(lineFeatureCollection as any);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (pointSource) pointSource.setData(pointFeatureCollection as any);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (clusterSource) clusterSource.setData(clusterFeatureCollection as any);
 
         // Fit once, on the first data that has coordinates; later updates (e.g. a
         // refetch) must not yank the view away from where the user has panned.
         if (fitToProjects && !hasFittedRef.current) {
-            const bounds = featureBounds([lineFeatureCollection, pointFeatureCollection]);
+            const bounds = featureBounds([lineFeatureCollection, pointFeatureCollection, clusterFeatureCollection]);
             if (bounds) {
                 mapInstance.fitBounds(bounds, { padding: 40, maxZoom: 13, duration: 0 });
                 hasFittedRef.current = true;
             }
         }
-    }, [lineFeatureCollection, pointFeatureCollection, isMapReady, fitToProjects]);
+    }, [lineFeatureCollection, pointFeatureCollection, clusterFeatureCollection, clusterLookup, isMapReady, fitToProjects]);
+
+    // The count of each station counter as an HTML marker: map text would need
+    // glyph files, a marker uses the design-system font. Clicks and hover pass
+    // through to the circle underneath.
+    useEffect(() => {
+        if (!isMapReady) return undefined;
+        const mapInstance = mapInstanceRef.current;
+        if (!mapInstance) return undefined;
+        const markers = clusterFeatureCollection.features.map((feature) => {
+            const element = document.createElement("span");
+            element.className = "idt-map-counter";
+            element.textContent = String(feature.properties.count);
+            element.style.color = String(feature.properties.textColor);
+            return new maplibregl.Marker({ element, anchor: "center" })
+                .setLngLat(feature.geometry?.coordinates as [number, number])
+                .addTo(mapInstance);
+        });
+        return () => {
+            for (const marker of markers) marker.remove();
+        };
+    }, [clusterFeatureCollection, isMapReady]);
 
     // Constituency layer: data, visibility and the selected outline.
     useEffect(() => {
@@ -579,10 +718,7 @@ export default function MapView({
 
         const handleClick = (event: maplibregl.MapMouseEvent) => {
             // A project click wins: the outline is context, not the subject.
-            const projectHits = mapInstance.queryRenderedFeatures(event.point, {
-                layers: ["project-routes-line", "project-points-circle"],
-            });
-            if (projectHits.length > 0) return;
+            if (queryProjectIds(mapInstance, event.point, clustersRef.current).length > 0) return;
 
             const hits = mapInstance.queryRenderedFeatures(event.point, {
                 layers: ["constituencies-fill"],
@@ -602,7 +738,8 @@ export default function MapView({
         };
     }, [isMapReady, onConstituencySelect]);
 
-    // Update line-width expression when the slider changes
+    // Update line-width and the lane offset (it scales with the width) when the
+    // slider changes
     useEffect(() => {
         if (!isMapReady) return;
         const mapInstance = mapInstanceRef.current;
@@ -613,6 +750,8 @@ export default function MapView({
             lineWidth + 4,
             lineWidth,
         ]);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        mapInstance.setPaintProperty("project-routes-line", "line-offset", lineOffsetExpression(lineWidth) as any);
     }, [lineWidth, isMapReady]);
 
     // Update circle-radius expression when the point size slider changes
@@ -626,14 +765,25 @@ export default function MapView({
             pointSize + 3,
             pointSize,
         ]);
+        mapInstance.setPaintProperty("project-point-clusters-circle", "circle-radius", [
+            "case",
+            ["boolean", ["feature-state", "hover"], false],
+            pointSize + 8,
+            pointSize + 5,
+        ]);
     }, [pointSize, isMapReady]);
 
+    // A closed popup leaves no list highlight behind.
     useEffect(() => {
-        if (!selectedProject) return undefined;
+        if (popup === null) setHover([]);
+    }, [popup]);
+
+    useEffect(() => {
+        if (!popup) return undefined;
 
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === "Escape") {
-                setSelectedProject(null);
+                setPopup(null);
             }
         };
 
@@ -646,7 +796,7 @@ export default function MapView({
             if (overlayNode && event.target instanceof Node && overlayNode.contains(event.target)) {
                 return;
             }
-            setSelectedProject(null);
+            setPopup(null);
         };
 
         window.addEventListener("keydown", handleKeyDown);
@@ -656,13 +806,13 @@ export default function MapView({
             window.removeEventListener("keydown", handleKeyDown);
             document.removeEventListener("mousedown", handleOutsideClick);
         };
-    }, [selectedProject]);
+    }, [popup]);
 
     // Clamp popup within the map container so it's never cut off at the edges.
     // useLayoutEffect runs synchronously after DOM layout but before browser paint,
     // so there's no visible flash.
     useLayoutEffect(() => {
-        if (!selectedProject || !overlayRef.current || !mapContainerRef.current) return;
+        if (!popup || !overlayRef.current || !mapContainerRef.current) return;
 
         const overlay = overlayRef.current;
         const container = mapContainerRef.current;
@@ -689,7 +839,7 @@ export default function MapView({
         overlay.style.transform = flipBelow
             ? `translate(calc(-50% + ${dx}px), 12px)`
             : `translate(calc(-50% + ${dx}px), calc(-100% - 12px))`;
-    }, [selectedProject]);
+    }, [popup]);
 
     if (!tileLayerUrl) {
         return (
@@ -728,13 +878,13 @@ export default function MapView({
             }}
         >
             <div ref={mapContainerRef} style={{ height: "100%" }} />
-            {selectedProject && (
+            {popup && (
                 <div
                     ref={overlayRef}
                     style={{
                         position: "absolute",
-                        left: selectedProject.x,
-                        top: selectedProject.y,
+                        left: popup.x,
+                        top: popup.y,
                         transform: "translate(-50%, calc(-100% - 12px))",
                         // Never wider than the screen it has to fit on.
                         minWidth: "min(260px, calc(100vw - 32px))",
@@ -747,19 +897,43 @@ export default function MapView({
                         padding: "16px",
                     }}
                 >
-                    <Stack gap="sm">
-                        <ProjectSummaryCard project={selectedProject.project} />
-                        <Button
-                            onClick={() => {
-                                const groupParam = searchParams.get("group");
-                                navigate(`/projects/${selectedProject.project.id}${groupParam ? `?group=${groupParam}` : ""}`);
-                                setSelectedProject(null);
+                    {selectedProject ? (
+                        <Stack gap="sm">
+                            {popup.projects.length > 1 && (
+                                <Button
+                                    variant="subtle"
+                                    size="compact-sm"
+                                    style={{ alignSelf: "flex-start" }}
+                                    onClick={() => {
+                                        setHover([]);
+                                        setPopup({ ...popup, selectedId: null });
+                                    }}
+                                >
+                                    ← Alle {popup.projects.length} Projekte
+                                </Button>
+                            )}
+                            <ProjectSummaryCard project={selectedProject} />
+                            <Button
+                                onClick={() => {
+                                    const groupParam = searchParams.get("group");
+                                    navigate(`/projects/${selectedProject.id}${groupParam ? `?group=${groupParam}` : ""}`);
+                                    setPopup(null);
+                                }}
+                                fullWidth
+                            >
+                                Auswählen
+                            </Button>
+                        </Stack>
+                    ) : (
+                        <MapOverlapList
+                            projects={popup.projects}
+                            onHighlight={(projectId) => setHover(projectId === null ? [] : [projectId])}
+                            onSelect={(projectId) => {
+                                setHover([projectId]);
+                                setPopup({ ...popup, selectedId: projectId });
                             }}
-                            fullWidth
-                        >
-                            Auswählen
-                        </Button>
-                    </Stack>
+                        />
+                    )}
                 </div>
             )}
         </div>

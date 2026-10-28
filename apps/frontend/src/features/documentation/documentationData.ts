@@ -66,8 +66,11 @@ export const featureHighlights: FeatureHighlight[] = [
             "Filter drawer for project groups including URL synchronisation",
             "Mantine components for buttons, panels, and layout",
             "Project list renders immediately from the slim group list; simplified route geometries are loaded per selected group afterwards (`/project_groups/{id}/geometries`)",
-            "Hover interactions that highlight routes and show pointer feedback",
+            "Hover interactions that highlight every project under the pointer, not only the topmost one",
             "Route click popover with project title and direct navigation action",
+            "Mehrere Projekte an einer Stelle (gleiche Strecke, gleicher Bahnhof): Der Klick öffnet eine Liste „N Projekte an dieser Stelle“ mit Gruppenfarbe, Name und Projektnummer; Hover auf einen Eintrag hebt dessen Linie hervor, Klick öffnet die Kurzansicht mit „← Alle N Projekte“ als Rückweg",
+            "Projekte auf derselben Strecke liegen beim Hineinzoomen nebeneinander (Spur 0 auf dem Gleis, weitere abwechselnd rechts und links); herausgezoomt liegen sie aufeinander. Der Abstand wächst mit der Linienbreite. Ist ein Partner ausgefiltert, bleibt das Projekt auf dem Gleis. Welche Projekte sich überlappen, berechnet der Server beim Speichern (≥ 500 m oder die Hälfte des kürzeren Projekts gemeinsam, 25 m Toleranz)",
+            "Bahnhöfe mit mehreren Projekten: Punkte verschiedener Projekte an derselben Stelle werden zu einem größeren Kreis mit Ink-Rand und der Anzahl zusammengefasst (Farbe der Gruppe, die dort die meisten Projekte hat). Klick öffnet die Liste der Projekte, Hover hebt alle beteiligten Projekte samt ihrer Linien hervor",
             "Raster tiles configured via the REACT_APP_TILE_LAYER_URL environment variable (optional REACT_APP_TILE_LAYER_URL_DARK for the dark colour scheme)"
         ]
     },
