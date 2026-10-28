@@ -69,6 +69,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Hover interactions that highlight every project under the pointer, not only the topmost one",
             "Route click popover with project title and direct navigation action",
             "Mehrere Projekte an einer Stelle (gleiche Strecke, gleicher Bahnhof): Der Klick öffnet eine Liste „N Projekte an dieser Stelle“ mit Gruppenfarbe, Name und Projektnummer; Hover auf einen Eintrag hebt dessen Linie hervor, Klick öffnet die Kurzansicht mit „← Alle N Projekte“ als Rückweg",
+            "Projekte auf derselben Strecke liegen beim Hineinzoomen nebeneinander (Spur 0 auf dem Gleis, weitere abwechselnd rechts und links); herausgezoomt liegen sie aufeinander. Der Abstand wächst mit der Linienbreite. Ist ein Partner ausgefiltert, bleibt das Projekt auf dem Gleis. Welche Projekte sich überlappen, berechnet der Server beim Speichern (≥ 500 m oder die Hälfte des kürzeren Projekts gemeinsam, 25 m Toleranz)",
             "Raster tiles configured via the REACT_APP_TILE_LAYER_URL environment variable (optional REACT_APP_TILE_LAYER_URL_DARK for the dark colour scheme)"
         ]
     },
