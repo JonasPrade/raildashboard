@@ -1507,8 +1507,12 @@ def archive_project(
     both ways, get_project shows ``replaced_by`` / ``replaces``, and last year's
     import assignments to this project are suggested for the successor.
     Refused while FinVe or GVFG links or non-archived subprojects exist — the
-    error names them; move them first. Recorded in the changelog. Returns the
-    project and ``kept_links`` (historical links that stay on the project)."""
+    error names them; move them first. Exception: Sammel-FinVe year links from
+    the Haushalt import (``linked_permanently`` false) do not block; they stay on
+    the archived project as history (not moved: the successors usually carry
+    their own links) and no longer count in the Sammel-FinVe. Recorded in the
+    changelog. Returns the project and ``kept_links`` (historical links that stay
+    on the project, e.g. ``sammel_finve_year_links: [763, 1168]``)."""
     principal = get_principal(ctx)
     require(principal, "project.delete")
     with tool_session(ctx) as db:

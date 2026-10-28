@@ -18,7 +18,7 @@ type Props = {
  * „Projekte bearbeiten“ for one FinVe: remove permanent project links and add
  * new ones. Each action is saved at once (logged per project, planning state
  * recomputed). Sammel-FinVe year links come from the Haushalt import and are
- * listed without a remove action.
+ * listed without a remove action; those of archived projects are marked.
  */
 export default function FinveProjectsDrawer({ finve, onClose }: Props) {
     const isMobile = useIsMobile();
@@ -100,6 +100,14 @@ export default function FinveProjectsDrawer({ finve, onClose }: Props) {
                                     >
                                         Entfernen
                                     </Button>
+                                ) : project.is_archived ? (
+                                    <Badge
+                                        variant="outline"
+                                        color="gray"
+                                        title="Archiviertes Projekt: die Zuordnung bleibt als Historie, zählt aber nicht mehr mit"
+                                    >
+                                        Archiviert
+                                    </Badge>
                                 ) : (
                                     <Badge variant="outline" title="Jahresbezogene Zuordnung aus dem Haushaltsimport">
                                         Haushaltsjahr

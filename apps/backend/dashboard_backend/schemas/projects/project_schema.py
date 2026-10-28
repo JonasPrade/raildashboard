@@ -91,6 +91,9 @@ class FinveWithBudgetsSchema(BaseModel):
 class ProjectRefSchema(BaseModel):
     id: int
     name: str
+    # Set on FinVe project lists: an archived project keeps its Sammel-FinVe
+    # year links as history but no longer counts in the FinVe.
+    is_archived: bool = False
 
 
 class ProjectOptionSchema(BaseModel):

@@ -37,29 +37,39 @@ def list_finves(db: Session) -> list[FinveListItemSchema]:
 
     # Load all (finve_id, project_id, project_name) rows; deduplicate because
     # SV-FinVes may have multiple rows per (finve_id, project_id) across years.
+    # Archived projects keep their Sammel-FinVe year links as history: listed
+    # last and marked, but not counted (feature-project-archive.md → W5a).
     raw = (
-        db.query(FinveToProject.finve_id, Project.id, Project.name, FinveToProject.haushalt_year)
+        db.query(
+            FinveToProject.finve_id,
+            Project.id,
+            Project.name,
+            Project.is_archived,
+            FinveToProject.haushalt_year,
+        )
         .join(Project, Project.id == FinveToProject.project_id)
         .filter(FinveToProject.finve_id.in_(finve_ids))
+        .order_by(Project.is_archived, FinveToProject.id)
         .all()
     )
 
     seen: set[tuple[int, int]] = set()
     projects_by_finve: dict[int, list[ProjectRefSchema]] = {}
     permanent_by_finve: dict[int, set[int]] = {}
-    for finve_id, project_id, project_name, haushalt_year in raw:
+    for finve_id, project_id, project_name, is_archived, haushalt_year in raw:
         if haushalt_year is None:
             permanent_by_finve.setdefault(finve_id, set()).add(project_id)
         key = (finve_id, project_id)
         if key not in seen:
             seen.add(key)
             projects_by_finve.setdefault(finve_id, []).append(
-                ProjectRefSchema(id=project_id, name=project_name or "")
+                ProjectRefSchema(id=project_id, name=project_name or "", is_archived=is_archived)
             )
 
     result = []
     for f in finves:
         linked = projects_by_finve.get(f.id, [])
+        counted = [p for p in linked if not p.is_archived]
         budgets_sorted = sorted(f.budgets, key=lambda b: b.budget_year)
         budget_schemas = []
         for b in budgets_sorted:
@@ -90,8 +100,8 @@ def list_finves(db: Session) -> list[FinveListItemSchema]:
                 cost_estimate_original=f.cost_estimate_original,
                 is_sammel_finve=f.is_sammel_finve,
                 temporary_finve_number=f.temporary_finve_number,
-                project_count=len(linked),
-                project_names=[p.name for p in linked],
+                project_count=len(counted),
+                project_names=[p.name for p in counted],
                 projects=linked,
                 permanent_project_ids=sorted(permanent_by_finve.get(f.id, ())),
                 budgets=budget_schemas,
@@ -124,7 +134,7 @@ def list_sammel_finves_progress(db: Session):
     raw = (
         db.query(FinveToProject.finve_id, Project.id, Project.name)
         .join(Project, Project.id == FinveToProject.project_id)
-        .filter(FinveToProject.finve_id.in_(finve_ids))
+        .filter(FinveToProject.finve_id.in_(finve_ids), Project.is_archived.is_(False))
         .all()
     )
     seen: set[tuple[int, int]] = set()

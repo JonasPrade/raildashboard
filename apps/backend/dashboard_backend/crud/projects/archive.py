@@ -2,9 +2,10 @@
 
 An archived project keeps its own history (VIB, Infraplan, changelog, geometry) but
 counts nowhere: lists, maps, pickers and every parent aggregation skip it. Archiving
-is refused while FinVe or GVFG links, non-archived subprojects or the lifecycle
-ABGEBROCHEN would make that silently wrong. REST and MCP share these functions, so
-both write the same ARCHIVE / UNARCHIVE changelog entry.
+is refused while permanent FinVe links, GVFG links, non-archived subprojects or the
+lifecycle ABGEBROCHEN would make that silently wrong. Sammel-FinVe year links (from
+the Haushalt import) do not block: they stay on the project as history. REST and MCP
+share these functions, so both write the same ARCHIVE / UNARCHIVE changelog entry.
 """
 
 from __future__ import annotations
@@ -44,15 +45,22 @@ class ArchiveError(ValueError):
     user-facing (German) and names the blocking links."""
 
 
+def _sammel_year_link():
+    """A Sammel-FinVe year link: ``haushalt_year`` set on a Sammel-FinVe. Every
+    other FinVe link (``haushalt_year IS NULL``) is a permanent one."""
+    return FinveToProject.haushalt_year.isnot(None) & Finve.is_sammel_finve.is_(True)
+
+
 def _blocking_links(db: Session, project: Project) -> list[str]:
-    """FinVe/GVFG links, non-archived subprojects and ABGEBROCHEN — each one a
-    reason to refuse archiving (feature doc W4, W5, F2)."""
+    """Permanent FinVe links, GVFG links, non-archived subprojects and ABGEBROCHEN —
+    each one a reason to refuse archiving (feature doc W4, W5, F2). Sammel-FinVe
+    year links do not block (W5a): they stay as history, see kept_links."""
     reasons: list[str] = []
 
     finves = (
         db.query(Finve.id, Finve.name)
         .join(FinveToProject, FinveToProject.finve_id == Finve.id)
-        .filter(FinveToProject.project_id == project.id)
+        .filter(FinveToProject.project_id == project.id, ~_sammel_year_link())
         .distinct()
         .order_by(Finve.id)
         .all()
@@ -94,9 +102,10 @@ def _blocking_links(db: Session, project: Project) -> list[str]:
     return reasons
 
 
-def kept_links(db: Session, project_id: int) -> dict[str, int]:
-    """Historical source links an archived project keeps (feature doc F1): they
-    stay on the project and no longer reach its parent. Only non-zero counts."""
+def kept_links(db: Session, project_id: int) -> dict[str, int | list[int]]:
+    """Historical source links an archived project keeps (feature doc F1, W5a): they
+    stay on the project and no longer reach its parent. Only non-zero counts;
+    ``sammel_finve_year_links`` lists the Sammel-FinVe numbers."""
 
     def count(column) -> int:
         return db.scalar(select(func.count()).where(column == project_id)) or 0
@@ -109,7 +118,18 @@ def kept_links(db: Session, project_id: int) -> dict[str, int]:
         "bauportal": count(BauportalStatus.project_id),
         "media_reports": count(MediaReport.project_id),
     }
-    return {key: value for key, value in counts.items() if value}
+    kept: dict[str, int | list[int]] = {key: value for key, value in counts.items() if value}
+    sammel = sorted(
+        {
+            fid
+            for (fid,) in db.query(FinveToProject.finve_id)
+            .join(Finve, Finve.id == FinveToProject.finve_id)
+            .filter(FinveToProject.project_id == project_id, _sammel_year_link())
+        }
+    )
+    if sammel:
+        kept["sammel_finve_year_links"] = sammel
+    return kept
 
 
 def _refresh_ancestors(db: Session, project: Project) -> None:

@@ -101,6 +101,9 @@ class HaushaltsParseResultSchema(BaseModel):
     project_ids: list[int] = []
     # Automatically suggested project IDs (computed during parse, read-only hint for UI)
     suggested_project_ids: list[int] = []
+    # Hints the review must look at, e.g. an archived project taken out of the
+    # links carried over from the previous year (feature-project-archive.md → W5a)
+    review_notes: list[str] = []
 
 
 # ---------------------------------------------------------------------------

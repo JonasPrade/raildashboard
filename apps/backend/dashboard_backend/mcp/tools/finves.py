@@ -30,8 +30,13 @@ from dashboard_backend.models.projects.finve import Finve
 
 def _project_refs(finve: Finve) -> list[dict[str, Any]]:
     # SV-FinVes carry one association row per Haushalt year — deduplicate.
-    refs = {p.id: p.name for p in finve.projects}
-    return [{"id": pid, "name": name} for pid, name in sorted(refs.items())]
+    # Archived projects keep their Sammel-FinVe year links as history and are
+    # marked: they no longer count in the FinVe.
+    refs = {p.id: p for p in finve.projects}
+    return [
+        {"id": pid, "name": p.name, **({"is_archived": True} if p.is_archived else {})}
+        for pid, p in sorted(refs.items())
+    ]
 
 
 def _finve_summary(finve: Finve) -> dict[str, Any]:

@@ -1134,6 +1134,9 @@ export type HaushaltsParseRow = {
     proposed_titel_entries: TitelEntryProposed[];
     project_ids: number[];
     suggested_project_ids: number[];
+    /** Hints the review must look at, e.g. an archived project taken out of the
+     *  links carried over from the previous year. Missing in older results. */
+    review_notes?: string[];
 };
 
 // The parse result is stored as an untyped JSON blob on the wire (result_json),

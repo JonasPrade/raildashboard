@@ -32,6 +32,7 @@ from dashboard_backend.crud.haushalt_import import (
     get_or_create_haushalt_titel,
     save_parse_result,
 )
+from dashboard_backend.crud.projects.archive import successor_map
 from dashboard_backend.database import Session
 from dashboard_backend.utils.file_storage import consume_staged_import
 from dashboard_backend.models.associations.finve_to_project import FinveToProject
@@ -662,6 +663,50 @@ def _refresh_sv_suggestions(
         )
         row.suggested_project_ids = sv_suggestions
         row.project_ids = sv_suggestions
+
+
+def archived_project_names(db) -> dict[int, str]:
+    """Id → name of every archived project."""
+    return dict(db.query(Project.id, Project.name).filter(Project.is_archived.is_(True)))
+
+
+def redirect_archived_projects(
+    finve_projects: dict[int, list[int]],
+    archived: dict[int, str],
+    successors: dict[int, int],
+) -> dict[int, list[str]]:
+    """Take archived projects out of the links a new Haushalt year starts from
+    (feature-project-archive.md → W5a): an archived project with a successor is
+    replaced by it, one without is dropped. Changes *finve_projects* in place
+    (a FinVe left without projects loses its key, so suggestions run again) and
+    returns the review notes per FinVe number."""
+    notes: dict[int, list[str]] = {}
+    for finve_id in list(finve_projects):
+        kept: list[int] = []
+        for pid in finve_projects[finve_id]:
+            if pid not in archived:
+                if pid not in kept:
+                    kept.append(pid)
+                continue
+            successor = successors.get(pid)
+            if successor is not None:
+                if successor not in kept:
+                    kept.append(successor)
+                note = (
+                    f"Projekt {pid} „{archived[pid]}“ ist archiviert — "
+                    f"Vorschlag auf den Nachfolger {successor} umgestellt; bitte prüfen."
+                )
+            else:
+                note = (
+                    f"Projekt {pid} „{archived[pid]}“ ist archiviert und hat keinen "
+                    "Nachfolger — nicht übernommen; Zuordnung bitte prüfen."
+                )
+            notes.setdefault(finve_id, []).append(note)
+        if kept:
+            finve_projects[finve_id] = kept
+        else:
+            del finve_projects[finve_id]
+    return notes
 
 
 def report_step(task: Task | None, step: str, label: str) -> None:
@@ -1652,6 +1697,11 @@ def run_haushalt_parse(
             .all()
         ):
             finve_projects.setdefault(finve_id, []).append(project_id)
+        # Archived projects keep their links as history but take no new year:
+        # hand them on to the successor or leave the row open, with a note.
+        archive_notes = redirect_archived_projects(
+            finve_projects, archived_project_names(db), successor_map(db)
+        )
 
         # Load all projects for auto-suggestion matching
         # Archived projects are no matching candidates (feature-project-archive.md).
@@ -1665,6 +1715,9 @@ def run_haushalt_parse(
             task=task,
             known_finve_keys=known_keys,
         )
+
+        for row in task_result.rows:
+            row.review_notes.extend(archive_notes.get(row.finve_number, []))
 
         # Build a minimal user-like object from user_info dict for save_parse_result
         class _UserProxy:
