@@ -11,8 +11,11 @@ from dashboard_backend.schemas.projects.project_schema import (
     FinveListItemSchema,
     FinveWithBudgetsSchema,
     ProjectRefSchema,
+    SammelFinveYearsSchema,
+    SammelYearSchema,
     TitelEntrySchema,
 )
+from dashboard_backend.services.sammel_years import listing_label, sammel_year_diffs
 
 
 def list_finves(db: Session) -> list[FinveListItemSchema]:
@@ -192,24 +195,30 @@ def get_project_finves_with_budgets(
     carry ``from_subprojects``; ``subprojects`` names the descendants that
     carry each FinVe."""
     own_ids = {f.id for f in project.finve}
-    permanent_ids = {
-        fid
-        for (fid,) in db.query(FinveToProject.finve_id).filter(
-            FinveToProject.project_id == project.id, FinveToProject.haushalt_year.is_(None)
-        )
-    }
+    permanent_ids: set[int] = set()
+    # Sammel-FinVe year links (own and, below, of descendants) per FinVe.
+    listed_years: dict[int, set[int]] = {}
+    for fid, year in db.query(FinveToProject.finve_id, FinveToProject.haushalt_year).filter(
+        FinveToProject.project_id == project.id
+    ):
+        if year is None:
+            permanent_ids.add(fid)
+        else:
+            listed_years.setdefault(fid, set()).add(year)
     finve_ids = set(own_ids)
     carriers: dict[int, dict[int, str]] = {}
     if include_subprojects:
         descendants = [pid for pid in subtree_ids(db, project.id) if pid != project.id]
         if descendants:
             rows = (
-                db.query(FinveToProject.finve_id, Project.id, Project.name)
+                db.query(FinveToProject.finve_id, Project.id, Project.name, FinveToProject.haushalt_year)
                 .join(Project, Project.id == FinveToProject.project_id)
                 .filter(FinveToProject.project_id.in_(descendants))
             )
-            for fid, pid, name in rows:
+            for fid, pid, name, year in rows:
                 carriers.setdefault(fid, {})[pid] = name
+                if year is not None:
+                    listed_years.setdefault(fid, set()).add(year)
             finve_ids.update(carriers)
     if not finve_ids:
         return []
@@ -224,6 +233,7 @@ def get_project_finves_with_budgets(
             update={
                 "from_subprojects": finve.id not in own_ids,
                 "linked_permanently": finve.id in permanent_ids,
+                **_listing_fields(finve, listed_years.get(finve.id, set())),
                 "subprojects": [
                     ProjectRefSchema(id=pid, name=name)
                     for pid, name in sorted(carriers.get(finve.id, {}).items(), key=lambda item: item[1])
@@ -232,6 +242,58 @@ def get_project_finves_with_budgets(
         )
         for finve in finves
     ]
+
+
+def _listing_fields(finve: Finve, years: set[int]) -> dict:
+    """Haushalt editions listing a project in a Sammel-FinVe (empty otherwise)."""
+    if not finve.is_sammel_finve:
+        return {}
+    first_edition = min((b.budget_year for b in finve.budgets), default=None)
+    return {
+        "haushalt_years": sorted(years),
+        "first_edition_year": first_edition,
+        "listing_label": listing_label(years, first_edition),
+    }
+
+
+def get_sammel_finve_years(db: Session, finve_id: int) -> SammelFinveYearsSchema | None:
+    """Per Haushalt edition of a Sammel-FinVe: which projects are new, which
+    stay and which dropped out compared with the previous edition. Archived
+    projects keep their year links as history and are listed (marked)."""
+    finve = db.query(Finve).options(selectinload(Finve.budgets)).filter(Finve.id == finve_id).first()
+    if finve is None:
+        return None
+    rows = (
+        db.query(FinveToProject.haushalt_year, Project.id, Project.name, Project.is_archived)
+        .join(Project, Project.id == FinveToProject.project_id)
+        .filter(FinveToProject.finve_id == finve_id, FinveToProject.haushalt_year.isnot(None))
+        .all()
+    )
+    links: dict[int, set[int]] = {}
+    refs: dict[int, ProjectRefSchema] = {}
+    for year, pid, name, is_archived in rows:
+        links.setdefault(year, set()).add(pid)
+        refs[pid] = ProjectRefSchema(id=pid, name=name or "", is_archived=is_archived)
+
+    def as_refs(ids: list[int]) -> list[ProjectRefSchema]:
+        return sorted((refs[i] for i in ids), key=lambda r: r.name.lower())
+
+    diffs = sammel_year_diffs({b.budget_year for b in finve.budgets}, links)
+    return SammelFinveYearsSchema(
+        finve_id=finve.id,
+        name=finve.name,
+        starting_year=finve.starting_year,
+        years=[
+            SammelYearSchema(
+                year=d.year,
+                previous_year=d.previous_year,
+                added=as_refs(d.added),
+                kept=as_refs(d.kept),
+                removed=as_refs(d.removed),
+            )
+            for d in diffs
+        ],
+    )
 
 
 def _finve_with_budgets_query(db: Session):

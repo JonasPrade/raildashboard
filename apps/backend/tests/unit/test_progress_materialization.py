@@ -458,6 +458,44 @@ def test_sammel_lph_1_2_maps_to_vorplanung():
     assert spec.confidence == SAMMEL_FINVE_CONFIDENCE
 
 
+def test_sammel_finve_dated_by_first_listing_not_conclusion_year():
+    # The SV was concluded in 2012, but the project entered with Haushalt 2026.
+    spec = finve_to_spec(
+        finve_id=763,
+        is_sammel=True,
+        starting_year=2012,
+        name="SV Lph. 1/2 A",
+        listed_years=[2026, 2027],
+        first_edition_year=2025,
+    )
+    assert spec is not None
+    assert spec.observed_date == date(2026, 1, 1)
+    assert spec.date_precision is DatePrecision.YEAR
+    assert "Haushalt 2026–2027" in spec.note
+    assert "ggf. früher" not in spec.note
+
+
+def test_sammel_finve_in_first_edition_may_be_listed_earlier():
+    spec = finve_to_spec(
+        finve_id=763,
+        is_sammel=True,
+        starting_year=2012,
+        name="SV Lph. 1/2 A",
+        listed_years=[2025, 2026],
+        first_edition_year=2025,
+    )
+    assert spec is not None
+    assert spec.observed_date == date(2025, 1, 1)
+    assert "ggf. früher" in spec.note
+
+
+def test_sammel_finve_without_year_links_has_no_date():
+    # Never fall back to the agreement's conclusion year.
+    spec = finve_to_spec(finve_id=763, is_sammel=True, starting_year=2012, name="SV Lph. 1/2 A")
+    assert spec is not None
+    assert spec.observed_date is None
+
+
 def test_sammel_lph_3_4_maps_to_genehmigungsplanung():
     spec = finve_to_spec(finve_id=5, is_sammel=True, starting_year=None, name="SV Lph. 3/ 4")
     assert spec is not None

@@ -835,6 +835,11 @@ BVWP-Schätzungen.
   **nicht** auf EKrG-Nummern wie „3/2010" triggern), sonst manuelle Zuordnung über
   `finve.progress_phase` (Admin-Seite „Sammel-FinVe Phasen"); ohne erkennbare/zugeordnete
   Phase **keine** Beobachtung. Alle Sammel-FinVe schwächer (`confidence=0.35`).
+  Datum der Sammel-FinVe-Beobachtung = 1.1. des **ersten Haushaltsjahrgangs, der das Projekt
+  listet** (`finve_to_project.haushalt_year`, `date_precision=YEAR`), nicht das Abschlussjahr
+  der Vereinbarung; die Notiz nennt die Jahrgänge („gelistet Haushalt 2026–2027“) und ggf.
+  „Aufnahme ggf. früher“. Ohne Jahres-Zuordnung kein Datum. Reguläre FinVe weiter mit
+  `starting_year` (2026-10-29, `feature-haushalt-import.md` → „Jahresvergleich“).
   PFA-Evidenz schaltet `has_planfeststellung` automatisch ein. Beobachtungsdatum = VIB-
   **Report-Jahr** (das Freitext-`report_date` ist unzuverlässig).
 - **Recency-Floor** `0.3`: wirkt nur noch auf die Glaubwürdigkeit von Statusberichten (VIB

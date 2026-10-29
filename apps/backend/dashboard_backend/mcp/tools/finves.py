@@ -20,7 +20,11 @@ from dashboard_backend.crud.finve_links import (
     permanent_projects,
     update_finve_projects as update_finve_projects_crud,
 )
-from dashboard_backend.crud.finves import finve_with_budgets, get_finve_with_budgets
+from dashboard_backend.crud.finves import (
+    finve_with_budgets,
+    get_finve_with_budgets,
+    get_sammel_finve_years,
+)
 from dashboard_backend.mcp.context import get_principal, load_user, require, tool_session
 from dashboard_backend.mcp.tools.projects import MAX_LIMIT, READ_ONLY, WRITE
 from dashboard_backend.models.associations.finve_to_project import FinveToProject
@@ -135,7 +139,11 @@ def list_finves(
 
 def get_finve(finve_id: int, *, ctx: Context) -> dict[str, Any]:
     """One FinVe by number with its linked projects and full budget history per
-    budget year, including the per-Haushaltstitel breakdown. Amounts in T€."""
+    budget year, including the per-Haushaltstitel breakdown. Amounts in T€.
+    A Sammel-FinVe also carries ``sammel_years``: per Haushalt edition the
+    projects ``added``, ``kept`` and ``removed`` against the previous edition.
+    Its ``starting_year`` is when the agreement was concluded — never say a
+    project has been in it since then; quote the edition that added it."""
     get_principal(ctx)
     with tool_session(ctx) as db:
         finve = get_finve_with_budgets(db, finve_id)
@@ -145,6 +153,9 @@ def get_finve(finve_id: int, *, ctx: Context) -> dict[str, Any]:
         data["temporary_finve_number"] = bool(finve.temporary_finve_number)
         data["finve_key"] = finve.finve_key
         data["projects"] = _project_refs(finve)
+        if finve.is_sammel_finve:
+            years = get_sammel_finve_years(db, finve_id)
+            data["sammel_years"] = [y.model_dump(mode="json") for y in years.years] if years else []
         return data
 
 

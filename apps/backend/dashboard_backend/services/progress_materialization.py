@@ -11,7 +11,8 @@ Mapping (per feature-project-progress.md):
   (and the forecast, handled elsewhere); PFAs assigned to a leaf give its MAIN
   phase from the milestones actually reached — prognoses („vsl. 2027“) are
   expected observations.
-- FinVe link → MAIN ≥ BAU; Sammel-FinVe weaker (lower explicit confidence).
+- FinVe link → MAIN ≥ BAU; Sammel-FinVe weaker (lower explicit confidence),
+  dated by the first Haushalt edition listing the project.
 - GVFG-Bundesprogramm (newest edition) → MAIN from Inbetriebnahme, Lph and
   Baubeginn, plus the expected commissioning.
 """
@@ -36,6 +37,7 @@ from dashboard_backend.services.progress_dates import (
     parse_flexible_date,
     read_milestone,
 )
+from dashboard_backend.services.sammel_years import listing_label
 
 # Sammel-FinVe (year-scoped pooled financing) is a much weaker signal than a
 # dedicated FinVe, so it gets an explicit low confidence instead of the FinVe
@@ -347,6 +349,8 @@ def finve_to_spec(
     starting_year: int | None,
     name: str | None = None,
     manual_phase: MainPhase | None = None,
+    listed_years: list[int] | None = None,
+    first_edition_year: int | None = None,
 ) -> DerivedSpec | None:
     """Map a FinVe to a MAIN observation spec.
 
@@ -356,15 +360,16 @@ def finve_to_spec(
       Lph 3/4 → GENEHMIGUNGSPLANUNG). Always weaker confidence.
     - A Sammel-FinVe whose phase can't be determined returns ``None`` (no
       contribution) — it is surfaced for manual assignment instead of guessed.
+    - A Sammel-FinVe is dated by the first Haushalt edition that lists the
+      project (``listed_years``), never by the agreement's conclusion year:
+      the project list is rewritten every year. ``first_edition_year`` (the
+      earliest edition read in) marks that the project may be listed earlier.
     """
-
-    observed = None
-    if starting_year:
-        observed = date(starting_year, 1, 1)
 
     label = f"FinVe {finve_id}" + (f" · {name}" if name else "")
 
     if not is_sammel:
+        observed = date(starting_year, 1, 1) if starting_year else None
         return DerivedSpec(
             source_type=SourceType.FINVE,
             track=ObservationTrack.MAIN,
@@ -378,13 +383,15 @@ def finve_to_spec(
     if phase is None:
         return None  # ambiguous Sammel-FinVe → manual assignment required
 
+    listing = listing_label(listed_years or [], first_edition_year)
     return DerivedSpec(
         source_type=SourceType.FINVE,
         track=ObservationTrack.MAIN,
         asserted_state=phase.value,
-        observed_date=observed,
+        observed_date=date(min(listed_years), 1, 1) if listed_years else None,
+        date_precision=DatePrecision.YEAR,
         confidence=SAMMEL_FINVE_CONFIDENCE,
-        note=f"Sammel-FinVe ({label})",
+        note=f"Sammel-FinVe ({label})" + (f" · gelistet {listing}" if listing else ""),
         finve_id=finve_id,
     )
 

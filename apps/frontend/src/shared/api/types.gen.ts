@@ -1373,6 +1373,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finves/{finve_id}/sammel-years": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Finve Sammel Years
+         * @description Year-by-year comparison of a Sammel-FinVe's project list: per Haushalt
+         *     edition the projects that are new, stay, or dropped out.
+         */
+        get: operations["get_finve_sammel_years_api_v1_finves__finve_id__sammel_years_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finves/{finve_id}/progress-phase": {
         parameters: {
             query?: never;
@@ -4168,6 +4189,15 @@ export interface components {
              * @default false
              */
             linked_permanently: boolean;
+            /**
+             * Haushalt Years
+             * @default []
+             */
+            haushalt_years: number[];
+            /** First Edition Year */
+            first_edition_year?: number | null;
+            /** Listing Label */
+            listing_label?: string | null;
         };
         /** ForecastStepSchema */
         ForecastStepSchema: {
@@ -7714,6 +7744,47 @@ export interface components {
             id: number;
             /** Name */
             name: string;
+        };
+        /** SammelFinveYearsSchema */
+        SammelFinveYearsSchema: {
+            /** Finve Id */
+            finve_id: number;
+            /** Name */
+            name?: string | null;
+            /** Starting Year */
+            starting_year?: number | null;
+            /**
+             * Years
+             * @default []
+             */
+            years: components["schemas"]["SammelYearSchema"][];
+        };
+        /**
+         * SammelYearSchema
+         * @description One Haushalt edition of a Sammel-FinVe compared with the previous one.
+         *     ``previous_year`` is null for the earliest edition read in: its projects
+         *     are all ``kept`` (unknown whether they are new).
+         */
+        SammelYearSchema: {
+            /** Year */
+            year: number;
+            /** Previous Year */
+            previous_year?: number | null;
+            /**
+             * Added
+             * @default []
+             */
+            added: components["schemas"]["ProjectRefSchema"][];
+            /**
+             * Kept
+             * @default []
+             */
+            kept: components["schemas"]["ProjectRefSchema"][];
+            /**
+             * Removed
+             * @default []
+             */
+            removed: components["schemas"]["ProjectRefSchema"][];
         };
         /** SessionCredentials */
         SessionCredentials: {
@@ -11637,6 +11708,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SammelFinveProgressSchema"][];
+                };
+            };
+        };
+    };
+    get_finve_sammel_years_api_v1_finves__finve_id__sammel_years_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                finve_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SammelFinveYearsSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
