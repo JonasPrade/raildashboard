@@ -470,6 +470,26 @@ export interface paths {
         patch: operations["patch_progress_api_v1_projects__project_id__progress_patch"];
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/bauportal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Project Bauportal
+         * @description Confirmed DB-Bauportal entries of a project (public, #287).
+         */
+        get: operations["read_project_bauportal_api_v1_projects__project_id__bauportal_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/progress/observations": {
         parameters: {
             query?: never;
@@ -6219,6 +6239,28 @@ export interface components {
                 [key: string]: number | number[];
             };
         };
+        /**
+         * ProjectBauportalEntrySchema
+         * @description Confirmed Bauportal record shown on the project page (#287).
+         */
+        ProjectBauportalEntrySchema: {
+            /** Id */
+            id: number;
+            /** Bauportal Id */
+            bauportal_id: number;
+            /** Shorttitle */
+            shorttitle: string;
+            /** Status Raw */
+            status_raw?: string | null;
+            /** Mapped Phase */
+            mapped_phase?: string | null;
+            /** Projecttime Raw */
+            projecttime_raw?: string | null;
+            /** Url */
+            url?: string | null;
+            /** Fetched At */
+            fetched_at?: string | null;
+        };
         /** ProjectConstituenciesSchema */
         ProjectConstituenciesSchema: {
             /** Project Id */
@@ -9645,6 +9687,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectProgressSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_project_bauportal_api_v1_projects__project_id__bauportal_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectBauportalEntrySchema"][];
                 };
             };
             /** @description Validation Error */

@@ -191,6 +191,17 @@ export const featureHighlights: FeatureHighlight[] = [
         ]
     },
     {
+        title: "DB-Bauportal auf der Projektseite",
+        description:
+            "Ist ein Projekt einem Eintrag des DB-Bauportals (bauprojekte.deutschebahn.com) zugeordnet und ist diese Zuordnung bestätigt, " +
+            "zeigt die Projektseite die Karte „DB-Bauportal“ mit Link auf die Bauportal-Seite.",
+        details: [
+            "Je Eintrag: Titel als Link (öffnet in neuem Tab), Status, Bauzeit und Abrufdatum („Stand“)",
+            "Die Karte und ihr Eintrag im Inhaltsverzeichnis erscheinen nur, wenn mindestens ein bestätigter Eintrag einen Link hat – sonst fehlt sie ganz",
+            "Unbestätigte Vorschläge aus dem Bauportal-Import werden nicht angezeigt"
+        ]
+    },
+    {
         title: "Infraplan-Import",
         description:
             "Unter Einstellungen → Infraplan-Import lesen Nutzer mit dem Recht infraplan.import den Infraplan des Bundes " +

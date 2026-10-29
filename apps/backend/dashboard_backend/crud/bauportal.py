@@ -133,3 +133,36 @@ def confirm_all(db: Session) -> int:
 
     recompute_for(db, affected)
     return len(rows)
+
+
+def list_confirmed_for_project(db: Session, project_id: int) -> list[dict]:
+    """Confirmed Bauportal entries of one project (public read, #287).
+
+    Unconfirmed suggestions never appear; the title sort keeps the order stable.
+    """
+
+    rows = (
+        db.query(BauportalStatus)
+        .filter(
+            BauportalStatus.project_id == project_id,
+            BauportalStatus.confirmed.is_(True),
+        )
+        .order_by(BauportalStatus.shorttitle, BauportalStatus.id)
+        .all()
+    )
+    result = []
+    for r in rows:
+        phase = bauportal_status_to_main_phase(r.status_raw)
+        result.append(
+            {
+                "id": r.id,
+                "bauportal_id": r.bauportal_id,
+                "shorttitle": r.shorttitle,
+                "status_raw": r.status_raw,
+                "mapped_phase": phase.value if phase is not None else None,
+                "projecttime_raw": r.projecttime_raw,
+                "url": r.url,
+                "fetched_at": r.fetched_at,
+            }
+        )
+    return result

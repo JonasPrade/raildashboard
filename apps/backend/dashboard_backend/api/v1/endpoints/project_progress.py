@@ -11,11 +11,13 @@ from sqlalchemy.orm import Session
 
 from dashboard_backend.api.deps import get_project_or_404
 from dashboard_backend.core.security import require_permission
+from dashboard_backend.crud import bauportal as bauportal_crud
 from dashboard_backend.crud.projects import progress as progress_crud
 from dashboard_backend.database import get_db
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.users import User
 from dashboard_backend.routing.auth_router import AuthRouter
+from dashboard_backend.schemas.bauportal import ProjectBauportalEntrySchema
 from dashboard_backend.schemas.projects.progress_schema import (
     LinkDocumentInput,
     ProgressObservationCreate,
@@ -42,6 +44,15 @@ def read_progress(
 ):
     """Public: derived planning state for a project (lazy-recomputed)."""
     return _view(db, project.id)
+
+
+@router.get("/{project_id}/bauportal", response_model=list[ProjectBauportalEntrySchema])
+def read_project_bauportal(
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+):
+    """Confirmed DB-Bauportal entries of a project (public, #287)."""
+    return bauportal_crud.list_confirmed_for_project(db, project.id)
 
 
 @router.patch("/{project_id}/progress", response_model=ProjectProgressSchema)

@@ -98,6 +98,7 @@ export const queryKeys = {
     infraplanPublicEntries: (year: number) => ["infraplan-public", "entries", year] as const,
     infraplanPublicKpis: ["infraplan-public", "kpis"],
     projectInfraplan: (projectId: number) => ["infraplan-public", "project", projectId] as const,
+    projectBauportal: (projectId: number) => ["project-bauportal", projectId] as const,
     bauportalEntries: ["bauportal-entries"],
     bauportalEntriesFor: (onlyUnconfirmed: boolean) => ["bauportal-entries", onlyUnconfirmed] as const,
     mediaEntries: ["media-entries"],
@@ -1477,6 +1478,16 @@ export function useVibEntry(entryId: number | null) {
 // ---------------------------------------------------------------------------
 
 export type BauportalEntry = components["schemas"]["BauportalEntrySchema"];
+export type ProjectBauportalEntry = components["schemas"]["ProjectBauportalEntrySchema"];
+
+/** Confirmed DB-Bauportal entries of a project (public read, #287). */
+export function useProjectBauportal(projectId: number) {
+    return useQuery({
+        queryKey: queryKeys.projectBauportal(projectId),
+        enabled: Number.isFinite(projectId),
+        queryFn: () => api<ProjectBauportalEntry[]>(`/api/v1/projects/${projectId}/bauportal`),
+    });
+}
 
 export type BauportalUpdatePayload = components["schemas"]["BauportalUpdateInput"];
 
