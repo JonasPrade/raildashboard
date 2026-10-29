@@ -167,3 +167,53 @@ def test_confirm_all(client, create_user, monkeypatch):
     )
     assert resp.status_code == 200
     assert resp.json() == {"confirmed": 14}
+
+
+# --- public project read (#287) ------------------------------------------------
+
+
+def _row(db, bauportal_id: int, project_id, *, confirmed: bool, url="https://example.org/p"):
+    from dashboard_backend.models.projects.bauportal_status import BauportalStatus
+
+    db.add(
+        BauportalStatus(
+            bauportal_id=bauportal_id,
+            shorttitle=f"Projekt {bauportal_id}",
+            status_raw="Projekt in der Bauphase",
+            projecttime_raw="2024 – 2026",
+            url=url,
+            project_id=project_id,
+            confirmed=confirmed,
+        )
+    )
+    db.commit()
+
+
+def test_project_bauportal_public_returns_only_confirmed(client, db_session):
+    from tests.api.test_infraplan_review import project
+
+    p = project(db_session, "Bauportal-Projekt")
+    other = project(db_session, "Anderes Projekt")
+    _row(db_session, 1, p.id, confirmed=True)
+    _row(db_session, 2, p.id, confirmed=True, url=None)
+    _row(db_session, 3, p.id, confirmed=False)  # suggestion only
+    _row(db_session, 4, other.id, confirmed=True)  # other project
+    _row(db_session, 5, None, confirmed=False)
+
+    resp = client.get(f"/api/v1/projects/{p.id}/bauportal")  # no auth header
+    assert resp.status_code == 200
+    body = resp.json()
+    assert [e["bauportal_id"] for e in body] == [1, 2]
+    assert body[0]["mapped_phase"] == "BAU"
+    assert body[0]["url"] == "https://example.org/p"
+    assert body[0]["projecttime_raw"] == "2024 – 2026"
+    assert body[0]["fetched_at"] is not None
+    assert body[1]["url"] is None
+
+
+def test_project_bauportal_empty_and_unknown_project(client, db_session):
+    from tests.api.test_infraplan_review import project
+
+    p = project(db_session, "Ohne Bauportal")
+    assert client.get(f"/api/v1/projects/{p.id}/bauportal").json() == []
+    assert client.get("/api/v1/projects/999999/bauportal").status_code == 404

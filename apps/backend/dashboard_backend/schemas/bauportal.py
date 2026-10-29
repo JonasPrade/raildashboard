@@ -52,3 +52,19 @@ class BauportalConfirmSummary(BaseModel):
     """Result of confirming all assigned entries at once."""
 
     confirmed: int
+
+
+class ProjectBauportalEntrySchema(BaseModel):
+    """Confirmed Bauportal record shown on the project page (#287)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    bauportal_id: int
+    shorttitle: str
+    status_raw: str | None = None
+    # MainPhase the status maps to (None for mixed / umbrella entries).
+    mapped_phase: str | None = None
+    projecttime_raw: str | None = None
+    url: str | None = None
+    fetched_at: datetime | None = None

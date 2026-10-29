@@ -29,6 +29,7 @@ import {
     useDeleteProject,
     useProject,
     useProjectBvwp,
+    useProjectBauportal,
     useProjectGvfg,
     useProjectInfraplan,
     useSubprojects,
@@ -48,6 +49,8 @@ import ProjectFamilyTreeSection from "./ProjectFamilyTreeSection";
 import { ArchiveBanner, ArchiveProjectModal } from "./ProjectArchive";
 import { ProjectRegister, type RegisterSection } from "./ProjectRegister";
 import FinveSection from "./components/FinveSection";
+import BauportalSection from "./components/BauportalSection";
+import { bauportalLinkedEntries } from "./components/bauportalEntries";
 import GvfgSection from "./components/GvfgSection";
 import InfraplanSection from "./components/InfraplanSection";
 import ProjectCostBlock from "./components/ProjectCostBlock";
@@ -168,6 +171,7 @@ export default function ProjectDetail() {
     const infraplanRef = useRef<HTMLDivElement>(null);
     const finveRef = useRef<HTMLDivElement>(null);
     const gvfgRef = useRef<HTMLDivElement>(null);
+    const bauportalRef = useRef<HTMLDivElement>(null);
     const bvwpRef = useRef<HTMLDivElement>(null);
     const vibRef = useRef<HTMLDivElement>(null);
     const superiorRef = useRef<HTMLDivElement>(null);
@@ -186,6 +190,7 @@ export default function ProjectDetail() {
     const { data, isLoading, isError, error } = useProject(projectId);
     const { data: gvfgEntries } = useProjectGvfg(projectId);
     const { data: infraplan } = useProjectInfraplan(projectId);
+    const { data: bauportalEntries } = useProjectBauportal(projectId);
     const { data: bvwpData } = useProjectBvwp(projectId);
 
     const mutation = useMutation({
@@ -435,6 +440,12 @@ export default function ProjectDetail() {
             label: "GVFG",
             ref: gvfgRef,
             visible: (gvfgEntries?.length ?? 0) > 0,
+        },
+        {
+            id: "bauportal",
+            label: "DB-Bauportal",
+            ref: bauportalRef,
+            visible: bauportalLinkedEntries(bauportalEntries).length > 0,
         },
         {
             id: "finve",
@@ -784,6 +795,11 @@ export default function ProjectDetail() {
                 {/* GVFG-Bundesprogramm */}
                 <div ref={gvfgRef}>
                     <GvfgSection projectId={projectId} />
+                </div>
+
+                {/* DB-Bauportal (nur mit bestätigtem Eintrag samt Link) */}
+                <div ref={bauportalRef}>
+                    <BauportalSection projectId={projectId} />
                 </div>
 
                 {/* FinVe */}

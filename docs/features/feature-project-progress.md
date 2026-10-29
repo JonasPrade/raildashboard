@@ -444,8 +444,12 @@ und werden nicht ins Changelog geschrieben.
   sonst weder Karte noch leerer Zustand.
 - Je Eintrag: Titel als externer Link, Status (`status_raw`), Bauzeit (`projecttime_raw`),
   „Stand: <`fetched_at`>“. Unbestätigte Vorschläge erscheinen nicht.
-- Datenquelle: öffentliche Leseroute je Projekt (die `/import/bauportal`-Endpoints verlangen
-  `progress.edit`).
+- Datenquelle: öffentliche Leseroute `GET /api/v1/projects/{id}/bauportal` (Router
+  `project_progress`, ohne `progress.edit`; die `/import/bauportal`-Endpoints verlangen sie).
+  Liefert nur Einträge mit `project_id` und `confirmed` (Titel, Status, `mapped_phase`, Bauzeit,
+  `url`, `fetched_at`); das Frontend blendet Einträge ohne `url` aus
+  (`components/BauportalSection.tsx`, Sichtbarkeitsregel in `bauportalEntries.ts`).
+- Umgesetzt mit #287. Weitere Felder aus `raw_json` sind bewusst nicht übernommen (nicht belegt stabil).
 
 ### Medien/Presse (#48) — halb-automatisch
 
