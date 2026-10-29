@@ -9,6 +9,7 @@ from dashboard_backend.crud.finve_links import (
     update_finve_projects,
 )
 from dashboard_backend.crud.finves import (
+    get_sammel_finve_years,
     list_finves,
     list_sammel_finves_progress,
     set_finve_progress_phase,
@@ -24,7 +25,10 @@ from dashboard_backend.schemas.projects.link_finves_schema import (
     FinveProjectsSchema,
     FinveProjectsUpdate,
 )
-from dashboard_backend.schemas.projects.project_schema import FinveListItemSchema
+from dashboard_backend.schemas.projects.project_schema import (
+    FinveListItemSchema,
+    SammelFinveYearsSchema,
+)
 
 router = AuthRouter()
 
@@ -41,6 +45,16 @@ def get_finves(db: Session = Depends(get_db)):
 def get_sammel_finve_progress(db: Session = Depends(get_db)):
     """Sammel-FinVes with auto-detected vs. manual planning-phase mapping."""
     return list_sammel_finves_progress(db)
+
+
+@router.get("/{finve_id}/sammel-years", response_model=SammelFinveYearsSchema)
+def get_finve_sammel_years(finve_id: int, db: Session = Depends(get_db)):
+    """Year-by-year comparison of a Sammel-FinVe's project list: per Haushalt
+    edition the projects that are new, stay, or dropped out."""
+    result = get_sammel_finve_years(db, finve_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="FinVe not found")
+    return result
 
 
 @router.patch("/{finve_id}/progress-phase", response_model=list[SammelFinveProgressSchema])

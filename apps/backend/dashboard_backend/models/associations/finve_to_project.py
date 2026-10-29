@@ -23,6 +23,8 @@ class FinveToProject(Base):
             'project_id', 'finve_id',
             unique=True,
             postgresql_where=text('haushalt_year IS NULL'),
+            # Mirrors the partial index in the SQLite test database.
+            sqlite_where=text('haushalt_year IS NULL'),
         ),
         # One entry per (project, finve, year) — only when haushalt_year IS NOT NULL
         Index(
@@ -30,5 +32,6 @@ class FinveToProject(Base):
             'project_id', 'finve_id', 'haushalt_year',
             unique=True,
             postgresql_where=text('haushalt_year IS NOT NULL'),
+            sqlite_where=text('haushalt_year IS NOT NULL'),
         ),
     )

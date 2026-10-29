@@ -16,6 +16,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import NamedTuple
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from dashboard_backend.models.associations.progress_track_document import (
@@ -32,6 +33,7 @@ from dashboard_backend.models.projects.progress_enums import (
     SourceType,
 )
 from dashboard_backend.models.associations.finve_to_project import FinveToProject
+from dashboard_backend.models.projects.budget import Budget
 from dashboard_backend.models.projects.finve import Finve
 from dashboard_backend.models.projects.progress_observation import ProgressObservation
 from dashboard_backend.models.projects.project import Project
@@ -651,22 +653,36 @@ def sync_derived_observations_bulk(
 
     # --- FinVe records linked to the projects ---
     finve_rows = (
-        db.query(Finve, FinveToProject.project_id)
+        db.query(Finve, FinveToProject.project_id, FinveToProject.haushalt_year)
         .join(FinveToProject, FinveToProject.finve_id == Finve.id)
         .filter(FinveToProject.project_id.in_(project_ids))
         .all()
     )
-    seen_finve: set[tuple[int, int]] = set()
-    for finve, project_id in finve_rows:
-        if (project_id, finve.id) in seen_finve:
-            continue  # a Sammel-FinVe can have several year-scoped links
-        seen_finve.add((project_id, finve.id))
+    # A Sammel-FinVe has one year-scoped link per Haushalt edition listing the
+    # project: collect them so the observation is dated by its first listing.
+    finve_links: dict[tuple[int, int], tuple[Finve, list[int]]] = {}
+    for finve, project_id, haushalt_year in finve_rows:
+        _, years = finve_links.setdefault((project_id, finve.id), (finve, []))
+        if haushalt_year is not None:
+            years.append(haushalt_year)
+    sammel_ids = {finve.id for finve, _ in finve_links.values() if finve.is_sammel_finve}
+    first_edition: dict[int, int] = {}
+    if sammel_ids:
+        first_edition = dict(
+            db.query(Budget.fin_ve, func.min(Budget.budget_year))
+            .filter(Budget.fin_ve.in_(sammel_ids))
+            .group_by(Budget.fin_ve)
+            .all()
+        )
+    for (project_id, _), (finve, years) in finve_links.items():
         finve_spec = finve_to_spec(
             finve_id=finve.id,
             is_sammel=bool(finve.is_sammel_finve),
             starting_year=finve.starting_year,
             name=finve.name,
             manual_phase=_enum_or_none(MainPhase, finve.progress_phase),
+            listed_years=sorted(years),
+            first_edition_year=first_edition.get(finve.id),
         )
         if finve_spec is not None:  # ambiguous Sammel-FinVe → skipped
             specs_by_project[project_id].append(finve_spec)

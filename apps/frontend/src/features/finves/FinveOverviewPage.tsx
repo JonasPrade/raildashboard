@@ -18,6 +18,7 @@ import { useAuth } from "../../lib/auth";
 import { useFinves, type FinveListItem } from "../../shared/api/queries";
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { FinveBudgetDetails } from "./shared/FinveBudgetDetails";
+import { SammelYearsComparison } from "./shared/SammelYearsComparison";
 import { formatTEuro } from "../../shared/format";
 import { LinkedProjects } from "../../shared/ui/LinkedProjects";
 import { LoadingState } from "../../shared/ui/LoadingState";
@@ -38,6 +39,7 @@ type TypeFilter = "all" | "regular" | "sammel";
 
 function FinveCard({ finve, onEditProjects }: { finve: FinveListItem; onEditProjects?: () => void }) {
     const [open, setOpen] = useState(false);
+    const [yearsOpen, setYearsOpen] = useState(false);
 
     const hasBudgets = finve.budgets.length > 0;
     const lastBudget = finve.budgets.at(-1);
@@ -65,7 +67,9 @@ function FinveCard({ finve, onEditProjects }: { finve: FinveListItem; onEditProj
                     <Group gap="lg" align="flex-start" wrap="wrap">
                         {finve.starting_year != null && (
                             <Stack gap={2} align="flex-end">
-                                <Text size="xs" c="dimmed">Aufnahme</Text>
+                                {/* A Sammel-FinVe's project list is rewritten every year: its
+                                    starting year is when the agreement was concluded. */}
+                                <Text size="xs" c="dimmed">{finve.is_sammel_finve ? "Abgeschlossen" : "Aufnahme"}</Text>
                                 <Text size="sm" fw={600}>{finve.starting_year}</Text>
                             </Stack>
                         )}
@@ -93,6 +97,24 @@ function FinveCard({ finve, onEditProjects }: { finve: FinveListItem; onEditProj
                     <Button size="xs" variant="default" onClick={onEditProjects} style={{ alignSelf: "flex-start" }}>
                         Projekte bearbeiten
                     </Button>
+                )}
+
+                {/* ── Sammel-FinVe: year-by-year project list comparison ──── */}
+                {finve.is_sammel_finve && (
+                    <>
+                        <UnstyledButton
+                            onClick={() => setYearsOpen((o) => !o)}
+                            style={{ alignSelf: "flex-start" }}
+                            aria-expanded={yearsOpen}
+                        >
+                            <Text size="sm" c="blue" style={{ display: "inline-flex", alignItems: "center", gap: 4, userSelect: "none" }}>
+                                {yearsOpen ? <ChevronUp size={16} aria-hidden /> : <ChevronDown size={16} aria-hidden />}
+                                {yearsOpen ? "Jahresvergleich ausblenden" : "Jahresvergleich der Projekte"}
+                            </Text>
+                        </UnstyledButton>
+                        {/* Mounted only when open: the comparison is fetched on demand. */}
+                        {yearsOpen && <SammelYearsComparison finveId={finve.id} />}
+                    </>
                 )}
 
                 {/* ── Expandable charts / budget details ─────────────────── */}

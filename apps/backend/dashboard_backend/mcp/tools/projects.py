@@ -891,6 +891,9 @@ def list_project_finves(
     budget year, including the per-Haushaltstitel breakdown. Amounts in T€.
     ``include_subprojects`` adds the FinVes of all sub-projects, each once;
     those carry ``from_subprojects`` and name the carrying ``subprojects``.
+    A Sammel-FinVe carries ``haushalt_years`` (the Haushalt editions listing the
+    project) and ``listing_label``; its ``starting_year`` is only when the
+    agreement was concluded, not when the project entered it.
     To find FinVes regardless of a project link, use list_finves."""
     get_principal(ctx)
     with tool_session(ctx) as db:
