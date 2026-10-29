@@ -95,7 +95,7 @@ class VibEntryProposed(VibEntryFieldsBase):
     """One Vorhaben as extracted from the VIB PDF."""
 
     vib_section: Optional[str] = None        # e.g. "B.4.1.3"
-    vib_lfd_nr: Optional[str] = None         # sequential number within section
+    vib_lfd_nr: Optional[str] = None         # printed Vorhaben number from the heading, e.g. "14", "06", "7a"
 
     pfa_entries: list[VibPfaEntryProposed] = []
     pfa_raw_markdown: Optional[str] = None  # complete markdown pipe table, unmodified
