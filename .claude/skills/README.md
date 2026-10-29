@@ -22,6 +22,7 @@ Regeln (siehe `AGENT.md` → „Skills“):
 | [`vib-import`](vib-import/SKILL.md) | Liest einen Verkehrsinvestitionsbericht (Abschnitt Schienenwege) per MCP ein oder prüft einen vorhandenen Jahrgang (Bericht, Vorhaben, PFA-Tabelle, Zuordnung mit Begründung, Bestätigung); braucht `vib.import` | MCP (`mcp: true`) |
 | [`infraplan-import`](infraplan-import/SKILL.md) | Führt einen hochgeladenen Infraplan per MCP bis zur Bestätigung (Vorschläge, gesammelte begründete Zuordnung, Teilprojekte, Arbeitsteilung mit Subagenten) und trägt die Kennzahlen aus dem Seitentext ungeprüft ein; braucht `infraplan.import` | MCP (`mcp: true`) |
 | [`gvfg-nacharbeit`](gvfg-nacharbeit/SKILL.md) | Arbeitet eine im Frontend importierte GVFG-Ausgabe per MCP nach (offene Vorhaben zuordnen, Dubletten zusammenführen, Import-Entwürfe prüfen, Zuordnung über alle Ausgaben angleichen); braucht `assignment.manage`, für Bereinigung `project.merge`/`project.create`/`project.edit` | MCP (`mcp: true`) |
+| [`haushalt-nacharbeit`](haushalt-nacharbeit/SKILL.md) | Arbeitet ein im Frontend bestätigtes Haushaltsjahr per MCP nach (FinVes ohne Projekt zuordnen, Sammel-FinVes je Jahr zuordnen, archivierte Zuordnungen umhängen, offene Zeilen zuweisen); braucht `finve.edit`, für offene Zeilen `haushalt.import` | MCP (`mcp: true`) |
 
 ## Einen Skill über den MCP ausliefern
 

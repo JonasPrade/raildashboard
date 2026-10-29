@@ -865,7 +865,7 @@ export function useRevertProjectField(projectId: number) {
             // The reverted field may be the geometry.
             invalidateAfterGeometryChange(queryClient, updatedProject);
             queryClient.invalidateQueries({ queryKey: queryKeys.projectChangelog(projectId) });
-            // A reverted FinVe assignment (``finve_ids``) changes FinVes and planning state.
+            // A reverted FinVe assignment (``finve_ids``, ``sammel_finve_years``) changes FinVes and planning state.
             queryClient.invalidateQueries({ queryKey: queryKeys.projectFinves(projectId) });
             queryClient.invalidateQueries({ queryKey: queryKeys.progressFor(projectId) });
             queryClient.invalidateQueries({ queryKey: queryKeys.finves });

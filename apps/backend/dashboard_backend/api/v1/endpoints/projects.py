@@ -22,6 +22,7 @@ from dashboard_backend.crud.finve_links import (
     set_project_finves,
 )
 from dashboard_backend.crud.finves import get_project_finves_with_budgets
+from dashboard_backend.crud.sammel_finve_links import SAMMEL_YEARS_FIELD, set_project_sammel_years
 from dashboard_backend.crud.projects.archive import (
     ArchiveError,
     archive_project,
@@ -445,6 +446,22 @@ def _revert_finve_ids(db: Session, project: Project, entry, current_user: User) 
     return project
 
 
+def _revert_sammel_years(db: Session, project: Project, entry, current_user: User) -> Project:
+    """Set the project's years in one Sammel-FinVe back to the entry's old list.
+    Guarded by ``finve.edit`` like the permanent FinVe links."""
+    if not current_user.has_permission("finve.edit"):
+        raise HTTPException(status_code=403, detail="Not enough privileges")
+    old = json.loads(entry.old_value or entry.new_value or "{}")
+    try:
+        set_project_sammel_years(
+            db, project.id, old["finve_id"], old.get("years") or [], user=current_user, action="REVERT"
+        )
+    except FinveLinkError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    db.refresh(project)
+    return project
+
+
 @router.post("/{project_id}/changelog/revert", response_model=ProjectSchema)
 def revert_project_field(
     body: RevertFieldRequest,
@@ -460,6 +477,8 @@ def revert_project_field(
     field_name = entry.field_name
     if field_name == FINVE_IDS_FIELD:
         return _revert_finve_ids(db, project, entry, current_user)
+    if field_name == SAMMEL_YEARS_FIELD:
+        return _revert_sammel_years(db, project, entry, current_user)
     if field_name not in ProjectUpdate.model_fields.keys():
         raise HTTPException(status_code=400, detail=f"Unknown field: {field_name}")
 

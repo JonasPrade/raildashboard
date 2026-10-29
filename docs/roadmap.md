@@ -295,7 +295,7 @@ Siehe: `docs/features/feature-new-project-wizard.md`
   Siehe: `docs/features/feature-password-reset.md`
 
 - [ ] **VIB/Haushalt-Matching: Lernen aus manuellen Zuordnungen**
-  *VIB: gelöst (2026-10-20) — `add_vib_entries` schlägt zuerst die bestätigte Zuordnung desselben Vorhabens aus früheren Berichten vor (`feature-vib-import.md` → Phase 7). Offen bleibt Haushalt/FinVe.*
+  *VIB: gelöst (2026-10-20) — `add_vib_entries` schlägt zuerst die bestätigte Zuordnung desselben Vorhabens aus früheren Berichten vor (`feature-vib-import.md` → Phase 7). Haushalt/FinVe teilweise (2026-10-29): `suggest_haushalt_finve_projects` schlägt zur Laufzeit Projekte aus derselben Bedarfsplannummer, anderen Jahren der Sammel-FinVe und Nachfolgern archivierter Zuordnungen vor (`feature-haushalt-import.md` → „Nacharbeit per MCP“); der Parser selbst lernt noch nicht.*
   Der aktuelle Fuzzy-Matching-Algorithmus (`vib_matching.py`, `finve_matching.py`) berechnet Vorschläge einmalig beim Import und hat kein Gedächtnis. Bestätigte Zuordnungen aus vergangenen Importen (Tabellen `vib_entry_project`, `finve_to_project`) könnten als Trainingsgrundlage dienen: Wenn ein Vorhaben-/FinVe-Name bereits früher manuell einem Projekt zugeordnet wurde, sollte diese Entscheidung als starker Hinweis in zukünftigen Importen gewertet werden. Mögliche Ansätze: (a) Exact-/Near-Match gegen historische `(name_raw, project_id)`-Paare vor dem Fuzzy-Scoring; (b) Boost des Fuzzy-Scores für Projekte, die für ähnliche Namen bereits gewählt wurden. Kein Modell-Training nötig — reine Datenbankabfrage zur Parse-Zeit.
 
 - [ ] **CI: Tests in GitHub Actions** *(aus v0.0.5 hierher verschoben)*

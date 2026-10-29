@@ -335,6 +335,40 @@ Neue Titel in künftigen PDFs werden automatisch registriert.
 
 ---
 
+## Nacharbeit per MCP (2026-10-29)
+
+Nach dem Bestätigen bleibt Arbeit, die der Review nicht abdeckt: im Haushalt 2027
+standen 51 FinVes ohne Projekt, davon 31 Sammel-FinVes (SV EKrG, SV Kompensation und
+Grunderwerb, InvKG-Planungs-SVs), deren **Jahres-Zuordnungen** sich nach dem Import
+nirgends mehr bearbeiten ließen. Der Import selbst bleibt im Frontend; nachgearbeitet
+wird per MCP, geführt vom Skill `haushalt-nacharbeit` (`.claude/skills/`).
+
+**Entscheidung (Nutzer, 2026-10-29):** Jahres-Zuordnungen von Sammel-FinVes dürfen nach
+dem Import je Jahr gesetzt werden — vorher galten sie als „kommt nur aus dem Import“
+(`feature-finve-zuordnung.md`, dort angepasst).
+
+| Tool | Wirkung | Recht |
+|---|---|---|
+| `list_haushalt_years` | je Jahr: FinVes, davon ohne Projekt (Sammel-FinVe: ohne nicht archiviertes Projekt in diesem Jahr), offene Zeilen, Importläufe mit Bestätigungsstand | — |
+| `list_haushalt_finves` | FinVes eines Jahres (Standard: neuestes) mit Budgetzeile, Projekten wie sie in dem Jahr zählen, `erlaeuterung_projects` und `review_notes` aus dem bestätigten Lauf; Filter `open_only`, Sammel, Tabelle, Suche | — |
+| `suggest_haushalt_finve_projects` | Kandidaten mit Gründen: Erläuterung, anderes Jahr derselben Sammel-FinVe, archivierte Zuordnung (→ Nachfolger), gleiche Bedarfsplannummer, Namensähnlichkeit | — |
+| `set_sammel_finve_year_projects` | Projekte einer Sammel-FinVe für ein Jahr setzen (optional Folgejahre); archivierte Zuordnungen bleiben als Historie, archivierte Projekte nicht zuordenbar; nur Jahre, in denen die FinVe im Haushalt steht | `finve.edit` |
+| `list_haushalt_unmatched_rows` · `resolve_haushalt_unmatched_row` | offene Zeilen lesen und einer FinVe zuweisen (vermerkt nur die Entscheidung, schreibt keine Werte) | `haushalt.import` |
+
+Feste Zuordnungen regulärer FinVes laufen weiter über `update_finve_projects`.
+
+**Änderungsprotokoll:** Jede geänderte Jahres-Zuordnung schreibt beim Projekt den Eintrag
+`sammel_finve_years` (`{"finve_id": …, "years": […]}` vorher/nachher, Anzeige
+„Sammel-FinVe-Jahre“), zurücksetzbar mit `finve.edit`; danach wird der Planungsstand neu
+berechnet. Code: `crud/sammel_finve_links.py`, `mcp/tools/haushalt.py`, Tests
+`tests/api/test_mcp_haushalt.py`.
+
+**Grenzen:** Werte einer offenen Zeile werden nicht nachträglich importiert (dazu das Jahr
+neu einlesen). Das Lernen aus manuellen Zuordnungen ist ein Vorschlag zur Laufzeit
+(`suggest_haushalt_finve_projects`), der Parser selbst übernimmt es nicht.
+
+---
+
 ## DB-Modelle
 
 - `HaushaltTitel` — Lookup-Tabelle für Haushaltstitel
@@ -355,6 +389,7 @@ Neue Titel in künftigen PDFs werden automatisch registriert.
 | GET | `/api/v1/import/haushalt/parse-result` | Ergebnis abfragen (Polling) |
 | POST | `/api/v1/import/haushalt/confirm` | Import bestätigen |
 | GET/PATCH | `/api/v1/import/haushalt/unmatched` | Ungematchte Zeilen nachbearbeiten |
+| POST | `/api/v1/projects/{id}/changelog/revert` | setzt auch `sammel_finve_years` zurück (`finve.edit`) |
 
 ---
 
@@ -387,6 +422,7 @@ Neue Titel in künftigen PDFs werden automatisch registriert.
 | `tests/unit/test_haushalt_ocr_path.py` | OCR-Pfad end-to-end (Round-Trip), Vergleichslogik und die drei `HAUSHALT_EXTRACTION`-Modi inkl. OCR-Ausfall |
 | `tests/unit/test_haushalt_parser_blocks.py` | Titel-/Nachrichtlich-Blöcke und die Zuordnung der Mittelherkunft über die gedruckten Zeilen |
 | `tests/unit/test_haushalt_upsert.py` | Upsert nach dem Bestätigen |
+| `tests/api/test_mcp_haushalt.py` | MCP-Nacharbeit: offene FinVes je Jahr, Kandidaten, Sammel-FinVe-Jahreszuordnung mit Protokoll und Rücksetzen, offene Zeilen |
 
 Die Fixture `tests/fixtures/haushalt_ep12_2027_pages.json` ist die aufgezeichnete
 pdfplumber-Ausgabe (Seitentext + Tabellenzeilen) von neun repräsentativen Seiten

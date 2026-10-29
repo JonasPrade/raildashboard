@@ -21,9 +21,11 @@ Three places edit the same links through one backend function:
    opens a drawer with the linked projects (remove) and a project search (add).
 
 Only **permanent links** (`finve_to_project.haushalt_year IS NULL`) are edited.
-Year-scoped links of Sammel-FinVes come from the Haushalt import, record which
-project a Sammel-FinVe financed in which year and stay untouched; they are shown
-but cannot be removed here.
+Year-scoped links of Sammel-FinVes come from the Haushalt import and record which
+project a Sammel-FinVe financed in which year; they are shown but cannot be removed
+here. Since 2026-10-29 (user decision) they can be corrected per year after the import
+through the MCP tool `set_sammel_finve_year_projects` (`finve.edit`, changelog field
+`sammel_finve_years`, revertable) — see `feature-haushalt-import.md` → „Nacharbeit per MCP“.
 
 **Archived projects** (`feature-project-archive.md`): archiving requires a project
 without permanent FinVe links, so adding a FinVe to an archived project is refused

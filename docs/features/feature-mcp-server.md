@@ -220,6 +220,9 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `list_finves` | FinVe frei suchen — auch ohne Projektzuordnung: FinVe-Nummer, Name, Bedarfsplannummer, lfd. Nr.; Filter Haushaltsjahr, Sammel-FinVe, mit/ohne Projekt | — |
 | `get_finve` | eine FinVe per Nummer mit Budgethistorie und verknüpften Projekten | — |
 | `update_finve_projects` | Projekte einer FinVe hinzufügen und entfernen, auch bei bereits zugeordneten FinVe; nur feste Verknüpfungen (Jahres-Links der Sammel-FinVe bleiben); Änderungsprotokoll je Projekt (`finve_ids`, zurücksetzbar) und Neuberechnung des Planungsstands (`docs/features/feature-finve-zuordnung.md`) | `finve.edit` |
+| `list_haushalt_years` · `list_haushalt_finves` · `suggest_haushalt_finve_projects` | Haushalt-Nacharbeit lesen: Jahre mit offenen FinVes/Zeilen und Importläufen, FinVes eines Jahres mit Jahres-Projekten und Erläuterung, Kandidaten mit Gründen (siehe `feature-haushalt-import.md` → „Nacharbeit per MCP“) | — |
+| `set_sammel_finve_year_projects` | Projekte einer Sammel-FinVe für ein Haushaltsjahr setzen (optional Folgejahre), Änderungsprotokoll `sammel_finve_years` (zurücksetzbar), Neuberechnung des Planungsstands | `finve.edit` |
+| `list_haushalt_unmatched_rows` · `resolve_haushalt_unmatched_row` | offene Zeilen des Haushaltsimports lesen und einer FinVe zuweisen | `haushalt.import` |
 | `list_gvfg_programs` | GVFG-Ausgaben mit Jahresspalten, Zahl der Vorhaben und der Vorhaben ohne Projekt | — |
 | `list_gvfg_entries` | Vorhaben einer Ausgabe (Standard: neueste) suchen: Schlüssel in jeder Schreibweise, Name, Stadt; Filter Land, kommunal/DB, Teil, Fördertatbestand, mit/ohne Projekt | — |
 | `get_gvfg_entry` | ein Vorhaben mit ∑/A/B/C-Zeilen und Verlauf desselben Schlüssels über alle Ausgaben | — |
