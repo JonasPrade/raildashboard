@@ -59,6 +59,15 @@ export const TIMELINE_COLOR = {
     track: "var(--surface-alt)",
 } as const;
 
+// Sammel-FinVe year comparison (feature-haushalt-import.md → „Jahresvergleich“):
+// a deviation against the previous edition, so the diverging data palette —
+// not status colours. Each column also carries an icon and a heading.
+export const SAMMEL_DIFF_COLOR = {
+    added: "var(--idt-diverge-pos)",
+    kept: "var(--idt-diverge-mid)",
+    removed: "var(--idt-diverge-neg)",
+} as const;
+
 // Tones for status tags and alerts that take a Mantine `color` prop. The values
 // are the DS scales of theme.ts; only red carries colour (Anwendungsebene),
 // "done" is ink-teal plus a check, never green, and there is no yellow.

@@ -332,3 +332,30 @@ def test_project_page_suggests_from_the_subtree(client, mcp_client, admin_token,
     pfas = {(p["nr_pfa"], p["oertlichkeit"]): p for p in response.json()[0]["pfa_entries"]}
     assert pfas[("7.1", "Appenweier-Hohberg")]["suggested_project_id"] == a7.id
     assert pfas[("ESTW", "Buggingen")]["suggested_project_id"] is None
+
+
+def test_add_vib_entries_lfd_nr_is_printed_number(mcp_client, admin_token, db_session):
+    report = _report(mcp_client, admin_token)
+    entries = _payload(_call(mcp_client, admin_token, "add_vib_entries", {"report_id": report["id"], "entries": [
+        _entry_input(vib_section="B.4.2.5", category="neu", pfa_entries=[],
+                     vib_name_raw="Neue Vorhaben Nr. 7 – ABS/NBS München-Rosenheim"),
+        _entry_input(vib_section="B.4.3.1", category="potentiell", pfa_entries=[],
+                     vib_name_raw="Neue Vorhaben/Potentieller Bedarf Nr. 06 – ABS Nürnberg"),
+        _entry_input(vib_section="B.4.3.2", category="potentiell", pfa_entries=[],
+                     vib_name_raw="ABS ohne Nummer"),
+    ]}))["entries"]
+    db_session.expire_all()
+    stored = {
+        e.vib_section: e.vib_lfd_nr
+        for e in db_session.query(VibEntry).filter(VibEntry.id.in_([r["id"] for r in entries]))
+    }
+    assert stored == {"B.4.2.5": "7", "B.4.3.1": "06", "B.4.3.2": None}
+
+
+def test_add_entries_explicit_lfd_nr_wins(mcp_client, admin_token, db_session):
+    report = _report(mcp_client, admin_token)
+    (row,) = vib_agent.add_entries(db_session, report["id"], [{
+        "vib_section": "B.4.3.3", "category": "potentiell", "vib_lfd_nr": "99",
+        "vib_name_raw": "Neue Vorhaben Nr. 8 – ABS Explizit",
+    }])
+    assert db_session.get(VibEntry, row["id"]).vib_lfd_nr == "99"

@@ -18,6 +18,28 @@ from difflib import SequenceMatcher
 from typing import NamedTuple
 
 # ---------------------------------------------------------------------------
+# Printed Vorhaben number
+# ---------------------------------------------------------------------------
+
+# The prefix before the name: "Lfd. Vorhaben Nr. 2 – …", "Lfd. Vorhaben Projekt
+# Nr. 37 – …", "Neues Vorhaben Nr. 12 – …", "Neue Vorhaben/Potentieller Bedarf
+# Nr. 06 – …". Anchored at the start, so later "Nr." in the name (VDE number,
+# "/ Neue Vorhaben Nr. 8", "Potenzieller Bedarf Nr. 16") never count.
+_VORHABEN_NR_RE = re.compile(
+    r"^\s*(?:Lfd\.|Neue[sn]?)\s+Vorhaben(?:\s*/\s*Potentieller\s+Bedarf|\s+Projekt)?"
+    r"\s+Nr\.?\s*(\d+[A-Za-z]?)(?!\w)",
+    re.IGNORECASE,
+)
+
+
+def extract_vib_lfd_nr(name_raw: str | None) -> str | None:
+    """The Vorhaben number as printed in the heading (``vib_name_raw``), verbatim
+    (leading zero and letter suffix kept), or None if the prefix has none."""
+    m = _VORHABEN_NR_RE.match(name_raw or "")
+    return m.group(1) if m else None
+
+
+# ---------------------------------------------------------------------------
 # VDE number extraction
 # ---------------------------------------------------------------------------
 

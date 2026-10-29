@@ -75,6 +75,14 @@ function FinveCard({ finve, action }: { finve: FinveWithBudgets; action?: ReactN
                         <Text size="sm" c="dimmed">{finve.name ?? "–"}</Text>
                     </Group>
                 </Anchor>
+                {finve.listing_label && (
+                    <Text size="xs" c="dimmed">
+                        Gelistet: {finve.listing_label} ·{" "}
+                        <Anchor component={Link} to={`/finanzen/bedarfsplan?q=${finve.id}`} size="xs">
+                            Jahresvergleich
+                        </Anchor>
+                    </Text>
+                )}
                 <SubprojectHint finve={finve} />
                 {action}
             </Stack>

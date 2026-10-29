@@ -127,23 +127,15 @@ def test_suggest_projects_combines_reasons(mcp_client, admin_token, db_session):
 
 def test_set_sammel_year_projects_logs_and_reverts(mcp_client, admin_token, db_session, client, create_user):
     abs38, knoten, old = _seed(db_session)
-    # SQLite turns the partial unique indexes of finve_to_project into full ones,
-    # so a project can hold only one link per FinVe here (Postgres: one per year).
     payload = _payload(_call(mcp_client, admin_token, "set_sammel_finve_year_projects", {
-        "finve_id": 763, "haushalt_year": 2027, "project_ids": [abs38.id],
-        "note": "Erläuterung nennt ABS 38",
+        "finve_id": 763, "haushalt_year": 2026, "project_ids": [abs38.id],
+        "following_years": True, "note": "Erläuterung nennt ABS 38",
     }))
-    # Archived history stays next to the new link.
+    assert sorted(payload["years"]) == ["2026", "2027"]
+    # knoten leaves 2026; the archived 2027 link stays as history next to abs38.
+    assert [p["id"] for p in payload["years"]["2026"]] == [abs38.id]
     assert [p["id"] for p in payload["years"]["2027"]] == [abs38.id, old.id]
-    assert payload["changed_project_ids"] == [abs38.id]
-
-    following = _payload(_call(mcp_client, admin_token, "set_sammel_finve_year_projects", {
-        "finve_id": 763, "haushalt_year": 2026, "project_ids": [], "following_years": True,
-    }))
-    assert sorted(following["years"]) == ["2026", "2027"]
-    assert following["years"]["2026"] == []
-    assert [p["id"] for p in following["years"]["2027"]] == [old.id]
-    assert following["changed_project_ids"] == [abs38.id, knoten.id]
+    assert payload["changed_project_ids"] == [abs38.id, knoten.id]
 
     entry = (
         db_session.query(ChangeLog)
@@ -153,8 +145,8 @@ def test_set_sammel_year_projects_logs_and_reverts(mcp_client, admin_token, db_s
         .entries[0]
     )
     assert entry.field_name == SAMMEL_YEARS_FIELD
-    assert json.loads(entry.old_value) == {"finve_id": 763, "years": [2027]}
-    assert json.loads(entry.new_value) == {"finve_id": 763, "years": []}
+    assert json.loads(entry.old_value) == {"finve_id": 763, "years": []}
+    assert json.loads(entry.new_value) == {"finve_id": 763, "years": [2026, 2027]}
 
     create_user("reverter", "pw", UserRole.admin)
     response = client.post(f"/api/v1/projects/{abs38.id}/changelog/revert",
@@ -162,8 +154,7 @@ def test_set_sammel_year_projects_logs_and_reverts(mcp_client, admin_token, db_s
                            headers=basic_auth_header("reverter", "pw"))
     assert response.status_code == 200, response.text
     db_session.expire_all()
-    links = db_session.query(FinveToProject).filter_by(project_id=abs38.id, finve_id=763).all()
-    assert [link.haushalt_year for link in links] == [2027]
+    assert db_session.query(FinveToProject).filter_by(project_id=abs38.id, finve_id=763).count() == 0
 
 
 def test_set_sammel_year_projects_guards(mcp_client, admin_token, db_session):

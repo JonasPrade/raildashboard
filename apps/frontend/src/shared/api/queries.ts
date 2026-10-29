@@ -56,6 +56,8 @@ export const queryKeys = {
     projectChangelog: (projectId: number) => ["project-changelog", projectId] as const,
     projectTextChangelog: (projectId: number) => ["project-text-changelog", projectId] as const,
     finves: ["finves"],
+    // Nested under `finves`: a FinVe change refreshes the year comparison too.
+    sammelFinveYears: (finveId: number) => ["finves", finveId, "sammel-years"] as const,
     users: ["users"],
     userOptions: ["user-options"],
     roles: ["roles"],
@@ -1080,6 +1082,18 @@ export function useFinves() {
     return useQuery({
         queryKey: queryKeys.finves,
         queryFn: () => api<FinveListItem[]>("/api/v1/finves/"),
+    });
+}
+
+export type SammelFinveYears = components["schemas"]["SammelFinveYearsSchema"];
+export type SammelYear = components["schemas"]["SammelYearSchema"];
+
+/** Per Haushalt edition of a Sammel-FinVe: projects new, kept and dropped. */
+export function useSammelFinveYears(finveId: number, enabled = true) {
+    return useQuery({
+        queryKey: queryKeys.sammelFinveYears(finveId),
+        queryFn: () => api<SammelFinveYears>(`/api/v1/finves/${finveId}/sammel-years`),
+        enabled,
     });
 }
 

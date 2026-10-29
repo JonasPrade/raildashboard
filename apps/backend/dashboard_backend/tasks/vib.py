@@ -17,7 +17,7 @@ from dashboard_backend.schemas.vib import (
     VibParseTaskResult,
     VibPfaEntryProposed,
 )
-from dashboard_backend.tasks.vib_matching import suggest_projects_for_vib_entry
+from dashboard_backend.tasks.vib_matching import extract_vib_lfd_nr, suggest_projects_for_vib_entry
 
 logger = logging.getLogger(__name__)
 
@@ -282,12 +282,6 @@ def _determine_category(section: str) -> str:
     parts = section.split(".")
     parent = ".".join(parts[:3])
     return _CATEGORY_MAP.get(parent, "abgeschlossen")
-
-
-def _extract_lfd_nr(section: str) -> str | None:
-    """Extract the last numeric component as the lfd_nr within its category."""
-    parts = section.split(".")
-    return parts[-1] if parts else None
 
 
 def _parse_toc(full_text: str) -> dict[str, str]:
@@ -686,7 +680,6 @@ def _parse_vib_pdf(
         block_text = rail_text[block_start:block_end]
 
         category = _determine_category(section_nr)
-        lfd_nr = _extract_lfd_nr(section_nr)
 
         # Use the TOC name as canonical vib_name_raw — it is free of two-column
         # layout artefacts that pdfplumber merges onto the heading line in the body.
@@ -783,7 +776,7 @@ def _parse_vib_pdf(
 
         entry = VibEntryProposed(
             vib_section=section_nr,
-            vib_lfd_nr=lfd_nr,
+            vib_lfd_nr=extract_vib_lfd_nr(name_raw),
             vib_name_raw=name_raw,
             category=category,
             verkehrliche_zielsetzung=verkehrliche_text,

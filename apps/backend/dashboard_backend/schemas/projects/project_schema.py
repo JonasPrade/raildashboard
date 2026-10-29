@@ -84,6 +84,13 @@ class FinveWithBudgetsSchema(BaseModel):
     # Permanently linked to the project itself (``haushalt_year IS NULL``) —
     # the only links the project page may remove; Sammel-FinVe year links are not.
     linked_permanently: bool = False
+    # Sammel-FinVe only: the Haushalt editions listing the project (or, with
+    # ``include_subprojects``, one of its descendants), and the earliest edition
+    # read in. ``starting_year`` is when the agreement was concluded, not when
+    # the project entered it — the project list is rewritten every year.
+    haushalt_years: list[int] = []
+    first_edition_year: Optional[int] = None
+    listing_label: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -344,3 +351,22 @@ def _progress_summary(project: Any) -> dict[str, Any]:
         "commissioning_date": progress.commissioning_date,
         "commissioning_precision": progress.commissioning_precision,
     }
+
+
+class SammelYearSchema(BaseModel):
+    """One Haushalt edition of a Sammel-FinVe compared with the previous one.
+    ``previous_year`` is null for the earliest edition read in: its projects
+    are all ``kept`` (unknown whether they are new)."""
+
+    year: int
+    previous_year: Optional[int] = None
+    added: list[ProjectRefSchema] = []
+    kept: list[ProjectRefSchema] = []
+    removed: list[ProjectRefSchema] = []
+
+
+class SammelFinveYearsSchema(BaseModel):
+    finve_id: int
+    name: Optional[str] = None
+    starting_year: Optional[int] = None
+    years: list[SammelYearSchema] = []
