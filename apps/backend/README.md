@@ -152,7 +152,11 @@ and `create_project`, `create_project_group`, `compute_project_length`, `update_
 `edit_project_geometry` (draw lines/points, add operational points, delete features),
 `assign_gvfg_entry` (needs `assignment.manage`: replace a GVFG Vorhaben's projects, optionally
 in every edition), `update_finve_projects` (needs `finve.edit`: add/remove a FinVe's permanent
-project links, logged per project and with the planning state recomputed) (write),
+project links, logged per project and with the planning state recomputed),
+`set_sammel_finve_year_projects` (needs `finve.edit`: set a Sammel-FinVe's projects for one
+Haushalt year, logged as `sammel_finve_years`), `resolve_haushalt_unmatched_row` (needs
+`haushalt.import`) (write; Haushalt follow-up reads: `list_haushalt_years`,
+`list_haushalt_finves`, `suggest_haushalt_finve_projects`, `list_haushalt_unmatched_rows`),
 and `merge_projects` (destructive, needs `project.merge`: merge a duplicate into another
 project, preview by default, `apply=true` deletes the duplicate and leaves a `project_redirect`;
 same logic as `POST /api/v1/projects/merge`, see `docs/features/feature-project-merge.md`).

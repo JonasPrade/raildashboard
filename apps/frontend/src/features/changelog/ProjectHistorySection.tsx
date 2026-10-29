@@ -29,6 +29,7 @@ import { LoadingState } from "../../shared/ui/LoadingState";
 const PROJECT_FIELD_LABELS: Record<string, string> = {
     name: "Name",
     finve_ids: "FinVe-Zuordnung",
+    sammel_finve_years: "Sammel-FinVe-Jahre",
     merged_project: "Zusammengeführt aus",
     project_number: "Projektnummer",
     description: "Beschreibung",
@@ -178,6 +179,18 @@ function formatFinveIds(value: string | null | undefined): string {
     }
 }
 
+// '{"finve_id": 763, "years": [2026, 2027]}' → "FinVe 763: 2026, 2027".
+function formatSammelFinveYears(value: string | null | undefined): string {
+    if (value == null) return "–";
+    try {
+        const parsed = JSON.parse(value) as { finve_id?: number; years?: number[] };
+        const years = parsed.years ?? [];
+        return `FinVe ${parsed.finve_id ?? "?"}: ${years.length ? years.join(", ") : "–"}`;
+    } catch {
+        return value;
+    }
+}
+
 // "{id, name}" of the merged project → "#2754 Ausbau Holzminden – Kreiensen".
 function formatMergedProject(value: string | null | undefined): string {
     if (value == null) return "–";
@@ -196,6 +209,7 @@ function formatEntryValue(
 ): string {
     if (entry.field_name === "project_group_ids") return formatGroupIds(value, groupNames);
     if (entry.field_name === "finve_ids") return formatFinveIds(value);
+    if (entry.field_name === "sammel_finve_years") return formatSammelFinveYears(value);
     if (entry.field_name === MERGED_PROJECT_FIELD) return formatMergedProject(value);
     return formatValue(value);
 }

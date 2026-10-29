@@ -31,6 +31,8 @@ from dashboard_backend.models.associations.finve_to_project import FinveToProjec
 from dashboard_backend.models.guides import GuideSectionOverride
 from dashboard_backend.models.haushalt.budget_titel_entry import BudgetTitelEntry
 from dashboard_backend.models.haushalt.haushalt_titel import HaushaltTitel
+from dashboard_backend.models.haushalt.haushalts_parse_result import HaushaltsParseResult
+from dashboard_backend.models.haushalt.unmatched_budget_row import UnmatchedBudgetRow
 from dashboard_backend.models.infraplan import (
     InfraplanEntry,
     InfraplanEntryProject,
@@ -174,6 +176,8 @@ TABLES = [
     Budget.__table__,  # must follow finve (FK dependency)
     HaushaltTitel.__table__,  # must precede BudgetTitelEntry (FK dependency)
     BudgetTitelEntry.__table__,  # must follow budgets + haushalt_titel
+    HaushaltsParseResult.__table__,  # must follow users; MCP Haushalt follow-up
+    UnmatchedBudgetRow.__table__,  # must follow finve
     BauportalStatus.__table__,  # read by sync_derived_observations
     MediaReport.__table__,
     Document.__table__,  # progress view (PF/parl documents)
