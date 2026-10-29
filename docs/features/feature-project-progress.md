@@ -437,6 +437,16 @@ und werden nicht ins Changelog geschrieben.
   deren Beobachtungen erhalten bleiben. `PATCH /entries/{id}` (`update_entry`) setzt `project_id`
   und/oder `confirmed`; Löschen der Zuordnung nimmt automatisch die Bestätigung zurück.
 
+#### Anzeige auf der Projektseite (#287)
+
+- Eigene Karte **„DB-Bauportal“** auf der Projektdetailseite (plus Eintrag im Inhaltsverzeichnis),
+  **nur** wenn mindestens ein bestätigter Eintrag (`project_id` gesetzt, `confirmed`) eine `url` hat —
+  sonst weder Karte noch leerer Zustand.
+- Je Eintrag: Titel als externer Link, Status (`status_raw`), Bauzeit (`projecttime_raw`),
+  „Stand: <`fetched_at`>“. Unbestätigte Vorschläge erscheinen nicht.
+- Datenquelle: öffentliche Leseroute je Projekt (die `/import/bauportal`-Endpoints verlangen
+  `progress.edit`).
+
 ### Medien/Presse (#48) — halb-automatisch
 
 - **Roh-Tabelle `media_report`:** `url`, `publication`, `published_date`, `raw_text`,
