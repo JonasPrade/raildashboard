@@ -27,6 +27,7 @@ from dashboard_backend.models.vib.vib_pfa_entry import VibPfaEntry
 from dashboard_backend.models.vib.vib_report import VibReport
 from dashboard_backend.tasks.vib_matching import (
     PfaSuggestion,
+    extract_vib_lfd_nr,
     pfa_row_key,
     place_stop_tokens,
     rank_projects_for_vib_entry,
@@ -550,7 +551,7 @@ def add_entries(db: Session, report_id: int, items: list[dict]) -> list[dict]:
             pfa_entries=pfa_rows,
         )
         if item.get("vib_lfd_nr") is None:
-            entry.vib_lfd_nr = item["vib_section"].rsplit(".", 1)[-1]
+            entry.vib_lfd_nr = extract_vib_lfd_nr(item["vib_name_raw"])
         if prefill:
             entry.assignment_note = AUTO_SUGGESTION_NOTE.format(reason=prefill[0]["reason"])
         db.add(entry)
