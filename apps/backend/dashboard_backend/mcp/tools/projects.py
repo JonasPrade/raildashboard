@@ -62,6 +62,7 @@ from dashboard_backend.crud.projects.progress import BEDARFSPLAN_GROUP_SHORT_NAM
 from dashboard_backend.mcp.context import get_principal, load_user, require, tool_session
 from dashboard_backend.models.associations.project_to_project_group import ProjectToProjectGroup
 from dashboard_backend.models.change_tracking import ChangeLog
+from dashboard_backend.models.projects.bauportal_status import BauportalStatus
 from dashboard_backend.models.infraplan import (
     InfraplanEntry,
     InfraplanEntryProject,
@@ -863,6 +864,19 @@ def get_project(project_id: int, *, ctx: Context) -> dict[str, Any]:
         return data
 
 
+def _add_bauportal_refs(db: Session, observations: list[dict[str, Any]]) -> None:
+    """Name the DB-Bauportal entry behind each derived BAUPORTAL observation."""
+    ids = {o["bauportal_status_id"] for o in observations if o.get("bauportal_status_id")}
+    if not ids:
+        return
+    rows = db.query(BauportalStatus).filter(BauportalStatus.id.in_(ids)).all()
+    by_id = {r.id: r for r in rows}
+    for o in observations:
+        row = by_id.get(o.get("bauportal_status_id"))
+        if row is not None:
+            o["bauportal"] = {"id": row.id, "shorttitle": row.shorttitle, "url": row.url}
+
+
 def get_project_progress(project_id: int, *, ctx: Context) -> dict[str, Any]:
     """Planning state (Planungsstand): effective phase, parallel tracks (PF,
     parliament), observations with their trust and role (decisive, lower bound,
@@ -876,12 +890,17 @@ def get_project_progress(project_id: int, *, ctx: Context) -> dict[str, Any]:
     assumed date came about. Fix the precision of a manual observation with
     update_progress_observation.
     ``forecast.ibn_doubt`` set → the GVFG-Finanzreihe still funds the project
-    after the known Inbetriebnahme year; question that year and cite it."""
+    after the known Inbetriebnahme year; question that year and cite it.
+    A derived BAUPORTAL observation carries ``bauportal_status_id`` and
+    ``bauportal`` (id, shorttitle, url) — the entry behind it
+    (get_bauportal_entry)."""
     get_principal(ctx)
     with tool_session(ctx) as db:
         _project_or_error(db, project_id)
         view = progress_crud.get_progress_view(db, project_id)
-        return ProjectProgressSchema.model_validate(view).model_dump(mode="json")
+        data = ProjectProgressSchema.model_validate(view).model_dump(mode="json")
+        _add_bauportal_refs(db, data.get("observations", []))
+        return data
 
 
 def list_project_finves(

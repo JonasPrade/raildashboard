@@ -6205,6 +6205,8 @@ export interface components {
              * @default false
              */
             is_expected: boolean;
+            /** Bauportal Status Id */
+            bauportal_status_id?: number | null;
             /** Username Snapshot */
             username_snapshot?: string | null;
             /**

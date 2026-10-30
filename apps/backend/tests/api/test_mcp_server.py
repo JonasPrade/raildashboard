@@ -232,6 +232,9 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
         "set_infraplan_kpi_values",
         "get_project_infraplan",
         "list_skills",
+        "list_bauportal_entries",
+        "get_bauportal_entry",
+        "assign_bauportal_entry",
         "get_skill",
     }
     by_name = {tool["name"]: tool for tool in tools}

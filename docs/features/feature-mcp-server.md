@@ -98,7 +98,7 @@ konfigurierbaren Headern (Claude Code) funktionieren schon vorher.
 **Out of scope:**
 
 - OAuth / Authentik-Anbindung (eigenes Thema, siehe oben).
-- MCP-Tools für die übrigen Importe (Haushalt, Bauportal, Medien) — erlaubt
+- MCP-Tools für die übrigen Importe (Medien) — erlaubt
   (siehe oben), aber noch nicht gebaut.
 - Löschen von Projekten oder anderen Stammdaten über MCP (einzelne Geometrie-Features
   schon, siehe `edit_project_geometry`).
@@ -257,6 +257,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `list_data_gaps` | Projekte mit fehlenden/veralteten Daten, Lücken je Projekt und Zählung (siehe *Datenpflege*) | — |
 | `check_geometry` | Geometrie-Plausibilität für ein Projekt oder eine Gruppe (siehe *Datenpflege*) | — |
 | `check_project_data` | Prüfliste Stammdaten: doppelte Projektnummern, namensgleiche Teilprojekte, GVFG-Ländercode ≠ Land, Teilmaßnahmen ohne Namen (siehe `feature-infraplan-import.md` → „Datenqualität“) | — |
+| `list_bauportal_entries` · `get_bauportal_entry` · `assign_bauportal_entry` | DB-Bauportal-Einträge lesen (Filter Titel, Projekt, unbestätigt, ohne Projekt; einzeln mit `raw_json` und abgeleiteter Phase) und Zuordnung setzen/lösen/bestätigen wie `PATCH /import/bauportal/entries/{id}`; Bestätigen materialisiert die BAUPORTAL-Beobachtung neu. Der Abruf der externen API bleibt im Admin-Bereich. Eine abgeleitete BAUPORTAL-Beobachtung in `get_project_progress` trägt `bauportal_status_id` und `bauportal` (id, Titel, Link) | `progress.edit` |
 | `list_skills` | Skills für die Arbeit über den MCP (Name, Beschreibung), siehe *Skills über MCP* | — |
 | `get_skill` | Anleitung eines Skills (Text der `SKILL.md`, optional eine Begleitdatei) | — |
 | `create_todo` | Aufgabe anlegen, optional mit `tags` | `todo.create` |

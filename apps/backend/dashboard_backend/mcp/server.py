@@ -47,6 +47,8 @@ INSTRUCTIONS = (
     "Infraplan (Fünfjahresplan des Bundes): Einträge eines Projekts über alle "
     "Jahrgänge mit get_project_infraplan; den Import eines hochgeladenen Jahrgangs "
     "führt der Skill infraplan-import. "
+    "DB-Bauportal: Einträge mit list_bauportal_entries / get_bauportal_entry, Projekt "
+    "zuordnen und bestätigen mit assign_bauportal_entry. "
     "Schreibende Tools wirken sofort und stehen im Änderungsprotokoll. "
     "Ersetzte oder überholte Projekte mit archive_project archivieren (nicht auf "
     "Entwurf setzen; ersetzt genau ein Projekt das alte, replaced_by_project_id "
