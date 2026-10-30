@@ -28,6 +28,7 @@ def writable_dirs(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "upload_dir", str(tmp_path / "uploads"))
     monkeypatch.setattr(settings, "import_staging_dir", str(tmp_path / "staging"))
     monkeypatch.setattr(settings, "infraplan_pdf_dir", str(tmp_path / "infraplan"))
+    monkeypatch.setattr(settings, "condition_pdf_dir", str(tmp_path / "zustandsbericht"))
     return tmp_path
 
 
@@ -96,3 +97,12 @@ def test_healthz_fails_when_infraplan_pdf_dir_is_not_writable(client, writable_d
     resp = client.get("/healthz")
     assert resp.status_code == 503
     assert resp.json()["problems"] == ["infraplan_pdf_dir"]
+
+
+def test_healthz_fails_when_condition_pdf_dir_is_not_writable(client, writable_dirs, monkeypatch):
+    blocker = writable_dirs / "a-file"
+    blocker.write_text("")
+    monkeypatch.setattr(settings, "condition_pdf_dir", str(blocker / "zustandsbericht"))
+    resp = client.get("/healthz")
+    assert resp.status_code == 503
+    assert resp.json()["problems"] == ["condition_pdf_dir"]

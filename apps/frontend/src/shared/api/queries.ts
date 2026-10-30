@@ -100,6 +100,16 @@ export const queryKeys = {
     infraplanPublicEntries: (year: number) => ["infraplan-public", "entries", year] as const,
     infraplanPublicKpis: ["infraplan-public", "kpis"],
     projectInfraplan: (projectId: number) => ["infraplan-public", "project", projectId] as const,
+    // InfraGO-Zustandsbericht: public views under one prefix, the import views under another.
+    conditionPublic: ["condition-public"],
+    conditionPublicReports: ["condition-public", "reports"],
+    conditionPublicYear: (year: number) => ["condition-public", "year", year] as const,
+    conditionPublicSeries: ["condition-public", "series"],
+    conditionImport: ["condition-import"],
+    conditionImportReports: ["condition-import", "reports"],
+    conditionImportValues: (year: number) => ["condition-import", "values", year] as const,
+    conditionImportCheck: (year: number) => ["condition-import", "check", year] as const,
+    conditionImportClasses: ["condition-import", "classes"],
     projectBauportal: (projectId: number) => ["project-bauportal", projectId] as const,
     bauportalEntries: ["bauportal-entries"],
     bauportalEntriesFor: (onlyUnconfirmed: boolean) => ["bauportal-entries", onlyUnconfirmed] as const,
@@ -2661,5 +2671,131 @@ export function useAssignInfraplanEntry() {
             queryKeys.infraplanPublic,
             queryKeys.progress,
         ],
+    );
+}
+
+// ---------------------------------------------------------------------------
+// InfraGO-Zustandsbericht (docs/features/feature-zustandsbericht.md)
+// ---------------------------------------------------------------------------
+
+export type ConditionPublicReport = components["schemas"]["ConditionPublicReport"];
+export type ConditionPublicYear = components["schemas"]["ConditionPublicYear"];
+export type ConditionAssetClass = components["schemas"]["ConditionAssetClassSchema"];
+export type ConditionValue = components["schemas"]["ConditionValueSchema"];
+export type ConditionSeriesValue = components["schemas"]["ConditionSeriesValue"];
+export type ConditionReport = components["schemas"]["ConditionReportSchema"];
+export type ConditionCheckResult = components["schemas"]["ConditionCheckResult"];
+export type ConditionReportCreate = components["schemas"]["ConditionReportCreate"];
+
+const CONDITION = "/api/v1/condition";
+const CONDITION_IMPORT = "/api/v1/import/condition";
+
+export function useConditionPublicReports() {
+    return useQuery({
+        queryKey: queryKeys.conditionPublicReports,
+        queryFn: () => api<ConditionPublicReport[]>(`${CONDITION}/reports`),
+    });
+}
+
+export function useConditionPublicYear(year: number | null) {
+    return useQuery({
+        queryKey: queryKeys.conditionPublicYear(year ?? 0),
+        enabled: year !== null,
+        queryFn: () => api<ConditionPublicYear>(`${CONDITION}/reports/${year}`),
+    });
+}
+
+export function useConditionPublicSeries() {
+    return useQuery({
+        queryKey: queryKeys.conditionPublicSeries,
+        queryFn: () => api<ConditionSeriesValue[]>(`${CONDITION}/series`),
+    });
+}
+
+/** URL of a rendered page of a report's PDF (cookie auth, usable as <img src>). */
+export function conditionPageImageUrl(year: number, page: number, apiBase: string): string {
+    return `${apiBase}${CONDITION_IMPORT}/reports/${year}/page/${page}.png`;
+}
+
+export function useConditionImportReports() {
+    return useQuery({
+        queryKey: queryKeys.conditionImportReports,
+        queryFn: () => api<ConditionReport[]>(`${CONDITION_IMPORT}/reports`),
+    });
+}
+
+export function useConditionImportValues(year: number) {
+    return useQuery({
+        queryKey: queryKeys.conditionImportValues(year),
+        queryFn: () => api<ConditionValue[]>(`${CONDITION_IMPORT}/reports/${year}/values`),
+    });
+}
+
+export function useConditionImportCheck(year: number) {
+    return useQuery({
+        queryKey: queryKeys.conditionImportCheck(year),
+        queryFn: () => api<ConditionCheckResult>(`${CONDITION_IMPORT}/reports/${year}/check`),
+    });
+}
+
+export function useConditionImportClasses() {
+    return useQuery({
+        queryKey: queryKeys.conditionImportClasses,
+        queryFn: () => api<ConditionAssetClass[]>(`${CONDITION_IMPORT}/classes`),
+    });
+}
+
+export function useCreateConditionReport() {
+    return useInvalidatingMutation(
+        (body: ConditionReportCreate) =>
+            api<ConditionReport>(`${CONDITION_IMPORT}/reports`, { method: "POST", json: body }),
+        [queryKeys.conditionImport],
+    );
+}
+
+export function useUploadConditionPdf() {
+    return useInvalidatingMutation(
+        ({ year, pdf }: { year: number; pdf: File }) => {
+            const form = new FormData();
+            form.append("pdf", pdf);
+            return api<ConditionReport>(`${CONDITION_IMPORT}/reports/${year}/pdf`, { method: "POST", body: form });
+        },
+        [queryKeys.conditionImport],
+    );
+}
+
+export function useCorrectConditionValue() {
+    return useInvalidatingMutation(
+        ({ id, value }: { id: number; year: number; value: number }) =>
+            api<components["schemas"]["ConditionValueCorrectionResult"]>(`${CONDITION_IMPORT}/values/${id}`, {
+                method: "PATCH",
+                json: { value },
+            }),
+        (_data, { year }) => [queryKeys.conditionImportValues(year), queryKeys.conditionImportCheck(year), queryKeys.conditionPublic],
+    );
+}
+
+export function useDeleteConditionValue() {
+    return useInvalidatingMutation(
+        ({ id }: { id: number; year: number }) =>
+            api<void>(`${CONDITION_IMPORT}/values/${id}`, { method: "DELETE" }),
+        (_data, { year }) => [queryKeys.conditionImportValues(year), queryKeys.conditionImportCheck(year), queryKeys.conditionPublic],
+    );
+}
+
+export function useReleaseConditionReport() {
+    return useInvalidatingMutation(
+        (year: number) =>
+            api<components["schemas"]["ConditionReleaseResult"]>(`${CONDITION_IMPORT}/reports/${year}/release`, {
+                method: "POST",
+            }),
+        [queryKeys.conditionImport, queryKeys.conditionPublic],
+    );
+}
+
+export function useDeleteConditionReport() {
+    return useInvalidatingMutation(
+        (year: number) => api<void>(`${CONDITION_IMPORT}/reports/${year}`, { method: "DELETE" }),
+        [queryKeys.conditionImport, queryKeys.conditionPublic],
     );
 }

@@ -31,6 +31,14 @@ os.environ.setdefault(
     "INFRAPLAN_PDF_DIR",
     os.path.join(tempfile.gettempdir(), "raildashboard-test-infraplan"),
 )
+os.environ.setdefault(
+    "CONDITION_PDF_DIR",
+    os.path.join(tempfile.gettempdir(), "raildashboard-test-zustandsbericht"),
+)
+os.environ.setdefault(
+    "CONDITION_PDF_DIR",
+    os.path.join(tempfile.gettempdir(), "raildashboard-test-zustandsbericht"),
+)
 
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))

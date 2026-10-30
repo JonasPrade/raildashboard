@@ -85,6 +85,7 @@ export function Header() {
         { to: "/", label: "Projekte", end: true, visible: true },
         { to: "/finanzen", label: "Finanzen", visible: true },
         { to: "/infraplan", label: "Infraplan", visible: true },
+        { to: "/netzzustand", label: "Netzzustand", visible: true },
         { to: "/abgeordnete", label: "Abgeordnete", visible: user !== null },
         { to: "/tasks", label: "Aufgaben", visible: user !== null, count: openTodoList.length, overdue: todosOverdue },
         { to: "/admin", label: "Einstellungen", visible: canAdmin, count: totalUnassigned },

@@ -1,6 +1,6 @@
 # dashboard_backend/api/v1/api.py
 from fastapi import APIRouter
-from .endpoints import auth, health, operational_points, project_routes, project_texts, projects, project_groups, project_progress, users, tasks, todos, haushalt_import, finves, settings, vib_import, bauportal_import, media_import, fulda_import, infraplan_import, infraplan, admin_assignments, roles, permissions, guides, parliament, api_keys, gvfg, system
+from .endpoints import auth, health, operational_points, project_routes, project_texts, projects, project_groups, project_progress, users, tasks, todos, haushalt_import, finves, settings, vib_import, bauportal_import, media_import, fulda_import, infraplan_import, infraplan, admin_assignments, roles, permissions, guides, parliament, api_keys, gvfg, system, condition
 
 api_router = APIRouter()
 api_router.include_router(health.router, tags=["health"])
@@ -32,3 +32,5 @@ api_router.include_router(parliament.router, prefix="/parliament", tags=["parlia
 api_router.include_router(api_keys.router, prefix="/api-keys", tags=["api-keys"])
 api_router.include_router(gvfg.import_router, prefix="/import/gvfg", tags=["gvfg-import"])
 api_router.include_router(gvfg.router, prefix="/gvfg", tags=["gvfg"])
+api_router.include_router(condition.import_router, prefix="/import/condition", tags=["condition-import"])
+api_router.include_router(condition.router, prefix="/condition", tags=["condition"])

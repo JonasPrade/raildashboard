@@ -1,0 +1,300 @@
+/* /netzzustand (feature-zustandsbericht.md → "Darstellung"); tokens only (docs/DESIGN.md). */
+
+.card {
+    border: 2px solid var(--border-frame);
+    padding: 16px;
+    min-width: 0;
+}
+
+.two {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: 20px;
+}
+
+.sectionHead {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+}
+
+.legend {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    font-size: 13.5px;
+    color: var(--text-muted);
+}
+
+.swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-right: 6px;
+    vertical-align: -1px;
+    border: 1px solid var(--border-strong);
+}
+
+.dist {
+    display: flex;
+    height: 18px;
+    border: 1px solid var(--border-strong);
+    overflow: hidden;
+    min-width: 0;
+}
+
+.dist > span {
+    height: 100%;
+}
+
+.badge {
+    display: inline-grid;
+    place-items: center;
+    min-width: 56px;
+    height: 30px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    border: 2px solid var(--border-frame);
+}
+
+/* Asset classes */
+.head,
+.row {
+    display: grid;
+    grid-template-columns: minmax(150px, 1.3fr) 72px minmax(160px, 2.4fr) 80px 170px;
+    gap: 14px;
+    align-items: center;
+}
+
+.head {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0 10px 8px;
+    border-bottom: 2px solid var(--border-frame);
+}
+
+.sortButton {
+    all: unset;
+    cursor: pointer;
+}
+
+.sortButton:focus-visible,
+.row:focus-visible,
+.tile:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+
+.row {
+    min-height: var(--row-h, 48px);
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+}
+
+.row:hover {
+    background: var(--surface-alt);
+}
+
+.selected {
+    background: var(--idt-violet-soft);
+}
+
+.total {
+    font-weight: 700;
+    background: var(--surface-sunken);
+    cursor: default;
+}
+
+.total:hover {
+    background: var(--surface-sunken);
+}
+
+.name {
+    font-weight: 600;
+    min-width: 0;
+}
+
+.sub {
+    display: block;
+    font-weight: 400;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-size: 14.5px;
+}
+
+.bar {
+    height: 4px;
+    background: var(--idt-chart-1);
+    margin-top: 4px;
+    margin-left: auto;
+}
+
+.muted {
+    color: var(--text-muted);
+    font-size: 13.5px;
+}
+
+.tableWrap {
+    overflow-x: auto;
+}
+
+.detailTable {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 14.5px;
+    font-variant-numeric: tabular-nums;
+}
+
+.detailTable th,
+.detailTable td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    text-align: right;
+    white-space: nowrap;
+}
+
+.detailTable th:first-child,
+.detailTable td:first-child {
+    text-align: left;
+}
+
+.detailTable th {
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+    border-bottom: 2px solid var(--border-frame);
+}
+
+/* Länder */
+.tiles {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 6px;
+    max-width: 460px;
+}
+
+.tile {
+    aspect-ratio: 1 / 0.82;
+    max-width: 100%;
+    border: 2px solid var(--border-frame);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 6px 7px;
+    cursor: pointer;
+    min-width: 0;
+    color: var(--idt-ink);
+}
+
+.tile b {
+    font-size: 13px;
+    letter-spacing: 0.06em;
+}
+
+.tile span {
+    font-size: 17px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.tileStrong {
+    color: var(--idt-paper);
+}
+
+.tileSelected {
+    outline: 3px solid var(--accent-primary);
+    outline-offset: 1px;
+}
+
+.rankRow {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 2fr) 48px;
+    gap: 10px;
+    align-items: center;
+    min-height: 30px;
+    font-size: 14.5px;
+    border-bottom: 1px solid var(--border);
+}
+
+.rankTrack {
+    height: 12px;
+    background: var(--idt-chart-track);
+    position: relative;
+}
+
+.rankTrack > i {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: var(--idt-chart-1);
+}
+
+.rankTrack > em {
+    position: absolute;
+    top: -3px;
+    bottom: -3px;
+    width: 2px;
+    background: var(--text-strong);
+}
+
+@media (max-width: 62em) {
+    .two {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 48em) {
+    .head {
+        display: none;
+    }
+
+    .row {
+        grid-template-columns: minmax(0, 1fr) 72px;
+        grid-template-areas:
+            "name badge"
+            "dist dist"
+            "wbw need";
+        row-gap: 6px;
+    }
+
+    .row > :nth-child(1) { grid-area: name; }
+    .row > :nth-child(2) { grid-area: badge; }
+    .row > :nth-child(3) { grid-area: dist; }
+    .row > :nth-child(4) { grid-area: wbw; text-align: left; }
+    .row > :nth-child(5) { grid-area: need; }
+
+    .row > :nth-child(4) .bar {
+        margin-left: 0;
+    }
+
+    .tiles {
+        gap: 4px;
+    }
+
+    .tile {
+        padding: 3px 4px;
+        border-width: 1px;
+    }
+
+    .tile b {
+        font-size: 10.5px;
+    }
+
+    .tile span {
+        font-size: 12.5px;
+    }
+}

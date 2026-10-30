@@ -1,6 +1,8 @@
 # Feature: InfraGO-Zustandsbericht — Netzzustand über MCP + Skill
 
-> **Status: geplant** (2026-10-30). Entscheidungen EK 1–4 siehe [Entscheidungen](#entscheidungen).
+> **Status: umgesetzt** (2026-10-30, #330) — Stufen 1–4. Stufe 5 (Altjahrgänge 2021–2024) und das
+> Einlesen des Jahrgangs 2025 sind Datenarbeit nach dem Deploy (Agent + Skill, Freigabe durch einen
+> Menschen). Entscheidungen EK 1–4 siehe [Entscheidungen](#entscheidungen).
 > Prototyp der Darstellung: `docs/features/zustandsbericht/prototyp.html`
 > (veröffentlicht als Artefakt https://claude.ai/artifact/6xqhcvrA65hb8B1TJMHyBE), gefüllt mit
 > den echten Werten des Berichts 2025.
@@ -105,8 +107,15 @@ Summenprüfung unlesbar machen. Das Muster (Langformat, Status, Freigabe) übern
    - Notenverteilung in Mengen summiert auf `MENGE_BEWERTET` (± 0);
    - Summe der Klassen-WBW = Gesamt-WBW ± 0,3 Mrd. €;
    - `MENGE_BEWERTET` ≤ `MENGE_GESAMT`; Note in [1, 6];
-   - Note ≈ gewichtetes Mittel der Verteilung (± 0,1) als Warnung, nicht als Fehler
-     (die DB rechnet auf Einzelanlagenebene).
+   - Noten 4–6 (Mengen) = `ERNEUERUNGSBEDARF_MENGE`;
+   - kein Abgleich Note ↔ gewichtetes Mittel der Verteilung: die DB rechnet auf
+     Einzelanlagenebene mit stetigen Noten, die Abweichung ist groß (Brücken 2025: 2,64
+     gegen 2,16).
+   Toleranzen: Prozent ± 0,3, Mengen ± max(2; 0,2 %), Mrd. € ± max(0,3; 0,2 %).
+   Empfangsgebäude zählen nicht in die Summen (Tab. 7 schließt sie aus).
+   **Der Bericht 2025 selbst geht an einer Stelle nicht auf:** Stellwerke im Gesamtnetz
+   (Tab. 5) — Mengen je Note 45 + 348 + 1.042 + 1.280 + 707 + 39 = 3.461, bewertete Menge
+   3.686. Diese Tabelle geht nur mit `override_reason` durch.
 5. Bundesländer: Noten aus Abb. 31 (Text), Verteilungen je Land aus Abb. 32/33 nur, wenn
    ablesbar — sonst weglassen (kein Schätzen).
 6. Agent meldet: geschrieben / Warnungen / nicht ablesbar. **Kein Freigeben durch den Agenten**
@@ -120,35 +129,45 @@ Layout wäre ein Parser je Jahrgang teurer als der Prüfaufwand (EK 1).
 
 ### MCP-Tools
 
-Neues Modul `mcp/tools/condition.py`; Recht `condition.import` (neu, Gruppe Finanzierung →
-besser neue Gruppe „Netz“? — siehe Offene Punkte), an die Editor-Systemrolle vergeben.
+Modul `mcp/tools/condition.py`; Recht `condition.import` (Gruppe „Inhalte“), an die
+Editor-Systemrolle vergeben. Die Tools adressieren den Jahrgang über `year`.
 
 | Tool | Art | Zweck |
 |---|---|---|
 | `list_condition_reports` | lesend | Jahrgänge mit Status, Zählern (Werte gesamt/ungeprüft) |
 | `create_condition_report(year, title, source_url, …)` | schreibend | Jahrgang anlegen |
-| `get_condition_page_text(report_id, page)` / `get_condition_page_image(report_id, page)` | lesend | Seite als Text bzw. Bild |
+| `get_condition_page_text(year, page)` / `get_condition_page_image(year, page)` | lesend | Seite als Text (Layout wie beim Infraplan) bzw. Bild |
 | `list_condition_classes(domain?)` | lesend | Anlagenklassen mit Schlüssel, Einheit, Gewerk |
 | `create_condition_class(key, domain, …, reason)` | schreibend | neue Klasse (nur mit Begründung) |
-| `set_condition_values(report_id, domain, scope, region?, values[])` | schreibend | Werte einer Tabelle setzen (ersetzt bestehende gleiche Schlüssel), Summenprüfung |
-| `get_condition_values(report_id, filters)` | lesend | Werte lesen, z. B. für den Abgleich mit dem Vorjahr |
-| `check_condition_report(report_id)` | lesend | alle Prüfungen über den Jahrgang, Lücken je Tabelle |
+| `set_condition_values(year, domain, scope, values[], region?, override_reason?)` | schreibend | Werte einer Tabelle setzen (ersetzt gleiche Schlüssel, `value: null` entfernt), Summenprüfung zusammen mit dem Gespeicherten; schlägt sie fehl, wird nichts geschrieben — außer mit `override_reason`, wenn der gedruckte Bericht selbst nicht aufgeht (steht dann in `accepted_mismatches` am Jahrgang) |
+| `get_condition_values(year, domain?, scope?, metric?)` | lesend | Werte lesen, z. B. für den Abgleich mit dem Vorjahr |
+| `check_condition_report(year)` | lesend | alle Prüfungen über den Jahrgang, angenommene Abweichungen, Lücken |
 
 ### REST-API
 
-Prefix `/condition`:
-- öffentlich: `GET /reports` (nur freigegebene), `GET /reports/{year}/values` (nur `GEPRUEFT`),
-  `GET /series?metric=NOTE&scope=GESAMT` (Zeitreihe über Jahrgänge)
-- `condition.import`: `POST /import/condition/report` (PDF), `GET /import/condition/{year}`,
-  `PATCH /import/condition/value/{id}`, `POST /import/condition/{year}/release`,
-  `DELETE /import/condition/{year}`
+- öffentlich, Prefix `/api/v1/condition`: `GET /reports` (nur freigegebene),
+  `GET /reports/{year}` (Bericht, Anlagenklassen, Werte mit `GEPRUEFT`), `GET /series`
+  (Noten, Erneuerungs-/Nachholbedarf und bewerteter WBW aller freigegebenen Jahrgänge; je
+  Bezugsjahr gewinnt der neueste Bericht)
+- `condition.import`, Prefix `/api/v1/import/condition`: `GET|POST /reports`,
+  `POST /reports/{year}/pdf`, `GET /reports/{year}/page/{page}.png`,
+  `GET /reports/{year}/values`, `GET /reports/{year}/check`, `GET /classes`,
+  `PATCH|DELETE /values/{id}` (Korrektur gilt als geprüft; gebrochene Summen kommen als
+  Warnung zurück), `POST /reports/{year}/release`, `DELETE /reports/{year}`
+
+Admin-Ansichten: `/admin/zustandsbericht` (Jahrgang anlegen, PDF hochladen) und
+`/admin/zustandsbericht/{year}` (Prüfung, angenommene Abweichungen, Lücken; Werte je Tabelle
+neben dem Seitenbild, korrigieren, freigeben, löschen).
+
+`CONDITION_PDF_DIR` (Standard `/app/uploads/zustandsbericht`, im `uploads`-Volume) ist neue
+harte Abhängigkeit und wird von `/healthz` auf Schreibbarkeit geprüft.
 
 ## Darstellung `/netzzustand` (EK 3)
 
 Aufbau wie im Prototyp:
 
-1. **Kopf:** Titel „Netzzustand“ mit Fragezeichen (Doku), Jahrgang-Auswahl, Umschalter
-   **Fahrweg | Personenbahnhöfe** (in der URL, `?bereich=pb`).
+1. **Kopf:** Titel „Netzzustand“ mit Info-Symbol, Jahrgang-Auswahl (ab zwei Jahrgängen,
+   `?jahr=`), Umschalter **Fahrweg | Personenbahnhöfe** (in der URL, `?bereich=bahnhoefe`).
 2. **Kennzahlband** (4 Kacheln): Fahrweg — Netzzustandsnote (einzige Hervorhebungszahl),
    Erneuerungsbedarf Mrd. €, Note HLN, Note FLN; Personenbahnhöfe — Note, Nachholbedarf,
    Note Empfangsgebäude, bewertete Anlagen. Jeweils Vorjahreswert und Differenz.
@@ -158,8 +177,9 @@ Aufbau wie im Prototyp:
    Gewerk, Note, Verteilungsbalken (nach WBW), WBW mit Mengenbalken, Erneuerungsbedarf
    (Menge + Einheit) bzw. Nachholbedarf (Mrd. €). Sortierbar (Note, WBW, Name). Klick →
    Detail mit Mengen je Note und Bestand/bewertet. FLN/SE ohne Verteilung (nicht im Anhang)
-   mit Hinweis. Ab dem zweiten Jahrgang zusätzlich Delta zur Vorjahresnote je Klasse und ein
-   Klick auf „Verlauf“ zeigt die Note der Klasse über die Jahrgänge.
+   mit Hinweis. Ab dem zweiten Jahrgang nennt das Detail die Vorjahresnote der Klasse
+   mit Differenz (aus `/series`); ein Verlaufsdiagramm je Klasse kommt mit Stufe 5, wenn die
+   Altjahrgänge eingelesen sind.
 5. **Bundesländer:** Kachelkarte (16 Kacheln in geografischer Lage) gefärbt nach Abstand zum
    Bundesschnitt, daneben Rangliste mit Schnitt-Markierung; Umschalter Fahrweg |
    Personenbahnhöfe. Mobil untereinander.
@@ -187,8 +207,7 @@ eigene kleine Komponente ohne Kartenbibliothek.
 
 ## Offene Punkte
 
-- Rechtegruppe: `condition.import` unter „Finanzierung“ oder eine neue Gruppe — klein, wird bei
-  Stufe 2 entschieden.
+- Rechtegruppe: entschieden bei der Umsetzung — „Inhalte“ (der Bericht ist keine Finanzierung).
 - Altberichte 2021–2023: Quelle und Umfang prüfen (Netzzustandsbericht der DB Netz; enthalten
   sie Länderwerte?). Klassen ohne Vorjahreswert werden markiert, nicht gefüllt.
 

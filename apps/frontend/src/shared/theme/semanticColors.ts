@@ -68,6 +68,18 @@ export const SAMMEL_DIFF_COLOR = {
     removed: "var(--idt-diverge-neg)",
 } as const;
 
+// Zustandsnoten 1–6 of the InfraGO-Zustandsbericht (feature-zustandsbericht.md EK 4,
+// docs/DESIGN.md rule 4 exception): good → bad as a deviation, so the diverging
+// data palette, with the steps between mixed from it and grade 6 darker than 5.
+export const CONDITION_GRADE_COLOR = {
+    1: "var(--idt-diverge-pos)",
+    2: "color-mix(in srgb, var(--idt-diverge-pos) 50%, var(--idt-diverge-mid))",
+    3: "var(--idt-diverge-mid)",
+    4: "color-mix(in srgb, var(--idt-diverge-neg) 50%, var(--idt-diverge-mid))",
+    5: "var(--idt-diverge-neg)",
+    6: "color-mix(in srgb, var(--idt-diverge-neg) 60%, var(--idt-ink))",
+} as const;
+
 // Tones for status tags and alerts that take a Mantine `color` prop. The values
 // are the DS scales of theme.ts; only red carries colour (Anwendungsebene),
 // "done" is ink-teal plus a check, never green, and there is no yellow.
