@@ -20,4 +20,11 @@ celery_app = Celery(
 celery_app.conf.update(
     task_track_started=True,
     result_expires=3600,  # results expire after 1 hour
+    # A worker crash must not silently lose an import: acknowledge only after
+    # the task ran, so a lost worker puts it back on the queue. Hard limit
+    # 30 min, soft limit 25 min so a hanging OCR/LLM call ends with an error.
+    task_acks_late=True,
+    task_reject_on_worker_lost=True,
+    task_time_limit=1800,
+    task_soft_time_limit=1500,
 )

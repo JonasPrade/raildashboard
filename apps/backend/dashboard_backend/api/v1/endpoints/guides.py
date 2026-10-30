@@ -11,7 +11,7 @@ from __future__ import annotations
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
-from dashboard_backend.core.security import require_permission
+from dashboard_backend.core.security import optional_auth, require_permission
 from dashboard_backend.crud import guides as guides_crud
 from dashboard_backend.database import get_db
 from dashboard_backend.models.users import User
@@ -24,9 +24,18 @@ _require_edit = Depends(require_permission("guides.edit"))
 
 
 @router.get("/{guide_slug}/overrides", response_model=list[GuideOverrideSchema])
-def list_guide_overrides(guide_slug: str, db: Session = Depends(get_db)):
-    """All edited sections of one guide (empty list = pure defaults)."""
-    return guides_crud.list_overrides(db, guide_slug)
+def list_guide_overrides(
+    guide_slug: str,
+    current_user: User | None = Depends(optional_auth()),
+    db: Session = Depends(get_db),
+):
+    """All edited sections of one guide (empty list = pure defaults).
+    Anonymous readers get no usernames."""
+    overrides = [GuideOverrideSchema.model_validate(o) for o in guides_crud.list_overrides(db, guide_slug)]
+    if current_user is None:
+        for override in overrides:
+            override.username_snapshot = None
+    return overrides
 
 
 @router.put(

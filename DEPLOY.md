@@ -24,6 +24,7 @@ Merge nach master
    ▼
 Actions -> deploy -> Run workflow        ← das Tor
    │  SHA leer = aktueller Stand von master · Rollback = frühere SHA eintragen
+   │  ein zweiter Klick wartet, bis der laufende Deploy fertig ist (kein Abbruch)
    │  docker manifest inspect: gibt es alle vier Images?
    │  SSH -> /srv/raildashboard/prod.sh <sha>
    ▼  prod.sh (auf vmd92747, Benutzer `deploy`)

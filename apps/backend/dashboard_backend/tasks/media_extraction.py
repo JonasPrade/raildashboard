@@ -10,8 +10,11 @@ human-in-the-loop confirmation before anything is materialised.
 
 from __future__ import annotations
 
+import ipaddress
 import logging
 import re
+import socket
+from urllib.parse import urlsplit
 
 from dashboard_backend.core.config import settings
 from dashboard_backend.services.llm import call_llm_json
@@ -60,20 +63,96 @@ _BLANKLINES_RE = re.compile(r"\n\s*\n\s*\n+")
 _MAX_TEXT_CHARS = 12000
 
 
-def fetch_url_text(url: str, timeout: float = 20.0) -> str:
+_MAX_REDIRECTS = 5
+_MAX_RESPONSE_BYTES = 5 * 1024 * 1024
+
+
+class UnsafeUrlError(ValueError):
+    """The URL points somewhere the importer must not fetch (SSRF guard)."""
+
+
+def _ensure_public_url(url: str) -> None:
+    """Allow only http(s) URLs whose host resolves to public addresses.
+
+    Blocks the internal network (redis, db, GraphHopper), loopback, link-local
+    (cloud metadata) and other non-global ranges. Checked again for every
+    redirect target.
+    """
+
+    parsed = urlsplit(url)
+    if parsed.scheme not in ("http", "https"):
+        raise UnsafeUrlError("Nur http- und https-URLs sind erlaubt.")
+    host = parsed.hostname
+    if not host:
+        raise UnsafeUrlError("URL ohne Host.")
+    try:
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    except (OSError, ValueError) as exc:
+        raise UnsafeUrlError(f"Host {host} nicht auflösbar.") from exc
+    if not infos:
+        raise UnsafeUrlError(f"Host {host} nicht auflösbar.")
+    for info in infos:
+        address = ipaddress.ip_address(info[4][0].split("%", 1)[0])
+        if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped is not None:
+            address = address.ipv4_mapped
+        if (
+            not address.is_global
+            or address.is_private
+            or address.is_loopback
+            or address.is_link_local
+            or address.is_multicast
+            or address.is_reserved
+            or address.is_unspecified
+        ):
+            raise UnsafeUrlError(f"Host {host} zeigt auf eine nicht öffentliche Adresse.")
+
+
+def _read_limited(response) -> bytes:
+    declared = response.headers.get("content-length")
+    if declared is not None and declared.isdigit() and int(declared) > _MAX_RESPONSE_BYTES:
+        raise UnsafeUrlError("Antwort zu groß.")
+    chunks: list[bytes] = []
+    size = 0
+    for chunk in response.iter_bytes():
+        size += len(chunk)
+        if size > _MAX_RESPONSE_BYTES:
+            raise UnsafeUrlError("Antwort zu groß.")
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
+def fetch_url_text(url: str, timeout: float = 20.0, transport=None) -> str:
     """Fetch an article URL and return a rough plain-text rendering.
 
-    Strips scripts/styles and HTML tags. Raises ``httpx.HTTPError`` on failure.
+    Strips scripts/styles and HTML tags. Only public http(s) hosts are fetched,
+    redirects are followed by hand (each target re-checked, at most
+    ``_MAX_REDIRECTS``) and the body is capped at ``_MAX_RESPONSE_BYTES``.
+    Raises ``UnsafeUrlError`` (a ``ValueError``) for a blocked URL and
+    ``httpx.HTTPError`` on network failure. ``transport`` is a test seam.
     """
 
     import httpx  # lazy import
 
     headers = {"User-Agent": "Mozilla/5.0", "Accept": "text/html"}
-    with httpx.Client(timeout=timeout, headers=headers, follow_redirects=True) as client:
-        response = client.get(url)
-        response.raise_for_status()
-        html = response.text
-    return _html_to_text(html)
+    with httpx.Client(
+        timeout=timeout, headers=headers, follow_redirects=False, transport=transport
+    ) as client:
+        current = url
+        for _ in range(_MAX_REDIRECTS + 1):
+            _ensure_public_url(current)
+            with client.stream("GET", current) as response:
+                if response.is_redirect:
+                    location = response.headers.get("location")
+                    if not location:
+                        raise UnsafeUrlError("Weiterleitung ohne Ziel.")
+                    current = str(response.url.join(location))
+                    continue
+                response.raise_for_status()
+                body = _read_limited(response)
+                html = body.decode(response.encoding or "utf-8", errors="replace")
+            return _html_to_text(html)
+    raise UnsafeUrlError("Zu viele Weiterleitungen.")
 
 
 def _html_to_text(html: str) -> str:

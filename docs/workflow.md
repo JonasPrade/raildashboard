@@ -71,11 +71,14 @@ steht, ist er nicht zu finden.
 ```yaml
 concurrency:
   group: production
-  cancel-in-progress: true
+  cancel-in-progress: false
 ```
 
 Sitzt am `deploy`-Job, nicht am Workflow: Auf Workflow-Ebene würde ein schneller zweiter
 Merge den laufenden Build abwürgen, und dem betroffenen Commit fehlten seine Images.
+`cancel-in-progress` bleibt aus: Ein zweiter Klick wartet, bis der laufende Deploy fertig
+ist. Würde er ihn abbrechen, könnte `prod.sh` zwischen dem Umschalten der SHA in der `.env`
+und dem Healthcheck sterben — der Host zeigte dann auf eine ungeprüfte SHA, ohne Rollback.
 
 Prod zieht, Prod baut nicht: Das `compose.yaml` auf dem Host referenziert Images, keinen
 `build:`-Block. Deshalb liegt dort kein Checkout und keine Buildkette.

@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from dashboard_backend.api.deps import get_project_or_404, get_project_or_redirect_404
-from dashboard_backend.core.security import require_auth, require_permission
+from dashboard_backend.core.security import has_effective_permission, require_auth, require_permission
 from dashboard_backend.crud.admin_assignments import link_project_to_finves
 from dashboard_backend.crud.changelog import (
     create_changelog_for_patch,
@@ -435,7 +435,7 @@ def read_project_changelog(
 def _revert_finve_ids(db: Session, project: Project, entry, current_user: User) -> Project:
     """Set the project's permanent FinVe links back to the entry's old list.
     FinVe links are guarded by ``finve.edit`` on top of ``project.edit``."""
-    if not current_user.has_permission("finve.edit"):
+    if not has_effective_permission(current_user, "finve.edit"):
         raise HTTPException(status_code=403, detail="Not enough privileges")
     target = json.loads(entry.old_value) if entry.old_value is not None else []
     try:
@@ -449,7 +449,7 @@ def _revert_finve_ids(db: Session, project: Project, entry, current_user: User) 
 def _revert_sammel_years(db: Session, project: Project, entry, current_user: User) -> Project:
     """Set the project's years in one Sammel-FinVe back to the entry's old list.
     Guarded by ``finve.edit`` like the permanent FinVe links."""
-    if not current_user.has_permission("finve.edit"):
+    if not has_effective_permission(current_user, "finve.edit"):
         raise HTTPException(status_code=403, detail="Not enough privileges")
     old = json.loads(entry.old_value or entry.new_value or "{}")
     try:

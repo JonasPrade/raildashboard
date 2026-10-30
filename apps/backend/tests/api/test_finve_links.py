@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 
 from dashboard_backend.api.v1.endpoints.haushalt_import import permanent_link_delta
+from dashboard_backend.crud import api_keys as api_keys_crud
 from dashboard_backend.crud.projects.progress import recompute_progress
 from dashboard_backend.models.associations.finve_to_project import FinveToProject
 from dashboard_backend.models.change_tracking import ChangeLog
@@ -107,6 +108,37 @@ def test_revert_restores_link(client, db_session, create_user):
     assert gaeubahn.id in _links(db_session, 900008)
     actions = [c.action for c in db_session.query(ChangeLog).filter(ChangeLog.project_id == gaeubahn.id)]
     assert sorted(actions) == ["PATCH", "REVERT"]
+
+
+def test_revert_with_admin_key_needs_finve_edit_scope(client, db_session, create_user):
+    # Key auth carries owner rights ∩ scopes — an admin key without the
+    # finve.edit scope must not revert FinVe links (no admin bypass).
+    create_user("editor_fl", "pass", UserRole.editor)
+    admin = create_user("admin_fl", "pass", UserRole.admin)
+    _, gaeubahn, _ = _seed(db_session)
+    assert _patch(client, 900008, {"remove_project_ids": [gaeubahn.id]}).status_code == 200
+    entry_id = (
+        db_session.query(ChangeLog).filter(ChangeLog.project_id == gaeubahn.id).one().entries[0].id
+    )
+    _, narrow = api_keys_crud.create_api_key(db_session, admin, "narrow", ["mcp.access", "project.edit"])
+    _, wide = api_keys_crud.create_api_key(
+        db_session, admin, "wide", ["mcp.access", "project.edit", "finve.edit"]
+    )
+
+    def revert(token):
+        return client.post(
+            f"/api/v1/projects/{gaeubahn.id}/changelog/revert",
+            json={"changelog_entry_id": entry_id},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+    assert revert(narrow).status_code == 403
+    db_session.expire_all()
+    assert gaeubahn.id not in _links(db_session, 900008)
+    resp = revert(wide)
+    assert resp.status_code == 200, resp.text
+    db_session.expire_all()
+    assert gaeubahn.id in _links(db_session, 900008)
 
 
 def test_noop_change_writes_no_changelog(client, db_session, create_user):
