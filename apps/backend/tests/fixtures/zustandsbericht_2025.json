@@ -1,0 +1,5407 @@
+{
+ "year": 2025,
+ "title": "InfraGO-Zustandsbericht 2025",
+ "source_url": "https://www.dbinfrago.com/resource/blob/13867300/20add12224f2c4eb00394670fc5f8be8/InfraGO-Zustandsbericht_2025-data.pdf",
+ "price_basis": "Preisstand 2024",
+ "tables": [
+  {
+   "domain": "FAHRWEG",
+   "scope": "GESAMT",
+   "region": null,
+   "values": [
+    {
+     "class_key": null,
+     "metric": "WBW",
+     "value": 663.3,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "WBW",
+     "value": 342.9,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "WBW",
+     "value": 40.3,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "WBW",
+     "value": 7.7,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "WBW",
+     "value": 22.2,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "WBW",
+     "value": 5.9,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "WBW",
+     "value": 66.5,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "WBW",
+     "value": 22.8,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "WBW",
+     "value": 10.4,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "WBW",
+     "value": 63.6,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "WBW",
+     "value": 78.8,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "WBW",
+     "value": 2.3,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": null,
+     "metric": "WBW_BEWERTET",
+     "value": 655.5,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "WBW_BEWERTET",
+     "value": 336.6,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "WBW_BEWERTET",
+     "value": 40.2,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "WBW_BEWERTET",
+     "value": 7.7,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "WBW_BEWERTET",
+     "value": 22.2,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "WBW_BEWERTET",
+     "value": 5.4,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "WBW_BEWERTET",
+     "value": 65.9,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "WBW_BEWERTET",
+     "value": 22.6,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "WBW_BEWERTET",
+     "value": 10.3,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "WBW_BEWERTET",
+     "value": 63.5,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "WBW_BEWERTET",
+     "value": 78.8,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "WBW_BEWERTET",
+     "value": 2.3,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": null,
+     "metric": "WBW_ANTEIL",
+     "value": 100.0,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "WBW_ANTEIL",
+     "value": 51.3,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "WBW_ANTEIL",
+     "value": 6.1,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "WBW_ANTEIL",
+     "value": 1.2,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "WBW_ANTEIL",
+     "value": 3.4,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "WBW_ANTEIL",
+     "value": 0.8,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "WBW_ANTEIL",
+     "value": 10.1,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "WBW_ANTEIL",
+     "value": 3.4,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "WBW_ANTEIL",
+     "value": 1.6,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "WBW_ANTEIL",
+     "value": 9.7,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "WBW_ANTEIL",
+     "value": 12.0,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "WBW_ANTEIL",
+     "value": 0.4,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 3.0,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "NOTE",
+     "value": 2.64,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "NOTE",
+     "value": 2.17,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "NOTE",
+     "value": 2.17,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "NOTE",
+     "value": 3.03,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "NOTE",
+     "value": 1.9,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "NOTE",
+     "value": 3.0,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "NOTE",
+     "value": 3.06,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "NOTE",
+     "value": 3.65,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "NOTE",
+     "value": 4.02,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "NOTE",
+     "value": 2.95,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "NOTE",
+     "value": 2.91,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": null,
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 24.2,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 28.7,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 46.1,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 40.0,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 34.7,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 78.4,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 18.7,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 27.2,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 4.8,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 0.9,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 10.6,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 22.8,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": null,
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 34.2,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 39.0,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 32.6,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 34.3,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 20.6,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 12.3,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 33.3,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 26.0,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 19.7,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 8.6,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 45.5,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 35.0,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": null,
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 25.5,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 23.2,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 16.8,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 20.7,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 10.9,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 6.4,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 32.1,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 22.1,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 43.3,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 32.8,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 32.9,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 23.7,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": null,
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 11.6,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 6.1,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 2.8,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 3.1,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 22.2,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 2.0,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 13.6,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 17.2,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 17.5,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 42.3,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 9.4,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 15.3,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": null,
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 4.3,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 3.1,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 1.7,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 1.9,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 11.6,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 1.0,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 2.3,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 7.5,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 7.2,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 14.4,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 1.6,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 3.2,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": null,
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.2,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.0,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.0,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.0,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.0,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.0,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.0,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.0,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 7.5,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.9,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.0,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.0,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "MENGE_BEWERTET",
+     "value": 25637,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "MENGE_BEWERTET",
+     "value": 758,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "MENGE_BEWERTET",
+     "value": 1434,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "MENGE_BEWERTET",
+     "value": 47468,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "MENGE_BEWERTET",
+     "value": 2087,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "MENGE_BEWERTET",
+     "value": 60328,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "MENGE_BEWERTET",
+     "value": 63764,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "MENGE_BEWERTET",
+     "value": 9574,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "MENGE_BEWERTET",
+     "value": 3686,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "MENGE_BEWERTET",
+     "value": 57252,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "MENGE_BEWERTET",
+     "value": 6526,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "MENGE_GESAMT",
+     "value": 25772,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "MENGE_GESAMT",
+     "value": 762,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "MENGE_GESAMT",
+     "value": 1440,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "MENGE_GESAMT",
+     "value": 47468,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "MENGE_GESAMT",
+     "value": 2275,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "MENGE_GESAMT",
+     "value": 60836,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "MENGE_GESAMT",
+     "value": 64389,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "MENGE_GESAMT",
+     "value": 13424,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "MENGE_GESAMT",
+     "value": 3859,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "MENGE_GESAMT",
+     "value": 57252,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "MENGE_GESAMT",
+     "value": 6526,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 8677,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 287,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 573,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 16464,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 1636,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 11264,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 17339,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 460,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 45,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 6041,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 1487,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 9005,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 208,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 492,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 9763,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 256,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 20093,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 16584,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 1884,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 348,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 26037,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 2287,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 6035,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 211,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 297,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 5169,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 133,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 19393,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 14077,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 4147,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 1042,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 18862,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 1547,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 1360,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 38,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 44,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 10557,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 41,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 8184,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 10983,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 1678,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 1280,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 5399,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 997,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 560,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 14,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 27,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 5511,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 20,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 1370,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 4772,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 689,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 707,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 913,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 208,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 0,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 0,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 0,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 4,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 0,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 24,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 9,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 716,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 39,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 0,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 0,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "ERNEUERUNGSBEDARF_MENGE",
+     "value": 1920,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "ERNEUERUNGSBEDARF_MENGE",
+     "value": 52,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "ERNEUERUNGSBEDARF_MENGE",
+     "value": 72,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "ERNEUERUNGSBEDARF_MENGE",
+     "value": 16072,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "ERNEUERUNGSBEDARF_MENGE",
+     "value": 61,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "ERNEUERUNGSBEDARF_MENGE",
+     "value": 9579,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "ERNEUERUNGSBEDARF_MENGE",
+     "value": 15764,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "ERNEUERUNGSBEDARF_MENGE",
+     "value": 3083,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "ERNEUERUNGSBEDARF_MENGE",
+     "value": 2026,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "ERNEUERUNGSBEDARF_MENGE",
+     "value": 6313,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "ERNEUERUNGSBEDARF_MENGE",
+     "value": 1205,
+     "source_page": 27,
+     "source_ref": "Tab. 5"
+    },
+    {
+     "class_key": null,
+     "metric": "ERNEUERUNGSBEDARF_MRD",
+     "reference_year": 2024,
+     "value": 109.8,
+     "source_page": 4,
+     "source_ref": "Kennzahlenvergleich"
+    },
+    {
+     "class_key": null,
+     "metric": "ERNEUERUNGSBEDARF_MRD",
+     "reference_year": 2025,
+     "value": 105.9,
+     "source_page": 4,
+     "source_ref": "Kennzahlenvergleich"
+    },
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "reference_year": 2024,
+     "value": 3.0,
+     "source_page": 4,
+     "source_ref": "Kennzahlenvergleich"
+    },
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "reference_year": 2021,
+     "value": 2.93,
+     "source_page": 7,
+     "source_ref": "Abb. 3"
+    },
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "reference_year": 2022,
+     "value": 3.01,
+     "source_page": 7,
+     "source_ref": "Abb. 3"
+    },
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "reference_year": 2023,
+     "value": 3.03,
+     "source_page": 7,
+     "source_ref": "Abb. 3"
+    }
+   ]
+  },
+  {
+   "domain": "FAHRWEG",
+   "scope": "HLN",
+   "region": null,
+   "values": [
+    {
+     "class_key": null,
+     "metric": "WBW",
+     "value": 321.9,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "WBW",
+     "value": 174.7,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "WBW",
+     "value": 26.9,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "WBW",
+     "value": 3.1,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "WBW",
+     "value": 7.1,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "WBW",
+     "value": 4.0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "WBW",
+     "value": 20.3,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "WBW",
+     "value": 6.0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "WBW",
+     "value": 1.1,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "WBW",
+     "value": 37.0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "WBW",
+     "value": 40.8,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "WBW",
+     "value": 1.0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": null,
+     "metric": "WBW_BEWERTET",
+     "value": 321.5,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "WBW_BEWERTET",
+     "value": 174.3,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "WBW_BEWERTET",
+     "value": 26.9,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "WBW_BEWERTET",
+     "value": 3.1,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "WBW_BEWERTET",
+     "value": 7.1,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "WBW_BEWERTET",
+     "value": 4.0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "WBW_BEWERTET",
+     "value": 20.3,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "WBW_BEWERTET",
+     "value": 6.0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "WBW_BEWERTET",
+     "value": 1.1,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "WBW_BEWERTET",
+     "value": 37.0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "WBW_BEWERTET",
+     "value": 40.8,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "WBW_BEWERTET",
+     "value": 1.0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": null,
+     "metric": "WBW_ANTEIL",
+     "value": 100.0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "WBW_ANTEIL",
+     "value": 54.2,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "WBW_ANTEIL",
+     "value": 8.4,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "WBW_ANTEIL",
+     "value": 1.0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "WBW_ANTEIL",
+     "value": 2.2,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "WBW_ANTEIL",
+     "value": 1.3,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "WBW_ANTEIL",
+     "value": 6.3,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "WBW_ANTEIL",
+     "value": 1.9,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "WBW_ANTEIL",
+     "value": 0.3,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "WBW_ANTEIL",
+     "value": 11.5,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "WBW_ANTEIL",
+     "value": 12.7,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "WBW_ANTEIL",
+     "value": 0.3,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 3.04,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "NOTE",
+     "value": 2.59,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "NOTE",
+     "value": 1.94,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "NOTE",
+     "value": 2.12,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "NOTE",
+     "value": 2.38,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "NOTE",
+     "value": 2.01,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "NOTE",
+     "value": 3.23,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "NOTE",
+     "value": 3.5,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "NOTE",
+     "value": 4.24,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "NOTE",
+     "value": 4.11,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "NOTE",
+     "value": 3.06,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "NOTE",
+     "value": 3.17,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": null,
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 26.9,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 31.9,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 53.3,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 42.1,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 56.0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 74.3,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 13.8,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 16.7,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 3.4,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 0.6,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 9.9,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 16.1,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": null,
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 33.4,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 39.0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 37.1,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 33.5,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 19.4,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 14.6,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 27.9,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 19.7,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 6.6,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 7.1,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 40.1,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 32.1,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": null,
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 23.6,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 20.4,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 8.4,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 20.9,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 7.7,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 7.3,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 36.8,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 29.1,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 30.4,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 32.1,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 36.3,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 27.4,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": null,
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 11.8,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 5.5,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 1.2,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 2.5,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 11.6,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 2.5,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 18.3,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 21.9,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 26.7,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 45.4,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 11.9,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 18.9,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": null,
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 4.3,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 3.2,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 0.0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 1.0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 5.3,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 1.3,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 3.2,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 12.6,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 24.2,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 14.4,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 1.8,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 5.4,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": null,
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.1,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.1,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 8.7,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.4,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "MENGE_BEWERTET",
+     "value": 8431,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "MENGE_BEWERTET",
+     "value": 269,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "MENGE_BEWERTET",
+     "value": 582,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "MENGE_BEWERTET",
+     "value": 15141,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "MENGE_BEWERTET",
+     "value": 1564,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "MENGE_BEWERTET",
+     "value": 18583,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "MENGE_BEWERTET",
+     "value": 16990,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "MENGE_BEWERTET",
+     "value": 976,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "MENGE_BEWERTET",
+     "value": 1132,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "MENGE_BEWERTET",
+     "value": 29614,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "MENGE_BEWERTET",
+     "value": 2718,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "MENGE_GESAMT",
+     "value": 8462,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "MENGE_GESAMT",
+     "value": 269,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "MENGE_GESAMT",
+     "value": 582,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "MENGE_GESAMT",
+     "value": 15141,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "MENGE_GESAMT",
+     "value": 1564,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "MENGE_GESAMT",
+     "value": 18583,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "MENGE_GESAMT",
+     "value": 16990,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "MENGE_GESAMT",
+     "value": 976,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "MENGE_GESAMT",
+     "value": 1189,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "MENGE_GESAMT",
+     "value": 29614,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "MENGE_GESAMT",
+     "value": 2718,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 3572,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 139,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 245,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 8478,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 1163,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 2558,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 2832,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 33,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 6,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 2934,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 437,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 2656,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 90,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 195,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 2938,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 228,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 5184,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 3345,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 64,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 102,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 11871,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 873,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 1619,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 30,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 122,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 1169,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 115,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 6841,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 4942,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 297,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 323,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 10740,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 746,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 390,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 10,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 14,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 1758,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 39,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 3401,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 3723,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 261,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 487,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 3532,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 515,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 194,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 6,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 797,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 20,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 590,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 2142,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 236,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 205,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 538,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 147,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 1,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 9,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 6,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 85,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 9,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 0,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "ERNEUERUNGSBEDARF_MENGE",
+     "value": 584,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "ERNEUERUNGSBEDARF_MENGE",
+     "value": 10,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "ERNEUERUNGSBEDARF_MENGE",
+     "value": 20,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "ERNEUERUNGSBEDARF_MENGE",
+     "value": 2556,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "ERNEUERUNGSBEDARF_MENGE",
+     "value": 59,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "ERNEUERUNGSBEDARF_MENGE",
+     "value": 4001,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "ERNEUERUNGSBEDARF_MENGE",
+     "value": 5871,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "ERNEUERUNGSBEDARF_MENGE",
+     "value": 582,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "ERNEUERUNGSBEDARF_MENGE",
+     "value": 701,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "ERNEUERUNGSBEDARF_MENGE",
+     "value": 4070,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "ERNEUERUNGSBEDARF_MENGE",
+     "value": 662,
+     "source_page": 27,
+     "source_ref": "Tab. 6"
+    },
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "reference_year": 2024,
+     "value": 3.05,
+     "source_page": 4,
+     "source_ref": "Kennzahlenvergleich"
+    }
+   ]
+  },
+  {
+   "domain": "FAHRWEG",
+   "scope": "FLN",
+   "region": null,
+   "values": [
+    {
+     "class_key": null,
+     "metric": "WBW_BEWERTET",
+     "value": 334.0,
+     "source_page": 9,
+     "source_ref": "Abb. 7"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "WBW_BEWERTET",
+     "value": 162.2,
+     "source_page": 9,
+     "source_ref": "Abb. 7"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "WBW_BEWERTET",
+     "value": 13.3,
+     "source_page": 9,
+     "source_ref": "Abb. 7"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "WBW_BEWERTET",
+     "value": 4.6,
+     "source_page": 9,
+     "source_ref": "Abb. 7"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "WBW_BEWERTET",
+     "value": 15.1,
+     "source_page": 9,
+     "source_ref": "Abb. 7"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "WBW_BEWERTET",
+     "value": 1.3,
+     "source_page": 9,
+     "source_ref": "Abb. 7"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "WBW_BEWERTET",
+     "value": 45.6,
+     "source_page": 9,
+     "source_ref": "Abb. 7"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "WBW_BEWERTET",
+     "value": 16.6,
+     "source_page": 9,
+     "source_ref": "Abb. 7"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "WBW_BEWERTET",
+     "value": 9.3,
+     "source_page": 9,
+     "source_ref": "Abb. 7"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "WBW_BEWERTET",
+     "value": 26.5,
+     "source_page": 9,
+     "source_ref": "Abb. 7"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "WBW_BEWERTET",
+     "value": 38.0,
+     "source_page": 9,
+     "source_ref": "Abb. 7"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "WBW_BEWERTET",
+     "value": 1.4,
+     "source_page": 9,
+     "source_ref": "Abb. 7"
+    },
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 2.96,
+     "source_page": 9,
+     "source_ref": "Abb. 7"
+    },
+    {
+     "class_key": "fw_bruecken",
+     "metric": "NOTE",
+     "value": 2.69,
+     "source_page": 9,
+     "source_ref": "Abb. 7"
+    },
+    {
+     "class_key": "fw_tunnel",
+     "metric": "NOTE",
+     "value": 2.67,
+     "source_page": 9,
+     "source_ref": "Abb. 7"
+    },
+    {
+     "class_key": "fw_stuetzbauwerke",
+     "metric": "NOTE",
+     "value": 2.23,
+     "source_page": 9,
+     "source_ref": "Abb. 7"
+    },
+    {
+     "class_key": "fw_durchlaesse",
+     "metric": "NOTE",
+     "value": 3.34,
+     "source_page": 9,
+     "source_ref": "Abb. 7"
+    },
+    {
+     "class_key": "fw_laermschutzbauwerke",
+     "metric": "NOTE",
+     "value": 1.53,
+     "source_page": 9,
+     "source_ref": "Abb. 7"
+    },
+    {
+     "class_key": "fw_gleise",
+     "metric": "NOTE",
+     "value": 2.86,
+     "source_page": 9,
+     "source_ref": "Abb. 7"
+    },
+    {
+     "class_key": "fw_weichen",
+     "metric": "NOTE",
+     "value": 2.87,
+     "source_page": 9,
+     "source_ref": "Abb. 7"
+    },
+    {
+     "class_key": "fw_bahnuebergaenge",
+     "metric": "NOTE",
+     "value": 3.58,
+     "source_page": 9,
+     "source_ref": "Abb. 7"
+    },
+    {
+     "class_key": "fw_stellwerke",
+     "metric": "NOTE",
+     "value": 3.9,
+     "source_page": 9,
+     "source_ref": "Abb. 7"
+    },
+    {
+     "class_key": "fw_oberleitung",
+     "metric": "NOTE",
+     "value": 2.83,
+     "source_page": 9,
+     "source_ref": "Abb. 7"
+    },
+    {
+     "class_key": "fw_weichenheizanlagen",
+     "metric": "NOTE",
+     "value": 2.73,
+     "source_page": 9,
+     "source_ref": "Abb. 7"
+    },
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "reference_year": 2024,
+     "value": 2.96,
+     "source_page": 4,
+     "source_ref": "Kennzahlenvergleich"
+    }
+   ]
+  },
+  {
+   "domain": "PERSONENBAHNHOF",
+   "scope": "GESAMT",
+   "region": null,
+   "values": [
+    {
+     "class_key": null,
+     "metric": "WBW_BEWERTET",
+     "value": 80.22,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteige",
+     "metric": "WBW_BEWERTET",
+     "value": 25.22,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenunterfuehrungen",
+     "metric": "WBW_BEWERTET",
+     "value": 15.85,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_unterirdische_personenverkehrsanlagen",
+     "metric": "WBW_BEWERTET",
+     "value": 15.28,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_treppen_rampen",
+     "metric": "WBW_BEWERTET",
+     "value": 12.29,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteigdaecher",
+     "metric": "WBW_BEWERTET",
+     "value": 4.58,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteighallen",
+     "metric": "WBW_BEWERTET",
+     "value": 4.69,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenaufzuege",
+     "metric": "WBW_BEWERTET",
+     "value": 1.0,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_itk_anlagen",
+     "metric": "WBW_BEWERTET",
+     "value": 0.85,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_fahrtreppen",
+     "metric": "WBW_BEWERTET",
+     "value": 0.46,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": null,
+     "metric": "WBW_ANTEIL",
+     "value": 100.0,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteige",
+     "metric": "WBW_ANTEIL",
+     "value": 31.44,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenunterfuehrungen",
+     "metric": "WBW_ANTEIL",
+     "value": 19.76,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_unterirdische_personenverkehrsanlagen",
+     "metric": "WBW_ANTEIL",
+     "value": 19.05,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_treppen_rampen",
+     "metric": "WBW_ANTEIL",
+     "value": 15.32,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteigdaecher",
+     "metric": "WBW_ANTEIL",
+     "value": 5.71,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteighallen",
+     "metric": "WBW_ANTEIL",
+     "value": 5.85,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenaufzuege",
+     "metric": "WBW_ANTEIL",
+     "value": 1.25,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_itk_anlagen",
+     "metric": "WBW_ANTEIL",
+     "value": 1.06,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_fahrtreppen",
+     "metric": "WBW_ANTEIL",
+     "value": 0.58,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 2.96,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteige",
+     "metric": "NOTE",
+     "value": 2.89,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenunterfuehrungen",
+     "metric": "NOTE",
+     "value": 3.35,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_unterirdische_personenverkehrsanlagen",
+     "metric": "NOTE",
+     "value": 3.01,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_treppen_rampen",
+     "metric": "NOTE",
+     "value": 2.53,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteigdaecher",
+     "metric": "NOTE",
+     "value": 3.2,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteighallen",
+     "metric": "NOTE",
+     "value": 3.11,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenaufzuege",
+     "metric": "NOTE",
+     "value": 3.56,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_itk_anlagen",
+     "metric": "NOTE",
+     "value": 3.74,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_fahrtreppen",
+     "metric": "NOTE",
+     "value": 3.84,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": null,
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 20.51,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteige",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 27.25,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenunterfuehrungen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 11.9,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_unterirdische_personenverkehrsanlagen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 22.98,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_treppen_rampen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 24.29,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteigdaecher",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 13.07,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteighallen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 9.73,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenaufzuege",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 14.07,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_itk_anlagen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 10.32,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_fahrtreppen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 1,
+     "value": 8.86,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": null,
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 27.58,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteige",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 26.75,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenunterfuehrungen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 23.53,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_unterirdische_personenverkehrsanlagen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 34.34,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_treppen_rampen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 28.67,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteigdaecher",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 28.47,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteighallen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 24.71,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenaufzuege",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 20.05,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_itk_anlagen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 25.19,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_fahrtreppen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 2,
+     "value": 20.54,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": null,
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 28.4,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteige",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 23.1,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenunterfuehrungen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 29.59,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_unterirdische_personenverkehrsanlagen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 36.5,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_treppen_rampen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 24.89,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteigdaecher",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 34.81,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteighallen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 36.14,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenaufzuege",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 18.75,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_itk_anlagen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 19.61,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_fahrtreppen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 3,
+     "value": 11.83,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": null,
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 19.05,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteige",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 14.08,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenunterfuehrungen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 31.24,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_unterirdische_personenverkehrsanlagen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 6.19,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_treppen_rampen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 20.22,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteigdaecher",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 21.27,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteighallen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 26.16,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenaufzuege",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 42.15,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_itk_anlagen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 35.69,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_fahrtreppen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 4,
+     "value": 47.76,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": null,
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 4.46,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteige",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 8.83,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenunterfuehrungen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 3.73,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_unterirdische_personenverkehrsanlagen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 0.0,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_treppen_rampen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 1.91,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteigdaecher",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 2.38,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteighallen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 3.26,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenaufzuege",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 4.91,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_itk_anlagen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 8.97,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_fahrtreppen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 5,
+     "value": 11.01,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": null,
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.01,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteige",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.0,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenunterfuehrungen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.0,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_unterirdische_personenverkehrsanlagen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.0,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_treppen_rampen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.02,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteigdaecher",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.0,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteighallen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.0,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenaufzuege",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.07,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_itk_anlagen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.22,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_fahrtreppen",
+     "metric": "VERTEILUNG_WBW",
+     "grade": 6,
+     "value": 0.0,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": null,
+     "metric": "MENGE_BEWERTET",
+     "value": 90707,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteige",
+     "metric": "MENGE_BEWERTET",
+     "value": 9388,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenunterfuehrungen",
+     "metric": "MENGE_BEWERTET",
+     "value": 1945,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_unterirdische_personenverkehrsanlagen",
+     "metric": "MENGE_BEWERTET",
+     "value": 65,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_treppen_rampen",
+     "metric": "MENGE_BEWERTET",
+     "value": 38360,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteigdaecher",
+     "metric": "MENGE_BEWERTET",
+     "value": 3336,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteighallen",
+     "metric": "MENGE_BEWERTET",
+     "value": 80,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenaufzuege",
+     "metric": "MENGE_BEWERTET",
+     "value": 2700,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_itk_anlagen",
+     "metric": "MENGE_BEWERTET",
+     "value": 33808,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_fahrtreppen",
+     "metric": "MENGE_BEWERTET",
+     "value": 1025,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": null,
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 20837,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteige",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 2763,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenunterfuehrungen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 259,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_unterirdische_personenverkehrsanlagen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 7,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_treppen_rampen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 13270,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteigdaecher",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 447,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteighallen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 14,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenaufzuege",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 377,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_itk_anlagen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 3609,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_fahrtreppen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 1,
+     "value": 91,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": null,
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 24990,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteige",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 2486,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenunterfuehrungen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 519,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_unterirdische_personenverkehrsanlagen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 28,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_treppen_rampen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 13359,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteigdaecher",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 978,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteighallen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 25,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenaufzuege",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 546,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_itk_anlagen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 6838,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_fahrtreppen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 2,
+     "value": 211,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": null,
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 18585,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteige",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 2066,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenunterfuehrungen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 535,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_unterirdische_personenverkehrsanlagen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 26,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_treppen_rampen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 7721,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteigdaecher",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 1150,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteighallen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 19,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenaufzuege",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 505,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_itk_anlagen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 6441,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_fahrtreppen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 3,
+     "value": 122,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": null,
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 18892,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteige",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 1253,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenunterfuehrungen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 531,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_unterirdische_personenverkehrsanlagen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 4,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_treppen_rampen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 3584,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteigdaecher",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 680,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteighallen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 19,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenaufzuege",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 1139,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_itk_anlagen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 11193,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_fahrtreppen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 4,
+     "value": 489,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": null,
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 7109,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteige",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 820,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenunterfuehrungen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 101,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_unterirdische_personenverkehrsanlagen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 0,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_treppen_rampen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 416,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteigdaecher",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 81,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteighallen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 3,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenaufzuege",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 131,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_itk_anlagen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 5445,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_fahrtreppen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 5,
+     "value": 112,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": null,
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 294,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteige",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 0,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenunterfuehrungen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 0,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_unterirdische_personenverkehrsanlagen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 0,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_treppen_rampen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 10,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteigdaecher",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 0,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteighallen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 0,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenaufzuege",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 2,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_itk_anlagen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 282,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_fahrtreppen",
+     "metric": "VERTEILUNG_MENGE",
+     "grade": 6,
+     "value": 0,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": null,
+     "metric": "NACHHOLBEDARF_MRD",
+     "value": 18.58,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteige",
+     "metric": "NACHHOLBEDARF_MRD",
+     "value": 5.78,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenunterfuehrungen",
+     "metric": "NACHHOLBEDARF_MRD",
+     "value": 5.54,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_unterirdische_personenverkehrsanlagen",
+     "metric": "NACHHOLBEDARF_MRD",
+     "value": 0.95,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_treppen_rampen",
+     "metric": "NACHHOLBEDARF_MRD",
+     "value": 2.72,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteigdaecher",
+     "metric": "NACHHOLBEDARF_MRD",
+     "value": 1.08,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_bahnsteighallen",
+     "metric": "NACHHOLBEDARF_MRD",
+     "value": 1.38,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_personenaufzuege",
+     "metric": "NACHHOLBEDARF_MRD",
+     "value": 0.47,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_itk_anlagen",
+     "metric": "NACHHOLBEDARF_MRD",
+     "value": 0.38,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": "pb_fahrtreppen",
+     "metric": "NACHHOLBEDARF_MRD",
+     "value": 0.27,
+     "source_page": 28,
+     "source_ref": "Tab. 7"
+    },
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "reference_year": 2024,
+     "value": 3.03,
+     "source_page": 4,
+     "source_ref": "Kennzahlenvergleich"
+    },
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "reference_year": 2023,
+     "value": 3.09,
+     "source_page": 18,
+     "source_ref": "Abb. 18"
+    },
+    {
+     "class_key": null,
+     "metric": "NACHHOLBEDARF_MRD",
+     "reference_year": 2024,
+     "value": 20.3,
+     "source_page": 4,
+     "source_ref": "Kennzahlenvergleich"
+    },
+    {
+     "class_key": "pb_empfangsgebaeude",
+     "metric": "NOTE",
+     "value": 3.55,
+     "source_page": 4,
+     "source_ref": "Kennzahlenvergleich"
+    },
+    {
+     "class_key": "pb_empfangsgebaeude",
+     "metric": "NOTE",
+     "reference_year": 2024,
+     "value": 3.58,
+     "source_page": 4,
+     "source_ref": "Kennzahlenvergleich"
+    }
+   ]
+  },
+  {
+   "domain": "FAHRWEG",
+   "scope": "LAND",
+   "region": "SH",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 3.25,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "PERSONENBAHNHOF",
+   "scope": "LAND",
+   "region": "SH",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 2.47,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "FAHRWEG",
+   "scope": "LAND",
+   "region": "HH",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 3.2,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "PERSONENBAHNHOF",
+   "scope": "LAND",
+   "region": "HH",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 2.69,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "FAHRWEG",
+   "scope": "LAND",
+   "region": "HB",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 3.1,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "PERSONENBAHNHOF",
+   "scope": "LAND",
+   "region": "HB",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 2.66,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "FAHRWEG",
+   "scope": "LAND",
+   "region": "NI",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 3.05,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "PERSONENBAHNHOF",
+   "scope": "LAND",
+   "region": "NI",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 2.75,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "FAHRWEG",
+   "scope": "LAND",
+   "region": "MV",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 2.82,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "PERSONENBAHNHOF",
+   "scope": "LAND",
+   "region": "MV",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 2.75,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "FAHRWEG",
+   "scope": "LAND",
+   "region": "BE",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 2.8,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "PERSONENBAHNHOF",
+   "scope": "LAND",
+   "region": "BE",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 3.4,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "FAHRWEG",
+   "scope": "LAND",
+   "region": "BB",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 2.89,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "PERSONENBAHNHOF",
+   "scope": "LAND",
+   "region": "BB",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 2.83,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "FAHRWEG",
+   "scope": "LAND",
+   "region": "ST",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 2.75,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "PERSONENBAHNHOF",
+   "scope": "LAND",
+   "region": "ST",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 3.04,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "FAHRWEG",
+   "scope": "LAND",
+   "region": "SN",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 2.79,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "PERSONENBAHNHOF",
+   "scope": "LAND",
+   "region": "SN",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 3.12,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "FAHRWEG",
+   "scope": "LAND",
+   "region": "TH",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 2.65,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "PERSONENBAHNHOF",
+   "scope": "LAND",
+   "region": "TH",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 3.27,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "FAHRWEG",
+   "scope": "LAND",
+   "region": "NW",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 3.26,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "PERSONENBAHNHOF",
+   "scope": "LAND",
+   "region": "NW",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 2.93,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "FAHRWEG",
+   "scope": "LAND",
+   "region": "HE",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 2.95,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "PERSONENBAHNHOF",
+   "scope": "LAND",
+   "region": "HE",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 3.03,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "FAHRWEG",
+   "scope": "LAND",
+   "region": "RP",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 3.2,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "PERSONENBAHNHOF",
+   "scope": "LAND",
+   "region": "RP",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 2.92,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "FAHRWEG",
+   "scope": "LAND",
+   "region": "SL",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 2.98,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "PERSONENBAHNHOF",
+   "scope": "LAND",
+   "region": "SL",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 2.94,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "FAHRWEG",
+   "scope": "LAND",
+   "region": "BW",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 2.98,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "PERSONENBAHNHOF",
+   "scope": "LAND",
+   "region": "BW",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 2.85,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "FAHRWEG",
+   "scope": "LAND",
+   "region": "BY",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 2.97,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  },
+  {
+   "domain": "PERSONENBAHNHOF",
+   "scope": "LAND",
+   "region": "BY",
+   "values": [
+    {
+     "class_key": null,
+     "metric": "NOTE",
+     "value": 3.07,
+     "source_page": 29,
+     "source_ref": "Abb. 31"
+    }
+   ]
+  }
+ ]
+}

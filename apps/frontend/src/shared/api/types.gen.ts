@@ -456,6 +456,7 @@ export interface paths {
         /**
          * Read Progress
          * @description Public: derived planning state for a project (lazy-recomputed).
+         *     Anonymous readers get no usernames on the observations.
          */
         get: operations["read_progress_api_v1_projects__project_id__progress_get"];
         put?: never;
@@ -2784,6 +2785,7 @@ export interface paths {
         /**
          * List Guide Overrides
          * @description All edited sections of one guide (empty list = pure defaults).
+         *     Anonymous readers get no usernames.
          */
         get: operations["list_guide_overrides_api_v1_guides__guide_slug__overrides_get"];
         put?: never;
@@ -3201,6 +3203,240 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/import/condition/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Reports */
+        get: operations["list_reports_api_v1_import_condition_reports_get"];
+        put?: never;
+        /** Create Report */
+        post: operations["create_report_api_v1_import_condition_reports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/condition/reports/{year}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Pdf
+         * @description Store the report's PDF — the agent reads page text and images from it.
+         */
+        post: operations["upload_pdf_api_v1_import_condition_reports__year__pdf_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/condition/reports/{year}/page/{page}.png": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Page Image
+         * @description One page of the stored PDF as PNG (1-indexed).
+         */
+        get: operations["page_image_api_v1_import_condition_reports__year__page__page__png_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/condition/reports/{year}/values": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Report Values
+         * @description Every value of a year, checked or not (release view).
+         */
+        get: operations["report_values_api_v1_import_condition_reports__year__values_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/condition/classes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Classes */
+        get: operations["list_classes_api_v1_import_condition_classes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/condition/reports/{year}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Check Report */
+        get: operations["check_report_api_v1_import_condition_reports__year__check_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/condition/values/{value_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Value */
+        delete: operations["delete_value_api_v1_import_condition_values__value_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Correct Value
+         * @description Correct one value; it counts as checked. Broken sums come back as warnings.
+         */
+        patch: operations["correct_value_api_v1_import_condition_values__value_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/import/condition/reports/{year}/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Release Report
+         * @description Mark every value as checked and publish the year on /netzzustand.
+         */
+        post: operations["release_report_api_v1_import_condition_reports__year__release_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import/condition/reports/{year}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Report
+         * @description Delete one year with all its values and the stored PDF.
+         */
+        delete: operations["delete_report_api_v1_import_condition_reports__year__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/condition/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Public Reports
+         * @description Released years, newest first.
+         */
+        get: operations["public_reports_api_v1_condition_reports_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/condition/reports/{year}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Public Year
+         * @description Checked values of one released year with the asset classes.
+         */
+        get: operations["public_year_api_v1_condition_reports__year__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/condition/series": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Public Series
+         * @description Grades and headline figures over all released years (newest report
+         *     wins per reference year).
+         */
+        get: operations["public_series_api_v1_condition_series_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3457,6 +3693,11 @@ export interface components {
         Body_upload_attachment_api_v1_projects_texts__text_id__attachments_post: {
             /** File */
             file: string;
+        };
+        /** Body_upload_pdf_api_v1_import_condition_reports__year__pdf_post */
+        Body_upload_pdf_api_v1_import_condition_reports__year__pdf_post: {
+            /** Pdf */
+            pdf: string;
         };
         /** BudgetSummarySchema */
         BudgetSummarySchema: {
@@ -3978,6 +4219,233 @@ export interface components {
              * @default 0
              */
             member_count: number;
+        };
+        /** ConditionAssetClassSchema */
+        ConditionAssetClassSchema: {
+            /** Key */
+            key: string;
+            /**
+             * Domain
+             * @enum {string}
+             */
+            domain: "FAHRWEG" | "PERSONENBAHNHOF";
+            /** Trade */
+            trade?: string | null;
+            /** Name */
+            name: string;
+            /** Unit */
+            unit?: string | null;
+            /** Sort Order */
+            sort_order: number;
+            /** Description */
+            description?: string | null;
+        };
+        /** ConditionCheckResult */
+        ConditionCheckResult: {
+            /** Year */
+            year: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ENTWURF" | "FREIGEGEBEN";
+            /** Values */
+            values: number;
+            /** Unchecked */
+            unchecked: number;
+            /** Errors */
+            errors: components["schemas"]["ConditionTableErrors"][];
+            /** Gaps */
+            gaps: string[];
+            /** Accepted Mismatches */
+            accepted_mismatches?: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** ConditionPublicReport */
+        ConditionPublicReport: {
+            /** Year */
+            year: number;
+            /** Title */
+            title?: string | null;
+            /** Source Url */
+            source_url?: string | null;
+            /** Published On */
+            published_on?: string | null;
+            /** Price Basis */
+            price_basis?: string | null;
+            /** Released At */
+            released_at?: string | null;
+        };
+        /**
+         * ConditionPublicYear
+         * @description Everything /netzzustand needs for one year.
+         */
+        ConditionPublicYear: {
+            report: components["schemas"]["ConditionPublicReport"];
+            /** Classes */
+            classes: components["schemas"]["ConditionAssetClassSchema"][];
+            /** Values */
+            values: components["schemas"]["ConditionValueSchema"][];
+        };
+        /** ConditionReleaseResult */
+        ConditionReleaseResult: {
+            /** Released */
+            released: number;
+        };
+        /** ConditionReportCreate */
+        ConditionReportCreate: {
+            /** Year */
+            year: number;
+            /** Title */
+            title?: string | null;
+            /** Source Url */
+            source_url?: string | null;
+            /** Published On */
+            published_on?: string | null;
+            /** Price Basis */
+            price_basis?: string | null;
+            /** Note */
+            note?: string | null;
+        };
+        /** ConditionReportSchema */
+        ConditionReportSchema: {
+            /** Id */
+            id: number;
+            /** Year */
+            year: number;
+            /** Title */
+            title?: string | null;
+            /** Source Url */
+            source_url?: string | null;
+            /** Published On */
+            published_on?: string | null;
+            /** Price Basis */
+            price_basis?: string | null;
+            /** Note */
+            note?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ENTWURF" | "FREIGEGEBEN";
+            /** Has Pdf */
+            has_pdf: boolean;
+            /** Values Total */
+            values_total: number;
+            /** Values Unchecked */
+            values_unchecked: number;
+            /** Accepted Mismatches */
+            accepted_mismatches?: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Released At */
+            released_at?: string | null;
+            /** Released By */
+            released_by?: string | null;
+        };
+        /** ConditionSeriesValue */
+        ConditionSeriesValue: {
+            /** Id */
+            id: number;
+            /**
+             * Domain
+             * @enum {string}
+             */
+            domain: "FAHRWEG" | "PERSONENBAHNHOF";
+            /**
+             * Scope
+             * @enum {string}
+             */
+            scope: "GESAMT" | "HLN" | "FLN" | "SE" | "LAND";
+            /** Region */
+            region?: string | null;
+            /** Class Key */
+            class_key?: string | null;
+            /**
+             * Metric
+             * @enum {string}
+             */
+            metric: "WBW" | "WBW_BEWERTET" | "WBW_ANTEIL" | "NOTE" | "VERTEILUNG_WBW" | "VERTEILUNG_MENGE" | "MENGE_BEWERTET" | "MENGE_GESAMT" | "ERNEUERUNGSBEDARF_MENGE" | "ERNEUERUNGSBEDARF_MRD" | "NACHHOLBEDARF_MRD";
+            /** Grade */
+            grade?: number | null;
+            /** Reference Year */
+            reference_year: number;
+            /** Value */
+            value: number;
+            /** Source Page */
+            source_page?: number | null;
+            /** Source Ref */
+            source_ref?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "UNGEPRUEFT" | "GEPRUEFT";
+            /** Report Year */
+            report_year: number;
+        };
+        /** ConditionTableErrors */
+        ConditionTableErrors: {
+            /** Table */
+            table: string;
+            /** Errors */
+            errors: string[];
+        };
+        /** ConditionValueCorrection */
+        ConditionValueCorrection: {
+            /** Value */
+            value: number;
+        };
+        /** ConditionValueCorrectionResult */
+        ConditionValueCorrectionResult: {
+            value: components["schemas"]["ConditionValueSchema"];
+            /** Warnings */
+            warnings: string[];
+        };
+        /** ConditionValueSchema */
+        ConditionValueSchema: {
+            /** Id */
+            id: number;
+            /**
+             * Domain
+             * @enum {string}
+             */
+            domain: "FAHRWEG" | "PERSONENBAHNHOF";
+            /**
+             * Scope
+             * @enum {string}
+             */
+            scope: "GESAMT" | "HLN" | "FLN" | "SE" | "LAND";
+            /** Region */
+            region?: string | null;
+            /** Class Key */
+            class_key?: string | null;
+            /**
+             * Metric
+             * @enum {string}
+             */
+            metric: "WBW" | "WBW_BEWERTET" | "WBW_ANTEIL" | "NOTE" | "VERTEILUNG_WBW" | "VERTEILUNG_MENGE" | "MENGE_BEWERTET" | "MENGE_GESAMT" | "ERNEUERUNGSBEDARF_MENGE" | "ERNEUERUNGSBEDARF_MRD" | "NACHHOLBEDARF_MRD";
+            /** Grade */
+            grade?: number | null;
+            /** Reference Year */
+            reference_year: number;
+            /** Value */
+            value: number;
+            /** Source Page */
+            source_page?: number | null;
+            /** Source Ref */
+            source_ref?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "UNGEPRUEFT" | "GEPRUEFT";
         };
         /** ConstituencyDetailSchema */
         ConstituencyDetailSchema: {
@@ -9710,7 +10178,9 @@ export interface operations {
             path: {
                 project_id: number;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -14190,7 +14660,9 @@ export interface operations {
             path: {
                 guide_slug: string;
             };
-            cookie?: never;
+            cookie?: {
+                session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -14955,6 +15427,445 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_reports_api_v1_import_condition_reports_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConditionReportSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_report_api_v1_import_condition_reports_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConditionReportCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConditionReportSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_pdf_api_v1_import_condition_reports__year__pdf_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                year: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_pdf_api_v1_import_condition_reports__year__pdf_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConditionReportSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    page_image_api_v1_import_condition_reports__year__page__page__png_get: {
+        parameters: {
+            query?: {
+                dpi?: number;
+            };
+            header?: never;
+            path: {
+                year: number;
+                page: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/png": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_values_api_v1_import_condition_reports__year__values_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                year: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConditionValueSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_classes_api_v1_import_condition_classes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConditionAssetClassSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_report_api_v1_import_condition_reports__year__check_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                year: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConditionCheckResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_value_api_v1_import_condition_values__value_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                value_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    correct_value_api_v1_import_condition_values__value_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                value_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConditionValueCorrection"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConditionValueCorrectionResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    release_report_api_v1_import_condition_reports__year__release_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                year: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConditionReleaseResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_report_api_v1_import_condition_reports__year__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                year: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    public_reports_api_v1_condition_reports_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConditionPublicReport"][];
+                };
+            };
+        };
+    };
+    public_year_api_v1_condition_reports__year__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                year: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConditionPublicYear"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    public_series_api_v1_condition_series_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConditionSeriesValue"][];
                 };
             };
         };

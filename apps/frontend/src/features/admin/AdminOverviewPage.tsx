@@ -28,6 +28,7 @@ export default function AdminOverviewPage() {
     const canHaushalt = can("haushalt.import");
     const canGvfg = can("gvfg.import");
     const canInfraplan = can("infraplan.import");
+    const canCondition = can("condition.import");
     const canVib = can("vib.import");
     const canCreateProject = can("project.create");
     const canDeleteProject = can("project.delete");
@@ -44,6 +45,7 @@ export default function AdminOverviewPage() {
         canHaushalt ||
         canGvfg ||
         canInfraplan ||
+        canCondition ||
         canVib ||
         canCreateProject ||
         canDeleteProject ||
@@ -142,6 +144,16 @@ export default function AdminOverviewPage() {
                                 <Stack gap={4}>
                                     <Text fw={500}>Infraplan</Text>
                                     <Text size="sm" c="dimmed">Infraplan (Fünfjahresplan Schiene) einlesen, zuordnen, Kennzahlen erfassen und freigeben; Kennzahl-Einstellungen unter „Allgemeines“</Text>
+                                </Stack>
+                            </Link>
+                        </Paper>
+                    )}
+                    {canCondition && (
+                        <Paper withBorder p="var(--card-pad)">
+                            <Link to="/admin/zustandsbericht" style={{ textDecoration: "none", color: "inherit" }}>
+                                <Stack gap={4}>
+                                    <Text fw={500}>Zustandsbericht</Text>
+                                    <Text size="sm" c="dimmed">InfraGO-Zustandsbericht anlegen, PDF hochladen, eingelesene Werte prüfen und freigeben</Text>
                                 </Stack>
                             </Link>
                         </Paper>

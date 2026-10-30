@@ -272,3 +272,49 @@ def delete_infraplan_pdf(stored_name: str | None) -> None:
         _infraplan_path(stored_name).unlink(missing_ok=True)
     except (ValueError, OSError):
         pass
+
+
+# ---------------------------------------------------------------------------
+# InfraGO-Zustandsbericht PDFs (page text and images for the MCP import)
+# ---------------------------------------------------------------------------
+
+
+def _condition_root() -> Path:
+    return Path(settings.condition_pdf_dir).resolve()
+
+
+def _condition_path(stored_name: str) -> Path:
+    root = _condition_root()
+    safe_name = Path(stored_name).name
+    if not safe_name or safe_name != stored_name or not safe_name.endswith(".pdf"):
+        raise ValueError(f"Invalid Zustandsbericht file name: {stored_name!r}")
+    candidate = (root / safe_name).resolve()
+    if candidate.parent != root:
+        raise ValueError(f"Path traversal attempt detected: {stored_name!r}")
+    return candidate
+
+
+def save_condition_pdf(year: int, file_bytes: bytes) -> str:
+    """Store the PDF of report ``year`` and return its file name."""
+    root = _condition_root()
+    root.mkdir(parents=True, exist_ok=True)
+    stored_name = f"zustandsbericht-{year}-{uuid.uuid4().hex}.pdf"
+    _condition_path(stored_name).write_bytes(file_bytes)
+    return stored_name
+
+
+def read_condition_pdf(stored_name: str | None) -> bytes:
+    """Bytes of a stored Zustandsbericht PDF; FileNotFoundError when it is gone."""
+    if not stored_name:
+        raise FileNotFoundError("Zu diesem Zustandsbericht ist kein PDF gespeichert")
+    return _condition_path(stored_name).read_bytes()
+
+
+def delete_condition_pdf(stored_name: str | None) -> None:
+    """Remove a stored Zustandsbericht PDF. Silently ignores missing files."""
+    if not stored_name:
+        return
+    try:
+        _condition_path(stored_name).unlink(missing_ok=True)
+    except (ValueError, OSError):
+        pass

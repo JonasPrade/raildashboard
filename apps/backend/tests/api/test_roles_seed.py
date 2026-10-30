@@ -23,6 +23,7 @@ EDITOR_KEYS = {
     "assignment.manage",
     "progress.edit",
     "fulda.import",
+    "condition.import",
     "todo.create",
     "todo.edit",
     "todo.delete",

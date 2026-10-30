@@ -682,6 +682,26 @@ In addition to the parsed data, the admin can set per entry:
 
 `tasks/vib_matching.py` — VDE-number extraction (highest confidence) + fuzzy name matching (SequenceMatcher + token overlap, threshold 0.50). Top suggestions stored in `suggested_project_ids` in the parse result.
 
+## InfraGO-Zustandsbericht
+
+The yearly condition report of DB InfraGO (grades per asset class, network and Land)
+is read in by an agent over MCP (`mcp/tools/condition.py`, skill
+`zustandsbericht-import`), not by a parser. Concept: `docs/features/feature-zustandsbericht.md`.
+
+1. Admin → Zustandsbericht: create the year (`POST /api/v1/import/condition/reports`) and
+   upload the PDF (`POST …/reports/{year}/pdf`, stored in `CONDITION_PDF_DIR`, default
+   `/app/uploads/zustandsbericht`).
+2. The agent writes one table per call (`set_condition_values`). `services/condition_checks.py`
+   checks the table with the stored values — distribution = 100 %, quantities per grade =
+   rated quantity, grades 4–6 = renewal need, classes = total — and refuses the write
+   unless `override_reason` says the printed report does not add up (recorded on the report).
+3. A person checks the values next to the page image (`/admin/zustandsbericht/{year}`,
+   corrections count as checked) and releases the year (`POST …/reports/{year}/release`).
+4. Public reads: `GET /api/v1/condition/reports`, `/reports/{year}`, `/series` (the newest
+   released report wins per reference year). Page `/netzzustand`.
+
+Test fixture with every value of the 2025 report: `tests/fixtures/zustandsbericht_2025.json`.
+
 ## Infraplan Import
 
 Yearly import of the federal **Infraplan** (five-year plan for the rail

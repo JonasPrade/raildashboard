@@ -53,6 +53,7 @@ cp .env.example .env
 | `IMPORT_STAGING_DIR` | `/app/uploads/import-staging` | Ablage hochgeladener Import-PDFs, bis der Celery-Task sie gelesen hat. Muss im von Backend **und** Worker gemounteten `uploads`-Volume liegen |
 | `START_BACKGROUND_JOBS` | `true` | Aufgaben, die das Backend beim Start selbst einreiht: heute die Erstbefüllung der Karten-Überlappungen, wenn `project_map_geometry` leer ist (`docs/features/feature-map-overlapping-geometries.md`). Nur die Testsuite setzt `false` |
 | `INFRAPLAN_PDF_DIR` | `/app/uploads/infraplan` | Hochgeladene Infraplan-PDFs, je Entwurf aufbewahrt (erneutes Auslesen, Seitenbilder der Kennzahl-Diagramme). Ebenfalls im `uploads`-Volume; wird beim ersten Zugriff angelegt und von `/healthz` auf Schreibbarkeit geprüft |
+| `CONDITION_PDF_DIR` | `/app/uploads/zustandsbericht` | Hochgeladene PDFs des InfraGO-Zustandsberichts (Seitentext und -bilder für den MCP-Import und die Freigabe-Ansicht). Ebenfalls im `uploads`-Volume; wird beim ersten Zugriff angelegt und von `/healthz` auf Schreibbarkeit geprüft |
 
 ### Optionale RINF-API-Zugangsdaten
 

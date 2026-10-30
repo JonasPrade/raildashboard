@@ -38,6 +38,10 @@ Abweichungen des Dashboards stehen in der Entscheidungstabelle der Feature-Datei
    und tragen die Datenviz-Palette: kategorial `chart-1…6` in fester Reihenfolge,
    ordinal die Teal-Rampe `seq-1…5`, Abweichung `diverge-neg/mid/pos`.
    „In Betrieb“ ist `--idt-success`.
+   Ausnahme (2026-10-30, `feature-zustandsbericht.md` EK 4): Zustandsnoten 1–6
+   des InfraGO-Zustandsberichts tragen die Abweichungsskala `diverge-pos → mid →
+   neg` (Note 6 dunkler als 5), obwohl sie ordinal sind — sie lesen sich als
+   gut/schlecht wie im Bericht. Zuordnung `conditionGrade` in `semanticColors.ts`.
 5. **Eckig und gerahmt.** Radius 0 überall. Rahmen 2px Ink (`--border-frame`),
    Haarlinien 1px (`--border`) nur innerhalb von Inhalt. Keine Blockschatten im
    Dashboard; weiche Schatten nur bei Karten der Variante `soft` und beim Dialog
