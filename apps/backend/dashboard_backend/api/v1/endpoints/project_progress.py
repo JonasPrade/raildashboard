@@ -10,7 +10,7 @@ from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from dashboard_backend.api.deps import get_project_or_404
-from dashboard_backend.core.security import require_permission
+from dashboard_backend.core.security import optional_auth, require_permission
 from dashboard_backend.crud import bauportal as bauportal_crud
 from dashboard_backend.crud.projects import progress as progress_crud
 from dashboard_backend.database import get_db
@@ -40,10 +40,16 @@ def _view(db: Session, project_id: int) -> dict:
 @router.get("/{project_id}/progress", response_model=ProjectProgressSchema)
 def read_progress(
     project: Project = Depends(get_project_or_404),
+    current_user: User | None = Depends(optional_auth()),
     db: Session = Depends(get_db),
 ):
-    """Public: derived planning state for a project (lazy-recomputed)."""
-    return _view(db, project.id)
+    """Public: derived planning state for a project (lazy-recomputed).
+    Anonymous readers get no usernames on the observations."""
+    view = ProjectProgressSchema.model_validate(_view(db, project.id))
+    if current_user is None:
+        for observation in view.observations:
+            observation.username_snapshot = None
+    return view
 
 
 @router.get("/{project_id}/bauportal", response_model=list[ProjectBauportalEntrySchema])

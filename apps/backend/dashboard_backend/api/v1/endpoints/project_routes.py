@@ -78,6 +78,7 @@ async def calculate_route(
 async def confirm_route(
     project_id: int,
     request: RouteConfirmIn,
+    current_user: User = Depends(require_permission("project.edit")),
     db: Session = Depends(get_db),
     service: RouteService = Depends(get_route_service),
 ) -> RouteOut:

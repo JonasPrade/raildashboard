@@ -32,9 +32,11 @@ jobs:
     environment: production
     # On the job, not the workflow: at workflow level a quick second merge would
     # kill the running build and the affected commit would lack its images.
+    # No cancel-in-progress: a second dispatch waits instead of killing prod.sh
+    # between switching the SHA in .env and the health wait (no rollback then).
     concurrency:
       group: production
-      cancel-in-progress: true
+      cancel-in-progress: false
     permissions:
       contents: read
       packages: read

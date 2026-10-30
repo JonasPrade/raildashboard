@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from dashboard_backend.core.api_keys import MCP_PERMISSION
 from dashboard_backend.core.permissions import is_valid_permission
-from dashboard_backend.core.security import require_auth, require_permission
+from dashboard_backend.core.security import has_effective_permission, require_auth, require_permission
 from dashboard_backend.crud import api_keys as api_keys_crud
 from dashboard_backend.database import get_db
 from dashboard_backend.models.users import User
@@ -71,7 +71,7 @@ def revoke_api_key(
     """Revoke a key immediately. Own keys always; other users' keys with ``user.manage``."""
     api_key = api_keys_crud.get_api_key(db, key_id)
     if api_key is None or (
-        api_key.user_id != current_user.id and not current_user.has_permission("user.manage")
+        api_key.user_id != current_user.id and not has_effective_permission(current_user, "user.manage")
     ):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="API key not found")
     api_keys_crud.revoke_api_key(db, api_key)

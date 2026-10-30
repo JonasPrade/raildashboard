@@ -188,14 +188,6 @@ Deploy contract: [`DEPLOY.md`](DEPLOY.md); reasoning and repo-specific exception
 See [`docs/production_setup.md`](docs/production_setup.md) for the full deployment guide
 including the deploy contract, required secrets, data migration, and backup procedures.
 
-## Deployment
-
-Production is deployed by a **tag-based CI/CD pipeline** (`.github/workflows/deploy.yml`):
-pushing a `v*` tag runs the quality gates, builds and pushes the images to GHCR, and deploys
-over SSH with a pre-migration backup, health-wait, and automatic rollback. For the full deploy
-contract, required secrets, server configuration, automated backups, and update procedures,
-see [`docs/production_setup.md`](docs/production_setup.md).
-
 ## Contributing
 
 Read `AGENT.md` before making changes. It covers architecture guidelines, Git workflow, code quality standards, and PR requirements for both apps.

@@ -65,6 +65,32 @@ def test_get_progress_is_public(client, monkeypatch):
     assert body["is_overridden"] is True
 
 
+def test_get_progress_hides_usernames_from_anonymous(client, create_user, monkeypatch):
+    observation = {
+        "id": 1,
+        "source_type": "MANUELL",
+        "track": "MAIN",
+        "asserted_state": "BAU",
+        "is_derived": False,
+        "username_snapshot": "editor-p",
+        "created_at": "2026-10-01T12:00:00",
+    }
+    monkeypatch.setattr(api_deps, "get_project_by_id", _project_exists)
+    monkeypatch.setattr(
+        progress_route.progress_crud,
+        "get_progress_view",
+        lambda db, pid: _make_view(pid, observations=[dict(observation)]),
+    )
+
+    anonymous = client.get("/api/v1/projects/1/progress")
+    assert anonymous.status_code == 200
+    assert anonymous.json()["observations"][0]["username_snapshot"] is None
+
+    create_user("viewer-p", "pass123", UserRole.viewer)
+    signed_in = client.get("/api/v1/projects/1/progress", headers=basic_auth_header("viewer-p", "pass123"))
+    assert signed_in.json()["observations"][0]["username_snapshot"] == "editor-p"
+
+
 def test_get_progress_404(client, monkeypatch):
     monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: None)
     resp = client.get("/api/v1/projects/999/progress")

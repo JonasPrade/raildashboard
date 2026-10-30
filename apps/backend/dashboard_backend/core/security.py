@@ -122,6 +122,31 @@ def _reject_api_key(bearer: Optional[HTTPAuthorizationCredentials]) -> None:
         )
 
 
+def _with_permissions(user, permissions: Iterable[str]):
+    """Attach the request's effective capability set to the returned user.
+
+    Session and Basic auth carry the role's set (admin → every catalog key);
+    key auth carries the owner's set intersected with the key's scopes, with
+    no admin bypass. Endpoints check it via ``has_effective_permission``.
+    """
+
+    user.request_permissions = frozenset(permissions)
+    return user
+
+
+def has_effective_permission(principal, key: str) -> bool:
+    """Whether the authenticated principal holds ``key`` for this request.
+
+    Use this in endpoints instead of ``User.has_permission``, which ignores
+    API-key scopes and lets admin keys bypass them.
+    """
+
+    granted = getattr(principal, "request_permissions", None)
+    if granted is None:
+        granted = principal.effective_permissions
+    return key in granted
+
+
 def require_permission(*keys: str, allow_api_key: bool = True):
     """FastAPI dependency: require the authenticated user to hold every given
     capability key.
@@ -152,7 +177,7 @@ def require_permission(*keys: str, allow_api_key: bool = True):
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Not enough privileges",
                 )
-            return api_key.user
+            return _with_permissions(api_key.user, granted)
 
         user = None
         if session:
@@ -172,7 +197,7 @@ def require_permission(*keys: str, allow_api_key: bool = True):
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Not enough privileges",
                 )
-        return user
+        return _with_permissions(user, user.effective_permissions)
 
     dependency.__is_role_dependency__ = True  # type: ignore[attr-defined]
     dependency.__required_permissions__ = required_keys  # type: ignore[attr-defined]
@@ -259,15 +284,17 @@ def require_auth(allow_api_key: bool = True):
         if bearer is not None:
             if not allow_api_key:
                 _reject_api_key(bearer)
-            return _authenticate_api_key(bearer, db).user
+            api_key = _authenticate_api_key(bearer, db)
+            return _with_permissions(api_key.user, api_keys_crud.effective_key_permissions(api_key))
         if session:
             user_id = verify_session_token(session)
             if user_id is not None:
                 user = users_crud.get_user_by_id(db, user_id)
                 if user:
-                    return user
+                    return _with_permissions(user, user.effective_permissions)
         if credentials:
-            return _authenticate(credentials, db)
+            user = _authenticate(credentials, db)
+            return _with_permissions(user, user.effective_permissions)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",

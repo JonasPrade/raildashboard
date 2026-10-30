@@ -10,7 +10,11 @@ from dashboard_backend.core.security import ensure_authenticated_dependency, has
 
 
 class AuthRouter(APIRouter):
-    """APIRouter enforcing authentication for all non-GET endpoints."""
+    """APIRouter enforcing authentication for all non-GET endpoints.
+
+    The fallback for write routes without an explicit capability rejects API
+    keys: a key only reaches what a ``require_permission`` check grants it.
+    """
 
     def add_api_route(
         self,
@@ -26,7 +30,7 @@ class AuthRouter(APIRouter):
 
         if not ensure_authenticated_dependency(dependencies) and not self._endpoint_requires_roles(endpoint):
             if any(method.upper() != "GET" for method in methods):
-                dependencies.append(Depends(require_auth()))
+                dependencies.append(Depends(require_auth(allow_api_key=False)))
 
         super().add_api_route(
             path,

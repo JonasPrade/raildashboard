@@ -72,8 +72,8 @@ def test_admin_can_upsert_list_and_reset(client, create_user):
     assert resp.status_code == 200
     assert resp.json()["body_markdown"] == "Version 2"
 
-    # list is scoped by slug
-    assert client.get("/api/v1/guides/fulda/overrides").json() == [
+    # list is scoped by slug; signed-in readers see who edited the section
+    assert client.get("/api/v1/guides/fulda/overrides", headers=auth).json() == [
         {
             **{k: resp.json()[k] for k in ("guide_slug", "section_key", "body_markdown")},
             "updated_at": resp.json()["updated_at"],
@@ -81,6 +81,11 @@ def test_admin_can_upsert_list_and_reset(client, create_user):
         }
     ]
     assert client.get("/api/v1/guides/bauportal/overrides").json() == []
+
+    # anonymous readers get the section, but no username
+    anonymous = client.get("/api/v1/guides/fulda/overrides").json()
+    assert anonymous[0]["body_markdown"] == "Version 2"
+    assert anonymous[0]["username_snapshot"] is None
 
     # reset → fall back to default
     resp = client.delete("/api/v1/guides/fulda/overrides/intro", headers=auth)
