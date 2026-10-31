@@ -424,9 +424,17 @@ und werden nicht ins Changelog geschrieben.
 - **Mapping `bauportal_to_spec`:** `icon_title` „…Bauphase" → BAU, „…Planungsphase" →
   VORPLANUNG (konservative Untergrenze), „…gemischter Projektphase"/„Gesamtprojekt…" → kein
   Beitrag (Parent aggregiert über Kinder). `projecttime`-Endjahr → optionaler
-  Inbetriebnahme-Forecast. `observed_date = fetched_at`.
+  Inbetriebnahme-Forecast. `observed_date = fetched_at`. **Geplant (2026-10-31,
+  `feature-routine-abrufe.md`, EK-2026-036):** `observed_date = status_changed_at`
+  (wird nur bei einem echten Wechsel von `status_raw` neu gesetzt). Der „Stand“ auf der
+  Projektseite kommt aus `last_seen_at` (jeder Lauf). Heute setzt der Code `fetched_at`
+  nur beim ersten Abruf.
 - **Pipeline (`tasks/bauportal.py`):** Fetch → Upsert je `bauportal_id` → Fuzzy-Match auf
   `Project.name` (`suggest_project_for_bauportal`, analog `vib_matching`) → `suggested_project_id`.
+  Heute läuft die Pipeline synchron im Endpunkt `POST /import/bauportal/fetch`. **Geplant
+  (2026-10-31):** als Celery-Task mit Laufnachweis `bauportal_import_run`, täglich 02:40
+  zeitgesteuert. Danach werden die Projekte neu berechnet, deren bestätigter Eintrag den
+  Status gewechselt hat. Der Knopf bleibt; siehe `feature-routine-abrufe.md`.
 - **Review-UI = Fulda-Parität (`BauportalImportPage`):** Der Vorschlag wird beim Import direkt in
   `project_id` **vorbefüllt** (unbestätigt), statt nur als graue Nebenspalte zu erscheinen.
   Reihenfolge-unabhängige Suche (`filterProjectOption`), per-Zeile „Übernehmen"-Toggle

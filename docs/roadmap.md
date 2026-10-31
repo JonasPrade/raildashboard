@@ -265,6 +265,7 @@ Siehe: `docs/features/feature-new-project-wizard.md`
 - [ ] Bug-Report: A Button in the right corner where everybody can report Bugs or Problems (logged in users dont have to add there contact information). Bugs should be collect in fitting tool and solved by ai
 - [ ] Kennzahlen Marktuntersuchungsbericht Bundesnetzagentur -> wichtigsten Entwicklungskennzahlen online stellen
 - [ ] Integration API Bauinfoportal zu Dashboard
+- [ ] **Routine-Abrufe zeitgesteuert** — Abgeordnetenstand (wöchentlich), DB-Bauportal (täglich) und Neuberechnung des Planungsstands (wöchentlich) laufen über einen eigenen Compose-Dienst `scheduler` (Celery Beat) ohne Mensch und Agent; Laufnachweis und Badge in `/admin/system`, Knöpfe bleiben. See: `docs/features/feature-routine-abrufe.md`
 - [ ] In the FinVe calculation show if the cost development is inside the normal price inflation
 - [ ] Integrate a feed for newsletter und updates from websites to roadmap.md
 ---
