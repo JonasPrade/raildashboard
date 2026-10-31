@@ -227,40 +227,26 @@ export default function MapPage() {
           ? "Keine Projekte für die gewählten Filter"
           : "Keine Projekte in den gewählten Phasen";
 
-    // --- List tab: single-group selection (first entry in ?group) ---
-    const selectedGroupId = useMemo(() => {
-        const param = searchParams.get("group");
-        if (!param) return null;
-        const id = Number(param.split(",")[0]);
-        return Number.isFinite(id) ? id : null;
-    }, [searchParams]);
+    // --- List and timeline: the same multi-group selection as the map (shared
+    // drawer, ?group), but independent of map_group_mode. Without a valid
+    // selection they show the default groups, or all groups if none is marked.
+    const listGroups = useMemo(() => {
+        const selectedSet = new Set(selectedGroupIds);
+        const selected = groups.filter((group) => selectedSet.has(group.id));
+        if (selected.length > 0) return selected;
+        const defaults = groups.filter((g) => g.is_default_selected);
+        return defaults.length > 0 ? defaults : groups;
+    }, [groups, selectedGroupIds]);
+    const listGroupIds = useMemo(() => listGroups.map((g) => g.id), [listGroups]);
+    const listGroupKey = listGroupIds.join(",");
 
     // Start from the first page again whenever the shown list changes.
-    const listKey = `${selectedGroupId}|${onlySuperior}|${deferredSearch}|${phaseParam ?? ""}`;
+    const listKey = `${listGroupKey}|${onlySuperior}|${deferredSearch}|${phaseParam ?? ""}`;
     const [prevListKey, setPrevListKey] = useState(listKey);
     if (listKey !== prevListKey) {
         setPrevListKey(listKey);
         setListLimit(LIST_PAGE_SIZE);
     }
-
-    // Auto-select first group when on list tab and no valid group is selected
-    useEffect(() => {
-        if (view !== "list" && view !== "timeline") return;
-        if (groups.length === 0) return;
-        if (selectedGroupId !== null && groups.some((g) => g.id === selectedGroupId)) return;
-        setSearchParams((prev) => {
-            prev.set("group", String(groups[0]!.id));
-            return prev;
-        }, { replace: true });
-    }, [view, groups, selectedGroupId, setSearchParams]);
-
-    const handleGroupChange = (value: string | null) => {
-        setSearchParams((prev) => {
-            if (value) prev.set("group", value);
-            else prev.delete("group");
-            return prev;
-        });
-    };
 
     const handleViewChange = (val: string) => {
         setSearchParams((prev) => {
@@ -299,7 +285,7 @@ export default function MapPage() {
                             </List.Item>
                             <List.Item>
                                 <Text size="sm" span fw={500}>Projektgruppen</Text>
-                                <Text size="sm"> — Klicke auf „Projektgruppen", um nach Themengruppen zu filtern. Auf der Karte kannst du mehrere Gruppen gleichzeitig auswählen.</Text>
+                                <Text size="sm"> — Klicke auf „Projektgruppen", um nach Themengruppen zu filtern. Du kannst mehrere Gruppen gleichzeitig auswählen; die Auswahl gilt für Karte, Liste und Zeitstrahl.</Text>
                             </List.Item>
                             <List.Item>
                                 <Text size="sm" span fw={500}>Planungsphase</Text>
@@ -311,7 +297,7 @@ export default function MapPage() {
                             </List.Item>
                             <List.Item>
                                 <Text size="sm" span fw={500}>Zeitstrahl</Text>
-                                <Text size="sm"> — Zeigt die Projekte einer Gruppe mit belastbaren Terminen (Baubeginn, Inbetriebnahme, Planfeststellung) auf einer Jahresachse.</Text>
+                                <Text size="sm"> — Zeigt die Projekte der gewählten Gruppen mit belastbaren Terminen (Baubeginn, Inbetriebnahme, Planfeststellung) auf einer Jahresachse.</Text>
                             </List.Item>
                             <List.Item>
                                 <Text size="sm" c="dimmed">Tipp: Die aktuelle Ansicht lässt sich als Link teilen – einfach die URL kopieren.</Text>
@@ -329,13 +315,26 @@ export default function MapPage() {
             : "Unbekannter Fehler beim Laden der Projektgruppen"
         : undefined;
 
+    // One drawer for all three views; it starts from the groups currently shown.
+    const groupDrawer = (
+        <GroupFilterDrawer
+            opened={opened}
+            onClose={close}
+            groups={projectGroupOptions}
+            loading={isLoading}
+            error={errorMessage}
+            shownIds={view === "map" ? selectedGroupIdsForMap : listGroupIds}
+        />
+    );
+
     // --- List and timeline view (same group / search / superior controls) ---
     if (view === "list" || view === "timeline") {
         const isTimeline = view === "timeline";
-        const selectedGroup = selectedGroupId
-            ? groups.find((group) => group.id === selectedGroupId)
-            : undefined;
-        const rawProjects = (selectedGroup?.projects ?? []).map(withActiveFeatures);
+        const singleGroup = listGroups.length === 1 ? listGroups[0] : undefined;
+        // A project in several selected groups is listed once.
+        const projectsById = new Map<number, NonNullable<ProjectGroup["projects"]>[number]>();
+        listGroups.forEach((group) => group.projects?.forEach((p) => projectsById.set(p.id, p)));
+        const rawProjects = [...projectsById.values()].map(withActiveFeatures);
         const superiorFiltered = onlySuperior
             ? rawProjects.filter((p) => p.superior_project_id == null)
             : rawProjects;
@@ -352,12 +351,15 @@ export default function MapPage() {
                       p.description?.toLowerCase().includes(searchTerm),
               )
             : phaseFiltered;
-        const selectData = groups.map((group) => ({
-            value: String(group.id),
-            label: group.name,
-        }));
+        const groupLabel =
+            listGroups.length === 0
+                ? "Projektgruppen wählen"
+                : singleGroup
+                  ? singleGroup.name
+                  : `${listGroups.length} Projektgruppen`;
 
         return (
+            <>
             <Container size="xl" py={{ base: "md", sm: "xl" }} px={{ base: 0, sm: "md" }}>
                 <Stack gap="xl">
                     {viewToggle}
@@ -366,30 +368,45 @@ export default function MapPage() {
                         <Title order={2}>Projekte nach Projektgruppen</Title>
                         <Text size="sm" c="dimmed" style={{ maxWidth: 540 }}>
                             {isTimeline
-                                ? "Wähle eine Projektgruppe aus, um ihre Projekte mit belastbaren Terminen auf einer Zeitachse zu sehen."
-                                : "Wähle eine Projektgruppe aus, um alle zugehörigen Projekte zu sehen."}
+                                ? "Wähle Projektgruppen aus, um ihre Projekte mit belastbaren Terminen auf einer Zeitachse zu sehen."
+                                : "Wähle Projektgruppen aus, um alle zugehörigen Projekte zu sehen."}
                         </Text>
                     </Stack>
 
-                    {selectedGroup && (
+                    {listGroups.length > 1 && (
+                        <Paper withBorder p="var(--card-pad)">
+                            <Stack gap="xs">
+                                <Title order={3}>{listGroups.length} Projektgruppen</Title>
+                                <Group gap="xs">
+                                    {listGroups.map((group) => (
+                                        <SwatchTag key={group.id} color={group.color}>
+                                            {group.name} · {group.projects?.length ?? 0}
+                                        </SwatchTag>
+                                    ))}
+                                </Group>
+                            </Stack>
+                        </Paper>
+                    )}
+
+                    {singleGroup && (
                         <Paper withBorder p="var(--card-pad)">
                             <Stack gap="xs">
                                 <Group justify="space-between" align="flex-start">
                                     <Stack gap={4}>
-                                        <Title order={3}>{selectedGroup.name}</Title>
+                                        <Title order={3}>{singleGroup.name}</Title>
                                         <Text size="sm" c="dimmed">
-                                            Kurzname: {selectedGroup.short_name}
+                                            Kurzname: {singleGroup.short_name}
                                         </Text>
                                     </Stack>
                                     <Group gap="xs">
-                                        <SwatchTag color={selectedGroup.color}>
-                                            {selectedGroup.projects?.length ?? 0} Projekte
+                                        <SwatchTag color={singleGroup.color}>
+                                            {singleGroup.projects?.length ?? 0} Projekte
                                         </SwatchTag>
                                     </Group>
                                 </Group>
-                                {selectedGroup.description ? (
+                                {singleGroup.description ? (
                                     <Text size="sm" c="dimmed">
-                                        {selectedGroup.description}
+                                        {singleGroup.description}
                                     </Text>
                                 ) : (
                                     <Text size="sm" c="dimmed" style={{ fontStyle: "italic" }}>
@@ -408,9 +425,8 @@ export default function MapPage() {
 
                     <Stack gap={0}>
                         <ProjectFilterBar
-                            groups={selectData}
-                            groupId={selectedGroupId}
-                            onGroupChange={handleGroupChange}
+                            groupLabel={groupLabel}
+                            onOpenGroups={open}
                             groupsLoading={isLoading}
                             search={localSearch}
                             onSearchChange={setLocalSearch}
@@ -421,7 +437,7 @@ export default function MapPage() {
                             dateFilter={dateFilter}
                             onDateFilterChange={handleDateFilterChange}
                             shown={projects.length}
-                            total={selectedGroup ? rawProjects.length : null}
+                            total={listGroups.length > 0 ? rawProjects.length : null}
                         />
                         {errorMessage && (
                             <Alert color="red" variant="light" title="Projektgruppen konnten nicht geladen werden">
@@ -432,16 +448,17 @@ export default function MapPage() {
 
                     {isLoading && groups.length === 0 ? (
                         <LoadingState rows={6} />
-                    ) : selectedGroup && isTimeline ? (
+                    ) : listGroups.length > 0 && isTimeline ? (
                         <TimelineView
-                            // Remount per group so the row paging starts over.
-                            key={selectedGroup.id}
-                            groupId={selectedGroup.id}
+                            // Remount per group selection so the row paging starts over.
+                            key={listGroupKey}
+                            groupIds={listGroupIds}
+                            projectCount={superiorFiltered.length}
                             onlySuperior={onlySuperior}
                             visibleProjectIds={new Set(projects.map((p) => p.id))}
                             searchActive={searchTerm.length > 0 || isDateFilterActive(dateFilter)}
                         />
-                    ) : selectedGroup ? (
+                    ) : listGroups.length > 0 ? (
                         <Stack gap="md">
                             <Paper
                                 withBorder
@@ -452,7 +469,7 @@ export default function MapPage() {
                                     <Group gap="md" align="center" wrap="nowrap">
                                         <Stat value={projects.length} />
                                         <Stack gap={2}>
-                                            <Text className="idt-eyebrow" component="div">{selectedGroup.short_name ?? "Projektgruppe"}</Text>
+                                            <Text className="idt-eyebrow" component="div">{singleGroup ? (singleGroup.short_name ?? "Projektgruppe") : "Projektgruppen"}</Text>
                                             <Title order={3}>Projekte</Title>
                                         </Stack>
                                     </Group>
@@ -461,7 +478,7 @@ export default function MapPage() {
                                             ? `${projects.length} von ${superiorFiltered.length} Projekten`
                                             : projects.length === 1
                                               ? "1 Projekt"
-                                              : `${projects.length} Projekte${onlySuperior && rawProjects.length !== projects.length ? ` (von ${rawProjects.length})` : " in dieser Gruppe"}`}
+                                              : `${projects.length} Projekte${onlySuperior && rawProjects.length !== projects.length ? ` (von ${rawProjects.length})` : singleGroup ? " in dieser Gruppe" : " in den gewählten Gruppen"}`}
                                     </Text>
                                 </Group>
                             </Paper>
@@ -470,7 +487,9 @@ export default function MapPage() {
                                 <Alert color="blue" variant="light" title="Keine Projekte gefunden">
                                     {isFiltered
                                         ? `${noMatchMessage}.`
-                                        : "Diese Projektgruppe enthält aktuell keine Projekte."}
+                                        : singleGroup
+                                          ? "Diese Projektgruppe enthält aktuell keine Projekte."
+                                          : "Die gewählten Projektgruppen enthalten aktuell keine Projekte."}
                                 </Alert>
                             ) : (
                                 <ProjectListTable
@@ -481,13 +500,11 @@ export default function MapPage() {
                                 />
                             )}
                         </Stack>
-                    ) : groups.length > 0 ? (
-                        <Alert color="blue" variant="light" title="Projektgruppe auswählen">
-                            Bitte wähle eine Projektgruppe aus, um die Projekte anzuzeigen.
-                        </Alert>
                     ) : null}
                 </Stack>
             </Container>
+            {groupDrawer}
+            </>
         );
     }
 
@@ -620,13 +637,7 @@ export default function MapPage() {
                     />
                 </Box>
             </Container>
-            <GroupFilterDrawer
-                opened={opened}
-                onClose={close}
-                groups={projectGroupOptions}
-                loading={isLoading}
-                error={errorMessage}
-            />
+            {groupDrawer}
         </>
     );
 }

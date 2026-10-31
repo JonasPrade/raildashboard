@@ -1,5 +1,5 @@
-import { ActionIcon, Button, Group, NumberInput, Popover, Select, Stack, Switch, Text, TextInput } from "@mantine/core";
-import { Filter, Search, X } from "lucide-react";
+import { ActionIcon, Button, Group, NumberInput, Popover, Stack, Switch, Text, TextInput } from "@mantine/core";
+import { Filter, Layers, Search, X } from "lucide-react";
 
 import PhaseFilterSelect from "./PhaseFilterSelect";
 import { phaseFilterOptions, type PhaseFilterValue } from "./phaseFilter";
@@ -8,9 +8,9 @@ import { dateFilterMarks, type DateFilter } from "./dateFilter";
 const PHASE_LABEL = new Map(phaseFilterOptions().map((o) => [o.value, o.label]));
 
 type Props = {
-    groups: { value: string; label: string }[];
-    groupId: number | null;
-    onGroupChange: (value: string | null) => void;
+    /** Names of the shown groups (explicit selection or the default set). */
+    groupLabel: string;
+    onOpenGroups: () => void;
     groupsLoading: boolean;
     search: string;
     onSearchChange: (value: string) => void;
@@ -85,13 +85,12 @@ function FilterMark({ label, onRemove }: { label: string; onRemove: () => void }
 
 /**
  * Filter bar of the project list and timeline (Anwendungsebene „Tabelle“):
- * group, search field, the active filters as removable marks, the filter
+ * group button (opens the shared GroupFilterDrawer), search field, the active filters as removable marks, the filter
  * button with the remaining filters, and the hit count on the right.
  */
 export function ProjectFilterBar({
-    groups,
-    groupId,
-    onGroupChange,
+    groupLabel,
+    onOpenGroups,
     groupsLoading,
     search,
     onSearchChange,
@@ -106,18 +105,18 @@ export function ProjectFilterBar({
 }: Props) {
     return (
         <div className="idt-filterbar">
-            <Select
-                aria-label="Projektgruppe"
-                placeholder="Projektgruppe wählen"
-                data={groups}
-                value={groupId !== null ? String(groupId) : null}
-                onChange={onGroupChange}
-                disabled={groupsLoading && groups.length === 0}
-                nothingFoundMessage={groupsLoading ? "Lade…" : "Keine Projektgruppen gefunden"}
-                searchable
-                clearable
+            <Button
+                variant="default"
+                leftSection={<Layers size={16} />}
+                onClick={onOpenGroups}
+                loading={groupsLoading}
+                aria-label={`Projektgruppen wählen (aktuell: ${groupLabel})`}
+                justify="flex-start"
+                styles={{ label: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }}
                 style={{ flex: "1 1 220px", minWidth: 0, maxWidth: 360 }}
-            />
+            >
+                {groupLabel}
+            </Button>
             <TextInput
                 aria-label="Suche"
                 placeholder="Name, Nr., Beschreibung…"

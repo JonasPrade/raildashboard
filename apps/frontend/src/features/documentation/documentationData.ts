@@ -77,7 +77,7 @@ export const featureHighlights: FeatureHighlight[] = [
     {
         title: "Zeitstrahl",
         description:
-            "Dritte Ansicht neben Karte und Liste: Die Projekte einer Projektgruppe mit belastbaren Terminen" +
+            "Dritte Ansicht neben Karte und Liste: Die Projekte der gewählten Projektgruppen mit belastbaren Terminen" +
             " erscheinen als Zeilen auf einer gemeinsamen Jahresachse.",
         details: [
             "Termine aus VIB-PFA (Baubeginn, Inbetriebnahme, Planfeststellungsbeschluss), Fulda-Runde, erwarteten manuellen Einträgen sowie den Daten von Planfeststellung und parlamentarischer Befassung",
@@ -86,7 +86,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Übergeordnete Projekte bündeln die Termine ihrer Unterprojekte (frühester Beginn, späteste Inbetriebnahme)",
             "Bauen die Unterprojekte in getrennten Etappen, zeigt der Balken nur die Bauzeiten der Etappen; die Pause dazwischen erscheint als gestrichelte Linie „zwischen Bauetappen“",
             "Unsichere Termine: nur das Jahr bekannt → Balken mit weicher Kante und Beschriftung „2028“; nur eine Untergrenze → offener, blass schraffierter Bereich bis zum rechten Rand mit Pfeil und „nach 2031 – Termin offen“; Annahme (z. B. 6 Monate Bauzeit) → gestrichelter Rahmen, die Herleitung steht im Tooltip. Die Legende erklärt alle drei",
-            "Sortierung nach Inbetriebnahme, Baubeginn oder Name; Gruppe, Suche, Sortierung und „Nur Hauptprojekte“ stehen in der URL",
+            "Sortierung nach Inbetriebnahme, Baubeginn oder Name; Gruppen (Mehrfachauswahl wie auf der Karte), Suche, Sortierung und „Nur Hauptprojekte“ stehen in der URL",
             "Details: docs/features/feature-project-timeline.md"
         ]
     },
@@ -106,12 +106,14 @@ export const featureHighlights: FeatureHighlight[] = [
     {
         title: "Project group filter",
         description:
-            "The `GroupFilterDrawer` lets users select which project groups are shown on the map and in the list." +
+            "The `GroupFilterDrawer` lets users select which project groups are shown on the map, in the list and in the timeline." +
             " The selection is mirrored in the URL via the `group` query parameter.",
         details: [
             "Clickable button list — one button per group with colour dot and project count",
             "Groups hidden by an admin (is_visible = false) are excluded automatically",
-            "Selection persists across map ↔ list view switches via URL param"
+            "Selection persists across map ↔ list ↔ timeline switches via URL param",
+            "Multiple groups in list and timeline: projects are merged, a project in several groups appears once; without a selection the default groups (else all groups) are shown",
+            "In list and timeline the filter bar shows a „Projektgruppen“ button (current selection as label) that opens the same drawer — replaces the former single-group dropdown, which was hard to use on phones"
         ]
     },
     {
