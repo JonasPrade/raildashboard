@@ -58,6 +58,10 @@ Keine Änderung. `short_name` ist `unique` — Duplikate müssen abgefangen werd
    - Mantine-Komponenten (`Paper`/`Button`, IDT-Design), Erfolgs-/Fehler-Toast via `@mantine/notifications`; 409 als verständliche Meldung („Kürzel bereits vergeben").
    - UI-Strings auf Deutsch.
 
+### Standardauswahl (`is_default_selected`)
+
+Die Standardauswahl gilt für alle drei Ansichten der Startseite, solange kein `?group=` in der URL steht: Die Karte zeigt alle Gruppen mit Standardauswahl (keine markiert → alle sichtbaren Gruppen), Liste und Zeitstrahl starten mit der ersten markierten Gruppe (keine markiert → erste Gruppe). Vorgabe seit 2026-10-31: nur „BSWAG 2023“.
+
 ## Akzeptanzkriterien
 
 - [ ] Admin legt auf `/admin/project-groups` eine neue Gruppe an; sie erscheint sofort in der Liste und im `?group=`-Selektor der Startseite.
