@@ -82,6 +82,7 @@ from dashboard_backend.schemas.projects.progress_schema import (
     ProgressObservationCreate,
     ProgressObservationUpdate,
     ProjectProgressSchema,
+    ProjectProgressUpdate,
     TrackLiteral,
 )
 from dashboard_backend.schemas.projects.project_create_schema import ProjectCreate
@@ -1378,6 +1379,112 @@ def set_phase_override(
         return ProjectProgressSchema.model_validate(view).model_dump(mode="json")
 
 
+_LIFECYCLE_LABELS = {"PAUSIERT": "pausiert", "ABGEBROCHEN": "abgebrochen"}
+
+
+def set_project_lifecycle(
+    project_id: int,
+    status: LifecycleStatusLiteral,
+    note: str | None = None,
+    since: date | None = None,
+    *,
+    ctx: Context,
+) -> dict[str, Any]:
+    """Set the lifecycle of a project (requires ``progress.edit``), like the
+    lifecycle switch in the planning-state panel. The lifecycle is an overlay: it
+    does not change the phase, the observations stay untouched.
+
+    - status: AKTIV, PAUSIERT or ABGEBROCHEN
+    - note: why the project is paused / cancelled, with the source (required for
+      PAUSIERT and ABGEBROCHEN, e.g. "Bürgerentscheid 09.06.2024: Stadtbahn
+      abgelehnt"); a new note replaces the old one
+    - since: date the pause / cancellation took effect (optional; omitted keeps
+      a date already stored)
+    AKTIV clears note and date. A really cancelled project stays visible — do not
+    archive it (archive_project is for replaced projects).
+    Returns the recomputed planning state."""
+    principal = get_principal(ctx)
+    require(principal, "progress.edit")
+    payload: dict[str, Any] = {"lifecycle_status": status}
+    if status != "AKTIV":
+        if not (note and note.strip()):
+            raise ToolError(
+                f"Für „{_LIFECYCLE_LABELS[status]}“ ist eine Begründung (note) nötig."
+            )
+        payload["lifecycle_note"] = note.strip()
+        if since is not None:
+            payload["lifecycle_date"] = since
+    with tool_session(ctx) as db:
+        _project_or_error(db, project_id)
+        progress_crud.update_progress(db, project_id, payload, load_user(db, principal))
+        view = progress_crud.get_progress_view(db, project_id)
+        return ProjectProgressSchema.model_validate(view).model_dump(mode="json")
+
+
+# Fields of the Planfeststellung (PF) and parliamentary (PARL) tracks that
+# update_progress_tracks may change; phase override and lifecycle have own tools.
+_TRACK_FIELDS = {
+    "has_planfeststellung",
+    "pf_state_override",
+    "pf_text",
+    "pf_date",
+    "pf_links",
+    "clear_pf_state_override",
+    "parl_befassung_relevant",
+    "parl_state_override",
+    "parl_befassung_text",
+    "parl_drucksache_url",
+    "parl_befassung_date",
+    "clear_parl_relevant",
+    "clear_parl_state_override",
+}
+
+
+def update_progress_tracks(
+    project_id: int, changes: dict[str, Any], *, ctx: Context
+) -> dict[str, Any]:
+    """Change the Planfeststellung (PF) and parliamentary (PARL) tracks of a
+    project's planning state (requires ``progress.edit``), like the two blocks in
+    the planning-state panel. ``changes`` maps field names to new values:
+
+    Planfeststellung
+    - has_planfeststellung: the project needs a Planfeststellung (bool); any PF
+      detail below switches it on automatically
+    - pf_state_override: OFFEN, LAEUFT or ABGESCHLOSSEN (pins the PF state);
+      clear_pf_state_override: true removes it
+    - pf_text, pf_date (YYYY-MM-DD), pf_links: [{"url": "…", "comment": "…"}]
+      (replaces the whole list)
+    Parliamentary involvement
+    - parl_befassung_relevant: bool overriding the group default;
+      clear_parl_relevant: true falls back to the default
+    - parl_state_override: OFFEN, LAEUFT or ABGESCHLOSSEN;
+      clear_parl_state_override: true removes it
+    - parl_befassung_text, parl_drucksache_url, parl_befassung_date
+
+    Phase override: set_phase_override; lifecycle: set_project_lifecycle.
+    Every change is written to the changelog. Returns the recomputed planning
+    state."""
+    principal = get_principal(ctx)
+    require(principal, "progress.edit")
+    unknown = sorted(set(changes) - _TRACK_FIELDS)
+    if unknown:
+        raise ToolError(
+            f"Unbekannte oder hier nicht änderbare Felder: {', '.join(unknown)} "
+            "(Phasen-Override: set_phase_override, Lebenszyklus: set_project_lifecycle)."
+        )
+    try:
+        payload = ProjectProgressUpdate.model_validate(changes).model_dump(exclude_unset=True)
+    except ValidationError as exc:
+        raise ToolError(f"Ungültige Werte: {exc}") from exc
+    if not payload:
+        raise ToolError("Keine Änderungen übergeben.")
+    with tool_session(ctx) as db:
+        _project_or_error(db, project_id)
+        progress_crud.update_progress(db, project_id, payload, load_user(db, principal))
+        view = progress_crud.get_progress_view(db, project_id)
+        return ProjectProgressSchema.model_validate(view).model_dump(mode="json")
+
+
 def upsert_project_text(
     project_id: int,
     header: str | None = None,
@@ -1576,6 +1683,8 @@ def register(server: MCPServer) -> None:
         add_progress_observation,
         update_progress_observation,
         set_phase_override,
+        set_project_lifecycle,
+        update_progress_tracks,
         upsert_project_text,
     ):
         server.add_tool(fn, annotations=WRITE)

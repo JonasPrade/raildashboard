@@ -8,6 +8,7 @@ session manager.
 from __future__ import annotations
 
 import json
+from datetime import date
 
 import pytest
 from fastapi.testclient import TestClient
@@ -165,6 +166,8 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
         "update_progress_observation",
         "delete_progress_observation",
         "set_phase_override",
+        "set_project_lifecycle",
+        "update_progress_tracks",
         "upsert_project_text",
         "merge_projects",
         "list_todos",
@@ -609,6 +612,120 @@ def test_phase_override_needs_capability(mcp_client, db_session):
     assert result["isError"] is True
     assert "progress.edit" in result["content"][0]["text"]
     assert db_session.query(ProjectProgress).filter_by(project_id=alpha.id).count() == 0
+
+
+def test_set_project_lifecycle(mcp_client, admin_token, db_session, monkeypatch):
+    monkeypatch.setattr(progress_crud, "get_progress_view", _stub_view)
+    alpha, _ = _seed_projects(db_session)
+
+    missing_note = _call(
+        mcp_client, admin_token, "set_project_lifecycle", {"project_id": alpha.id, "status": "ABGEBROCHEN"}
+    )
+    assert missing_note["isError"] is True
+    assert "note" in missing_note["content"][0]["text"]
+
+    _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "set_project_lifecycle",
+            {
+                "project_id": alpha.id,
+                "status": "ABGEBROCHEN",
+                "note": "  Bürgerentscheid 09.06.2024  ",
+                "since": "2024-06-09",
+            },
+        )
+    )
+    progress = db_session.query(ProjectProgress).filter_by(project_id=alpha.id).one()
+    assert progress.lifecycle_status == "ABGEBROCHEN"
+    assert progress.lifecycle_note == "Bürgerentscheid 09.06.2024"
+    assert progress.lifecycle_date == date(2024, 6, 9)
+    log = db_session.query(ChangeLog).filter(ChangeLog.project_id == alpha.id).one()
+    assert log.username_snapshot == "admin"
+    assert {e.field_name for e in log.entries} == {
+        "progress.lifecycle_status",
+        "progress.lifecycle_note",
+        "progress.lifecycle_date",
+    }
+
+    _payload(
+        _call(mcp_client, admin_token, "set_project_lifecycle", {"project_id": alpha.id, "status": "AKTIV"})
+    )
+    db_session.refresh(progress)
+    assert progress.lifecycle_status == "AKTIV"
+    assert progress.lifecycle_note is None
+    assert progress.lifecycle_date is None
+
+
+def test_set_project_lifecycle_needs_capability(mcp_client, db_session):
+    alpha, _ = _seed_projects(db_session)
+    token = _key_for(db_session, _role_user(db_session, "reader", ["mcp.access"]))
+    result = _call(
+        mcp_client,
+        token,
+        "set_project_lifecycle",
+        {"project_id": alpha.id, "status": "PAUSIERT", "note": "x"},
+    )
+    assert result["isError"] is True
+    assert "progress.edit" in result["content"][0]["text"]
+    assert db_session.query(ProjectProgress).filter_by(project_id=alpha.id).count() == 0
+
+
+def test_update_progress_tracks(mcp_client, admin_token, db_session, monkeypatch):
+    monkeypatch.setattr(progress_crud, "get_progress_view", _stub_view)
+    alpha, _ = _seed_projects(db_session)
+
+    rejected = _call(
+        mcp_client,
+        admin_token,
+        "update_progress_tracks",
+        {"project_id": alpha.id, "changes": {"lifecycle_status": "ABGEBROCHEN"}},
+    )
+    assert rejected["isError"] is True
+    assert "set_project_lifecycle" in rejected["content"][0]["text"]
+    invalid = _call(
+        mcp_client,
+        admin_token,
+        "update_progress_tracks",
+        {"project_id": alpha.id, "changes": {"pf_state_override": "FERTIG"}},
+    )
+    assert invalid["isError"] is True
+
+    _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "update_progress_tracks",
+            {
+                "project_id": alpha.id,
+                "changes": {
+                    "pf_state_override": "LAEUFT",
+                    "pf_date": "2025-03-01",
+                    "pf_links": [{"url": "https://example.org/pfv", "comment": "EBA"}],
+                    "parl_befassung_relevant": True,
+                },
+            },
+        )
+    )
+    progress = db_session.query(ProjectProgress).filter_by(project_id=alpha.id).one()
+    assert progress.has_planfeststellung is True  # implied by the PF details
+    assert progress.pf_state_override == "LAEUFT"
+    assert progress.pf_date == date(2025, 3, 1)
+    assert progress.pf_links == [{"url": "https://example.org/pfv", "comment": "EBA"}]
+    assert progress.parl_befassung_relevant is True
+
+    _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "update_progress_tracks",
+            {"project_id": alpha.id, "changes": {"clear_pf_state_override": True, "clear_parl_relevant": True}},
+        )
+    )
+    db_session.refresh(progress)
+    assert progress.pf_state_override is None
+    assert progress.parl_befassung_relevant is None
 
 
 def test_add_and_delete_observation_write_changelog(
