@@ -1,6 +1,7 @@
 from mcp.server.mcpserver import MCPServer
 
 from . import (
+    bauportal,
     changelog,
     condition,
     data_quality,
@@ -37,6 +38,7 @@ def register_all(server: MCPServer) -> None:
     infraplan.register(server)
     condition.register(server)
     vib.register(server)
+    bauportal.register(server)
     media.register(server)
     parliament.register(server)
     system.register(server)

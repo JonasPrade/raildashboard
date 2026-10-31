@@ -449,6 +449,7 @@ und werden nicht ins Changelog geschrieben.
   Liefert nur Einträge mit `project_id` und `confirmed` (Titel, Status, `mapped_phase`, Bauzeit,
   `url`, `fetched_at`); das Frontend blendet Einträge ohne `url` aus
   (`components/BauportalSection.tsx`, Sichtbarkeitsregel in `bauportalEntries.ts`).
+- **MCP (#293):** `list_bauportal_entries`, `get_bauportal_entry`, `assign_bauportal_entry` (Recht `progress.edit`); abgeleitete BAUPORTAL-Beobachtungen tragen `bauportal_status_id` (MCP zusätzlich Titel und Link). Siehe `feature-mcp-server.md`.
 - Umgesetzt mit #287. Weitere Felder aus `raw_json` sind bewusst nicht übernommen (nicht belegt stabil).
 
 ### Medien/Presse (#48) — halb-automatisch

@@ -8,6 +8,8 @@ for the 24-h lazy resync.
 
 from __future__ import annotations
 
+import json
+
 from sqlalchemy.orm import Session
 
 from dashboard_backend.crud._importer_common import (
@@ -51,15 +53,30 @@ def _entry_dict(r: BauportalStatus, names: dict[int, str]) -> dict:
     }
 
 
-def list_entries(db: Session, *, only_unconfirmed: bool = False) -> list[dict]:
+def list_entries(
+    db: Session,
+    *,
+    only_unconfirmed: bool = False,
+    search: str | None = None,
+    project_id: int | None = None,
+    only_without_project: bool = False,
+) -> list[dict]:
     """List Bauportal entries with resolved suggestion / match names.
 
     Unconfirmed entries sort first (they need attention), then by title.
+    ``search`` matches the short title case-insensitively.
     """
 
     query = db.query(BauportalStatus)
     if only_unconfirmed:
         query = query.filter(BauportalStatus.confirmed.is_(False))
+    if search and search.strip():
+        escaped = search.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        query = query.filter(BauportalStatus.shorttitle.ilike(f"%{escaped}%", escape="\\"))
+    if project_id is not None:
+        query = query.filter(BauportalStatus.project_id == project_id)
+    if only_without_project:
+        query = query.filter(BauportalStatus.project_id.is_(None))
     rows = query.order_by(
         BauportalStatus.confirmed,  # unconfirmed (False) first
         BauportalStatus.shorttitle,
@@ -70,6 +87,21 @@ def list_entries(db: Session, *, only_unconfirmed: bool = False) -> list[dict]:
         [r.project_id for r in rows] + [r.suggested_project_id for r in rows],
     )
     return [_entry_dict(r, names) for r in rows]
+
+
+def get_entry(db: Session, entry_id: int) -> dict | None:
+    """One entry with the stored raw API record (``raw_json`` parsed)."""
+
+    row = db.query(BauportalStatus).filter(BauportalStatus.id == entry_id).first()
+    if row is None:
+        return None
+    names = project_name_map(db, [row.project_id, row.suggested_project_id])
+    entry = _entry_dict(row, names)
+    try:
+        entry["raw_json"] = json.loads(row.raw_json) if row.raw_json else None
+    except ValueError:
+        entry["raw_json"] = row.raw_json
+    return entry
 
 
 def update_entry(db: Session, entry_id: int, payload: dict) -> dict | None:

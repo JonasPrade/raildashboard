@@ -98,9 +98,8 @@ konfigurierbaren Headern (Claude Code) funktionieren schon vorher.
 **Out of scope:**
 
 - OAuth / Authentik-Anbindung (eigenes Thema, siehe oben).
-- MCP-Tools für die übrigen Importe (Bauportal, siehe #293) — erlaubt
-  (siehe oben), aber noch nicht gebaut. Medien seit 2026-10-31 (siehe
-  [Ausbau 2026-10-31](#ausbau-2026-10-31-lückenanalyse)).
+- ~~MCP-Tools für die übrigen Importe~~ — erledigt: Bauportal mit #293, Medien seit
+  2026-10-31 (siehe [Ausbau 2026-10-31](#ausbau-2026-10-31-lückenanalyse)).
 - Löschen von Projekten oder anderen Stammdaten über MCP (einzelne Geometrie-Features
   schon, siehe `edit_project_geometry`; Projekttexte und Medienberichte seit
   2026-10-31 — Inhalte mit Änderungsprotokoll bzw. Importeinträge, keine Stammdaten).
@@ -274,6 +273,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `list_media_reports` · `add_media_report` · `update_media_report` · `delete_media_report` | Medienberichte lesen und schreiben, die der Agent selbst gelesen hat (kein Abruf, keine Extraktion auf dem Server); erst bestätigt mit Projekt und Phase entsteht die MEDIEN-Beobachtung (Trust 0.4); gleiche URL am selben Projekt abgelehnt; Skill `medien-import` | `progress.edit` |
 | `list_politicians` · `get_politician` · `list_constituencies` · `get_constituency` · `get_project_constituencies` | Wahlkreise und Abgeordnete lesen (beide Arbeitsrichtungen aus `feature-abgeordnete.md`), je Antwort `data_status` (letzter Abruf, veraltet); kein Import über MCP | — |
 | `get_system_status` | Routing (GraphHopper) und Celery-Worker erreichbar? Ohne Zugangsdaten | `settings.manage` |
+| `list_bauportal_entries` · `get_bauportal_entry` · `assign_bauportal_entry` | DB-Bauportal-Einträge lesen (Filter Titel, Projekt, unbestätigt, ohne Projekt; einzeln mit `raw_json` und abgeleiteter Phase) und Zuordnung setzen/lösen/bestätigen wie `PATCH /import/bauportal/entries/{id}`; Bestätigen materialisiert die BAUPORTAL-Beobachtung neu. Der Abruf der externen API bleibt im Admin-Bereich. Eine abgeleitete BAUPORTAL-Beobachtung in `get_project_progress` trägt `bauportal_status_id` und `bauportal` (id, Titel, Link) | `progress.edit` |
 | `list_skills` | Skills für die Arbeit über den MCP (Name, Beschreibung), siehe *Skills über MCP* | — |
 | `get_skill` | Anleitung eines Skills (Text der `SKILL.md`, optional eine Begleitdatei) | — |
 | `create_todo` | Aufgabe anlegen, optional mit `tags` | `todo.create` |
@@ -567,7 +567,7 @@ umgesetzt; was davon kommt, wird in eigenen Issues entschieden.
 
 Eine Lückenanalyse REST ↔ MCP (2026-10-31) hat die fachlichen Funktionen gefunden, die
 nur in der Oberfläche gingen. Umgesetzt wurde, was ein Agent sinnvoll braucht (Issues
-#333–#336); Bauportal läuft getrennt in #293. Tools in der Katalogtabelle oben.
+#333–#336); Bauportal kam getrennt mit #293. Tools in der Katalogtabelle oben.
 
 | Bereich | Tools | Issue |
 |---|---|---|

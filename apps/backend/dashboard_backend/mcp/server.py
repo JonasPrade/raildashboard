@@ -47,6 +47,8 @@ INSTRUCTIONS = (
     "Infraplan (Fünfjahresplan des Bundes): Einträge eines Projekts über alle "
     "Jahrgänge mit get_project_infraplan; den Import eines hochgeladenen Jahrgangs "
     "führt der Skill infraplan-import. "
+    "DB-Bauportal: Einträge mit list_bauportal_entries / get_bauportal_entry, Projekt "
+    "zuordnen und bestätigen mit assign_bauportal_entry. "
     "InfraGO-Zustandsbericht (Netzzustand: Noten je Anlagenklasse, Netz und Land): "
     "einen Jahrgang einlesen führt der Skill zustandsbericht-import. "
     "Wahlkreise und Abgeordnete (lesend): wen betrifft ein Projekt mit "

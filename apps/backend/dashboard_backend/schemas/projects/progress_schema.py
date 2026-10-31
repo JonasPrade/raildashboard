@@ -85,6 +85,8 @@ class ProgressObservationSchema(BaseModel):
     note: Optional[str] = None
     is_derived: bool
     is_expected: bool = False
+    # Set on derived BAUPORTAL observations: the bauportal_status row behind them.
+    bauportal_status_id: Optional[int] = None
     username_snapshot: Optional[str] = None
     created_at: datetime
 
