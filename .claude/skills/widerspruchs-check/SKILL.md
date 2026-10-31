@@ -53,7 +53,14 @@ listed separately in one line each — they are useful, not problems.
 ## 3. Present the conflicts and ask
 
 Answer in German. One round, numbered, every conflict independent of the others
-(conflicts that depend on another answer go into a later round):
+(conflicts that depend on another answer go into a later round).
+
+**Always present the conflicts directly as decision cards** (skill `entscheidungskarten`,
+user's standing wish since 2026-10-31): one card per W-point, filed in the shared vault and
+shown as clickable choices — never only as a text list. Each card carries the fields below
+(question, evidence from both sides, consequence if nothing happens, options,
+recommendation with certainty). If the decision-card skill is not available, fall back to
+the text format:
 
 ```
 ❗ **W1 – <kurzer Titel>**
@@ -79,4 +86,6 @@ conflict in a "notes" section.
    leftovers).
 2. Update the acceptance criteria of affected GitHub issues.
 3. Add the decision to the decision table of the subject feature doc, if it has one.
-4. Commit with a message that names the resolved conflicts.
+4. Record the decisions on the cards (and in the project note's „Entscheidungen“) as the
+   decision-card skill describes, and reference the card IDs in the feature doc.
+5. Commit with a message that names the resolved conflicts.
