@@ -50,7 +50,7 @@ export const ASSUMED_OUTLINE = `1.5px dashed ${TIMELINE_COLOR.marker}`;
  * ("spätestens seit") is hollow in ink. PFB/Parl. are ink diamonds.
  */
 export function markerStyle(
-    kind: "PHASE" | "PFB" | "PARL" | string,
+    kind: "PHASE" | "PFB" | "PARL" | "PART_IBN" | string,
     phase: MainPhase | null | undefined,
     evidence: boolean,
     precision?: string | null,
@@ -59,6 +59,15 @@ export function markerStyle(
     const hollow = "var(--surface)";
     // A year-only or assumed date is no fixed point: hollow with a dashed rim.
     const uncertain = precision === "YEAR" || precision === "ASSUMED";
+    if (kind === "PART_IBN") {
+        // Partial commissioning: the commissioning marker, hollow (#344).
+        return {
+            width: 10,
+            height: 10,
+            border: `2px ${uncertain ? "dashed" : "solid"} ${TIMELINE_COLOR.commissioning}`,
+            background: hollow,
+        };
+    }
     if (kind === "PHASE") {
         if (phase === "IN_BETRIEB") {
             const rim = evidence ? ink : TIMELINE_COLOR.commissioning;

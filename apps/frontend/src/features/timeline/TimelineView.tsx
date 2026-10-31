@@ -157,8 +157,8 @@ function TimelineRow({
     today: number;
 }) {
     const segments = useMemo(
-        () => buildSegments(row.milestones, today, row.construction_periods, range.end),
-        [row.milestones, row.construction_periods, today, range.end],
+        () => buildSegments(row.milestones, today, row.construction_periods, range.end, row.pending_parts ?? []),
+        [row.milestones, row.construction_periods, today, range.end, row.pending_parts],
     );
     const lifecycle = row.lifecycle_status as LifecycleStatus;
     const opening = row.milestones.find((m) => m.kind === "PHASE" && m.phase === "IN_BETRIEB");
@@ -254,7 +254,7 @@ function TimelineRow({
     );
 }
 
-function Legend({ showGap }: { showGap: boolean }) {
+function Legend({ showGap, showPartial }: { showGap: boolean; showPartial: boolean }) {
     const swatch = (background: string, extra?: CSSProperties) => (
         <Box style={{ width: 14, height: 10, background, flexShrink: 0, ...extra }} />
     );
@@ -268,6 +268,16 @@ function Legend({ showGap }: { showGap: boolean }) {
                     <Text size="xs">{MAIN_PHASE_LABEL[phase]}</Text>
                 </Group>
             ))}
+            {showPartial && (
+                <Group gap={6} wrap="nowrap">
+                    {swatch("var(--surface)", {
+                        width: 10,
+                        boxSizing: "border-box",
+                        border: `2px solid ${TIMELINE_COLOR.commissioning}`,
+                    })}
+                    <Text size="xs">Teil-Inbetriebnahme (weitere Abschnitte offen)</Text>
+                </Group>
+            )}
             <Group gap={6} wrap="nowrap">
                 {swatch(plannedFill("var(--text-muted)"), { boxShadow: "inset 0 0 0 1px var(--text-muted)" })}
                 <Text size="xs">geplant</Text>
@@ -388,7 +398,10 @@ export default function TimelineView({
                     w={180}
                 />
             </Group>
-            <Legend showGap={rows.some((row) => row.construction_periods.length > 1)} />
+            <Legend
+                showGap={rows.some((row) => row.construction_periods.length > 1)}
+                showPartial={rows.some((row) => row.milestones.some((m) => m.kind === "PART_IBN"))}
+            />
 
             {rows.length === 0 ? (
                 <Alert color="blue" variant="light" title="Keine Projekte mit Terminen">

@@ -25,7 +25,7 @@ exists for them — data wins over the group default. The function is determinis
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, timedelta
 
 from dashboard_backend.models.projects.progress_enums import (
@@ -88,10 +88,126 @@ class ConcreteDate:
     label: str | None = None
     # How a computed date came about („Annahme: 6 Monate Bauzeit …“).
     derivation: str | None = None
+    # Bundled commissioning only (bundle_commissioning): the latest known
+    # commissioning of a part, when it lies in the past and other parts are
+    # still open — the timeline ends the construction bar there.
+    partial: ConcreteDate | None = None
+    # Parts keeping the commissioning open (names for tooltips).
+    pending: tuple[PendingPart, ...] = ()
 
 
 # Source label of a commissioning computed from the group's build period.
 ASSUMED_SOURCE = "Annahme"
+# Source label of a commissioning held open by parts without a date.
+PENDING_SOURCE = "Teilabschnitte"
+# Sources that state a commissioning for the project as a whole when they are
+# attached to the (parent) project itself. VIB-PFA dates are section dates.
+OVERALL_SOURCES = ("Fulda-Runde", "Infraplan", "GVFG")
+
+
+@dataclass(frozen=True)
+class PendingPart:
+    """A part of a project that is not in operation and names no commissioning:
+    a leaf of the subtree or an open PFA section (feature-project-timeline.md →
+    „Oberprojekte schließen alle Teilabschnitte ein“)."""
+
+    name: str
+    project_id: int | None = None
+    # Effective phase of the part; None = unknown planning state.
+    phase: MainPhase | None = None
+
+
+@dataclass(frozen=True)
+class PartCommissioning:
+    """Known commissioning of one part (leaf, PFA section)."""
+
+    name: str
+    date: ConcreteDate
+
+
+@dataclass(frozen=True)
+class CommissioningParts:
+    """Inputs of :func:`bundle_commissioning` for one project."""
+
+    parts: tuple[PartCommissioning, ...] = ()
+    pending: tuple[PendingPart, ...] = ()
+    # The project's own Fulda-Runde / Infraplan / GVFG commissioning (overall date).
+    overall: ConcreteDate | None = None
+    # The project itself carries a manual expected commissioning (always wins).
+    has_manual: bool = False
+
+
+def _pending_text(pending: tuple[PendingPart, ...], limit: int = 5) -> str:
+    names = [p.name for p in pending]
+    shown = ", ".join(names[:limit])
+    more = f" und {len(names) - limit} weitere" if len(names) > limit else ""
+    noun = "Abschnitt" if len(names) == 1 else "Abschnitte"
+    return f"{len(names)} {noun} ohne Inbetriebnahme – {shown}{more}"
+
+
+def bundle_commissioning(
+    concrete: dict[MainPhase, ConcreteDate],
+    bundle: CommissioningParts | None,
+    today: date,
+) -> dict[MainPhase, ConcreteDate]:
+    """A project's commissioning includes every part; in doubt it moves later.
+
+    Without open parts nothing changes. With open parts:
+
+    1. a manual expected commissioning of the project itself wins (unchanged);
+    2. an own Fulda-Runde / Infraplan / GVFG date is the overall date — never
+       earlier than the latest known commissioning of a part;
+    3. otherwise a lower bound (NOT_BEFORE) on 1 Jan after the later year of
+       „latest known part commissioning“ and today („nach 2026“).
+
+    The result carries the open parts and, in case 3, the latest past part
+    commissioning (``partial``) for the timeline.
+    """
+
+    if bundle is None or not bundle.pending or bundle.has_manual:
+        return concrete
+
+    known = [p.date for p in bundle.parts]
+    if bundle.overall is None and not known and MainPhase.IN_BETRIEB not in concrete:
+        # Nothing dated to pull back: no commissioning is invented from open
+        # parts alone (the project stays without dates on the timeline).
+        return concrete
+    latest = max(known, key=lambda c: c.date, default=None)
+    pending = bundle.pending
+    open_text = _pending_text(pending)
+
+    if bundle.overall is not None:
+        overall = bundle.overall
+        if latest is not None and latest.date > overall.date:
+            concrete[MainPhase.IN_BETRIEB] = replace(
+                latest,
+                pending=pending,
+                derivation=(
+                    f"Gesamttermin {date_text(overall.date, overall.precision, overall.label)} "
+                    f"({overall.source}) liegt vor der spätesten Teil-Inbetriebnahme"
+                ),
+            )
+        else:
+            concrete[MainPhase.IN_BETRIEB] = replace(overall, pending=pending)
+        return concrete
+
+    year = max(latest.date.year if latest is not None else today.year, today.year)
+    partial = (
+        latest
+        if latest is not None
+        and latest.date <= today
+        and latest.precision is not DatePrecision.NOT_BEFORE
+        else None
+    )
+    concrete[MainPhase.IN_BETRIEB] = ConcreteDate(
+        date=date(year + 1, 1, 1),
+        source=PENDING_SOURCE,
+        precision=DatePrecision.NOT_BEFORE,
+        derivation=f"Termin offen: {open_text}",
+        partial=partial,
+        pending=pending,
+    )
+    return concrete
 
 ManualExpected = tuple[MainPhase, date] | ExpectedDate
 
@@ -227,6 +343,7 @@ def concrete_milestone_dates(
     infraplan: list[ExpectedDate] | None = None,
     gvfg: list[ExpectedDate] | None = None,
     assumed_build_months: int | None = None,
+    commissioning_parts: CommissioningParts | None = None,
 ) -> dict[MainPhase, ConcreteDate]:
     """Concrete (non-estimated) milestone date per phase, with its source label.
 
@@ -241,6 +358,10 @@ def concrete_milestone_dates(
 
     ``assumed_build_months`` (group rule) fills a missing commissioning from the
     Baubeginn (:func:`apply_assumed_build`). Every date keeps its precision.
+
+    ``commissioning_parts`` bundles the commissioning over all parts of the
+    project (:func:`bundle_commissioning`); without it the date stays the
+    latest *known* one.
     """
 
     # (concrete date, weight) candidates per phase.
@@ -299,7 +420,9 @@ def concrete_milestone_dates(
             date=claim.date, source="Manuell", precision=claim.precision, label=claim.label
         )
 
-    return apply_assumed_build(concrete, assumed_build_months)
+    return bundle_commissioning(
+        apply_assumed_build(concrete, assumed_build_months), commissioning_parts, today
+    )
 
 
 def build_forecast(
@@ -314,6 +437,7 @@ def build_forecast(
     infraplan: list[ExpectedDate] | None = None,
     gvfg: list[ExpectedDate] | None = None,
     assumed_build_months: int | None = None,
+    commissioning_parts: CommissioningParts | None = None,
 ) -> ForecastResult:
     pfas = pfas or []
     fulda = fulda or []
@@ -327,7 +451,10 @@ def build_forecast(
         infraplan=infraplan or [],
         gvfg=gvfg or [],
         assumed_build_months=assumed_build_months,
+        commissioning_parts=commissioning_parts,
     )
+    commissioning = concrete.get(MainPhase.IN_BETRIEB)
+    parts_open = commissioning is not None and bool(commissioning.pending)
 
     has_concrete = bool(concrete)
     has_bvwp = bvwp is not None and (
@@ -350,6 +477,22 @@ def build_forecast(
     for phase in upcoming:
         if phase in concrete:
             c = concrete[phase]
+            if parts_open and phase is not MainPhase.IN_BETRIEB and c.date < today:
+                # A past phase start of a project still in an earlier phase is
+                # the start of one part only; the remaining parts are open.
+                next_steps.append(
+                    ForecastStep(
+                        phase=phase,
+                        expected_date=date(today.year + 1, 1, 1),
+                        source=PENDING_SOURCE,
+                        precision=DatePrecision.NOT_BEFORE,
+                        derivation=(
+                            f"Erster Abschnitt seit {date_text(c.date, c.precision, c.label)} "
+                            f"({c.source}); weitere Abschnitte offen"
+                        ),
+                    )
+                )
+                continue
             next_steps.append(
                 ForecastStep(
                     phase=phase,

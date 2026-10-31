@@ -1,7 +1,12 @@
 // Pure layout helpers for the multi-project timeline ("Zeitstrahl").
 // See docs/features/feature-project-timeline.md.
 
-import type { ProjectTimeline, TimelineMilestone, TimelinePeriod } from "../../shared/api/queries";
+import type {
+    ProjectTimeline,
+    TimelineMilestone,
+    TimelinePendingPart,
+    TimelinePeriod,
+} from "../../shared/api/queries";
 import { asPrecision, formatQualifiedDate, qualifiedDateText } from "../../shared/datePrecision";
 import { MAIN_PHASE_LABEL, mainPhaseIndex, type MainPhase } from "../projects/components/progress/phaseMeta";
 
@@ -123,6 +128,14 @@ function pushConstructionStages(
     return true;
 }
 
+/** Tooltip line listing the parts that keep the commissioning open. */
+export function pendingPartsText(parts: TimelinePendingPart[], limit = 6): string | null {
+    if (parts.length === 0) return null;
+    const names = parts.slice(0, limit).map((p) => p.name);
+    const more = parts.length > limit ? ` und ${parts.length - limit} weitere` : "";
+    return `Ohne Inbetriebnahme: ${names.join(", ")}${more}`;
+}
+
 /**
  * Phase bars of one row: each dated phase runs until the next dated phase
  * starts. The last phase before "In Betrieb" runs until today when it started
@@ -131,15 +144,24 @@ function pushConstructionStages(
  * (a later phase dated earlier) produce no bar. ``constructionPeriods`` (a
  * superior with separate construction stages) split the BAU bar into its
  * stages with gap segments in between.
+ *
+ * ``pendingParts`` hold the commissioning open (#344): with a past partial
+ * commissioning (``PART_IBN``) and no open part under construction, the last
+ * phase ends there and an open area „weitere Abschnitte – Termin offen“ runs
+ * to the right edge — no construction is drawn after the finished stages.
  */
 export function buildSegments(
     milestones: TimelineMilestone[],
     today: number,
     constructionPeriods: TimelinePeriod[] = [],
     rangeEnd?: number,
+    pendingParts: TimelinePendingPart[] = [],
 ): Segment[] {
     const phases = phaseMilestones(milestones);
     const segments: Segment[] = [];
+    const partial = milestones.find((m) => m.kind === "PART_IBN");
+    const building = pendingParts.some((p) => p.phase === "BAU");
+    const pendingText = pendingPartsText(pendingParts);
     for (const [idx, m] of phases.entries()) {
         const phase = m.phase as MainPhase;
         if (phase === "IN_BETRIEB") break;
@@ -171,6 +193,36 @@ export function buildSegments(
             title: barTitle(m, next),
         };
         let end: number | null;
+        const openOnward =
+            next?.phase === "IN_BETRIEB" &&
+            precisionOf(next) === "NOT_BEFORE" &&
+            partial !== undefined &&
+            !building &&
+            toTime(partial.date) > start;
+        if (next && openOnward && partial) {
+            // The finished stages end here; the remaining parts have no date.
+            end = toTime(partial.date);
+            const tail = Math.max(openEnd, end);
+            const staged =
+                phase === "BAU" &&
+                precision !== "YEAR" &&
+                pushConstructionStages(segments, start, end, constructionPeriods, today);
+            if (!staged) pushSplitAtToday(segments, phase, start, end, today, extras);
+            if (tail > end) {
+                segments.push({
+                    phase,
+                    start: end,
+                    end: tail,
+                    planned: true,
+                    open: true,
+                    label: "weitere Abschnitte – Termin offen",
+                    title: [`Inbetriebnahme ${milestoneDateText(next)}`, next.derivation, pendingText]
+                        .filter(Boolean)
+                        .join(" · "),
+                });
+            }
+            continue;
+        }
         if (next) {
             end = barTime(next);
             const nextPrecision = precisionOf(next);
@@ -200,7 +252,7 @@ export function buildSegments(
                 planned: true,
                 open: true,
                 label: `Inbetriebnahme ${milestoneDateText(next)}${next.date_label ? "" : " – Termin offen"}`,
-                title: barTitle(next, undefined),
+                title: [barTitle(next, undefined), pendingText].filter(Boolean).join(" · "),
             });
         }
     }
@@ -302,6 +354,7 @@ export function milestoneLabel(m: TimelineMilestone): string {
     const derivation = m.derivation ? ` · ${m.derivation}` : "";
     if (m.kind === "PFB") return `Planfeststellung ${when} · ${m.source}`;
     if (m.kind === "PARL") return `Parlamentarische Befassung ${when} · ${m.source}`;
+    if (m.kind === "PART_IBN") return `Teil-Inbetriebnahme ${when} · ${m.source} · weitere Abschnitte offen`;
     const phase = m.phase as MainPhase;
     if (m.certainty === "EVIDENCE") {
         return `${MAIN_PHASE_LABEL[phase]} spätestens seit ${when} · ${m.source}`;

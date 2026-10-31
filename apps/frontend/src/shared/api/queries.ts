@@ -588,6 +588,7 @@ export type ProjectGroupTimeline = components["schemas"]["ProjectGroupTimelineSc
 export type ProjectTimeline = components["schemas"]["ProjectTimelineSchema"];
 export type TimelineMilestone = components["schemas"]["TimelineMilestoneSchema"];
 export type TimelinePeriod = components["schemas"]["TimelinePeriodSchema"];
+export type TimelinePendingPart = components["schemas"]["TimelinePendingPartSchema"];
 
 /** Dated milestones of a group's projects for the timeline view; only
  * projects with concrete dates are included. Disabled while ``groupId`` is null. */

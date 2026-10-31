@@ -7836,6 +7836,11 @@ export interface components {
              * @default []
              */
             construction_periods: components["schemas"]["TimelinePeriodSchema"][];
+            /**
+             * Pending Parts
+             * @default []
+             */
+            pending_parts: components["schemas"]["TimelinePendingPartSchema"][];
         };
         /** ProjectUnarchiveRequest */
         ProjectUnarchiveRequest: {
@@ -8394,7 +8399,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "PHASE" | "PFB" | "PARL";
+            kind: "PHASE" | "PFB" | "PARL" | "PART_IBN";
             /** Phase */
             phase?: ("NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB") | null;
             /**
@@ -8421,6 +8426,18 @@ export interface components {
             date_text?: string | null;
             /** Derivation */
             derivation?: string | null;
+        };
+        /**
+         * TimelinePendingPartSchema
+         * @description A part (leaf or PFA section) not in operation that names no commissioning.
+         */
+        TimelinePendingPartSchema: {
+            /** Project Id */
+            project_id?: number | null;
+            /** Name */
+            name: string;
+            /** Phase */
+            phase?: ("NICHT_GESTARTET" | "VORPLANUNG" | "GENEHMIGUNGSPLANUNG" | "BAU" | "IN_BETRIEB") | null;
         };
         /** TimelinePeriodSchema */
         TimelinePeriodSchema: {

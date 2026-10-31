@@ -49,10 +49,12 @@ mehr offen ist. **Im Zweifel wird die Inbetriebnahme nach hinten gezogen.**
   (eigene konkrete Termine nach der Vorrangregel, Bauzeit-Annahme eingeschlossen). Das gilt
   **auch für Blätter mit unbekanntem Stand** (EK-053). Abgebrochene Blätter zählen nicht,
   pausierte schon;
-- jeder **offene PFA-Abschnitt ohne Inbetriebnahme** in der *neuesten* PFA-Tabelle je
-  VIB-Eintrag (EK-054). „Offen“ hat dieselbe Lesart wie die Ableitung
-  (`progress_materialization._read_section`) und die Abschlussdaten im Phasen-Tooltip. Ältere
-  Berichte zählen nicht. Die Regel gilt auch für ein Blatt-Projekt ohne Teilprojekte.
+- jeder **PFA-Abschnitt ohne Inbetriebnahme** in der *neuesten* PFA-Tabelle des Projekts
+  (EK-054): zum Berichtsstand nicht in Betrieb und ohne Inbetriebnahme-Termin, gelesen wie in
+  der Ableitung (`progress_materialization.section_lacks_commissioning`, auf Basis von
+  `_read_section`). Ältere Berichte zählen nicht. Die Regel gilt auch für ein Blatt-Projekt
+  ohne Teilprojekte. Abschnitte zählen nur, solange ihr Projekt nicht als „In Betrieb“ gilt;
+  ein Blatt, das selbst offen ist, zählt einmal als Ganzes.
 
 **Inbetriebnahme mit offenen Teilen** (Reihenfolge, EK-055/056):
 
@@ -60,9 +62,9 @@ mehr offen ist. **Im Zweifel wird die Inbetriebnahme nach hinten gezogen.**
 2. Ein **Fulda-, Infraplan- oder GVFG-Termin am Projekt selbst** gilt als Gesamttermin. Er
    ersetzt die Untergrenze, aber nie mit einem früheren Datum als die späteste
    Teil-Inbetriebnahme; ist er früher, gilt die späteste Teil-Inbetriebnahme.
-3. Sonst `NOT_BEFORE` ab dem **späteren von „späteste bekannte Inbetriebnahme“ und heute**
-   („IB nach 2026 – Termin offen“). Ist die späteste bekannte Inbetriebnahme selbst eine
-   Untergrenze, bleibt die spätere der beiden Grenzen. Die Herleitung nennt die offenen
+3. Sonst `NOT_BEFORE` nach dem **späteren Jahr von „späteste bekannte Inbetriebnahme“ und
+   heute**, also am 1. Januar des Folgejahres („IB nach 2026 – Termin offen“, bei einer
+   bekannten Teil-Inbetriebnahme 12/2030 „nach 2030“). Die Herleitung nennt die offenen
    Teile („Termin offen: 7 Abschnitte ohne Inbetriebnahme – TM1, TM2, …“).
 
 **VIB-PFA-Termine sind Abschnittstermine** und gelten nie als Gesamttermin, auch wenn der
@@ -189,13 +191,18 @@ Jeder Meilenstein trägt `date_precision`, `date_label`, `date_text` und `deriva
   Abgebrochen über `lifecycle_status`.
 - **Neueste PFA-Tabelle** je VIB-Eintrag: dieselbe Auswahl wie die Ableitung. Offen heißt
   `_read_section(...).is_open`; diese Lesart wird geteilt, nicht kopiert.
-- **Prognose:** `_build_forecast_for_project` ruft für Oberprojekte (und für Blätter mit
-  offenen PFA-Abschnitten) die Bündelung auf. Die Restdauer zeigt dann „Ende offen
-  (nach …)“ statt „Termin voraussichtlich überschritten“. Der Listen-Cache
-  `commissioning_date/_precision` speichert das gebündelte Ergebnis.
-- **Cache-Kette:** Wird der Planungsstand eines Projekts neu berechnet, werden die
-  Listen-Caches seiner Vorfahren mit neu berechnet, damit Liste und Filter nicht bis zur
-  wöchentlichen Neuberechnung veralten.
+- **Prognose:** `_build_forecast_for_project` liest seine Eingaben über denselben Lader
+  (gepoolt über den Teilbaum, wie der Zeitstrahl) und übergibt die offenen Teile an die
+  Bündelung. Liegt mit offenen Teilen der Beginn einer kommenden Phase schon in der
+  Vergangenheit (Baubeginn 2002 einer ersten Etappe, das Projekt plant noch), ist er nur der
+  Beginn eines Teils: Der Schritt wird `NOT_BEFORE` („Erster Abschnitt seit …; weitere
+  Abschnitte offen“), und die Restdauer zeigt „Ende der aktuellen Phase offen (nach …)“ statt
+  „Termin voraussichtlich überschritten“. Der Listen-Cache `commissioning_date/_precision`
+  speichert das gebündelte Ergebnis; `construction_start` bleibt der echte erste Baubeginn.
+- **Cache-Kette:** `recompute_progress` und ein Detailaufruf, der Phase oder Termin eines
+  Teilprojekts ändert, rechnen die Listen-Caches seiner Vorfahren mit
+  (`refresh_ancestor_date_caches`). „Alle Projekte neu berechnen“ rechnet die Oberprojekte am
+  Ende noch einmal, tiefste zuerst.
 - **Timeline-Schema:** neues Milestone-`kind` `PART_IBN` (Teil-Inbetriebnahme) und je Item
   `pending_parts[] { project_id | null, name, phase | null }` für den Tooltip und die Frage
   „ist ein offenes Teil im Bau“. `make gen-api`.
