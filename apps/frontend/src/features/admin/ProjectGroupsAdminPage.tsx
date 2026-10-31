@@ -158,10 +158,10 @@ export default function ProjectGroupsAdminPage() {
                     <Stack gap="xs">
                         <Title order={1}>Projektgruppen – Kartenansicht</Title>
                         <Text c="dimmed" size="sm">
-                            Projektgruppen verwalten sowie Standardauswahl auf Karte
+                            Projektgruppen verwalten sowie Standardauswahl auf Karte, Liste und Zeitstrahl
                         </Text>
                         <Text c="dimmed" size="sm">
-                            Lege fest, welche Projektgruppen auf der Karte angezeigt und vorausgewählt werden.
+                            Lege fest, welche Projektgruppen auf der Karte angezeigt und vorausgewählt werden. Liste und Zeitstrahl starten mit der ersten Gruppe der Standardauswahl.
                         </Text>
                     </Stack>
                     <Button onClick={openCreate}>
