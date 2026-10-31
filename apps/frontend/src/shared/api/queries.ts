@@ -375,9 +375,10 @@ export function useSubprojects(projectId: number) {
  * rendered: `ProjectSchema` carries `geojson_representation`, which dominates
  * the payload and is pure waste for a select box.
  */
-export function useProjectOptions() {
+export function useProjectOptions({ enabled = true }: { enabled?: boolean } = {}) {
     return useQuery({
         queryKey: queryKeys.projectOptions,
+        enabled,
         queryFn: () => api<ProjectOption[]>("/api/v1/projects/options"),
     });
 }

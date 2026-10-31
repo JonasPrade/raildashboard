@@ -596,7 +596,9 @@ empfohlene. Beide schreiben dieselben Tabellen.
 Die Zuordnung bleibt **m:n** (`vib_entry_project`): Ein Vorhaben kann mehreren Projekten
 zugeordnet sein (z. B. ein Sammelvorhaben mehreren Oberprojekten); die Begründung deckt
 alle zugeordneten Projekte ab. PFA-Abschnitte zeigen weiter einzeln auf ein Teilprojekt
-(`vib_pfa_entry.project_id`).
+(`vib_pfa_entry.project_id`). Auf der Projektseite zeigt die PFA-Tabelle in der Spalte „Projekt“ einen
+Link-Button zum zugeordneten Teilprojekt (Name aus `/projects/options`, nur geladen, wenn
+mindestens ein Abschnitt zugeordnet ist).
 
 Ein Bericht je Jahr (`vib_report.year` eindeutig). Innerhalb eines Berichts ist die
 Sektionsnummer (`vib_section`) der Schlüssel: Ein zweites Vorhaben mit derselben Nummer
