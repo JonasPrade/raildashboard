@@ -81,3 +81,17 @@ class ProjectGroupGeometriesSchema(BaseModel):
         default_factory=dict,
         description="Projects with a lane above 0 or overlap partners; all others are on lane 0",
     )
+
+
+class ProjectGroupUpdate(BaseModel):
+    name: Optional[str] = None
+    short_name: Optional[str] = None
+    description: Optional[str] = None
+    public: Optional[bool] = None
+    color: Optional[str] = None
+    plot_only_superior_projects: Optional[bool] = None
+    is_visible: Optional[bool] = None
+    is_default_selected: Optional[bool] = None
+    skipped_phases: Optional[list[SkippablePhaseLiteral]] = None
+    # Explicit null clears the build period.
+    assumed_build_months: Optional[int] = Field(default=None, ge=1, le=120)

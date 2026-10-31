@@ -94,6 +94,7 @@ from dashboard_backend.models.projects.bauportal_status import BauportalStatus
 from dashboard_backend.models.projects.media_report import MediaReport
 from dashboard_backend.models.projects.document import Document
 from dashboard_backend.models.associations.progress_track_document import ProgressTrackDocument
+from dashboard_backend.models.associations.document_to_projects import DocumentToProject
 from dashboard_backend.models.railway_infrastructure.operational_point import OperationalPoint
 from dashboard_backend.models.routes import Route
 from dashboard_backend.models.projects.project_group import ProjectGroup
@@ -187,6 +188,7 @@ TABLES = [
     MediaReport.__table__,
     Document.__table__,  # progress view (PF/parl documents)
     ProgressTrackDocument.__table__,
+    DocumentToProject.__table__,  # project ↔ document (MCP list_project_documents)
     FuldaDocument.__table__,  # Fulda import (must precede its entries)
     FuldaAnnouncement.__table__,
     fulda_announcement_to_project,

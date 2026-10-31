@@ -34,10 +34,17 @@ from dashboard_backend.models.parliament import (
 from dashboard_backend.models.projects import Project
 from dashboard_backend.schemas.parliament import (
     CommitteeRoleSchema,
+    ConstituencyDetailSchema,
+    ConstituencyListItemSchema,
     ConstituencyProjectSchema,
     ConstituencySummarySchema,
+    ImportRunSchema,
     MandateSchema,
+    PoliticianDetailSchema,
+    PoliticianListItemSchema,
     PoliticianProjectSchema,
+    ProjectConstituenciesSchema,
+    ProjectConstituencySchema,
 )
 from dashboard_backend.services import constituency_matching
 
@@ -374,3 +381,152 @@ def coverage(db: Session) -> dict[str, int]:
 
 
 LAST_RUN_KINDS = (IMPORT_KIND_POLITICIANS, IMPORT_KIND_CONSTITUENCIES, IMPORT_KIND_LINKS)
+
+
+# --- assembled views (shared by the REST endpoints and the MCP tools) -------
+
+
+def politician_list_item(mandate: Mandate, counts: dict[int, int]) -> PoliticianListItemSchema:
+    schema = mandate_to_schema(mandate)
+    constituency = mandate.constituency
+    return PoliticianListItemSchema(
+        politician_id=schema.politician_id,
+        mandate_id=schema.mandate_id,
+        name=schema.name,
+        first_name=schema.first_name,
+        last_name=schema.last_name,
+        fraction=schema.fraction,
+        party=schema.party,
+        mandate_type=schema.mandate_type,
+        is_direct_mandate=schema.is_direct_mandate,
+        profile_url=schema.profile_url,
+        constituency=constituency_summary(constituency) if constituency else None,
+        committees=schema.committees,
+        project_count=counts.get(mandate.constituency_id, 0) if mandate.constituency_id else 0,
+    )
+
+
+def politician_list(
+    db: Session,
+    *,
+    query: str | None = None,
+    committee: str | None = None,
+    fraction: str | None = None,
+) -> list[PoliticianListItemSchema]:
+    """The working list before an appointment: name search + committee/faction filter."""
+    mandates = politician_rows(db, query=query, committee=committee, fraction=fraction)
+    counts = project_counts_by_constituency(
+        db, {mandate.constituency_id for mandate in mandates if mandate.constituency_id}
+    )
+    return [politician_list_item(mandate, counts) for mandate in mandates]
+
+
+def politician_detail(db: Session, mandate_id: int) -> PoliticianDetailSchema | None:
+    mandate = (
+        db.query(Mandate)
+        .options(
+            selectinload(Mandate.politician),
+            selectinload(Mandate.constituency),
+            selectinload(Mandate.committee_memberships).selectinload(
+                CommitteeMembership.committee
+            ),
+        )
+        .filter(Mandate.id == mandate_id)
+        .one_or_none()
+    )
+    if mandate is None:
+        return None
+    projects = projects_for_politician(db, mandate.constituency)
+    base = politician_list_item(
+        mandate,
+        {mandate.constituency_id: len(projects)} if mandate.constituency_id else {},
+    )
+    return PoliticianDetailSchema(**base.model_dump(), projects=projects)
+
+
+def constituency_list(db: Session) -> list[ConstituencyListItemSchema]:
+    """Constituencies of the current period with project and mandate counts."""
+    period = current_period(db)
+    q = db.query(Constituency)
+    if period is not None:
+        q = q.filter(Constituency.parliament_period_id == period.id)
+    constituencies = q.order_by(Constituency.number).all()
+
+    ids = [constituency.id for constituency in constituencies]
+    project_counts = project_counts_by_constituency(db, ids)
+    mandates = mandates_for_constituencies(db, ids)
+
+    items: list[ConstituencyListItemSchema] = []
+    for constituency in constituencies:
+        rows = mandates.get(constituency.id, [])
+        items.append(
+            ConstituencyListItemSchema(
+                id=constituency.id,
+                number=constituency.number,
+                name=constituency.name,
+                state=constituency.state,
+                project_count=project_counts.get(constituency.id, 0),
+                mandate_count=len(rows),
+                has_direct_mandate=any(mandate.is_direct_mandate for mandate in rows),
+                has_geometry=constituency.geom is not None,
+            )
+        )
+    return items
+
+
+def constituency_detail(db: Session, constituency_id: int) -> ConstituencyDetailSchema | None:
+    constituency = db.query(Constituency).filter(Constituency.id == constituency_id).one_or_none()
+    if constituency is None:
+        return None
+    mandates = mandates_for_constituencies(db, [constituency.id]).get(constituency.id, [])
+    direct, listed = split_mandates(mandates)
+    return ConstituencyDetailSchema(
+        id=constituency.id,
+        number=constituency.number,
+        name=constituency.name,
+        state=constituency.state,
+        projects=projects_for_constituency(db, constituency.id),
+        direct_mandates=direct,
+        list_mandates=listed,
+        has_direct_mandate=bool(direct),
+        has_any_mandate=bool(direct or listed),
+    )
+
+
+def project_constituencies(db: Session, project: Project) -> ProjectConstituenciesSchema:
+    """Constituencies a project touches, heaviest first, with their MPs.
+
+    A project without a geometry returns an empty list plus ``has_geometry =
+    false`` so callers can say *why* there is nothing to show.
+    """
+    rows = links_for_project(db, project.id)
+    mandates_by_constituency = mandates_for_constituencies(
+        db, [constituency.id for _, constituency in rows]
+    )
+
+    constituencies: list[ProjectConstituencySchema] = []
+    for link, constituency in rows:
+        direct, listed = split_mandates(mandates_by_constituency.get(constituency.id, []))
+        constituencies.append(
+            ProjectConstituencySchema(
+                id=constituency.id,
+                number=constituency.number,
+                name=constituency.name,
+                state=constituency.state,
+                length_km=link.length_km,
+                share=link.share,
+                overlap_kind=link.overlap_kind,
+                direct_mandates=direct,
+                list_mandates=listed,
+                has_direct_mandate=bool(direct),
+                has_any_mandate=bool(direct or listed),
+            )
+        )
+
+    last_import = last_successful_run(db, IMPORT_KIND_POLITICIANS)
+    return ProjectConstituenciesSchema(
+        project_id=project.id,
+        has_geometry=bool(project.geojson_representation),
+        constituencies=constituencies,
+        last_import=ImportRunSchema.model_validate(last_import) if last_import else None,
+    )

@@ -458,6 +458,12 @@ und werden nicht ins Changelog geschrieben.
   extrahierte Felder, `project_id` (bestätigt). Eingabe URL/Text → LLM-Extraktion
   (`tasks/vib_ai_extraction.py`-Muster) → Mensch-im-Loop-Bestätigung. Niedriger Trust 0.4,
   Zitat/URL in `note`.
+- **Zweiter Weg über MCP (2026-10-31, #335):** Der Agent liest den Artikel selbst
+  (Fulda-Muster) und schreibt URL, Medium, Datum, Zitat, behauptete Phase und Projekt mit
+  `add_media_report` (`crud/media.create_entry`, ohne Abruf und Extraktion). Ein Artikel über
+  mehrere Projekte wird ein Bericht je Projekt; dieselbe URL am selben Projekt wird abgelehnt.
+  Erst bestätigt **mit** Projekt und Phase entsteht die MEDIEN-Beobachtung. Ablauf im Skill
+  `medien-import`, auch als Anschluss an die tägliche Presselage. Recht `progress.edit`.
 
 ### Fulda-Runde (#46) — Antwort auf Kleine Anfrage (PDF)
 

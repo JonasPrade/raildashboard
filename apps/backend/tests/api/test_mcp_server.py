@@ -248,12 +248,38 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
         "get_bauportal_entry",
         "assign_bauportal_entry",
         "get_skill",
+        "get_project_changelog",
+        "get_project_text_changelog",
+        "revert_project_change",
+        "delete_project_text",
+        "update_project_group",
+        "get_project_group_timeline",
+        "list_project_documents",
+        "set_track_document",
+        "recompute_project_progress",
+        "list_progress_conflicts",
+        "list_sammel_finve_phases",
+        "set_sammel_finve_phase",
+        "get_todo",
+        "list_media_reports",
+        "add_media_report",
+        "update_media_report",
+        "delete_media_report",
+        "list_politicians",
+        "get_politician",
+        "list_constituencies",
+        "get_constituency",
+        "get_project_constituencies",
+        "get_system_status",
     }
     by_name = {tool["name"]: tool for tool in tools}
     assert by_name["list_projects"]["annotations"]["readOnlyHint"] is True
     assert by_name["update_project"]["annotations"]["readOnlyHint"] is False
     assert by_name["delete_progress_observation"]["annotations"]["destructiveHint"] is True
     assert by_name["merge_projects"]["annotations"]["destructiveHint"] is True
+    assert by_name["delete_project_text"]["annotations"]["destructiveHint"] is True
+    assert by_name["delete_media_report"]["annotations"]["destructiveHint"] is True
+    assert by_name["get_project_constituencies"]["annotations"]["readOnlyHint"] is True
     # The SDK context parameter must not leak into the client-facing schema.
     assert "ctx" not in by_name["list_projects"]["inputSchema"]["properties"]
 

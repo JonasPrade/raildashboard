@@ -1,6 +1,5 @@
 from fastapi import Depends, HTTPException, Query, Request
-from pydantic import BaseModel, Field, TypeAdapter
-from typing import Optional
+from pydantic import TypeAdapter
 from sqlalchemy.orm import Session
 from dashboard_backend.crud.projects.project_groups import (
     get_project_groups,
@@ -19,10 +18,8 @@ from dashboard_backend.schemas.projects import (
     ProjectGroupCreate,
     ProjectGroupGeometriesSchema,
 )
-from dashboard_backend.schemas.projects.progress_schema import (
-    ProjectGroupTimelineSchema,
-    SkippablePhaseLiteral,
-)
+from dashboard_backend.schemas.projects.project_group_schema import ProjectGroupUpdate
+from dashboard_backend.schemas.projects.progress_schema import ProjectGroupTimelineSchema
 from dashboard_backend.core.http_cache import etag_json_response
 from dashboard_backend.services.geometry_simplify import TOLERANCE_DEG, simplify_geojson_text
 from dashboard_backend.services.project_overlap import map_lanes
@@ -35,20 +32,6 @@ _group_list_adapter = TypeAdapter(list[ProjectGroupSchema])
 _group_adapter = TypeAdapter(ProjectGroupSchema)
 _geometries_adapter = TypeAdapter(ProjectGroupGeometriesSchema)
 _timeline_adapter = TypeAdapter(ProjectGroupTimelineSchema)
-
-
-class ProjectGroupUpdate(BaseModel):
-    name: Optional[str] = None
-    short_name: Optional[str] = None
-    description: Optional[str] = None
-    public: Optional[bool] = None
-    color: Optional[str] = None
-    plot_only_superior_projects: Optional[bool] = None
-    is_visible: Optional[bool] = None
-    is_default_selected: Optional[bool] = None
-    skipped_phases: Optional[list[SkippablePhaseLiteral]] = None
-    # Explicit null clears the build period.
-    assumed_build_months: Optional[int] = Field(default=None, ge=1, le=120)
 
 
 @router.get("/", response_model=list[ProjectGroupSchema])

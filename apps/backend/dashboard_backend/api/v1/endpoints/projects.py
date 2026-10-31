@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import json
-
 from fastapi import Depends, HTTPException
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -11,18 +9,11 @@ from dashboard_backend.core.security import has_effective_permission, require_au
 from dashboard_backend.crud.admin_assignments import link_project_to_finves
 from dashboard_backend.crud.changelog import (
     create_changelog_for_patch,
-    get_changelog_entry,
     get_project_changelog,
 )
 from dashboard_backend.crud import parliament as parliament_crud
-from dashboard_backend.crud.finve_links import (
-    FINVE_IDS_FIELD,
-    FinveLinkConflict,
-    FinveLinkError,
-    set_project_finves,
-)
+from dashboard_backend.crud.finve_links import FinveLinkConflict, FinveLinkError
 from dashboard_backend.crud.finves import get_project_finves_with_budgets
-from dashboard_backend.crud.sammel_finve_links import SAMMEL_YEARS_FIELD, set_project_sammel_years
 from dashboard_backend.crud.projects.archive import (
     ArchiveError,
     archive_project,
@@ -41,7 +32,6 @@ from dashboard_backend.crud.projects.projects import (
     get_project_options,
     get_projects,
     get_subprojects,
-    has_subprojects,
     update_project,
     validate_superior_project,
 )
@@ -50,13 +40,8 @@ from dashboard_backend.crud.vib import get_vib_entries_for_project
 from dashboard_backend.database import get_db
 from dashboard_backend.models.users import User
 from dashboard_backend.routing.auth_router import AuthRouter
-from dashboard_backend.models.parliament import IMPORT_KIND_POLITICIANS
 from dashboard_backend.schemas.changelog import ChangeLogRead, RevertFieldRequest
-from dashboard_backend.schemas.parliament import (
-    ImportRunSchema,
-    ProjectConstituenciesSchema,
-    ProjectConstituencySchema,
-)
+from dashboard_backend.schemas.parliament import ProjectConstituenciesSchema
 from dashboard_backend.schemas.projects import ProjectSchema
 from dashboard_backend.schemas.projects.project_schema import (
     FinveWithBudgetsSchema,
@@ -78,6 +63,12 @@ from dashboard_backend.schemas.projects.project_merge_schema import (
 )
 from dashboard_backend.schemas.projects.project_update_schema import ProjectUpdate
 from dashboard_backend.schemas.vib import VibEntryForProjectSchema
+from dashboard_backend.services.changelog_revert import (
+    GeometryOwnershipError,
+    RevertError,
+    revert_changelog_entry,
+    validate_geometry_ownership,
+)
 
 router = AuthRouter()
 
@@ -94,26 +85,10 @@ def _validate_hierarchy(db: Session, project_id: int | None, update_data: dict) 
 
 
 def _validate_geometry_ownership(db: Session, project: Project, update_data: dict) -> None:
-    """Reject writing the geometry of a project that aggregates it from its subprojects.
-
-    Such a project does not own its geometry — the next change anywhere in its subtree
-    would silently discard what was written here. Switching the toggle off in the same
-    request is allowed and hands the geometry back to the project.
-    """
-    if "geojson_representation" not in update_data:
-        return
-
-    requested = update_data.get("geojson_from_subprojects")
-    aggregated = project.geojson_from_subprojects if requested is None else requested
-    if aggregated and has_subprojects(db, project.id):
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Die Geometrie dieses Projekts wird automatisch aus seinen Unterprojekten "
-                "zusammengesetzt. Schalte die automatische Zusammensetzung ab, um eine "
-                "eigene Geometrie zu pflegen."
-            ),
-        )
+    try:
+        validate_geometry_ownership(db, project, update_data)
+    except GeometryOwnershipError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get("/", response_model=list[ProjectSchema])
@@ -315,39 +290,7 @@ def read_project_constituencies(
     empty list plus ``has_geometry = false`` — the UI says *why* there is nothing
     to show instead of rendering an empty block.
     """
-    rows = parliament_crud.links_for_project(db, project.id)
-    mandates_by_constituency = parliament_crud.mandates_for_constituencies(
-        db, [constituency.id for _, constituency in rows]
-    )
-
-    constituencies: list[ProjectConstituencySchema] = []
-    for link, constituency in rows:
-        direct, listed = parliament_crud.split_mandates(
-            mandates_by_constituency.get(constituency.id, [])
-        )
-        constituencies.append(
-            ProjectConstituencySchema(
-                id=constituency.id,
-                number=constituency.number,
-                name=constituency.name,
-                state=constituency.state,
-                length_km=link.length_km,
-                share=link.share,
-                overlap_kind=link.overlap_kind,
-                direct_mandates=direct,
-                list_mandates=listed,
-                has_direct_mandate=bool(direct),
-                has_any_mandate=bool(direct or listed),
-            )
-        )
-
-    last_import = parliament_crud.last_successful_run(db, IMPORT_KIND_POLITICIANS)
-    return ProjectConstituenciesSchema(
-        project_id=project.id,
-        has_geometry=bool(project.geojson_representation),
-        constituencies=constituencies,
-        last_import=ImportRunSchema.model_validate(last_import) if last_import else None,
-    )
+    return parliament_crud.project_constituencies(db, project)
 
 
 @router.get("/{project_id}/bvwp", response_model=BvwpProjectDataSchema)
@@ -432,36 +375,6 @@ def read_project_changelog(
     return get_project_changelog(db, project.id)
 
 
-def _revert_finve_ids(db: Session, project: Project, entry, current_user: User) -> Project:
-    """Set the project's permanent FinVe links back to the entry's old list.
-    FinVe links are guarded by ``finve.edit`` on top of ``project.edit``."""
-    if not has_effective_permission(current_user, "finve.edit"):
-        raise HTTPException(status_code=403, detail="Not enough privileges")
-    target = json.loads(entry.old_value) if entry.old_value is not None else []
-    try:
-        set_project_finves(db, project.id, target, user=current_user, action="REVERT")
-    except FinveLinkError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-    db.refresh(project)
-    return project
-
-
-def _revert_sammel_years(db: Session, project: Project, entry, current_user: User) -> Project:
-    """Set the project's years in one Sammel-FinVe back to the entry's old list.
-    Guarded by ``finve.edit`` like the permanent FinVe links."""
-    if not has_effective_permission(current_user, "finve.edit"):
-        raise HTTPException(status_code=403, detail="Not enough privileges")
-    old = json.loads(entry.old_value or entry.new_value or "{}")
-    try:
-        set_project_sammel_years(
-            db, project.id, old["finve_id"], old.get("years") or [], user=current_user, action="REVERT"
-        )
-    except FinveLinkError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-    db.refresh(project)
-    return project
-
-
 @router.post("/{project_id}/changelog/revert", response_model=ProjectSchema)
 def revert_project_field(
     body: RevertFieldRequest,
@@ -470,30 +383,13 @@ def revert_project_field(
     db: Session = Depends(get_db),
 ):
     """Revert a single field to its previous value as recorded in the given ChangeLogEntry."""
-    entry = get_changelog_entry(db, body.changelog_entry_id, project.id)
-    if entry is None:
-        raise HTTPException(status_code=404, detail="Changelog entry not found")
-
-    field_name = entry.field_name
-    if field_name == FINVE_IDS_FIELD:
-        return _revert_finve_ids(db, project, entry, current_user)
-    if field_name == SAMMEL_YEARS_FIELD:
-        return _revert_sammel_years(db, project, entry, current_user)
-    if field_name not in ProjectUpdate.model_fields.keys():
-        raise HTTPException(status_code=400, detail=f"Unknown field: {field_name}")
-
-    # Parse stored JSON value back to the original Python type
-    target_value = json.loads(entry.old_value) if entry.old_value is not None else None
-
-    _validate_geometry_ownership(db, project, {field_name: target_value})
-
-    # Record the revert action in the changelog before applying it
-    create_changelog_for_patch(
-        db,
-        project,
-        {field_name: target_value},
-        current_user.id,
-        current_user.username,
-        action="REVERT",
-    )
-    return update_project(db, project.id, {field_name: target_value}, project=project)
+    try:
+        return revert_changelog_entry(
+            db,
+            project,
+            body.changelog_entry_id,
+            current_user,
+            lambda permission: has_effective_permission(current_user, permission),
+        )
+    except RevertError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc

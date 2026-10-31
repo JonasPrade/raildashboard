@@ -20,16 +20,20 @@ from dashboard_backend.crud.finve_links import (
     permanent_projects,
     update_finve_projects as update_finve_projects_crud,
 )
+from dashboard_backend.crud._importer_common import recompute_for
 from dashboard_backend.crud.finves import (
     finve_with_budgets,
     get_finve_with_budgets,
     get_sammel_finve_years,
+    list_sammel_finves_progress,
+    set_finve_progress_phase,
 )
 from dashboard_backend.mcp.context import get_principal, load_user, require, tool_session
 from dashboard_backend.mcp.tools.projects import MAX_LIMIT, READ_ONLY, WRITE
 from dashboard_backend.models.associations.finve_to_project import FinveToProject
 from dashboard_backend.models.projects.budget import Budget
 from dashboard_backend.models.projects.finve import Finve
+from dashboard_backend.schemas.projects.progress_schema import MainPhaseLiteral
 
 
 def _project_refs(finve: Finve) -> list[dict[str, Any]]:
@@ -200,7 +204,66 @@ def update_finve_projects(
         }
 
 
+def list_sammel_finve_phases(
+    only_open: bool = False, search: str | None = None, *, ctx: Context
+) -> dict[str, Any]:
+    """Sammel-FinVes and the planning phase their funding stands for: the
+    phase detected from the name (``auto_phase``, e.g. „Lph. 1/2“ → VORPLANUNG),
+    the manual override (``progress_phase``), the ``effective_phase`` the
+    planning state of the linked projects derives from, and the linked projects.
+    ``needs_assignment`` = no phase at all — such a FinVe sets nothing.
+    only_open: only those needing a phase; search: part of the name.
+    Set or clear the override with set_sammel_finve_phase."""
+    get_principal(ctx)
+    with tool_session(ctx) as db:
+        rows = list_sammel_finves_progress(db)
+    if only_open:
+        rows = [r for r in rows if r.needs_assignment]
+    if search and search.strip():
+        needle = search.strip().lower()
+        rows = [r for r in rows if needle in (r.name or "").lower()]
+    return {"total": len(rows), "finves": [r.model_dump(mode="json") for r in rows]}
+
+
+def set_sammel_finve_phase(
+    finve_id: int,
+    progress_phase: MainPhaseLiteral | None = None,
+    *,
+    ctx: Context,
+) -> dict[str, Any]:
+    """Set the planning phase a Sammel-FinVe stands for, overriding the phase
+    detected from its name (requires ``progress.edit``); progress_phase=null
+    clears the override and falls back to the detection. The linked projects'
+    planning state is recomputed at once. Returns the FinVe's row as in
+    list_sammel_finve_phases and the recomputed project ids."""
+    principal = get_principal(ctx)
+    require(principal, "progress.edit")
+    with tool_session(ctx) as db:
+        finve = db.get(Finve, finve_id)
+        if finve is None:
+            raise ToolError(f"FinVe {finve_id} nicht gefunden.")
+        if not finve.is_sammel_finve:
+            raise ToolError(
+                f"FinVe {finve_id} ist keine Sammel-FinVe; ihre Phase kommt aus den Projekten."
+            )
+        set_finve_progress_phase(db, finve_id, progress_phase)
+        row = next((r for r in list_sammel_finves_progress(db) if r.finve_id == finve_id), None)
+        project_ids = [
+            pid
+            for (pid,) in db.query(FinveToProject.project_id)
+            .filter(FinveToProject.finve_id == finve_id)
+            .distinct()
+        ]
+        recompute_for(db, project_ids)
+        return {
+            "finve": row.model_dump(mode="json") if row else None,
+            "recomputed_project_ids": sorted(project_ids),
+        }
+
+
 def register(server: MCPServer) -> None:
     server.add_tool(list_finves, annotations=READ_ONLY)
     server.add_tool(get_finve, annotations=READ_ONLY)
     server.add_tool(update_finve_projects, annotations=WRITE)
+    server.add_tool(list_sammel_finve_phases, annotations=READ_ONLY)
+    server.add_tool(set_sammel_finve_phase, annotations=WRITE)
