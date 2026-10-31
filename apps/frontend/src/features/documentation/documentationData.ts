@@ -191,6 +191,20 @@ export const featureHighlights: FeatureHighlight[] = [
         ]
     },
     {
+        title: "Netzzustand (/netzzustand)",
+        description:
+            "Die Seite Netzzustand zeigt die Kennzahlen des InfraGO-Zustandsberichts der DB InfraGO: Zustandsnoten von 1 (neuwertig) " +
+            "bis 6 (einschränkend), gewichtet nach Wiederbeschaffungswert, für Fahrweg und Personenbahnhöfe, öffentlich sichtbar.",
+        details: [
+            "Umschalter Fahrweg / Personenbahnhöfe und Jahrgang; Kennzahlband mit Vorjahreswert, Verlauf seit 2021, Notenverteilung je Netz",
+            "Anlagenklassen je Netz (Gesamtnetz, Hochleistungsnetz, Flächennetz, Serviceeinrichtungen) mit Note, Verteilung, Wiederbeschaffungswert und Erneuerungs- bzw. Nachholbedarf; Klick auf eine Klasse zeigt die Mengen je Note",
+            "Bundesländer als Kachelkarte (Abstand zum Bundesschnitt) und Rangliste",
+            "Eingelesen wird der Bericht von Claude über MCP (Skill zustandsbericht-import); der Server prüft jede Tabelle auf ihre Summen",
+            "Einstellungen → Zustandsbericht (Recht condition.import): Jahrgang anlegen, PDF hochladen, Werte neben der Seite des Berichts prüfen und korrigieren, Jahrgang freigeben — erst dann erscheint er öffentlich",
+            "Konzept: docs/features/feature-zustandsbericht.md"
+        ]
+    },
+    {
         title: "DB-Bauportal auf der Projektseite",
         description:
             "Ist ein Projekt einem Eintrag des DB-Bauportals (bauprojekte.deutschebahn.com) zugeordnet und ist diese Zuordnung bestätigt, " +

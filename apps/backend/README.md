@@ -147,7 +147,9 @@ and check the key's capabilities before writing. Tools: `list_project_groups`, `
 them as `/app/skills` via the named build context `skills`) (read)
 and `create_project`, `create_project_group`, `compute_project_length`, `update_project`, `set_project_groups`,
 `add_progress_observation`,
-`delete_progress_observation`, `set_phase_override`, `upsert_project_text`, `create_todo`,
+`delete_progress_observation`, `set_phase_override`, `set_project_lifecycle` (AKTIV/PAUSIERT/ABGEBROCHEN,
+reason required for the latter two), `update_progress_tracks` (Planfeststellung and parliamentary
+track), `upsert_project_text`, `create_todo`,
 `update_todo`, `update_todo_tag`, `route_project_geometry` (GraphHopper route, preview or apply),
 `edit_project_geometry` (draw lines/points, add operational points, delete features),
 `assign_gvfg_entry` (needs `assignment.manage`: replace a GVFG Vorhaben's projects, optionally
@@ -681,6 +683,26 @@ In addition to the parsed data, the admin can set per entry:
 ### Auto-suggestion matching
 
 `tasks/vib_matching.py` — VDE-number extraction (highest confidence) + fuzzy name matching (SequenceMatcher + token overlap, threshold 0.50). Top suggestions stored in `suggested_project_ids` in the parse result.
+
+## InfraGO-Zustandsbericht
+
+The yearly condition report of DB InfraGO (grades per asset class, network and Land)
+is read in by an agent over MCP (`mcp/tools/condition.py`, skill
+`zustandsbericht-import`), not by a parser. Concept: `docs/features/feature-zustandsbericht.md`.
+
+1. Admin → Zustandsbericht: create the year (`POST /api/v1/import/condition/reports`) and
+   upload the PDF (`POST …/reports/{year}/pdf`, stored in `CONDITION_PDF_DIR`, default
+   `/app/uploads/zustandsbericht`).
+2. The agent writes one table per call (`set_condition_values`). `services/condition_checks.py`
+   checks the table with the stored values — distribution = 100 %, quantities per grade =
+   rated quantity, grades 4–6 = renewal need, classes = total — and refuses the write
+   unless `override_reason` says the printed report does not add up (recorded on the report).
+3. A person checks the values next to the page image (`/admin/zustandsbericht/{year}`,
+   corrections count as checked) and releases the year (`POST …/reports/{year}/release`).
+4. Public reads: `GET /api/v1/condition/reports`, `/reports/{year}`, `/series` (the newest
+   released report wins per reference year). Page `/netzzustand`.
+
+Test fixture with every value of the 2025 report: `tests/fixtures/zustandsbericht_2025.json`.
 
 ## Infraplan Import
 

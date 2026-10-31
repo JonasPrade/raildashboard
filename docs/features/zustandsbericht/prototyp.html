@@ -1,0 +1,370 @@
+<title>Netzzustand Prototyp</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: Schienendashboard-Seite im IDT-Design – Kopf, Kennzahlband, dann drei Bereiche (Verlauf, Anlagenklassen, Bundesländer) untereinander */
+:root{
+  --surface:#fff6f0; --surface-alt:#fbede6; --surface-sunken:#f3e2da; --surface-inverse:#00373c;
+  --text-strong:#00373c; --text-muted:#585857; --text-faint:#6e9097; --text-on-inverse:#fff6f0; --text-on-inverse-muted:#8fb4bc;
+  --border:#e2d3cb; --border-strong:#c9b6ac; --border-frame:#00373c;
+  --accent:#6e50fa; --accent-soft:#e8e3ff; --cyan-soft:#d6f8ff; --highlight:#ffff96;
+  --grid:#e2d3cb; --axis:#6e9097; --track:#fbede6;
+  --series-1:#6e50fa; --series-2:#00a6be;
+  /* Notenskala 1–6 (Datenviz: Abweichung pos → mid → neg) */
+  --n1:#1f8a5b; --n2:#7fbf9c; --n3:#e2d3cb; --n4:#eb9a8f; --n5:#d64545; --n6:#7a1f1f;
+  --font:'InterVariable','Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --surface:#00373c; --surface-alt:#073f49; --surface-sunken:#022e33; --surface-inverse:#fff6f0;
+  --text-strong:#fff6f0; --text-muted:#b9cfd2; --text-faint:#8fb4bc; --text-on-inverse:#00373c; --text-on-inverse-muted:#3a6068;
+  --border:#2c5a60; --border-strong:#4b787d; --border-frame:#8ca09f;
+  --accent:#ad9bff; --accent-soft:#2a2f6a; --cyan-soft:#0b4f59; --highlight:#ffff96;
+  --grid:#24525a; --axis:#8fb4bc; --track:#073f49; --series-1:#ad9bff; --series-2:#00dcfa;
+  --n1:#3fb07e; --n2:#8fcfac; --n3:#6d8a8c; --n4:#f0a59a; --n5:#ff6b6b; --n6:#c94a4a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --surface:#00373c; --surface-alt:#073f49; --surface-sunken:#022e33; --surface-inverse:#fff6f0;
+  --text-strong:#fff6f0; --text-muted:#b9cfd2; --text-faint:#8fb4bc; --text-on-inverse:#00373c; --text-on-inverse-muted:#3a6068;
+  --border:#2c5a60; --border-strong:#4b787d; --border-frame:#8ca09f;
+  --accent:#ad9bff; --accent-soft:#2a2f6a; --cyan-soft:#0b4f59; --highlight:#ffff96;
+  --grid:#24525a; --axis:#8fb4bc; --track:#073f49; --series-1:#ad9bff; --series-2:#00dcfa;
+  --n1:#3fb07e; --n2:#8fcfac; --n3:#6d8a8c; --n4:#f0a59a; --n5:#ff6b6b; --n6:#c94a4a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--surface);color:var(--text-strong);font-family:var(--font);font-size:16px;line-height:1.45;margin:0}
+.wrap{max-width:1200px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.num{font-variant-numeric:tabular-nums}
+.label{font-size:13.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted)}
+/* Kopf */
+header.app{border-bottom:2px solid var(--border-frame)}
+header.app .wrap{display:flex;align-items:center;gap:24px;min-height:72px;flex-wrap:wrap;padding-block:8px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:19px}
+.mark{width:32px;height:32px;background:var(--border-frame);position:relative}
+.mark::after{content:"";position:absolute;left:6px;right:6px;top:14px;height:4px;background:var(--surface)}
+nav.main{display:flex;gap:20px;flex-wrap:wrap}
+nav.main a{color:var(--text-strong);text-decoration:none;font-weight:600;font-size:15px;padding:6px 0;border-bottom:3px solid transparent}
+nav.main a.on{border-bottom-color:var(--accent)}
+.proto{margin-left:auto;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;border:2px solid var(--border-frame);padding:4px 8px;background:var(--cyan-soft)}
+/* Seitenkopf */
+.pagehead{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;padding-block:28px 16px}
+.pagehead h1{font-size:28px;margin:0;font-weight:800;text-wrap:balance}
+.pagehead .sub{color:var(--text-muted);font-size:14.5px;margin-top:4px}
+.help{display:inline-grid;place-items:center;width:22px;height:22px;border:2px solid var(--border-frame);font-size:13px;font-weight:700;margin-left:8px;vertical-align:middle;cursor:help}
+.controls{margin-left:auto;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+select,button{font:inherit;color:var(--text-strong)}
+select{height:40px;border:2px solid var(--border-frame);background:var(--surface);padding:0 10px;border-radius:0}
+.seg{display:inline-flex;border:2px solid var(--border-frame)}
+.seg button{height:36px;border:0;background:var(--surface);padding:0 14px;font-weight:600;font-size:14.5px;cursor:pointer}
+.seg button+button{border-left:2px solid var(--border-frame)}
+.seg button[aria-pressed="true"]{background:var(--border-frame);color:var(--surface)}
+.seg button:focus-visible,select:focus-visible,.row:focus-visible,.tile:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.seg.small button{height:32px;font-size:13.5px;padding:0 10px}
+/* Kennzahlband */
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:2px solid var(--border-frame)}
+.kpi{padding:16px 18px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.kpi+.kpi{border-left:1px solid var(--border)}
+.kpi .label{hyphens:auto;overflow-wrap:anywhere}
+.kpi .v{font-size:36px;font-weight:800;line-height:1.05}
+.kpi .v small{font-size:16px;font-weight:600;color:var(--text-muted)}
+.kpi .d{font-size:14.5px;color:var(--text-muted)}
+.kpi.hl .v span{background:var(--highlight);color:#00373c;outline:2px solid #00373c;padding:0 6px}
+@media (max-width:800px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi:nth-child(3){border-left:0}.kpi:nth-child(n+3){border-top:1px solid var(--border)}}
+/* Abschnitte */
+section{padding-block:32px 8px}
+.sechead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:8px}
+.sechead h2{font-size:19px;margin:0;font-weight:700}
+.sechead .note{color:var(--text-muted);font-size:14.5px}
+.sechead .seg{margin-left:auto}
+.card{border:2px solid var(--border-frame);padding:16px;min-width:0}
+.two{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:20px}
+@media (max-width:900px){.two{grid-template-columns:1fr}}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13.5px;color:var(--text-muted);margin-top:10px}
+.legend i{display:inline-block;width:12px;height:12px;margin-right:6px;vertical-align:-1px;border:1px solid var(--border-strong)}
+svg text{fill:var(--text-muted);font-family:var(--font);font-size:12px}
+/* Anlagenklassen */
+.cls-head,.row{display:grid;grid-template-columns:minmax(150px,1.3fr) 64px minmax(160px,2.4fr) 80px 150px;gap:14px;align-items:center}
+.cls-head{font-size:13px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);padding:0 10px 8px;border-bottom:2px solid var(--border-frame)}
+.cls-head button{all:unset;cursor:pointer}
+.cls-head button[aria-sort]::after{content:" ↓"}
+.row{min-height:48px;padding:6px 10px;border-bottom:1px solid var(--border);cursor:pointer}
+.row:hover{background:var(--surface-alt)}
+.row.sel{background:var(--accent-soft)}
+.row.total{font-weight:700;background:var(--surface-sunken)}
+.row .name{font-weight:600;min-width:0}
+.row .name small{display:block;font-weight:400;color:var(--text-muted);font-size:13px}
+.badge{display:inline-grid;place-items:center;min-width:52px;height:30px;font-weight:700;font-variant-numeric:tabular-nums;border:2px solid var(--border-frame)}
+.dist{display:flex;height:18px;border:1px solid var(--border-strong);overflow:hidden}
+.dist span{height:100%}
+.wbw{text-align:right;font-variant-numeric:tabular-nums;font-size:14.5px}
+.wbw .bar{height:4px;background:var(--series-1);margin-top:4px;margin-left:auto}
+.eb{text-align:right;font-size:14.5px;font-variant-numeric:tabular-nums}
+.eb small{color:var(--text-muted)}
+@media (max-width:760px){
+  .cls-head{display:none}
+  .row{grid-template-columns:minmax(0,1fr) 64px;grid-template-areas:"n b" "d d" "w e";row-gap:6px}
+  .row .name{grid-area:n}.row .badge{grid-area:b}.row .dist{grid-area:d}.row .wbw{grid-area:w;text-align:left}.row .eb{grid-area:e}
+  .wbw .bar{margin-left:0}
+}
+.detail{margin-top:16px}
+.detail h3{margin:0 0 4px;font-size:16px}
+.detail p{margin:0 0 12px;color:var(--text-muted);font-size:14.5px}
+.tblwrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14.5px;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);font-weight:600;border-bottom:2px solid var(--border-frame)}
+.sw{display:inline-block;width:10px;height:10px;margin-right:6px;border:1px solid var(--border-strong)}
+.flag{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--border-strong);padding:1px 6px;color:var(--text-muted);margin-left:6px;vertical-align:2px}
+/* Bundesländer */
+.grid-map{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;max-width:460px}
+.tile{aspect-ratio:1/0.82;border:2px solid var(--border-frame);display:flex;flex-direction:column;justify-content:space-between;padding:6px 7px;cursor:pointer;min-width:0;max-width:100%}
+.tile b{font-size:13px;letter-spacing:.06em}
+.tile span{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+.tile.sel{outline:3px solid var(--accent);outline-offset:1px}
+.rank{display:flex;flex-direction:column}
+.rank .r{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,2fr) 48px;gap:10px;align-items:center;min-height:30px;font-size:14.5px;border-bottom:1px solid var(--border)}
+.rank .r.sel{background:var(--accent-soft)}
+.rank .r .b{height:12px;background:var(--track);position:relative}
+.rank .r .b i{position:absolute;inset:0 auto 0 0;background:var(--series-1)}
+.rank .r .b em{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--text-strong)}
+.rank .r .n{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+footer.src{margin-block:36px 48px;border-top:2px solid var(--border-frame);padding-top:14px;font-size:14.5px;color:var(--text-muted);display:flex;gap:18px;flex-wrap:wrap}
+footer.src b{color:var(--text-strong)}
+.ok::before{content:"✓ ";font-weight:700;color:var(--text-strong)}
+</style>
+
+<header class="app"><div class="wrap">
+  <div class="brand"><span class="mark" aria-hidden="true"></span>Schienendashboard</div>
+  <nav class="main" aria-label="Hauptbereiche"><a href="#">Projekte</a><a href="#">Finanzen</a><a href="#">Infraplan</a><a href="#" class="on">Netzzustand</a></nav>
+  <span class="proto">Prototyp</span>
+</div></header>
+
+<main class="wrap">
+  <div class="pagehead">
+    <div>
+      <h1>Netzzustand <span class="help" title="Die DB InfraGO bewertet jährlich den Zustand von Fahrweg und Personenbahnhöfen mit Noten von 1 (neuwertig) bis 6 (einschränkend). Quelle: InfraGO-Zustandsbericht.">?</span></h1>
+      <div class="sub">InfraGO-Zustandsbericht · Noten 1 (neuwertig) bis 6 (einschränkend), gewichtet nach Wiederbeschaffungswert</div>
+    </div>
+    <div class="controls">
+      <label class="label" for="jahr" style="letter-spacing:.08em">Jahrgang</label>
+      <select id="jahr"><option>2025</option><option disabled>2024 (noch nicht eingelesen)</option></select>
+      <div class="seg" role="group" aria-label="Bereich" id="bereich">
+        <button type="button" data-v="fw" aria-pressed="true">Fahrweg</button>
+        <button type="button" data-v="pb" aria-pressed="false">Personenbahnhöfe</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <section>
+    <div class="sechead"><h2>Entwicklung</h2><span class="note">Zustandsnoten je Berichtsjahr</span></div>
+    <div class="two">
+      <div class="card"><svg id="trend" viewBox="0 0 560 240" width="100%" role="img" aria-label="Verlauf der Zustandsnoten 2021 bis 2025"></svg>
+        <div class="legend" id="trendlegend"></div></div>
+      <div class="card"><div class="label" style="margin-bottom:10px">Verteilung nach Netz 2025</div><div id="segments"></div>
+        <div class="legend" id="gradelegend"></div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sechead"><h2>Anlagenklassen</h2><span class="note" id="clsnote"></span>
+      <div class="seg small" role="group" aria-label="Netz" id="netz"></div></div>
+    <div class="cls-head"><button type="button" data-s="name">Anlagenklasse</button><button type="button" data-s="note" aria-sort="descending">Note</button><span>Notenverteilung nach WBW</span><button type="button" data-s="wbw" style="text-align:right">WBW</button><span style="text-align:right" id="ebhead">Erneuerungsbedarf</span></div>
+    <div id="rows"></div>
+    <div class="card detail" id="detail"></div>
+  </section>
+
+  <section>
+    <div class="sechead"><h2>Bundesländer</h2><span class="note">Mittlere Zustandsnote · Strich = Bundesschnitt</span>
+      <div class="seg small" role="group" aria-label="Bereich Länder" id="landseg">
+        <button type="button" data-v="fw" aria-pressed="true">Fahrweg</button><button type="button" data-v="pb" aria-pressed="false">Personenbahnhöfe</button></div></div>
+    <div class="two">
+      <div class="card"><div class="grid-map" id="map"></div><div class="legend" id="maplegend"></div></div>
+      <div class="card"><div class="rank" id="rank"></div></div>
+    </div>
+  </section>
+
+  <footer class="src">
+    <span><b>Quelle:</b> DB InfraGO, InfraGO-Zustandsbericht 2025, Anhang Tab. 5–7 (S. 52–55), Abb. 31 (S. 56); Verlauf aus Abb. 3 und dem Kennzahlenvergleich (S. 6).</span>
+    <span class="ok">Werte geprüft und freigegeben</span>
+    <span>Flächennetz und Serviceeinrichtungen: nur Note und WBW (aus Abb. 7/8, nicht im Anhang).</span>
+  </footer>
+</main>
+
+<script>
+const GR=["Neuwertig","Gut","Mittelmäßig","Schlecht","Mangelhaft","Einschränkend"];
+const fmt=(v,d=2)=>v.toLocaleString("de-DE",{minimumFractionDigits:d,maximumFractionDigits:d});
+const int=v=>v.toLocaleString("de-DE");
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const gcol=i=>`var(--n${i+1})`;
+
+// Anlagenklassen Fahrweg (Tab. 5 Gesamtnetz, Tab. 6 HLN; FLN/SE aus Abb. 7/8)
+const FW_CLS=[["Brücken","KIB","Stk."],["Tunnel","KIB","Stk."],["Stützbauwerke","KIB","km"],["Durchlässe","KIB","Stk."],["Lärmschutzbauwerke","KIB","km"],["Gleise","OB","km"],["Weichen","OB","Stk."],["Bahnübergänge","LST","Stk."],["Stellwerke","LST","Stk."],["Oberleitung","ET","km"],["Weichenheizanlagen","ET","Stk."]];
+const FW={
+ gesamt:{label:"Gesamtnetz",total:{note:3.00,wbw:655.5,dist:[24.2,34.2,25.5,11.6,4.3,0.2]},
+  wbw:[336.6,40.2,7.7,22.2,5.4,65.9,22.6,10.3,63.5,78.8,2.3],
+  note:[2.64,2.17,2.17,3.03,1.90,3.00,3.06,3.65,4.02,2.95,2.91],
+  dist:[[28.7,39.0,23.2,6.1,3.1,0],[46.1,32.6,16.8,2.8,1.7,0],[40.0,34.3,20.7,3.1,1.9,0],[34.7,20.6,10.9,22.2,11.6,0],[78.4,12.3,6.4,2.0,1.0,0],[18.7,33.3,32.1,13.6,2.3,0],[27.2,26.0,22.1,17.2,7.5,0],[4.8,19.7,43.3,17.5,7.2,7.5],[0.9,8.6,32.8,42.3,14.4,0.9],[10.6,45.5,32.9,9.4,1.6,0],[22.8,35.0,23.7,15.3,3.2,0]],
+  menge:[25637,758,1434,47468,2087,60328,63764,9574,3686,57252,6526],
+  gesamtmenge:[25772,762,1440,47468,2275,60836,64389,13424,3859,57252,6526],
+  counts:[[8677,9005,6035,1360,560,0],[287,208,211,38,14,0],[573,492,297,44,27,0],[16464,9763,5169,10557,5511,4],[1636,256,133,41,20,0],[11264,20093,19393,8184,1370,24],[17339,16584,14077,10983,4772,9],[460,1884,4147,1678,689,716],[45,348,1042,1280,707,39],[6041,26037,18862,5399,913,0],[1487,2287,1547,997,208,0]],
+  eb:[1920,52,72,16072,61,9579,15764,3083,2026,6313,1205]},
+ hln:{label:"Hochleistungsnetz",total:{note:3.04,wbw:321.5,dist:[26.9,33.4,23.6,11.8,4.3,0.1]},
+  wbw:[174.3,26.9,3.1,7.1,4.0,20.3,6.0,1.1,37.0,40.8,1.0],
+  note:[2.59,1.94,2.12,2.38,2.01,3.23,3.50,4.24,4.11,3.06,3.17],
+  dist:[[31.9,39.0,20.4,5.5,3.2,0],[53.3,37.1,8.4,1.2,0,0],[42.1,33.5,20.9,2.5,1.0,0],[56.0,19.4,7.7,11.6,5.3,0],[74.3,14.6,7.3,2.5,1.3,0],[13.8,27.9,36.8,18.3,3.2,0.1],[16.7,19.7,29.1,21.9,12.6,0],[3.4,6.6,30.4,26.7,24.2,8.7],[0.6,7.1,32.1,45.4,14.4,0.4],[9.9,40.1,36.3,11.9,1.8,0],[16.1,32.1,27.4,18.9,5.4,0]],
+  menge:[8431,269,582,15141,1564,18583,16990,976,1132,29614,2718],
+  gesamtmenge:[8462,269,582,15141,1564,18583,16990,976,1189,29614,2718],
+  counts:[[3572,2656,1619,390,194,0],[139,90,30,10,0,0],[245,195,122,14,6,0],[8478,2938,1169,1758,797,1],[1163,228,115,39,20,0],[2558,5184,6841,3401,590,9],[2832,3345,4942,3723,2142,6],[33,64,297,261,236,85],[6,102,323,487,205,9],[2934,11871,10740,3532,538,0],[437,873,746,515,147,0]],
+  eb:[584,10,20,2556,59,4001,5871,582,701,4070,662]},
+ fln:{label:"Flächennetz",partial:true,total:{note:2.96,wbw:334.0,dist:null},
+  wbw:[162.2,13.3,4.6,15.1,1.3,45.6,16.6,9.3,26.5,38.0,1.4],
+  note:[2.69,2.67,2.23,3.34,1.53,2.86,2.87,3.58,3.90,2.83,2.73]},
+ se:{label:"Serviceeinrichtungen",partial:true,total:{note:2.74,wbw:21.6,dist:null},
+  wbw:[null,null,null,null,null,7.4,8.2,null,8.2,4.0,0.1],
+  note:[null,null,null,null,null,2.24,2.74,null,4.35,3.07,2.69]}
+};
+// Tab. 7 Personenbahnhöfe
+const PB_CLS=[["Bahnsteige","","Stk."],["Personenunterführungen","","Stk."],["Unterird. Personenverkehrsanlagen","","Stk."],["Treppen, Rampen, Wetterschutz","","Stk."],["Bahnsteigdächer","","Stk."],["Bahnsteighallen","","Stk."],["Personenaufzüge","","Stk."],["ITK-Anlagen","","Stk."],["Fahrtreppen","","Stk."]];
+const PB={gesamt:{label:"Gesamtportfolio",total:{note:2.96,wbw:80.22,dist:[20.51,27.58,28.40,19.05,4.46,0.01]},
+  wbw:[25.22,15.85,15.28,12.29,4.58,4.69,1.00,0.85,0.46],
+  note:[2.89,3.35,3.01,2.53,3.20,3.11,3.56,3.74,3.84],
+  dist:[[27.25,26.75,23.10,14.08,8.83,0],[11.90,23.53,29.59,31.24,3.73,0],[22.98,34.34,36.50,6.19,0,0],[24.29,28.67,24.89,20.22,1.91,0.02],[13.07,28.47,34.81,21.27,2.38,0],[9.73,24.71,36.14,26.16,3.26,0],[14.07,20.05,18.75,42.15,4.91,0.07],[10.32,25.19,19.61,35.69,8.97,0.22],[8.86,20.54,11.83,47.76,11.01,0]],
+  menge:[9388,1945,65,38360,3336,80,2700,33808,1025],
+  counts:[[2763,2486,2066,1253,820,0],[259,519,535,531,101,0],[7,28,26,4,0,0],[13270,13359,7721,3584,416,10],[447,978,1150,680,81,0],[14,25,19,19,3,0],[377,546,505,1139,131,2],[3609,6838,6441,11193,5445,282],[91,211,122,489,112,0]],
+  ebMrd:[5.78,5.54,0.95,2.72,1.08,1.38,0.47,0.38,0.27]}};
+
+const LAND=[["SH","Schleswig-Holstein",3.25,2.47],["HH","Hamburg",3.20,2.69],["HB","Bremen",3.10,2.66],["NI","Niedersachsen",3.05,2.75],["MV","Mecklenburg-Vorpommern",2.82,2.75],["BE","Berlin",2.80,3.40],["BB","Brandenburg",2.89,2.83],["ST","Sachsen-Anhalt",2.75,3.04],["SN","Sachsen",2.79,3.12],["TH","Thüringen",2.65,3.27],["NW","Nordrhein-Westfalen",3.26,2.93],["HE","Hessen",2.95,3.03],["RP","Rheinland-Pfalz",3.20,2.92],["SL","Saarland",2.98,2.94],["BW","Baden-Württemberg",2.98,2.85],["BY","Bayern",2.97,3.07]];
+// Kachelkarte: [Kürzel, Zeile, Spalte]
+const POS={SH:[0,2],HH:[1,2],MV:[1,3],HB:[2,1],NI:[2,2],BE:[2,4],NW:[3,1],ST:[3,3],BB:[3,4],HE:[4,2],TH:[4,3],SN:[4,4],RP:[5,1],BW:[5,2],BY:[5,3],SL:[6,1]};
+
+const state={bereich:"fw",netz:"gesamt",sort:"note",sel:null,land:"fw",landSel:null};
+
+function kpis(){
+  const fw=state.bereich==="fw";
+  const items=fw?[
+    ["Netzzustandsnote","3,00","","± 0,00 gegenüber 2024",true],
+    ["Zustandsbasierter Erneuerungsbedarf","105,9"," Mrd. €","2024: 109,8 Mrd. € (−3,9)"],
+    ["Zustandsnote Hochleistungsnetz","3,04","","2024: 3,05"],
+    ["Zustandsnote Flächennetz","2,96","","inkl. Serviceeinrichtungen · 2024: 2,96"]]:[
+    ["Zustandsnote Personenbahnhöfe","2,96","","2024: 3,03 (−0,07)",true],
+    ["Zustandsbasierter Nachholbedarf","18,6"," Mrd. €","2024: 20,3 Mrd. € (−1,7)"],
+    ["Zustandsnote Empfangsgebäude","3,55","","2024: 3,58"],
+    ["Bewertete Anlagen","90.707","","Wiederbeschaffungswert 80,2 Mrd. €"]];
+  document.getElementById("kpis").innerHTML=items.map(([l,v,u,d,h])=>`<div class="kpi${h?" hl":""}"><div class="label">${l}</div><div class="v num"><span>${v}</span><small>${u}</small></div><div class="d">${d}</div></div>`).join("");
+}
+
+function trend(){
+  const svg=document.getElementById("trend");
+  const years=[2021,2022,2023,2024,2025];
+  const s=[{name:"Fahrweg (Netzzustandsnote)",col:"var(--series-1)",v:[2.93,3.01,3.03,3.00,3.00]},{name:"Personenbahnhöfe",col:"var(--series-2)",v:[null,null,3.09,3.03,2.96]}];
+  const W=560,H=240,L=44,R=16,T=16,B=32,lo=2.85,hi=3.15;
+  const x=i=>L+i*(W-L-R)/(years.length-1), y=v=>T+(hi-v)/(hi-lo)*(H-T-B);
+  let g="";
+  for(let t=2.85;t<=3.151;t+=0.05){g+=`<line x1="${L}" x2="${W-R}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)"/><text x="${L-8}" y="${y(t)+4}" text-anchor="end">${fmt(t)}</text>`}
+  years.forEach((yr,i)=>g+=`<text x="${x(i)}" y="${H-10}" text-anchor="middle">${yr}</text>`);
+  s.forEach(se=>{
+    const pts=se.v.map((v,i)=>v==null?null:[x(i),y(v)]).filter(Boolean);
+    g+=`<polyline fill="none" stroke="${se.col}" stroke-width="2.5" points="${pts.map(p=>p.join(",")).join(" ")}"/>`;
+    se.v.forEach((v,i)=>{if(v==null)return;const last=i===se.v.length-1;
+      g+=`<rect x="${x(i)-4}" y="${y(v)-4}" width="8" height="8" fill="${last?se.col:"var(--surface)"}" stroke="${se.col}" stroke-width="2"><title>${se.name} ${years[i]}: ${fmt(v)}</title></rect>`;
+      if(last)g+=`<text x="${x(i)-8}" y="${y(v)+(se.col.includes("2")?18:-10)}" text-anchor="end" style="font-weight:700;fill:var(--text-strong)">${fmt(v)}</text>`;});
+  });
+  g+=`<text x="${L}" y="${T-4}" style="font-size:11px">besser ↓ · schlechter ↑ (Achse ab 2,85)</text>`;
+  svg.innerHTML=g;
+  document.getElementById("trendlegend").innerHTML=s.map(se=>`<span><i style="background:${se.col}"></i>${se.name}</span>`).join("");
+}
+
+function distBar(d){return `<div class="dist" aria-hidden="true">${d.map((p,i)=>p>0?`<span style="width:${p}%;background:${gcol(i)}" title="${GR[i]}: ${fmt(p,1)} %"></span>`:"").join("")}</div>`}
+
+function segments(){
+  const rows=[["Gesamtnetz",3.00,FW.gesamt.total.dist],["Hochleistungsnetz",3.04,FW.hln.total.dist],["Personenbahnhöfe",2.96,PB.gesamt.total.dist]];
+  document.getElementById("segments").innerHTML=rows.map(([n,no,d])=>`<div style="display:grid;grid-template-columns:minmax(0,1fr) 52px;gap:10px;align-items:center;margin-bottom:12px"><div><div style="font-weight:600;font-size:14.5px;margin-bottom:4px">${n}</div>${distBar(d)}</div><span class="badge" style="min-width:48px;height:28px">${fmt(no)}</span></div>`).join("")+
+   `<div style="font-size:13.5px;color:var(--text-muted)">Anteil am bewerteten Wiederbeschaffungswert je Note. Flächennetz und Serviceeinrichtungen weist der Anhang nicht aus.</div>`;
+  document.getElementById("gradelegend").innerHTML=GR.map((g,i)=>`<span><i style="background:${gcol(i)}"></i>${i+1} ${g}</span>`).join("");
+}
+
+function netzButtons(){
+  const el=document.getElementById("netz");
+  if(state.bereich==="pb"){el.hidden=true;return}
+  el.hidden=false;
+  el.innerHTML=Object.entries(FW).map(([k,v])=>`<button type="button" data-v="${k}" aria-pressed="${k===state.netz}">${v.label.replace("Hochleistungsnetz","HLN").replace("Flächennetz","FLN").replace("Serviceeinrichtungen","SE")}</button>`).join("");
+}
+
+function data(){
+  if(state.bereich==="pb")return{d:PB.gesamt,cls:PB_CLS};
+  return{d:FW[state.netz],cls:FW_CLS};
+}
+
+function rows(){
+  const {d,cls}=data();
+  const fw=state.bereich==="fw";
+  document.getElementById("ebhead").textContent=fw?"Erneuerungsbedarf":"Nachholbedarf";
+  document.getElementById("clsnote").textContent=fw?`${d.label} · Wiederbeschaffungswert in Mrd. €`:"Ohne Empfangsgebäude · Wiederbeschaffungswert in Mrd. €";
+  const maxW=Math.max(...d.wbw.filter(v=>v!=null));
+  let list=cls.map((c,i)=>({i,name:c[0],gw:c[1],unit:c[2],note:d.note[i],wbw:d.wbw[i]})).filter(r=>r.note!=null);
+  const sk=state.sort;
+  list.sort((a,b)=>sk==="name"?a.name.localeCompare(b.name,"de"):b[sk]-a[sk]);
+  document.querySelectorAll(".cls-head button").forEach(b=>b.toggleAttribute("aria-sort",b.dataset.s===sk));
+  if(state.sel==null||!list.find(r=>r.i===state.sel))state.sel=list[0].i;
+  const t=d.total;
+  let h=`<div class="row total" tabindex="-1"><div class="name">${fw?d.label:"Personenbahnhöfe gesamt"}</div><span class="badge">${fmt(t.note)}</span>${t.dist?distBar(t.dist):'<div style="font-size:13.5px;color:var(--text-muted)">Verteilung nur im Diagramm</div>'}<div class="wbw">${fmt(t.wbw,1)}</div><div class="eb">${fw?(state.netz==="gesamt"?"105,9 Mrd. €":"–"):"18,58 Mrd. €"}</div></div>`;
+  h+=list.map(r=>{
+    const eb=fw?(d.eb?`${int(d.eb[r.i])} <small>${r.unit}</small>`:"<small>–</small>"):`${fmt(d.ebMrd[r.i])} <small>Mrd. €</small>`;
+    return `<div class="row${r.i===state.sel?" sel":""}" tabindex="0" role="button" data-i="${r.i}" aria-label="${r.name}, Note ${fmt(r.note)}">
+      <div class="name">${r.name}${r.gw?`<small>${({KIB:"Ingenieurbauwerke",OB:"Oberbau",LST:"Leit- und Sicherungstechnik",ET:"Elektrotechnik"})[r.gw]}</small>`:""}</div>
+      <span class="badge">${fmt(r.note)}</span>
+      ${d.dist?distBar(d.dist[r.i]):'<div style="font-size:13.5px;color:var(--text-muted)">–</div>'}
+      <div class="wbw">${fmt(r.wbw,1)}<div class="bar" style="width:${Math.max(2,r.wbw/maxW*100)}%"></div></div>
+      <div class="eb">${eb}</div></div>`}).join("");
+  document.getElementById("rows").innerHTML=h;
+  detail();
+}
+
+function detail(){
+  const {d,cls}=data();const i=state.sel;const c=cls[i];
+  const el=document.getElementById("detail");
+  if(!d.counts){el.innerHTML=`<h3>${c[0]} · ${d.label}</h3><p>Für dieses Netz nennt der Bericht nur Note (${fmt(d.note[i])}) und Wiederbeschaffungswert (${fmt(d.wbw[i],1)} Mrd. €) aus einem Diagramm. Mengen und Notenverteilung stehen im Anhang nur für Gesamtnetz und Hochleistungsnetz.</p>`;return}
+  const fw=state.bereich==="fw";
+  const cnt=d.counts[i], pc=d.dist[i];
+  const share=(d.wbw[i]/d.total.wbw*100);
+  el.innerHTML=`<h3>${c[0]} · ${d.label}</h3>
+   <p>${int(d.menge[i])} ${c[2]} bewertet${d.gesamtmenge&&d.gesamtmenge[i]!==d.menge[i]?` von ${int(d.gesamtmenge[i])} ${c[2]} im Bestand`:""} · ${fmt(share,1)} % des bewerteten Wiederbeschaffungswerts${fw?` · Erneuerungsbedarf (Note 4–6): ${int(d.eb[i])} ${c[2]}`:` · Nachholbedarf ${fmt(d.ebMrd[i])} Mrd. €`}</p>
+   <div class="tblwrap"><table><thead><tr><th>Note</th>${GR.map((g,j)=>`<th><span class="sw" style="background:${gcol(j)}"></span>${j+1}</th>`).join("")}</tr></thead>
+   <tbody><tr><td>Menge (${c[2]})</td>${cnt.map(v=>`<td>${int(v)}</td>`).join("")}</tr>
+   <tr><td>Anteil WBW</td>${pc.map(v=>`<td>${fmt(v,1)} %</td>`).join("")}</tr></tbody></table></div>`;
+}
+
+function land(){
+  const k=state.land==="fw"?2:3;const avg=state.land==="fw"?3.00:2.96;
+  const vals=LAND.map(l=>l[k]);const lo=Math.min(...vals),hi=Math.max(...vals);
+  // Farbe: Abstand vom Bundesschnitt auf der Notenskala
+  const col=v=>v<=avg-0.15?"var(--n1)":v<avg-0.03?"var(--n2)":v<=avg+0.03?"var(--n3)":v<avg+0.15?"var(--n4)":"var(--n5)";
+  const ink=v=>(v<=avg-0.15||v>=avg+0.15)?"#fff6f0":"#00373c";
+  let cells="";
+  for(let r=0;r<7;r++)for(let c=0;c<6;c++){
+    const e=Object.entries(POS).find(([,p])=>p[0]===r&&p[1]===c);
+    if(!e){cells+=`<div aria-hidden="true"></div>`;continue}
+    const l=LAND.find(x=>x[0]===e[0]);const v=l[k];
+    cells+=`<div class="tile${state.landSel===l[0]?" sel":""}" tabindex="0" role="button" data-l="${l[0]}" title="${l[1]}: ${fmt(v)}" style="background:${col(v)};color:${ink(v)}"><b>${l[0]}</b><span>${fmt(v)}</span></div>`;
+  }
+  document.getElementById("map").innerHTML=cells;
+  document.getElementById("maplegend").innerHTML=[["var(--n1)","deutlich besser"],["var(--n2)","besser"],["var(--n3)","≈ Schnitt "+fmt(avg)],["var(--n4)","schlechter"],["var(--n5)","deutlich schlechter"]].map(([c,t])=>`<span><i style="background:${c}"></i>${t}</span>`).join("");
+  const sorted=[...LAND].sort((a,b)=>a[k]-b[k]);
+  const sc=v=>((v-2.4)/(3.5-2.4))*100;
+  document.getElementById("rank").innerHTML=`<div class="label" style="margin-bottom:8px">Rangfolge · beste zuerst</div>`+sorted.map(l=>`<div class="r${state.landSel===l[0]?" sel":""}"><span>${l[1]}</span><div class="b"><i style="width:${sc(l[k])}%"></i><em style="left:${sc(avg)}%"></em></div><span class="n">${fmt(l[k])}</span></div>`).join("");
+}
+
+function render(){kpis();netzButtons();rows();}
+document.getElementById("bereich").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;state.bereich=b.dataset.v;state.sel=null;state.netz="gesamt";
+  document.querySelectorAll("#bereich button").forEach(x=>x.setAttribute("aria-pressed",x===b));render();});
+document.getElementById("netz").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;state.netz=b.dataset.v;netzButtons();rows();});
+document.querySelector(".cls-head").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;state.sort=b.dataset.s;rows();});
+const pick=e=>{const r=e.target.closest(".row[data-i]");if(!r)return;state.sel=+r.dataset.i;rows();};
+document.getElementById("rows").addEventListener("click",pick);
+document.getElementById("rows").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();pick(e)}});
+document.getElementById("landseg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;state.land=b.dataset.v;document.querySelectorAll("#landseg button").forEach(x=>x.setAttribute("aria-pressed",x===b));land();});
+const pickL=e=>{const t=e.target.closest(".tile");if(!t)return;state.landSel=state.landSel===t.dataset.l?null:t.dataset.l;land();};
+document.getElementById("map").addEventListener("click",pickL);
+document.getElementById("map").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();pickL(e)}});
+trend();segments();render();land();
+</script>

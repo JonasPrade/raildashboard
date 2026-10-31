@@ -41,6 +41,11 @@ from dashboard_backend.models.infraplan import (
     InfraplanParseResult,
     InfraplanReport,
 )
+from dashboard_backend.models.condition import (
+    ConditionAssetClass,
+    ConditionReport,
+    ConditionValue,
+)
 from dashboard_backend.models.gvfg import (
     GvfgEntry,
     GvfgEntryAmount,
@@ -185,6 +190,9 @@ TABLES = [
     FuldaDocument.__table__,  # Fulda import (must precede its entries)
     FuldaAnnouncement.__table__,
     fulda_announcement_to_project,
+    ConditionReport.__table__,  # Zustandsbericht (must precede its values)
+    ConditionAssetClass.__table__,
+    ConditionValue.__table__,
 ]
 
 

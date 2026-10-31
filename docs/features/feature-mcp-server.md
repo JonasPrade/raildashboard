@@ -248,6 +248,8 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `update_progress_observation` | manuelle Beobachtung in place ändern (Präzision, Terminzusatz, Datum, Notiz, Vertrauen, erwartet), mit Änderungsprotokoll; abgeleitete nicht | `progress.edit` |
 | `delete_progress_observation` | manuelle Beobachtung löschen (abgeleitete nicht) | `progress.edit` |
 | `set_phase_override` | manuellen Phasen-Override setzen (mit Begründung) oder aufheben | `progress.edit` |
+| `set_project_lifecycle` | Lebenszyklus setzen: AKTIV, PAUSIERT oder ABGEBROCHEN (PAUSIERT/ABGEBROCHEN mit Pflicht-Begründung `note` und optionalem „seit“-Datum `since`; AKTIV leert beides), mit Änderungsprotokoll | `progress.edit` |
+| `update_progress_tracks` | Planfeststellung und parlamentarische Befassung pflegen (`changes`: `has_planfeststellung`, `pf_state_override`, `pf_text`, `pf_date`, `pf_links`, `parl_befassung_relevant`, `parl_state_override`, `parl_befassung_text`, `parl_drucksache_url`, `parl_befassung_date`, `clear_*`), mit Änderungsprotokoll | `progress.edit` |
 | `upsert_project_text` | Projekttext anlegen/ändern, inkl. Kategorie (Standard „Info“) und `is_public` | `projecttext.edit` |
 | `merge_projects` | Dublette in ein anderes Projekt überführen (Vorschau, mit `apply` ausführen; destruktiv) | `project.merge` |
 | `search_operational_points` | Betriebsstellen nach Name/op_id suchen (Wegpunkte, Stationen) | — |
@@ -372,6 +374,15 @@ Client-seitig (Claude Code, `.mcp.json`):
   Begründung (`note` → `manual_override_note`), `phase = null` hebt ihn auf.
   `delete_progress_observation` löscht manuelle Beobachtungen; abgeleitete
   (`is_derived`, aus den Importen) bleiben wie in der REST-API geschützt.
+- **Lebenszyklus und Nebenspuren** (2026-10-31): Bis dahin ließ sich über MCP nur
+  die Phase korrigieren; ein abgebrochenes Projekt (z. B. Stadtbahn Regensburg nach
+  dem Bürgerentscheid) musste im Frontend umgestellt werden. `set_project_lifecycle`
+  setzt den Lebenszyklus wie der Schalter im Planungsstand-Panel; PAUSIERT und
+  ABGEBROCHEN brauchen über MCP eine Begründung (`note` → `lifecycle_note`), damit
+  die Quelle festgehalten ist. `update_progress_tracks` pflegt die Blöcke
+  Planfeststellung und parlamentarische Befassung über denselben Schreibweg
+  (`PATCH /projects/{id}/progress`); Phasen-Override und Lebenszyklus lehnt es ab
+  und verweist auf die eigenen Werkzeuge.
 - **Projekte zusammenführen** (2026-10-14): `merge_projects(survivor_id, merged_id,
   geometry_from, apply)` überführt eine Dublette in das bleibende Projekt und löscht
   sie; ihre alte id leitet über `project_redirect` weiter (`get_project` liefert dann

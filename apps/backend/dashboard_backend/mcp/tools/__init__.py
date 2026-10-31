@@ -1,6 +1,6 @@
 from mcp.server.mcpserver import MCPServer
 
-from . import bauportal, data_quality, finves, fulda, geometry, gvfg, haushalt, infraplan, projects, skills, todos, vib
+from . import bauportal, condition, data_quality, finves, fulda, geometry, gvfg, haushalt, infraplan, projects, skills, todos, vib
 
 
 def register_all(server: MCPServer) -> None:
@@ -13,6 +13,7 @@ def register_all(server: MCPServer) -> None:
     gvfg.register(server)
     haushalt.register(server)
     infraplan.register(server)
+    condition.register(server)
     vib.register(server)
     bauportal.register(server)
     skills.register(server)

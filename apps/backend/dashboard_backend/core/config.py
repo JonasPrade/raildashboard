@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     # Uploaded Infraplan PDFs, kept per draft so it can be re-parsed and page
     # images rendered. Same shared volume as above. INFRAPLAN_PDF_DIR env var.
     infraplan_pdf_dir: str = "/app/uploads/infraplan"
+    # Uploaded InfraGO-Zustandsbericht PDFs (page text/images for the MCP import).
+    # Same shared volume. CONDITION_PDF_DIR env var.
+    condition_pdf_dir: str = "/app/uploads/zustandsbericht"
     # LLM settings for optional VIB semantic extraction (OpenAI-compatible)
     # llm_base_url empty = feature disabled
     llm_base_url: str = ""

@@ -24,6 +24,7 @@ Merge nach master
    ▼
 Actions -> deploy -> Run workflow        ← das Tor
    │  SHA leer = aktueller Stand von master · Rollback = frühere SHA eintragen
+   │  ein zweiter Klick wartet, bis der laufende Deploy fertig ist (kein Abbruch)
    │  docker manifest inspect: gibt es alle vier Images?
    │  SSH -> /srv/raildashboard/prod.sh <sha>
    ▼  prod.sh (auf vmd92747, Benutzer `deploy`)
@@ -166,7 +167,7 @@ unset GHCR_PAT
   - eine vollständige `Project`-Zeile ladbar ist (alle gemappten Spalten existieren —
     `SELECT 1` bliebe grün, wenn Schema und Code nicht zusammenpassen),
   - `SESSION_SECRET_KEY` gesetzt und kein Platzhalter aus `.env.prod.example` ist,
-  - `UPLOAD_DIR`, `IMPORT_STAGING_DIR` und `INFRAPLAN_PDF_DIR` beschreibbar sind;
+  - `UPLOAD_DIR`, `IMPORT_STAGING_DIR`, `INFRAPLAN_PDF_DIR` und `CONDITION_PDF_DIR` beschreibbar sind;
 
   sonst `503` mit Problemliste. `/api/v1/health` bleibt als reine Erreichbarkeitsprobe.
 - Ohne die `location = /healthz` im Container-nginx beantwortete der SPA-Fallback den

@@ -27,6 +27,9 @@ const InfraplanImportPage = lazyWithRetry(() => import("./features/infraplan-imp
 const InfraplanReviewPage = lazyWithRetry(() => import("./features/infraplan-import/InfraplanReviewPage"));
 const InfraplanKpiPage = lazyWithRetry(() => import("./features/infraplan-import/InfraplanKpiPage"));
 const InfraplanPage = lazyWithRetry(() => import("./features/infraplan/InfraplanPage"));
+const ConditionPage = lazyWithRetry(() => import("./features/condition/ConditionPage"));
+const ConditionImportPage = lazyWithRetry(() => import("./features/condition-import/ConditionImportPage"));
+const ConditionReviewPage = lazyWithRetry(() => import("./features/condition-import/ConditionReviewPage"));
 const FinveOverviewPage = lazyWithRetry(() => import("./features/finves/FinveOverviewPage"));
 const FinanzenLayout = lazyWithRetry(() => import("./features/finanzen/FinanzenLayout"));
 const FinvesRedirect = lazyWithRetry(() => import("./features/finanzen/FinvesRedirect"));
@@ -156,6 +159,18 @@ export const router = createBrowserRouter([
             {
                 path: "infraplan",
                 element: <InfraplanPage />,
+            },
+            {
+                path: "netzzustand",
+                element: <ConditionPage />,
+            },
+            {
+                path: "admin/zustandsbericht",
+                element: <ConditionImportPage />,
+            },
+            {
+                path: "admin/zustandsbericht/:year",
+                element: <ConditionReviewPage />,
             },
             {
                 path: "admin/haushalt-unmatched",

@@ -100,6 +100,20 @@ EXACT) and `date_label` qualify `observed_date`, which is only the sort value;
 projects; `project_progress.construction_start_*` / `commissioning_*` cache the forecast
 dates for the lists (`docs/features/feature-project-progress.md` → „Datumsqualifikation“).
 
+### Zustandsbericht
+
+The yearly InfraGO-Zustandsbericht (DB InfraGO): grades 1–6, grade distribution,
+replacement value and renewal need per asset class for the Fahrweg (Gesamtnetz, HLN,
+FLN, SE) and the Personenbahnhöfe, plus a grade per Land. Read in by an agent over
+MCP, public after a person releases the year. See
+`docs/features/feature-zustandsbericht.md`; migration `20261030001`.
+
+| Table | Description |
+|---|---|
+| condition_report | One report per `year` (unique): title, `source_url`, `price_basis`, stored PDF (`pdf_path`), `status` (`ENTWURF`/`FREIGEGEBEN`), `accepted_mismatches` (checks the agent accepted with a reason because the report itself does not add up) |
+| condition_asset_class | Asset class shared by all years: stable `key` (`fw_…`/`pb_…`), `domain` (`FAHRWEG`/`PERSONENBAHNHOF`), `trade` (`KIB`/`OB`/`LST`/`ET`), `unit`; the 2025 classes are created on first use |
+| condition_value | One number, long format: `report_id`, `domain`, `scope` (`GESAMT`/`HLN`/`FLN`/`SE`/`LAND`), `region` (Land), `asset_class_id` (NULL = total), `metric`, `grade` (distributions only), `reference_year`, `value`, `source_page`/`source_ref`, `status` (`UNGEPRUEFT`/`GEPRUEFT`); unique per slot (NULLs not distinct) |
+
 ### ChangeTracking
 
 | Table | Description |

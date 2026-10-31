@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import pytest
 
+from dashboard_backend.crud import api_keys as api_keys_crud
 from dashboard_backend.schemas.users import UserRole
 from dashboard_backend.services.exceptions import RoutingUpstreamError
 from tests.api.conftest import basic_auth_header
@@ -52,6 +53,32 @@ def test_create_route_requires_auth(client, routing_stub):
     )
     assert response.status_code == 401
     assert routing_stub.calls == 0
+
+
+def test_create_route_forbidden_for_viewer(client, create_user, routing_stub):
+    create_user("viewer-r", "secret123", UserRole.viewer)
+    response = client.post(
+        f"/api/v1/projects/{PROJECT_ID}/routes",
+        json={"feature": VALID_FEATURE},
+        headers=basic_auth_header("viewer-r", "secret123"),
+    )
+    assert response.status_code == 403
+
+
+def test_create_route_api_key_needs_project_edit_scope(client, create_user, db_session, routing_stub):
+    admin = create_user("admin-r", "secret123", UserRole.admin)
+    _, read_only = api_keys_crud.create_api_key(db_session, admin, "ro", ["mcp.access"])
+    _, editing = api_keys_crud.create_api_key(db_session, admin, "rw", ["mcp.access", "project.edit"])
+
+    def confirm(token):
+        return client.post(
+            f"/api/v1/projects/{PROJECT_ID}/routes",
+            json={"feature": VALID_FEATURE},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+    assert confirm(read_only).status_code == 403
+    assert confirm(editing).status_code == 201
 
 
 def test_create_route_success(client, create_user, routing_stub):
