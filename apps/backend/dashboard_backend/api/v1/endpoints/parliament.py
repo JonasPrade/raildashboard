@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 
 from fastapi import Depends, File, Form, HTTPException, Query, UploadFile
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session
 
 from dashboard_backend.api.deps import launch_with_staged_file, read_upload_within_limit
 from dashboard_backend.core.security import require_auth, require_permission
@@ -23,12 +23,9 @@ from dashboard_backend.database import get_db
 from dashboard_backend.models.parliament import (
     COMMITTEE_KEY_BUDGET,
     COMMITTEE_KEY_TRANSPORT,
-    CommitteeMembership,
-    Constituency,
     IMPORT_KIND_CONSTITUENCIES,
     IMPORT_KIND_LINKS,
     IMPORT_KIND_POLITICIANS,
-    Mandate,
 )
 from dashboard_backend.models.users import User
 from dashboard_backend.routing.auth_router import AuthRouter
@@ -106,91 +103,20 @@ def read_politicians(
     """The working list before an appointment: name search + committee/faction filter."""
     if committee and committee not in VALID_COMMITTEE_KEYS:
         raise HTTPException(status_code=400, detail=f"unknown committee: {committee}")
-
-    mandates = parliament_crud.politician_rows(
-        db, query=query, committee=committee, fraction=fraction
-    )
-    counts = parliament_crud.project_counts_by_constituency(
-        db, {mandate.constituency_id for mandate in mandates if mandate.constituency_id}
-    )
-    return [_politician_list_item(mandate, counts) for mandate in mandates]
-
-
-def _politician_list_item(mandate: Mandate, counts: dict[int, int]) -> PoliticianListItemSchema:
-    schema = parliament_crud.mandate_to_schema(mandate)
-    constituency = mandate.constituency
-    return PoliticianListItemSchema(
-        politician_id=schema.politician_id,
-        mandate_id=schema.mandate_id,
-        name=schema.name,
-        first_name=schema.first_name,
-        last_name=schema.last_name,
-        fraction=schema.fraction,
-        party=schema.party,
-        mandate_type=schema.mandate_type,
-        is_direct_mandate=schema.is_direct_mandate,
-        profile_url=schema.profile_url,
-        constituency=(
-            parliament_crud.constituency_summary(constituency) if constituency else None
-        ),
-        committees=schema.committees,
-        project_count=counts.get(mandate.constituency_id, 0) if mandate.constituency_id else 0,
-    )
+    return parliament_crud.politician_list(db, query=query, committee=committee, fraction=fraction)
 
 
 @router.get("/politicians/{mandate_id}", response_model=PoliticianDetailSchema, dependencies=[_require_login])
 def read_politician(mandate_id: int, db: Session = Depends(get_db)):
-    mandate = (
-        db.query(Mandate)
-        .options(
-            selectinload(Mandate.politician),
-            selectinload(Mandate.constituency),
-            selectinload(Mandate.committee_memberships).selectinload(
-                CommitteeMembership.committee
-            ),
-        )
-        .filter(Mandate.id == mandate_id)
-        .one_or_none()
-    )
-    if mandate is None:
+    detail = parliament_crud.politician_detail(db, mandate_id)
+    if detail is None:
         raise HTTPException(status_code=404, detail="Mandat nicht gefunden")
-
-    projects = parliament_crud.projects_for_politician(db, mandate.constituency)
-    base = _politician_list_item(
-        mandate,
-        {mandate.constituency_id: len(projects)} if mandate.constituency_id else {},
-    )
-    return PoliticianDetailSchema(**base.model_dump(), projects=projects)
+    return detail
 
 
 @router.get("/constituencies", response_model=list[ConstituencyListItemSchema], dependencies=[_require_login])
 def read_constituencies(db: Session = Depends(get_db)):
-    period = parliament_crud.current_period(db)
-    q = db.query(Constituency)
-    if period is not None:
-        q = q.filter(Constituency.parliament_period_id == period.id)
-    constituencies = q.order_by(Constituency.number).all()
-
-    ids = [constituency.id for constituency in constituencies]
-    project_counts = parliament_crud.project_counts_by_constituency(db, ids)
-    mandates = parliament_crud.mandates_for_constituencies(db, ids)
-
-    items: list[ConstituencyListItemSchema] = []
-    for constituency in constituencies:
-        rows = mandates.get(constituency.id, [])
-        items.append(
-            ConstituencyListItemSchema(
-                id=constituency.id,
-                number=constituency.number,
-                name=constituency.name,
-                state=constituency.state,
-                project_count=project_counts.get(constituency.id, 0),
-                mandate_count=len(rows),
-                has_direct_mandate=any(mandate.is_direct_mandate for mandate in rows),
-                has_geometry=constituency.geom is not None,
-            )
-        )
-    return items
+    return parliament_crud.constituency_list(db)
 
 
 @router.get("/constituencies/geojson", dependencies=[_require_login])
@@ -259,25 +185,10 @@ def _is_postgres(db: Session) -> bool:
 
 @router.get("/constituencies/{constituency_id}", response_model=ConstituencyDetailSchema, dependencies=[_require_login])
 def read_constituency(constituency_id: int, db: Session = Depends(get_db)):
-    constituency = db.query(Constituency).filter(Constituency.id == constituency_id).one_or_none()
-    if constituency is None:
+    detail = parliament_crud.constituency_detail(db, constituency_id)
+    if detail is None:
         raise HTTPException(status_code=404, detail="Wahlkreis nicht gefunden")
-
-    mandates = parliament_crud.mandates_for_constituencies(db, [constituency.id]).get(
-        constituency.id, []
-    )
-    direct, listed = parliament_crud.split_mandates(mandates)
-    return ConstituencyDetailSchema(
-        id=constituency.id,
-        number=constituency.number,
-        name=constituency.name,
-        state=constituency.state,
-        projects=parliament_crud.projects_for_constituency(db, constituency.id),
-        direct_mandates=direct,
-        list_mandates=listed,
-        has_direct_mandate=bool(direct),
-        has_any_mandate=bool(direct or listed),
-    )
+    return detail
 
 
 @router.post("/import", response_model=TaskLaunchResponse, status_code=202)

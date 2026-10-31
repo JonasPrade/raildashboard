@@ -319,6 +319,15 @@ Route am bestehenden Projekt-Router. Alle `GET` nur angemeldet, alle Schreiboper
 | `POST` | `/parliament/import` | Abgeordnetenstand aktualisieren (Celery, gibt `task_id` zurück) |
 | `POST` | `/parliament/recompute-links` | Verschneidung vollständig neu (Celery) |
 
+Die Aufbereitung der Antworten (Personenliste, Person, Wahlkreisliste, Wahlkreis,
+Wahlkreise eines Projekts) liegt in `crud/parliament.py` und wird von den Endpunkten und
+den MCP-Tools geteilt.
+
+**MCP (2026-10-31, #333):** `list_politicians`, `get_politician`, `list_constituencies`,
+`get_constituency`, `get_project_constituencies` — nur lesend, für jeden MCP-Key (wie die
+Lese-Routen: angemeldet genügt); jede Antwort nennt den Abrufstand (`data_status`).
+Import und Neuverschneidung bleiben im Admin-Bereich. Siehe `feature-mcp-server.md`.
+
 ## Frontend
 
 Komponenten unter `src/features/abgeordnete/`, Client über `make gen-api`.

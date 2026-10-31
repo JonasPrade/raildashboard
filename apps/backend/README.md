@@ -162,6 +162,16 @@ Haushalt year, logged as `sammel_finve_years`), `resolve_haushalt_unmatched_row`
 and `merge_projects` (destructive, needs `project.merge`: merge a duplicate into another
 project, preview by default, `apply=true` deletes the duplicate and leaves a `project_redirect`;
 same logic as `POST /api/v1/projects/merge`, see `docs/features/feature-project-merge.md`).
+Added 2026-10-31 (see `feature-mcp-server.md` → „Ausbau 2026-10-31“): constituencies and members
+of parliament (`list_politicians`, `get_politician`, `list_constituencies`, `get_constituency`,
+`get_project_constituencies`, read-only), change history (`get_project_changelog`,
+`get_project_text_changelog`, `get_todo` with `history`) and `revert_project_change` (shared
+with the REST revert in `services/changelog_revert.py`), press reports (`list_media_reports`,
+`add_media_report`, `update_media_report`, `delete_media_report`, `progress.edit`), and
+maintenance tools (`list_projects(archived=…)`, `delete_project_text`, `update_project_group`,
+`get_project_group_timeline`, `list_project_documents`, `set_track_document`,
+`recompute_project_progress`, `list_progress_conflicts`, `list_sammel_finve_phases`,
+`set_sammel_finve_phase`, `get_system_status` with `settings.manage`).
 The routing tool uses the same `RouteService` as `/routes/calculate`, injected per request
 like the DB session. Claude Code config:
 

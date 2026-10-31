@@ -11,6 +11,20 @@ Test-Checkliste des ermöglichenden Issues hochgezogen und hier entfernt.
 
 ---
 
+## MCP-Lücken #333–#336 — gegen prod (braucht Deploy)
+
+Erst nach dem Deploy prüfbar (MCP-Tools laufen gegen prod):
+
+- [ ] `get_project_constituencies` für ein geroutetes Projekt (z. B. Gäubahn): Wahlkreise nach km absteigend, je Wahlkreis Abgeordnete mit Ausschussrolle; `data_status.is_stale` passt zum Abrufstand unter `/admin/abgeordnete`.
+- [ ] `list_politicians(committee="verkehr")` → Mitglieder des Verkehrsausschusses; `get_politician` für eine Person aus dem eigenen Umfeld zeigt die Projekte im Wahlkreis wie `/abgeordnete`.
+- [ ] `get_project_changelog` für ein zuletzt per MCP geändertes Projekt zeigt die Änderung mit `entry_id`; `revert_project_change` setzt sie zurück, die Projektseite → Versionshistorie zeigt den REVERT.
+- [ ] Skill `medien-import` mit einem aktuellen Artikel aus der Presselage: Bericht erscheint unter `/admin/media-import`, nach dem Bestätigen eine MEDIEN-Zeile im Planungsstand des Projekts.
+- [ ] `list_progress_conflicts` liefert dieselben Projekte wie `/admin/planungsstand-konflikte`.
+- [ ] `get_system_status` meldet Routing und Worker „ok“ (wie `/admin/system`).
+- Bei Fehler: Tool-Ausgabe an das jeweilige Issue hängen.
+
+---
+
 ## VIB-PFA-Prognosen #262 — Planungsstand nach Neuberechnung (braucht Deploy)
 
 Erst nach dem Deploy und einmal „Alle Projekte neu berechnen“ (Einstellungen →

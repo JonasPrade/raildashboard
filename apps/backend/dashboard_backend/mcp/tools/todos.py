@@ -18,6 +18,7 @@ from dashboard_backend.crud.todos import todos as todos_crud
 from dashboard_backend.mcp.context import get_principal, load_user, require, tool_session
 from dashboard_backend.mcp.tools.projects import MAX_LIMIT, READ_ONLY, WRITE
 from dashboard_backend.schemas.todos.todo_schema import (
+    TodoChangeLogSchema,
     TodoCreate,
     TodoPriorityLiteral,
     TodoSchema,
@@ -71,6 +72,23 @@ def list_todos(
             "offset": offset,
             "todos": [_todo_dict(t) for t in todos[offset : offset + limit]],
         }
+
+
+def get_todo(todo_id: int, history: bool = False, *, ctx: Context) -> dict[str, Any]:
+    """One task in full. history=true adds its change history, newest first
+    (who changed which field from what to what, also tag renames)."""
+    get_principal(ctx)
+    with tool_session(ctx) as db:
+        todo = todos_crud.get_todo(db, todo_id)
+        if todo is None:
+            raise ToolError(f"Aufgabe {todo_id} nicht gefunden.")
+        data = _todo_dict(todo)
+        if history:
+            data["history"] = [
+                TodoChangeLogSchema.model_validate(log).model_dump(mode="json")
+                for log in todos_crud.list_todo_history(db, todo_id)
+            ]
+        return data
 
 
 def list_todo_tags(*, ctx: Context) -> dict[str, Any]:
@@ -200,6 +218,7 @@ def update_todo(
 
 def register(server: MCPServer) -> None:
     server.add_tool(list_todos, annotations=READ_ONLY)
+    server.add_tool(get_todo, annotations=READ_ONLY)
     server.add_tool(list_todo_tags, annotations=READ_ONLY)
     server.add_tool(create_todo, annotations=WRITE)
     server.add_tool(update_todo, annotations=WRITE)

@@ -236,6 +236,9 @@ Siehe: `docs/features/feature-new-project-wizard.md`
 - [x] **MCP-Server** — Streamable-HTTP-Endpunkt `/mcp` im Backend, der Projekte, Finanzierung und Planungsstand als MCP-Tools für KI-Assistenten bereitstellt. Rechte kommen aus dem bestehenden Capability-Katalog; Importe dürfen seit 2026-10-17 eigene Tools bekommen (Fulda-Runde, Infraplan). OAuth folgt erst mit dem Authentik-Umzug, die Key-Auth bleibt danach bestehen. Zugriff vorerst nur für Admins (`mcp.access`), Keys laufen nach 90 Tagen ab. Geometrie-Tools inkl. GraphHopper-Routing und Zeichnen aus Koordinaten ergänzt. FinVe frei suchbar (`list_finves`, `get_finve`), auch ohne Projektzuordnung; FinVe-Zuordnungen lassen sich mit `update_finve_projects` hinzufügen und lösen. Skills kommen vom Server (`list_skills`, `get_skill`) — immer passend zum deployten Stand; in claude.ai liegt nur der Einstiegs-Skill `schienendashboard`.
   Siehe: `docs/features/feature-mcp-server.md`
 
+- [x] **MCP-Lücken schließen (Ausbau 2026-10-31)** — Wahlkreise und Abgeordnete lesen, Änderungsprotokoll lesen und einzelne Felder zurücksetzen, Medienberichte über MCP + Skill `medien-import`, Ergänzungen (Archiv-Filter, Texte löschen, Gruppen pflegen und Zeitleiste, Track-Dokumente, Neuberechnung, Rücksprung-Konflikte, Sammel-FinVe-Phase, Systemstatus). Bauportal separat (#293).
+  Siehe: `docs/features/feature-mcp-server.md` → „Ausbau 2026-10-31“
+
 - [x] **Projekte zusammenführen** — MCP-Tool `merge_projects` und `POST /projects/merge`: Dublette in das bleibende Projekt überführen (Verknüpfungen, Historie, Unterprojekte), alte id leitet um. Vorstufe zur GVFG-Datenpflege.
   Siehe: `docs/features/feature-project-merge.md`
 - [x] **Projekte archivieren** — eigenes Kennzeichen „Archiviert“ mit Pflicht-Begründung für ersetzte/überholte Projekte: zählt nirgends mehr (Listen, Karte, Summen, Eltern-Aggregation), bleibt per URL erreichbar, Admin-Seite „Archiv“, MCP `archive_project`/`unarchive_project`.

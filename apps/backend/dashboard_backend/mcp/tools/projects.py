@@ -25,6 +25,7 @@ from dashboard_backend.crud.changelog import (
     create_changelog_for_create,
     create_changelog_for_patch,
     create_text_changelog_for_create,
+    create_text_changelog_for_delete,
     create_text_changelog_for_patch,
 )
 from dashboard_backend.crud.finves import get_project_finves_with_budgets
@@ -57,6 +58,9 @@ from dashboard_backend.crud.projects.texts import (
     get_text_types,
     get_texts_for_project,
     update_project_text,
+)
+from dashboard_backend.crud.projects.texts import (
+    delete_project_text as delete_project_text_crud,
 )
 from dashboard_backend.crud.projects.progress import BEDARFSPLAN_GROUP_SHORT_NAME_PREFIX
 from dashboard_backend.mcp.context import get_principal, load_user, require, tool_session
@@ -270,7 +274,11 @@ def _text_dict(text: ProjectText, default_category: Any = None) -> dict[str, Any
     )
     data["category"] = category["name"] if category else None
     data["category_style"] = category["style"] if category else None
-    data["attachments"] = [a["filename"] for a in data["attachments"]]
+    # Metadata only; the files themselves are downloaded in the UI.
+    data["attachments"] = [
+        {key: a[key] for key in ("id", "filename", "mime_type", "file_size")}
+        for a in data["attachments"]
+    ]
     return data
 
 
@@ -680,17 +688,23 @@ def list_project_filters(*, ctx: Context) -> dict[str, Any]:
 
 ProjectOrder = Literal["name", "id", "length", "last_change"]
 DraftFilter = Literal["exclude", "only", "include"]
+ArchivedFilter = Literal["exclude", "only", "include"]
 
 
-def draft_filter(drafts: DraftFilter):
-    """SQL condition on Project.is_draft for a ``drafts`` argument. Archived
-    projects are excluded in every mode (feature-project-archive.md)."""
-    not_archived = Project.is_archived.is_(False)
+def draft_filter(drafts: DraftFilter, archived: "ArchivedFilter" = "exclude"):
+    """SQL condition on Project.is_draft / is_archived for the ``drafts`` and
+    ``archived`` arguments. Archived projects are excluded unless ``archived``
+    says otherwise (feature-project-archive.md)."""
+    conditions = []
     if drafts == "exclude":
-        return and_(Project.is_draft.is_(False), not_archived)
-    if drafts == "only":
-        return and_(Project.is_draft.is_(True), not_archived)
-    return not_archived
+        conditions.append(Project.is_draft.is_(False))
+    elif drafts == "only":
+        conditions.append(Project.is_draft.is_(True))
+    if archived == "exclude":
+        conditions.append(Project.is_archived.is_(False))
+    elif archived == "only":
+        conditions.append(Project.is_archived.is_(True))
+    return and_(*conditions) if conditions else None
 
 
 def list_projects(
@@ -707,6 +721,7 @@ def list_projects(
     updated_since: date | None = None,
     filters: list[ProjectFilter] | None = None,
     drafts: DraftFilter = "exclude",
+    archived: ArchivedFilter = "exclude",
     order_by: ProjectOrder = "name",
     descending: bool = False,
     limit: int = 50,
@@ -715,8 +730,8 @@ def list_projects(
     *,
     ctx: Context,
 ) -> dict[str, Any]:
-    """Search projects (drafts excluded unless ``drafts`` says otherwise, archived
-    projects always excluded), sorted by name unless ``order_by`` says otherwise.
+    """Search projects (drafts and archived projects excluded unless ``drafts`` /
+    ``archived`` say otherwise), sorted by name unless ``order_by`` says otherwise.
 
     - search: case-insensitive substring of name, project number, description
       or an alias ("DT 38", "Gäubahn")
@@ -744,6 +759,10 @@ def list_projects(
     - drafts: exclude (default) = finalized projects only, only = drafts only
       (e.g. created by an import and not yet maintained), include = both; each
       entry carries ``is_draft``. Finalize or revert with set_project_draft.
+    - archived: exclude (default), only = archived (replaced or outdated)
+      projects only, include = both; with only/include each entry carries
+      ``is_archived`` and ``replaced_by_project_id`` (the successor). Combine
+      archived=only with drafts=include to also see archived drafts.
     - order_by: name, id, length or last_change (newest change; projects never
       changed come last); descending reverses the order
     Each entry carries ``construction_start`` and ``commissioning`` of the
@@ -771,7 +790,7 @@ def list_projects(
             )
             .outerjoin(ProjectProgress, ProjectProgress.project_id == Project.id)
         )
-        draft_condition = draft_filter(drafts)
+        draft_condition = draft_filter(drafts, archived)
         if draft_condition is not None:
             query = query.filter(draft_condition)
         if search:
@@ -828,10 +847,21 @@ def list_projects(
             "offset": offset,
             "limit": limit,
             "projects": [
-                _project_summary(project, row_phase, bool(row_known), with_description, tuple(dates))
+                _with_archive(
+                    _project_summary(project, row_phase, bool(row_known), with_description, tuple(dates)),
+                    project,
+                    archived != "exclude",
+                )
                 for project, row_phase, row_known, *dates in rows
             ],
         }
+
+
+def _with_archive(summary: dict[str, Any], project: Project, show: bool) -> dict[str, Any]:
+    if show:
+        summary["is_archived"] = bool(project.is_archived)
+        summary["replaced_by_project_id"] = project.replaced_by_project_id
+    return summary
 
 
 def get_project(project_id: int, *, ctx: Context) -> dict[str, Any]:
@@ -907,7 +937,9 @@ def get_project_texts(
     project_id: int, text_type: str | None = None, *, ctx: Context
 ) -> list[dict[str, Any]]:
     """Texts of a project, optionally filtered by text type name (case-insensitive).
-    Use list_text_types for the available types."""
+    Use list_text_types for the available types. ``attachments`` lists the
+    files attached to a text (id, filename, mime_type, file_size in bytes);
+    their content is only available in the UI."""
     get_principal(ctx)
     with tool_session(ctx) as db:
         _project_or_error(db, project_id)
@@ -1561,6 +1593,29 @@ def upsert_project_text(
         return _text_dict(update_project_text(db, text_id, update_data), get_default_text_category(db))
 
 
+def delete_project_text(project_id: int, text_id: int, *, ctx: Context) -> dict[str, Any]:
+    """Delete a project text and its attachments (requires ``projecttext.edit``),
+    e.g. a duplicate or an outdated note. A text can be linked to several
+    projects — it disappears from all of them; ``linked_projects`` names them.
+    Ask before deleting a text that is linked elsewhere too. The deletion is
+    written to the text changelog (get_project_text_changelog) with the old
+    content, so it can be written back with upsert_project_text."""
+    principal = get_principal(ctx)
+    require(principal, "projecttext.edit")
+    with tool_session(ctx) as db:
+        _project_or_error(db, project_id)
+        links = db.query(TextToProject).filter(TextToProject.text_id == text_id).all()
+        text = db.query(ProjectText).filter(ProjectText.id == text_id).first()
+        if text is None or project_id not in {link.project_id for link in links}:
+            raise ToolError(f"Text {text_id} gehört nicht zu Projekt {project_id}.")
+        linked = sorted({link.project_id for link in links})
+        header = text.header
+        user = load_user(db, principal)
+        create_text_changelog_for_delete(db, text, project_id, user.id, user.username)
+        delete_project_text_crud(db, text.id)
+        return {"deleted": text_id, "header": header, "linked_projects": linked}
+
+
 def merge_projects(
     survivor_id: int,
     merged_id: int,
@@ -1690,3 +1745,4 @@ def register(server: MCPServer) -> None:
         server.add_tool(fn, annotations=WRITE)
     server.add_tool(delete_progress_observation, annotations=DESTRUCTIVE)
     server.add_tool(merge_projects, annotations=DESTRUCTIVE)
+    server.add_tool(delete_project_text, annotations=DESTRUCTIVE)

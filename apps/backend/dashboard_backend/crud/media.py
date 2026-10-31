@@ -90,6 +90,46 @@ def create_from_input(
     return _entry_dict(row, project_name_map(db, [row.project_id, row.suggested_project_id]))
 
 
+def create_entry(db: Session, payload: dict, user: User | None) -> dict:
+    """Store a media report whose fields a reader (an agent over MCP) already
+    extracted — no fetch, no LLM. ``project_id`` is the assignment (validated);
+    a report only feeds the planning state once ``confirmed``.
+    ``observed_date`` defaults to ``published_date`` like the extraction path."""
+
+    project_id = payload.get("project_id")
+    if project_id is not None:
+        ensure_projects_exist(db, [project_id])
+    published_date = payload.get("published_date")
+    row = MediaReport(
+        url=payload.get("url"),
+        publication=payload.get("publication"),
+        published_date=published_date,
+        raw_text=payload.get("raw_text"),
+        quote=payload.get("quote"),
+        asserted_phase=payload.get("asserted_phase"),
+        observed_date=payload.get("observed_date") or published_date,
+        project_id=project_id,
+        confirmed=bool(payload.get("confirmed")) and project_id is not None,
+        created_by_user_id=user.id if user else None,
+        username_snapshot=user.username if user else None,
+    )
+    db.add(row)
+    db.commit()
+    recompute_for(db, [row.project_id] if row.confirmed else [])
+    db.refresh(row)
+    return _entry_dict(row, project_name_map(db, [row.project_id]))
+
+
+def find_by_url(db: Session, url: str, project_id: int | None) -> MediaReport | None:
+    """An existing report of the same article for the same project (or both unassigned)."""
+    query = db.query(MediaReport).filter(MediaReport.url == url)
+    if project_id is None:
+        query = query.filter(MediaReport.project_id.is_(None))
+    else:
+        query = query.filter(MediaReport.project_id == project_id)
+    return query.first()
+
+
 def _entry_dict(row: MediaReport, names: dict[int, str]) -> dict:
     return {
         "id": row.id,

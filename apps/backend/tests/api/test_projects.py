@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from sqlalchemy.exc import IntegrityError
 
 import dashboard_backend.api.v1.endpoints.projects as projects_route
+import dashboard_backend.services.changelog_revert as changelog_revert
 import dashboard_backend.api.deps as api_deps
 from dashboard_backend.schemas.projects import ProjectSchema
 from dashboard_backend.schemas.users import UserRole
@@ -444,7 +445,7 @@ def test_patch_geometry_rejected_when_aggregated_from_subprojects(client, create
     create_user("editor", "pass123", UserRole.editor)
 
     monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
-    monkeypatch.setattr(projects_route, "has_subprojects", lambda db, pid: True)
+    monkeypatch.setattr(changelog_revert, "has_subprojects", lambda db, pid: True)
 
     resp = client.patch(
         "/api/v1/projects/1",
@@ -460,7 +461,7 @@ def test_patch_geometry_allowed_without_subprojects(client, create_user, monkeyp
     updated = _make_project(1, "Alpha")
 
     monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
-    monkeypatch.setattr(projects_route, "has_subprojects", lambda db, pid: False)
+    monkeypatch.setattr(changelog_revert, "has_subprojects", lambda db, pid: False)
     monkeypatch.setattr(projects_route, "create_changelog_for_patch", lambda *a, **kw: None)
     monkeypatch.setattr(projects_route, "update_project", lambda db, pid, data, project=None: updated)
 
@@ -477,7 +478,7 @@ def test_patch_geometry_allowed_when_switching_off_in_the_same_request(client, c
     updated = _make_project(1, "Alpha")
 
     monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
-    monkeypatch.setattr(projects_route, "has_subprojects", lambda db, pid: True)
+    monkeypatch.setattr(changelog_revert, "has_subprojects", lambda db, pid: True)
     monkeypatch.setattr(projects_route, "create_changelog_for_patch", lambda *a, **kw: None)
     monkeypatch.setattr(projects_route, "update_project", lambda db, pid, data, project=None: updated)
 
@@ -497,7 +498,7 @@ def test_patch_mode_toggle_alone_is_not_blocked(client, create_user, monkeypatch
     updated = _make_project(1, "Alpha")
 
     monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
-    monkeypatch.setattr(projects_route, "has_subprojects", lambda db, pid: True)
+    monkeypatch.setattr(changelog_revert, "has_subprojects", lambda db, pid: True)
     monkeypatch.setattr(projects_route, "create_changelog_for_patch", lambda *a, **kw: None)
     monkeypatch.setattr(projects_route, "update_project", lambda db, pid, data, project=None: updated)
 
@@ -577,7 +578,7 @@ def test_revert_requires_editor(client, create_user, monkeypatch):
 def test_revert_entry_not_found(client, create_user, monkeypatch):
     create_user("editor", "pass123", UserRole.editor)
     monkeypatch.setattr(api_deps, "get_project_by_id", lambda db, pid: _make_project(pid))
-    monkeypatch.setattr(projects_route, "get_changelog_entry", lambda db, eid, pid: None)
+    monkeypatch.setattr(changelog_revert, "get_changelog_entry", lambda db, eid, pid: None)
 
     resp = client.post(
         "/api/v1/projects/1/changelog/revert",

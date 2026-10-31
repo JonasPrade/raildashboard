@@ -573,6 +573,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Presets: \"Nur lesen\" (default) or \"Wie mein Nutzer\" (adds write tools); every key expires after 90 days",
             "Read tools: project groups, projects (search/filter by text, group, phase), project detail incl. BVWP, planning state, FinVes with budgets, texts, tasks",
             "Write tools: create (sub)projects, compute the length from the geometry, update project fields and group assignment, add/remove projects of a FinVe (update_finve_projects), add/delete planning-state observations, set/clear the phase override, create/update texts and tasks — all in the changelog",
+            "Since 2026-10-31 also: read constituencies and members of parliament (whom a project concerns, which projects a member has), read the changelog and revert a single field like the revert button, record press reports read by the assistant (skill medien-import), maintain project groups, track documents and Sammel-FinVe phases, list set-back conflicts and archived projects, delete a project text",
             "Keys also work against the REST API (Authorization: Bearer …), narrowed to their scopes without the admin bypass",
             "Details: docs/features/feature-mcp-server.md"
         ]

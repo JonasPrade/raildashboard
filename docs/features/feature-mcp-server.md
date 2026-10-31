@@ -98,10 +98,12 @@ konfigurierbaren Headern (Claude Code) funktionieren schon vorher.
 **Out of scope:**
 
 - OAuth / Authentik-Anbindung (eigenes Thema, siehe oben).
-- MCP-Tools für die übrigen Importe (Haushalt, Bauportal, Medien) — erlaubt
-  (siehe oben), aber noch nicht gebaut.
+- MCP-Tools für die übrigen Importe (Bauportal, siehe #293) — erlaubt
+  (siehe oben), aber noch nicht gebaut. Medien seit 2026-10-31 (siehe
+  [Ausbau 2026-10-31](#ausbau-2026-10-31-lückenanalyse)).
 - Löschen von Projekten oder anderen Stammdaten über MCP (einzelne Geometrie-Features
-  schon, siehe `edit_project_geometry`).
+  schon, siehe `edit_project_geometry`; Projekttexte und Medienberichte seit
+  2026-10-31 — Inhalte mit Änderungsprotokoll bzw. Importeinträge, keine Stammdaten).
 - MCP-*Resources* und *Prompts* — die erste Ausbaustufe bietet nur *Tools*.
 - Pro-Key-Ratelimits (nur `last_used_at`-Tracking, siehe Sicherheit).
 
@@ -212,7 +214,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | Tool | Wirkung | benötigte Capability |
 |---|---|---|
 | `list_project_groups` | Projektgruppen mit Projektanzahl, optional per Freitext | — (eingeloggt) |
-| `list_projects` | Projekte suchen/filtern (Text in Name, Nummer, Beschreibung und Aliasen; Projektgruppe(n), Phase, Planungsstand bekannt, Geometrie, Länge, Lebenszyklus, Parl. Befassung, geändert seit, Termin offen), sortieren; je Eintrag Bau- und IB-Termin als `{date, precision, text}`, filterbar über `construction_start`/`commissioning` (eine Untergrenze trifft nie einen Zeitraum); `with_description` liefert je Eintrag den ersten Satz der Beschreibung und die Aliase | — (eingeloggt) |
+| `list_projects` | Projekte suchen/filtern (archivierte mit `archived` only/include, dann mit `is_archived` und `replaced_by_project_id`; Text in Name, Nummer, Beschreibung und Aliasen; Projektgruppe(n), Phase, Planungsstand bekannt, Geometrie, Länge, Lebenszyklus, Parl. Befassung, geändert seit, Termin offen), sortieren; je Eintrag Bau- und IB-Termin als `{date, precision, text}`, filterbar über `construction_start`/`commissioning` (eine Untergrenze trifft nie einen Zeitraum); `with_description` liefert je Eintrag den ersten Satz der Beschreibung und die Aliase | — (eingeloggt) |
 | `list_project_filters` | Katalog der Filter von `list_projects`: Felder, Typen, Operatoren, Enum-Werte | — |
 | `get_project` | Projektdetail inkl. BVWP-Daten und Unterprojekten | — |
 | `get_project_progress` | Planungsstand inkl. Beobachtungen und Prognose; `forecast.ibn_doubt`, wenn die GVFG-Finanzreihe nach dem IBN-Jahr noch Mittel vorsieht | — |
@@ -231,7 +233,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `get_project_infraplan` | Infraplan-Einträge eines Projekts über alle Jahrgänge, Gesamtkostenprognose, „nicht mehr im Infraplan“ | — |
 | `list_infraplan_drafts` · `get_infraplan_draft` (auch `compact`) · `get_infraplan_page_text` · `suggest_infraplan_kpi_values` · `get_infraplan_page_image` · `list_infraplan_kpis` · `get_infraplan_kpi_values` | Infraplan-Import lesen: Entwürfe mit Warnungen, Zeilen mit Vorschlägen (kompakt über alle Abschnitte), Seitentext mit Positionen, Kennzahl-Vorschläge aus dem Text, Seitenbild (Bild-Content), Kennzahlen (siehe `feature-infraplan-import.md` → „MCP & Skill“, „Ausbau für den Import 2027“) | `infraplan.import` |
 | `start_infraplan_parse` · `apply_infraplan_suggestions` · `assign_infraplan_row(s)` · `create_infraplan_subproject(s)` · `confirm_infraplan_import` · `set_infraplan_kpi_values` | Infraplan-Import führen: neu auslesen, Vorschläge übernehmen, begründet zuordnen (`AGENT`, einzeln oder gesammelt mit Ergebnis je Zeile), Teilprojekt oder eigenständiges Entwurfsprojekt anlegen (auch nach der Bestätigung), bestätigen (nie bei Parser-Warnungen), Kennzahlen ungeprüft schreiben | `infraplan.import` |
-| `get_project_texts` | Projekttexte nach Typ, mit Kategorie und Sichtbarkeit | — |
+| `get_project_texts` | Projekttexte nach Typ, mit Kategorie, Sichtbarkeit und Anhängen (Metadaten; Inhalt nur in der Oberfläche) | — |
 | `list_text_types` | Texttypen (für `text_type_id`) | — |
 | `list_text_categories` | Textkategorien mit Stil (für `category_id`) | — |
 | `list_todos` | Aufgaben, gefiltert (u. a. `tag`, Textsuche `search`), seitenweise mit `limit`/`offset` | — |
@@ -259,6 +261,19 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `list_data_gaps` | Projekte mit fehlenden/veralteten Daten, Lücken je Projekt und Zählung (siehe *Datenpflege*) | — |
 | `check_geometry` | Geometrie-Plausibilität für ein Projekt oder eine Gruppe (siehe *Datenpflege*) | — |
 | `check_project_data` | Prüfliste Stammdaten: doppelte Projektnummern, namensgleiche Teilprojekte, GVFG-Ländercode ≠ Land, Teilmaßnahmen ohne Namen (siehe `feature-infraplan-import.md` → „Datenqualität“) | — |
+| `get_project_changelog` · `get_project_text_changelog` | Änderungsprotokoll eines Projekts bzw. seiner Texte, neueste zuerst, Filter Feld/Text/seit, seitenweise; Geometriewerte nur als Größe, lange Werte gekürzt; je Änderung `entry_id` | — |
+| `revert_project_change` | ein Feld auf den protokollierten alten Wert zurücksetzen — wie der Knopf in der Oberfläche (`services/changelog_revert.py`, gemeinsam mit `POST /projects/{id}/changelog/revert`), schreibt REVERT | `project.edit`, für FinVe-/Sammel-FinVe-Felder zusätzlich `finve.edit` |
+| `get_todo` | eine Aufgabe, mit `history=true` samt Verlauf | — |
+| `delete_project_text` | Projekttext samt Anhängen löschen (verschwindet aus allen verknüpften Projekten, `linked_projects` nennt sie); Löschung im Text-Änderungsprotokoll mit altem Inhalt | `projecttext.edit` |
+| `update_project_group` | Einstellungen einer Projektgruppe ändern (Name, Kurzname, Beschreibung, Farbe, Sichtbarkeit, übersprungene Phasen, angenommene Bauzeit); Löschen nur in der Oberfläche | `projectgroup.edit` |
+| `get_project_group_timeline` | Zeitleiste einer Gruppe (datierte Meilensteine je Projekt, wie `GET /project_groups/{id}/timeline`) | — |
+| `list_project_documents` · `set_track_document` | Dokumente eines Projekts mit ihren Strängen; Dokument an PF/PARL hängen oder lösen (Änderungsprotokoll) | — / `progress.edit` |
+| `recompute_project_progress` | Planungsstand eines Projekts sofort neu berechnen | `progress.edit` |
+| `list_progress_conflicts` | Rücksprung-Konflikte über alle Projekte (wie Admin → Konflikte), seitenweise | `progress.edit` |
+| `list_sammel_finve_phases` · `set_sammel_finve_phase` | Sammel-FinVes mit erkannter, manueller und wirksamer Phase; Phase setzen/lösen, verknüpfte Projekte werden neu berechnet | — / `progress.edit` |
+| `list_media_reports` · `add_media_report` · `update_media_report` · `delete_media_report` | Medienberichte lesen und schreiben, die der Agent selbst gelesen hat (kein Abruf, keine Extraktion auf dem Server); erst bestätigt mit Projekt und Phase entsteht die MEDIEN-Beobachtung (Trust 0.4); gleiche URL am selben Projekt abgelehnt; Skill `medien-import` | `progress.edit` |
+| `list_politicians` · `get_politician` · `list_constituencies` · `get_constituency` · `get_project_constituencies` | Wahlkreise und Abgeordnete lesen (beide Arbeitsrichtungen aus `feature-abgeordnete.md`), je Antwort `data_status` (letzter Abruf, veraltet); kein Import über MCP | — |
+| `get_system_status` | Routing (GraphHopper) und Celery-Worker erreichbar? Ohne Zugangsdaten | `settings.manage` |
 | `list_skills` | Skills für die Arbeit über den MCP (Name, Beschreibung), siehe *Skills über MCP* | — |
 | `get_skill` | Anleitung eines Skills (Text der `SKILL.md`, optional eine Begleitdatei) | — |
 | `create_todo` | Aufgabe anlegen, optional mit `tags` | `todo.create` |
@@ -547,6 +562,39 @@ ist ein möglicher Folgeschritt.
 **Stufe B und C** (Gruppen-Zusammenfassung, erwartete Meilensteine, Ortssuche,
 Volltextsuche, Änderungs- und Beobachtungsverlauf, Sammel-Längenberechnung) sind noch nicht
 umgesetzt; was davon kommt, wird in eigenen Issues entschieden.
+
+## Ausbau 2026-10-31 (Lückenanalyse)
+
+Eine Lückenanalyse REST ↔ MCP (2026-10-31) hat die fachlichen Funktionen gefunden, die
+nur in der Oberfläche gingen. Umgesetzt wurde, was ein Agent sinnvoll braucht (Issues
+#333–#336); Bauportal läuft getrennt in #293. Tools in der Katalogtabelle oben.
+
+| Bereich | Tools | Issue |
+|---|---|---|
+| Wahlkreise und Abgeordnete (lesend) | `list_politicians`, `get_politician`, `list_constituencies`, `get_constituency`, `get_project_constituencies` | #333 |
+| Änderungsprotokoll | `get_project_changelog`, `get_project_text_changelog`, `revert_project_change`, `get_todo` | #334 |
+| Medien/Presse | `list_media_reports`, `add_media_report`, `update_media_report`, `delete_media_report`, Skill `medien-import` | #335 |
+| Ergänzungen | `list_projects(archived)`, `delete_project_text`, Anhänge in `get_project_texts`, `update_project_group`, `get_project_group_timeline`, `list_project_documents`, `set_track_document`, `recompute_project_progress`, `list_progress_conflicts`, `list_sammel_finve_phases`, `set_sammel_finve_phase`, `get_system_status` | #336 |
+
+**Entscheidungen (mit dem Nutzer, 2026-10-31):**
+
+- **Zurücksetzen über MCP** ist erlaubt — mit denselben Regeln wie der Knopf in der
+  Oberfläche. Die Logik liegt in `services/changelog_revert.py` und wird von REST und
+  MCP geteilt; das Zurücksetzen selbst steht wieder im Protokoll.
+- **Projekttexte und Medienberichte löschen** ist über MCP erlaubt (Ausnahme zu „kein
+  Löschen von Stammdaten“): Texte stehen mit ihrem alten Inhalt im Text-Protokoll,
+  Medienberichte sind Importeinträge wie Fulda- oder VIB-Einträge.
+- **Medien nach dem Fulda-Muster:** Der Agent liest den Artikel selbst; Abruf und
+  Sprachmodell-Extraktion auf dem Server bleiben dem Frontend-Weg. Bestätigen darf der
+  Agent wie bei Fulda — der Skill verlangt, dass jede bestätigte Aussage mit Zitat
+  belegt ist.
+- **Bewusst nicht über MCP:** Nutzer, Rollen, Rechte, API-Keys, Einstellungen (kein
+  Weg zur Rechte-Ausweitung), Löschen von Projekten, Gruppen und Jahrgängen, PDF-Uploads
+  (Haushalt, GVFG), Freigaben von Infraplan-Kennzahlen, Zustandsbericht und
+  Haushalt-Abschluss (Mensch-im-Loop), Abgeordneten-Import und Neuverschneidung,
+  Anleitungstexte, Texttypen/-kategorien und KPI-Definitionen anlegen.
+- `set_sammel_finve_phase` berechnet die verknüpften Projekte sofort neu; der
+  REST-Endpunkt `PATCH /finves/{id}/progress-phase` tut das (noch) nicht.
 
 ## Skills über MCP (2026-10-17)
 
