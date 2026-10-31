@@ -87,6 +87,47 @@ def create_condition_report(
         return _jsonable(crud.report_out(db, report))
 
 
+def update_condition_report(
+    year: int,
+    title: str | None = None,
+    source_url: str | None = None,
+    published_on: date | None = None,
+    price_basis: str | None = None,
+    note: str | None = None,
+    *,
+    ctx: Context,
+) -> dict[str, Any]:
+    """Correct the metadata of an existing year (requires ``condition.import``)
+    — e.g. the price basis of the annex tables when the year was created
+    without it. Only the fields you pass change; the year itself cannot. A
+    released year is refused — a person corrects it in the admin view."""
+    require(get_principal(ctx), PERMISSION)
+    changes = {
+        field: value
+        for field, value in (
+            ("title", title),
+            ("source_url", source_url),
+            ("published_on", published_on),
+            ("price_basis", price_basis),
+            ("note", note),
+        )
+        if value is not None
+    }
+    if not changes:
+        raise ToolError("Keine Änderung übergeben.")
+    with tool_session(ctx) as db:
+        report = _report(db, year)
+        if report.status == "FREIGEGEBEN":
+            raise ToolError(
+                f"Der Zustandsbericht {year} ist freigegeben — Korrekturen macht ein Mensch in der Admin-Ansicht."
+            )
+        try:
+            report = crud.update_report(db, report, changes)
+        except crud.ConditionError as exc:
+            raise _error(exc) from exc
+        return _jsonable(crud.report_out(db, report))
+
+
 def get_condition_page_text(year: int, page: int, *, ctx: Context) -> dict[str, Any]:
     """Text of one PDF page with its layout (requires ``condition.import``):
     one line per text line, ``"<top>: word@x word@x …"`` (points from the top,
@@ -254,5 +295,10 @@ def register(server: MCPServer) -> None:
         check_condition_report,
     ):
         server.add_tool(fn, annotations=READ_ONLY)
-    for fn in (create_condition_report, create_condition_class, set_condition_values):
+    for fn in (
+        create_condition_report,
+        update_condition_report,
+        create_condition_class,
+        set_condition_values,
+    ):
         server.add_tool(fn, annotations=WRITE)

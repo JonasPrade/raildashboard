@@ -243,13 +243,16 @@ export default function MapPage() {
         setListLimit(LIST_PAGE_SIZE);
     }
 
-    // Auto-select first group when on list tab and no valid group is selected
+    // Auto-select a group on the list/timeline tab when no valid group is
+    // selected: the first group marked as default selection (as on the map),
+    // otherwise the first group.
     useEffect(() => {
         if (view !== "list" && view !== "timeline") return;
         if (groups.length === 0) return;
         if (selectedGroupId !== null && groups.some((g) => g.id === selectedGroupId)) return;
+        const fallback = groups.find((g) => g.is_default_selected) ?? groups[0]!;
         setSearchParams((prev) => {
-            prev.set("group", String(groups[0]!.id));
+            prev.set("group", String(fallback.id));
             return prev;
         }, { replace: true });
     }, [view, groups, selectedGroupId, setSearchParams]);

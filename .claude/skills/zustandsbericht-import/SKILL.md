@@ -21,8 +21,10 @@ ist, bleibt leer und kommt in deinen Bericht.
 
 1. `list_condition_reports` — gibt es den Jahrgang schon? Ist er `FREIGEGEBEN`, nichts
    schreiben; Korrekturen macht ein Mensch in der Admin-Ansicht.
-2. Sonst `create_condition_report(year, title, source_url, price_basis)` — `price_basis`
-   steht in den Fußnoten des Anhangs („Preisstand 2024“).
+2. Fehlt er, `create_condition_report(year, title, source_url, price_basis)` — `price_basis`
+   steht in den Fußnoten des Anhangs („Preisstand 2024“). Gibt es den Jahrgang schon
+   (Entwurf), aber `price_basis`, `title`, `source_url` oder `published_on` fehlen oder
+   stimmen nicht: `update_condition_report(year, …)` mit nur den zu ändernden Feldern.
 3. Ohne gespeichertes PDF (`has_pdf` false) gehen `get_condition_page_text`/`_image`
    nicht: den Nutzer bitten, das PDF unter Admin → Zustandsbericht hochzuladen, oder das
    PDF lesen, das er dir selbst gibt.

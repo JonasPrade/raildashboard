@@ -1,10 +1,11 @@
-import { Anchor, Group, Stack, Text } from "@mantine/core";
-import { Check, ExternalLink } from "lucide-react";
+import { Group, Stack, Text } from "@mantine/core";
+import { Check } from "lucide-react";
 
 import { PARALLEL_STATE_LABEL, type ParallelState } from "./phaseMeta";
 import { formatDate } from "../../../../shared/format";
 import { LANE_STATE_COLOR } from "../../../../shared/theme/semanticColors";
 import { SwatchTag } from "../../../../shared/ui/SwatchTag";
+import { ExternalLinkButton } from "../../../../shared/ui/ExternalLinkButton";
 
 type Link = { url: string; comment?: string | null };
 
@@ -55,14 +56,9 @@ function Lane({
             </Group>
 
             {(validLinks.length > 0 || text) && (
-                <Stack gap={2} pl={8}>
+                <Stack gap={6} pl={8}>
                     {validLinks.map((l, i) => (
-                        <Anchor key={i} href={l.url} target="_blank" rel="noreferrer" size="sm">
-                            <Group gap={4} wrap="nowrap" component="span">
-                                <ExternalLink size={16} />
-                                {l.comment?.trim() || l.url}
-                            </Group>
-                        </Anchor>
+                        <ExternalLinkButton key={i} url={l.url} label={l.comment?.trim() || undefined} />
                     ))}
                     {text && (
                         <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>
