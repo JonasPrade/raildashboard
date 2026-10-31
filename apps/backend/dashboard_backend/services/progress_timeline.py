@@ -37,8 +37,10 @@ from dashboard_backend.services.progress_derivation import (
 )
 from dashboard_backend.services.date_precision import as_precision
 from dashboard_backend.services.progress_forecast import (
+    CommissioningParts,
     ExpectedDate,
     ManualExpected,
+    PendingPart,
     PfaForecastInput,
     as_expected,
     concrete_milestone_dates,
@@ -47,6 +49,9 @@ from dashboard_backend.services.progress_forecast import (
 KIND_PHASE = "PHASE"
 KIND_PFB = "PFB"
 KIND_PARL = "PARL"
+# Latest past commissioning of a part while other parts are still open
+# (feature-project-timeline.md → „Oberprojekte schließen alle Teilabschnitte ein“).
+KIND_PART_IBN = "PART_IBN"
 
 CERTAINTY_CONCRETE = "CONCRETE"
 CERTAINTY_EVIDENCE = "EVIDENCE"
@@ -105,6 +110,8 @@ class TimelineResult:
     # Disjoint construction periods (start, end), only when there are at least
     # two — a single period is the plain BAU segment and needs no extra data.
     construction_periods: list[tuple[date, date]] = field(default_factory=list)
+    # Parts holding the commissioning open (bundle_commissioning).
+    pending_parts: list[PendingPart] = field(default_factory=list)
 
 
 def _reduce_per_phase(items: list[ManualExpected]) -> list[ExpectedDate]:
@@ -231,13 +238,17 @@ def build_timeline(
     parl_dates: list[date] | None = None,
     construction_units: list[ConstructionUnitInput] | None = None,
     assumed_build_months: int | None = None,
+    commissioning_parts: CommissioningParts | None = None,
 ) -> TimelineResult:
     """Assemble the dated milestones of one timeline row.
 
     ``observations`` are the non-expected observations used for evidence;
     ``pf_dates`` / ``parl_dates`` are editorial dates (several when a superior
     pools its subtree — the earliest wins). ``construction_units`` are the
-    per-member inputs of a pooled row (see :func:`construction_periods`).
+    per-member inputs of a pooled row (see :func:`construction_periods`);
+    they read the members' own dates *before* the commissioning is bundled
+    over open parts (``commissioning_parts``), so a lower bound from open
+    parts never cancels a gap between construction stages.
     """
 
     pfas = pfas or []
@@ -250,7 +261,10 @@ def build_timeline(
         today=today,
         pfb_as_genehmigung=False,
         assumed_build_months=assumed_build_months,
+        commissioning_parts=commissioning_parts,
     )
+    commissioning = concrete.get(MainPhase.IN_BETRIEB)
+    pending = list(commissioning.pending) if commissioning is not None else []
 
     milestones: list[TimelineMilestone] = [
         TimelineMilestone(
@@ -266,6 +280,20 @@ def build_timeline(
         for phase, c in concrete.items()
         if phase in _TIMELINE_PHASES
     ]
+
+    partial = commissioning.partial if commissioning is not None else None
+    if partial is not None:
+        milestones.append(
+            TimelineMilestone(
+                kind=KIND_PART_IBN,
+                date=partial.date,
+                source=partial.source,
+                certainty=CERTAINTY_CONCRETE,
+                precision=partial.precision,
+                label=partial.label,
+                derivation=partial.derivation,
+            )
+        )
 
     # Evidence fills phases without a concrete date, unless a higher phase is
     # dated earlier (the observation date then can't be the phase's start).
@@ -328,4 +356,5 @@ def build_timeline(
             if construction_units and len(construction_units) >= 2
             else []
         ),
+        pending_parts=pending,
     )

@@ -589,6 +589,7 @@ export type ProjectGroupTimeline = components["schemas"]["ProjectGroupTimelineSc
 export type ProjectTimeline = components["schemas"]["ProjectTimelineSchema"];
 export type TimelineMilestone = components["schemas"]["TimelineMilestoneSchema"];
 export type TimelinePeriod = components["schemas"]["TimelinePeriodSchema"];
+export type TimelinePendingPart = components["schemas"]["TimelinePendingPartSchema"];
 
 /**
  * Timeline over several groups: one request (and cache entry) per group, the

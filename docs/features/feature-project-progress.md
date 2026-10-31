@@ -716,6 +716,15 @@ Das gespeicherte Datum ist nur noch der Sortierwert.
   - Mehrere Gruppen mit Wert → der längste.
 - **BVWP-Schätzungen** sind `ASSUMED` und bekommen eine Herleitung („Schätzung: …“).
   Auf einem Untergrenzen-Baubeginn bleiben sie `NOT_BEFORE`.
+- **Oberprojekte und offene Abschnitte (#344, EKS-2026-009):** Die Inbetriebnahme schließt
+  alle Teilabschnitte ein. Ein Blatt des Teilbaums ohne eigene Inbetriebnahme, das nicht in
+  Betrieb ist (auch mit unbekanntem Stand, nicht abgebrochen), oder ein offener PFA-Abschnitt
+  der neuesten Tabelle ohne Inbetriebnahme hält den Termin offen: `NOT_BEFORE` ab dem späteren
+  von „späteste bekannte Inbetriebnahme“ und heute. Ein manueller Termin gewinnt immer; ein
+  Fulda-, Infraplan- oder GVFG-Termin am Projekt selbst gilt als Gesamttermin, nie früher als
+  die späteste Teil-Inbetriebnahme. VIB-PFA-Termine sind Abschnittstermine. Dieselbe Funktion
+  (`bundle_commissioning`) speist Prognose, Zeitstrahl und Listen-Cache. Regel und Technik:
+  `feature-project-timeline.md` → „Oberprojekte schließen alle Teilabschnitte ein“.
 - **Restdauer:** Bei einer Untergrenze wird keine Restdauer behauptet; es steht „Ende der
   aktuellen Phase offen (nach 2031)“.
 - `next_steps[]` trägt `date_precision`, `date_label`, `date_text` und `derivation`.
@@ -725,7 +734,7 @@ Das gespeicherte Datum ist nur noch der Sortierwert.
 
 ### Listen und Filter
 
-- `project_progress` speichert Baubeginn und Inbetriebnahme der eigenen Prognose als Cache:
+- `project_progress` speichert Baubeginn und Inbetriebnahme der eigenen Prognose als Cache (bei Oberprojekten die gebündelte Inbetriebnahme über den Teilbaum; eine Neuberechnung eines Teilprojekts rechnet die Caches der Vorfahren mit, #344):
   `construction_start_date/_precision` und `commissioning_date/_precision`, nur konkrete
   Termine und Annahmen, nie BVWP-Schätzungen.
   - Aktualisiert wird er bei jedem Lesen des Planungsstands (`get_progress_view`) und bei

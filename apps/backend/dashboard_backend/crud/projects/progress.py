@@ -957,16 +957,15 @@ def _build_forecast_for_project(
     With ``progress`` the concrete Baubeginn / Inbetriebnahme land in its list
     cache (:func:`_store_date_cache`)."""
 
-    # PFA milestone dates from linked VIB entries.
-    pfa_rows = (
-        db.query(VibPfaEntry, VibReport)
-        .join(VibEntry, VibEntry.id == VibPfaEntry.vib_entry_id)
-        .outerjoin(VibReport, VibReport.id == VibEntry.vib_report_id)
-        .join(vib_entry_project, vib_entry_project.c.vib_entry_id == VibEntry.id)
-        .filter(vib_entry_project.c.project_id == project_id, VibEntry.confirmed.is_(True))
-        .all()
-    )
-    pfas = [pfa_forecast_input(p, report) for p, report in pfa_rows]
+    # Dated inputs pooled over the project and its subtree (PFA dates via the
+    # VIB link and direct assignment, expected Fulda/Infraplan/GVFG/manual
+    # dates) plus the parts keeping the commissioning open — the same reading
+    # as the timeline (crud/projects/subtree_dates.py, #344).
+    from dashboard_backend.crud.projects.subtree_dates import load_subtree_dates
+
+    subtree = load_subtree_dates(db, [project_id], today)[project_id]
+    pfas = subtree.pfas
+    split = subtree.split
 
     bvwp_row = (
         db.query(BvwpProjectData)
@@ -981,21 +980,6 @@ def _build_forecast_for_project(
             operating=bvwp_row.bvwp_duration_operating,
         )
 
-    # Expected MAIN observations with a date: Fulda-Runde prognoses and Infraplan
-    # commissioning years (derived) compete with VIB-PFA by weight; manual ones
-    # are editorial and always win.
-    expected_obs = (
-        db.query(ProgressObservation)
-        .filter(
-            ProgressObservation.project_id == project_id,
-            ProgressObservation.is_expected.is_(True),
-            ProgressObservation.track == ObservationTrack.MAIN.value,
-            ProgressObservation.observed_date.isnot(None),
-        )
-        .all()
-    )
-    split = split_expected(expected_obs, expected_report_dates(db, expected_obs))
-
     result = build_forecast(
         effective_phase=effective_phase,
         today=today,
@@ -1007,6 +991,7 @@ def _build_forecast_for_project(
         manual_expected=split.manual,
         skipped_phases=skipped_phases or set(),
         assumed_build_months=assumed_build_months,
+        commissioning_parts=subtree.commissioning_parts,
     )
     if progress is not None:
         _store_date_cache(progress, result.concrete)
@@ -1028,7 +1013,7 @@ def _build_forecast_for_project(
             for step in result.next_steps
         ],
         "has_data": result.has_data,
-        "ibn_doubt": _gvfg_ibn_doubt(db, project_id, effective_phase, split.infraplan),
+        "ibn_doubt": _gvfg_ibn_doubt(db, project_id, effective_phase, subtree.own_split.infraplan),
     }
 
 
@@ -1059,6 +1044,25 @@ def refresh_date_cache(db: Session, project: Project, today: date | None = None)
         assumed_build_months=resolve_assumed_build_months(project),
         progress=progress,
     )
+
+
+def refresh_ancestor_date_caches(db: Session, project: Project, today: date | None = None) -> None:
+    """Recompute the cached dates of every ancestor of ``project`` (no commit).
+
+    A parent's commissioning bundles its subtree (#344), so a change on a
+    subproject must reach the parent's list cache, sort and filters at once.
+    """
+
+    today = today or date.today()
+    seen: set[int] = {project.id}
+    parent_id = project.superior_project_id
+    while parent_id is not None and parent_id not in seen:
+        seen.add(parent_id)
+        parent = db.query(Project).filter(Project.id == parent_id).first()
+        if parent is None or parent.is_archived:
+            break
+        refresh_date_cache(db, parent, today)
+        parent_id = parent.superior_project_id
 
 
 def _gvfg_ibn_doubt(
@@ -1386,6 +1390,16 @@ def get_progress_view(db: Session, project_id: int, today: date | None = None) -
         return None
 
     progress = get_or_create_progress(db, project_id)
+
+    def cache_state() -> tuple:
+        return (
+            progress.computed_phase,
+            progress.computed_confidence,
+            progress.commissioning_date,
+            progress.commissioning_precision,
+        )
+
+    cached_before = cache_state()
     result = _ensure_fresh(db, project, progress, today)
     db.commit()
 
@@ -1447,6 +1461,9 @@ def get_progress_view(db: Session, project_id: int, today: date | None = None) -
         assumed_build_months=resolve_assumed_build_months(project),
         progress=progress,
     )
+    if project.superior_project_id is not None and cache_state() != cached_before:
+        # The parent bundles this project's dates (#344).
+        refresh_ancestor_date_caches(db, project, today)
     db.commit()
     in_use = {effective_phase}
     for value in (
@@ -1802,6 +1819,7 @@ def recompute_progress(db: Session, project_id: int, today: date | None = None) 
     progress = get_or_create_progress(db, project_id)
     _ensure_fresh(db, project, progress, today, force=True)
     refresh_date_cache(db, project, today)
+    refresh_ancestor_date_caches(db, project, today)
     db.commit()
     return True
 
@@ -1860,6 +1878,29 @@ def recompute_all_progress(
         db.commit()
         if on_batch is not None:
             on_batch(min(start + batch_size, len(ids)), len(ids))
+    # Parents bundle their subtree's dates (#344): refresh them once every
+    # subproject is recomputed, deepest first so each level reads fresh children.
+    parent_ids = {
+        pid
+        for (pid,) in db.query(Project.superior_project_id).filter(
+            Project.superior_project_id.isnot(None), Project.is_archived.is_(False)
+        )
+    }
+    if parent_ids:
+        parents = db.query(Project).filter(Project.id.in_(parent_ids)).all()
+        by_id = {p.id: p for p in parents}
+
+        def depth(project: Project) -> int:
+            level, seen, current = 0, set(), project.superior_project_id
+            while current in by_id and current not in seen:
+                seen.add(current)
+                level += 1
+                current = by_id[current].superior_project_id
+            return level
+
+        for parent in sorted(parents, key=depth, reverse=True):
+            refresh_date_cache(db, parent, today)
+        db.commit()
     return {
         "projects": len(ids),
         "known_before": known_before,

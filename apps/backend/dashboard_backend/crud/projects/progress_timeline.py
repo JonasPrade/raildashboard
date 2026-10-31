@@ -1,7 +1,8 @@
 """DB access for the multi-project timeline ("Zeitstrahl") of a project group.
 
 All inputs are loaded with a constant number of bulk queries over the group's
-projects and their subtrees; the per-row assembly is the pure
+projects and their subtrees (:func:`crud.projects.subtree_dates.load_subtree_dates`,
+shared with the forecast); the per-row assembly is the pure
 :func:`services.progress_timeline.build_timeline`. Stored observations are read
 as they are — no lazy resync per project (that would cost ~10 queries each);
 the detail page's GET keeps them fresh.
@@ -13,64 +14,13 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
-from dashboard_backend.crud.projects.progress import (
-    _to_inputs,
-    expected_report_dates,
-    pfa_forecast_input,
-    split_expected,
-)
-from dashboard_backend.models.projects.progress_enums import (
-    LifecycleStatus,
-    ObservationTrack,
-)
-from dashboard_backend.models.projects.progress_observation import ProgressObservation
+from dashboard_backend.crud.projects.subtree_dates import load_subtree_dates
+from dashboard_backend.models.projects.progress_enums import LifecycleStatus
 from dashboard_backend.models.projects.project import Project
-from dashboard_backend.models.associations.project_to_project_group import ProjectToProjectGroup
 from dashboard_backend.models.projects.project_group import ProjectGroup
 from dashboard_backend.models.projects.project_progress import ProjectProgress
-from dashboard_backend.models.vib.vib_entry import VibEntry, vib_entry_project
-from dashboard_backend.models.vib.vib_pfa_entry import VibPfaEntry
-from dashboard_backend.models.vib.vib_report import VibReport
 from dashboard_backend.services.date_precision import date_text
-from dashboard_backend.services.progress_forecast import PfaForecastInput
-from dashboard_backend.services.progress_timeline import ConstructionUnitInput, build_timeline
-
-
-def _subtrees(db: Session, root_ids: list[int]) -> dict[int, set[int]]:
-    """``{root_id: {root_id, *descendant_ids}}`` with one query per depth level."""
-
-    children_by_parent: dict[int, list[int]] = {}
-    frontier = list(root_ids)
-    seen = set(root_ids)
-    while frontier:
-        rows = (
-            db.query(Project.id, Project.superior_project_id)
-            .filter(
-                Project.superior_project_id.in_(frontier),
-                Project.is_draft.is_(False),
-                Project.is_archived.is_(False),
-            )
-            .all()
-        )
-        frontier = []
-        for child_id, parent_id in rows:
-            if child_id in seen:
-                continue  # defensive: never loop on a broken hierarchy
-            seen.add(child_id)
-            children_by_parent.setdefault(parent_id, []).append(child_id)
-            frontier.append(child_id)
-
-    result: dict[int, set[int]] = {}
-    for root in root_ids:
-        members = {root}
-        stack = [root]
-        while stack:
-            for child in children_by_parent.get(stack.pop(), []):
-                if child not in members:
-                    members.add(child)
-                    stack.append(child)
-        result[root] = members
-    return result
+from dashboard_backend.services.progress_timeline import build_timeline
 
 
 def get_group_timeline(
@@ -94,144 +44,44 @@ def get_group_timeline(
     projects = query.order_by(Project.name).all()
 
     root_ids = [p.id for p in projects]
-    subtrees = _subtrees(db, root_ids)
-    all_ids = sorted(set().union(*subtrees.values())) if subtrees else []
-
-    # --- PFA milestone dates: via the VIB entry link and direct assignment ---
-    pfas_by_project: dict[int, dict[int, PfaForecastInput]] = {}
-    # PFA id → subproject it is assigned to (VibPfaEntry.project_id), if any.
-    pfa_owner: dict[int, int | None] = {}
-    if all_ids:
-        linked = (
-            db.query(VibPfaEntry, VibReport, vib_entry_project.c.project_id)
-            .join(VibEntry, VibEntry.id == VibPfaEntry.vib_entry_id)
-            .outerjoin(VibReport, VibReport.id == VibEntry.vib_report_id)
-            .join(vib_entry_project, vib_entry_project.c.vib_entry_id == VibEntry.id)
-            .filter(vib_entry_project.c.project_id.in_(all_ids), VibEntry.confirmed.is_(True))
-            .all()
-        )
-        assigned = (
-            db.query(VibPfaEntry, VibReport, VibPfaEntry.project_id)
-            .join(VibEntry, VibEntry.id == VibPfaEntry.vib_entry_id)
-            .outerjoin(VibReport, VibReport.id == VibEntry.vib_report_id)
-            .filter(VibPfaEntry.project_id.in_(all_ids), VibEntry.confirmed.is_(True))
-            .all()
-        )
-        for pfa, report, project_id in [*linked, *assigned]:
-            pfa_owner[pfa.id] = pfa.project_id
-            pfas_by_project.setdefault(project_id, {})[pfa.id] = pfa_forecast_input(pfa, report)
-
-    # --- MAIN observations, split like the forecast / derivation read them ---
-    expected_by_project: dict[int, list[ProgressObservation]] = {}
-    evidence_by_project: dict[int, list[ProgressObservation]] = {}
-    if all_ids:
-        for obs in (
-            db.query(ProgressObservation)
-            .filter(
-                ProgressObservation.project_id.in_(all_ids),
-                ProgressObservation.track == ObservationTrack.MAIN.value,
+    inputs = load_subtree_dates(db, root_ids, today)
+    lifecycle = (
+        dict(
+            db.query(ProjectProgress.project_id, ProjectProgress.lifecycle_status).filter(
+                ProjectProgress.project_id.in_(root_ids)
             )
-            .all()
-        ):
-            if obs.is_expected:
-                if obs.observed_date is not None:
-                    expected_by_project.setdefault(obs.project_id, []).append(obs)
-            else:
-                evidence_by_project.setdefault(obs.project_id, []).append(obs)
-
-    reported = expected_report_dates(
-        db, [obs for rows in expected_by_project.values() for obs in rows]
+        )
+        if root_ids
+        else {}
     )
-
-    # Assumed build period per project from its groups (longest wins, as in
-    # resolve_assumed_build_months).
-    build_months: dict[int, int] = {}
-    if all_ids:
-        for project_id, months in (
-            db.query(ProjectToProjectGroup.project_id, ProjectGroup.assumed_build_months)
-            .join(ProjectGroup, ProjectGroup.id == ProjectToProjectGroup.project_group_id)
-            .filter(
-                ProjectToProjectGroup.project_id.in_(all_ids),
-                ProjectGroup.assumed_build_months.isnot(None),
-            )
-        ):
-            build_months[project_id] = max(build_months.get(project_id, 0), months)
-
-    progress_by_project: dict[int, ProjectProgress] = {}
-    if all_ids:
-        progress_by_project = {
-            row.project_id: row
-            for row in db.query(ProjectProgress).filter(ProjectProgress.project_id.in_(all_ids))
-        }
 
     items: list[dict] = []
     for project in projects:
-        members = subtrees.get(project.id, {project.id})
-        # A PFA reachable from several members (parent link + subproject
-        # assignment) counts once.
-        pfas: dict[int, PfaForecastInput] = {}
-        expected: list[ProgressObservation] = []
-        evidence: list[ProgressObservation] = []
-        pf_dates: list[date] = []
-        parl_dates: list[date] = []
-        units: list[ConstructionUnitInput] = []
-        for member in members:
-            pfas.update(pfas_by_project.get(member, {}))
-            expected.extend(expected_by_project.get(member, []))
-            evidence.extend(evidence_by_project.get(member, []))
-            progress = progress_by_project.get(member)
-            if progress is not None:
-                if progress.pf_date is not None:
-                    pf_dates.append(progress.pf_date)
-                if progress.parl_befassung_date is not None:
-                    parl_dates.append(progress.parl_befassung_date)
-            # The member's own construction interval: a PFA assigned to another
-            # member of the subtree belongs to that member only (otherwise the
-            # superior's VIB link would add the whole span as one interval).
-            own_pfas = [
-                pfa
-                for pfa_id, pfa in pfas_by_project.get(member, {}).items()
-                if pfa_owner.get(pfa_id) == member or pfa_owner.get(pfa_id) not in members
-            ]
-            unit_split = split_expected(expected_by_project.get(member, []), reported)
-            units.append(
-                ConstructionUnitInput(
-                    pfas=own_pfas,
-                    fulda=unit_split.fulda,
-                    infraplan=unit_split.infraplan,
-                    gvfg=unit_split.gvfg,
-                    manual_expected=unit_split.manual,
-                    assumed_build_months=build_months.get(member),
-                )
-            )
-
-        split = split_expected(expected, reported)
+        data = inputs[project.id]
         result = build_timeline(
             today=today,
-            pfas=list(pfas.values()),
-            fulda=split.fulda,
-            infraplan=split.infraplan,
-            gvfg=split.gvfg,
-            manual_expected=split.manual,
-            observations=_to_inputs(evidence),
-            pf_dates=pf_dates,
-            parl_dates=parl_dates,
-            construction_units=units,
-            assumed_build_months=build_months.get(project.id),
+            pfas=data.pfas,
+            fulda=data.split.fulda,
+            infraplan=data.split.infraplan,
+            gvfg=data.split.gvfg,
+            manual_expected=data.split.manual,
+            observations=data.evidence,
+            pf_dates=data.pf_dates,
+            parl_dates=data.parl_dates,
+            construction_units=data.units,
+            assumed_build_months=data.assumed_build_months,
+            commissioning_parts=data.commissioning_parts,
         )
         if not result.has_credible_dates:
             continue
 
-        own_progress = progress_by_project.get(project.id)
         items.append(
             {
                 "project_id": project.id,
                 "name": project.name,
                 "project_number": project.project_number,
                 "superior_project_id": project.superior_project_id,
-                "lifecycle_status": (
-                    own_progress.lifecycle_status if own_progress else LifecycleStatus.AKTIV.value
-                ),
+                "lifecycle_status": lifecycle.get(project.id) or LifecycleStatus.AKTIV.value,
                 "milestones": [
                     {
                         "kind": m.kind,
@@ -248,6 +98,14 @@ def get_group_timeline(
                 ],
                 "construction_periods": [
                     {"start": start, "end": end} for start, end in result.construction_periods
+                ],
+                "pending_parts": [
+                    {
+                        "project_id": part.project_id,
+                        "name": part.name,
+                        "phase": part.phase.value if part.phase else None,
+                    }
+                    for part in result.pending_parts
                 ],
             }
         )

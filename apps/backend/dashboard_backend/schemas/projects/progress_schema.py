@@ -372,8 +372,9 @@ class ProjectProgressSchema(BaseModel):
 
 
 class TimelineMilestoneSchema(BaseModel):
-    # PHASE = start of ``phase``; PFB = Planfeststellung; PARL = parl. involvement.
-    kind: Literal["PHASE", "PFB", "PARL"]
+    # PHASE = start of ``phase``; PFB = Planfeststellung; PARL = parl. involvement;
+    # PART_IBN = latest past commissioning of a part while other parts are open.
+    kind: Literal["PHASE", "PFB", "PARL", "PART_IBN"]
     phase: Optional[MainPhaseLiteral] = None
     date: date
     source: str  # "VIB-PFA" | "Fulda-Runde" | "Manuell" | source label for evidence
@@ -391,6 +392,14 @@ class TimelinePeriodSchema(BaseModel):
     end: date
 
 
+class TimelinePendingPartSchema(BaseModel):
+    """A part (leaf or PFA section) not in operation that names no commissioning."""
+
+    project_id: Optional[int] = None
+    name: str
+    phase: Optional[MainPhaseLiteral] = None  # None = planning state unknown
+
+
 class ProjectTimelineSchema(BaseModel):
     project_id: int
     name: str
@@ -402,6 +411,8 @@ class ProjectTimelineSchema(BaseModel):
     # construction periods (union of the members' Baubeginn–IB intervals).
     # Empty when construction is one continuous period.
     construction_periods: list[TimelinePeriodSchema] = []
+    # Parts keeping the commissioning open (it is then a lower bound).
+    pending_parts: list[TimelinePendingPartSchema] = []
 
 
 class ProjectGroupTimelineSchema(BaseModel):

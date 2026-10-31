@@ -36,7 +36,14 @@ const buildSegments = (...args: Parameters<typeof buildSegmentsWithTitles>) =>
     });
 
 function row(name: string, milestones: TimelineMilestone[]): ProjectTimeline {
-    return { project_id: name.length, name, lifecycle_status: "AKTIV", milestones, construction_periods: [] };
+    return {
+        project_id: name.length,
+        name,
+        lifecycle_status: "AKTIV",
+        milestones,
+        construction_periods: [],
+        pending_parts: [],
+    };
 }
 
 describe("buildSegments", () => {
@@ -293,5 +300,61 @@ describe("uncertain dates (Datumsqualifikation)", () => {
     it("does not stretch the axis beyond the year of a lower bound", () => {
         const range = computeRange([row("A", [phase("BAU", "2032-01-01", "CONCRETE", "NOT_BEFORE")])], TODAY);
         expect(range.end).toBe(Date.UTC(2033, 0, 1));
+    });
+
+    describe("parent with open parts (#344)", () => {
+        const bau = phase("BAU", "2002-08-10");
+        const open = {
+            ...phase("IN_BETRIEB", "2027-01-01", "CONCRETE", "NOT_BEFORE"),
+            source: "Teilabschnitte",
+            derivation: "Termin offen: 2 Abschnitte ohne Inbetriebnahme – TM1, Julbach",
+        };
+        const partial: TimelineMilestone = {
+            kind: "PART_IBN",
+            phase: null,
+            date: "2017-12-15",
+            source: "VIB-PFA",
+            certainty: "CONCRETE",
+            date_precision: "MONTH",
+        };
+        const pending = [
+            { project_id: 1, name: "TM1", phase: "GENEHMIGUNGSPLANUNG" as const },
+            { project_id: 2, name: "Julbach", phase: null },
+        ];
+
+        it("ends construction at the partial commissioning and leaves the rest open", () => {
+            const segs = buildSegments([bau, open, partial], TODAY, [], RANGE_END, pending);
+            expect(segs).toEqual([
+                { phase: "BAU", start: toTime("2002-08-10"), end: toTime("2017-12-15"), planned: false },
+                {
+                    phase: "BAU",
+                    start: toTime("2017-12-15"),
+                    end: RANGE_END,
+                    planned: true,
+                    open: true,
+                    label: "weitere Abschnitte – Termin offen",
+                },
+            ]);
+        });
+
+        it("names the open parts in the tooltip", () => {
+            const segs = buildSegmentsWithTitles([bau, open, partial], TODAY, [], RANGE_END, pending);
+            expect(segs[1]!.title).toBe(
+                "Inbetriebnahme nach 2026 · Termin offen: 2 Abschnitte ohne Inbetriebnahme – TM1, Julbach · " +
+                    "Ohne Inbetriebnahme: TM1, Julbach",
+            );
+        });
+
+        it("keeps construction running while an open part is being built", () => {
+            const building = [...pending, { project_id: 3, name: "TM3", phase: "BAU" as const }];
+            const segs = buildSegments([bau, open, partial], TODAY, [], RANGE_END, building);
+            expect(segs[0]).toMatchObject({ phase: "BAU", start: toTime("2002-08-10"), end: TODAY });
+            expect(segs.at(-1)).toMatchObject({ open: true, label: "Inbetriebnahme nach 2026 – Termin offen" });
+        });
+
+        it("describes the partial commissioning marker", () => {
+            expect(milestoneLabel(partial)).toBe("Teil-Inbetriebnahme 12/2017 · VIB-PFA · weitere Abschnitte offen");
+            expect(drawnMarkers([open, partial])).toEqual([partial]);
+        });
     });
 });

@@ -166,6 +166,23 @@ def _read_section(pfa: PfaInput, as_of: date | None) -> _Section:
     )
 
 
+def section_lacks_commissioning(pfa: PfaInput, as_of: date | None) -> bool:
+    """A PFA section not in operation by ``as_of`` that names no commissioning.
+
+    Same reading as the derivation (:func:`_read_section`). Such a section keeps
+    the commissioning of its project open (feature-project-timeline.md →
+    „Oberprojekte schließen alle Teilabschnitte ein“).
+    """
+
+    section = _read_section(pfa, as_of)
+    return section.phase is not MainPhase.IN_BETRIEB and section.expected_ibn is None
+
+
+def pfa_label(pfa: PfaInput) -> str:
+    """Display name of a PFA section (number, else section label)."""
+    return _pfa_label(pfa)
+
+
 def _pfa_label(pfa: PfaInput) -> str:
     return pfa.nr_pfa or pfa.abschnitt_label or "PFA"
 

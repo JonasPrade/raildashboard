@@ -770,7 +770,9 @@ def list_projects(
     forecast (``{date, precision, text}`` or null): ``date`` is only the sort
     value — show ``text`` („2028“, „nach 2031“, „ca. 07/2028 (Annahme)“).
     Filter them with ``filters`` on construction_start / commissioning (gte/lte;
-    a NOT_BEFORE date never matches a period).
+    a NOT_BEFORE date never matches a period). A parent's commissioning
+    includes every part: a subproject or PFA section without a date keeps it
+    open („nach 2026“, date_open=true).
     Returns ``total`` plus one page of compact entries; use get_project for details.
     """
     get_principal(ctx)
@@ -920,6 +922,10 @@ def get_project_progress(project_id: int, *, ctx: Context) -> dict[str, Any]:
     ``date_text``, never the bare date. A step's ``derivation`` says how an
     assumed date came about. Fix the precision of a manual observation with
     update_progress_observation.
+    The commissioning of a parent includes every part: a subproject not in
+    operation without a date, or a PFA section of the newest VIB table without
+    commissioning, keeps it a lower bound; its ``derivation`` names the open
+    parts („Termin offen: …“).
     ``forecast.ibn_doubt`` set → the GVFG-Finanzreihe still funds the project
     after the known Inbetriebnahme year; question that year and cite it.
     A derived BAUPORTAL observation carries ``bauportal_status_id`` and
