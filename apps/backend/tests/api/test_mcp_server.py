@@ -236,6 +236,7 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
         "get_project_infraplan",
         "list_condition_reports",
         "create_condition_report",
+        "update_condition_report",
         "get_condition_page_text",
         "get_condition_page_image",
         "list_condition_classes",

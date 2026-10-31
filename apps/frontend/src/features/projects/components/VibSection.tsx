@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
 import {
     Badge,
     Button,
@@ -19,6 +20,7 @@ import { notifications } from "@mantine/notifications";
 import {
     type VibEntryForProject,
     type VibEntrySchema,
+    useProjectOptions,
     useProjectVibEntries,
     useUpdateVibEntry,
 } from "../../../shared/api/queries";
@@ -58,14 +60,34 @@ function toVibEntrySchema(entry: VibEntryForProject): VibEntrySchema {
     };
 }
 
+/** Link button to the (sub)project a PFA section is assigned to. */
+function PfaProjectLink({ projectId, name }: { projectId: number; name: string | undefined }) {
+    const label = name ?? `Projekt ${projectId}`;
+    return (
+        <Button
+            component={Link}
+            to={`/projects/${projectId}`}
+            variant="light"
+            size="compact-xs"
+            rightSection={<ArrowRight size={12} aria-hidden />}
+            title={`Zum Projekt: ${label}`}
+            styles={{ root: { maxWidth: 220 }, label: { overflow: "hidden", textOverflow: "ellipsis" } }}
+        >
+            {label}
+        </Button>
+    );
+}
+
 function VibTabContent({
     entry,
     canEdit,
     onEdit,
+    projectNames,
 }: {
     entry: VibEntryForProject;
     canEdit: boolean;
     onEdit: (entry: VibEntryForProject) => void;
+    projectNames: Map<number, string>;
 }) {
     const [rawExpanded, setRawExpanded] = useState(false);
     const [pfaExpanded, setPfaExpanded] = useState(false);
@@ -231,7 +253,7 @@ function VibTabContent({
                     </Group>
                     <Collapse in={pfaExpanded}>
                         <div style={{ overflow: "auto", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 0 }}>
-                            <ResponsiveTable minWidth={720} withTableBorder withColumnBorders fz="xs" style={{ fontSize: 11 }}>
+                            <ResponsiveTable minWidth={860} withTableBorder withColumnBorders fz="xs" style={{ fontSize: 11 }}>
                                 <Table.Thead>
                                     <Table.Tr>
                                         <Table.Th>Nr.</Table.Th>
@@ -240,6 +262,7 @@ function VibTabContent({
                                         <Table.Th>PFB</Table.Th>
                                         <Table.Th>Baubeginn</Table.Th>
                                         <Table.Th>IBM</Table.Th>
+                                        <Table.Th>Projekt</Table.Th>
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
@@ -254,6 +277,16 @@ function VibTabContent({
                                             <Table.Td>{pfa.datum_pfb ?? "–"}</Table.Td>
                                             <Table.Td>{pfa.baubeginn ?? "–"}</Table.Td>
                                             <Table.Td>{pfa.inbetriebnahme ?? "–"}</Table.Td>
+                                            <Table.Td>
+                                                {pfa.project_id != null ? (
+                                                    <PfaProjectLink
+                                                        projectId={pfa.project_id}
+                                                        name={projectNames.get(pfa.project_id)}
+                                                    />
+                                                ) : (
+                                                    "–"
+                                                )}
+                                            </Table.Td>
                                         </Table.Tr>
                                     ))}
                                 </Table.Tbody>
@@ -292,6 +325,15 @@ export default function VibSection({ projectId }: { projectId: number }) {
     const [editingEntry, setEditingEntry] = useState<VibEntrySchema | null>(null);
 
     const canEdit = can("vib.import");
+
+    // Names for the PFA → project links; the lightweight option list is only
+    // fetched when at least one PFA section is assigned to a project.
+    const hasPfaAssignment = !!entries?.some((e) => e.pfa_entries.some((p) => p.project_id != null));
+    const { data: projectOptions } = useProjectOptions({ enabled: hasPfaAssignment });
+    const projectNames = useMemo(
+        () => new Map((projectOptions ?? []).map((p) => [p.id, p.name])),
+        [projectOptions],
+    );
 
     if (isLoading) {
         return (
@@ -334,6 +376,7 @@ export default function VibSection({ projectId }: { projectId: number }) {
                                                 key={entry.id}
                                                 entry={entry}
                                                 canEdit={canEdit}
+                                                projectNames={projectNames}
                                                 onEdit={(e) => setEditingEntry(toVibEntrySchema(e))}
                                             />
                                         ))}

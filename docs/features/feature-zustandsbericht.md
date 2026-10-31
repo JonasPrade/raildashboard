@@ -97,7 +97,9 @@ Summenprüfung unlesbar machen. Das Muster (Langformat, Status, Freigabe) übern
 
 1. Nutzer lädt das PDF im Admin hoch (`POST /import/condition/report`, speichert nur die Datei
    und erzeugt Seitenbilder bei Bedarf) **oder** nennt dem Agenten die URL; der Agent legt den
-   Jahrgang mit `create_condition_report` an (gleiches Jahr → Fehler mit Verweis).
+   Jahrgang mit `create_condition_report` an (gleiches Jahr → Fehler mit Verweis). Fehlen
+   einem schon angelegten Jahrgang Metadaten (z. B. `price_basis`), ergänzt er sie mit
+   `update_condition_report`.
 2. Agent liest Seitentext (`get_condition_page_text`) und bei Diagrammen das Seitenbild
    (`get_condition_page_image`), Muster `get_infraplan_page_*`.
 3. Je Tabelle ein Aufruf `set_condition_values(report_id, domain, scope, values[])` — eine
@@ -136,6 +138,7 @@ Editor-Systemrolle vergeben. Die Tools adressieren den Jahrgang über `year`.
 |---|---|---|
 | `list_condition_reports` | lesend | Jahrgänge mit Status, Zählern (Werte gesamt/ungeprüft) |
 | `create_condition_report(year, title, source_url, …)` | schreibend | Jahrgang anlegen |
+| `update_condition_report(year, title?, source_url?, published_on?, price_basis?, note?)` | schreibend | Metadaten eines Entwurfs-Jahrgangs korrigieren; nur übergebene Felder ändern sich, ein freigegebener Jahrgang wird abgelehnt |
 | `get_condition_page_text(year, page)` / `get_condition_page_image(year, page)` | lesend | Seite als Text (Layout wie beim Infraplan) bzw. Bild |
 | `list_condition_classes(domain?)` | lesend | Anlagenklassen mit Schlüssel, Einheit, Gewerk |
 | `create_condition_class(key, domain, …, reason)` | schreibend | neue Klasse (nur mit Begründung) |

@@ -223,3 +223,52 @@ def test_requires_condition_import(mcp_client, create_user, db_session):
     viewer = basic_auth_header("viewer-zb", "pass123")
     assert mcp_client.get(f"{IMPORT}/reports", headers=viewer).status_code == 403
     assert mcp_client.post(f"{IMPORT}/reports", json={"year": 2025}, headers=viewer).status_code == 403
+
+
+def test_update_condition_report_changes_only_passed_fields(mcp_client, admin_token):
+    created = _payload(_call(mcp_client, admin_token, "create_condition_report", {
+        "year": 2025, "title": "Zustandsbericht 2025", "source_url": "https://example.org/zb.pdf",
+        "note": "erster Lauf",
+    }))
+    updated = _payload(_call(mcp_client, admin_token, "update_condition_report", {
+        "year": 2025, "price_basis": "Preisstand 2024", "published_on": "2026-05-12",
+    }))
+    assert updated["id"] == created["id"]
+    assert updated["price_basis"] == "Preisstand 2024"
+    assert updated["published_on"] == "2026-05-12"
+    # Fields not passed keep their value.
+    assert updated["title"] == "Zustandsbericht 2025"
+    assert updated["source_url"] == "https://example.org/zb.pdf"
+    assert updated["note"] == "erster Lauf"
+    listed = _payload(_call(mcp_client, admin_token, "list_condition_reports", {}))["reports"]
+    assert listed[0]["price_basis"] == "Preisstand 2024"
+
+    empty = _call(mcp_client, admin_token, "update_condition_report", {"year": 2025})
+    assert empty["isError"] is True and "Keine Änderung" in empty["content"][0]["text"]
+
+
+def test_update_condition_report_unknown_year(mcp_client, admin_token):
+    result = _call(mcp_client, admin_token, "update_condition_report", {
+        "year": 1999, "price_basis": "Preisstand 2024",
+    })
+    assert result["isError"] is True and "1999 gibt es nicht" in result["content"][0]["text"]
+
+
+def test_update_condition_report_refuses_released_year(mcp_client, admin_token, editor):
+    _payload(_call(mcp_client, admin_token, "create_condition_report", {"year": 2025}))
+    assert mcp_client.post(f"{IMPORT}/reports/2025/release", headers=editor).status_code == 200
+    result = _call(mcp_client, admin_token, "update_condition_report", {
+        "year": 2025, "price_basis": "Preisstand 2024",
+    })
+    assert result["isError"] is True and "freigegeben" in result["content"][0]["text"]
+    report = _payload(_call(mcp_client, admin_token, "list_condition_reports", {}))["reports"][0]
+    assert report["price_basis"] is None
+
+
+def test_update_condition_report_requires_condition_import(mcp_client, create_user, db_session):
+    admin = create_user("admin", "adminpass", UserRole.admin)
+    token = _key_for(db_session, admin, scopes=["mcp.access", "progress.edit"])
+    result = _call(mcp_client, token, "update_condition_report", {
+        "year": 2025, "price_basis": "Preisstand 2024",
+    })
+    assert result["isError"] is True and "condition.import" in result["content"][0]["text"]

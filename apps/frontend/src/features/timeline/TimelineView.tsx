@@ -4,7 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 
 import { useIsMobile } from "../../shared/hooks/useBreakpoint";
-import { useProjectGroupTimeline, type ProjectTimeline, type TimelineMilestone } from "../../shared/api/queries";
+import { useProjectGroupsTimeline, type ProjectTimeline, type TimelineMilestone } from "../../shared/api/queries";
 import {
     LIFECYCLE_LABEL,
     MAIN_PHASE_LABEL,
@@ -323,17 +323,21 @@ function Legend({ showGap, showPartial }: { showGap: boolean; showPartial: boole
 }
 
 /**
- * Zeitstrahl einer Projektgruppe: eine Zeile je Projekt mit glaubwürdigen
- * Terminen auf einer gemeinsamen Jahresachse. ``visibleProjectIds`` ist das
- * Ergebnis von Suche und „Nur Hauptprojekte" der Listenansicht.
+ * Zeitstrahl der gewählten Projektgruppen: eine Zeile je Projekt mit
+ * glaubwürdigen Terminen auf einer gemeinsamen Jahresachse. ``visibleProjectIds``
+ * ist das Ergebnis von Suche und „Nur Hauptprojekte" der Listenansicht,
+ * ``projectCount`` die Zahl der Projekte aller Gruppen (nach „Nur Hauptprojekte“),
+ * aus der sich die Projekte ohne Termine ergeben.
  */
 export default function TimelineView({
-    groupId,
+    groupIds,
+    projectCount,
     onlySuperior,
     visibleProjectIds,
     searchActive,
 }: {
-    groupId: number;
+    groupIds: number[];
+    projectCount: number;
     onlySuperior: boolean;
     visibleProjectIds: Set<number>;
     searchActive: boolean;
@@ -342,12 +346,12 @@ export default function TimelineView({
     const [searchParams, setSearchParams] = useSearchParams();
     const sort = parseTimelineSort(searchParams.get("sort"));
     const [limit, setLimit] = useState(PAGE_SIZE);
-    const { data, isLoading, isError } = useProjectGroupTimeline(groupId, onlySuperior);
+    const { items, isLoading, isError } = useProjectGroupsTimeline(groupIds, onlySuperior);
     const today = useMemo(todayUtc, []);
 
     const rows = useMemo(
-        () => sortRows((data?.items ?? []).filter((item) => visibleProjectIds.has(item.project_id)), sort),
-        [data, visibleProjectIds, sort],
+        () => sortRows(items.filter((item) => visibleProjectIds.has(item.project_id)), sort),
+        [items, visibleProjectIds, sort],
     );
     const range = useMemo(() => computeRange(rows, today), [rows, today]);
     const ticks = useMemo(() => yearTicks(range, isMobile ? 4 : 12), [range, isMobile]);
@@ -368,7 +372,7 @@ export default function TimelineView({
             <LoadingState rows={6} />
         );
     }
-    if (isError || !data) {
+    if (isError) {
         return (
             <Alert color="red" variant="light" title="Zeitstrahl konnte nicht geladen werden">
                 Bitte versuche es später erneut.
@@ -376,7 +380,7 @@ export default function TimelineView({
         );
     }
 
-    const withoutDates = data.without_dates_count;
+    const withoutDates = Math.max(0, projectCount - items.length);
 
     return (
         <Stack gap="md">
@@ -407,7 +411,9 @@ export default function TimelineView({
                 <Alert color="blue" variant="light" title="Keine Projekte mit Terminen">
                     {searchActive
                         ? "Für diese Suche gibt es keine Projekte mit belastbaren Terminen."
-                        : "In dieser Projektgruppe hat noch kein Projekt belastbare Termine."}
+                        : groupIds.length === 1
+                          ? "In dieser Projektgruppe hat noch kein Projekt belastbare Termine."
+                          : "In den gewählten Projektgruppen hat noch kein Projekt belastbare Termine."}
                 </Alert>
             ) : (
                 <Box>

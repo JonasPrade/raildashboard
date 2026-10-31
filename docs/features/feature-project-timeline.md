@@ -6,7 +6,7 @@ Baut auf `feature-project-progress.md` auf (Beobachtungen, Glaubwürdigkeit, Pro
 ## Ziel
 
 Neben **Karte** und **Liste** bietet die Startseite eine dritte Ansicht **„Zeitstrahl"**
-(`/?view=timeline`). Sie zeigt die Projekte einer Projektgruppe als Zeilen auf einer
+(`/?view=timeline`). Sie zeigt die Projekte der gewählten Projektgruppen als Zeilen auf einer
 gemeinsamen Jahresachse: wann welche Leistungsphase begann bzw. beginnen soll, wann der
 Planfeststellungsbeschluss fällt und wann das Projekt in Betrieb geht. Angezeigt werden nur
 Projekte mit **glaubwürdigen Terminen** — Projekte ohne belastbare Daten werden gezählt,
@@ -122,8 +122,13 @@ die Blätter. Während der Pause steht dort z. B. „Genehmigungsplanung – In 
 
 ## Verhalten
 
-- Steuerung wie die Liste: eine Projektgruppe, Suche, Schalter „Nur Hauptprojekte"; Zustand
-  in der URL (`view=timeline`, `group`, `search`, `only_superior`, `sort`).
+- Steuerung wie Liste und Karte: Projektgruppen über denselben Drawer wie auf der Karte
+  (Mehrfachauswahl, „Übernehmen“; ohne Auswahl die vorausgewählten Gruppen, sonst alle),
+  Suche, Schalter „Nur Hauptprojekte"; Zustand in der URL (`view=timeline`, `group=1,4`,
+  `search`, `only_superior`, `sort`). Bei mehreren Gruppen lädt der Client den Zeitstrahl je
+  Gruppe und führt die Zeilen zusammen (ein Projekt in zwei Gruppen erscheint einmal); die Zahl
+  „ohne Termine“ rechnet er über die vereinigten Projekte nach. Seit 2026-10-31 — das frühere
+  Einzel-Select war am Telefon unhandlich.
 - Sortierung: Inbetriebnahme (Standard), Baubeginn, Name. Projekte ohne Sortierdatum ans Ende.
 - Je Projekt eine Zeile: Name (Link zur Detailseite), darunter der Balken. Segmente in den
   Phasenfarben (`MAIN_PHASE_COLOR`) vom Phasenbeginn bis zum nächsten datierten Phasenbeginn;
