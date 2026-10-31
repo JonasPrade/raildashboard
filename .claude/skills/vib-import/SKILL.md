@@ -156,7 +156,8 @@ aus dem **ganzen Teilbaum** unter diesen Projekten.
    **nicht** leeren. Abgelehnt wird es, solange feste FinVe-, GVFG-Zuordnungen oder nicht
    archivierte Teilprojekte daran hängen: die Meldung nennt sie, erst umhängen
    (Sammel-FinVe-Jahresverknüpfungen blockieren nicht, sie bleiben als Historie). Ein
-   wirklich abgebrochenes Vorhaben (Lebenszyklus ABGEBROCHEN) wird nie archiviert.
+   wirklich abgebrochenes Vorhaben wird nie archiviert, sondern mit
+   `set_project_lifecycle(project_id, "ABGEBROCHEN", note, since)` markiert (Quelle in `note`).
    Dubletten dagegen mit `merge_projects` zusammenführen. Im Bericht unter „Selbst
    entschieden“ aufführen.
 

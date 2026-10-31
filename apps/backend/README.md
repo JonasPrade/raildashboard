@@ -147,7 +147,9 @@ and check the key's capabilities before writing. Tools: `list_project_groups`, `
 them as `/app/skills` via the named build context `skills`) (read)
 and `create_project`, `create_project_group`, `compute_project_length`, `update_project`, `set_project_groups`,
 `add_progress_observation`,
-`delete_progress_observation`, `set_phase_override`, `upsert_project_text`, `create_todo`,
+`delete_progress_observation`, `set_phase_override`, `set_project_lifecycle` (AKTIV/PAUSIERT/ABGEBROCHEN,
+reason required for the latter two), `update_progress_tracks` (Planfeststellung and parliamentary
+track), `upsert_project_text`, `create_todo`,
 `update_todo`, `update_todo_tag`, `route_project_geometry` (GraphHopper route, preview or apply),
 `edit_project_geometry` (draw lines/points, add operational points, delete features),
 `assign_gvfg_entry` (needs `assignment.manage`: replace a GVFG Vorhaben's projects, optionally
