@@ -232,7 +232,8 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `get_project_infraplan` | Infraplan-Einträge eines Projekts über alle Jahrgänge, Gesamtkostenprognose, „nicht mehr im Infraplan“ | — |
 | `list_infraplan_drafts` · `get_infraplan_draft` (auch `compact`) · `get_infraplan_page_text` · `suggest_infraplan_kpi_values` · `get_infraplan_page_image` · `list_infraplan_kpis` · `get_infraplan_kpi_values` | Infraplan-Import lesen: Entwürfe mit Warnungen, Zeilen mit Vorschlägen (kompakt über alle Abschnitte), Seitentext mit Positionen, Kennzahl-Vorschläge aus dem Text, Seitenbild (Bild-Content), Kennzahlen (siehe `feature-infraplan-import.md` → „MCP & Skill“, „Ausbau für den Import 2027“) | `infraplan.import` |
 | `start_infraplan_parse` · `apply_infraplan_suggestions` · `assign_infraplan_row(s)` · `create_infraplan_subproject(s)` · `confirm_infraplan_import` · `set_infraplan_kpi_values` | Infraplan-Import führen: neu auslesen, Vorschläge übernehmen, begründet zuordnen (`AGENT`, einzeln oder gesammelt mit Ergebnis je Zeile), Teilprojekt oder eigenständiges Entwurfsprojekt anlegen (auch nach der Bestätigung), bestätigen (nie bei Parser-Warnungen), Kennzahlen ungeprüft schreiben | `infraplan.import` |
-| `get_project_texts` | Projekttexte nach Typ, mit Kategorie, Sichtbarkeit und Anhängen (Metadaten; Inhalt nur in der Oberfläche) | — |
+| `get_project_texts` | Projekttexte nach Typ, mit Kategorie, Sichtbarkeit und Anhängen (Metadaten) | — |
+| `read_text_attachment` · `get_text_attachment_image` | Inhalt eines Anhangs lesen: PDF seitenweise als Text (höchstens 10 Seiten je Aufruf, `next_page`, Seiten ohne Textebene in `empty_pages`), Word (.docx) als Text; PDF-Seite oder PNG/JPEG als Bild. Alte Office-Formate und Tabellen nur in der Oberfläche; kein Upload, kein Löschen (#338) | — |
 | `list_text_types` | Texttypen (für `text_type_id`) | — |
 | `list_text_categories` | Textkategorien mit Stil (für `category_id`) | — |
 | `list_todos` | Aufgaben, gefiltert (u. a. `tag`, Textsuche `search`), seitenweise mit `limit`/`offset` | — |
@@ -575,6 +576,7 @@ nur in der Oberfläche gingen. Umgesetzt wurde, was ein Agent sinnvoll braucht (
 | Änderungsprotokoll | `get_project_changelog`, `get_project_text_changelog`, `revert_project_change`, `get_todo` | #334 |
 | Medien/Presse | `list_media_reports`, `add_media_report`, `update_media_report`, `delete_media_report`, Skill `medien-import` | #335 |
 | Ergänzungen | `list_projects(archived)`, `delete_project_text`, Anhänge in `get_project_texts`, `update_project_group`, `get_project_group_timeline`, `list_project_documents`, `set_track_document`, `recompute_project_progress`, `list_progress_conflicts`, `list_sammel_finve_phases`, `set_sammel_finve_phase`, `get_system_status` | #336 |
+| Anhänge lesen | `read_text_attachment`, `get_text_attachment_image` (`services/attachment_content.py`, nur pymupdf und Standardbibliothek) | #338 |
 
 **Entscheidungen (mit dem Nutzer, 2026-10-31):**
 
@@ -588,6 +590,12 @@ nur in der Oberfläche gingen. Umgesetzt wurde, was ein Agent sinnvoll braucht (
   Sprachmodell-Extraktion auf dem Server bleiben dem Frontend-Weg. Bestätigen darf der
   Agent wie bei Fulda — der Skill verlangt, dass jede bestätigte Aussage mit Zitat
   belegt ist.
+- **Anhänge lesen ja, hochladen und löschen nein** (Nutzer, 2026-10-31): Inhalte von PDF
+  und Word, Bilder als Bild; `.doc`, `.xls`, `.xlsx` bleiben ohne neue Abhängigkeit bei den
+  Metadaten.
+- **Routine-Abrufe** (Abgeordnetenstand, Bauportal) laufen nicht über MCP, sondern sollen
+  zeitgesteuert laufen — Planung in eigener Session (`feature-routine-abrufe.md`, sobald
+  angelegt).
 - **Bewusst nicht über MCP:** Nutzer, Rollen, Rechte, API-Keys, Einstellungen (kein
   Weg zur Rechte-Ausweitung), Löschen von Projekten, Gruppen und Jahrgängen, PDF-Uploads
   (Haushalt, GVFG), Freigaben von Infraplan-Kennzahlen, Zustandsbericht und

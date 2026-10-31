@@ -1,6 +1,7 @@
 from mcp.server.mcpserver import MCPServer
 
 from . import (
+    attachments,
     bauportal,
     changelog,
     condition,
@@ -25,6 +26,7 @@ from . import (
 
 def register_all(server: MCPServer) -> None:
     projects.register(server)
+    attachments.register(server)
     changelog.register(server)
     groups.register(server)
     planning.register(server)

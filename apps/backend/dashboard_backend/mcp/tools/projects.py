@@ -958,7 +958,7 @@ def get_project_texts(
     """Texts of a project, optionally filtered by text type name (case-insensitive).
     Use list_text_types for the available types. ``attachments`` lists the
     files attached to a text (id, filename, mime_type, file_size in bytes);
-    their content is only available in the UI."""
+    open one with read_text_attachment (PDF, Word) or get_text_attachment_image."""
     get_principal(ctx)
     with tool_session(ctx) as db:
         _project_or_error(db, project_id)
