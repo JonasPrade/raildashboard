@@ -19,6 +19,7 @@ import {
 } from "@mantine/core";
 import { Check, Eye, FileImage, FileSpreadsheet, FileText, Lock, Paperclip } from "lucide-react";
 import { openConfirmModal } from "../../shared/ui/confirmModal";
+import { ExternalLinkButton } from "../../shared/ui/ExternalLinkButton";
 import { notifications } from "@mantine/notifications";
 
 import {
@@ -824,9 +825,7 @@ function TextCard({ projectText, canEdit, projectId }: TextCardProps) {
                         </Text>
                     )}
                     {projectText.weblink && (
-                        <Anchor href={projectText.weblink} target="_blank" size="sm">
-                            {projectText.weblink}
-                        </Anchor>
+                        <ExternalLinkButton url={projectText.weblink} />
                     )}
                     <AttachmentList
                         attachments={projectText.attachments}
