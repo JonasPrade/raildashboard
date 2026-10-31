@@ -161,7 +161,7 @@ export default function ProjectGroupsAdminPage() {
                             Projektgruppen verwalten sowie Standardauswahl auf Karte, Liste und Zeitstrahl
                         </Text>
                         <Text c="dimmed" size="sm">
-                            Lege fest, welche Projektgruppen auf der Karte angezeigt und vorausgewählt werden. Liste und Zeitstrahl starten mit der ersten Gruppe der Standardauswahl.
+                            Lege fest, welche Projektgruppen auf der Karte angezeigt und vorausgewählt werden. Liste und Zeitstrahl starten ebenfalls mit der Standardauswahl.
                         </Text>
                     </Stack>
                     <Button onClick={openCreate}>

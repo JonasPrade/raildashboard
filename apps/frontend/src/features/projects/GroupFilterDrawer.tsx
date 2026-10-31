@@ -17,9 +17,11 @@ type Props = {
     groups?: ProjectGroupOption[];
     loading?: boolean;
     error?: string;
+    /** Groups currently shown; preselected when ?group is empty (default set). */
+    shownIds?: number[];
 };
 
-export default function GroupFilterDrawer({ opened, onClose, groups = [], loading = false, error }: Props) {
+export default function GroupFilterDrawer({ opened, onClose, groups = [], loading = false, error, shownIds = [] }: Props) {
     const isMobile = useIsMobile();
     const [params, setParams] = useSearchParams();
     const [pending, setPending] = useState<number[]>([]);
@@ -33,7 +35,7 @@ export default function GroupFilterDrawer({ opened, onClose, groups = [], loadin
         const fromUrl = params.get("group")
             ? params.get("group")!.split(",").filter(Boolean).map(Number)
             : [];
-        setPending(fromUrl);
+        setPending(fromUrl.length > 0 ? fromUrl : shownIds);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [opened]);
 

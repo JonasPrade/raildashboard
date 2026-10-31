@@ -590,17 +590,36 @@ export type ProjectTimeline = components["schemas"]["ProjectTimelineSchema"];
 export type TimelineMilestone = components["schemas"]["TimelineMilestoneSchema"];
 export type TimelinePeriod = components["schemas"]["TimelinePeriodSchema"];
 
-/** Dated milestones of a group's projects for the timeline view; only
- * projects with concrete dates are included. Disabled while ``groupId`` is null. */
-export function useProjectGroupTimeline(groupId: number | null, onlySuperior: boolean) {
-    return useQuery({
-        queryKey: queryKeys.projectGroupTimeline(groupId ?? -1, onlySuperior),
-        enabled: groupId !== null,
-        queryFn: () =>
-            api<ProjectGroupTimeline>(
-                `/api/v1/project_groups/${groupId}/timeline?only_superior=${onlySuperior}`,
-            ),
+/**
+ * Timeline over several groups: one request (and cache entry) per group, the
+ * rows merged so a project in two groups appears once. ``without_dates_count``
+ * is left to the caller, which knows the merged project set.
+ */
+export function useProjectGroupsTimeline(groupIds: number[], onlySuperior: boolean) {
+    return useQueries({
+        queries: groupIds.map((groupId) => ({
+            queryKey: queryKeys.projectGroupTimeline(groupId, onlySuperior),
+            queryFn: () =>
+                api<ProjectGroupTimeline>(
+                    `/api/v1/project_groups/${groupId}/timeline?only_superior=${onlySuperior}`,
+                ),
+        })),
+        combine: combineTimelines,
     });
+}
+
+type TimelineQueryResult = { data?: ProjectGroupTimeline; isPending: boolean; isError: boolean };
+
+function combineTimelines(results: TimelineQueryResult[]) {
+    const items = new Map<number, ProjectTimeline>();
+    for (const result of results) {
+        for (const item of result.data?.items ?? []) items.set(item.project_id, item);
+    }
+    return {
+        items: [...items.values()],
+        isLoading: results.some((result) => result.isPending),
+        isError: results.some((result) => result.isError),
+    };
 }
 
 export type ProjectGroupCreatePayload = components["schemas"]["ProjectGroupCreate"];
