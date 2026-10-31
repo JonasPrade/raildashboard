@@ -271,6 +271,8 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
         "get_constituency",
         "get_project_constituencies",
         "get_system_status",
+        "read_text_attachment",
+        "get_text_attachment_image",
     }
     by_name = {tool["name"]: tool for tool in tools}
     assert by_name["list_projects"]["annotations"]["readOnlyHint"] is True

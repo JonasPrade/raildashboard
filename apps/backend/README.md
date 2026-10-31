@@ -171,7 +171,7 @@ with the REST revert in `services/changelog_revert.py`), press reports (`list_me
 maintenance tools (`list_projects(archived=…)`, `delete_project_text`, `update_project_group`,
 `get_project_group_timeline`, `list_project_documents`, `set_track_document`,
 `recompute_project_progress`, `list_progress_conflicts`, `list_sammel_finve_phases`,
-`set_sammel_finve_phase`, `get_system_status` with `settings.manage`).
+`set_sammel_finve_phase`, `get_system_status` with `settings.manage`). Text attachments are read with `read_text_attachment` (PDF/Word text) and `get_text_attachment_image` (#338).
 The routing tool uses the same `RouteService` as `/routes/calculate`, injected per request
 like the DB session. Claude Code config:
 
