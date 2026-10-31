@@ -599,7 +599,9 @@ nur in der Oberfläche gingen. Umgesetzt wurde, was ein Agent sinnvoll braucht (
 - **Bewusst nicht über MCP:** Nutzer, Rollen, Rechte, API-Keys, Einstellungen (kein
   Weg zur Rechte-Ausweitung), Löschen von Projekten, Gruppen und Jahrgängen, PDF-Uploads
   (Haushalt, GVFG), Freigaben von Infraplan-Kennzahlen, Zustandsbericht und
-  Haushalt-Abschluss (Mensch-im-Loop), Abgeordneten-Import und Neuverschneidung,
+  Haushalt-Abschluss (Mensch-im-Loop), Abgeordneten-Import und Neuverschneidung
+  (der Abgeordneten-Import und der Bauportal-Abruf laufen stattdessen zeitgesteuert,
+  `feature-routine-abrufe.md`),
   Anleitungstexte, Texttypen/-kategorien und KPI-Definitionen anlegen.
 - `set_sammel_finve_phase` berechnet die verknüpften Projekte sofort neu; der
   REST-Endpunkt `PATCH /finves/{id}/progress-phase` tut das (noch) nicht.

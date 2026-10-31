@@ -2,9 +2,11 @@
 
 ## Goal
 
-Make a stalled background job explain itself. Every import (Haushalt, VIB,
-Bauportal, Abgeordnete) runs as a Celery job (the Fulda-Runde no longer does — an
-agent reads it over MCP, see `feature-fulda-import.md`); if no worker is running,
+Make a stalled background job explain itself. The imports (Haushalt, VIB,
+Abgeordnete) run as Celery jobs. The DB-Bauportal fetch still runs synchronously in its
+endpoint (corrected 2026-10-31); it becomes a Celery job with
+`feature-routine-abrufe.md`. The Fulda-Runde no longer does either — an agent reads it
+over MCP, see `feature-fulda-import.md`. If no worker is running,
 the upload still succeeds, Celery answers `PENDING` forever and the import page
 spins without ever saying why. The admin area gets a place to check broker and
 workers, and a waiting job names its own cause instead of leaving the user to
@@ -38,6 +40,10 @@ Four separate things, all triggered by the same failure mode:
 
 Out of scope: restarting a worker from the UI, retrying or cancelling a job,
 metrics history. The page diagnoses, it does not operate the stack.
+
+Planned addition (2026-10-31): a block „Zeitgesteuerte Abrufe“ with last run, status and
+next date of every scheduled job, plus an admin-overview badge for a failed or overdue
+job — see `feature-routine-abrufe.md`.
 
 ## Behaviour
 
