@@ -235,7 +235,7 @@ const PB={gesamt:{label:"Gesamtportfolio",total:{note:2.96,wbw:80.22,dist:[20.51
 
 const LAND=[["SH","Schleswig-Holstein",3.25,2.47],["HH","Hamburg",3.20,2.69],["HB","Bremen",3.10,2.66],["NI","Niedersachsen",3.05,2.75],["MV","Mecklenburg-Vorpommern",2.82,2.75],["BE","Berlin",2.80,3.40],["BB","Brandenburg",2.89,2.83],["ST","Sachsen-Anhalt",2.75,3.04],["SN","Sachsen",2.79,3.12],["TH","Thüringen",2.65,3.27],["NW","Nordrhein-Westfalen",3.26,2.93],["HE","Hessen",2.95,3.03],["RP","Rheinland-Pfalz",3.20,2.92],["SL","Saarland",2.98,2.94],["BW","Baden-Württemberg",2.98,2.85],["BY","Bayern",2.97,3.07]];
 // Kachelkarte: [Kürzel, Zeile, Spalte]
-const POS={SH:[0,2],HH:[1,2],MV:[1,3],HB:[2,1],NI:[2,2],BE:[2,4],NW:[3,1],ST:[3,3],BB:[3,4],HE:[4,2],TH:[4,3],SN:[4,4],RP:[5,1],BW:[5,2],BY:[5,3],SL:[6,1]};
+const POS={SH:[0,2],HH:[1,2],MV:[1,3],HB:[2,1],NI:[2,2],BE:[2,4],NW:[3,1],ST:[3,3],BB:[3,4],HE:[4,2],TH:[4,3],SN:[4,4],SL:[5,0],RP:[5,1],BW:[5,2],BY:[5,3]};
 
 const state={bereich:"fw",netz:"gesamt",sort:"note",sel:null,land:"fw",landSel:null};
 
@@ -341,7 +341,7 @@ function land(){
   const col=v=>v<=avg-0.15?"var(--n1)":v<avg-0.03?"var(--n2)":v<=avg+0.03?"var(--n3)":v<avg+0.15?"var(--n4)":"var(--n5)";
   const ink=v=>(v<=avg-0.15||v>=avg+0.15)?"#fff6f0":"#00373c";
   let cells="";
-  for(let r=0;r<7;r++)for(let c=0;c<6;c++){
+  for(let r=0;r<6;r++)for(let c=0;c<6;c++){
     const e=Object.entries(POS).find(([,p])=>p[0]===r&&p[1]===c);
     if(!e){cells+=`<div aria-hidden="true"></div>`;continue}
     const l=LAND.find(x=>x[0]===e[0]);const v=l[k];
