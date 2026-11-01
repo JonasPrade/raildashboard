@@ -189,7 +189,9 @@ Aufbau wie im Prototyp:
 6. **Quellenzeile:** Bericht, Tabellen, Seiten; nur freigegebene Werte.
 
 Mobil (360 px): Zeilen der Anlagenklassen stapeln (Name + Note, Balken, WBW + Bedarf),
-Kennzahlband zweispaltig, Detailtabelle scrollt in sich (`ResponsiveTable`).
+Kennzahlband zweispaltig, Detailtabelle scrollt in sich (`ResponsiveTable`). Das Detail einer
+Anlagenklasse öffnet mobil per Tipp als Modal über der Liste (sonst läge es unter der ganzen
+Liste außer Sicht); ab Tablet-Breite steht es weiter als Karte unter der Liste.
 
 **Notenfarben (EK 4):** Noten 1–6 in der Abweichungsskala der Datenviz-Palette
 (`diverge-pos` → `diverge-mid` → `diverge-neg`, Note 6 dunkler als 5), festgelegt in

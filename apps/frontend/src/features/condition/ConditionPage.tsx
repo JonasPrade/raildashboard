@@ -8,6 +8,7 @@ import {
     Badge,
     Container,
     Group,
+    Modal,
     SegmentedControl,
     Select,
     Stack,
@@ -186,7 +187,19 @@ function NetworkShares({ index, year }: { index: ValueIndex; year: number }) {
     );
 }
 
-function ClassDetail({ row, scopeLabel, domain, totalWbw }: { row: ClassRow; scopeLabel: string; domain: Domain; totalWbw: number | null }) {
+function ClassDetail({
+    row,
+    scopeLabel,
+    domain,
+    totalWbw,
+    inModal = false,
+}: {
+    row: ClassRow;
+    scopeLabel: string;
+    domain: Domain;
+    totalWbw: number | null;
+    inModal?: boolean;
+}) {
     const unit = row.unit ?? "";
     const facts = [
         row.rated !== null
@@ -201,8 +214,8 @@ function ClassDetail({ row, scopeLabel, domain, totalWbw }: { row: ClassRow; sco
         row.previousNote !== null ? `Vorjahr ${formatNote(row.previousNote)} (${formatDelta(row.note - row.previousNote)})` : null,
     ].filter(Boolean);
     return (
-        <div className={classes.card} style={{ marginTop: 16 }}>
-            <Text fw={700}>{row.name} · {scopeLabel}</Text>
+        <div className={inModal ? undefined : classes.card} style={inModal ? undefined : { marginTop: 16 }}>
+            {!inModal && <Text fw={700}>{row.name} · {scopeLabel}</Text>}
             <Text size="sm" c="dimmed" mb="sm">{facts.join(" · ")}</Text>
             {row.distribution ? (
                 <div className={classes.tableWrap}>
@@ -261,6 +274,9 @@ function AssetClasses({
     const scope: Scope = domain === "FAHRWEG" && scopes.includes(scopeChoice) ? scopeChoice : "GESAMT";
     const [sort, setSort] = useState<SortKey>("note");
     const [selected, setSelected] = useState<string | null>(null);
+    // Phones: the detail would land below the whole list, out of sight — show it in a modal instead.
+    const isMobile = useIsMobile();
+    const [detailOpen, setDetailOpen] = useState(false);
     const rows = useMemo(
         () => classRows(index, assetClasses, domain, scope, year, series, sort),
         [index, assetClasses, domain, scope, year, series, sort],
@@ -274,7 +290,11 @@ function AssetClasses({
     };
     const current = rows.find((r) => r.key === selected) ?? rows[0] ?? null;
     const maxWbw = Math.max(...rows.map((r) => r.wbw ?? 0), 1);
-    const select = (key: string) => setSelected(key);
+    const select = (key: string) => {
+        setSelected(key);
+        if (isMobile) setDetailOpen(true);
+    };
+    const detailScopeLabel = domain === "FAHRWEG" ? SCOPE_LABEL[scope] : "Personenbahnhöfe";
     const onKey = (key: string) => (e: KeyboardEvent) => {
         if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
@@ -364,14 +384,20 @@ function AssetClasses({
                     </div>
                 ))}
             </div>
-            {current && (
-                <ClassDetail
-                    row={current}
-                    scopeLabel={domain === "FAHRWEG" ? SCOPE_LABEL[scope] : "Personenbahnhöfe"}
-                    domain={domain}
-                    totalWbw={total.wbw}
-                />
+            {current && !isMobile && (
+                <ClassDetail row={current} scopeLabel={detailScopeLabel} domain={domain} totalWbw={total.wbw} />
             )}
+            <Modal
+                opened={isMobile && detailOpen && current !== null}
+                onClose={() => setDetailOpen(false)}
+                title={current ? <Text fw={700}>{current.name} · {detailScopeLabel}</Text> : null}
+                centered
+                size="lg"
+            >
+                {current && (
+                    <ClassDetail row={current} scopeLabel={detailScopeLabel} domain={domain} totalWbw={total.wbw} inModal />
+                )}
+            </Modal>
         </Stack>
     );
 }
