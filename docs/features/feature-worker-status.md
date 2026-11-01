@@ -3,9 +3,10 @@
 ## Goal
 
 Make a stalled background job explain itself. The imports (Haushalt, VIB,
-Abgeordnete) run as Celery jobs. The DB-Bauportal fetch still runs synchronously in its
-endpoint (corrected 2026-10-31); it becomes a Celery job with
-`feature-routine-abrufe.md`. The Fulda-Runde no longer does either — an agent reads it
+Abgeordnete, DB-Bauportal) run as Celery jobs — the Bauportal fetch since
+2026-11-01 (`feature-routine-abrufe.md`; until then it ran synchronously in its
+endpoint). The block „Zeitgesteuerte Abrufe“ on `/admin/system` and its badge in
+the admin overview come from the same feature. The Fulda-Runde no longer does either — an agent reads it
 over MCP, see `feature-fulda-import.md`. If no worker is running,
 the upload still succeeds, Celery answers `PENDING` forever and the import page
 spins without ever saying why. The admin area gets a place to check broker and
@@ -41,9 +42,14 @@ Four separate things, all triggered by the same failure mode:
 Out of scope: restarting a worker from the UI, retrying or cancelling a job,
 metrics history. The page diagnoses, it does not operate the stack.
 
-Planned addition (2026-10-31): a block „Zeitgesteuerte Abrufe“ with last run, status and
-next date of every scheduled job, plus an admin-overview badge for a failed or overdue
-job — see `feature-routine-abrufe.md`.
+5. **Scheduled routine jobs** (since 2026-11-01, `feature-routine-abrufe.md`). A block
+   „Zeitgesteuerte Abrufe“ (`GET /api/v1/system/routine-jobs`, capability
+   `settings.manage`) shows per job the timetable, the next slot, the last run (time,
+   trigger „Zeitplan“ or user, duration, status, error) and a link to the page that
+   starts it by hand. The badge on the „Systemstatus“ tile in the admin overview turns
+   red when a job's last run failed, it had no successful run for more than twice its
+   interval, or the schedule is switched off (`ROUTINE_JOBS_ENABLED=false`). The
+   scheduler is not part of `/healthz`.
 
 ## Behaviour
 

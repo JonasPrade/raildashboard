@@ -1,12 +1,11 @@
 """Tests for the /api/v1/import/bauportal endpoints.
 
-Per project convention the CRUD layer is monkeypatched so these tests need no
-Bauportal tables in the SQLite schema and never touch the live network.
+Per project convention the CRUD layer (and the Celery task) is monkeypatched,
+so these tests never touch the live network. The routine-job behaviour of the
+fetch (lock, retries, run record) is covered in test_routine_jobs.py.
 """
 
 from __future__ import annotations
-
-import httpx
 
 import dashboard_backend.api.v1.endpoints.bauportal_import as bauportal_route
 from dashboard_backend.crud.bauportal import ProjectNotFoundError
@@ -56,33 +55,28 @@ def test_fetch_forbidden_for_viewer(client, create_user):
 # --- fetch -------------------------------------------------------------------
 
 
-def test_fetch_returns_summary(client, create_user, monkeypatch):
+def test_fetch_queues_the_task(client, create_user, monkeypatch):
     create_user("editor-bp", "pass123", UserRole.editor)
-    monkeypatch.setattr(
-        bauportal_route.bauportal_crud,
-        "run_import",
-        lambda db: {"fetched": 295, "created": 295, "updated": 0, "skipped": 0},
-    )
+    import dashboard_backend.tasks.bauportal as bauportal_tasks
+
+    calls = []
+
+    class FakeTask:
+        id = "task-bp-1"
+
+    def _delay(**kwargs):
+        calls.append(kwargs)
+        return FakeTask()
+
+    monkeypatch.setattr(bauportal_tasks.refresh_bauportal, "delay", _delay)
     resp = client.post(
         "/api/v1/import/bauportal/fetch",
         headers=basic_auth_header("editor-bp", "pass123"),
     )
-    assert resp.status_code == 200
-    assert resp.json()["fetched"] == 295
-
-
-def test_fetch_reports_network_error_as_502(client, create_user, monkeypatch):
-    create_user("editor-bp2", "pass123", UserRole.editor)
-
-    def _boom(db):
-        raise httpx.ConnectError("no route to host")
-
-    monkeypatch.setattr(bauportal_route.bauportal_crud, "run_import", _boom)
-    resp = client.post(
-        "/api/v1/import/bauportal/fetch",
-        headers=basic_auth_header("editor-bp2", "pass123"),
-    )
-    assert resp.status_code == 502
+    assert resp.status_code == 202
+    assert resp.json() == {"task_id": "task-bp-1"}
+    assert calls[0]["user_id"] is not None
+    assert calls[0]["lock_token"]
 
 
 # --- list --------------------------------------------------------------------

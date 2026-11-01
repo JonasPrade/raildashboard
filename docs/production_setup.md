@@ -51,6 +51,7 @@ cp .env.example .env
 | `CELERY_BROKER_URL` | `redis://redis:6379/0` | Redis im Docker-Netzwerk (kein Passwort nötig, da nicht nach außen exponiert) |
 | `CELERY_RESULT_BACKEND` | `redis://redis:6379/0` | Wie `CELERY_BROKER_URL` |
 | `IMPORT_STAGING_DIR` | `/app/uploads/import-staging` | Ablage hochgeladener Import-PDFs, bis der Celery-Task sie gelesen hat. Muss im von Backend **und** Worker gemounteten `uploads`-Volume liegen |
+| `ROUTINE_JOBS_ENABLED` | `true` | Zeitgesteuerte Routine-Abrufe des Dienstes `scheduler` (Celery Beat): DB-Bauportal täglich 02:40, Abgeordnete montags 02:50, Neuberechnung des Planungsstands sonntags 03:10 (Europe/Berlin). `false` = der Scheduler reiht nichts ein, `/admin/system` zeigt „Zeitplan abgeschaltet“, die Knöpfe gehen weiter (`docs/features/feature-routine-abrufe.md`) |
 | `START_BACKGROUND_JOBS` | `true` | Aufgaben, die das Backend beim Start selbst einreiht: heute die Erstbefüllung der Karten-Überlappungen, wenn `project_map_geometry` leer ist (`docs/features/feature-map-overlapping-geometries.md`). Nur die Testsuite setzt `false` |
 | `INFRAPLAN_PDF_DIR` | `/app/uploads/infraplan` | Hochgeladene Infraplan-PDFs, je Entwurf aufbewahrt (erneutes Auslesen, Seitenbilder der Kennzahl-Diagramme). Ebenfalls im `uploads`-Volume; wird beim ersten Zugriff angelegt und von `/healthz` auf Schreibbarkeit geprüft |
 | `CONDITION_PDF_DIR` | `/app/uploads/zustandsbericht` | Hochgeladene PDFs des InfraGO-Zustandsberichts (Seitentext und -bilder für den MCP-Import und die Freigabe-Ansicht). Ebenfalls im `uploads`-Volume; wird beim ersten Zugriff angelegt und von `/healthz` auf Schreibbarkeit geprüft |
@@ -378,6 +379,30 @@ docker compose --env-file .env up -d worker
 Ein Auftrag, der während eines Worker-Neustarts hochgeladen wurde, ist verloren — die Datei danach
 einfach erneut hochladen.
 
+### Zeitgesteuerte Abrufe (Dienst `scheduler`)
+
+Der Dienst `scheduler` (Celery Beat, `compose.yaml`) läuft auf demselben Backend-Image und
+derselben `IMAGE_TAG` wie Backend und Worker und reiht drei Routinejobs ein; ausgeführt
+werden sie vom Worker (`docs/features/feature-routine-abrufe.md`):
+
+| Job | Termin (Europe/Berlin) | Laufnachweis |
+|---|---|---|
+| DB-Bauportal abrufen, danach geänderte Projekte neu berechnen | täglich 02:40 | `routine_job_run` (`job = bauportal`) |
+| Abgeordnetenstand (abgeordnetenwatch) | montags 02:50 | `parliament_import_run` (Auslöser „Zeitplan“) |
+| Planungsstand aller Projekte neu berechnen | sonntags 03:10 | `routine_job_run` (`job = progress_recompute`) |
+
+Alle Termine liegen vor dem Borg-Lauf um 04:05; ein verpasster Termin wird nicht nachgeholt.
+Es darf genau **ein** `scheduler` laufen (kein `celery worker -B`). Der Dienst ist **nicht**
+Teil von `/healthz`: Fällt er aus, zeigt **Administration → Systemstatus** im Block
+„Zeitgesteuerte Abrufe“ und als rotes Badge in der Übersicht, dass ein Job überfällig ist.
+Abschalten: `ROUTINE_JOBS_ENABLED=false` in `.env`, dann `docker compose up -d scheduler worker backend`.
+
+```bash
+docker compose --env-file .env ps scheduler
+docker compose --env-file .env logs --tail=50 scheduler
+docker compose --env-file .env up -d scheduler
+```
+
 ### Tägliches Backup via Docker
 
 ```bash
@@ -586,6 +611,9 @@ ganzen Host nach Borg; Log unter `/var/log/borg/backup.log`. Für raildashboard 
    `/var/lib/docker/volumes/raildashboard_pgdata` und `…/raildashboard_uploads` (u. a.). `/srv` enthält auch
    `/srv/raildashboard/backups/` mit den Pre-Migrate-Dumps des Deploys.
 4. Die zuvor laufenden Container werden wieder gestartet.
+
+Die zeitgesteuerten Abrufe des `scheduler` (02:40, montags 02:50, sonntags 03:10) liegen
+alle vor diesem Fenster.
 
 Das Volume `raildashboard_uploads` (Textanhänge) ist seit dem 10.10.2026 in der Liste;
 vorher fehlte es. Weil das Skript Container mit Namen anspricht (`raildashboard-db-1`),

@@ -22,14 +22,8 @@ from dashboard_backend.models.projects.bauportal_status import BauportalStatus
 from dashboard_backend.services.progress_materialization import (
     bauportal_status_to_main_phase,
 )
-from dashboard_backend.tasks.bauportal import import_bauportal
 
 __all__ = ["ProjectNotFoundError"]  # re-export: endpoints catch it from here
-
-def run_import(db: Session) -> dict:
-    """Fetch from the Bauportal API and upsert raw rows. Returns a summary."""
-    return import_bauportal(db)
-
 
 def _entry_dict(r: BauportalStatus, names: dict[int, str]) -> dict:
     phase = bauportal_status_to_main_phase(r.status_raw)
@@ -45,6 +39,8 @@ def _entry_dict(r: BauportalStatus, names: dict[int, str]) -> dict:
         "lat": r.lat,
         "lng": r.lng,
         "fetched_at": r.fetched_at,
+        "status_changed_at": r.status_changed_at,
+        "last_seen_at": r.last_seen_at,
         "suggested_project_id": r.suggested_project_id,
         "suggested_project_name": names.get(r.suggested_project_id),
         "project_id": r.project_id,
@@ -195,6 +191,8 @@ def list_confirmed_for_project(db: Session, project_id: int) -> list[dict]:
                 "projecttime_raw": r.projecttime_raw,
                 "url": r.url,
                 "fetched_at": r.fetched_at,
+                "status_changed_at": r.status_changed_at,
+                "last_seen_at": r.last_seen_at,
             }
         )
     return result

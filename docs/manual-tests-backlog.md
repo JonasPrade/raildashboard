@@ -11,6 +11,28 @@ Test-Checkliste des ermöglichenden Issues hochgezogen und hier entfernt.
 
 ---
 
+## Zeitgesteuerte Abrufe #340 — Scheduler auf prod (braucht Deploy + Handschritt)
+
+Erst prüfbar, nachdem die SHA mit #340 ausgerollt, die neue `compose.yaml` auf dem Server
+liegt und `docker compose up -d scheduler` lief (`docs/uebergabe-deploy.md`, Abschnitt
+„Neuer Dienst `scheduler`“):
+
+- [ ] Auf dem Server `docker compose ps scheduler` → `running`; `docker compose logs --tail=20 scheduler` enthält `beat: Starting...` und keinen Traceback.
+- [ ] `/root/expected_containers.txt` enthält `scheduler`; `/root/check_containers.sh` meldet nach `docker compose stop scheduler` den fehlenden Container (danach `docker compose up -d scheduler`).
+- [ ] Administration → Systemstatus → Block „Zeitgesteuerte Abrufe“ zeigt drei Jobs: DB-Bauportal „täglich 02:40 Uhr“, Abgeordnete „montags 02:50 Uhr“, Planungsstand „sonntags 03:10 Uhr“, jeweils mit nächstem Termin in deutscher Zeit.
+- [ ] Direkt nach dem Deploy: Kachel „Systemstatus“ in der Admin-Übersicht zeigt das rote Badge „Abrufe prüfen“ (noch kein erfolgreicher Bauportal-/Neuberechnungs-Lauf).
+- [ ] Einstellungen → DB-Bauportal → „Bauportal abrufen“: Fortschrittsbalken, danach grüne Meldung mit Anzahl und Statuswechseln; im Systemstatus steht beim Bauportal „erfolgreich“, Auslöser „von <dein Name>“, Dauer in Sekunden.
+- [ ] Sofort ein zweites Mal „Bauportal abrufen“ drücken, solange der erste läuft → orange Meldung „Läuft bereits seit HH:MM Uhr (TT.MM.JJJJ).“
+- [ ] Einstellungen → Planungsstand · Konflikte → „Alle Projekte neu berechnen“; danach ist das Badge in der Admin-Übersicht weg (alle drei Jobs grün, sofern der letzte Abgeordneten-Lauf jünger als 14 Tage ist — sonst unter `/admin/abgeordnete` einmal „Abgeordnetenstand aktualisieren“).
+- [ ] Am Morgen nach dem Deploy: Systemstatus → DB-Bauportal → letzter Lauf gegen 02:40 Uhr, Auslöser „Zeitplan“, Status „erfolgreich“.
+- [ ] Am ersten Montag danach: `/admin/abgeordnete` → Abrufstand „Abgeordnete“ von heute ca. 02:50 Uhr mit „Zeitplan“.
+- [ ] Am ersten Sonntag danach: Systemstatus → Planungsstand neu berechnen → letzter Lauf gegen 03:10 Uhr, „Zeitplan“, „erfolgreich“.
+- [ ] Projektseite eines Projekts mit bestätigtem Bauportal-Eintrag (Karte „DB-Bauportal“): „Stand“ zeigt das Datum des letzten nächtlichen Abrufs, nicht mehr das des ersten Abrufs.
+- [ ] Optional: `ROUTINE_JOBS_ENABLED=false` in der Server-`.env`, `docker compose up -d scheduler backend worker` → Systemstatus zeigt „Zeitplan abgeschaltet (Env)“, Badge „Zeitplan aus“; danach wieder `true` setzen und dieselben Dienste neu starten.
+- Bei Fehler: `docker compose logs --tail=100 scheduler worker` und einen Screenshot des Systemstatus an #340 hängen.
+
+---
+
 ## MCP-Lücken #333–#336 — gegen prod (braucht Deploy)
 
 Erst nach dem Deploy prüfbar (MCP-Tools laufen gegen prod):

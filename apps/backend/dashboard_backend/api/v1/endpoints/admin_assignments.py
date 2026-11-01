@@ -45,17 +45,29 @@ def get_progress_conflicts(
     return list_progress_conflicts(db)
 
 
-@router.post("/progress-recompute", response_model=TaskLaunchResponse, status_code=202)
+@router.post(
+    "/progress-recompute",
+    response_model=TaskLaunchResponse,
+    status_code=202,
+    responses={409: {"description": "Die Neuberechnung läuft bereits."}},
+)
 def start_progress_recompute(
-    _current_user: User = Depends(require_permission("progress.edit")),
+    current_user: User = Depends(require_permission("progress.edit")),
 ) -> TaskLaunchResponse:
     """Recompute the planning state of every project (Celery) — needed after a
     deploy that changes the derivation; the lazy resync only covers projects
-    that are read."""
-    from dashboard_backend.tasks.progress import recompute_all_progress_task
+    that are read. The same job runs every Sunday from the scheduler; ``409``
+    while a run is going (feature-routine-abrufe.md)."""
+    from dashboard_backend.models.routine_job_run import JOB_PROGRESS_RECOMPUTE
+    from dashboard_backend.services import job_lock, routine_jobs
 
-    task = recompute_all_progress_task.delay()
-    return TaskLaunchResponse(task_id=task.id)
+    try:
+        task_id = routine_jobs.launch(JOB_PROGRESS_RECOMPUTE, user_id=current_user.id)
+    except job_lock.JobAlreadyRunning as exc:
+        raise HTTPException(
+            status_code=409, detail=routine_jobs.already_running_detail(exc)
+        ) from exc
+    return TaskLaunchResponse(task_id=task_id)
 
 
 @router.post("/overlap-recompute", response_model=TaskLaunchResponse, status_code=202)

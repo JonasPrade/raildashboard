@@ -31,13 +31,16 @@ _COMPACT = (
     "suggested_project_name",
     "confirmed",
     "fetched_at",
+    "status_changed_at",
+    "last_seen_at",
 )
 
 
 def _json(entry: dict) -> dict:
     out = dict(entry)
-    if out.get("fetched_at") is not None:
-        out["fetched_at"] = out["fetched_at"].isoformat()
+    for key in ("fetched_at", "status_changed_at", "last_seen_at"):
+        if out.get(key) is not None:
+            out[key] = out[key].isoformat()
     return out
 
 
@@ -53,7 +56,9 @@ def list_bauportal_entries(
 ) -> dict[str, Any]:
     """DB-Bauportal entries, compact (requires ``progress.edit``): id,
     bauportal_id, shorttitle, status_raw, projecttime_raw, url, project_id with
-    name, suggested project, confirmed, fetched_at. Unconfirmed first.
+    name, suggested project, confirmed, fetched_at (first fetch),
+    status_changed_at (last status change = observation date), last_seen_at
+    (last nightly fetch that saw it). Unconfirmed first.
     search: part of the title. project_id: entries assigned to this project.
     only_unconfirmed: not yet confirmed. only_without_project: no project
     assigned. Paged with limit/offset; ``total`` counts all matches. One entry

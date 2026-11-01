@@ -12,6 +12,7 @@ import {
     useProgressConflicts,
     useStartProgressRecomputeAll,
 } from "../../shared/api/queries";
+import { apiErrorDetail } from "../../shared/api/client";
 import { TaskProgressIndicator, useImportTask } from "../import-review/shared";
 import {
     SOURCE_LABEL,
@@ -138,7 +139,7 @@ function RecomputeAllCard() {
                 notifications.show({
                     color: "red",
                     title: "Neuberechnung konnte nicht gestartet werden",
-                    message: error instanceof Error ? error.message : "Unbekannter Fehler.",
+                    message: apiErrorDetail(error, "Unbekannter Fehler."),
                 }),
         });
 
@@ -150,7 +151,8 @@ function RecomputeAllCard() {
                     Leitet den Planungsstand aller Projekte neu aus den Quellen ab (VIB, FinVe, Infraplan,
                     GVFG, …) und aktualisiert Phase, Baubeginn und Inbetriebnahme in Listen und Filtern. Nötig
                     nach einem Update mit geänderten Berechnungsregeln — sonst rechnet ein Projekt erst neu,
-                    wenn es geöffnet wird. Dauert einige Minuten.
+                    wenn es geöffnet wird. Dauert einige Minuten. Läuft außerdem jeden Sonntag um
+                    03:10 Uhr von selbst.
                 </Text>
                 <Group>
                     <Button variant="light" leftSection={<RefreshCw size={16} />} loading={busy} onClick={launch}>

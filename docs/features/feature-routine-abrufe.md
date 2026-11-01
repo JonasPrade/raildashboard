@@ -1,5 +1,8 @@
 # Feature: Routine-Abrufe (zeitgesteuert, ohne Mensch und Agent)
 
+**Status:** umgesetzt 2026-11-01 (#340). Wirksam auf prod erst nach dem Deploy und dem
+Handschritt `expected_containers.txt` (siehe „Folgen für Deploy und Rollback“).
+
 ## Ziel
 
 Abrufe aus externen Quellen, die reine Routine sind, laufen nach Zeitplan, statt dass ein
@@ -21,7 +24,7 @@ plant ihren Zeitplan.
      berechnet, deren bestätigter Eintrag den Status gewechselt hat.
    - **Abgeordnetenstand:** `refresh_parliament_data`.
    - **Planungsstand:** Neuberechnung aller Projekte (`recompute_all_progress_task`).
-3. Der Bauportal-Abruf wird ein Celery-Task mit Laufnachweis (`bauportal_import_run`).
+3. Der Bauportal-Abruf wird ein Celery-Task mit Laufnachweis (`routine_job_run`, `job = bauportal`).
 4. Das Datum einer Bauportal-Beobachtung wird korrigiert: `status_changed_at` und
    `last_seen_at` statt `fetched_at`.
 5. Sperre gegen parallele Läufe, Wiederholung bei Netzfehlern, Abschalten per Env.
@@ -42,19 +45,20 @@ plant ihren Zeitplan.
 ## Entscheidungen
 
 Mit dem Nutzer am 2026-10-31 entschieden (Entscheidungskarten EK-2026-035 bis -043,
-Stapel EKS-2026-007), jeweils nach Empfehlung.
+Stapel EKS-2026-007), jeweils nach Empfehlung. W5 am 2026-11-01 (offener Punkt geklärt).
 
 | # | Frage | Entscheidung | Verworfen |
 |---|---|---|---|
 | W1 | Abgeordnetenstand zeitgesteuert, obwohl `feature-abgeordnete.md` das ausschloss? | **Ja.** Der Ausschluss ist dort datiert ersetzt, der Knopf bleibt. | manuell lassen |
 | W2 | Welches Datum trägt eine Bauportal-Beobachtung? | **Zwei Felder:** `status_changed_at` (= `observed_date`, nur bei echtem Statuswechsel) und `last_seen_at` (= „Stand“, jeder Lauf). | `fetched_at` je Lauf setzen (Bauportal wäre jeden Tag „neueste“ Quelle); so lassen |
-| W3 | Bauportal als Celery-Job? | **Ja**, mit Tabelle `bauportal_import_run`. `feature-worker-status.md` ist korrigiert. | nur die Doku korrigieren |
+| W3 | Bauportal als Celery-Job? | **Ja**, mit Laufnachweis in `routine_job_run` (siehe W5). `feature-worker-status.md` ist korrigiert. | nur die Doku korrigieren |
 | W4 | Planungsstand regelmäßig neu berechnen? | **Ja:** wöchentlich alle Projekte, zusätzlich nach jedem Bauportal-Lauf die betroffenen. | nur nach dem Bauportal-Lauf; gar nicht |
 | E1 | Mechanismus | **Eigener Compose-Dienst `scheduler`** mit `celery beat`. | Worker `-B`, Host-Cron/systemd-Timer, „beim Lesen veraltet → nachladen“ |
 | E2 | Intervalle (Europe/Berlin) | **Bauportal täglich 02:40, Abgeordnete montags 02:50, Neuberechnung sonntags 03:10** | alles wöchentlich; Abgeordnete monatlich |
 | E3 | Sichtbarkeit | **`/admin/system`: Block „Zeitgesteuerte Abrufe“ + Badge** | nur Fachseiten; zusätzlich Benachrichtigung |
 | E4 | Sperre, Wiederholung, Abschalten | **Redis-Lock je Job, bis 3 Wiederholungen bei Netzfehlern, `ROUTINE_JOBS_ENABLED`** | Schalter je Job in der Oberfläche; keine Sperre |
 | E5 | Was bleibt manuell | **Knöpfe bleiben, Bestätigung beim Menschen, kein MCP-Abruf** | Knöpfe entfernen; Abruf über MCP |
+| W5 | Laufnachweis für Bauportal und Neuberechnung (entschieden 2026-11-01) | **Eine allgemeine Tabelle `routine_job_run`** mit Spalte `job` (`bauportal`, `progress_recompute`); weitere Routinejobs kommen ohne neue Tabelle dazu. Die Abgeordneten behalten `parliament_import_run`. | eine eigene Bauportal-Tabelle plus eine zweite für die Neuberechnung |
 
 ### Warum ein eigener Dienst und nicht Worker `-B` oder Cron
 
@@ -113,33 +117,33 @@ Das Badge in der Admin-Übersicht erscheint, wenn mindestens ein Job
 
 ## Akzeptanzkriterien
 
-- [ ] `compose.yaml` hat den Dienst `scheduler` (Image `raildashboard-backend:${IMAGE_TAG}`,
+- [x] `compose.yaml` hat den Dienst `scheduler` (Image `raildashboard-backend:${IMAGE_TAG}`,
       `command: celery -A dashboard_backend.celery_app beat`, `SKIP_MIGRATIONS=1`,
       `depends_on: backend: service_healthy`, kein `build:`, kein Port).
-- [ ] Die drei Jobs laufen zu den Zeiten aus E2 (Europe/Berlin). Ein Test prüft den
+- [x] Die drei Jobs laufen zu den Zeiten aus E2 (Europe/Berlin). Ein Test prüft den
       Zeitplan (`beat_schedule`) gegen die Tabelle in diesem Dokument.
-- [ ] Der Bauportal-Abruf läuft als Celery-Task. Knopf und Zeitplan nutzen denselben Task.
-      Jeder Lauf schreibt eine Zeile in `bauportal_import_run`, auch wenn er fehlschlägt.
-- [ ] `bauportal_status` hat `status_changed_at` und `last_seen_at`.
+- [x] Der Bauportal-Abruf läuft als Celery-Task. Knopf und Zeitplan nutzen denselben Task.
+      Jeder Lauf schreibt eine Zeile in `routine_job_run` (`job = bauportal`), auch wenn er fehlschlägt.
+- [x] `bauportal_status` hat `status_changed_at` und `last_seen_at`.
       - Die Migration ist reines Expand: Beide Spalten werden aus `fetched_at` gefüllt,
         `fetched_at` bleibt vorerst bestehen.
       - `status_changed_at` ändert sich nur bei einem Wechsel von `status_raw`.
       - Die abgeleitete Beobachtung nutzt `status_changed_at`, die Projektseite zeigt
         `last_seen_at` als „Stand“.
-- [ ] Nach einem Bauportal-Lauf sind Projekte mit einem bestätigten Statuswechsel sofort
+- [x] Nach einem Bauportal-Lauf sind Projekte mit einem bestätigten Statuswechsel sofort
       neu berechnet.
-- [ ] Zeitplan-Läufe der Abgeordneten erscheinen in `parliament_import_run` mit
+- [x] Zeitplan-Läufe der Abgeordneten erscheinen in `parliament_import_run` mit
       `triggered_by_user_id = NULL`. Die Oberfläche zeigt dafür „Zeitplan“.
-- [ ] Ein zweiter Start desselben Jobs während eines laufenden Laufs wird abgelehnt
+- [x] Ein zweiter Start desselben Jobs während eines laufenden Laufs wird abgelehnt
       (Knopf: `409`) bzw. übersprungen (Zeitplan). Getestet für Knopf gegen Zeitplan.
-- [ ] Netzfehler werden bis zu dreimal wiederholt, Datenfehler nicht (Test mit gemocktem
+- [x] Netzfehler werden bis zu dreimal wiederholt, Datenfehler nicht (Test mit gemocktem
       HTTP).
-- [ ] Mit `ROUTINE_JOBS_ENABLED=false` reiht der Scheduler nichts ein. Die Testsuite setzt
+- [x] Mit `ROUTINE_JOBS_ENABLED=false` reiht der Scheduler nichts ein. Die Testsuite setzt
       den Wert in `apps/backend/tests/conftest.py`.
-- [ ] `/admin/system` zeigt den Block „Zeitgesteuerte Abrufe“. Die Admin-Übersicht zeigt
+- [x] `/admin/system` zeigt den Block „Zeitgesteuerte Abrufe“. Die Admin-Übersicht zeigt
       das Badge nach den Regeln oben. Der Block ist bei 360 px nutzbar.
-- [ ] `/healthz` bleibt unverändert, der Scheduler ist keine Abhängigkeit des Deploy-Tors.
-- [ ] Doku nachgezogen: `CHANGELOG.md`, `DEPLOY.md`, `docs/production_setup.md`,
+- [x] `/healthz` bleibt unverändert, der Scheduler ist keine Abhängigkeit des Deploy-Tors.
+- [x] Doku nachgezogen: `CHANGELOG.md`, `DEPLOY.md`, `docs/production_setup.md`,
       `docs/environment.md`, `.env.prod.example`, `.env.example`,
       `apps/backend/README.md`, In-App-Doku (`DocumentationPage.tsx`), Docstring in
       `tasks/progress.py`.
@@ -150,8 +154,8 @@ Das Badge in der Admin-Übersicht erscheint, wenn mindestens ein Job
    dates and import run"`:
    - `bauportal_status.status_changed_at`, `bauportal_status.last_seen_at` (beide aus
      `fetched_at` befüllt),
-   - neue Tabelle `bauportal_import_run`, angelehnt an `parliament_import_run`: `id`,
-     `started_at`, `finished_at`, `status`, `error`, `stats` (JSON),
+   - neue Tabelle `routine_job_run` (W5), angelehnt an `parliament_import_run`: `id`,
+     `job`, `started_at`, `finished_at`, `status`, `error`, `stats` (JSON),
      `triggered_by_user_id` (nullable = Zeitplan).
 
    `fetched_at` wird erst in einem späteren Release entfernt (Contract, siehe #325).
@@ -193,8 +197,8 @@ Das Badge in der Admin-Übersicht erscheint, wenn mindestens ein Job
 9. **Sichtbarkeit.**
    - `GET /api/v1/system/routine-jobs` (Recht `settings.manage`) liefert je Job:
      Intervall, nächster Termin, letzter Lauf und Status, gelesen aus
-     `bauportal_import_run`, `parliament_import_run` und dem Laufnachweis der
-     Neuberechnung (siehe Offene Punkte).
+     `routine_job_run` (Bauportal, Neuberechnung, übersprungene Läufe) und
+     `parliament_import_run` (Abgeordnete).
    - Frontend: Block in `features/admin/SystemStatusPage.tsx`, Badge in der
      Admin-Übersicht.
 10. **Abgeordnete.** `refresh_parliament_data` ohne `user_id` gilt als Zeitplan-Lauf. Die
@@ -206,6 +210,45 @@ Das Badge in der Admin-Übersicht erscheint, wenn mindestens ein Job
     - `docs/production_setup.md`: Dienstliste, Env, Zeitplan, Borg-Fenster.
     - `compose.yaml` muss nach dem Merge von Hand auf den Server
       (`docs/uebergabe-deploy.md`, Schritt 5).
+
+## Umsetzung (2026-11-01)
+
+Wo der Code steht und wo er von den technischen Schritten oben abweicht:
+
+- **Zeitplan:** `dashboard_backend/schedule.py` (`ROUTINE_JOBS`, `build_beat_schedule`),
+  eingebunden in `celery_app.py` (`timezone = "Europe/Berlin"`,
+  `beat_schedule_filename = /tmp/celerybeat-schedule`). Mit `ROUTINE_JOBS_ENABLED=false`
+  ist `beat_schedule` leer; die Wrapper-Tasks in `tasks/routine.py` prüfen den Schalter
+  zusätzlich.
+- **Sperre:** `services/job_lock.py` (Redis `SET NX EX`, Wert = Token + Startzeit, Freigabe
+  nur mit dem Token). Unter dem Test-Broker `memory://` steht ein In-Process-Speicher mit
+  derselben Semantik bereit.
+- **Start, Wiederholung, Status:** `services/routine_jobs.py` (`launch` für die Knöpfe,
+  `start_scheduled` für die Wrapper, `retry_or_fail`, `routine_jobs_status`). Netzfehler
+  sind `httpx.TransportError`, `httpx.HTTPStatusError` mit 5xx und `TransientFetchError`
+  (abgeordnetenwatch-Client nach seinen eigenen Wiederholungen; ein 4xx ist kein
+  Netzfehler). Vor jeder Wiederholung verlängert der Task die Sperre um Backoff + Zeitlimit.
+- **Laufnachweis bei Wiederholung:** Beim Bauportal bleibt es **eine** Zeile je Lauf; sie
+  steht während der Wartezeit auf `running` mit dem Hinweis „Versuch n fehlgeschlagen …“.
+  Die Abgeordneten schreiben wie bisher je Versuch eine Zeile in `parliament_import_run`;
+  ein Versuch, der wiederholt wird, sagt das in seiner Fehlermeldung.
+- **Übersprungene Läufe** stehen in `routine_job_run` mit `status = skipped` — auch für die
+  Abgeordneten (`job = parliament`), weil `parliament_import_run` keinen übersprungenen
+  Lauf kennt. Der Status-Endpunkt nimmt für die Abgeordneten den jüngeren der beiden.
+- **Badge:** „noch nie erfolgreich gelaufen“ zählt als „länger als das doppelte Intervall“.
+  Direkt nach dem Deploy zeigt das Badge deshalb an, bis jeder Job einmal gelaufen ist
+  (Bauportal: nächste Nacht; Neuberechnung: Sonntag) — oder bis man die Knöpfe drückt.
+- **Abgeordnete:** `ImportRunSchema` liefert `triggered_by_user_id` und
+  `triggered_by_username`; `/admin/abgeordnete` zeigt „Zeitplan“ bzw. „von <Name>“.
+- **Bauportal-Seite:** `POST /import/bauportal/fetch` antwortet `202` + `task_id`; die Seite
+  folgt dem Task mit `useImportTask`. Die Zusammenfassung (`BauportalImportSummary`) ist das
+  Task-Ergebnis und nennt zusätzlich `status_changed` und `recomputed_projects`.
+- **MCP:** `list_bauportal_entries`/`get_bauportal_entry` liefern zusätzlich
+  `status_changed_at` und `last_seen_at`; einen Abruf über MCP gibt es weiterhin nicht.
+- **Compose:** `command` trägt zusätzlich `--loglevel=info` (wie der Worker).
+- **Migration** `20261101001` ist von Hand geschrieben (wie die übrigen datierten
+  Revisionen); ohne laufende Postgres-Instanz kann `make migrate-create` nicht
+  autogenerieren.
 
 ## Folgen für Deploy und Rollback
 
@@ -222,11 +265,10 @@ Das Badge in der Admin-Übersicht erscheint, wenn mindestens ein Job
 
 ## Offene Punkte
 
-- **Laufnachweis der wöchentlichen Neuberechnung.** `recompute_all_progress_task` hat
-  heute keinen. Vorschlag: `bauportal_import_run` von Anfang an allgemein als
-  `routine_job_run` mit Spalte `job` (`bauportal`, `progress_recompute`) anlegen, statt
-  einer zweiten Tabelle. Die Abgeordneten behalten `parliament_import_run`. Wird vor der
-  Umsetzung mit dem Nutzer geklärt.
+- ~~Laufnachweis der wöchentlichen Neuberechnung~~ — **erledigt 2026-11-01:** Der Nutzer hat
+  entschieden, von Anfang an eine allgemeine Tabelle `routine_job_run` mit Spalte `job`
+  anzulegen statt einer reinen Bauportal-Tabelle (Entscheidung W5). Die Abgeordneten behalten
+  `parliament_import_run`.
 
 ## Konzept-Verweis
 

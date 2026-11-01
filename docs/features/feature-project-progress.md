@@ -419,22 +419,26 @@ und werden nicht ins Changelog geschrieben.
   ~295 Projekte). Kein Scraping, kein Detail-Endpoint nötig.
 - **Roh-Tabelle `bauportal_status`:** `bauportal_id` (extern), `shorttitle`, `status_raw`
   (= `icon_title`), `projecttime_raw`, `url`, `lat`/`lng`, `parent_bauportal_id`, `raw_json`,
-  `fetched_at`, `project_id` (nullable FK, zugeordnetes Match), `suggested_project_id`,
+  `fetched_at` (erster Abruf, wird mit #325 entfernt), **`status_changed_at`** (letzter
+  Wechsel von `status_raw`), **`last_seen_at`** (letzter Abruf, der den Eintrag lieferte),
+  `project_id` (nullable FK, zugeordnetes Match), `suggested_project_id`,
   **`confirmed`** (Bool, Default false).
 - **Mapping `bauportal_to_spec`:** `icon_title` „…Bauphase" → BAU, „…Planungsphase" →
   VORPLANUNG (konservative Untergrenze), „…gemischter Projektphase"/„Gesamtprojekt…" → kein
   Beitrag (Parent aggregiert über Kinder). `projecttime`-Endjahr → optionaler
-  Inbetriebnahme-Forecast. `observed_date = fetched_at`. **Geplant (2026-10-31,
-  `feature-routine-abrufe.md`, EK-2026-036):** `observed_date = status_changed_at`
-  (wird nur bei einem echten Wechsel von `status_raw` neu gesetzt). Der „Stand“ auf der
-  Projektseite kommt aus `last_seen_at` (jeder Lauf). Heute setzt der Code `fetched_at`
-  nur beim ersten Abruf.
+  Inbetriebnahme-Forecast. **`observed_date = status_changed_at`** (seit 2026-11-01,
+  `feature-routine-abrufe.md` W2, EK-2026-036): wird nur bei einem echten Wechsel von
+  `status_raw` neu gesetzt, sonst wäre das Bauportal durch den nächtlichen Abruf jeden Tag
+  die „neueste“ Quelle. Der „Stand“ auf der Projektseite kommt aus `last_seen_at` (jeder
+  Lauf). Bis dahin galt `observed_date = fetched_at` (nur beim ersten Abruf gesetzt).
 - **Pipeline (`tasks/bauportal.py`):** Fetch → Upsert je `bauportal_id` → Fuzzy-Match auf
   `Project.name` (`suggest_project_for_bauportal`, analog `vib_matching`) → `suggested_project_id`.
-  Heute läuft die Pipeline synchron im Endpunkt `POST /import/bauportal/fetch`. **Geplant
-  (2026-10-31):** als Celery-Task mit Laufnachweis `bauportal_import_run`, täglich 02:40
-  zeitgesteuert. Danach werden die Projekte neu berechnet, deren bestätigter Eintrag den
-  Status gewechselt hat. Der Knopf bleibt; siehe `feature-routine-abrufe.md`.
+  **Seit 2026-11-01** läuft die Pipeline als Celery-Task `refresh_bauportal` mit
+  Laufnachweis in `routine_job_run` (`job = bauportal`), täglich 02:40 zeitgesteuert vom
+  Dienst `scheduler`. Danach werden die Projekte neu berechnet, deren bestätigter Eintrag
+  den Status gewechselt hat. Der Knopf bleibt: `POST /import/bauportal/fetch` reiht
+  denselben Task ein (`202` + `task_id`, `409` während eines Laufs); siehe
+  `feature-routine-abrufe.md`. Bis dahin lief die Pipeline synchron im Endpunkt.
 - **Review-UI = Fulda-Parität (`BauportalImportPage`):** Der Vorschlag wird beim Import direkt in
   `project_id` **vorbefüllt** (unbestätigt), statt nur als graue Nebenspalte zu erscheinen.
   Reihenfolge-unabhängige Suche (`filterProjectOption`), per-Zeile „Übernehmen"-Toggle

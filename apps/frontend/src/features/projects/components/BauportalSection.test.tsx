@@ -48,6 +48,16 @@ describe("BauportalSection", () => {
         expect(container.textContent).toContain("Stand:");
     });
 
+    it("shows last_seen_at as Stand, not the first fetch", async () => {
+        api.mockResolvedValue([
+            entry(1, { fetched_at: "2026-01-02T08:00:00", last_seen_at: "2026-10-31T01:40:00" }),
+        ]);
+        const { container } = renderSection();
+        await screen.findByRole("link", { name: "Bauprojekt 1" });
+        expect(container.textContent).toContain("Stand: 31.10.2026");
+        expect(container.textContent).not.toContain("02.01.2026");
+    });
+
     it("renders nothing when no entry has a link", async () => {
         api.mockResolvedValue([entry(1, { url: null })]);
         const { container } = renderSection();

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from dashboard_backend.models.base import Base
@@ -38,8 +38,22 @@ class BauportalStatus(Base):
 
     # Full API record as JSON string, so the mapping survives schema tweaks.
     raw_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # First fetch of the row. Superseded by the two fields below and only kept
+    # until the contract release removes it (#325, feature-routine-abrufe.md W2).
     fetched_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, nullable=False
+    )
+    # When ``status_raw`` last changed (or the row was first seen). This is the
+    # ``observed_date`` of the derived BAUPORTAL observation: a nightly fetch
+    # that sees the same status again is no new observation, otherwise the
+    # Bauportal would be the "most recent" source every single day.
+    status_changed_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False
+    )
+    # When the entry was last returned by the API — every fetch sets it. Shown as
+    # „Stand“ on the project page.
+    last_seen_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False
     )
 
     # Fuzzy-match suggestion (transient guidance for the review UI) and the

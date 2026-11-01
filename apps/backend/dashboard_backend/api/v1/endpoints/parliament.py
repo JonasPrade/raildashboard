@@ -191,16 +191,30 @@ def read_constituency(constituency_id: int, db: Session = Depends(get_db)):
     return detail
 
 
-@router.post("/import", response_model=TaskLaunchResponse, status_code=202)
+@router.post(
+    "/import",
+    response_model=TaskLaunchResponse,
+    status_code=202,
+    responses={409: {"description": "Der Abgeordneten-Abruf läuft bereits."}},
+)
 def start_import(
     current_user: User = Depends(require_permission("parliament.import")),
-    db: Session = Depends(get_db),
 ):
-    """Refresh the members of parliament from abgeordnetenwatch."""
-    from dashboard_backend.tasks.parliament import refresh_parliament_data
+    """Refresh the members of parliament from abgeordnetenwatch.
 
-    task = refresh_parliament_data.delay(user_id=current_user.id)
-    return TaskLaunchResponse(task_id=task.id)
+    The same job runs every Monday from the scheduler; ``409`` while a run is
+    going (feature-routine-abrufe.md).
+    """
+    from dashboard_backend.models.routine_job_run import JOB_PARLIAMENT
+    from dashboard_backend.services import job_lock, routine_jobs
+
+    try:
+        task_id = routine_jobs.launch(JOB_PARLIAMENT, user_id=current_user.id)
+    except job_lock.JobAlreadyRunning as exc:
+        raise HTTPException(
+            status_code=409, detail=routine_jobs.already_running_detail(exc)
+        ) from exc
+    return TaskLaunchResponse(task_id=task_id)
 
 
 @router.post("/recompute-links", response_model=TaskLaunchResponse, status_code=202)

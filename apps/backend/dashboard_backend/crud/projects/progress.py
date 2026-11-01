@@ -697,7 +697,10 @@ def sync_derived_observations_bulk(
         .all()
     )
     for row in bauportal_rows:
-        observed = row.fetched_at.date() if row.fetched_at is not None else None
+        # The last status change, not the last fetch: seeing the same status
+        # again every night is no new observation (feature-routine-abrufe.md W2).
+        observed_at = row.status_changed_at or row.fetched_at
+        observed = observed_at.date() if observed_at is not None else None
         bauportal_spec = bauportal_to_spec(
             bauportal_status_id=row.id,
             status_raw=row.status_raw,

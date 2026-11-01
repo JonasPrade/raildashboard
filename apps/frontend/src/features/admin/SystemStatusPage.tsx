@@ -5,7 +5,8 @@
  * running, the upload still succeeds and the page waits forever: Celery reports
  * the same PENDING for „queued" and for „nobody is listening". This page makes
  * that difference visible — broker, workers, queue length — and names the
- * command that answers the next question.
+ * command that answers the next question. Below: the scheduled routine jobs
+ * (feature-routine-abrufe.md).
  */
 
 import {
@@ -24,7 +25,9 @@ import {
 import { RefreshCw } from "lucide-react";
 
 import RequirePermission from "../../components/RequirePermission";
+import { useQueryClient } from "@tanstack/react-query";
 import {
+    queryKeys,
     useRecheckWorkerHealth,
     useRoutingHealth,
     useWorkerHealth,
@@ -34,6 +37,7 @@ import {
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
 import { STATUS_TONE } from "../../shared/theme/semanticColors";
 import { LoadingState } from "../../shared/ui/LoadingState";
+import RoutineJobsCard from "./RoutineJobsCard";
 
 const STATUS_DISPLAY: Record<WorkerHealth["status"], { color: string; label: string }> = {
     ok: { color: STATUS_TONE.done, label: "Worker laufen" },
@@ -82,6 +86,7 @@ function WorkerTable({ health }: { health: WorkerHealth }) {
 function SystemStatusPageContent() {
     const { data: health, isLoading, isError } = useWorkerHealth();
     const recheck = useRecheckWorkerHealth();
+    const queryClient = useQueryClient();
     const { data: routing, isLoading: routingLoading, isError: routingError, refetch: refetchRouting } =
         useRoutingHealth();
 
@@ -97,6 +102,7 @@ function SystemStatusPageContent() {
                         onClick={() => {
                             recheck.mutate();
                             void refetchRouting();
+                            void queryClient.invalidateQueries({ queryKey: queryKeys.routineJobs });
                         }}
                     >
                         Erneut prüfen
@@ -171,6 +177,8 @@ function SystemStatusPageContent() {
                         )}
                     </Stack>
                 </Paper>
+
+                <RoutineJobsCard />
 
                 <Paper withBorder p="var(--card-pad)">
                     <Stack gap="md">

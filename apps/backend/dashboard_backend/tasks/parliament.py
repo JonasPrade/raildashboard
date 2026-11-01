@@ -5,6 +5,9 @@ Three jobs with very different cost:
 * ``refresh_parliament_data`` — ~15 paged requests against abgeordnetenwatch and
   an upsert over a few thousand rows. Cheap on purpose: the people data ages
   fast (substitutes, committee reshuffles), so rerunning has to be painless.
+  Runs every Monday from the scheduler (``user_id = None`` → „Zeitplan“) and
+  from the button; network errors are retried up to three times
+  (feature-routine-abrufe.md).
 * ``rebuild_constituency_links`` — the full ``ST_Intersection`` rebuild over
   every project with a geometry. Needed after a geometry import or a new
   legislative period, not in daily operation.
@@ -26,28 +29,71 @@ from dashboard_backend.models.parliament import (
     IMPORT_STATUS_SUCCESS,
     ParliamentImportRun,
 )
+from dashboard_backend.models.routine_job_run import JOB_PARLIAMENT
+from dashboard_backend.services import job_lock
 from dashboard_backend.services.constituency_matching import recompute_all_links
 from dashboard_backend.services.parliament_import import (
     import_constituency_geometries,
     import_politicians,
     parse_constituency_geojson,
 )
+from dashboard_backend.services.routine_jobs import retry_note, retry_or_fail, will_retry
 from dashboard_backend.utils.file_storage import consume_staged_import
 
 logger = logging.getLogger(__name__)
 
 
 @celery_app.task(bind=True)
-def refresh_parliament_data(self, user_id: int | None = None, period_external_id: int | None = None) -> dict:
-    """Fetch period, constituencies, mandates and committee memberships."""
+def refresh_parliament_data(
+    self,
+    user_id: int | None = None,
+    period_external_id: int | None = None,
+    lock_token: str | None = None,
+) -> dict:
+    """Fetch period, constituencies, mandates and committee memberships.
+
+    The caller holds the job lock and passes its token; the task releases it.
+    Each attempt writes its own ``parliament_import_run`` row; one that will be
+    retried says so in its error text.
+    """
     db = Session()
     try:
-        run = import_politicians(
-            db, period_external_id=period_external_id, user_id=user_id
-        )
+        try:
+            run = import_politicians(
+                db, period_external_id=period_external_id, user_id=user_id
+            )
+        except Exception as exc:  # noqa: BLE001 — import_politicians recorded the run
+            if will_retry(self, exc):
+                _annotate_last_politician_run(db, retry_note(self, exc))
+            retry_or_fail(
+                self,
+                exc,
+                job=JOB_PARLIAMENT,
+                lock_token=lock_token,
+                kwargs={
+                    "user_id": user_id,
+                    "period_external_id": period_external_id,
+                    "lock_token": lock_token,
+                },
+            )
+        job_lock.release(JOB_PARLIAMENT, lock_token)
         return {"run_id": run.id, "status": run.status, "stats": run.stats}
     finally:
         db.close()
+
+
+def _annotate_last_politician_run(db, note: str) -> None:
+    from dashboard_backend.models.parliament import IMPORT_KIND_POLITICIANS
+
+    run = (
+        db.query(ParliamentImportRun)
+        .filter(ParliamentImportRun.kind == IMPORT_KIND_POLITICIANS)
+        .order_by(ParliamentImportRun.id.desc())
+        .first()
+    )
+    if run is not None:
+        run.error = note
+        db.commit()
 
 
 @celery_app.task(bind=True)

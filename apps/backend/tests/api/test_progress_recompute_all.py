@@ -86,7 +86,9 @@ def test_recompute_endpoint_starts_a_task(client, create_user, monkeypatch):
     class FakeTask:
         id = "task-456"
 
-    monkeypatch.setattr(progress_tasks.recompute_all_progress_task, "delay", lambda: FakeTask())
+    monkeypatch.setattr(
+        progress_tasks.recompute_all_progress_task, "delay", lambda **kwargs: FakeTask()
+    )
     resp = client.post("/api/v1/admin/progress-recompute", headers=basic_auth_header("verwalterin", "pw"))
     assert resp.status_code == 202
     assert resp.json() == {"task_id": "task-456"}

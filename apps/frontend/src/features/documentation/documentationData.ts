@@ -214,7 +214,8 @@ export const featureHighlights: FeatureHighlight[] = [
             "Ist ein Projekt einem Eintrag des DB-Bauportals (bauprojekte.deutschebahn.com) zugeordnet und ist diese Zuordnung bestätigt, " +
             "zeigt die Projektseite die Karte „DB-Bauportal“ mit Link auf die Bauportal-Seite.",
         details: [
-            "Je Eintrag: Titel als Link (öffnet in neuem Tab), Status, Bauzeit und Abrufdatum („Stand“)",
+            "Je Eintrag: Titel als Link (öffnet in neuem Tab), Status, Bauzeit und „Stand“ (letzter nächtlicher Abruf, der den Eintrag lieferte)",
+            "Das Bauportal wird jede Nacht um 02:40 Uhr abgerufen. Als Beobachtung im Planungsstand zählt nur ein Statuswechsel, datiert auf den Tag des Wechsels – ein erneutes Sehen desselben Status macht das Bauportal nicht zur „neuesten“ Quelle",
             "Die Karte und ihr Eintrag im Inhaltsverzeichnis erscheinen nur, wenn mindestens ein bestätigter Eintrag einen Link hat – sonst fehlt sie ganz",
             "Unbestätigte Vorschläge aus dem Bauportal-Import werden nicht angezeigt"
         ]
@@ -494,7 +495,10 @@ export const featureHighlights: FeatureHighlight[] = [
         details: [
             "Route /admin/system (Recht settings.manage): Broker-Erreichbarkeit, alle laufenden Worker mit ihren aktuellen Aufträgen, Länge der Warteschlange, Schaltfläche „Erneut prüfen“",
             "Routing-Dienst (GraphHopper): Erreichbarkeit, Antwortzeit und bei Störung der nächste Schritt",
-            "Administrations-Übersicht: Kachel „Systemstatus“ mit rotem Hinweis, sobald kein Worker online ist",
+            "Administrations-Übersicht: Kachel „Systemstatus“ mit rotem Hinweis, sobald kein Worker online ist oder ein zeitgesteuerter Abruf Aufmerksamkeit braucht",
+            "Block „Zeitgesteuerte Abrufe“: Der Dienst scheduler holt das DB-Bauportal täglich um 02:40 Uhr, den Abgeordnetenstand montags um 02:50 Uhr und berechnet den Planungsstand sonntags um 03:10 Uhr neu. Je Job: Zeitplan, nächster Termin, letzter Lauf (Zeit, Auslöser „Zeitplan“ oder Nutzer, Dauer), Status und Fehlermeldung, dazu der Link zur Fachseite mit dem Knopf",
+            "Roter Hinweis, wenn der letzte Lauf eines Jobs fehlschlug, er länger als das doppelte Intervall nicht erfolgreich lief oder der Zeitplan abgeschaltet ist (ROUTINE_JOBS_ENABLED=false)",
+            "Läuft ein Job gerade, lehnt sein Knopf mit „Läuft bereits seit …“ ab; ein Zeitplan-Lauf, der auf einen laufenden Job trifft, wird übersprungen und protokolliert. Netzfehler werden bis zu dreimal wiederholt",
             "Import-Seiten: Bleibt ein Auftrag ~15 s ohne Start, erscheint unter dem Fortschrittsbalken der Grund samt Link auf den Systemstatus",
             "Fortschrittsanzeige benennt die laufende Stufe („Seite 12 / 42 gelesen — 318 Tabellenzeilen“, „Tabellen zuordnen…“, „141 Maßnahmen — Ergebnis wird gespeichert…“)",
             "Fehlgeschlagene Aufträge melden Fehlerklasse, Meldung und die Stelle im Code sowie den Befehl für das vollständige Worker-Log"
@@ -561,7 +565,8 @@ export const featureHighlights: FeatureHighlight[] = [
             "Map: switchable constituency layer (?wahlkreise=1); selecting one shows its projects and MPs",
             "Station projects have no kilometres — they are weighted by their share of the project's points and labelled \"Lage im Wahlkreis\"",
             "Sources: Die Bundeswahlleiterin (© GeoBasis-DE / BKG) for the outlines, abgeordnetenwatch API v2 (CC0) for the people",
-            "The Abrufstand of the last people import is visible in the UI and flagged as stale after 60 days",
+            "The Abrufstand of the last people import is visible in the UI (trigger „Zeitplan“ or the user) and flagged as stale after 60 days",
+            "The people are refreshed automatically every Monday at 02:50 (scheduler service); the button stays for an extra run",
             "Admin page /admin/abgeordnete (parliament.import): refresh the people from abgeordnetenwatch, upload the constituency outlines as GeoJSON (once per election) and rebuild the project-constituency links"
         ]
     },

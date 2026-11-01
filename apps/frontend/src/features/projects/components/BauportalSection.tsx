@@ -1,5 +1,5 @@
 import { Anchor, Group, Paper, Stack, Text, Title } from "@mantine/core";
-import { useProjectBauportal } from "../../../shared/api/queries";
+import { type ProjectBauportalEntry, useProjectBauportal } from "../../../shared/api/queries";
 import { formatDate } from "../../../shared/format";
 import { bauportalLinkedEntries } from "./bauportalEntries";
 
@@ -8,6 +8,12 @@ import { bauportalLinkedEntries } from "./bauportalEntries";
 // „DB-Bauportal (#47)“ → „Anzeige auf der Projektseite“). Only confirmed
 // entries with a link are shown; without one there is no card at all.
 // ---------------------------------------------------------------------------
+
+/** „Stand“ = the last nightly fetch that returned the entry (feature-routine-abrufe.md);
+ *  an older backend only sends fetched_at. */
+function stand(e: ProjectBauportalEntry): string | null {
+    return e.last_seen_at ?? e.fetched_at ?? null;
+}
 
 export default function BauportalSection({ projectId }: { projectId: number }) {
     const { data } = useProjectBauportal(projectId);
@@ -35,9 +41,7 @@ export default function BauportalSection({ projectId }: { projectId: number }) {
                                 <Text size="sm" c="dimmed">Bauzeit: {e.projecttime_raw}</Text>
                             )}
                         </Group>
-                        {e.fetched_at && (
-                            <Text size="xs" c="dimmed">Stand: {formatDate(e.fetched_at)}</Text>
-                        )}
+                        {stand(e) && <Text size="xs" c="dimmed">Stand: {formatDate(stand(e) as string)}</Text>}
                     </Stack>
                 ))}
             </Stack>

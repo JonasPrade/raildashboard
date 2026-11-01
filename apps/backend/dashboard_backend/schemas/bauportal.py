@@ -23,7 +23,13 @@ class BauportalEntrySchema(BaseModel):
     url: str | None = None
     lat: float | None = None
     lng: float | None = None
+    # First fetch; superseded by the two fields below (contract release #325).
     fetched_at: datetime | None = None
+    # Last change of ``status_raw`` — the observation date of the derived
+    # BAUPORTAL observation (feature-routine-abrufe.md, W2).
+    status_changed_at: datetime | None = None
+    # Last fetch that returned the entry („Stand“).
+    last_seen_at: datetime | None = None
     suggested_project_id: int | None = None
     suggested_project_name: str | None = None
     project_id: int | None = None
@@ -32,10 +38,16 @@ class BauportalEntrySchema(BaseModel):
 
 
 class BauportalImportSummary(BaseModel):
+    """Result of one ``refresh_bauportal`` run (the Celery task's result)."""
+
+    run_id: int | None = None
     fetched: int
     created: int
     updated: int
     skipped: int
+    # Entries whose status changed, and how many projects were recomputed for it.
+    status_changed: int = 0
+    recomputed_projects: int = 0
 
 
 class BauportalUpdateInput(BaseModel):
@@ -68,3 +80,6 @@ class ProjectBauportalEntrySchema(BaseModel):
     projecttime_raw: str | None = None
     url: str | None = None
     fetched_at: datetime | None = None
+    status_changed_at: datetime | None = None
+    # Shown as „Stand“ on the project page.
+    last_seen_at: datetime | None = None

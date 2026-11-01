@@ -37,7 +37,9 @@ import {
     useStartConstituencyLinkRebuild,
     useStartParliamentImport,
 } from "../../shared/api/queries";
+import { apiErrorDetail } from "../../shared/api/client";
 import { useImportTask } from "../import-review/shared";
+import { triggerLabel } from "./routineJobs";
 import { StatusTag } from "../../shared/ui/SwatchTag";
 import { LoadingState } from "../../shared/ui/LoadingState";
 
@@ -59,6 +61,7 @@ function RunLine({ label, run }: { label: string; run: ImportRun | null | undefi
             {run ? (
                 <>
                     <Text size="sm">{formatDateTime(run.finished_at ?? run.started_at)}</Text>
+                    <Text size="xs" c="dimmed">{triggerLabel(run)}</Text>
                     <StatusTag
                         size="xs"
                         tone={run.status === "success" ? "done" : run.status === "error" ? "danger" : "active"}
@@ -123,7 +126,7 @@ function ParliamentAdminPageContent() {
                 notifications.show({
                     color: "red",
                     title: failureTitle,
-                    message: error instanceof Error ? error.message : "Auftrag konnte nicht gestartet werden.",
+                    message: apiErrorDetail(error, "Auftrag konnte nicht gestartet werden."),
                 }),
         });
 
@@ -215,6 +218,7 @@ function ParliamentAdminPageContent() {
                         <Text size="sm" c="dimmed">
                             Lädt Wahlperiode, Wahlkreise, Mandate und die Mitglieder von Verkehrs- und
                             Haushaltsausschuss neu. Idempotent — nach Nachrückern oder Ausschussumbesetzungen einfach erneut ausführen.
+                            Läuft außerdem jeden Montag um 02:50 Uhr von selbst (Abrufstand „Zeitplan“).
                         </Text>
                         <Group>
                             <Button

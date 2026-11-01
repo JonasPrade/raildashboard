@@ -12,17 +12,21 @@ import {
     Title,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
+import { useQueryClient } from "@tanstack/react-query";
 import { CheckCheck, ExternalLink, RefreshCw } from "lucide-react";
 
 import {
+    queryKeys,
     useBauportalEntries,
     useConfirmAllBauportal,
     useFetchBauportal,
     useProjectOptions,
     useUpdateBauportalEntry,
     type BauportalEntry,
+    type BauportalImportSummary,
     type Project,
 } from "../../shared/api/queries";
+import { apiErrorDetail } from "../../shared/api/client";
 import { filterProjectOption } from "../../lib/filterProjectOption";
 import CreateDraftProjectModal from "../projects/CreateDraftProjectModal";
 import { ResponsiveTable } from "../../shared/ui/ResponsiveTable";
@@ -30,7 +34,9 @@ import {
     ConfirmBadge,
     MissingProjectAnchor,
     SavingIndicator,
+    TaskProgressIndicator,
     UnconfirmedFilter,
+    useImportTask,
     usePatchWithToast,
 } from "../import-review/shared";
 import { PhaseTag } from "../projects/components/progress/PhaseBadge";
@@ -131,6 +137,7 @@ export default function BauportalImportPage() {
     const { data: entries, isLoading } = useBauportalEntries(onlyUnconfirmed);
     const { data: projects } = useProjectOptions();
     const fetchBauportal = useFetchBauportal();
+    const queryClient = useQueryClient();
     const confirmAll = useConfirmAllBauportal();
     const update = useUpdateBauportalEntry();
 
@@ -153,19 +160,42 @@ export default function BauportalImportPage() {
     );
     const confirmedCount = (entries ?? []).filter((e) => e.confirmed).length;
 
+    // The fetch is a Celery task — the same one the scheduler runs every night
+    // at 02:40 (feature-routine-abrufe.md). The button only starts it early.
+    const fetchTask = useImportTask({
+        onSuccess: (result) => {
+            fetchTask.reset();
+            const summary = result as BauportalImportSummary;
+            queryClient.invalidateQueries({ queryKey: queryKeys.bauportalEntries });
+            queryClient.invalidateQueries({ queryKey: queryKeys.routineJobs });
+            notifications.show({
+                color: "green",
+                title: "Bauportal abgerufen",
+                message:
+                    `${summary.fetched} Einträge · ${summary.created} neu · ${summary.updated} aktualisiert` +
+                    (summary.status_changed ? ` · ${summary.status_changed} Statuswechsel` : ""),
+            });
+        },
+        onFailure: (error) => {
+            queryClient.invalidateQueries({ queryKey: queryKeys.routineJobs });
+            notifications.show({
+                color: "red",
+                title: "Abruf fehlgeschlagen",
+                message: error ?? "Die Bauportal-API ist nicht erreichbar.",
+                autoClose: false,
+            });
+        },
+    });
+    const fetchBusy = fetchBauportal.isPending || fetchTask.taskId !== null;
+
     const handleFetch = () => {
         fetchBauportal.mutate(undefined, {
-            onSuccess: (summary) =>
+            onSuccess: (response) => fetchTask.start(response.task_id),
+            onError: (error) =>
                 notifications.show({
-                    color: "green",
-                    title: "Bauportal abgerufen",
-                    message: `${summary.fetched} Einträge · ${summary.created} neu · ${summary.updated} aktualisiert`,
-                }),
-            onError: () =>
-                notifications.show({
-                    color: "red",
-                    title: "Abruf fehlgeschlagen",
-                    message: "Die Bauportal-API ist nicht erreichbar.",
+                    color: "orange",
+                    title: "Abruf nicht gestartet",
+                    message: apiErrorDetail(error, "Der Abruf konnte nicht gestartet werden."),
                 }),
         });
     };
@@ -205,6 +235,11 @@ export default function BauportalImportPage() {
                             ggf. anpassen und übernehmen. Bestätigte Zuordnungen erzeugen eine
                             abgeleitete Beobachtung (Quelle „Bauportal").
                         </Text>
+                        <Text c="dimmed" size="sm">
+                            Der Abruf läuft jede Nacht um 02:40 Uhr von selbst; der Knopf holt
+                            ihn vor. Projekte, deren bestätigter Eintrag den Status wechselt,
+                            werden danach sofort neu berechnet.
+                        </Text>
                     </Stack>
                     <Group gap="sm">
                         <Button
@@ -223,13 +258,21 @@ export default function BauportalImportPage() {
                         <Button
                             leftSection={<RefreshCw size={16} />}
                             onClick={handleFetch}
-                            loading={fetchBauportal.isPending}
+                            loading={fetchBusy}
                             variant="light"
                         >
                             Bauportal abrufen
                         </Button>
                     </Group>
                 </Group>
+
+                {fetchTask.taskId !== null && (
+                    <TaskProgressIndicator
+                        progress={fetchTask.progress}
+                        label="Bauportal wird abgerufen …"
+                        warning={fetchTask.warning}
+                    />
+                )}
 
                 <Group justify="space-between">
                     <UnconfirmedFilter checked={onlyUnconfirmed} onChange={setOnlyUnconfirmed} />

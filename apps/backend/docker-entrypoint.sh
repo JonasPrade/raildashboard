@@ -8,7 +8,7 @@
 # compose.yaml dumps the database with the db image's own pg_dump, and the
 # backend only starts once that backup completed successfully (DEPLOY.md).
 #
-# SKIP_MIGRATIONS=1 disables the Alembic step — used by the worker container so
+# SKIP_MIGRATIONS=1 disables the Alembic step — used by the worker and scheduler containers so
 # only the backend service runs `alembic upgrade head`. Without this, both
 # containers race on the same migration and one crashes with
 # `psycopg2.errors.UniqueViolation: pg_class_relname_nsp_index`.

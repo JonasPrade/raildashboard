@@ -46,6 +46,7 @@ from dashboard_backend.models.parliament import (
     role_rank,
 )
 from dashboard_backend.models.parliament.mandate import MANDATE_TYPE_CONSTITUENCY
+from dashboard_backend.services.exceptions import TransientFetchError
 
 API_BASE = "https://www.abgeordnetenwatch.de/api/v2"
 PAGE_SIZE = 100
@@ -198,12 +199,20 @@ class AbgeordnetenwatchClient:
             try:
                 with urllib.request.urlopen(url, timeout=self.timeout) as response:
                     return json.load(response)
+            except urllib.error.HTTPError as exc:
+                # A 4xx is a wrong request, not a network problem: no retry.
+                if exc.code < 500:
+                    raise RuntimeError(
+                        f"abgeordnetenwatch request failed ({exc.code}): {url}"
+                    ) from exc
+                last_error = exc
             except (urllib.error.URLError, TimeoutError, OSError) as exc:
                 last_error = exc
-                if attempt == self.retries - 1:
-                    break
-                time.sleep(2**attempt)
-        raise RuntimeError(f"abgeordnetenwatch request failed: {url}") from last_error
+            if attempt == self.retries - 1:
+                break
+            time.sleep(2**attempt)
+        # Network failure: the routine job retries it (feature-routine-abrufe.md).
+        raise TransientFetchError(f"abgeordnetenwatch request failed: {url}") from last_error
 
     def paged(self, path: str, **params: Any) -> Iterator[dict[str, Any]]:
         start = 0

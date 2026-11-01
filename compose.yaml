@@ -6,7 +6,7 @@
 # Local builds come from compose.override.yaml, which must never be on the server.
 #
 # Docker Compose reads .env from the working directory for variable substitution;
-# backend and worker also get it as their environment (env_file).
+# backend, worker and scheduler also get it as their environment (env_file).
 
 # Fixed, so volumes (raildashboard_pgdata, …) and networks keep their names no
 # matter which directory the file sits in.
@@ -111,6 +111,32 @@ services:
         condition: service_started
       # Wait until backend reports healthy, which means alembic has finished and
       # the schema is in place before the worker imports task modules.
+      backend:
+        condition: service_healthy
+    networks:
+      - raildashboard-net
+
+  # Celery Beat: queues the scheduled routine jobs (DB-Bauportal daily 02:40,
+  # members of parliament Mondays 02:50, recompute of the planning state Sundays
+  # 03:10, Europe/Berlin — dashboard_backend/schedule.py). Same image and
+  # IMAGE_TAG as backend and worker, so a rollback takes the timetable along.
+  # Exactly one instance: never `celery worker -B`, which would start the jobs once
+  # per worker. Not a dependency of /healthz — a stopped scheduler shows up as the
+  # badge in the admin overview, not in the deploy. ROUTINE_JOBS_ENABLED=false in
+  # .env switches the schedule off. Beat's state file lives in /tmp
+  # (beat_schedule_filename), no volume needed. docs/features/feature-routine-abrufe.md
+  scheduler:
+    image: ghcr.io/jonasprade/raildashboard-backend:${IMAGE_TAG:?IMAGE_TAG missing in .env}
+    command: celery -A dashboard_backend.celery_app beat --loglevel=info
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: "postgresql+psycopg2://${DB_USER}:${DB_PASSWORD}@db:5432/raildashboard"
+      # Only the backend runs migrations (see worker).
+      SKIP_MIGRATIONS: "1"
+    depends_on:
+      redis:
+        condition: service_started
       backend:
         condition: service_healthy
     networks:

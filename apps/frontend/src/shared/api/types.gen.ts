@@ -1126,6 +1126,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/system/routine-jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Routine Jobs
+         * @description Scheduled routine jobs: timetable, next slot, last run and whether one
+         *     needs attention (feature-routine-abrufe.md, E3). Not part of /healthz.
+         */
+        get: operations["get_routine_jobs_api_v1_system_routine_jobs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/todos/": {
         parameters: {
             query?: never;
@@ -1843,7 +1864,10 @@ export interface paths {
         put?: never;
         /**
          * Fetch Bauportal
-         * @description Fetch the public Bauportal project list and upsert the raw table.
+         * @description Queue a fetch of the public Bauportal project list (Celery).
+         *
+         *     The task result is a ``BauportalImportSummary``; poll it via
+         *     ``GET /tasks/{task_id}``.
          */
         post: operations["fetch_bauportal_api_v1_import_bauportal_fetch_post"];
         delete?: never;
@@ -2570,7 +2594,8 @@ export interface paths {
          * Start Progress Recompute
          * @description Recompute the planning state of every project (Celery) — needed after a
          *     deploy that changes the derivation; the lazy resync only covers projects
-         *     that are read.
+         *     that are read. The same job runs every Sunday from the scheduler; ``409``
+         *     while a run is going (feature-routine-abrufe.md).
          */
         post: operations["start_progress_recompute_api_v1_admin_progress_recompute_post"];
         delete?: never;
@@ -2970,6 +2995,9 @@ export interface paths {
         /**
          * Start Import
          * @description Refresh the members of parliament from abgeordnetenwatch.
+         *
+         *     The same job runs every Monday from the scheduler; ``409`` while a run is
+         *     going (feature-routine-abrufe.md).
          */
         post: operations["start_import_api_v1_parliament_import_post"];
         delete?: never;
@@ -3626,6 +3654,10 @@ export interface components {
             lng?: number | null;
             /** Fetched At */
             fetched_at?: string | null;
+            /** Status Changed At */
+            status_changed_at?: string | null;
+            /** Last Seen At */
+            last_seen_at?: string | null;
             /** Suggested Project Id */
             suggested_project_id?: number | null;
             /** Suggested Project Name */
@@ -3639,17 +3671,6 @@ export interface components {
              * @default false
              */
             confirmed: boolean;
-        };
-        /** BauportalImportSummary */
-        BauportalImportSummary: {
-            /** Fetched */
-            fetched: number;
-            /** Created */
-            created: number;
-            /** Updated */
-            updated: number;
-            /** Skipped */
-            skipped: number;
         };
         /**
          * BauportalUpdateInput
@@ -5247,6 +5268,10 @@ export interface components {
             stats?: unknown;
             /** Error */
             error?: string | null;
+            /** Triggered By User Id */
+            triggered_by_user_id?: number | null;
+            /** Triggered By Username */
+            triggered_by_username?: string | null;
         };
         /** InfraplanApplyResult */
         InfraplanApplyResult: {
@@ -6784,6 +6809,10 @@ export interface components {
             url?: string | null;
             /** Fetched At */
             fetched_at?: string | null;
+            /** Status Changed At */
+            status_changed_at?: string | null;
+            /** Last Seen At */
+            last_seen_at?: string | null;
         };
         /** ProjectConstituenciesSchema */
         ProjectConstituenciesSchema: {
@@ -8191,6 +8220,68 @@ export interface components {
             properties: {
                 [key: string]: unknown;
             };
+        };
+        /**
+         * RoutineJobRunSchema
+         * @description The last run of a routine job (feature-routine-abrufe.md).
+         */
+        RoutineJobRunSchema: {
+            /** Started At */
+            started_at?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Duration Seconds */
+            duration_seconds?: number | null;
+            /** Status */
+            status: ("running" | "success" | "error" | "skipped") | string;
+            /** Error */
+            error?: string | null;
+            /** Stats */
+            stats?: unknown;
+            /** Triggered By User Id */
+            triggered_by_user_id?: number | null;
+            /** Triggered By Username */
+            triggered_by_username?: string | null;
+        };
+        /** RoutineJobStatusSchema */
+        RoutineJobStatusSchema: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Schedule Label */
+            schedule_label: string;
+            /** Interval Hours */
+            interval_hours: number;
+            /** Next Run At */
+            next_run_at?: string | null;
+            /** Admin Path */
+            admin_path: string;
+            /** Admin Label */
+            admin_label: string;
+            /** Running Since */
+            running_since?: string | null;
+            last_run?: components["schemas"]["RoutineJobRunSchema"] | null;
+            /** Last Success At */
+            last_success_at?: string | null;
+            /** Overdue */
+            overdue: boolean;
+            /** Needs Attention */
+            needs_attention: boolean;
+        };
+        /**
+         * RoutineJobsSchema
+         * @description Block „Zeitgesteuerte Abrufe“ in /admin/system and its badge.
+         */
+        RoutineJobsSchema: {
+            /** Enabled */
+            enabled: boolean;
+            /** Timezone */
+            timezone: string;
+            /** Jobs */
+            jobs: components["schemas"]["RoutineJobStatusSchema"][];
+            /** Needs Attention */
+            needs_attention: boolean;
         };
         /**
          * RoutingHealthSchema
@@ -11696,6 +11787,37 @@ export interface operations {
             };
         };
     };
+    get_routine_jobs_api_v1_system_routine_jobs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoutineJobsSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_todos_api_v1_todos__get: {
         parameters: {
             query?: {
@@ -12999,13 +13121,20 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            200: {
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BauportalImportSummary"];
+                    "application/json": components["schemas"]["TaskLaunchResponse"];
                 };
+            };
+            /** @description Ein Bauportal-Abruf läuft bereits. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -14281,6 +14410,13 @@ export interface operations {
                     "application/json": components["schemas"]["TaskLaunchResponse"];
                 };
             };
+            /** @description Die Neuberechnung läuft bereits. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -15073,6 +15209,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["TaskLaunchResponse"];
                 };
+            };
+            /** @description Der Abgeordneten-Abruf läuft bereits. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
