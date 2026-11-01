@@ -49,11 +49,11 @@ export const LAENDER: Record<string, string> = {
     TH: "Thüringen",
 };
 
-/** Tile map: [row, column] of each Land in a 7 × 6 grid, roughly where it lies. */
+/** Tile map: [row, column] of each Land in a 6 × 6 grid, roughly where it lies. */
 export const LAND_TILE: Record<string, [number, number]> = {
     SH: [0, 2], HH: [1, 2], MV: [1, 3], HB: [2, 1], NI: [2, 2], BE: [2, 4],
     NW: [3, 1], ST: [3, 3], BB: [3, 4], HE: [4, 2], TH: [4, 3], SN: [4, 4],
-    RP: [5, 1], BW: [5, 2], BY: [5, 3], SL: [6, 1],
+    SL: [5, 0], RP: [5, 1], BW: [5, 2], BY: [5, 3],
 };
 
 const de = (digits: number) => (v: number) =>

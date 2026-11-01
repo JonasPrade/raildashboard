@@ -391,7 +391,7 @@ function Laender({ index, year }: { index: ValueIndex; year: number }) {
     const toggle = (code: string) => setSelected((s) => (s === code ? null : code));
 
     const cells = [];
-    for (let r = 0; r < 7; r++) {
+    for (let r = 0; r < 6; r++) {
         for (let c = 0; c < 6; c++) {
             const code = Object.entries(LAND_TILE).find(([, p]) => p[0] === r && p[1] === c)?.[0];
             const land = code ? byCode.get(code) : undefined;
