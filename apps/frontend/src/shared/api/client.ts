@@ -65,3 +65,10 @@ export async function api<T>(path: string, init: ApiRequestInit = {}): Promise<T
 
     return response.json() as Promise<T>;
 }
+
+/** The backend's `detail` text of a failed request (e.g. a 409 „Läuft bereits
+ *  seit …“), or `fallback`. */
+export function apiErrorDetail(error: unknown, fallback: string): string {
+    const detail = (error as { details?: { detail?: unknown } } | undefined)?.details?.detail;
+    return typeof detail === "string" && detail ? detail : fallback;
+}

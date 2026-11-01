@@ -69,6 +69,9 @@ class ImportRunSchema(BaseModel):
     finished_at: datetime | None = None
     stats: Any = None
     error: str | None = None
+    # NULL = scheduled run (feature-routine-abrufe.md); the UI shows „Zeitplan“.
+    triggered_by_user_id: int | None = None
+    triggered_by_username: str | None = None
 
 
 class ProjectConstituenciesSchema(BaseModel):

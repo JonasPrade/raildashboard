@@ -19,6 +19,7 @@ import {
     useUnassignedGvfgEntries,
     useUnassignedInfraplanEntries,
     useUnassignedVibEntries,
+    useRoutineJobs,
     useWorkerHealth,
 } from "../../shared/api/queries";
 
@@ -76,6 +77,10 @@ export default function AdminOverviewPage() {
     // piling up because no worker is running.
     const { data: workerHealth } = useWorkerHealth(canSettings, 60000);
     const workersDown = workerHealth != null && workerHealth.status !== "ok";
+    // Scheduled routine jobs: a failed run, no successful run for twice the
+    // interval, or the schedule switched off (feature-routine-abrufe.md, E3).
+    const { data: routineJobs } = useRoutineJobs(canSettings, 300000);
+    const routineAttention = routineJobs?.needs_attention === true;
 
     if (!hasAnyAdmin) {
         return (
@@ -295,10 +300,17 @@ export default function AdminOverviewPage() {
                                         >
                                             {workersDown ? "Worker offline" : "Worker ok"}
                                         </Badge>
+                                        {routineAttention && (
+                                            <Badge color="red" size="xs" variant="filled">
+                                                {routineJobs?.enabled === false
+                                                    ? "Zeitplan aus"
+                                                    : "Abrufe prüfen"}
+                                            </Badge>
+                                        )}
                                     </Group>
                                     <Text size="sm" c="dimmed">
-                                        Laufen die Hintergrund-Aufträge? Worker, Warteschlange und
-                                        was bei einem hängenden Import zu tun ist
+                                        Laufen die Hintergrund-Aufträge? Worker, Warteschlange,
+                                        zeitgesteuerte Abrufe und was bei einem hängenden Import zu tun ist
                                     </Text>
                                 </Stack>
                             </Link>

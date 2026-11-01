@@ -81,6 +81,7 @@ export const queryKeys = {
     taskStatus: (taskId: string | null) => ["task-status", taskId] as const,
     workerHealth: ["worker-health"],
     routingHealth: ["routing-health"],
+    routineJobs: ["routine-jobs"],
     vibParseResult: (taskId: string | null) => ["vib-parse-result", taskId] as const,
     vibReports: ["vib-reports"],
     vibDrafts: ["vib-drafts"],
@@ -1325,6 +1326,21 @@ export function useRoutingHealth(enabled = true, refetchMs: number | false = 150
     });
 }
 
+export type RoutineJobs = components["schemas"]["RoutineJobsSchema"];
+export type RoutineJobStatus = components["schemas"]["RoutineJobStatusSchema"];
+export type RoutineJobRun = components["schemas"]["RoutineJobRunSchema"];
+
+/** Scheduled routine jobs (Bauportal, Abgeordnete, Neuberechnung) — block
+ *  „Zeitgesteuerte Abrufe“ in /admin/system and the badge in the overview. */
+export function useRoutineJobs(enabled = true, refetchMs: number | false = 60000) {
+    return useQuery({
+        queryKey: queryKeys.routineJobs,
+        queryFn: () => api<RoutineJobs>("/api/v1/system/routine-jobs"),
+        enabled,
+        refetchInterval: refetchMs,
+    });
+}
+
 export function useParseResults() {
     return useQuery({
         queryKey: queryKeys.haushaltParseResults,
@@ -1550,7 +1566,16 @@ export function useProjectBauportal(projectId: number) {
 
 export type BauportalUpdatePayload = components["schemas"]["BauportalUpdateInput"];
 
-export type BauportalImportSummary = components["schemas"]["BauportalImportSummary"];
+/** Result of the Celery task `refresh_bauportal` (polled via /tasks/{id}). */
+export type BauportalImportSummary = {
+    run_id?: number | null;
+    fetched: number;
+    created: number;
+    updated: number;
+    skipped: number;
+    status_changed?: number;
+    recomputed_projects?: number;
+};
 
 export function useBauportalEntries(onlyUnconfirmed = false) {
     return useQuery({
@@ -1562,12 +1587,13 @@ export function useBauportalEntries(onlyUnconfirmed = false) {
     });
 }
 
+/** Queues the Bauportal fetch (same task as the nightly schedule); 409 while a
+ *  run is going. The page follows the task with `useImportTask`. */
 export function useFetchBauportal() {
-    return useInvalidatingMutation(
-        () =>
-            api<BauportalImportSummary>("/api/v1/import/bauportal/fetch", { method: "POST" }),
-        [queryKeys.bauportalEntries],
-    );
+    return useMutation({
+        mutationFn: () =>
+            api<TaskLaunchResponse>("/api/v1/import/bauportal/fetch", { method: "POST" }),
+    });
 }
 
 export function useUpdateBauportalEntry() {

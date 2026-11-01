@@ -274,7 +274,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `list_media_reports` · `add_media_report` · `update_media_report` · `delete_media_report` | Medienberichte lesen und schreiben, die der Agent selbst gelesen hat (kein Abruf, keine Extraktion auf dem Server); erst bestätigt mit Projekt und Phase entsteht die MEDIEN-Beobachtung (Trust 0.4); gleiche URL am selben Projekt abgelehnt; Skill `medien-import` | `progress.edit` |
 | `list_politicians` · `get_politician` · `list_constituencies` · `get_constituency` · `get_project_constituencies` | Wahlkreise und Abgeordnete lesen (beide Arbeitsrichtungen aus `feature-abgeordnete.md`), je Antwort `data_status` (letzter Abruf, veraltet); kein Import über MCP | — |
 | `get_system_status` | Routing (GraphHopper) und Celery-Worker erreichbar? Ohne Zugangsdaten | `settings.manage` |
-| `list_bauportal_entries` · `get_bauportal_entry` · `assign_bauportal_entry` | DB-Bauportal-Einträge lesen (Filter Titel, Projekt, unbestätigt, ohne Projekt; einzeln mit `raw_json` und abgeleiteter Phase) und Zuordnung setzen/lösen/bestätigen wie `PATCH /import/bauportal/entries/{id}`; Bestätigen materialisiert die BAUPORTAL-Beobachtung neu. Der Abruf der externen API bleibt im Admin-Bereich. Eine abgeleitete BAUPORTAL-Beobachtung in `get_project_progress` trägt `bauportal_status_id` und `bauportal` (id, Titel, Link) | `progress.edit` |
+| `list_bauportal_entries` · `get_bauportal_entry` · `assign_bauportal_entry` | DB-Bauportal-Einträge lesen (Filter Titel, Projekt, unbestätigt, ohne Projekt; einzeln mit `raw_json` und abgeleiteter Phase) und Zuordnung setzen/lösen/bestätigen wie `PATCH /import/bauportal/entries/{id}`; Bestätigen materialisiert die BAUPORTAL-Beobachtung neu. Einträge tragen `status_changed_at` (letzter Statuswechsel = Beobachtungsdatum) und `last_seen_at` (letzter Abruf). Der Abruf der externen API bleibt im Admin-Bereich bzw. läuft nachts zeitgesteuert. Eine abgeleitete BAUPORTAL-Beobachtung in `get_project_progress` trägt `bauportal_status_id` und `bauportal` (id, Titel, Link) | `progress.edit` |
 | `list_skills` | Skills für die Arbeit über den MCP (Name, Beschreibung), siehe *Skills über MCP* | — |
 | `get_skill` | Anleitung eines Skills (Text der `SKILL.md`, optional eine Begleitdatei) | — |
 | `create_todo` | Aufgabe anlegen, optional mit `tags` | `todo.create` |
@@ -593,9 +593,8 @@ nur in der Oberfläche gingen. Umgesetzt wurde, was ein Agent sinnvoll braucht (
 - **Anhänge lesen ja, hochladen und löschen nein** (Nutzer, 2026-10-31): Inhalte von PDF
   und Word, Bilder als Bild; `.doc`, `.xls`, `.xlsx` bleiben ohne neue Abhängigkeit bei den
   Metadaten.
-- **Routine-Abrufe** (Abgeordnetenstand, Bauportal) laufen nicht über MCP, sondern sollen
-  zeitgesteuert laufen — Planung in eigener Session (`feature-routine-abrufe.md`, sobald
-  angelegt).
+- **Routine-Abrufe** (Abgeordnetenstand, Bauportal) laufen nicht über MCP, sondern seit
+  2026-11-01 zeitgesteuert über den Dienst `scheduler` (`feature-routine-abrufe.md`).
 - **Bewusst nicht über MCP:** Nutzer, Rollen, Rechte, API-Keys, Einstellungen (kein
   Weg zur Rechte-Ausweitung), Löschen von Projekten, Gruppen und Jahrgängen, PDF-Uploads
   (Haushalt, GVFG), Freigaben von Infraplan-Kennzahlen, Zustandsbericht und

@@ -4,7 +4,7 @@
 # `docker compose …` from the repository root. It adds the `build:` blocks that the
 # production file must not have, so a developer can build the full stack locally:
 #
-#   docker compose build          # builds db / backend / worker / frontend from local source
+#   docker compose build          # builds db / backend / worker / scheduler / frontend from local source
 #   docker compose up -d          # runs the locally built images
 #
 # IMPORTANT: This file lives only in the repository. The server has only compose.yaml,
@@ -32,6 +32,13 @@ services:
         skills: .claude/skills   # MCP skills, see apps/backend/Dockerfile
 
   worker:
+    build:
+      context: apps/backend
+      target: runtime
+      additional_contexts:
+        skills: .claude/skills   # MCP skills, see apps/backend/Dockerfile
+
+  scheduler:
     build:
       context: apps/backend
       target: runtime

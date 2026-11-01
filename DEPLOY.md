@@ -68,7 +68,7 @@ nützlich, um Stände zu benennen; ausgerollt wird über den SHA.
 
 | Datei | Herkunft | Zweck |
 |---|---|---|
-| `compose.yaml` | aus dem Repo kopiert | referenziert `ghcr.io/jonasprade/raildashboard-<dienst>:${IMAGE_TAG}`, der Server baut nie selbst |
+| `compose.yaml` | aus dem Repo kopiert | referenziert `ghcr.io/jonasprade/raildashboard-<dienst>:${IMAGE_TAG}`, der Server baut nie selbst. Dienste: `db`, `backup` (One-shot), `redis`, `backend`, `worker`, `scheduler` (Celery Beat, seit #340), `graphhopper`, `frontend`. Ändert sich die Datei im Repo, muss sie von Hand auf den Server (`docs/uebergabe-deploy.md`, Schritt 5) |
 | `.env` | von Hand angelegt, nie im Repo | alle Werte aus `.env.prod.example` **mit echten Werten** + `IMAGE_TAG` (pflegt `prod.sh`) |
 | `prod.sh` | `deploy/prod.sh` aus dem Repo, `chmod +x` | wird von der Pipeline per SSH aufgerufen |
 | `backups/` | Bind-Mount des `backup`-Dienstes | `pre-migrate_<zeit>_<sha12>.dump`, dazu ältere `pre-deploy_*.dump` aus der Zeit vor der Umstellung |
@@ -212,13 +212,17 @@ unset GHCR_PAT
 
    **Daran hängen die Container-Namen.** Backup-Skript (`raildashboard-db-1`),
    `/root/check_containers.sh` mit `/root/expected_containers.txt` (frontend, backend,
-   worker, db, redis, graphhopper) und `/root/monitored_software.yaml` (`raildashboard-redis-1`)
+   worker, db, redis, graphhopper; `scheduler` kommt mit #340 als Handschritt dazu,
+   `docs/uebergabe-deploy.md`) und `/root/monitored_software.yaml` (`raildashboard-redis-1`)
    sprechen die Container mit Namen an. `compose.yaml` setzt deshalb
    `name: raildashboard`; Projektname oder Dienstnamen nicht ändern, ohne diese drei
    Stellen mitzuziehen. Der One-shot `raildashboard-backup-1` steht nach jedem Lauf auf
    `exited`; er ist dort nicht eingetragen und darf es auch nicht werden.
 
    **Nicht gegen 04:05 ausrollen**: in diesem Fenster sind alle Container gestoppt.
+   Die zeitgesteuerten Abrufe des `scheduler` (02:40, montags 02:50, sonntags 03:10)
+   liegen alle davor; ein Termin, der in einen Stopp fiele, wird nicht nachgeholt
+   (`docs/features/feature-routine-abrufe.md`).
 
 **Besitz des `uploads`-Volumes.** Das Backend läuft als `appuser` (UID 1000) und braucht
 Schreibrecht auf `/app/uploads`. Ein Volume, das angelegt wurde, bevor das Image das
@@ -263,7 +267,13 @@ unveränderlich in GHCR. Deshalb nie über `latest` ausrollen — der SHA ist de
 Der älteste SHA, der so erreichbar ist, ist
 `76345cd182d430eae235769b75cb6eb520b74c9f` (Merge der Umstellung, erster Deploy über den
 Knopf am 11.10.2026, [Lauf 38138141196](https://github.com/JonasPrade/raildashboard/actions/runs/38138141196)). Für ältere Stände gibt es in GHCR nur
-Version-Tags (`v0.0.14` …), und `deploy.yml` lässt nur SHAs durch. Auf dem Server ist
+Version-Tags (`v0.0.14` …), und `deploy.yml` lässt nur SHAs durch.
+
+**Rückweg auf eine SHA ohne Scheduler** (vor #340): `prod.sh` tauscht nur `IMAGE_TAG`,
+die `compose.yaml` auf dem Server bleibt. Der `scheduler`-Container startet dann mit dem
+älteren Backend-Image, das keinen Zeitplan kennt, und tut nichts — harmlos; der nächste
+Vorwärts-Deploy bringt den Zeitplan zurück. Die Migration `20261101001` ist reines
+Expand, der ältere Code läuft auf ihr weiter. Auf dem Server ist
 v0.0.14 zusätzlich lokal auf seine Commit-SHA `2e85d736181b5559d7a0f2b87581b2bf98d04fce`
 getaggt; erreichbar ist das nur von Hand mit `./prod.sh 2e85d73…`, nicht über den Knopf.
 

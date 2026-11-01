@@ -1,5 +1,6 @@
 from celery import Celery
 from dashboard_backend.core.config import settings
+from dashboard_backend.schedule import TIMEZONE, build_beat_schedule
 
 celery_app = Celery(
     "dashboard_backend",
@@ -14,6 +15,8 @@ celery_app = Celery(
         "dashboard_backend.tasks.parliament",
         "dashboard_backend.tasks.progress",
         "dashboard_backend.tasks.project_overlap",
+        "dashboard_backend.tasks.bauportal",
+        "dashboard_backend.tasks.routine",
     ],
 )
 
@@ -27,4 +30,12 @@ celery_app.conf.update(
     task_reject_on_worker_lost=True,
     task_time_limit=1800,
     task_soft_time_limit=1500,
+    # Scheduled routine jobs, run by the `scheduler` service (`celery beat`).
+    # The timetable lives in dashboard_backend/schedule.py; crontab entries are
+    # read in Europe/Berlin. ROUTINE_JOBS_ENABLED=false leaves it empty, so Beat
+    # queues nothing. Beat's state file goes to /tmp: crontab schedules need no
+    # history, and nothing stays in the container outside a volume.
+    timezone=TIMEZONE,
+    beat_schedule=build_beat_schedule(settings.routine_jobs_enabled),
+    beat_schedule_filename="/tmp/celerybeat-schedule",
 )

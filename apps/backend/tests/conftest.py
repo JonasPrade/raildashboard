@@ -18,6 +18,9 @@ os.environ.setdefault("LLM_API_KEY", "")
 os.environ.setdefault("LLM_MODEL", "test-model")
 # No start-up jobs (initial fill of the map overlaps) against the test database.
 os.environ.setdefault("START_BACKGROUND_JOBS", "false")
+# The scheduler must never queue routine jobs (Bauportal, abgeordnetenwatch)
+# from a test run (feature-routine-abrufe.md, E4).
+os.environ.setdefault("ROUTINE_JOBS_ENABLED", "false")
 # Required Settings field with no default — provide a dummy so the suite is hermetic
 # and does not depend on a developer's local .env (CI has none). setdefault keeps any
 # real value from the environment/.env when present.
@@ -45,3 +48,17 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
+
+
+import pytest  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _free_routine_locks():
+    """Routine-job locks live in-process under the memory broker; no test may
+    inherit one from another (feature-routine-abrufe.md, E4)."""
+    from dashboard_backend.services import job_lock
+
+    job_lock.reset_for_tests()
+    yield
+    job_lock.reset_for_tests()

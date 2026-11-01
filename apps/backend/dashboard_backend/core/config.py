@@ -79,6 +79,11 @@ class Settings(BaseSettings):
     # Jobs the backend queues by itself at start (today: the initial fill of the
     # map overlaps when their tables are empty). Off in the test suite.
     start_background_jobs: bool = True
+    # Scheduled routine jobs (Bauportal, members of parliament, weekly recompute
+    # of the planning state) started by the `scheduler` service (Celery Beat).
+    # False = the scheduler queues nothing; the buttons in the admin area keep
+    # working. Off in the test suite. docs/features/feature-routine-abrufe.md
+    routine_jobs_enabled: bool = True
 
     model_config = SettingsConfigDict(
         env_file=_find_env_file(),

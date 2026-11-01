@@ -1,4 +1,5 @@
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, JSON, String, Text
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from dashboard_backend.models.base import Base
@@ -35,6 +36,14 @@ class ParliamentImportRun(Base):
     # members, ...) so a new metric does not need a migration.
     stats = Column(JSON, nullable=True)
     error = Column(Text, nullable=True)
+    # NULL = started by the scheduler (feature-routine-abrufe.md); the UI shows
+    # „Zeitplan“ instead of a user name.
     triggered_by_user_id = Column(
         Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
+
+    triggered_by = relationship("User", lazy="select")
+
+    @property
+    def triggered_by_username(self) -> str | None:
+        return self.triggered_by.username if self.triggered_by is not None else None

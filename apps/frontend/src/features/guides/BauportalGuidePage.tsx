@@ -12,9 +12,9 @@ const DEF: GuideDef = {
         {
             key: "abrufen",
             title: "Aktuellen Stand abrufen",
-            body: `Gehe zu [DB-Bauportal](/admin/bauportal-import) und klicke auf **„Bauportal abrufen"**. Das Dashboard holt die aktuellen Einträge aus der offenen Bauportal-API der Deutschen Bahn.
+            body: `Das Dashboard holt die Einträge **jede Nacht um 02:40 Uhr von selbst** aus der offenen Bauportal-API der Deutschen Bahn. Wechselt dabei der Status eines bestätigten Eintrags, wird der Planungsstand des Projekts sofort neu berechnet. Ob der letzte Lauf geklappt hat, steht unter [Systemstatus](/admin/system) → „Zeitgesteuerte Abrufe".
 
-Die Meldung nach dem Abruf zeigt, wie viele Einträge insgesamt geholt, neu angelegt und aktualisiert wurden. Ein erneuter Abruf ist jederzeit möglich und aktualisiert bestehende Einträge (Status/Zeitangaben), ohne deine bestätigten Zuordnungen zu verlieren.`,
+Für einen Abruf zwischendurch gehe zu [DB-Bauportal](/admin/bauportal-import) und klicke auf **„Bauportal abrufen"**. Der Abruf läuft im Hintergrund; die Meldung danach zeigt, wie viele Einträge insgesamt geholt, neu angelegt und aktualisiert wurden und wie viele den Status gewechselt haben. Ein erneuter Abruf aktualisiert bestehende Einträge (Status/Zeitangaben), ohne deine bestätigten Zuordnungen zu verlieren.`,
         },
         {
             key: "pruefen",
@@ -40,9 +40,14 @@ Mit **„Alle übernehmen (N)"** bestätigst du auf einen Schlag alle zugeordnet
     ],
     troubleshooting: [
         {
+            key: "ts-laeuft-bereits",
+            title: '„Läuft bereits seit …"',
+            body: `Ein Abruf läuft schon — der nächtliche oder einer, den jemand anderes gestartet hat. Ein paar Minuten warten und die Seite neu laden; die neuen Einträge erscheinen dann von selbst.`,
+        },
+        {
             key: "ts-api-down",
             title: '„Abruf fehlgeschlagen — API nicht erreichbar"',
-            body: `Die Bauportal-API antwortet nicht (temporär offline oder vom Server aus nicht erreichbar). Später erneut versuchen; besteht das Problem fort, einen Administrator hinzuziehen.`,
+            body: `Die Bauportal-API antwortet nicht (temporär offline oder vom Server aus nicht erreichbar). Bei Netzfehlern versucht das Dashboard es bis zu dreimal (nach 1, 4 und 16 Minuten), bevor der Lauf als Fehler gilt. Später erneut versuchen; besteht das Problem fort, einen Administrator hinzuziehen.`,
         },
         {
             key: "ts-kein-beitrag",

@@ -17,3 +17,4 @@ from . import condition  # noqa: F401
 from .app_settings import AppSettings  # noqa: F401
 from .guides import GuideSectionOverride  # noqa: F401
 from .api_keys import ApiKey  # noqa: F401
+from .routine_job_run import RoutineJobRun  # noqa: F401

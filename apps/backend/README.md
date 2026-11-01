@@ -230,6 +230,31 @@ View worker logs:
 make docker-worker-logs
 ```
 
+### Scheduled routine jobs — `scheduler` container
+
+A second service on the backend image, `scheduler`, runs Celery Beat
+(`command: celery -A dashboard_backend.celery_app beat --loglevel=info`, `SKIP_MIGRATIONS=1`)
+and queues three routine jobs that the worker executes (`docs/features/feature-routine-abrufe.md`):
+
+| Job | Europe/Berlin | Task | Run record |
+|---|---|---|---|
+| DB-Bauportal fetch + recompute of projects whose confirmed entry changed its status | daily 02:40 | `tasks.bauportal.refresh_bauportal` | `routine_job_run` (`job = bauportal`) |
+| Members of parliament (abgeordnetenwatch) | Mondays 02:50 | `tasks.parliament.refresh_parliament_data` | `parliament_import_run` |
+| Recompute the planning state of every project | Sundays 03:10 | `tasks.progress.recompute_all_progress_task` | `routine_job_run` (`job = progress_recompute`) |
+
+- **Timetable:** `dashboard_backend/schedule.py` — the only source for the Beat schedule,
+  its test and the `/admin/system` block. Beat queues small wrapper tasks
+  (`tasks/routine.py`) that check `ROUTINE_JOBS_ENABLED` and the job lock first.
+- **Lock:** `services/job_lock.py`, Redis `SET NX EX` under `routine-lock:<job>` (TTL = task
+  time limit). The buttons (`POST /import/bauportal/fetch`, `/parliament/import`,
+  `/admin/progress-recompute`) answer `409` „Läuft bereits seit …“ while it is held; a
+  scheduled run that finds it is recorded as `skipped` in `routine_job_run`.
+- **Retries:** network errors (httpx transport errors, 5xx, `TransientFetchError`) up to three
+  times after 1, 4 and 16 minutes; data errors fail at once. The recompute is not retried.
+- **Status:** `GET /api/v1/system/routine-jobs` (`settings.manage`). Not part of `/healthz`.
+- **Switch:** `ROUTINE_JOBS_ENABLED=false` leaves the Beat schedule empty (the test suite
+  sets it). Locally: `.venv/bin/celery -A dashboard_backend.celery_app beat` next to the worker.
+
 ### Task status polling
 
 After starting a task the API returns a `task_id`. The frontend polls:
@@ -565,12 +590,13 @@ unreachable there is an open mirror at
 fields and the shapefile export's `WKR_NR`/`WKR_NAME`/`LAND_NAME`. It rebuilds
 `project_to_constituency` afterwards unless `--skip-recompute` is given. Needs PostGIS.
 
-**Members of parliament** — whenever needed, as a Celery task
-(`POST /api/v1/parliament/import`, capability `parliament.import`): four paged endpoints of
+**Members of parliament** — every Monday 02:50 from the `scheduler` and whenever needed by
+hand, as the same Celery task (`POST /api/v1/parliament/import`, capability
+`parliament.import`; `409` while a run is going): four paged endpoints of
 the abgeordnetenwatch API v2 (CC0) for the period, the 299 constituencies, the 630 mandates
 and the memberships of the transport and budget committees. The run is idempotent and
-recorded as an Abrufstand (`parliament_import_run`), which the UI shows and flags as stale
-after 60 days.
+recorded as an Abrufstand (`parliament_import_run`, `triggered_by_user_id = NULL` for a
+scheduled run, shown as „Zeitplan“), which the UI shows and flags as stale after 60 days.
 
 Three rules the importer enforces, all of them earned the hard way:
 

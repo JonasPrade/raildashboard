@@ -239,3 +239,29 @@ Offen, bewusst nicht angefasst:
   Unkritisch, solange das Frontend same-origin spricht.
 - **Backend-Tests laufen nicht gegen die echte Datenbank** (`docs/workflow.md`, Ausnahmen);
   ein Test-Stack mit dem db-Image wäre ein eigenes Arbeitspaket.
+
+---
+
+## Neuer Dienst `scheduler` (#340, zeitgesteuerte Abrufe) — offen, nach dem Deploy
+
+Mit #340 (`docs/features/feature-routine-abrufe.md`) kommt der Compose-Dienst `scheduler`
+(Celery Beat) dazu. `prod.sh` tauscht nur `IMAGE_TAG`; die geänderte `compose.yaml` muss
+deshalb von Hand auf den Server, sonst läuft der Zeitplan nie. **Human task**, nach dem
+Deploy der SHA mit #340:
+
+1. **`compose.yaml` austauschen** wie in Schritt 5 (als `deploy` in `/srv/raildashboard/`,
+   Einfüge-Block, SHA-256 gegen das Repo prüfen), danach `docker compose config` ohne
+   `WARN` und `docker compose up -d scheduler`.
+2. **Überwachung:** als root `scheduler` in `/root/expected_containers.txt` eintragen
+   (vorher sichern, z. B. `expected_containers.txt.bak-<datum>`), sonst meldet
+   `/root/check_containers.sh` einen fehlenden Container nicht.
+3. **Prüfen:** `docker compose ps scheduler` zeigt `running`;
+   `docker compose logs --tail=20 scheduler` nennt `beat: Starting...`. In
+   *Administration → Systemstatus* stehen im Block „Zeitgesteuerte Abrufe“ drei Jobs mit
+   nächstem Termin.
+4. **Badge leeren:** auf den Fachseiten einmal „Bauportal abrufen“ und „Alle Projekte neu
+   berechnen“ drücken; sonst meldet das Badge „noch kein erfolgreicher Lauf“ bis zur
+   ersten Nacht bzw. bis Sonntag.
+
+Ein Rollback auf eine SHA vor #340 braucht keinen Handschritt: der `scheduler` startet
+dann mit dem älteren Image ohne Zeitplan und tut nichts (DEPLOY.md, „Rollback“).

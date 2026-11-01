@@ -135,9 +135,12 @@ Die beiden Datenteile altern unterschiedlich schnell, deshalb zwei getrennte Lä
   automatisch neu berechnet. Alternativ per Skript (`scripts/import_constituencies.py`)
   auf dem Server.
 - **Abgeordnetendaten** — Nachrücker und Ausschussumbesetzungen verschieben die
-  Zuordnung laufend, ohne dass an den Geometrien etwas falsch würde. **Seit 2026-10-31
-  geplant: zeitgesteuert, wöchentlich montags 02:50** über den Compose-Dienst
-  `scheduler` (`docs/features/feature-routine-abrufe.md`). Daneben bleibt der Anstoß
+  Zuordnung laufend, ohne dass an den Geometrien etwas falsch würde. **Seit 2026-11-01
+  zeitgesteuert, wöchentlich montags 02:50** über den Compose-Dienst `scheduler`
+  (`docs/features/feature-routine-abrufe.md`, entschieden 2026-10-31). Ein Zeitplan-Lauf
+  steht in `parliament_import_run` mit `triggered_by_user_id = NULL`; bei Netzfehlern
+  wird er bis zu dreimal wiederholt, und während ein Lauf geht, lehnt der Knopf mit
+  `409` ab. Daneben bleibt der Anstoß
   **von Hand im Adminbereich** (Seite `/admin/abgeordnete`, Button
   „Abgeordnetenstand aktualisieren", Recht `parliament.import`) für den Anlass, etwa vor
   einer Kampagne. Beides läuft als derselbe Celery-Task. Der Abrufstand steht in der
