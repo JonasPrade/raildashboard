@@ -36,7 +36,16 @@ from dashboard_backend.services.parliament_import import AbgeordnetenwatchClient
 from tests.api.conftest import basic_auth_header
 
 BERLIN = ZoneInfo("Europe/Berlin")
-FEATURE_DOC = Path(__file__).resolve().parents[4] / "docs" / "features" / "feature-routine-abrufe.md"
+# The repo root's docs/ — absent in the docker test stage (context apps/backend,
+# copied to /app), so look upwards instead of assuming a depth.
+FEATURE_DOC = next(
+    (
+        parent / "docs" / "features" / "feature-routine-abrufe.md"
+        for parent in Path(__file__).resolve().parents
+        if (parent / "docs" / "features").is_dir()
+    ),
+    Path("/nonexistent/feature-routine-abrufe.md"),
+)
 
 # The table E2 of the feature doc: job → (weekday or None = daily, hour, minute).
 EXPECTED_TIMETABLE = {
