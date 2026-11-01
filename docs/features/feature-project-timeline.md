@@ -140,6 +140,20 @@ die Blätter. Während der Pause steht dort z. B. „Genehmigungsplanung – In 
 - Pausierte/abgebrochene Projekte werden abgeblendet und markiert.
 - Mobil (360 px): Name über dem Balken, keine horizontale Scrollleiste.
 
+### Zeitstrahl der Unterprojekte auf der Projektseite
+
+Seit 2026-11-01. Auf der Detailseite eines übergeordneten Projekts steht im Abschnitt
+„Planungsstand“ direkt unter der Phasenleiste ein aufklappbares Element **„Zeitstrahl der
+Unterprojekte (n)“** (standardmäßig zu, lädt erst beim Aufklappen).
+
+- Je **direktem Unterprojekt** eine Zeile, gleich gezeichnet wie im Gruppen-Zeitstrahl
+  (`TimelineRow`, Legende, Achse, „heute“-Linie). Ein Unterprojekt mit eigenen Unterprojekten
+  bündelt seinen Teilbaum wie ein Oberprojekt dort.
+- Gemeinsame Jahresachse über die Unterprojekte; Sortierung nach Inbetriebnahme, ohne Auswahl.
+- Unterprojekte ohne belastbare Termine stehen darunter als Linkliste („Ohne belastbare
+  Termine (n): …“). Entwürfe und archivierte Unterprojekte fehlen.
+- Die Unterprojekt-Tabelle darunter bleibt unverändert.
+
 ### Unsichere Termine (Datumsqualifikation, #246)
 
 Jeder Meilenstein trägt `date_precision`, `date_label`, `date_text` und `derivation`
@@ -174,6 +188,12 @@ Jeder Meilenstein trägt `date_precision`, `date_label`, `date_text` und `deriva
   ohne Entwürfe) → `ProjectGroupTimelineSchema { group_id, items[], without_dates_count }`;
   je Item `milestones[]` und `construction_periods[] { start, end }` (`construction_periods`
   in `services/progress_timeline.py`).
+- Endpoint `GET /api/v1/projects/{project_id}/subprojects/timeline` (öffentlich, ETag) →
+  `SubprojectsTimelineSchema { project_id, items[], without_dates[] { project_id, name } }`;
+  gleiche Items wie der Gruppen-Zeitstrahl (`_timeline_items` in
+  `crud/projects/progress_timeline.py`). Frontend: `SubprojectsTimeline` in
+  `features/projects/components/progress/`, Hook `useSubprojectsTimeline` (Query-Key unter
+  `project-progress`, also bei jeder Planungsstand-Änderung neu geladen).
 - Frontend: `features/timeline/` (`TimelineView`, `timelineLayout.ts` mit Vitest-Tests),
   Hook `useProjectGroupTimeline` in `queries.ts`, dritte Option im `SegmentedControl` der
   `MapPage`.
@@ -234,3 +254,6 @@ Jeder Meilenstein trägt `date_precision`, `date_label`, `date_text` und `deriva
       zeigen denselben Termin. Ein Gesamttermin aus Fulda/Infraplan/GVFG am Oberprojekt
       ersetzt die Untergrenze, aber nie früher als die späteste Teil-Inbetriebnahme. HLK 11
       behält seine Etappen.
+- [ ] Projektseite eines Oberprojekts: „Zeitstrahl der Unterprojekte“ unter der Phasenleiste
+      klappt auf, zeigt je Unterprojekt mit Terminen eine Zeile und nennt die übrigen; bei
+      360 px keine horizontale Scrollleiste. Blattprojekte zeigen das Element nicht.

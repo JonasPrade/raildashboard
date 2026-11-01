@@ -22,6 +22,7 @@ import {
     percent,
     shortMilestoneDate,
     sortRows,
+    todayUtc,
     yearTicks,
     type Segment,
     type TimelineRange,
@@ -46,11 +47,6 @@ const TRACK_HEIGHT = 16;
 const LEGEND_PHASES: MainPhase[] = ["VORPLANUNG", "GENEHMIGUNGSPLANUNG", "BAU", "IN_BETRIEB"];
 
 const TODAY_COLOR = TIMELINE_COLOR.today;
-
-function todayUtc(): number {
-    const now = new Date();
-    return Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
-}
 
 // Pause between construction stages: a thin dashed line in seq-4 on the
 // neutral track — clearly not construction, but still one project.
@@ -145,7 +141,7 @@ function PhaseSegment({ seg, range }: { seg: Segment; range: TimelineRange }) {
     );
 }
 
-function TimelineRow({
+export function TimelineRow({
     row,
     range,
     ticks,
@@ -254,7 +250,7 @@ function TimelineRow({
     );
 }
 
-function Legend({ showGap, showPartial }: { showGap: boolean; showPartial: boolean }) {
+export function TimelineLegend({ showGap, showPartial }: { showGap: boolean; showPartial: boolean }) {
     const swatch = (background: string, extra?: CSSProperties) => (
         <Box style={{ width: 14, height: 10, background, flexShrink: 0, ...extra }} />
     );
@@ -319,6 +315,48 @@ function Legend({ showGap, showPartial }: { showGap: boolean; showPartial: boole
                 <Text size="xs">heute</Text>
             </Group>
         </Group>
+    );
+}
+
+/** Year labels above the rows; ``sticky`` pins it below the app header. */
+export function TimelineAxis({
+    ticks,
+    range,
+    sticky = false,
+}: {
+    ticks: number[];
+    range: TimelineRange;
+    sticky?: boolean;
+}) {
+    return (
+        <Box
+            style={{
+                position: sticky ? "sticky" : "relative",
+                top: sticky ? 60 : undefined,
+                zIndex: 3,
+                height: 22,
+                background: "var(--surface)",
+                borderBottom: "1px solid var(--border)",
+            }}
+        >
+            {ticks.map((year) => (
+                <Text
+                    key={year}
+                    size="xs"
+                    c="dimmed"
+                    style={{
+                        position: "absolute",
+                        left: `${percent(Date.UTC(year, 0, 1), range)}%`,
+                        // Keep the first/last label inside the track.
+                        translate: year === ticks[0] ? "0 0" : year === ticks.at(-1) ? "-100% 0" : "-50% 0",
+                        fontVariantNumeric: "tabular-nums",
+                        whiteSpace: "nowrap",
+                    }}
+                >
+                    {year}
+                </Text>
+            ))}
+        </Box>
     );
 }
 
@@ -402,7 +440,7 @@ export default function TimelineView({
                     w={180}
                 />
             </Group>
-            <Legend
+            <TimelineLegend
                 showGap={rows.some((row) => row.construction_periods.length > 1)}
                 showPartial={rows.some((row) => row.milestones.some((m) => m.kind === "PART_IBN"))}
             />
@@ -417,34 +455,7 @@ export default function TimelineView({
                 </Alert>
             ) : (
                 <Box>
-                    <Box
-                        style={{
-                            position: "sticky",
-                            top: 60,
-                            zIndex: 3,
-                            height: 22,
-                            background: "var(--surface)",
-                            borderBottom: "1px solid var(--border)",
-                        }}
-                    >
-                        {ticks.map((year) => (
-                            <Text
-                                key={year}
-                                size="xs"
-                                c="dimmed"
-                                style={{
-                                    position: "absolute",
-                                    left: `${percent(Date.UTC(year, 0, 1), range)}%`,
-                                    // Keep the first/last label inside the track.
-                                    translate: year === ticks[0] ? "0 0" : year === ticks.at(-1) ? "-100% 0" : "-50% 0",
-                                    fontVariantNumeric: "tabular-nums",
-                                    whiteSpace: "nowrap",
-                                }}
-                            >
-                                {year}
-                            </Text>
-                        ))}
-                    </Box>
+                    <TimelineAxis ticks={ticks} range={range} sticky />
                     {rows.slice(0, limit).map((row) => (
                         <TimelineRow key={row.project_id} row={row} range={range} ticks={ticks} today={today} />
                     ))}

@@ -1,4 +1,5 @@
-"""DB access for the multi-project timeline ("Zeitstrahl") of a project group.
+"""DB access for the multi-project timeline ("Zeitstrahl") of a project group
+and of the direct subprojects of one project.
 
 All inputs are loaded with a constant number of bulk queries over the group's
 projects and their subtrees (:func:`crud.projects.subtree_dates.load_subtree_dates`,
@@ -42,6 +43,48 @@ def get_group_timeline(
     if only_superior:
         query = query.filter(Project.superior_project_id.is_(None))
     projects = query.order_by(Project.name).all()
+
+    items = _timeline_items(db, projects, today)
+    return {
+        "group_id": group_id,
+        "items": items,
+        "without_dates_count": len(projects) - len(items),
+    }
+
+
+def get_subprojects_timeline(db: Session, project_id: int, *, today: date | None = None) -> dict:
+    """Timeline payload (matching ``SubprojectsTimelineSchema``) for the direct
+    subprojects of a project — one row per subproject, each pooling its own subtree."""
+
+    today = today or date.today()
+
+    projects = (
+        db.query(Project.id, Project.name, Project.project_number, Project.superior_project_id)
+        .filter(
+            Project.superior_project_id == project_id,
+            Project.is_draft.is_(False),
+            Project.is_archived.is_(False),
+        )
+        .order_by(Project.name)
+        .all()
+    )
+
+    items = _timeline_items(db, projects, today)
+    dated = {item["project_id"] for item in items}
+    return {
+        "project_id": project_id,
+        "items": items,
+        "without_dates": [
+            {"project_id": p.id, "name": p.name} for p in projects if p.id not in dated
+        ],
+    }
+
+
+def _timeline_items(db: Session, projects: list, today: date) -> list[dict]:
+    """One timeline row per project with credible dates, in the given order.
+
+    ``projects`` are rows with ``id``, ``name``, ``project_number`` and
+    ``superior_project_id``; each row pools its whole subtree."""
 
     root_ids = [p.id for p in projects]
     inputs = load_subtree_dates(db, root_ids, today)
@@ -110,8 +153,4 @@ def get_group_timeline(
             }
         )
 
-    return {
-        "group_id": group_id,
-        "items": items,
-        "without_dates_count": len(projects) - len(items),
-    }
+    return items

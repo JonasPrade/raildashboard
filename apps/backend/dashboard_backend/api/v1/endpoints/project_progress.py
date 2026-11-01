@@ -6,13 +6,16 @@ public (like BVWP data); all mutations require the ``progress.edit`` capability.
 
 from __future__ import annotations
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
+from pydantic import TypeAdapter
 from sqlalchemy.orm import Session
 
 from dashboard_backend.api.deps import get_project_or_404
+from dashboard_backend.core.http_cache import etag_json_response
 from dashboard_backend.core.security import optional_auth, require_permission
 from dashboard_backend.crud import bauportal as bauportal_crud
 from dashboard_backend.crud.projects import progress as progress_crud
+from dashboard_backend.crud.projects.progress_timeline import get_subprojects_timeline
 from dashboard_backend.database import get_db
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.users import User
@@ -24,11 +27,13 @@ from dashboard_backend.schemas.projects.progress_schema import (
     ProgressObservationUpdate,
     ProjectProgressSchema,
     ProjectProgressUpdate,
+    SubprojectsTimelineSchema,
 )
 
 router = AuthRouter()
 
 _DOCUMENT_TRACKS = {"PF", "PARL"}
+_subprojects_timeline_adapter = TypeAdapter(SubprojectsTimelineSchema)
 
 
 def _view(db: Session, project_id: int) -> dict:
@@ -50,6 +55,22 @@ def read_progress(
         for observation in view.observations:
             observation.username_snapshot = None
     return view
+
+
+@router.get("/{project_id}/subprojects/timeline", response_model=SubprojectsTimelineSchema)
+def read_subprojects_timeline(
+    request: Request,
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+):
+    """Public: timeline rows of the project's direct subprojects (detail page).
+
+    Same rows as the group timeline — each subproject pools its own subtree;
+    BVWP estimates are never used. Subprojects without credible dates are
+    named in ``without_dates``. The response carries an ETag.
+    """
+    payload = get_subprojects_timeline(db, project.id)
+    return etag_json_response(request, payload, _subprojects_timeline_adapter)
 
 
 @router.get("/{project_id}/bauportal", response_model=list[ProjectBauportalEntrySchema])

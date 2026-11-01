@@ -260,6 +260,12 @@ export function buildSegments(
 }
 
 /** Whole-year range covering every milestone and today. */
+/** Today at 00:00 UTC — the "heute" line and the axis anchor. */
+export function todayUtc(): number {
+    const now = new Date();
+    return Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
 export function computeRange(rows: ProjectTimeline[], today: number): TimelineRange {
     let min = today;
     let max = today;
