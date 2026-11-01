@@ -44,6 +44,9 @@ export const queryKeys = {
     projectRoutes: (projectId: number) => ["projectRoutes", projectId] as const,
     progress: ["project-progress"],
     progressFor: (projectId: number) => ["project-progress", projectId] as const,
+    // Nested under `progress`: any progress mutation refreshes the subproject timeline.
+    subprojectsTimeline: (projectId: number) =>
+        ["project-progress", "subprojects-timeline", projectId] as const,
     // Nested under `progress`: any progress mutation refreshes the conflict list.
     progressConflicts: ["project-progress", "conflicts"],
     sammelFinveProgress: ["sammel-finve-progress"],
@@ -606,6 +609,17 @@ export function useProjectGroupsTimeline(groupIds: number[], onlySuperior: boole
                 ),
         })),
         combine: combineTimelines,
+    });
+}
+
+export type SubprojectsTimeline = components["schemas"]["SubprojectsTimelineSchema"];
+
+/** Timeline rows of a project's direct subprojects; loads only while ``enabled``. */
+export function useSubprojectsTimeline(projectId: number, enabled: boolean) {
+    return useQuery({
+        queryKey: queryKeys.subprojectsTimeline(projectId),
+        enabled: enabled && Number.isFinite(projectId),
+        queryFn: () => api<SubprojectsTimeline>(`/api/v1/projects/${projectId}/subprojects/timeline`),
     });
 }
 

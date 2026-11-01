@@ -88,6 +88,7 @@ export const featureHighlights: FeatureHighlight[] = [
             "Bauen die Unterprojekte in getrennten Etappen, zeigt der Balken nur die Bauzeiten der Etappen; die Pause dazwischen erscheint als gestrichelte Linie „zwischen Bauetappen“",
             "Unsichere Termine: nur das Jahr bekannt → Balken mit weicher Kante und Beschriftung „2028“; nur eine Untergrenze → offener, blass schraffierter Bereich bis zum rechten Rand mit Pfeil und „nach 2031 – Termin offen“; Annahme (z. B. 6 Monate Bauzeit) → gestrichelter Rahmen, die Herleitung steht im Tooltip. Die Legende erklärt alle drei",
             "Sortierung nach Inbetriebnahme, Baubeginn oder Name; Gruppen (Mehrfachauswahl wie auf der Karte), Suche, Sortierung und „Nur Hauptprojekte“ stehen in der URL",
+            "Auf der Projektseite eines übergeordneten Projekts klappt unter der Phasenleiste des Planungsstands „Zeitstrahl der Unterprojekte“ auf: eine Zeile je direktem Unterprojekt (mit dessen eigenen Unterprojekten gebündelt) auf gemeinsamer Jahresachse, sortiert nach Inbetriebnahme; Unterprojekte ohne belastbare Termine werden darunter verlinkt genannt",
             "Details: docs/features/feature-project-timeline.md"
         ]
     },

@@ -421,3 +421,18 @@ class ProjectGroupTimelineSchema(BaseModel):
     items: list[ProjectTimelineSchema] = []
     # Projects of the group left out for lack of credible dates.
     without_dates_count: int = 0
+
+
+class SubprojectWithoutDatesSchema(BaseModel):
+    project_id: int
+    name: str
+
+
+class SubprojectsTimelineSchema(BaseModel):
+    """Timeline of the direct subprojects of one project (detail page)."""
+
+    project_id: int
+    # Only subprojects with at least one concrete milestone.
+    items: list[ProjectTimelineSchema] = []
+    # Subprojects left out for lack of credible dates (named, for the list).
+    without_dates: list[SubprojectWithoutDatesSchema] = []

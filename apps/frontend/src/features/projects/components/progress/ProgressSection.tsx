@@ -12,6 +12,7 @@ import PhaseStepper, { type StepperChild } from "./PhaseStepper";
 import ProgressEditDrawer from "./ProgressEditDrawer";
 import SourceBreakdown from "./SourceBreakdown";
 import SubprojectsTable from "./SubprojectsTable";
+import SubprojectsTimeline from "./SubprojectsTimeline";
 import {
     LIFECYCLE_LABEL,
     MAIN_PHASE_LABEL,
@@ -175,6 +176,10 @@ export default function ProgressSection({ projectId }: { projectId: number }) {
                         vibPhaseCompletions(vibEntries, projectId, progress.is_superior, progress.hidden_phases),
                     )}
                 />
+
+                {progress.is_superior && progress.children.length > 0 && (
+                    <SubprojectsTimeline projectId={projectId} count={progress.children.length} />
+                )}
 
                 {progress.is_superior && progress.children.length > 0 && (
                     <SubprojectsTable children={progress.children} />

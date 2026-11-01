@@ -471,6 +471,30 @@ export interface paths {
         patch: operations["patch_progress_api_v1_projects__project_id__progress_patch"];
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/subprojects/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Subprojects Timeline
+         * @description Public: timeline rows of the project's direct subprojects (detail page).
+         *
+         *     Same rows as the group timeline — each subproject pools its own subtree;
+         *     BVWP estimates are never used. Subprojects without credible dates are
+         *     named in ``without_dates``. The response carries an ETag.
+         */
+        get: operations["read_subprojects_timeline_api_v1_projects__project_id__subprojects_timeline_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/bauportal": {
         parameters: {
             query?: never;
@@ -8317,6 +8341,31 @@ export interface components {
              */
             in_conflict: boolean;
         };
+        /** SubprojectWithoutDatesSchema */
+        SubprojectWithoutDatesSchema: {
+            /** Project Id */
+            project_id: number;
+            /** Name */
+            name: string;
+        };
+        /**
+         * SubprojectsTimelineSchema
+         * @description Timeline of the direct subprojects of one project (detail page).
+         */
+        SubprojectsTimelineSchema: {
+            /** Project Id */
+            project_id: number;
+            /**
+             * Items
+             * @default []
+             */
+            items: components["schemas"]["ProjectTimelineSchema"][];
+            /**
+             * Without Dates
+             * @default []
+             */
+            without_dates: components["schemas"]["SubprojectWithoutDatesSchema"][];
+        };
         /** TaskLaunchResponse */
         TaskLaunchResponse: {
             /** Task Id */
@@ -10247,6 +10296,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectProgressSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_subprojects_timeline_api_v1_projects__project_id__subprojects_timeline_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubprojectsTimelineSchema"];
                 };
             };
             /** @description Validation Error */
