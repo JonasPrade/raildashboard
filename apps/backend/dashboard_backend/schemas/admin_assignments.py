@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from datetime import datetime
+from typing import Literal
+
 from pydantic import BaseModel
 
 
@@ -39,3 +42,22 @@ class UnassignedInfraplanEntrySchema(BaseModel):
 
 class AssignProjectsInput(BaseModel):
     project_ids: list[int]
+
+
+AssignmentKind = Literal["finve", "vib", "gvfg", "infraplan"]
+
+
+class DismissAssignmentInput(BaseModel):
+    """Optional reason, shown in the list of ignored records."""
+
+    note: str | None = None
+
+
+class DismissedAssignmentSchema(BaseModel):
+    kind: AssignmentKind
+    entry_id: int
+    label: str
+    detail: str | None
+    note: str | None
+    dismissed_at: datetime
+    dismissed_by: str | None

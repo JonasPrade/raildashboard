@@ -19,6 +19,8 @@ from typing import Any, Iterable
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from dashboard_backend.crud.assignment_dismissals import dismissed_ids
+from dashboard_backend.models.assignment_dismissal import KIND_GVFG
 from dashboard_backend.crud.changelog import create_changelog_for_create, create_changelog_for_patch
 from dashboard_backend.models.gvfg import (
     GvfgEntry,
@@ -473,14 +475,19 @@ def project_entries(db: Session, project_id: int, with_subprojects: bool = False
 
 
 def unassigned_entries(db: Session) -> list[GvfgEntry]:
-    """Entries of the newest edition without any project."""
+    """Entries of the newest edition without any project, minus those
+    ignored for good („Dauerhaft ignorieren“)."""
     newest = db.query(GvfgProgram).order_by(GvfgProgram.year_from.desc()).first()
     if newest is None:
         return []
     linked = select(gvfg_entry_project.c.entry_id)
     return (
         db.query(GvfgEntry)
-        .filter(GvfgEntry.program_id == newest.id, GvfgEntry.id.not_in(linked))
+        .filter(
+            GvfgEntry.program_id == newest.id,
+            GvfgEntry.id.not_in(linked),
+            GvfgEntry.id.not_in(dismissed_ids(KIND_GVFG)),
+        )
         .options(selectinload(GvfgEntry.amounts), selectinload(GvfgEntry.projects))
         .order_by(GvfgEntry.land, GvfgEntry.key)
         .all()

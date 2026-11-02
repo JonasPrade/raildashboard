@@ -35,6 +35,7 @@ import { formatMio, sumLine } from "../gvfg/gvfgFormat";
 import VibEntryEditDrawer from "../vib-import/VibEntryEditDrawer";
 import { SECTION_SHORT, formatMio as formatInfraplanMio } from "../infraplan/infraplanFormat";
 import { LoadingState } from "../../shared/ui/LoadingState";
+import { DismissAnchor, DismissModal, DismissedSection, type DismissTarget } from "./DismissedAssignments";
 
 function UnassignedPageContent() {
     const [finveSelections, setFinveSelections] = useState<Record<number, string[]>>({});
@@ -42,6 +43,7 @@ function UnassignedPageContent() {
     const [gvfgSelections, setGvfgSelections] = useState<Record<number, string[]>>({});
     const [infraplanSelections, setInfraplanSelections] = useState<Record<number, string[]>>({});
     const [editingVibId, setEditingVibId] = useState<number | null>(null);
+    const [dismissTarget, setDismissTarget] = useState<DismissTarget | null>(null);
     const { data: editingVibEntry } = useVibEntry(editingVibId);
     // "A project is missing → create it as a draft and assign it here." One
     // modal serves every row; the anchor sets the target entry.
@@ -210,11 +212,18 @@ function UnassignedPageContent() {
                                                         Zuweisen
                                                     </Button>
                                                 </Group>
-                                                <MissingProjectAnchor
-                                                    onClick={() =>
-                                                        openDraft(f.name, "FinVe", (extra) => handleAssignFinve(f.id, extra))
-                                                    }
-                                                />
+                                                <Group gap="md">
+                                                    <MissingProjectAnchor
+                                                        onClick={() =>
+                                                            openDraft(f.name, "FinVe", (extra) => handleAssignFinve(f.id, extra))
+                                                        }
+                                                    />
+                                                    <DismissAnchor
+                                                        onClick={() =>
+                                                            setDismissTarget({ kind: "finve", entryId: f.id, label: f.name ?? `FinVe ${f.id}` })
+                                                        }
+                                                    />
+                                                </Group>
                                             </Stack>
                                         </Table.Td>
                                     </Table.Tr>
@@ -285,11 +294,18 @@ function UnassignedPageContent() {
                                                         Zuweisen
                                                     </Button>
                                                 </Group>
-                                                <MissingProjectAnchor
-                                                    onClick={() =>
-                                                        openDraft(e.vib_name_raw, "VIB", (extra) => handleAssignVib(e.id, extra))
-                                                    }
-                                                />
+                                                <Group gap="md">
+                                                    <MissingProjectAnchor
+                                                        onClick={() =>
+                                                            openDraft(e.vib_name_raw, "VIB", (extra) => handleAssignVib(e.id, extra))
+                                                        }
+                                                    />
+                                                    <DismissAnchor
+                                                        onClick={() =>
+                                                            setDismissTarget({ kind: "vib", entryId: e.id, label: e.vib_name_raw })
+                                                        }
+                                                    />
+                                                </Group>
                                             </Stack>
                                         </Table.Td>
                                         <Table.Td>
@@ -369,11 +385,18 @@ function UnassignedPageContent() {
                                                         Zuweisen
                                                     </Button>
                                                 </Group>
-                                                <MissingProjectAnchor
-                                                    onClick={() =>
-                                                        openDraft(e.name, "GVFG", (extra) => handleAssignGvfg(e.id, extra))
-                                                    }
-                                                />
+                                                <Group gap="md">
+                                                    <MissingProjectAnchor
+                                                        onClick={() =>
+                                                            openDraft(e.name, "GVFG", (extra) => handleAssignGvfg(e.id, extra))
+                                                        }
+                                                    />
+                                                    <DismissAnchor
+                                                        onClick={() =>
+                                                            setDismissTarget({ kind: "gvfg", entryId: e.id, label: e.name ?? e.key })
+                                                        }
+                                                    />
+                                                </Group>
                                             </Stack>
                                         </Table.Td>
                                     </Table.Tr>
@@ -459,13 +482,20 @@ function UnassignedPageContent() {
                                                         Zuweisen
                                                     </Button>
                                                 </Group>
-                                                <MissingProjectAnchor
-                                                    onClick={() =>
-                                                        openDraft(e.massnahme ?? e.bezeichnung, "Infraplan", (extra) =>
-                                                            handleAssignInfraplan(e.id, extra),
-                                                        )
-                                                    }
-                                                />
+                                                <Group gap="md">
+                                                    <MissingProjectAnchor
+                                                        onClick={() =>
+                                                            openDraft(e.massnahme ?? e.bezeichnung, "Infraplan", (extra) =>
+                                                                handleAssignInfraplan(e.id, extra),
+                                                            )
+                                                        }
+                                                    />
+                                                    <DismissAnchor
+                                                        onClick={() =>
+                                                            setDismissTarget({ kind: "infraplan", entryId: e.id, label: e.massnahme ?? e.bezeichnung ?? `Nr. ${e.lfd_nr}` })
+                                                        }
+                                                    />
+                                                </Group>
                                             </Stack>
                                         </Table.Td>
                                     </Table.Tr>
@@ -474,7 +504,11 @@ function UnassignedPageContent() {
                         </ResponsiveTable>
                     )}
                 </Stack>
+
+                <DismissedSection />
             </Stack>
+
+            <DismissModal target={dismissTarget} onClose={() => setDismissTarget(null)} />
 
             <CreateDraftProjectModal
                 opened={draft !== null}

@@ -13,6 +13,7 @@ from dashboard_backend.crud.admin_assignments import (
     list_unassigned_finves,
     list_unassigned_vib_entries,
 )
+from dashboard_backend.crud import assignment_dismissals as dismissal_crud
 from dashboard_backend.crud import gvfg as gvfg_crud
 from dashboard_backend.crud.projects.progress import list_progress_conflicts
 from dashboard_backend.crud import infraplan_import as infraplan_crud
@@ -22,7 +23,10 @@ from dashboard_backend.models.infraplan import InfraplanEntry
 from dashboard_backend.models.users import User
 from dashboard_backend.routing.auth_router import AuthRouter
 from dashboard_backend.schemas.admin_assignments import (
+    AssignmentKind,
     AssignProjectsInput,
+    DismissAssignmentInput,
+    DismissedAssignmentSchema,
     UnassignedFinveSchema,
     UnassignedInfraplanEntrySchema,
     UnassignedVibEntrySchema,
@@ -207,3 +211,51 @@ def assign_infraplan_entry(
         )
     except infraplan_crud.InfraplanNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+# --- „Dauerhaft ignorieren“ (feature-unassigned-assignments.md) -------------
+
+
+@router.get("/dismissed-assignments", response_model=list[DismissedAssignmentSchema])
+def get_dismissed_assignments(
+    db: Session = Depends(get_db),
+    _current_user: User = _require_editor,
+) -> list[dict]:
+    """Records hidden from „Offene Zuordnungen“, newest first."""
+    return dismissal_crud.list_dismissed(db)
+
+
+@router.put(
+    "/dismissed-assignments/{kind}/{entry_id}",
+    response_model=None,
+    status_code=204,
+    responses={404: {"description": "Eintrag nicht gefunden."}},
+)
+def dismiss_assignment(
+    kind: AssignmentKind,
+    entry_id: int,
+    body: DismissAssignmentInput | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = _require_editor,
+) -> None:
+    """Ignore an open record for good: it no longer appears under „Offene
+    Zuordnungen“ nor in the header count. Idempotent; the record itself is
+    not changed."""
+    try:
+        dismissal_crud.dismiss(
+            db, kind, entry_id, note=body.note if body else None, user=current_user
+        )
+    except dismissal_crud.DismissalNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.delete("/dismissed-assignments/{kind}/{entry_id}", response_model=None, status_code=204)
+def restore_assignment(
+    kind: AssignmentKind,
+    entry_id: int,
+    db: Session = Depends(get_db),
+    _current_user: User = _require_editor,
+) -> None:
+    """Undo „Dauerhaft ignorieren“; the record is open again (if still
+    without a project). Idempotent."""
+    dismissal_crud.restore(db, kind, entry_id)

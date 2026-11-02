@@ -98,6 +98,7 @@ from dashboard_backend.models.associations.document_to_projects import DocumentT
 from dashboard_backend.models.railway_infrastructure.operational_point import OperationalPoint
 from dashboard_backend.models.routes import Route
 from dashboard_backend.models.routine_job_run import RoutineJobRun
+from dashboard_backend.models.assignment_dismissal import AssignmentDismissal
 from dashboard_backend.models.projects.project_group import ProjectGroup
 from dashboard_backend.schemas.users import UserRole
 from dashboard_backend.services.route_service import RouteService
@@ -149,6 +150,7 @@ TABLES = [
     CommitteeMembership.__table__,
     ParliamentImportRun.__table__,
     RoutineJobRun.__table__,  # must follow User (FK dependency); scheduled routine jobs
+    AssignmentDismissal.__table__,  # must follow User; „Dauerhaft ignorieren“ in Offene Zuordnungen
     ProjectToConstituency.__table__,  # FK to project (absent here) is unenforced in SQLite
     ProjectMapGeometry.__table__,  # map overlaps, refreshed with every geometry write
     ProjectOverlap.__table__,

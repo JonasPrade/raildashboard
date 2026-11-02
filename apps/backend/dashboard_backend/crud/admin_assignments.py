@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
+from dashboard_backend.crud.assignment_dismissals import dismissed_ids
 from dashboard_backend.crud.finve_links import change_finve_links, update_finve_projects
+from dashboard_backend.models.assignment_dismissal import KIND_FINVE, KIND_VIB
 from dashboard_backend.models.associations.finve_to_project import FinveToProject
 from dashboard_backend.models.projects.finve import Finve
 from dashboard_backend.models.users import User
@@ -16,11 +18,12 @@ from dashboard_backend.schemas.admin_assignments import (
 
 
 def list_unassigned_finves(db: Session) -> list[UnassignedFinveSchema]:
-    """Return FinVes that have no entry in finve_to_project."""
+    """Return FinVes that have no entry in finve_to_project and are not
+    ignored („Dauerhaft ignorieren“)."""
     rows = (
         db.query(Finve)
         .outerjoin(FinveToProject, FinveToProject.finve_id == Finve.id)
-        .filter(FinveToProject.id.is_(None))
+        .filter(FinveToProject.id.is_(None), Finve.id.not_in(dismissed_ids(KIND_FINVE)))
         .order_by(Finve.id)
         .all()
     )
@@ -36,7 +39,8 @@ def list_unassigned_finves(db: Session) -> list[UnassignedFinveSchema]:
 
 
 def list_unassigned_vib_entries(db: Session) -> list[UnassignedVibEntrySchema]:
-    """Return VibEntries that have no row in vib_entry_project."""
+    """Return VibEntries that have no row in vib_entry_project and are not
+    ignored („Dauerhaft ignorieren“)."""
     rows = (
         db.query(VibEntry, VibReport.year)
         .join(VibReport, VibReport.id == VibEntry.vib_report_id)
@@ -44,7 +48,10 @@ def list_unassigned_vib_entries(db: Session) -> list[UnassignedVibEntrySchema]:
             vib_entry_project,
             vib_entry_project.c.vib_entry_id == VibEntry.id,
         )
-        .filter(vib_entry_project.c.project_id.is_(None))
+        .filter(
+            vib_entry_project.c.project_id.is_(None),
+            VibEntry.id.not_in(dismissed_ids(KIND_VIB)),
+        )
         .order_by(VibReport.year.desc(), VibEntry.id)
         .all()
     )
