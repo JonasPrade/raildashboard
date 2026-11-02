@@ -2768,6 +2768,53 @@ export interface paths {
         patch: operations["assign_infraplan_entry_api_v1_admin_unassigned_infraplan_entries__entry_id__assign_patch"];
         trace?: never;
     };
+    "/api/v1/admin/dismissed-assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Dismissed Assignments
+         * @description Records hidden from „Offene Zuordnungen“, newest first.
+         */
+        get: operations["get_dismissed_assignments_api_v1_admin_dismissed_assignments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/dismissed-assignments/{kind}/{entry_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Dismiss Assignment
+         * @description Ignore an open record for good: it no longer appears under „Offene
+         *     Zuordnungen“ nor in the header count. Idempotent; the record itself is
+         *     not changed.
+         */
+        put: operations["dismiss_assignment_api_v1_admin_dismissed_assignments__kind___entry_id__put"];
+        post?: never;
+        /**
+         * Restore Assignment
+         * @description Undo „Dauerhaft ignorieren“; the record is open again (if still
+         *     without a project). Idempotent.
+         */
+        delete: operations["restore_assignment_api_v1_admin_dismissed_assignments__kind___entry_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/roles/": {
         parameters: {
             query?: never;
@@ -4585,6 +4632,37 @@ export interface components {
             x: number;
             /** Y */
             y: number;
+        };
+        /**
+         * DismissAssignmentInput
+         * @description Optional reason, shown in the list of ignored records.
+         */
+        DismissAssignmentInput: {
+            /** Note */
+            note?: string | null;
+        };
+        /** DismissedAssignmentSchema */
+        DismissedAssignmentSchema: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "finve" | "vib" | "gvfg" | "infraplan";
+            /** Entry Id */
+            entry_id: number;
+            /** Label */
+            label: string;
+            /** Detail */
+            detail: string | null;
+            /** Note */
+            note: string | null;
+            /**
+             * Dismissed At
+             * Format: date-time
+             */
+            dismissed_at: string;
+            /** Dismissed By */
+            dismissed_by: string | null;
         };
         /** DocumentRefSchema */
         DocumentRefSchema: {
@@ -14704,6 +14782,112 @@ export interface operations {
                 "application/json": components["schemas"]["AssignProjectsInput"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_dismissed_assignments_api_v1_admin_dismissed_assignments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DismissedAssignmentSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dismiss_assignment_api_v1_admin_dismissed_assignments__kind___entry_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: "finve" | "vib" | "gvfg" | "infraplan";
+                entry_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DismissAssignmentInput"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Eintrag nicht gefunden. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_assignment_api_v1_admin_dismissed_assignments__kind___entry_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: "finve" | "vib" | "gvfg" | "infraplan";
+                entry_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             204: {

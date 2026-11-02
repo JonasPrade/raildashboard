@@ -93,6 +93,7 @@ export const queryKeys = {
     adminUnassignedVibEntries: ["admin-unassigned-vib-entries"],
     adminUnassignedGvfgEntries: ["admin-unassigned-gvfg-entries"],
     adminUnassignedInfraplanEntries: ["admin-unassigned-infraplan-entries"],
+    adminDismissedAssignments: ["admin-dismissed-assignments"],
     infraplanParseResults: ["infraplan-parse-results"],
     infraplanParseResult: (id: number) => ["infraplan-parse-result", id] as const,
     infraplanReports: ["infraplan-reports"],
@@ -2733,6 +2734,56 @@ export function useAssignInfraplanEntry() {
             queryKeys.progress,
         ],
     );
+}
+
+// --- Admin: „Dauerhaft ignorieren“ (feature-unassigned-assignments.md) ------
+
+export type AssignmentKind = components["schemas"]["DismissedAssignmentSchema"]["kind"];
+export type DismissedAssignment = components["schemas"]["DismissedAssignmentSchema"];
+
+const UNASSIGNED_KEY: Record<AssignmentKind, readonly unknown[]> = {
+    finve: queryKeys.adminUnassignedFinves,
+    vib: queryKeys.adminUnassignedVibEntries,
+    gvfg: queryKeys.adminUnassignedGvfgEntries,
+    infraplan: queryKeys.adminUnassignedInfraplanEntries,
+};
+
+/** Records hidden from „Offene Zuordnungen“, newest first. */
+export function useDismissedAssignments(enabled = true) {
+    return useQuery({
+        queryKey: queryKeys.adminDismissedAssignments,
+        queryFn: () => api<DismissedAssignment[]>("/api/v1/admin/dismissed-assignments"),
+        enabled,
+    });
+}
+
+/** Ignore an open record for good; it leaves its list and the header count. */
+export function useDismissAssignment() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ kind, entryId, note }: { kind: AssignmentKind; entryId: number; note?: string | null }) =>
+            api<void>(`/api/v1/admin/dismissed-assignments/${kind}/${entryId}`, {
+                method: "PUT",
+                json: { note: note || null },
+            }),
+        onSuccess: (_data, { kind }) => {
+            queryClient.invalidateQueries({ queryKey: UNASSIGNED_KEY[kind] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.adminDismissedAssignments });
+        },
+    });
+}
+
+/** Undo „Dauerhaft ignorieren“; the record is open again. */
+export function useRestoreAssignment() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ kind, entryId }: { kind: AssignmentKind; entryId: number }) =>
+            api<void>(`/api/v1/admin/dismissed-assignments/${kind}/${entryId}`, { method: "DELETE" }),
+        onSuccess: (_data, { kind }) => {
+            queryClient.invalidateQueries({ queryKey: UNASSIGNED_KEY[kind] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.adminDismissedAssignments });
+        },
+    });
 }
 
 // ---------------------------------------------------------------------------

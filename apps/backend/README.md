@@ -784,7 +784,9 @@ Concept: `docs/features/feature-infraplan-import.md`.
    state (source `INFRAPLAN`). 409 when the year exists or warnings are open.
    `DELETE /api/v1/import/infraplan/report/{year}` removes one year and reopens its draft.
 8. **Open rows** — `GET /api/v1/admin/unassigned-infraplan-entries`, `PATCH
-   …/{id}/assign` (`assignment.manage`).
+   …/{id}/assign` (`assignment.manage`). A row that never gets a project can be
+   ignored for good with `PUT /api/v1/admin/dismissed-assignments/infraplan/{id}`
+   (same for `finve`, `vib`, `gvfg`; `DELETE` undoes it).
 9. **KPIs** — `GET …/kpis`, `GET/PUT …/report/{year}/kpi-values` (manual values are
    checked), `POST …/report/{year}/kpi-values/approve`.
 

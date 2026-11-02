@@ -446,6 +446,18 @@ export const featureHighlights: FeatureHighlight[] = [
         ]
     },
     {
+        title: "Offene Zuordnungen (Einstellungen → Offene Zuordnungen)",
+        description:
+            "Sammelt importierte FinVes, VIB-Einträge, GVFG-Vorhaben und Infraplan-Zeilen ohne Projekt und ordnet sie " +
+            "direkt in der Tabellenzeile zu (Recht „Offene Zuordnungen verwalten“).",
+        details: [
+            "Projekt suchen und „Zuweisen“, oder „Projekt fehlt?“ legt einen Entwurf an und ordnet ihn zu",
+            "„Dauerhaft ignorieren“ blendet einen Eintrag aus, der nie ein Projekt bekommen soll (z. B. kein Schienenprojekt) — optional mit Grund; er zählt dann auch nicht mehr im Zähler der Kopfzeile",
+            "Der Eintrag selbst bleibt unverändert; unter „Ignorierte Einträge“ am Seitenende steht er mit Grund, Person und Datum und lässt sich mit „Wieder aufnehmen“ zurückholen",
+            "Ignoriert wird genau dieser Datensatz: ein GVFG-Vorhaben oder eine Infraplan-Zeile einer neuen Ausgabe erscheint wieder"
+        ]
+    },
+    {
         title: "VIB-Import (Verkehrsinvestitionsbericht)",
         description:
             "Editors and administrators can upload the annual Verkehrsinvestitionsbericht as PDF and import all Section B rail projects. " +

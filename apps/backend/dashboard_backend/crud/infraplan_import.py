@@ -19,6 +19,8 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 
+from dashboard_backend.crud.assignment_dismissals import dismissed_ids
+from dashboard_backend.models.assignment_dismissal import KIND_INFRAPLAN
 from dashboard_backend.crud._importer_common import recompute_for
 from dashboard_backend.crud.changelog import create_changelog_for_create
 from dashboard_backend.models.infraplan import (
@@ -788,14 +790,19 @@ def newest_report(db: Session) -> InfraplanReport | None:
 
 
 def unassigned_entries(db: Session) -> list[tuple[InfraplanEntry, int]]:
-    """Entries of the newest year without any project, with that year."""
+    """Entries of the newest year without any project, with that year —
+    minus those ignored for good („Dauerhaft ignorieren“)."""
     report = newest_report(db)
     if report is None:
         return []
     linked = db.query(InfraplanEntryProject.entry_id)
     rows = (
         db.query(InfraplanEntry)
-        .filter(InfraplanEntry.report_id == report.id, InfraplanEntry.id.not_in(linked))
+        .filter(
+            InfraplanEntry.report_id == report.id,
+            InfraplanEntry.id.not_in(linked),
+            InfraplanEntry.id.not_in(dismissed_ids(KIND_INFRAPLAN)),
+        )
         .order_by(InfraplanEntry.section, InfraplanEntry.lfd_nr)
         .all()
     )
