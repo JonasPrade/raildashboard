@@ -1,6 +1,8 @@
+import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
     Alert,
+    Anchor,
     Badge,
     Container,
     Group,
@@ -9,10 +11,11 @@ import {
     Stack,
     Text,
     Title,
+    UnstyledButton,
 } from "@mantine/core";
-import { LegalSettingsCard } from "./LegalSettingsCard";
 import { useAuth } from "../../lib/auth";
 import {
+    useAppSettings,
     useDraftProjects,
     useProgressConflicts,
     useUnassignedFinves,
@@ -22,7 +25,64 @@ import {
     useRoutineJobs,
     useWorkerHealth,
 } from "../../shared/api/queries";
+import { LEGAL_SETTINGS_PATH, legalStatusLabel } from "../legal/legal";
 
+type Tile = {
+    to: string;
+    title: string;
+    description: string;
+    visible: boolean;
+    /** Badges next to the title (counts, worker state). */
+    badges?: ReactNode;
+    /** Extra line under the description, e.g. the current state. */
+    status?: string;
+};
+
+type Section = {
+    title: string;
+    description: string;
+    tiles: Tile[];
+};
+
+type TodoItem = {
+    to: string;
+    value: string;
+    label: string;
+    color: string;
+    visible: boolean;
+};
+
+function TileCard({ tile }: { tile: Tile }) {
+    return (
+        <Paper withBorder p="var(--card-pad)">
+            <Link to={tile.to} style={{ textDecoration: "none", color: "inherit" }}>
+                <Stack gap={4}>
+                    <Group gap={6} align="center">
+                        <Text fw={500}>{tile.title}</Text>
+                        {tile.badges}
+                    </Group>
+                    <Text size="sm" c="dimmed">{tile.description}</Text>
+                    {tile.status && <Text size="xs">{tile.status}</Text>}
+                </Stack>
+            </Link>
+        </Paper>
+    );
+}
+
+function CountBadge({ count, color = "red" }: { count: number; color?: string }) {
+    if (count <= 0) return null;
+    return (
+        <Badge color={color} size="xs" variant="filled" circle>
+            {count}
+        </Badge>
+    );
+}
+
+/**
+ * /admin ("Einstellungen" in the header): tiles grouped into sections, with a
+ * "Zu erledigen" strip that collects every open count on top. Sections without
+ * a single permitted tile disappear.
+ */
 export default function AdminOverviewPage() {
     const { can } = useAuth();
     const canAssignments = can("assignment.manage");
@@ -81,6 +141,9 @@ export default function AdminOverviewPage() {
     // interval, or the schedule switched off (feature-routine-abrufe.md, E3).
     const { data: routineJobs } = useRoutineJobs(canSettings, 300000);
     const routineAttention = routineJobs?.needs_attention === true;
+    const routineLabel = routineJobs?.enabled === false ? "Zeitplan aus" : "Abrufe prüfen";
+
+    const { data: appSettings } = useAppSettings();
 
     if (!hasAnyAdmin) {
         return (
@@ -92,263 +155,286 @@ export default function AdminOverviewPage() {
         );
     }
 
+    const todos: TodoItem[] = [
+        {
+            to: "/admin/unassigned",
+            value: String(totalUnassigned),
+            label: "Einträge ohne Projekt",
+            color: totalUnassigned > 0 ? "var(--idt-danger)" : "inherit",
+            visible: canAssignments,
+        },
+        {
+            to: "/admin/planungsstand-konflikte",
+            value: String(conflictCount),
+            label: "Konflikte im Planungsstand",
+            color: conflictCount > 0 ? "var(--idt-danger)" : "inherit",
+            visible: canProgress,
+        },
+        {
+            to: "/admin/drafts",
+            value: String(draftCount),
+            label: "Projekt-Entwürfe offen",
+            color: draftCount > 0 ? "var(--accent-primary)" : "inherit",
+            visible: canCreateProject,
+        },
+        {
+            to: "/admin/system",
+            value: workersDown || routineAttention ? "!" : "ok",
+            label: workersDown ? "Worker offline" : routineAttention ? routineLabel : "Worker und Abrufe laufen",
+            color:
+                workersDown || routineAttention
+                    ? "var(--idt-danger)"
+                    : "var(--idt-success)",
+            visible: canSettings,
+        },
+    ].filter((item) => item.visible);
+
+    const sections: Section[] = [
+        {
+            title: "Projekte",
+            description: "Projekte anlegen, fertigstellen, archivieren und für die Karte bündeln",
+            tiles: [
+                {
+                    to: "/admin/projects/new",
+                    title: "Neues Projekt anlegen",
+                    description: "Wizard: Stammdaten, Geometrie, Eigenschaften, FinVes, VIB",
+                    visible: canCreateProject,
+                },
+                {
+                    to: "/admin/drafts",
+                    title: "Projekt-Entwürfe",
+                    description: "Begonnene, noch nicht finalisierte Projekte fertigstellen",
+                    visible: canCreateProject,
+                    badges: <CountBadge count={draftCount} color="violet" />,
+                },
+                {
+                    to: "/admin/archive",
+                    title: "Archiv",
+                    description: "Ersetzte und überholte Projekte ansehen und wiederherstellen",
+                    visible: canDeleteProject,
+                },
+                {
+                    to: "/admin/project-groups",
+                    title: "Projektgruppen",
+                    description: "Standardauswahl auf der Karte konfigurieren",
+                    visible: canProjectGroups,
+                },
+            ],
+        },
+        {
+            title: "Zuordnen & prüfen",
+            description: "Was nach einem Import offen bleibt",
+            tiles: [
+                {
+                    to: "/admin/unassigned",
+                    title: "Offene Zuordnungen",
+                    description: "FinVes, VIB-, GVFG- und Infraplan-Einträge ohne Projektzuordnung",
+                    visible: canAssignments,
+                    badges: <CountBadge count={totalUnassigned} />,
+                },
+                {
+                    to: "/admin/planungsstand-konflikte",
+                    title: "Planungsstand-Konflikte",
+                    description: "Neuere Berichte mit niedrigerer Phase als ältere Angaben prüfen; alle Projekte neu berechnen",
+                    visible: canProgress,
+                    badges: <CountBadge count={conflictCount} />,
+                },
+                {
+                    to: "/admin/finve-progress",
+                    title: "Sammel-FinVe Phasen",
+                    description: "Planungsphase von Sammel-FinVes zuordnen (Lph/EKrG)",
+                    visible: canProgress,
+                },
+            ],
+        },
+        {
+            title: "Finanzierung einlesen",
+            description: "Quellen des Bundes zu Geld und Zusagen",
+            tiles: [
+                {
+                    to: "/admin/haushalt-import",
+                    title: "Haushalts-Import",
+                    description: "Jährlichen VWIB-Bundeshaushalt importieren",
+                    visible: canHaushalt,
+                },
+                {
+                    to: "/admin/gvfg-import",
+                    title: "GVFG-Import",
+                    description: "GVFG-Bundesprogramm (ÖPNV-Förderung) importieren",
+                    visible: canGvfg,
+                },
+                {
+                    to: "/admin/infraplan-import",
+                    title: "Infraplan",
+                    description: "Infraplan (Fünfjahresplan Schiene) einlesen, zuordnen, Kennzahlen erfassen und freigeben; Kennzahl-Einstellungen unter „Allgemeines“",
+                    visible: canInfraplan,
+                },
+                {
+                    to: "/admin/vib-import",
+                    title: "VIB-Import",
+                    description: "Verkehrsinvestitionsbericht (Schienenwege) importieren",
+                    visible: canVib,
+                },
+            ],
+        },
+        {
+            title: "Planungsstand & Zustand",
+            description: "Quellen zum Fortschritt der Projekte und zum Netzzustand",
+            tiles: [
+                {
+                    to: "/admin/bauportal-import",
+                    title: "DB-Bauportal",
+                    description: "Bau-/Planungsstand aus der Bauportal-API abrufen & zuordnen",
+                    visible: canProgress,
+                },
+                {
+                    to: "/admin/fulda-import",
+                    title: "Fulda-Runde",
+                    description: "Kleine Anfrage (PDF) per OCR+KI nach Leistungsphase auswerten",
+                    visible: canProgress,
+                },
+                {
+                    to: "/admin/media-import",
+                    title: "Medien / Presse",
+                    description: "Presseartikel (URL/Text) per KI auswerten & als Beobachtung übernehmen",
+                    visible: canProgress,
+                },
+                {
+                    to: "/admin/zustandsbericht",
+                    title: "Zustandsbericht",
+                    description: "InfraGO-Zustandsbericht anlegen, PDF hochladen, eingelesene Werte prüfen und freigeben",
+                    visible: canCondition,
+                },
+            ],
+        },
+        {
+            title: "Politik",
+            description: "Abgeordnete und Wahlkreise",
+            tiles: [
+                {
+                    to: "/admin/abgeordnete",
+                    title: "Abgeordnetenstand",
+                    description: "Abgeordnete aus abgeordnetenwatch aktualisieren, Wahlkreis-Zuordnung neu berechnen",
+                    visible: canParliament,
+                },
+            ],
+        },
+        {
+            title: "Zugang & Rechte",
+            description: "Wer was darf, und Zugänge für KI-Assistenten",
+            tiles: [
+                {
+                    to: "/admin/users",
+                    title: "Benutzerverwaltung",
+                    description: "Nutzer anlegen, Rollen ändern, Passwörter setzen",
+                    visible: canUsers,
+                },
+                {
+                    to: "/admin/roles",
+                    title: "Rollen & Berechtigungen",
+                    description: "Rollen anlegen und granulare Rechte zuweisen",
+                    visible: canRoles,
+                },
+                {
+                    to: "/admin/api-keys",
+                    title: "API-Keys & MCP",
+                    description: "Persönliche Keys für KI-Assistenten (Claude Code) anlegen und widerrufen",
+                    visible: canMcp,
+                },
+            ],
+        },
+        {
+            title: "Betrieb & Website",
+            description: "Technischer Zustand und die Pflichtseiten der Website",
+            tiles: [
+                {
+                    to: "/admin/system",
+                    title: "Systemstatus",
+                    description: "Worker, Warteschlange, zeitgesteuerte Abrufe und was bei einem hängenden Import zu tun ist",
+                    visible: canSettings,
+                    badges: (
+                        <>
+                            <Badge
+                                color={workersDown ? "red" : "teal"}
+                                size="xs"
+                                variant={workersDown ? "filled" : "light"}
+                            >
+                                {workersDown ? "Worker offline" : "Worker ok"}
+                            </Badge>
+                            {routineAttention && (
+                                <Badge color="red" size="xs" variant="filled">
+                                    {routineLabel}
+                                </Badge>
+                            )}
+                        </>
+                    ),
+                },
+                {
+                    to: LEGAL_SETTINGS_PATH,
+                    title: "Impressum & Datenschutz",
+                    description: "Inhalt oder Weiterleitung der beiden Seiten in der Fußzeile",
+                    visible: canSettings,
+                    status: appSettings ? legalStatusLabel(appSettings) : undefined,
+                },
+            ],
+        },
+    ];
+
+    const visibleSections = sections
+        .map((section) => ({ ...section, tiles: section.tiles.filter((tile) => tile.visible) }))
+        .filter((section) => section.tiles.length > 0);
+
     return (
         <Container size="lg" py="xl">
-            <Stack gap="lg">
-                <Title order={1}>Administration</Title>
+            <Stack gap="xl">
+                <Group justify="space-between" align="baseline" wrap="wrap" gap="xs">
+                    <Title order={1}>Einstellungen</Title>
+                    <Anchor component={Link} to="/admin/anleitungen" size="sm">
+                        Anleitungen zur Datenpflege →
+                    </Anchor>
+                </Group>
 
-                <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="sm">
-                    <Paper withBorder p="var(--card-pad)">
-                        <Link to="/admin/anleitungen" style={{ textDecoration: "none", color: "inherit" }}>
-                            <Stack gap={4}>
-                                <Text fw={500}>Anleitungen</Text>
-                                <Text size="sm" c="dimmed">Workflows für die Datenpflege: Projektfortschritt, Haushalt, Fulda-Runde, Bauportal</Text>
-                            </Stack>
-                        </Link>
-                    </Paper>
-                    {canAssignments && (
-                        <Paper withBorder p="var(--card-pad)">
-                            <Link to="/admin/unassigned" style={{ textDecoration: "none", color: "inherit" }}>
-                                <Stack gap={4}>
-                                    <Group gap={6} align="center">
-                                        <Text fw={500}>Offene Zuordnungen</Text>
-                                        {totalUnassigned > 0 && (
-                                            <Badge color="red" size="xs" variant="filled" circle>
-                                                {totalUnassigned}
-                                            </Badge>
-                                        )}
-                                    </Group>
-                                    <Text size="sm" c="dimmed">FinVes, VIB-, GVFG- und Infraplan-Einträge ohne Projektzuordnung</Text>
-                                </Stack>
-                            </Link>
-                        </Paper>
-                    )}
-                    {canHaushalt && (
-                        <Paper withBorder p="var(--card-pad)">
-                            <Link to="/admin/haushalt-import" style={{ textDecoration: "none", color: "inherit" }}>
-                                <Stack gap={4}>
-                                    <Text fw={500}>Haushalts-Import</Text>
-                                    <Text size="sm" c="dimmed">Jährlichen VWIB-Bundeshaushalt importieren</Text>
-                                </Stack>
-                            </Link>
-                        </Paper>
-                    )}
-                    {canGvfg && (
-                        <Paper withBorder p="var(--card-pad)">
-                            <Link to="/admin/gvfg-import" style={{ textDecoration: "none", color: "inherit" }}>
-                                <Stack gap={4}>
-                                    <Text fw={500}>GVFG-Import</Text>
-                                    <Text size="sm" c="dimmed">GVFG-Bundesprogramm (ÖPNV-Förderung) importieren</Text>
-                                </Stack>
-                            </Link>
-                        </Paper>
-                    )}
-                    {canInfraplan && (
-                        <Paper withBorder p="var(--card-pad)">
-                            <Link to="/admin/infraplan-import" style={{ textDecoration: "none", color: "inherit" }}>
-                                <Stack gap={4}>
-                                    <Text fw={500}>Infraplan</Text>
-                                    <Text size="sm" c="dimmed">Infraplan (Fünfjahresplan Schiene) einlesen, zuordnen, Kennzahlen erfassen und freigeben; Kennzahl-Einstellungen unter „Allgemeines“</Text>
-                                </Stack>
-                            </Link>
-                        </Paper>
-                    )}
-                    {canCondition && (
-                        <Paper withBorder p="var(--card-pad)">
-                            <Link to="/admin/zustandsbericht" style={{ textDecoration: "none", color: "inherit" }}>
-                                <Stack gap={4}>
-                                    <Text fw={500}>Zustandsbericht</Text>
-                                    <Text size="sm" c="dimmed">InfraGO-Zustandsbericht anlegen, PDF hochladen, eingelesene Werte prüfen und freigeben</Text>
-                                </Stack>
-                            </Link>
-                        </Paper>
-                    )}
-                    {canVib && (
-                        <Paper withBorder p="var(--card-pad)">
-                            <Link to="/admin/vib-import" style={{ textDecoration: "none", color: "inherit" }}>
-                                <Stack gap={4}>
-                                    <Text fw={500}>VIB-Import</Text>
-                                    <Text size="sm" c="dimmed">Verkehrsinvestitionsbericht (Schienenwege) importieren</Text>
-                                </Stack>
-                            </Link>
-                        </Paper>
-                    )}
-                    {canProgress && (
-                        <Paper withBorder p="var(--card-pad)">
-                            <Link to="/admin/finve-progress" style={{ textDecoration: "none", color: "inherit" }}>
-                                <Stack gap={4}>
-                                    <Text fw={500}>Sammel-FinVe Phasen</Text>
-                                    <Text size="sm" c="dimmed">Planungsphase von Sammel-FinVes zuordnen (Lph/EKrG)</Text>
-                                </Stack>
-                            </Link>
-                        </Paper>
-                    )}
-                    {canProgress && (
-                        <Paper withBorder p="var(--card-pad)">
-                            <Link to="/admin/planungsstand-konflikte" style={{ textDecoration: "none", color: "inherit" }}>
-                                <Stack gap={4}>
-                                    <Group gap={6} align="center">
-                                        <Text fw={500}>Planungsstand-Konflikte</Text>
-                                        {conflictCount > 0 && (
-                                            <Badge color="red" size="xs" variant="filled" circle>
-                                                {conflictCount}
-                                            </Badge>
-                                        )}
-                                    </Group>
-                                    <Text size="sm" c="dimmed">Neuere Berichte mit niedrigerer Phase als ältere Angaben prüfen; alle Projekte neu berechnen</Text>
-                                </Stack>
-                            </Link>
-                        </Paper>
-                    )}
-                    {canProgress && (
-                        <Paper withBorder p="var(--card-pad)">
-                            <Link to="/admin/bauportal-import" style={{ textDecoration: "none", color: "inherit" }}>
-                                <Stack gap={4}>
-                                    <Text fw={500}>DB-Bauportal</Text>
-                                    <Text size="sm" c="dimmed">Bau-/Planungsstand aus der Bauportal-API abrufen & zuordnen</Text>
-                                </Stack>
-                            </Link>
-                        </Paper>
-                    )}
-                    {canProgress && (
-                        <Paper withBorder p="var(--card-pad)">
-                            <Link to="/admin/media-import" style={{ textDecoration: "none", color: "inherit" }}>
-                                <Stack gap={4}>
-                                    <Text fw={500}>Medien / Presse</Text>
-                                    <Text size="sm" c="dimmed">Presseartikel (URL/Text) per KI auswerten & als Beobachtung übernehmen</Text>
-                                </Stack>
-                            </Link>
-                        </Paper>
-                    )}
-                    {canProgress && (
-                        <Paper withBorder p="var(--card-pad)">
-                            <Link to="/admin/fulda-import" style={{ textDecoration: "none", color: "inherit" }}>
-                                <Stack gap={4}>
-                                    <Text fw={500}>Fulda-Runde</Text>
-                                    <Text size="sm" c="dimmed">Kleine Anfrage (PDF) per OCR+KI nach Leistungsphase auswerten</Text>
-                                </Stack>
-                            </Link>
-                        </Paper>
-                    )}
-                    {canParliament && (
-                        <Paper withBorder p="var(--card-pad)">
-                            <Link to="/admin/abgeordnete" style={{ textDecoration: "none", color: "inherit" }}>
-                                <Stack gap={4}>
-                                    <Text fw={500}>Abgeordnetenstand</Text>
-                                    <Text size="sm" c="dimmed">Abgeordnete aus abgeordnetenwatch aktualisieren, Wahlkreis-Zuordnung neu berechnen</Text>
-                                </Stack>
-                            </Link>
-                        </Paper>
-                    )}
-                    {canCreateProject && (
-                        <Paper withBorder p="var(--card-pad)">
-                            <Link to="/admin/projects/new" style={{ textDecoration: "none", color: "inherit" }}>
-                                <Stack gap={4}>
-                                    <Text fw={500}>Neues Projekt anlegen</Text>
-                                    <Text size="sm" c="dimmed">Wizard: Stammdaten, Geometrie, Eigenschaften, FinVes, VIB</Text>
-                                </Stack>
-                            </Link>
-                        </Paper>
-                    )}
-                    {canCreateProject && (
-                        <Paper withBorder p="var(--card-pad)">
-                            <Link to="/admin/drafts" style={{ textDecoration: "none", color: "inherit" }}>
-                                <Stack gap={4}>
-                                    <Group gap={6} align="center">
-                                        <Text fw={500}>Projekt-Entwürfe</Text>
-                                        {draftCount > 0 && (
-                                            <Badge color="violet" size="xs" variant="filled" circle>
-                                                {draftCount}
-                                            </Badge>
-                                        )}
-                                    </Group>
-                                    <Text size="sm" c="dimmed">Begonnene, noch nicht finalisierte Projekte fertigstellen</Text>
-                                </Stack>
-                            </Link>
-                        </Paper>
-                    )}
-                    {canDeleteProject && (
-                        <Paper withBorder p="var(--card-pad)">
-                            <Link to="/admin/archive" style={{ textDecoration: "none", color: "inherit" }}>
-                                <Stack gap={4}>
-                                    <Text fw={500}>Archiv</Text>
-                                    <Text size="sm" c="dimmed">Ersetzte und überholte Projekte ansehen und wiederherstellen</Text>
-                                </Stack>
-                            </Link>
-                        </Paper>
-                    )}
-                    {canProjectGroups && (
-                        <Paper withBorder p="var(--card-pad)">
-                            <Link to="/admin/project-groups" style={{ textDecoration: "none", color: "inherit" }}>
-                                <Stack gap={4}>
-                                    <Text fw={500}>Projektgruppen</Text>
-                                    <Text size="sm" c="dimmed">Standardauswahl auf der Karte konfigurieren</Text>
-                                </Stack>
-                            </Link>
-                        </Paper>
-                    )}
-                    {canSettings && (
-                        <Paper withBorder p="var(--card-pad)">
-                            <Link to="/admin/system" style={{ textDecoration: "none", color: "inherit" }}>
-                                <Stack gap={4}>
-                                    <Group gap={6} align="center">
-                                        <Text fw={500}>Systemstatus</Text>
-                                        <Badge
-                                            color={workersDown ? "red" : "teal"}
-                                            size="xs"
-                                            variant={workersDown ? "filled" : "light"}
-                                        >
-                                            {workersDown ? "Worker offline" : "Worker ok"}
-                                        </Badge>
-                                        {routineAttention && (
-                                            <Badge color="red" size="xs" variant="filled">
-                                                {routineJobs?.enabled === false
-                                                    ? "Zeitplan aus"
-                                                    : "Abrufe prüfen"}
-                                            </Badge>
-                                        )}
-                                    </Group>
-                                    <Text size="sm" c="dimmed">
-                                        Laufen die Hintergrund-Aufträge? Worker, Warteschlange,
-                                        zeitgesteuerte Abrufe und was bei einem hängenden Import zu tun ist
+                {todos.length > 0 && (
+                    <Stack gap="xs" component="section" aria-label="Zu erledigen">
+                        <Text size="xs" fw={700} tt="uppercase" c="dimmed" style={{ letterSpacing: "0.07em" }}>
+                            Zu erledigen
+                        </Text>
+                        <SimpleGrid
+                            cols={{ base: 2, sm: Math.min(todos.length, 4) }}
+                            spacing={0}
+                            style={{ border: "2px solid var(--border-frame)" }}
+                        >
+                            {todos.map((item) => (
+                                <UnstyledButton
+                                    key={item.to}
+                                    component={Link}
+                                    to={item.to}
+                                    p="sm"
+                                    style={{ borderRight: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}
+                                >
+                                    <Text fw={700} fz={26} lh={1.1} style={{ color: item.color, fontVariantNumeric: "tabular-nums" }}>
+                                        {item.value}
                                     </Text>
-                                </Stack>
-                            </Link>
-                        </Paper>
-                    )}
-                    {canUsers && (
-                        <Paper withBorder p="var(--card-pad)">
-                            <Link to="/admin/users" style={{ textDecoration: "none", color: "inherit" }}>
-                                <Stack gap={4}>
-                                    <Text fw={500}>Benutzerverwaltung</Text>
-                                    <Text size="sm" c="dimmed">Nutzer anlegen, Rollen ändern, Passwörter setzen</Text>
-                                </Stack>
-                            </Link>
-                        </Paper>
-                    )}
-                    {canMcp && (
-                        <Paper withBorder p="var(--card-pad)">
-                            <Link to="/admin/api-keys" style={{ textDecoration: "none", color: "inherit" }}>
-                                <Stack gap={4}>
-                                    <Text fw={500}>API-Keys & MCP</Text>
-                                    <Text size="sm" c="dimmed">Persönliche Keys für KI-Assistenten (Claude Code) anlegen und widerrufen</Text>
-                                </Stack>
-                            </Link>
-                        </Paper>
-                    )}
-                    {canRoles && (
-                        <Paper withBorder p="var(--card-pad)">
-                            <Link to="/admin/roles" style={{ textDecoration: "none", color: "inherit" }}>
-                                <Stack gap={4}>
-                                    <Text fw={500}>Rollen & Berechtigungen</Text>
-                                    <Text size="sm" c="dimmed">Rollen anlegen und granulare Rechte zuweisen</Text>
-                                </Stack>
-                            </Link>
-                        </Paper>
-                    )}
-                </SimpleGrid>
+                                    <Text size="sm" c="dimmed">{item.label}</Text>
+                                </UnstyledButton>
+                            ))}
+                        </SimpleGrid>
+                    </Stack>
+                )}
 
-                {canSettings && <LegalSettingsCard />}
+                {visibleSections.map((section) => (
+                    <Stack key={section.title} gap="sm" component="section">
+                        <Group justify="space-between" align="baseline" wrap="wrap" gap="xs" className="idt-section-head">
+                            <Title order={2} className="idt-title-plain">{section.title}</Title>
+                            <Text size="sm" c="dimmed">{section.description}</Text>
+                        </Group>
+                        <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="sm">
+                            {section.tiles.map((tile) => (
+                                <TileCard key={tile.to + tile.title} tile={tile} />
+                            ))}
+                        </SimpleGrid>
+                    </Stack>
+                ))}
             </Stack>
         </Container>
     );
