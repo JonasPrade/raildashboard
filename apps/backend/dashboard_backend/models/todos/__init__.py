@@ -3,6 +3,7 @@ from .todo import (  # noqa: F401
     TodoAssignee,
     TodoChangeLog,
     TodoChangeLogEntry,
+    TodoComment,
     TodoTag,
     TodoTagLink,
 )

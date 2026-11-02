@@ -175,6 +175,7 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
         "create_todo",
         "update_todo",
         "update_todo_tag",
+        "add_todo_comment",
         "search_operational_points",
         "get_project_geometry",
         "route_project_geometry",
@@ -485,6 +486,29 @@ def test_todo_tags_search_and_paging(mcp_client, admin_token):
     assert renamed["todo_count"] == 1
     clash = _call(mcp_client, admin_token, "update_todo_tag", {"tag": "Dokumentation", "new_name": "@llm"})
     assert clash["isError"] is True
+
+
+def test_todo_comments_via_mcp(mcp_client, admin_token):
+    todo = _payload(_call(mcp_client, admin_token, "create_todo", {"title": "Kommentiert"}))
+    comment = _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "add_todo_comment",
+            {"todo_id": todo["id"], "body": "  Stand: Entwurf fertig  "},
+        )
+    )
+    assert comment["body"] == "Stand: Entwurf fertig"
+    assert comment["author"] == "admin"
+
+    full = _payload(_call(mcp_client, admin_token, "get_todo", {"todo_id": todo["id"]}))
+    assert full["comment_count"] == 1
+    assert [c["body"] for c in full["comments"]] == ["Stand: Entwurf fertig"]
+
+    empty = _call(mcp_client, admin_token, "add_todo_comment", {"todo_id": todo["id"], "body": "  "})
+    assert empty["isError"] is True
+    missing = _call(mcp_client, admin_token, "add_todo_comment", {"todo_id": 999, "body": "x"})
+    assert missing["isError"] is True
 
 
 def test_write_tool_needs_capability(mcp_client, db_session):

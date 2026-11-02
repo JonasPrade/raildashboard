@@ -3,6 +3,8 @@
 Tags label tasks; ``@LLM`` marks a task that the LLM is to do (fully or in
 part) through MCP — filter with ``list_todos(tag="@LLM")``. A task with a part
 for Jonas carries ``@Jonas`` too; the LLM part starts once ``@Jonas`` is gone.
+Comments record the current state of the work (``add_todo_comment``); they are
+shown with ``get_todo``.
 """
 
 from __future__ import annotations
@@ -19,6 +21,8 @@ from dashboard_backend.mcp.context import get_principal, load_user, require, too
 from dashboard_backend.mcp.tools.projects import MAX_LIMIT, READ_ONLY, WRITE
 from dashboard_backend.schemas.todos.todo_schema import (
     TodoChangeLogSchema,
+    TodoCommentCreate,
+    TodoCommentSchema,
     TodoCreate,
     TodoPriorityLiteral,
     TodoSchema,
@@ -74,15 +78,28 @@ def list_todos(
         }
 
 
+def _comment_dict(comment) -> dict[str, Any]:
+    data = TodoCommentSchema.model_validate(comment).model_dump(mode="json")
+    return {
+        "id": data["id"],
+        "author": data["username_snapshot"],
+        "created_at": data["created_at"],
+        "edited_at": data["edited_at"],
+        "body": data["body"],
+    }
+
+
 def get_todo(todo_id: int, history: bool = False, *, ctx: Context) -> dict[str, Any]:
-    """One task in full. history=true adds its change history, newest first
-    (who changed which field from what to what, also tag renames)."""
+    """One task in full, with its comments (oldest first: the current state
+    of the work, progress notes). history=true adds its change history,
+    newest first (who changed which field from what to what, also tag renames)."""
     get_principal(ctx)
     with tool_session(ctx) as db:
         todo = todos_crud.get_todo(db, todo_id)
         if todo is None:
             raise ToolError(f"Aufgabe {todo_id} nicht gefunden.")
         data = _todo_dict(todo)
+        data["comments"] = [_comment_dict(c) for c in todos_crud.list_comments(db, todo_id)]
         if history:
             data["history"] = [
                 TodoChangeLogSchema.model_validate(log).model_dump(mode="json")
@@ -216,6 +233,24 @@ def update_todo(
         return _todo_dict(updated)
 
 
+def add_todo_comment(todo_id: int, body: str, *, ctx: Context) -> dict[str, Any]:
+    """Comment on a task (requires ``todo.edit``): what was done, the current
+    state, what is still open or blocked. Write it after working on a task, so
+    the next person (or LLM run) can pick it up. Comments are read with get_todo."""
+    principal = get_principal(ctx)
+    require(principal, "todo.edit")
+    try:
+        payload = TodoCommentCreate(body=body)
+    except ValidationError as exc:
+        raise ToolError(f"Ungültige Werte: {exc}") from exc
+    with tool_session(ctx) as db:
+        todo = todos_crud.get_todo(db, todo_id)
+        if todo is None:
+            raise ToolError(f"Aufgabe {todo_id} nicht gefunden.")
+        user = load_user(db, principal)
+        return _comment_dict(todos_crud.create_comment(db, todo, payload.body, user))
+
+
 def register(server: MCPServer) -> None:
     server.add_tool(list_todos, annotations=READ_ONLY)
     server.add_tool(get_todo, annotations=READ_ONLY)
@@ -223,3 +258,4 @@ def register(server: MCPServer) -> None:
     server.add_tool(create_todo, annotations=WRITE)
     server.add_tool(update_todo, annotations=WRITE)
     server.add_tool(update_todo_tag, annotations=WRITE)
+    server.add_tool(add_todo_comment, annotations=WRITE)

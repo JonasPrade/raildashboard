@@ -95,6 +95,7 @@ class TodoSchema(BaseModel):
     project: TodoProjectRef | None
     assignees: list[TodoUserRef]
     tags: list[TodoTagRef] = Field(default_factory=list)
+    comment_count: int = 0
     created_by_id: int | None
     created_by_username: str | None
     created_at: datetime
@@ -154,3 +155,34 @@ class TodoChangeLogSchema(BaseModel):
     entries: list[TodoChangeLogEntrySchema]
 
     model_config = ConfigDict(from_attributes=True)
+
+
+COMMENT_BODY_MAX = 10000
+
+
+class TodoCommentSchema(BaseModel):
+    id: int
+    todo_id: int
+    body: str
+    user_id: int | None
+    username_snapshot: str | None
+    created_at: datetime
+    edited_at: datetime | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TodoCommentCreate(BaseModel):
+    body: str = Field(min_length=1, max_length=COMMENT_BODY_MAX)
+
+    @field_validator("body")
+    @classmethod
+    def _strip_body(cls, value: str) -> str:
+        body = value.strip()
+        if not body:
+            raise ValueError("Der Kommentar darf nicht leer sein.")
+        return body
+
+
+class TodoCommentUpdate(TodoCommentCreate):
+    pass

@@ -341,6 +341,7 @@ Siehe: `docs/features/feature-tasks.md`
 - [x] Frontend: zentrale Seite `/tasks` (Spalten Offen/In Arbeit/Erledigt, Schnell-Erfassung, Filter), Edit-Drawer, Aufgaben-Sektion auf der Projektdetailseite; Nav-Link „Aufgaben" (login-gated)
 - [x] Optionaler Projektbezug (`project_id` nullable, `ON DELETE SET NULL`), Mehrfachzuweisung, Priorität + Fälligkeit (überfällig hervorgehoben)
 - [x] Tags (m:n, Tag „@LLM“ für Aufgaben an das LLM), Tag-Filter und Textsuche, eigener Aufgaben-Verlauf; „Tags verwalten“ (umbenennen, beschreiben, löschen), zweites Tag „@Jonas“ für den Teil vor dem LLM; MCP `list_todos` mit `tag`/`search`/`offset`, `list_todo_tags`, `update_todo_tag` (Migration `20261022003`, „@LLM“ aus Titeln ins Tag übernommen)
+- [x] Kommentare zu Aufgaben (aktueller Stand): Abschnitt „Kommentare“ im Drawer, Anzahl auf der Karte, `/api/v1/todos/{id}/comments`, MCP `add_todo_comment` und `get_todo` mit Kommentaren (Migration `20261102002`)
 
 ### Claude Code Setup
 - [x] Hooks (pre-edit `.env` guard, post-edit reminders for `make gen-api`, Alembic, roadmap sync, macOS notifications)

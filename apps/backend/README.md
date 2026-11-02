@@ -150,7 +150,7 @@ and `create_project`, `create_project_group`, `compute_project_length`, `update_
 `delete_progress_observation`, `set_phase_override`, `set_project_lifecycle` (AKTIV/PAUSIERT/ABGEBROCHEN,
 reason required for the latter two), `update_progress_tracks` (Planfeststellung and parliamentary
 track), `upsert_project_text`, `create_todo`,
-`update_todo`, `update_todo_tag`, `route_project_geometry` (GraphHopper route, preview or apply),
+`update_todo`, `update_todo_tag`, `add_todo_comment`, `route_project_geometry` (GraphHopper route, preview or apply),
 `edit_project_geometry` (draw lines/points, add operational points, delete features),
 `assign_gvfg_entry` (needs `assignment.manage`: replace a GVFG Vorhaben's projects, optionally
 in every edition), `update_finve_projects` (needs `finve.edit`: add/remove a FinVe's permanent

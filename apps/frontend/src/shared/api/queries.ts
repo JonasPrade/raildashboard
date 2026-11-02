@@ -131,6 +131,7 @@ export const queryKeys = {
     // Under the "todos" prefix so every task mutation refreshes them too.
     todoTags: ["todos", "tags"],
     todoHistory: (todoId: number) => ["todos", "history", todoId] as const,
+    todoComments: (todoId: number) => ["todos", "comments", todoId] as const,
     guideOverrides: (guideSlug: string) => ["guide-overrides", guideSlug] as const,
     parliamentStatus: ["parliament-status"],
     projectConstituencies: (projectId: number) => ["project-constituencies", projectId] as const,
@@ -2007,6 +2008,7 @@ export type TodoPriority = Todo["priority"];
 export type TodoTag = components["schemas"]["TodoTagSchema"];
 export type TodoTagUpdate = components["schemas"]["TodoTagUpdate"];
 export type TodoChangeLog = components["schemas"]["TodoChangeLogSchema"];
+export type TodoComment = components["schemas"]["TodoCommentSchema"];
 export type UserOption = components["schemas"]["UserOption"];
 
 export type TodoFilters = {
@@ -2085,6 +2087,47 @@ export function useTodoHistory(todoId: number | null) {
         enabled: todoId !== null,
         queryFn: () => api<TodoChangeLog[]>(`/api/v1/todos/${todoId}/history`),
     });
+}
+
+/** Comments of one task, oldest first. */
+export function useTodoComments(todoId: number | null) {
+    return useQuery({
+        queryKey: queryKeys.todoComments(todoId ?? 0),
+        enabled: todoId !== null,
+        queryFn: () => api<TodoComment[]>(`/api/v1/todos/${todoId}/comments`),
+    });
+}
+
+// Comment mutations invalidate the whole "todos" prefix: the cards show
+// ``comment_count``.
+export function useCreateTodoComment() {
+    return useInvalidatingMutation(
+        ({ todoId, body }: { todoId: number; body: string }) =>
+            api<TodoComment>(`/api/v1/todos/${todoId}/comments`, {
+                method: "POST",
+                json: { body },
+            }),
+        [queryKeys.todos],
+    );
+}
+
+export function useUpdateTodoComment() {
+    return useInvalidatingMutation(
+        ({ todoId, commentId, body }: { todoId: number; commentId: number; body: string }) =>
+            api<TodoComment>(`/api/v1/todos/${todoId}/comments/${commentId}`, {
+                method: "PATCH",
+                json: { body },
+            }),
+        [queryKeys.todos],
+    );
+}
+
+export function useDeleteTodoComment() {
+    return useInvalidatingMutation(
+        ({ todoId, commentId }: { todoId: number; commentId: number }) =>
+            api<void>(`/api/v1/todos/${todoId}/comments/${commentId}`, { method: "DELETE" }),
+        [queryKeys.todos],
+    );
 }
 
 /** Minimal user list (id + username) for the assignee picker. */

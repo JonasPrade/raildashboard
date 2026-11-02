@@ -23,6 +23,7 @@ import {
     type TodoStatus,
 } from "../../shared/api/queries";
 import { PRIORITY_LABELS, PRIORITY_ORDER, STATUS_LABELS, STATUS_ORDER } from "./todoConstants";
+import TodoComments from "./TodoComments";
 import TodoHistory from "./TodoHistory";
 
 type Props = {
@@ -218,6 +219,7 @@ export default function TodoEditDrawer({ opened, onClose, todo, defaultProjectId
                         {isEdit ? "Speichern" : "Erstellen"}
                     </Button>
                 </Group>
+                {isEdit && todo && <TodoComments todoId={todo.id} />}
                 {isEdit && todo && <TodoHistory todoId={todo.id} />}
             </Stack>
         </Drawer>
