@@ -1232,6 +1232,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/todos/{todo_id}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Todo Comments
+         * @description Comments of one task, oldest first (logged-in users only).
+         */
+        get: operations["list_todo_comments_api_v1_todos__todo_id__comments_get"];
+        put?: never;
+        /**
+         * Create Todo Comment
+         * @description Add a comment (e.g. the current state of the work). Requires ``todo.edit``.
+         */
+        post: operations["create_todo_comment_api_v1_todos__todo_id__comments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/todos/{todo_id}/comments/{comment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Todo Comment
+         * @description Delete a comment — its author, or anyone holding ``todo.delete``.
+         */
+        delete: operations["delete_todo_comment_api_v1_todos__todo_id__comments__comment_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Todo Comment
+         * @description Edit the text of a comment — only its author may.
+         */
+        patch: operations["update_todo_comment_api_v1_todos__todo_id__comments__comment_id__patch"];
+        trace?: never;
+    };
     "/api/v1/todos/{todo_id}": {
         parameters: {
             query?: never;
@@ -8757,6 +8805,36 @@ export interface components {
             /** Entries */
             entries: components["schemas"]["TodoChangeLogEntrySchema"][];
         };
+        /** TodoCommentCreate */
+        TodoCommentCreate: {
+            /** Body */
+            body: string;
+        };
+        /** TodoCommentSchema */
+        TodoCommentSchema: {
+            /** Id */
+            id: number;
+            /** Todo Id */
+            todo_id: number;
+            /** Body */
+            body: string;
+            /** User Id */
+            user_id: number | null;
+            /** Username Snapshot */
+            username_snapshot: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Edited At */
+            edited_at: string | null;
+        };
+        /** TodoCommentUpdate */
+        TodoCommentUpdate: {
+            /** Body */
+            body: string;
+        };
         /** TodoCreate */
         TodoCreate: {
             /** Title */
@@ -8820,6 +8898,11 @@ export interface components {
             assignees: components["schemas"]["TodoUserRef"][];
             /** Tags */
             tags?: components["schemas"]["TodoTagRef"][];
+            /**
+             * Comment Count
+             * @default 0
+             */
+            comment_count: number;
             /** Created By Id */
             created_by_id: number | null;
             /** Created By Username */
@@ -12092,6 +12175,146 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TodoChangeLogSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_todo_comments_api_v1_todos__todo_id__comments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                todo_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodoCommentSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_todo_comment_api_v1_todos__todo_id__comments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                todo_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TodoCommentCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodoCommentSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_todo_comment_api_v1_todos__todo_id__comments__comment_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                todo_id: number;
+                comment_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_todo_comment_api_v1_todos__todo_id__comments__comment_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                todo_id: number;
+                comment_id: number;
+            };
+            cookie?: {
+                session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TodoCommentUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodoCommentSchema"];
                 };
             };
             /** @description Validation Error */

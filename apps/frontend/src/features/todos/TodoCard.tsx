@@ -1,5 +1,5 @@
 import { Badge, Card, Group, Select, Stack, Text, Tooltip, ActionIcon, Avatar } from "@mantine/core";
-import { Pencil, Trash2, Calendar, Check } from "lucide-react";
+import { Pencil, Trash2, Calendar, Check, MessageSquare } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Todo, TodoStatus } from "../../shared/api/queries";
 import {
@@ -87,6 +87,16 @@ export default function TodoCard({
                                 {overdue ? " · überfällig" : ""}
                             </Text>
                         </Group>
+                    )}
+                    {(todo.comment_count ?? 0) > 0 && (
+                        <Tooltip label="Kommentare – im Bearbeiten-Dialog" withArrow>
+                            <Group gap={4} wrap="nowrap" aria-label={`${todo.comment_count} Kommentare`}>
+                                <MessageSquare size={16} aria-hidden />
+                                <Text size="xs" c="dimmed">
+                                    {todo.comment_count}
+                                </Text>
+                            </Group>
+                        </Tooltip>
                     )}
                     {showProject && todo.project && (
                         <Text size="xs" c="dimmed">

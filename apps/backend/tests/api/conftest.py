@@ -78,6 +78,7 @@ from dashboard_backend.models.todos.todo import (
     TodoAssignee,
     TodoChangeLog,
     TodoChangeLogEntry,
+    TodoComment,
     TodoTag,
     TodoTagLink,
 )
@@ -141,6 +142,7 @@ TABLES = [
     TodoTagLink.__table__,  # must follow Todo and TodoTag (FK dependency)
     TodoChangeLog.__table__,  # must follow Todo (FK dependency)
     TodoChangeLogEntry.__table__,  # must follow TodoChangeLog (FK dependency)
+    TodoComment.__table__,  # must follow Todo (FK dependency)
     GuideSectionOverride.__table__,
     ParliamentPeriod.__table__,  # must precede Constituency/Mandate (FK dependency)
     Politician.__table__,

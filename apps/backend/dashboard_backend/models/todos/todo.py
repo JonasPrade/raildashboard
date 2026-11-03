@@ -2,7 +2,8 @@
 
 A task either belongs to one project (``project_id``) or is a free standalone
 note (``project_id is None``). Assignment to users is many-to-many through
-``todo_assignee``, tags are many-to-many through ``todo_tag_link``. Every
+``todo_assignee``, tags are many-to-many through ``todo_tag_link``. Comments
+(``todo_comment``) carry the current state of the work. Every
 change is recorded in ``todo_change_log`` (the project ``change_log`` needs a
 project, which standalone tasks lack). See ``docs/features/feature-tasks.md``.
 """
@@ -12,8 +13,8 @@ from __future__ import annotations
 from datetime import date as date_type
 from datetime import datetime
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, Text, func, select
+from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
 from dashboard_backend.models.base import Base
 from dashboard_backend.models.todos.todo_enums import TodoPriority, TodoStatus
@@ -56,6 +57,31 @@ class TodoTagLink(Base):
     tag_id: Mapped[int] = mapped_column(
         ForeignKey("todo_tag.id", ondelete="CASCADE"), primary_key=True, index=True
     )
+
+
+class TodoComment(Base):
+    """A comment on a to-do: progress notes, current state, open questions.
+
+    Defined before ``Todo`` so ``Todo.comment_count`` can reference its table.
+    """
+
+    __tablename__ = "todo_comment"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    todo_id: Mapped[int] = mapped_column(
+        ForeignKey("todo.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    # Author snapshot (username survives a later user deletion).
+    user_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    username_snapshot: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, nullable=False
+    )
+    # Set when the author edits the text; None = never edited.
+    edited_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
 class Todo(Base):
@@ -116,6 +142,13 @@ class Todo(Base):
     project: Mapped["Project | None"] = relationship(  # noqa: F821
         "Project", lazy="select", viewonly=True
     )
+    comments: Mapped[list[TodoComment]] = relationship(
+        "TodoComment",
+        lazy="select",
+        order_by="TodoComment.created_at, TodoComment.id",
+        # ORM-side cascade too: SQLite (tests) does not enforce the FK.
+        cascade="all, delete-orphan",
+    )
 
     def __repr__(self) -> str:  # pragma: no cover - debugging aid
         return f"<Todo(id={self.id}, status={self.status}, title={self.title!r})>"
@@ -162,3 +195,12 @@ class TodoChangeLogEntry(Base):
     new_value: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     changelog: Mapped[TodoChangeLog] = relationship("TodoChangeLog", back_populates="entries")
+
+
+# Number of comments, loaded with the task (cards show it without the comments).
+Todo.comment_count = column_property(
+    select(func.count(TodoComment.id))
+    .where(TodoComment.todo_id == Todo.id)
+    .correlate_except(TodoComment)
+    .scalar_subquery()
+)

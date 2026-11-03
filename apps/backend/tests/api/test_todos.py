@@ -309,3 +309,82 @@ def test_unknown_tag_is_404(client, create_user):
     headers = _editor(create_user)
     assert client.patch("/api/v1/todos/tags/99", json={"name": "x"}, headers=headers).status_code == 404
     assert client.delete("/api/v1/todos/tags/99", headers=headers).status_code == 404
+
+
+# --- Comments ----------------------------------------------------------------
+
+
+def _todo(client, headers, title="Mit Kommentaren"):
+    return client.post("/api/v1/todos/", json={"title": title}, headers=headers).json()
+
+
+def test_comment_create_list_and_count(client, create_user):
+    headers = _editor(create_user)
+    todo = _todo(client, headers)
+    assert todo["comment_count"] == 0
+
+    first = client.post(
+        f"/api/v1/todos/{todo['id']}/comments", json={"body": "  Entwurf liegt vor.  "}, headers=headers
+    )
+    assert first.status_code == 201
+    assert first.json()["body"] == "Entwurf liegt vor."
+    assert first.json()["username_snapshot"] == "editor"
+    assert first.json()["edited_at"] is None
+    client.post(f"/api/v1/todos/{todo['id']}/comments", json={"body": "Warte auf Rückmeldung."}, headers=headers)
+
+    listed = client.get(f"/api/v1/todos/{todo['id']}/comments", headers=headers).json()
+    assert [c["body"] for c in listed] == ["Entwurf liegt vor.", "Warte auf Rückmeldung."]
+    assert client.get(f"/api/v1/todos/{todo['id']}", headers=headers).json()["comment_count"] == 2
+    listed_todos = client.get("/api/v1/todos/", headers=headers).json()
+    assert listed_todos[0]["comment_count"] == 2
+
+
+def test_comment_rejects_blank_and_unknown_task(client, create_user):
+    headers = _editor(create_user)
+    todo = _todo(client, headers)
+    blank = client.post(f"/api/v1/todos/{todo['id']}/comments", json={"body": "   "}, headers=headers)
+    assert blank.status_code == 422
+    missing = client.post("/api/v1/todos/999/comments", json={"body": "x"}, headers=headers)
+    assert missing.status_code == 404
+    assert client.get("/api/v1/todos/999/comments", headers=headers).status_code == 404
+
+
+def test_comment_permissions(client, create_user):
+    editor = _editor(create_user)
+    viewer = _viewer(create_user)
+    todo = _todo(client, editor)
+    url = f"/api/v1/todos/{todo['id']}/comments"
+
+    assert client.get(url).status_code == 401
+    assert client.get(url, headers=viewer).status_code == 200
+    assert client.post(url, json={"body": "Hallo"}, headers=viewer).status_code == 403
+
+
+def test_comment_edit_and_delete_by_author_only(client, create_user):
+    author = _editor(create_user, "author")
+    other = _editor(create_user, "other")
+    todo = _todo(client, author)
+    url = f"/api/v1/todos/{todo['id']}/comments"
+    comment = client.post(url, json={"body": "Erster Stand"}, headers=author).json()
+
+    assert client.patch(f"{url}/{comment['id']}", json={"body": "Fremd"}, headers=other).status_code == 403
+    edited = client.patch(f"{url}/{comment['id']}", json={"body": "Neuer Stand"}, headers=author)
+    assert edited.status_code == 200
+    assert edited.json()["body"] == "Neuer Stand"
+    assert edited.json()["edited_at"] is not None
+
+    # Editors hold todo.delete, so another editor may remove the comment.
+    assert client.delete(f"{url}/{comment['id']}", headers=other).status_code == 204
+    assert client.get(url, headers=author).json() == []
+    assert client.delete(f"{url}/{comment['id']}", headers=author).status_code == 404
+
+
+def test_comments_deleted_with_task(client, create_user, db_session):
+    from dashboard_backend.models.todos.todo import TodoComment
+
+    headers = _editor(create_user)
+    todo = _todo(client, headers)
+    client.post(f"/api/v1/todos/{todo['id']}/comments", json={"body": "weg"}, headers=headers)
+    assert client.delete(f"/api/v1/todos/{todo['id']}", headers=headers).status_code == 204
+    db_session.expire_all()
+    assert db_session.query(TodoComment).count() == 0

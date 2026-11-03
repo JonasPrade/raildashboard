@@ -11,13 +11,20 @@ from __future__ import annotations
 from fastapi import Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from dashboard_backend.core.security import require_auth, require_permission
+from dashboard_backend.core.security import (
+    has_effective_permission,
+    require_auth,
+    require_permission,
+)
 from dashboard_backend.crud.todos import todos as todos_crud
 from dashboard_backend.database import get_db
 from dashboard_backend.models.users import User
 from dashboard_backend.routing.auth_router import AuthRouter
 from dashboard_backend.schemas.todos.todo_schema import (
     TodoChangeLogSchema,
+    TodoCommentCreate,
+    TodoCommentSchema,
+    TodoCommentUpdate,
     TodoCreate,
     TodoSchema,
     TodoTagSchema,
@@ -105,6 +112,67 @@ def get_todo_history(
     if todos_crud.get_todo(db, todo_id) is None:
         raise HTTPException(status_code=404, detail="Task not found")
     return todos_crud.list_todo_history(db, todo_id)
+
+
+@router.get("/{todo_id}/comments", response_model=list[TodoCommentSchema])
+def list_todo_comments(
+    todo_id: int,
+    current_user: User = Depends(require_auth()),
+    db: Session = Depends(get_db),
+):
+    """Comments of one task, oldest first (logged-in users only)."""
+    if todos_crud.get_todo(db, todo_id) is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return todos_crud.list_comments(db, todo_id)
+
+
+@router.post("/{todo_id}/comments", response_model=TodoCommentSchema, status_code=201)
+def create_todo_comment(
+    todo_id: int,
+    body: TodoCommentCreate,
+    current_user: User = Depends(require_permission("todo.edit")),
+    db: Session = Depends(get_db),
+):
+    """Add a comment (e.g. the current state of the work). Requires ``todo.edit``."""
+    todo = todos_crud.get_todo(db, todo_id)
+    if todo is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return todos_crud.create_comment(db, todo, body.body, current_user)
+
+
+@router.patch("/{todo_id}/comments/{comment_id}", response_model=TodoCommentSchema)
+def update_todo_comment(
+    todo_id: int,
+    comment_id: int,
+    body: TodoCommentUpdate,
+    current_user: User = Depends(require_permission("todo.edit")),
+    db: Session = Depends(get_db),
+):
+    """Edit the text of a comment — only its author may."""
+    comment = todos_crud.get_comment(db, todo_id, comment_id)
+    if comment is None:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    if comment.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the author can edit a comment")
+    return todos_crud.update_comment(db, comment, body.body)
+
+
+@router.delete("/{todo_id}/comments/{comment_id}", status_code=204)
+def delete_todo_comment(
+    todo_id: int,
+    comment_id: int,
+    current_user: User = Depends(require_permission("todo.edit")),
+    db: Session = Depends(get_db),
+):
+    """Delete a comment — its author, or anyone holding ``todo.delete``."""
+    comment = todos_crud.get_comment(db, todo_id, comment_id)
+    if comment is None:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    if comment.user_id != current_user.id and not has_effective_permission(
+        current_user, "todo.delete"
+    ):
+        raise HTTPException(status_code=403, detail="Only the author can delete a comment")
+    todos_crud.delete_comment(db, comment)
 
 
 @router.get("/{todo_id}", response_model=TodoSchema)

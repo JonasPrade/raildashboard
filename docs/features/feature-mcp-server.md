@@ -263,7 +263,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `check_project_data` | Prüfliste Stammdaten: doppelte Projektnummern, namensgleiche Teilprojekte, GVFG-Ländercode ≠ Land, Teilmaßnahmen ohne Namen (siehe `feature-infraplan-import.md` → „Datenqualität“) | — |
 | `get_project_changelog` · `get_project_text_changelog` | Änderungsprotokoll eines Projekts bzw. seiner Texte, neueste zuerst, Filter Feld/Text/seit, seitenweise; Geometriewerte nur als Größe, lange Werte gekürzt; je Änderung `entry_id` | — |
 | `revert_project_change` | ein Feld auf den protokollierten alten Wert zurücksetzen — wie der Knopf in der Oberfläche (`services/changelog_revert.py`, gemeinsam mit `POST /projects/{id}/changelog/revert`), schreibt REVERT | `project.edit`, für FinVe-/Sammel-FinVe-Felder zusätzlich `finve.edit` |
-| `get_todo` | eine Aufgabe, mit `history=true` samt Verlauf | — |
+| `get_todo` | eine Aufgabe samt Kommentaren (älteste zuerst), mit `history=true` samt Verlauf | — |
 | `delete_project_text` | Projekttext samt Anhängen löschen (verschwindet aus allen verknüpften Projekten, `linked_projects` nennt sie); Löschung im Text-Änderungsprotokoll mit altem Inhalt | `projecttext.edit` |
 | `update_project_group` | Einstellungen einer Projektgruppe ändern (Name, Kurzname, Beschreibung, Farbe, Sichtbarkeit, übersprungene Phasen, angenommene Bauzeit); Löschen nur in der Oberfläche | `projectgroup.edit` |
 | `get_project_group_timeline` | Zeitleiste einer Gruppe (datierte Meilensteine je Projekt, wie `GET /project_groups/{id}/timeline`) | — |
@@ -280,6 +280,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `create_todo` | Aufgabe anlegen, optional mit `tags` | `todo.create` |
 | `update_todo` | Aufgabe ändern; `tags` ersetzt die Tag-Menge | `todo.edit` |
 | `update_todo_tag` | Tag umbenennen oder Beschreibung ändern (Umbenennung im Verlauf jeder Aufgabe); Löschen nur in der Oberfläche | `todo.edit` |
+| `add_todo_comment` | Kommentar zu einer Aufgabe (aktueller Stand, Zwischenergebnis, offene Fragen); Bearbeiten/Löschen nur in der Oberfläche | `todo.edit` |
 
 Bewusst schmal gehalten: ein Tool je Absicht, keine generischen
 „führe-beliebige-Abfrage-aus"-Tools. Ausgaben sind kompakt zu halten (Listen

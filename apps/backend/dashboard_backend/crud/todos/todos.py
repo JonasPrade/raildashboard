@@ -12,6 +12,7 @@ from dashboard_backend.models.todos.todo import (
     TodoAssignee,
     TodoChangeLog,
     TodoChangeLogEntry,
+    TodoComment,
     TodoTag,
     TodoTagLink,
 )
@@ -106,6 +107,57 @@ def list_todo_history(db: Session, todo_id: int) -> list[TodoChangeLog]:
         .order_by(TodoChangeLog.timestamp.desc(), TodoChangeLog.id.desc())
         .all()
     )
+
+
+# --- Comments ----------------------------------------------------------------
+# Comments are not part of the task's change history: they are their own,
+# timestamped record of the work's state.
+
+
+def list_comments(db: Session, todo_id: int) -> list[TodoComment]:
+    """Comments of one task, oldest first (reads like a conversation)."""
+
+    return (
+        db.query(TodoComment)
+        .filter(TodoComment.todo_id == todo_id)
+        .order_by(TodoComment.created_at.asc(), TodoComment.id.asc())
+        .all()
+    )
+
+
+def get_comment(db: Session, todo_id: int, comment_id: int) -> TodoComment | None:
+    return (
+        db.query(TodoComment)
+        .filter(TodoComment.id == comment_id, TodoComment.todo_id == todo_id)
+        .first()
+    )
+
+
+def create_comment(db: Session, todo: Todo, body: str, user: User | None) -> TodoComment:
+    comment = TodoComment(
+        todo_id=todo.id,
+        body=body,
+        user_id=user.id if user else None,
+        username_snapshot=user.username if user else None,
+    )
+    db.add(comment)
+    db.commit()
+    db.refresh(comment)
+    return comment
+
+
+def update_comment(db: Session, comment: TodoComment, body: str) -> TodoComment:
+    if body != comment.body:
+        comment.body = body
+        comment.edited_at = datetime.utcnow()
+        db.commit()
+        db.refresh(comment)
+    return comment
+
+
+def delete_comment(db: Session, comment: TodoComment) -> None:
+    db.delete(comment)
+    db.commit()
 
 
 # --- Tags --------------------------------------------------------------------

@@ -65,6 +65,26 @@ lack. `todo_id` is `SET NULL` on delete, so the history survives the task. An
 update that changes nothing writes no row. The edit drawer shows the history
 under the form.
 
+## Kommentare
+
+Comments carry the **current state of the work** — what was done, what is
+open or blocked, an interim result — so whoever picks the task up next (a
+person or an LLM run) knows where it stands. They are separate from the
+description (what is to be done) and from the history (field changes).
+
+- Table `todo_comment` (see data model); comments are listed **oldest first**,
+  like a conversation. Deleting a task deletes its comments.
+- **Reading** needs a valid session (like the task itself).
+- **Writing** needs `todo.edit` (commenting is part of working on a task, no
+  own capability). **Editing** a comment: only its author (`edited_at` is set,
+  the UI shows „bearbeitet“). **Deleting**: the author, or anyone holding
+  `todo.delete`.
+- Comments are not written to the task history (`todo_change_log`); they carry
+  their own author and timestamps.
+- UI: the edit drawer shows „Kommentare“ between the form and the history,
+  with an input „Kommentieren“. Cards show a speech-bubble icon with the
+  number of comments (`comment_count` on every task).
+
 ## Desired behaviour
 
 ### Central page `/tasks` ("Aufgaben")
@@ -113,6 +133,19 @@ under the form.
 ### `todo_change_log` / `todo_change_log_entry`
 See „Verlauf“ above; mirrors `text_change_log` / `text_change_log_entry`.
 
+### `todo_comment`
+| column | type | notes |
+|---|---|---|
+| `id` | int PK | |
+| `todo_id` | int FK→todo.id | not null, `ON DELETE CASCADE`, indexed |
+| `body` | text | not null, trimmed, at most 10 000 characters |
+| `user_id` | int FK→users.id | nullable, `ON DELETE SET NULL` |
+| `username_snapshot` | varchar(50) | author name, survives user deletion |
+| `created_at` | datetime | |
+| `edited_at` | datetime | nullable; set when the author edits the text |
+
+Migration `20261102002` (expand only).
+
 ### `todo_assignee` (m:n)
 | column | type | notes |
 |---|---|---|
@@ -130,6 +163,13 @@ See „Verlauf“ above; mirrors `text_change_log` / `text_change_log_entry`.
   `todo.delete`.
 - `GET /{id}` — single task. Auth required.
 - `GET /{id}/history` — change history, newest first. Auth required.
+- `GET /{id}/comments` — comments, oldest first. Auth required.
+- `POST /{id}/comments` — `{body}`. Requires `todo.edit`.
+- `PATCH /{id}/comments/{comment_id}` — `{body}`; author only (403 otherwise).
+  Requires `todo.edit`.
+- `DELETE /{id}/comments/{comment_id}` — author, or holder of `todo.delete`.
+  Requires `todo.edit`.
+- Every task carries `comment_count`.
 - `POST /` — create. Requires `todo.create`.
 - `PATCH /{id}` — partial update incl. `assignee_ids` and `tags` (each replaces
   the full set), with `clear_due_date`
@@ -147,6 +187,10 @@ and pages with `limit`/`offset` (`total` counts all matches). `list_todo_tags`
 lists every tag with description and count; `update_todo_tag` renames a tag
 (found by its current name) or changes its description. There is no MCP tool
 for deleting a tag (deleting stays in the UI, like deleting tasks).
+
+`get_todo` returns the task's `comments` (oldest first: author, time, text);
+`add_todo_comment` (`todo.edit`) writes one — the LLM leaves the state of its
+work there. Editing and deleting comments stays in the UI.
 
 ## Acceptance criteria
 - [ ] A logged-in editor can create a task with only a title via quick-add.
@@ -166,6 +210,9 @@ for deleting a tag (deleting stays in the UI, like deleting tasks).
 - [ ] Tag changes (and every other change) show up in the task's history.
 - [ ] A tag can be renamed, described and deleted under „Tags verwalten“; the
       affected tasks follow and log the change.
+- [ ] A user with `todo.edit` can comment on a task in the drawer; the card shows
+      the comment count; only the author edits a comment, the author or a
+      `todo.delete` holder deletes it; deleting the task deletes its comments.
 
 ## Technical notes
 - Enums live in `models/todos/todo_enums.py` (`TodoStatus`, `TodoPriority`) for
@@ -175,6 +222,6 @@ for deleting a tag (deleting stays in the UI, like deleting tasks).
   pre-existing PostGIS/tiger drift — see project memory).
 - New tables must be added to `tests/api/conftest.py::TABLES` in FK order
   (`Todo` then `TodoAssignee`, `TodoTag`, `TodoTagLink`, `TodoChangeLog`,
-  `TodoChangeLogEntry`); the `project` table is intentionally absent there,
+  `TodoChangeLogEntry`, `TodoComment`); the `project` table is intentionally absent there,
   so API tests exercise standalone (`project_id=None`) tasks.
 - Editors hold `todo.create/edit/delete` (seeded into the editor system role).
