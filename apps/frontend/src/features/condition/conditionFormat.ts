@@ -53,7 +53,7 @@ export const LAENDER: Record<string, string> = {
 export const LAND_TILE: Record<string, [number, number]> = {
     SH: [0, 2], HH: [1, 2], MV: [1, 3], HB: [2, 1], NI: [2, 2], BE: [2, 4],
     NW: [3, 1], ST: [3, 3], BB: [3, 4], HE: [4, 2], TH: [4, 3], SN: [4, 4],
-    SL: [5, 0], RP: [5, 1], BW: [5, 2], BY: [5, 3],
+    SL: [4, 0], RP: [4, 1], BW: [5, 2], BY: [5, 3],
 };
 
 const de = (digits: number) => (v: number) =>
