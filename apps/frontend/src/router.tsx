@@ -16,6 +16,7 @@ const UsersPage = lazyWithRetry(() => import("./features/admin/UsersPage"));
 const RolesAdminPage = lazyWithRetry(() => import("./features/admin/RolesAdminPage"));
 const ApiKeysAdminPage = lazyWithRetry(() => import("./features/admin/ApiKeysAdminPage"));
 const SystemStatusPage = lazyWithRetry(() => import("./features/admin/SystemStatusPage"));
+const LegalSettingsPage = lazyWithRetry(() => import("./features/admin/LegalSettingsPage"));
 const ProjectGroupsAdminPage = lazyWithRetry(() => import("./features/admin/ProjectGroupsAdminPage"));
 const HaushaltsImportPage = lazyWithRetry(() => import("./features/haushalt-import/HaushaltsImportPage"));
 const HaushaltsReviewPage = lazyWithRetry(() => import("./features/haushalt-import/HaushaltsReviewPage"));
@@ -115,6 +116,10 @@ export const router = createBrowserRouter([
             {
                 path: "admin/system",
                 element: <SystemStatusPage />,
+            },
+            {
+                path: "admin/rechtliches",
+                element: <LegalSettingsPage />,
             },
             {
                 path: "admin/abgeordnete",

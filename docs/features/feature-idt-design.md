@@ -404,6 +404,12 @@ und die Route leitet per `window.location.replace` weiter. Sind beide leer,
 zeigt die Seite den Leer-Zustand „Noch kein Impressum hinterlegt“ mit Link auf
 die Admin-Maske (nur für `settings.manage`). Inhalt: **Human Task**.
 
+Umsetzung (Stand 2026-11-02): eigene Seite `/admin/rechtliches`
+(`LegalSettingsPage.tsx` mit `LegalSettingsCard.tsx`), erreichbar über die
+Kachel „Impressum & Datenschutz“ im Abschnitt „Betrieb & Website“ der
+Einstellungsseite; die Kachel zeigt den Stand beider Seiten (eigene Seite,
+Weiterleitung, leer).
+
 ### Register der Projektseite (Q26, ersetzt `ProjectTableOfContents.tsx`)
 
 - Ab 62em: Spalte 240px links des Inhalts, `position: sticky; top: calc(var(--header-height) + 24px)`,

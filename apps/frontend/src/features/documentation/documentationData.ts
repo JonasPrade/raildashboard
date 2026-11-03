@@ -519,13 +519,13 @@ export const featureHighlights: FeatureHighlight[] = [
     {
         title: "Impressum und Datenschutz pflegen",
         description:
-            "Impressum und Datenschutzerklärung werden in der Administration gepflegt und sind über die Fußzeile jeder Seite erreichbar. " +
+            "Impressum und Datenschutzerklärung werden in den Einstellungen gepflegt und sind über die Fußzeile jeder Seite erreichbar. " +
             "Je Seite gibt es eine Adresse (URL) und einen Text (Markdown): Ist die URL gesetzt, führt der Link nach außen, sonst zeigt die eigene Seite den Text.",
         details: [
-            "Pflege auf /admin → Karte „Impressum und Datenschutz“ (Recht settings.manage): je Seite URL und Markdown-Text, „Speichern“ übernimmt nur geänderte Felder; ein geleertes Feld wird entfernt",
+            "Pflege unter Einstellungen → Betrieb & Website → „Impressum & Datenschutz“ (/admin/rechtliches, Recht settings.manage): je Seite URL und Markdown-Text, „Speichern“ übernimmt nur geänderte Felder; ein geleertes Feld wird entfernt",
             "URL gesetzt → /impressum bzw. /datenschutz leitet auf die Adresse weiter (nur http:// oder https://)",
             "Nur Text gesetzt → /impressum bzw. /datenschutz zeigt ihn als Seite (Markdown mit Überschriften, Listen, Tabellen, Links)",
-            "Beides leer → die Seite meldet „Noch kein Impressum hinterlegt“ bzw. „Noch keine Datenschutzerklärung hinterlegt“; wer settings.manage hat, kommt von dort direkt zur Karte"
+            "Beides leer → die Seite meldet „Noch kein Impressum hinterlegt“ bzw. „Noch keine Datenschutzerklärung hinterlegt“; wer settings.manage hat, kommt von dort direkt zur Pflegeseite"
         ]
     },
     {

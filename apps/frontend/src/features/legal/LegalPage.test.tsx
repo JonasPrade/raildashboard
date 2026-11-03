@@ -64,17 +64,17 @@ describe("LegalPage", () => {
 
         expect(screen.getByRole("heading", { level: 1, name: "Datenschutzerklärung" })).toBeInTheDocument();
         expect(screen.getByText("Noch keine Datenschutzerklärung hinterlegt")).toBeInTheDocument();
-        expect(screen.queryByRole("link", { name: /Administration/ })).not.toBeInTheDocument();
+        expect(screen.queryByRole("link", { name: /Einstellungen/ })).not.toBeInTheDocument();
     });
 
-    it("links to the admin card in the empty state for settings.manage", () => {
+    it("links to the admin page in the empty state for settings.manage", () => {
         permissions.add("settings.manage");
         renderPage("impressum");
 
         expect(screen.getByText("Noch kein Impressum hinterlegt")).toBeInTheDocument();
-        expect(screen.getByRole("link", { name: /Administration/ })).toHaveAttribute(
+        expect(screen.getByRole("link", { name: /Einstellungen/ })).toHaveAttribute(
             "href",
-            "/admin#impressum-datenschutz",
+            "/admin/rechtliches",
         );
     });
 

@@ -9,7 +9,7 @@ import { useAppSettings } from "../../shared/api/queries";
 import { EmptyState } from "../../shared/ui/EmptyState";
 import { ErrorState } from "../../shared/ui/ErrorState";
 import { LoadingState } from "../../shared/ui/LoadingState";
-import { LEGAL_SETTINGS_ANCHOR } from "./legal";
+import { LEGAL_SETTINGS_PATH } from "./legal";
 
 export type LegalPageKind = "impressum" | "datenschutz";
 
@@ -17,12 +17,12 @@ const COPY: Record<LegalPageKind, { title: string; emptyTitle: string; emptyText
     impressum: {
         title: "Impressum",
         emptyTitle: "Noch kein Impressum hinterlegt",
-        emptyText: "Sobald in der Administration ein Text oder eine Adresse eingetragen ist, erscheint das Impressum hier.",
+        emptyText: "Sobald in den Einstellungen ein Text oder eine Adresse eingetragen ist, erscheint das Impressum hier.",
     },
     datenschutz: {
         title: "Datenschutzerklärung",
         emptyTitle: "Noch keine Datenschutzerklärung hinterlegt",
-        emptyText: "Sobald in der Administration ein Text oder eine Adresse eingetragen ist, erscheint die Datenschutzerklärung hier.",
+        emptyText: "Sobald in den Einstellungen ein Text oder eine Adresse eingetragen ist, erscheint die Datenschutzerklärung hier.",
     },
 };
 
@@ -73,10 +73,10 @@ export default function LegalPage({ kind }: { kind: LegalPageKind }) {
                     can("settings.manage") ? (
                         <Button
                             component={Link}
-                            to={`/admin#${LEGAL_SETTINGS_ANCHOR}`}
+                            to={LEGAL_SETTINGS_PATH}
                             variant="outline"
                         >
-                            In der Administration eintragen
+                            In den Einstellungen eintragen
                         </Button>
                     ) : undefined
                 }

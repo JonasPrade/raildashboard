@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
 import {
     Button,
     Group,
@@ -18,7 +17,6 @@ import {
     type AppSettings,
     type AppSettingsUpdatePayload,
 } from "../../shared/api/queries";
-import { LEGAL_SETTINGS_ANCHOR } from "../legal/legal";
 
 type LegalFields = {
     impressum_url: string;
@@ -53,17 +51,15 @@ function urlError(value: string): string | null {
 }
 
 /**
- * Admin card for Impressum and Datenschutz (docs/features/feature-idt-design.md → W8).
- * Shown on /admin for users with settings.manage; the empty state of /impressum
- * and /datenschutz links here via #impressum-datenschutz.
+ * Form for Impressum and Datenschutz (docs/features/feature-idt-design.md → W8).
+ * Lives on /admin/rechtliches (LegalSettingsPage); the empty state of /impressum
+ * and /datenschutz links there.
  */
 export function LegalSettingsCard() {
     const { data: settings } = useAppSettings();
     const updateSettings = useUpdateAppSettings();
     const [values, setValues] = useState<LegalFields>(() => fromSettings(settings));
     const [seeded, setSeeded] = useState(settings !== undefined);
-    const ref = useRef<HTMLDivElement>(null);
-    const location = useLocation();
 
     // Seed the form once the settings arrive (the card may mount before they load).
     useEffect(() => {
@@ -72,12 +68,6 @@ export function LegalSettingsCard() {
             setSeeded(true);
         }
     }, [seeded, settings]);
-
-    useEffect(() => {
-        if (location.hash === `#${LEGAL_SETTINGS_ANCHOR}`) {
-            ref.current?.scrollIntoView?.({ block: "start" });
-        }
-    }, [location.hash]);
 
     const saved = fromSettings(settings);
     const dirty = FIELD_KEYS.some((key) => values[key] !== saved[key]);
@@ -116,13 +106,14 @@ export function LegalSettingsCard() {
 
     return (
         <Paper withBorder p="var(--card-pad)">
-            <Stack gap="md" id={LEGAL_SETTINGS_ANCHOR} ref={ref} style={{ scrollMarginTop: 80 }}>
+            <Stack gap="md">
                 <Stack gap={4}>
                     <Text component="h2" fw={700} m={0} size="lg">
-                        Impressum und Datenschutz
+                        Seiten in der Fußzeile
                     </Text>
                     <Text size="sm" c="dimmed">
                         Inhalt der Seiten „Impressum“ und „Datenschutz“, die in der Fußzeile verlinkt sind.
+                        Ist eine URL gesetzt, führt der Link direkt dorthin.
                     </Text>
                 </Stack>
                 <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
