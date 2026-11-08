@@ -1,0 +1,40 @@
+# Sicherheitsroutine: Abhängigkeiten nicht von Hand beobachten. Dependabot
+# öffnet wöchentlich PRs für Updates; Sicherheitsupdates kommen unabhängig davon,
+# sobald Dependabot-Alerts im Repo eingeschaltet sind.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /apps/backend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+  - package-ecosystem: npm
+    directory: /apps/frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+  - package-ecosystem: docker
+    directory: /apps/backend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+  - package-ecosystem: docker
+    directory: /apps/frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+  - package-ecosystem: docker
+    directory: /docker/db
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+  - package-ecosystem: docker
+    directory: /docker/graphhopper
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
