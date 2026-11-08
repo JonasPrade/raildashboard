@@ -173,6 +173,37 @@ def test_scopes_restrict_admin_key(client, create_user):
     assert response.status_code == 403
 
 
+def test_key_permissions_never_include_user_or_role_management():
+    owner = {"user.manage", "role.manage", "settings.manage", "mcp.access"}
+    assert api_key_core.key_permissions(owner, None) == {"settings.manage", "mcp.access"}
+    assert api_key_core.key_permissions(owner, ["user.manage", "mcp.access"]) == {"mcp.access"}
+
+
+def test_unscoped_admin_key_cannot_manage_users_or_roles(client, create_user):
+    # Account and role management stays with an interactive login: a key must
+    # not be able to create an account that outlives the key's revocation.
+    create_user("admin", "adminpass", UserRole.admin)
+    token = _create_key(client, basic_auth_header("admin", "adminpass")).json()["token"]
+    headers = _bearer(token)
+
+    assert client.get("/api/v1/users/", headers=headers).status_code == 403
+    created_user = client.post(
+        "/api/v1/users/",
+        json={"username": "via-key", "password": "password123", "role": "admin"},
+        headers=headers,
+    )
+    assert created_user.status_code == 403
+    assert client.get("/api/v1/roles/", headers=headers).status_code == 403
+    created_role = client.post(
+        "/api/v1/roles/",
+        json={"name": "via-key", "description": None, "permissions": ["user.manage"]},
+        headers=headers,
+    )
+    assert created_role.status_code == 403
+    # The same admin keeps full access through an interactive login.
+    assert client.get("/api/v1/users/", headers=basic_auth_header("admin", "adminpass")).status_code == 200
+
+
 def test_invalid_tokens_are_401(client, create_user):
     create_user("admin", "adminpass", UserRole.admin)
     token = _create_key(client, basic_auth_header("admin", "adminpass")).json()["token"]

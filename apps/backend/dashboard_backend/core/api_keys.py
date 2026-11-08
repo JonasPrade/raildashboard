@@ -22,6 +22,10 @@ PREFIX_LENGTH = 12
 DEFAULT_KEY_LIFETIME = timedelta(days=90)
 # Capability a key (and its owner) must hold to talk to ``/mcp``.
 MCP_PERMISSION = "mcp.access"
+# Capabilities a key never carries, whatever its owner holds and whatever its
+# scopes say. Managing users and roles stays with an interactive login, so a
+# key cannot create accounts or widen roles that outlive the key itself.
+KEY_EXCLUDED_PERMISSIONS = frozenset({"user.manage", "role.manage"})
 
 
 @dataclass(frozen=True)
@@ -65,13 +69,14 @@ def secret_matches(secret: str, key_hash: str) -> bool:
 
 
 def key_permissions(user_permissions: Iterable[str], scopes: Iterable[str] | None) -> set[str]:
-    """Effective capabilities of a key request: owner's set ∩ scopes.
+    """Effective capabilities of a key request: (owner's set ∩ scopes) minus
+    ``KEY_EXCLUDED_PERMISSIONS``.
 
     There is deliberately no super-admin bypass here — otherwise an admin's key
     could not be narrowed by ``scopes``, which is their whole purpose.
     """
 
     granted = set(user_permissions)
-    if scopes is None:
-        return granted
-    return granted & set(scopes)
+    if scopes is not None:
+        granted &= set(scopes)
+    return granted - KEY_EXCLUDED_PERMISSIONS
