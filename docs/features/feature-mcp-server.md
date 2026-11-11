@@ -163,6 +163,12 @@ Admins durch `scopes` nicht einschränkbar, und genau das ist der Zweck von
 `scopes`. Das ist der einzige Punkt, an dem sich Key-Auth vom bisherigen
 Verhalten unterscheidet, und muss beim Umbau explizit getestet werden.
 
+Ausnahme (seit 2026-11-08): `user.manage` und `role.manage` trägt ein Key
+**nie**, auch nicht ohne `scopes` und auch nicht als Key eines Admins
+(`KEY_EXCLUDED_PERMISSIONS` in `core/api_keys.py`). Konten und Rollen verwaltet
+nur ein interaktiver Login, damit ein Key kein Konto anlegen kann, das seinen
+Widerruf überdauert.
+
 Fehlerfälle: kein/ungültiges Token → `401` mit `WWW-Authenticate: Bearer`
 (die Stelle, an die später die `resource_metadata`-Angabe für OAuth gehört);
 gültiges Token ohne die nötige Capability → `403`.
@@ -476,7 +482,8 @@ Client-seitig (Claude Code, `.mcp.json`):
   Fremde Keys widerrufen nur mit `user.manage`, sonst `404`. Key-Requests an die
   Key-Verwaltung → `403`.
 - **REST**: `require_permission()` und `require_auth()` akzeptieren Bearer-Keys
-  vor Cookie und Basic; Rechte = Nutzer-Rechte ∩ `scopes`, ohne Admin-Bypass.
+  vor Cookie und Basic; Rechte = Nutzer-Rechte ∩ `scopes`, ohne Admin-Bypass,
+  nie `user.manage`/`role.manage`.
 - **MCP-Endpunkt**: SDK `mcp==2.3.0` (`MCPServer`), Streamable HTTP unter
   `/mcp`, `stateless_http` + `json_response`. Eine eigene ASGI-Middleware
   (`mcp/auth.py`) prüft den Bearer-Key (nur Bearer — kein Cookie, kein Basic)
