@@ -3,6 +3,17 @@
 # against the small network in planned-tracks.osm. Run by the `test` stage of the
 # Dockerfile (part of `make test`).
 #
+# Test network (planned-tracks.osm; GraphHopper wants <osm> as the very first XML event,
+# so the file carries no declaration and no comment):
+#
+# West to east along 50.0° N:
+#   W - J1 = existing detour north (N1 N2 N3) = J2 - E - J3 = existing detour south (S1 S2 S3) = J4 - F
+#        \________ proposed, via P ________/         \____ under construction, via C ____/
+#
+# The proposed track uses railway=proposed + proposed=rail, the one under construction
+# the lifecycle prefix construction:railway=rail without a railway=* tag. Way 8 is a
+# proposed way without a track type and must stay out of the graph.
+#
 # The rule it guards: routing on the existing network never uses, and never snaps to,
 # a track that is proposed or under construction. Both are only used when asked for.
 set -eu
