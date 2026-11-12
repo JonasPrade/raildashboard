@@ -155,6 +155,7 @@ def test_custom_model_uses_post(monkeypatch):
     assert seen["body"]["points"] == [[10.0, 50.0], [10.2, 50.0]]
     assert seen["body"]["details"] == ["railway_status"]
     assert seen["body"]["custom_model"] == model
+    assert seen["body"]["ch.disable"] is True
 
 
 def test_bad_request_is_no_path(monkeypatch):

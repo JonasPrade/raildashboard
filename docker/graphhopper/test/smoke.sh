@@ -68,7 +68,7 @@ route_flex() { # construction proposed  (each true/false)
     [ "$1" = true ] || statements='{ "if": "railway_status == CONSTRUCTION", "multiply_by": "0" }, '"$statements"
     [ "$2" = true ] || statements='{ "if": "railway_status == PROPOSED", "multiply_by": "0" }, '"$statements"
     curl -sS -X POST "$BASE/route" -H 'Content-Type: application/json' -d '{
-      "profile": "rail_flex",
+      "profile": "rail_flex", "ch.disable": true,
       "points": [[10.0, 50.0], [10.2, 50.0]],
       "points_encoded": false, "instructions": false, "details": ["railway_status"],
       "custom_model": { "priority": ['"$statements"'] }

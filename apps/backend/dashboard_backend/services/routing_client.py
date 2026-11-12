@@ -52,6 +52,9 @@ class RoutingClient:
                         "locale": "en",
                         "details": [STATUS_DETAIL],
                         "custom_model": custom_model,
+                        # A query custom model needs the flexible algorithm; GraphHopper
+                        # refuses it in speed mode (CH), even for a profile without CH.
+                        "ch.disable": True,
                     }
                     response = await client.post(f"{self._base_url}/route", json=body)
                 if response.status_code == 400:
