@@ -190,6 +190,9 @@ von Hand gezeichnet wird. TRAVE übernimmt die Geometrien danach aus dem Dashboa
 
 ### Offene Entscheidungen (Widerspruchs-Check 2026-11-12, Jonas entscheidet)
 
+Als Entscheidungskarten im Vault (Stapel EKS-2026-024): W1 = EK-2026-150, W2 = EK-2026-151,
+W3 = EK-2026-152.
+
 - **W1 – GraphHopper in `make test`?** `docs/workflow.md` → Ausnahmen: „GraphHopper wird nur in
   `release.yml` gebaut, nicht in `make test`“ (Maven-Build dauert Minuten). Der Patch an
   OpenRailRouting ist ohne Build ungeprüft; vorläufig steht die `test`-Stufe in `make test`
