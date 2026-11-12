@@ -176,8 +176,7 @@ von Hand gezeichnet wird. TRAVE übernimmt die Geometrien danach aus dem Dashboa
 - **Prüfung:** Stufe `test` im GraphHopper-Dockerfile: Unit-Tests der Normalisierung, dann der
   echte Entrypoint mit der echten Konfiguration gegen ein kleines Testnetz
   (`test/planned-tracks.osm`) — `rail_default` nutzt und rastet nie auf geplanten Gleisen,
-  jeder Schalter schaltet genau sein Netz zu (`test/smoke.sh`). Ob diese Stufe in `make test`
-  läuft, ist offen (W1 unten).
+  jeder Schalter schaltet genau sein Netz zu (`test/smoke.sh`). Die Stufe läuft in `make test` (W1 unten).
 
 ### Folgen für den Betrieb
 
@@ -188,24 +187,45 @@ von Hand gezeichnet wird. TRAVE übernimmt die Geometrien danach aus dem Dashboa
 - `GRAPH_VERSION` muss nicht erhöht werden: Der Cache-Schlüssel gespeicherter Routen enthält die
   Schalter, Bestandsrouten bleiben gültig.
 
-### Offene Entscheidungen (Widerspruchs-Check 2026-11-12, Jonas entscheidet)
+### Entscheidungen (Jonas, 2026-11-12)
 
-Als Entscheidungskarten im Vault (Stapel EKS-2026-024): W1 = EK-2026-150, W2 = EK-2026-151,
-W3 = EK-2026-152.
+Aus dem Widerspruchs-Check; Entscheidungskarten im Vault, Stapel EKS-2026-024.
 
-- **W1 – GraphHopper in `make test`?** `docs/workflow.md` → Ausnahmen: „GraphHopper wird nur in
-  `release.yml` gebaut, nicht in `make test`“ (Maven-Build dauert Minuten). Der Patch an
-  OpenRailRouting ist ohne Build ungeprüft; vorläufig steht die `test`-Stufe in `make test`
-  (Entwurf, PR als Draft). Optionen: (a) in `make test` aufnehmen und die Ausnahme streichen,
-  (b) die `test`-Stufe nur in `release.yml` vor dem Push des Images fahren,
-  (c) nur bei Änderungen unter `docker/graphhopper/` in der CI bauen (zweiter Weg, widerspricht
-  „ein Kommando“).
-- **W2 – Wer gewinnt bei abweichender Trasse?** Empfehlung aus der TRAVE-Sitzung: OSM gewinnt,
-  wenn es die Enden durchgehend verbindet; die Abweichung wird gemeldet. Noch nicht entschieden.
-  Bis dahin ersetzt nichts automatisch; 1535 (Bielefeld–Seelze), 1773 und 1663 (mehrere
-  Varianten) entscheidet Jonas einzeln.
-- **W3 – Bevorzugungsfaktor.** Ist ein Schalter an, zählen Bestandsgleise ×0,1. Alternative:
-  gleich gewichten (dann verliert ein OSM-Gleis ohne `maxspeed` meist gegen die Bestandsstrecke).
+- **W1 – GraphHopper wird in `make test` geprüft** (EK-2026-150, A). Die Ausnahme in
+  `docs/workflow.md` („GraphHopper nur in `release.yml`“) entfällt: Der Router ist mit dem Patch
+  eigener Code mit einer Sicherheitszusage. Verworfen: nur in `release.yml`; nur bei Änderungen
+  unter `docker/graphhopper/`.
+- **W2 – Abweichende, von Hand gezeichnete Geometrien werden nach dem Deploy schrittweise durch
+  die OSM-Trasse ersetzt** (EK-2026-151). Je Projekt erst ohne `apply` routen; verbindet OSM die
+  Enden durchgehend, ersetzt Claude die Geometrie per MCP (Änderungsprotokoll, rücknehmbar) und
+  hält Abweichung und Ergebnis in der Dashboard-Aufgabe des Projekts fest. Mehrere Varianten in
+  OSM (1663) und Lücken in OSM gehen als Rückfrage an Jonas. Verworfen: bisherige Geometrie
+  bleibt maßgeblich.
+- **W3 – Gewählte geplante bzw. im Bau befindliche Gleise werden bevorzugt** (EK-2026-152, A):
+  Bestandsgleise ×0,1, solange ein Haken gesetzt ist. Verworfen: gleich gewichten; nur
+  geplante Gleise.
+
+### Wann die Bevorzugung zum Problem wird
+
+Der Router minimiert Fahrzeit geteilt durch Priorität. Ein OSM-Gleis ohne `maxspeed` gilt als
+25 km/h, eine Hauptbahn mit 160 km/h als rund 144 km/h; mit Faktor 0,1 auf den Bestand ist ein
+Kilometer geplantes Gleis (1/25) billiger als ein Kilometer Bestand (1/14,4). Ein Weg über
+geplante Gleise wird deshalb genommen, **solange er höchstens etwa 1,7-mal so lang ist** wie der
+über den Bestand — mit `maxspeed` an den geplanten Gleisen noch deutlich länger. Daraus folgen
+die Fälle, in denen das Ergebnis falsch sein kann:
+
+- **Fremde Planungen in der Nähe:** Die Route biegt auf geplante Gleise eines anderen Projekts
+  ab, wenn sie grob in dieselbe Richtung führen (Verbindungskurven, parallele Neubaustrecken).
+- **Mehrere Varianten in OSM** (z. B. 1663 Hamburg–Hannover): Der Router nimmt die billigste,
+  nicht die beschlossene.
+- **Veraltete Planungen:** OSM behält oft aufgegebene `railway=proposed`-Trassen; die Route kann
+  darüber laufen.
+- **Ausbaustrecken:** Wird nur ein Teil neu gebaut, zieht die Route auch Bestandsabschnitte auf
+  benachbarte geplante Gleise.
+
+Gegenmittel: Via-Bahnhöfe an Anfang und Ende jedes Neubauabschnitts setzen, in der Vorschau
+„km je Status“ und den Vergleich mit der bisherigen Geometrie prüfen, den Haken nur für das
+eine Projekt setzen. Ohne Haken tritt keiner dieser Fälle auf.
 
 ### Akzeptanzkriterien
 
@@ -223,7 +243,8 @@ W3 = EK-2026-152.
 Erst nach dem Deploy möglich (der Graph mit geplanten Gleisen existiert nur dort). Je Projekt
 `route_project_geometry` mit `use_proposed`/`use_construction`, **ohne** `apply`, zwischen den
 Enden der bisherigen Geometrie: Verbindet OSM die Enden durchgehend (sonst 422)? Wie groß ist
-`deviation`? Ergebnisse als Kommentar in Issue #364, geschrieben wird nichts.
+`deviation`? Danach nach W2 schrittweise ersetzen. Die Schritte stehen als LLM-Aufgaben im
+Dashboard (Tag `@LLM`), je Projekt eine.
 
 | Gruppe (laut TRAVE, ungeprüft) | Projekte |
 |---|---|

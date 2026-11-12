@@ -145,9 +145,11 @@ mehr erkennt.
   Socket-Sperre gibt es noch nicht. Beides ist offen und kein Zielzustand: der nächste
   Schritt wäre ein Test-Stack mit dem db-Image.
 
-- **GraphHopper wird nur in `release.yml` gebaut, nicht in `make test`.** Der Build klont
-  OpenRailRouting und fährt Maven, das dauert Minuten und ändert sich selten. Scheitert er,
-  gibt es zum Commit kein vollständiges Image-Set, und `deploy.yml` lehnt die SHA ab.
+- **GraphHopper wird in `make test` geprüft** (seit #364, Entscheidung 2026-11-12, EK-2026-150;
+  vorher nur in `release.yml` gebaut). Das Dashboard patcht OpenRailRouting (geplante und im
+  Bau befindliche Gleise); die Stufe `test` im GraphHopper-Dockerfile fährt Unit-Tests und einen
+  Smoke-Test gegen ein kleines Testnetz. Der Maven-Build verlängert `make test` um einige
+  Minuten.
 
 - **`prod.sh` liegt unter `/srv/raildashboard/`, nicht unter `/srv/deploy/`.** Auf dem Host
   laufen mehrere Dienste; ein gemeinsamer Pfad wäre mehrdeutig. Im Repo heißt die Datei wie
