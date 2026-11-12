@@ -159,3 +159,48 @@ def test_calculate_route_returns_502_on_upstream_error(client, create_user, rout
     )
     assert response.status_code == 502
     assert response.json()["detail"] == "upstream boom"
+
+
+def test_calculate_route_with_networks_and_deviation(client, create_user, routing_stub, db_session):
+    from dashboard_backend.models.projects.project import Project
+
+    project = Project(
+        name="NBS",
+        is_draft=False,
+        geojson_representation=(
+            '{"type":"FeatureCollection","features":[{"type":"Feature","properties":{},'
+            '"geometry":{"type":"LineString","coordinates":[[7.0,51.0],[7.5,51.5]]}}]}'
+        ),
+    )
+    db_session.add(project)
+    db_session.commit()
+    create_user("planner", "secret123", UserRole.editor)
+    response = client.post(
+        "/api/v1/routes/calculate",
+        json={
+            **CALCULATE_PAYLOAD,
+            "networks": {"construction": True},
+            "compare_project_id": project.id,
+        },
+        headers=basic_auth_header("planner", "secret123"),
+    )
+    assert response.status_code == 200
+    properties = response.json()["properties"]
+    assert properties["profile"] == "rail_flex"
+    assert properties["networks"] == {"construction": True, "proposed": False}
+    assert routing_stub.last_request["custom_model"]["priority"][0]["if"] == "railway_status == PROPOSED"
+    # The stub's route is the stored line itself.
+    assert properties["deviation"]["route_within_corridor_share"] == 1.0
+    assert properties["sections"][0]["track_status"] == "existing"
+
+
+def test_calculate_route_ignores_unknown_network(client, create_user, routing_stub):
+    create_user("planner", "secret123", UserRole.editor)
+    response = client.post(
+        "/api/v1/routes/calculate",
+        json={**CALCULATE_PAYLOAD, "networks": {"subway": True}},
+        headers=basic_auth_header("planner", "secret123"),
+    )
+    # Unknown switches are ignored by the schema and never reach the router.
+    assert response.status_code == 200
+    assert routing_stub.last_request == {"profile": "rail_default", "custom_model": None}

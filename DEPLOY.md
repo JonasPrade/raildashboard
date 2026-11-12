@@ -277,6 +277,16 @@ Expand, der ältere Code läuft auf ihr weiter. Auf dem Server ist
 v0.0.14 zusätzlich lokal auf seine Commit-SHA `2e85d736181b5559d7a0f2b87581b2bf98d04fce`
 getaggt; erreichbar ist das nur von Hand mit `./prod.sh 2e85d73…`, nicht über den Knopf.
 
+**Rückweg hinter #364 (Routing über geplante Gleise):** Das GraphHopper-Image ab #364
+baut seinen Graph-Cache selbst neu, wenn die Routing-Konfiguration nicht passt
+(Fingerabdruck in `/data/graph-cache.fingerprint`, `docker/graphhopper/docker-entrypoint.sh`).
+Ältere Images kennen das nicht: Mit dem Cache des neuen Images startet ihr GraphHopper
+nicht (unbekanntes Merkmal `railway_status`, unbekanntes Profil `rail_flex`). Nach einem
+Rückweg auf eine SHA vor #364 deshalb den Cache von Hand löschen, die PBF bleibt:
+`docker compose run --rm --entrypoint rm graphhopper -rf /data/graph-cache /data/graph-cache.fingerprint`,
+dann `docker compose up -d graphhopper`. Backend und `/healthz` sind davon nicht betroffen,
+nur das Routing. Der nächste Vorwärts-Deploy baut den Cache wieder von selbst.
+
 **Achtung beim Rückweg auf v0.0.14:** Der erste Deploy fährt die Migration
 `20260928001`, die `project.centroid` löscht. v0.0.14 mappt die Spalte noch, und sein
 Entrypoint kennt `db_ahead.py` nicht. Ein Rückweg auf v0.0.14 nach dem ersten Deploy

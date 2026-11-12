@@ -42,8 +42,14 @@ from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.railway_infrastructure.operational_point import OperationalPoint
 from dashboard_backend.services.exceptions import RoutingNoPathError, RoutingUpstreamError
 from dashboard_backend.services.geo_length import compute_geojson_length_km
+from dashboard_backend.services.geometry_deviation import geometry_deviation
+from dashboard_backend.services.routing_networks import (
+    SOURCE_MANUAL,
+    feature_origin,
+    route_line_features,
+)
 
-ROUTING_PROFILE = "rail_default"
+ROUTING_PROFILE = "rail_default"  # existing track; switches pick rail_flex (routing_networks)
 # 5 decimals of a degree ≈ 1 m: enough for every map, a third of the characters.
 COORD_PRECISION = 5
 MAX_SEARCH_LIMIT = 50
@@ -145,6 +151,7 @@ def _feature_summary(index: int, feature: dict[str, Any]) -> dict[str, Any]:
         if properties.get(key) is not None:
             entry[key] = properties[key]
     if kind in _LINE_TYPES:
+        entry["origin"] = feature_origin(feature)
         entry["length_km"] = compute_geojson_length_km(json.dumps(geometry))
         parts = [coords] if kind == "LineString" else coords
         if parts and parts[0] and parts[-1]:
@@ -166,8 +173,23 @@ def _geometry_summary(features: list[dict[str, Any]]) -> dict[str, Any]:
             1 for f in features if (f.get("geometry") or {}).get("type") in _POINT_TYPES
         ),
         "length_km": compute_geojson_length_km(text),
+        "line_km_by_origin": _km_by_origin(features),
         "bbox": _bbox(features),
     }
+
+
+def _km_by_origin(features: list[dict[str, Any]]) -> dict[str, float]:
+    """Line length per origin (routing_existing / routing_construction /
+    routing_proposed / manual / upload / unknown)."""
+    totals: dict[str, float] = {}
+    for feature in features:
+        geometry = feature.get("geometry") or {}
+        if geometry.get("type") not in _LINE_TYPES:
+            continue
+        km = compute_geojson_length_km(json.dumps(geometry)) or 0.0
+        origin = feature_origin(feature)
+        totals[origin] = totals.get(origin, 0.0) + km
+    return {origin: round(km, 2) for origin, km in sorted(totals.items())}
 
 
 def _ensure_owns_geometry(db: Session, project: Project) -> None:
@@ -321,7 +343,11 @@ def _normalize_features(items: list[dict[str, Any]], warnings: list[str]) -> lis
         else:
             geometry = _normalize_geometry(item, where, warnings)
             properties = None
-        features.append({"type": "Feature", "geometry": geometry, "properties": properties or {}})
+        properties = dict(properties or {})
+        if geometry["type"] in _LINE_TYPES:
+            # Hand-made unless the caller states an origin (e.g. a copied routed line).
+            properties.setdefault("geometry_source", SOURCE_MANUAL)
+        features.append({"type": "Feature", "geometry": geometry, "properties": properties})
     return features
 
 
@@ -381,7 +407,10 @@ def get_project_geometry(
     subprojects), totals (features, lines, points, length, bbox) and one entry per
     feature with its ``index`` (for edit_project_geometry ``remove_feature_indices``),
     type, vertex count, line length and start/end, or the point's coordinates and
-    operational point. Saved GraphHopper routes are listed as well.
+    operational point. Lines carry their ``origin`` (routing_existing,
+    routing_construction, routing_proposed, manual, upload, or unknown for lines
+    saved before origins were recorded); ``line_km_by_origin`` sums them. Saved
+    GraphHopper routes are listed as well.
     ``include_geojson=true`` adds the full FeatureCollection (coordinates rounded to
     ~1 m) — large for long routes, so only when the coordinates are really needed."""
     get_principal(ctx)
@@ -421,10 +450,12 @@ def route_project_geometry(
     mode: Literal["append", "replace"] = "append",
     add_stations: bool = False,
     apply: bool = False,
+    use_construction: bool = False,
+    use_proposed: bool = False,
     *,
     ctx: Context,
 ) -> dict[str, Any]:
-    """Route a line over the existing rail network (GraphHopper) — like "Route
+    """Route a line over the rail network (GraphHopper) — like "Route
     berechnen" in the geometry editor (requires ``project.edit``).
 
     - waypoints: start, optional via points, end (at least two). Each is an
@@ -436,11 +467,21 @@ def route_project_geometry(
       as points (skipped when the op_id is already present). Off by default:
       waypoints only steer the route; set it only when the stations are meant
       to be part of the geometry (e.g. a station or node project).
+    - use_construction / use_proposed: also route over tracks that OSM maps as
+      under construction / proposed (railway=construction|proposed), each on its
+      own. Off by default: then the route never touches such a track. When on,
+      those tracks are preferred over parallel existing lines — use it for a
+      Neubaustrecke that OSM already maps; via points still steer the corridor.
     - apply: false (default) only calculates and reports distance, resolved
       waypoints and the resulting geometry; true writes it (changelog, revertible)
       and stores the route.
-    New lines (Neubaustrecken) have no track to route on: draw them with
-    edit_project_geometry instead. Projects whose geometry is aggregated from
+    The result reports ``route.sections`` (track status per stretch, km),
+    ``route.status_km`` and ``deviation`` from the project's current lines
+    (share within 100 m, max/mean distance) — check them before apply, and do not
+    replace an existing geometry with a different alignment without asking. Saved
+    lines are split by track status and tagged with their origin
+    (``geometry_source``/``track_status``). A Neubaustrecke OSM does not map is
+    drawn with edit_project_geometry. Projects whose geometry is aggregated from
     subprojects cannot be routed directly."""
     principal = get_principal(ctx)
     require(principal, "project.edit")
@@ -469,36 +510,63 @@ def route_project_geometry(
                 [{"lat": w["lat"], "lon": w["lon"]} for w in resolved],
                 ROUTING_PROFILE,
                 {},
+                {"construction": use_construction, "proposed": use_proposed},
             )
         except RoutingNoPathError as exc:
+            hint = (
+                "Geplante bzw. im Bau befindliche Gleise verbinden die Wegpunkte nicht "
+                "durchgehend (Lücke in OSM?)."
+                if use_construction or use_proposed
+                else "Neubaustrecken mit use_proposed/use_construction versuchen oder mit "
+                "edit_project_geometry zeichnen."
+            )
             raise ToolError(
-                "Kein Pfad im Schienennetz gefunden. Liegen alle Wegpunkte an Gleisen? "
-                "Neubaustrecken mit edit_project_geometry zeichnen."
+                f"Kein Pfad im Schienennetz gefunden. Liegen alle Wegpunkte an Gleisen? {hint}"
             ) from exc
         except RoutingUpstreamError as exc:
             raise ToolError("Routing-Dienst nicht erreichbar.") from exc
 
-        features = [] if mode == "replace" else extract_features(project.geojson_representation)
-        features.append({"type": "Feature", "geometry": feature["geometry"], "properties": {}})
+        previous = extract_features(project.geojson_representation)
+        deviation = geometry_deviation(feature["geometry"]["coordinates"], previous)
+        features = [] if mode == "replace" else previous
+        properties = feature["properties"]
+        features.extend(
+            route_line_features(feature["geometry"]["coordinates"], properties["sections"])
+        )
         if add_stations:
             _append_stations(features, stations)
 
         route_info = {
-            "distance_km": round(feature["properties"]["distance_m"] / 1000, 2),
-            "duration_min": round(feature["properties"]["duration_ms"] / 60000),
+            "distance_km": round(properties["distance_m"] / 1000, 2),
+            "duration_min": round(properties["duration_ms"] / 60000),
             "line_vertices": len(feature["geometry"]["coordinates"]),
-            "bbox": [_round(v) for v in feature["properties"]["bbox"]],
+            "bbox": [_round(v) for v in properties["bbox"]],
             "waypoints": resolved,
+            "networks": properties["networks"],
+            "status_km": properties["status_km"],
+            "sections": [
+                {"track_status": s["track_status"], "length_km": s["length_km"]}
+                for s in properties["sections"]
+            ],
         }
+        result_extra = {"deviation": deviation}
         if not apply:
-            return {"route": route_info, **_write_result(project, features, applied=False)}
+            return {
+                "route": route_info,
+                **result_extra,
+                **_write_result(project, features, applied=False),
+            }
 
         project = _write_geometry(db, ctx, project, features)
         try:
             service.confirm_and_store(db, project.id, feature)
         except ValueError as exc:  # pragma: no cover - the feature comes from calculate_only
             raise ToolError(f"Route konnte nicht gespeichert werden: {exc}") from exc
-        return {"route": route_info, **_write_result(project, features, applied=True)}
+        return {
+            "route": route_info,
+            **result_extra,
+            **_write_result(project, features, applied=True),
+        }
 
 
 def edit_project_geometry(
@@ -518,8 +586,9 @@ def edit_project_geometry(
        get_project_geometry, read just before).
     2. add_features: GeoJSON Features, bare geometries or FeatureCollections —
        Point, MultiPoint, LineString, MultiLineString; coordinates are
-       [lon, lat] (WGS84). Use it for new lines (Neubaustrecken), tram/metro,
-       or a manual correction. Properties such as "name" are kept.
+       [lon, lat] (WGS84). Use it for new lines (Neubaustrecken) OSM does not
+       map, tram/metro, or a manual correction. Properties such as "name" are
+       kept; lines get ``geometry_source: "manual"`` unless one is given.
     3. add_operational_points: ids, op_ids or exact names (see
        search_operational_points), added as points unless already present.
     The change goes to the changelog and can be reverted in the UI. The result

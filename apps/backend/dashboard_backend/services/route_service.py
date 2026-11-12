@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, Sequence
+from typing import Any, Dict, Iterable, Optional, Sequence
 
 from geoalchemy2.shape import from_shape
 from shapely.geometry import LineString, Polygon
@@ -13,6 +13,12 @@ from dashboard_backend.crud.routes import (
 from dashboard_backend.models.routes import Route, route_hash
 from dashboard_backend.services.exceptions import RoutingNoPathError
 from dashboard_backend.services.routing_client import RoutingClient
+from dashboard_backend.services.routing_networks import (
+    normalize_networks,
+    route_sections,
+    routing_request,
+    status_totals_km,
+)
 
 
 class RouteService:
@@ -32,26 +38,39 @@ class RouteService:
         waypoints: Iterable[Dict[str, float]],
         profile: str,
         options: Dict[str, Any],
+        networks: Optional[Dict[str, bool]] = None,
     ) -> Dict[str, Any]:
         """Calculate a route via GraphHopper and return a GeoJSON Feature.
 
         Nothing is written to the database. The feature's properties include
-        all data needed to later confirm and persist the route.
+        all data needed to later confirm and persist the route, plus the network
+        switches used and the route's sections by track status
+        (services/routing_networks.py). Without switches the route stays on
+        existing track (``profile`` is then used as is).
         """
         waypoints = list(waypoints)
-        cache_key = route_hash(waypoints, profile, options, self._graph_version)
+        switches = normalize_networks(networks)
+        request = routing_request(switches)
+        if request.custom_model is not None:
+            profile = request.profile
+        cache_options = {**options, "networks": switches} if any(switches.values()) else options
+        cache_key = route_hash(waypoints, profile, cache_options, self._graph_version)
 
-        response = await self._routing_client.route(waypoints, profile, options)
+        response = await self._routing_client.route(
+            waypoints, profile, options, custom_model=request.custom_model
+        )
         path = self._extract_path(response)
         line = self._build_line(path)
         bbox = self._build_bbox(line)
         minx, miny, maxx, maxy = bbox.bounds
+        coordinates = [[float(x), float(y)] for x, y in line.coords]
+        sections = route_sections(coordinates, path.get("details"))
 
         return {
             "type": "Feature",
             "geometry": {
                 "type": "LineString",
-                "coordinates": [[float(x), float(y)] for x, y in line.coords],
+                "coordinates": coordinates,
             },
             "properties": {
                 "distance_m": float(path["distance"]),
@@ -59,8 +78,15 @@ class RouteService:
                 "profile": profile,
                 "graph_version": self._graph_version,
                 "bbox": [float(minx), float(miny), float(maxx), float(maxy)],
-                "details": self._build_details(path),
+                "details": {
+                    **self._build_details(path),
+                    "networks": switches,
+                    "sections": sections,
+                },
                 "cache_key": cache_key,
+                "networks": switches,
+                "sections": sections,
+                "status_km": status_totals_km(sections),
             },
         }
 

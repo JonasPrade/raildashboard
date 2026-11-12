@@ -230,8 +230,8 @@ The same editor (`GeometryEditor`) also runs in the project-creation wizard (ste
 
 **Route calculator flow:**
 1. User picks start/via/end operational points in `RouteCalculatorForm`
-2. `useCalculateRoute()` → `POST /api/v1/routes/calculate` — returns a `RoutePreviewFeature` (not persisted)
-3. Preview renders on the map
+2. `useCalculateRoute()` → `POST /api/v1/routes/calculate` — returns a `RoutePreviewFeature` (not persisted). The checkboxes „Gleise im Bau (OSM)“ / „Geplante Gleise (OSM)“ send `networks`; with existing geometry the editor sends `compare_project_id` and shows the deviation
+3. Preview renders on the map, coloured by track status (`TRACK_STATUS_MAP_COLOR`); on save the route is split into one line per status, each tagged with `geometry_source`/`track_status` (`geometryOrigin.ts`), drawn lines get `manual`, uploads `upload`
 4. On "Übernehmen": `useConfirmRoute()` → `POST /api/v1/projects/{id}/routes` saves the route; `useUpdateProjectGeometry()` → `PATCH /api/v1/projects/{id}` updates `geojson_representation` **only if** there is no existing geometry or the "delete existing" toggle is active
 
 **GeoJSON upload flow:** Parses the uploaded file client-side, validates basic GeoJSON structure, previews on map, then calls `useUpdateProjectGeometry()` on confirm.

@@ -5,19 +5,37 @@ graphhopper:
   datareader.file: /data/map.osm.pbf
   graph.location: /data/graph-cache
 
-  # Railway-specific encoded values required by the custom model files
-  graph.encoded_values: gauge,voltage,electrified,frequency,road_environment,max_speed,rail_access,rail_average_speed,railway_class,railway_service,preferred_direction
+  # Railway-specific encoded values required by the custom model files.
+  # railway_status (existing / construction / proposed) comes from the dashboard's
+  # extension of OpenRailRouting (orr/).
+  graph.encoded_values: gauge,voltage,electrified,frequency,road_environment,max_speed,rail_access,rail_average_speed,railway_class,railway_service,preferred_direction,railway_status
 
   # Skip road-only highway types to reduce graph size
   import.osm.ignored_highways: footway,construction,cycleway,path,steps
 
+  # Custom models live next to this file (custom_models/, copied into the image).
+  custom_models.directory: /graphhopper/custom_models
+
+  # Two profiles:
+  # - rail_default: the existing network. Never uses or snaps to a track that is
+  #   proposed or under construction. Prepared for speed (CH).
+  # - rail_flex: every rail track; the backend narrows it per request with a query
+  #   custom model built from the network switches (services/routing_networks.py).
+  #   Not prepared, routed flexibly (slower, fine for single requests).
+  # test/smoke.sh checks both against a small network.
   profiles:
     - name: rail_default
       turn_costs:
         vehicle_types: [train]
         u_turn_costs: 300
         enable_uturn_times: true
-      custom_model_files: [rail.json]
+      custom_model_files: [dashboard_rail_existing.json]
+    - name: rail_flex
+      turn_costs:
+        vehicle_types: [train]
+        u_turn_costs: 300
+        enable_uturn_times: true
+      custom_model_files: [dashboard_rail_flex.json]
 
   profiles_ch:
     - profile: rail_default

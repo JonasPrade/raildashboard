@@ -30,6 +30,10 @@ Der Editor besteht aus einem linken Bedienfeld mit den vier Erfassungswegen und 
 2. Läuft die berechnete Route falsch, mit **„+ Via-Bahnhof hinzufügen"** Zwischenhalte („Via 1", „Via 2", …) erzwingen.
 3. **„Route berechnen"** klicken — die Route erscheint als Vorschau auf der Karte und wird erst mit dem Speichern übernommen.
 
+**Neubaustrecken:** Erfasst OpenStreetMap die Strecke schon als geplant oder im Bau, unter **„Auch nutzen"** **„Geplante Gleise (OSM)"** bzw. **„Gleise im Bau (OSM)"** anhaken. Die Route nutzt diese Gleise dann bevorzugt; die Vorschau färbt die Abschnitte je Gleisstatus und nennt die Kilometer. Ohne Haken führt die Route nur über Gleise in Betrieb. Verbinden die Gleise Start und Ziel nicht durchgehend, kommt „Kein Pfad gefunden" — dann die Lücke von Hand zeichnen.
+
+Hat das Projekt schon eine Geometrie, zeigt die Vorschau den **„Vergleich mit der bisherigen Geometrie"** (Anteil im 100-m-Korridor, größter und mittlerer Abstand). Die Route kommt beim Speichern zur bisherigen Geometrie dazu; ersetzen nur bewusst mit „Bestehende Geometrie löschen".
+
 Gespeichert wird nur die Linie; Start, Ziel und Zwischenhalte steuern nur die Route. Sollen die Bahnhöfe selbst als Punkte in die Geometrie (z. B. bei Knotenprojekten), den Schalter **„Start, Ziel und Zwischenhalte als Punkte übernehmen"** einschalten.`,
         },
         {

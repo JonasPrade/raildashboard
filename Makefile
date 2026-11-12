@@ -165,6 +165,7 @@ test:
 	docker build --target runtime --build-context skills=.claude/skills -t raildashboard-backend:runtime $(BACKEND_DIR)
 	docker build --target runtime -t raildashboard-frontend:runtime $(FRONTEND_DIR)
 	docker build -t raildashboard-db:pruefung docker/db
+	docker build --target test -t raildashboard-graphhopper:pruefung docker/graphhopper
 
 # Fast local loop against the project venv / node_modules (not what CI runs).
 test-local: test-backend test-frontend

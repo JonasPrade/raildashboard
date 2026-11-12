@@ -5,7 +5,10 @@
 Editors und Admins können für ein Projekt Geometrie **direkt auf der Karte von Hand**
 anlegen: Linien zeichnen (Klick für Klick Stützpunkte setzen) und einzelne Punkte setzen.
 Das ist nötig für Projekte, die Neubaustrecken sind oder auf Tram-/U-Bahn-Strecken fahren,
-für die es keine über GraphHopper berechenbare Bahnroute gibt.
+für die es keine über GraphHopper berechenbare Bahnroute gibt. (Seit #364 lassen sich
+Neubaustrecken, die OSM als geplant oder im Bau erfasst, auch routen — siehe
+`feature-routing.md`; gezeichnete Linien tragen `geometry_source: "manual"`, eine im Editor
+verschobene Linie wird ebenfalls `manual`.)
 
 ## Kontext
 

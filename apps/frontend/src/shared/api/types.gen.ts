@@ -818,7 +818,9 @@ export interface paths {
          * @description Calculate a route and return it as a GeoJSON Feature preview.
          *
          *     Nothing is saved to the database. The frontend can evaluate the result
-         *     and then call the confirm endpoint to persist it.
+         *     and then call the confirm endpoint to persist it. ``networks`` admits tracks
+         *     under construction or proposed (off by default: existing track only);
+         *     ``compare_project_id`` adds the deviation from that project's lines.
          */
         post: operations["calculate_route_api_v1_routes_calculate_post"];
         delete?: never;
@@ -8302,6 +8304,31 @@ export interface components {
             options?: {
                 [key: string]: unknown;
             };
+            networks?: components["schemas"]["RouteNetworks"];
+            /**
+             * Compare Project Id
+             * @description Compare the route with this project's lines; the result carries properties.deviation (null when the project has no lines).
+             */
+            compare_project_id?: number | null;
+        };
+        /**
+         * RouteNetworks
+         * @description Optional networks a route may use in addition to existing track (all off by
+         *     default). Further networks (issue #363) become further fields.
+         */
+        RouteNetworks: {
+            /**
+             * Construction
+             * @description Tracks under construction from OSM (railway=construction).
+             * @default false
+             */
+            construction: boolean;
+            /**
+             * Proposed
+             * @description Proposed tracks from OSM (railway=proposed).
+             * @default false
+             */
+            proposed: boolean;
         };
         /** RouteOut */
         RouteOut: {

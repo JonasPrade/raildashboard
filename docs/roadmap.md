@@ -194,7 +194,7 @@ Vollständig implementiert. Backend-Infrastruktur (GraphHopper HTTP client, Rout
 Siehe: `docs/features/feature-routing.md`
 
 #### ✅ Done — Docker infrastructure
-- `docker/graphhopper/config.yml` — GraphHopper config with `rail_default` profile
+- `docker/graphhopper/config.yml` — GraphHopper config with `rail_default` (existing track) and `rail_flex` (network switches) profiles; OpenRailRouting is patched to import proposed tracks and tracks under construction (`docker/graphhopper/orr/`, Issue #364)
 - `docker-compose.yml` (prod) — `graphhopper` service added; starts automatically with the stack
 - `docker-compose.dev.yml` — `graphhopper` service added behind `--profile routing` (opt-in)
 - `.env.example` — `ROUTING_BASE_URL=http://graphhopper:8989` (was broken `localhost`)

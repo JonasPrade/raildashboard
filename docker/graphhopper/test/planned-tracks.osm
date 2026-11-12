@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Test network for docker/graphhopper/test/smoke.sh (west to east along 50.0° N):
+
+    W - J1 = existing detour north (N1 N2 N3) = J2 - E - J3 = existing detour south (S1 S2 S3) = J4 - F
+         \________ proposed, via P ________/         \____ under construction, via C ____/
+
+  The proposed track uses railway=proposed + proposed=rail, the one under construction
+  the lifecycle prefix construction:railway=rail without a railway=* tag. Way 8 is a
+  proposed way without a track type and must stay out of the graph.
+-->
+<osm version="0.6" generator="raildashboard">
+  <node id="1" lat="50.0000" lon="10.000" version="1"/>
+  <node id="2" lat="50.0000" lon="10.020" version="1"/>
+  <node id="3" lat="50.0030" lon="10.035" version="1"/>
+  <node id="4" lat="50.0060" lon="10.050" version="1"/>
+  <node id="5" lat="50.0030" lon="10.065" version="1"/>
+  <node id="6" lat="50.0000" lon="10.080" version="1"/>
+  <node id="7" lat="50.0000" lon="10.100" version="1"/>
+  <node id="8" lat="50.0000" lon="10.120" version="1"/>
+  <node id="9" lat="49.9970" lon="10.135" version="1"/>
+  <node id="10" lat="49.9940" lon="10.150" version="1"/>
+  <node id="11" lat="49.9970" lon="10.165" version="1"/>
+  <node id="12" lat="50.0000" lon="10.180" version="1"/>
+  <node id="13" lat="50.0000" lon="10.200" version="1"/>
+  <node id="14" lat="50.0000" lon="10.050" version="1"/>
+  <node id="15" lat="50.0000" lon="10.150" version="1"/>
+  <node id="16" lat="50.0100" lon="10.000" version="1"/>
+  <way id="1" version="1">
+    <nd ref="1"/><nd ref="2"/>
+    <tag k="railway" v="rail"/><tag k="usage" v="main"/><tag k="maxspeed" v="160"/>
+  </way>
+  <way id="2" version="1">
+    <nd ref="2"/><nd ref="3"/><nd ref="4"/><nd ref="5"/><nd ref="6"/>
+    <tag k="railway" v="rail"/><tag k="usage" v="main"/><tag k="maxspeed" v="160"/>
+  </way>
+  <way id="3" version="1">
+    <nd ref="6"/><nd ref="7"/><nd ref="8"/>
+    <tag k="railway" v="rail"/><tag k="usage" v="main"/><tag k="maxspeed" v="160"/>
+  </way>
+  <way id="4" version="1">
+    <nd ref="8"/><nd ref="9"/><nd ref="10"/><nd ref="11"/><nd ref="12"/>
+    <tag k="railway" v="rail"/><tag k="usage" v="main"/><tag k="maxspeed" v="160"/>
+  </way>
+  <way id="5" version="1">
+    <nd ref="12"/><nd ref="13"/>
+    <tag k="railway" v="rail"/><tag k="usage" v="main"/><tag k="maxspeed" v="160"/>
+  </way>
+  <way id="6" version="1">
+    <nd ref="2"/><nd ref="14"/><nd ref="6"/>
+    <tag k="railway" v="proposed"/><tag k="proposed" v="rail"/>
+  </way>
+  <way id="7" version="1">
+    <nd ref="8"/><nd ref="15"/><nd ref="12"/>
+    <tag k="construction:railway" v="rail"/>
+  </way>
+  <way id="8" version="1">
+    <nd ref="1"/><nd ref="16"/>
+    <tag k="railway" v="proposed"/>
+  </way>
+</osm>

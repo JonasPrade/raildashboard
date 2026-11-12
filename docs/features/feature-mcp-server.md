@@ -262,7 +262,7 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `merge_projects` | Dublette in ein anderes Projekt überführen (Vorschau, mit `apply` ausführen; destruktiv) | `project.merge` |
 | `search_operational_points` | Betriebsstellen nach Name/op_id suchen (Wegpunkte, Stationen) | — |
 | `get_project_geometry` | Geometrie-Übersicht je Feature (Index, Typ, Länge, Station), GeoJSON auf Wunsch | — |
-| `route_project_geometry` | Route über GraphHopper berechnen (Vorschau), mit `apply` anhängen/ersetzen | `project.edit` |
+| `route_project_geometry` | Route über GraphHopper berechnen (Vorschau, wahlweise auch über geplante/im Bau befindliche OSM-Gleise, mit Abweichung), mit `apply` anhängen/ersetzen | `project.edit` |
 | `edit_project_geometry` | Linien/Punkte aus Koordinaten, Betriebsstellen als Punkte, Features löschen | `project.edit` |
 | `list_data_gaps` | Projekte mit fehlenden/veralteten Daten, Lücken je Projekt und Zählung (siehe *Datenpflege*) | — |
 | `check_geometry` | Geometrie-Plausibilität für ein Projekt oder eine Gruppe (siehe *Datenpflege*) | — |
@@ -454,6 +454,14 @@ Client-seitig (Claude Code, `.mcp.json`):
     wie der Schalter im UI; ohne Dublette per `op_id`), und die
     Route wird wie bei „Übernehmen“ in `routes` gespeichert. Der `RouteService` wird pro
     Request wie die DB-Session in den Scope gelegt (in Tests: der Routing-Stub).
+    Seit 2026-11-12 (#364) zusätzlich `use_construction` / `use_proposed`: getrennt
+    schaltbar auch über Gleise routen, die OSM als im Bau bzw. geplant erfasst (aus = nie);
+    das Ergebnis enthält `route.sections`/`status_km` (Gleisstatus je Abschnitt) und
+    `deviation` (Abweichung von den bisherigen Linien). Gespeicherte Linien sind nach
+    Gleisstatus geteilt und tragen `geometry_source`/`track_status`; `get_project_geometry`
+    zeigt `origin` je Linie und `line_km_by_origin`, `edit_project_geometry` markiert neue
+    Linien als `manual`. Siehe `feature-routing.md` → „Geplante und im Bau befindliche
+    Gleise aus OSM“.
   - `edit_project_geometry`: `replace` (allein: Geometrie leeren) oder
     `remove_feature_indices` (Indizes aus `get_project_geometry`), dann `add_features`
     (Feature, Geometrie oder FeatureCollection; Point/MultiPoint/LineString/

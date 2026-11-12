@@ -556,6 +556,15 @@ docker compose --env-file .env logs -f graphhopper
 
 Folgestarts nutzen den Cache im Volume und starten in wenigen Sekunden.
 
+**Graph-Cache und Image-Wechsel:** Das Image trägt einen Fingerabdruck seiner
+Routing-Konfiguration (`config.yml`, `custom_models/`, Patch an OpenRailRouting unter
+`docker/graphhopper/orr/`). Passt der Cache im Volume nicht dazu, verwirft der Entrypoint ihn
+und baut den Graphen aus der vorhandenen PBF neu (Log: „Routing configuration changed“). Das
+dauert für Deutschland einige Minuten; so lange ist Routing nicht verfügbar und der Container
+kann `unhealthy` melden. Backend und `/healthz` hängen nicht daran. Seit #364 enthält der Graph
+auch geplante und im Bau befindliche Gleise (Merkmal `railway_status`, zweites Profil
+`rail_flex`), siehe `docs/features/feature-routing.md`.
+
 **OSM-Extrakt aktualisieren:** `GRAPH_VERSION` in `.env` hochzählen (busted Route-Cache), dann den Stack neu starten. Das Volume `ghdata` löschen, damit GraphHopper die neue PBF herunterlädt:
 ```bash
 docker compose --env-file .env down

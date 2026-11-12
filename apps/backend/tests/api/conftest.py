@@ -219,9 +219,11 @@ class RoutingClientStub:
             ]
         }
         self.calls = 0
+        self.last_request: dict | None = None
 
-    async def route(self, waypoints, profile, options):  # pragma: no cover - exercised via tests
+    async def route(self, waypoints, profile, options, custom_model=None):  # pragma: no cover - exercised via tests
         self.calls += 1
+        self.last_request = {"profile": profile, "custom_model": custom_model}
         if self.next_exception is not None:
             exception = self.next_exception
             self.next_exception = None

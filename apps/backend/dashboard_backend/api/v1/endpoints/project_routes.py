@@ -7,8 +7,10 @@ from shapely.geometry import LineString
 from sqlalchemy.orm import Session
 
 from dashboard_backend.core.security import require_permission
+from dashboard_backend.crud.projects.projects import extract_features
 from dashboard_backend.database import get_db
 from dashboard_backend.dependencies.routes import get_route_service
+from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.routes import Route
 from dashboard_backend.models.users import User
 from dashboard_backend.routing.auth_router import AuthRouter
@@ -19,6 +21,7 @@ from dashboard_backend.schemas.routes import (
     RoutePreviewOut,
 )
 from dashboard_backend.services.exceptions import RoutingNoPathError, RoutingUpstreamError
+from dashboard_backend.services.geometry_deviation import geometry_deviation
 from dashboard_backend.services.route_service import RouteService
 
 router = AuthRouter()
@@ -51,21 +54,35 @@ def _to_route_out(route: Route) -> RouteOut:
 async def calculate_route(
     request: RouteIn,
     current_user: User = Depends(require_permission("project.edit")),
+    db: Session = Depends(get_db),
     service: RouteService = Depends(get_route_service),
 ) -> Dict[str, Any]:
     """Calculate a route and return it as a GeoJSON Feature preview.
 
     Nothing is saved to the database. The frontend can evaluate the result
-    and then call the confirm endpoint to persist it.
+    and then call the confirm endpoint to persist it. ``networks`` admits tracks
+    under construction or proposed (off by default: existing track only);
+    ``compare_project_id`` adds the deviation from that project's lines.
     """
     waypoints = [waypoint.model_dump() for waypoint in request.waypoints]
 
     try:
-        feature = await service.calculate_only(waypoints, request.profile, request.options)
+        feature = await service.calculate_only(
+            waypoints, request.profile, request.options, request.networks.model_dump()
+        )
     except RoutingNoPathError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     except RoutingUpstreamError as error:
         raise HTTPException(status_code=502, detail=str(error)) from error
+
+    if request.compare_project_id is not None:
+        project = db.get(Project, request.compare_project_id)
+        if project is None:
+            raise HTTPException(status_code=404, detail="Project not found")
+        feature["properties"]["deviation"] = geometry_deviation(
+            feature["geometry"]["coordinates"],
+            extract_features(project.geojson_representation),
+        )
 
     return feature
 

@@ -335,3 +335,111 @@ def test_geometry_writes_need_capability(mcp_client, create_user, db_session, ro
     assert routing_stub.calls == 0
     edited = _call(mcp_client, token, "edit_project_geometry", {"project_id": project.id, "replace": True})
     assert edited["isError"] and "project.edit" in edited["content"][0]["text"]
+
+
+PLANNED_RESPONSE = {
+    "paths": [
+        {
+            "distance": 30000.0,
+            "time": 900000,
+            "points": {"coordinates": [[7.0, 51.0], [7.1, 51.1], [7.2, 51.2], [7.3, 51.3]]},
+            "details": {
+                "railway_status": [[0, 1, "existing"], [1, 3, "proposed"]],
+            },
+        }
+    ]
+}
+
+
+def test_route_preview_on_proposed_tracks(mcp_client, admin_token, db_session, routing_stub):
+    project, koeln, dortmund = _seed(db_session)
+    routing_stub.next_response = PLANNED_RESPONSE
+    result = _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "route_project_geometry",
+            {"project_id": project.id, "waypoints": [koeln.id, dortmund.id], "use_proposed": True},
+        )
+    )
+    assert routing_stub.last_request["profile"] == "rail_flex"
+    assert routing_stub.last_request["custom_model"]["priority"][0] == {
+        "if": "railway_status == CONSTRUCTION",
+        "multiply_by": "0",
+    }
+    route = result["route"]
+    assert route["networks"] == {"construction": False, "proposed": True}
+    assert [s["track_status"] for s in route["sections"]] == ["existing", "proposed"]
+    assert set(route["status_km"]) == {"existing", "proposed"}
+    # Existing line + point, then the route split into two sections.
+    assert result["geometry"]["feature_count"] == 4
+    assert set(result["geometry"]["line_km_by_origin"]) == {
+        "unknown",
+        "routing_existing",
+        "routing_proposed",
+    }
+    # The stored line runs at 8.0° E, the route ~ 1° west of it: no overlap.
+    assert result["deviation"]["route_within_corridor_share"] == 0.0
+    assert result["deviation"]["max_deviation_m"] > 50_000
+
+
+def test_route_default_stays_on_existing(mcp_client, admin_token, db_session, routing_stub):
+    project, koeln, dortmund = _seed(db_session)
+    _call(
+        mcp_client,
+        admin_token,
+        "route_project_geometry",
+        {"project_id": project.id, "waypoints": [koeln.id, dortmund.id]},
+    )
+    assert routing_stub.last_request == {"profile": "rail_default", "custom_model": None}
+
+
+def test_route_apply_stores_origin(mcp_client, admin_token, db_session, routing_stub):
+    project, koeln, dortmund = _seed(db_session)
+    routing_stub.next_response = PLANNED_RESPONSE
+    _call(
+        mcp_client,
+        admin_token,
+        "route_project_geometry",
+        {
+            "project_id": project.id,
+            "waypoints": [koeln.id, dortmund.id],
+            "use_proposed": True,
+            "mode": "replace",
+            "apply": True,
+        },
+    )
+    db_session.refresh(project)
+    stored = _features(project)
+    assert [f["properties"] for f in stored] == [
+        {"geometry_source": "routing", "track_status": "existing"},
+        {"geometry_source": "routing", "track_status": "proposed"},
+    ]
+    route = db_session.query(Route).filter_by(project_id=project.id).one()
+    assert route.profile == "rail_flex"
+    assert route.details["networks"] == {"construction": False, "proposed": True}
+
+    summary = _payload(
+        _call(mcp_client, admin_token, "get_project_geometry", {"project_id": project.id})
+    )
+    assert [f["origin"] for f in summary["features"]] == ["routing_existing", "routing_proposed"]
+
+
+def test_edit_geometry_marks_lines_manual(mcp_client, admin_token, db_session):
+    project, _, _ = _seed(db_session)
+    _call(
+        mcp_client,
+        admin_token,
+        "edit_project_geometry",
+        {
+            "project_id": project.id,
+            "add_features": [
+                {"type": "LineString", "coordinates": [[8.1, 50.0], [8.2, 50.1]]},
+                {"type": "Point", "coordinates": [8.1, 50.0]},
+            ],
+        },
+    )
+    db_session.refresh(project)
+    added_line, added_point = _features(project)[2:]
+    assert added_line["properties"] == {"geometry_source": "manual"}
+    assert added_point["properties"] == {}

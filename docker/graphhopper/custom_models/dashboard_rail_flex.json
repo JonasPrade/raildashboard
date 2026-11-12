@@ -1,0 +1,13 @@
+// Base model of the flexible profile `rail_flex`. It admits every track the network
+// switches can turn on; the backend narrows it per request with a query custom model
+// (dashboard_backend/services/routing_networks.py). A query model can only lower
+// priorities, so this base must stay the widest network a switch may ask for.
+{
+  "distance_influence": 0,
+  "priority": [
+    { "if": "!rail_access || railway_class != RAIL", "multiply_by": "0" }
+  ],
+  "speed": [
+    { "if": "true", "limit_to": "rail_average_speed" }
+  ]
+}

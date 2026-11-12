@@ -2,22 +2,30 @@ import { useState } from "react";
 import {
     ActionIcon,
     Button,
+    Checkbox,
     Group,
     Stack,
+    Text,
 } from "@mantine/core";
-import type { OperationalPointRef, RoutePreviewFeature } from "../../shared/api/queries";
+import type { OperationalPointRef, RouteNetworks, RoutePreviewFeature } from "../../shared/api/queries";
 import { useCalculateRoute } from "../../shared/api/queries";
+import { NO_EXTRA_NETWORKS } from "./geometryOrigin";
 import StationSelect from "./StationSelect";
 
 type Props = {
     onResult: (feature: RoutePreviewFeature, stations: OperationalPointRef[]) => void;
     onError: (message: string) => void;
+    /** Compare the route with this project's lines (deviation in the result). */
+    compareProjectId?: number;
 };
 
-export default function RouteCalculatorForm({ onResult, onError }: Props) {
+export default function RouteCalculatorForm({ onResult, onError, compareProjectId }: Props) {
     const [start, setStart] = useState<OperationalPointRef | null>(null);
     const [end, setEnd] = useState<OperationalPointRef | null>(null);
     const [viaList, setViaList] = useState<Array<OperationalPointRef | null>>([]);
+    // Off by default: the route then never touches a track that is not in operation.
+    const [networks, setNetworks] = useState<RouteNetworks>(NO_EXTRA_NETWORKS);
+    const usesPlanned = networks.construction || networks.proposed;
 
     const { mutate: calculate, isPending } = useCalculateRoute();
 
@@ -53,7 +61,7 @@ export default function RouteCalculatorForm({ onResult, onError }: Props) {
                 op !== null && op.latitude !== null && op.longitude !== null,
         );
         calculate(
-            { waypoints },
+            { waypoints, networks, compare_project_id: compareProjectId },
             {
                 onSuccess: (feature) => onResult(feature, stations),
                 onError: (err) => {
@@ -61,7 +69,9 @@ export default function RouteCalculatorForm({ onResult, onError }: Props) {
                     if (status === 502) {
                         onError("Routing-Dienst nicht erreichbar.");
                     } else if (status === 422) {
-                        onError("Kein Pfad gefunden.");
+                        onError(usesPlanned
+                            ? "Kein Pfad gefunden. Die gewählten Gleise verbinden Start und Ziel nicht durchgehend (Lücke in OSM?)."
+                            : "Kein Pfad gefunden.");
                     } else {
                         onError("Fehler bei der Routenberechnung.");
                     }
@@ -102,6 +112,25 @@ export default function RouteCalculatorForm({ onResult, onError }: Props) {
             </Button>
 
             <StationSelect label="Zielbahnhof" value={end} onChange={setEnd} />
+
+            <Stack gap={6}>
+                <Text size="sm" fw={500}>Auch nutzen</Text>
+                <Checkbox
+                    label="Gleise im Bau (OSM)"
+                    checked={networks.construction}
+                    onChange={(e) => setNetworks((n) => ({ ...n, construction: e.currentTarget.checked }))}
+                />
+                <Checkbox
+                    label="Geplante Gleise (OSM)"
+                    checked={networks.proposed}
+                    onChange={(e) => setNetworks((n) => ({ ...n, proposed: e.currentTarget.checked }))}
+                />
+                <Text size="xs" c="dimmed">
+                    {usesPlanned
+                        ? "Für Neubaustrecken, die OpenStreetMap schon erfasst: Die gewählten Gleise werden vor parallelen Bestandsstrecken bevorzugt. Mit Via-Bahnhöfen lässt sich der Korridor erzwingen."
+                        : "Ohne Auswahl führt die Route nur über Gleise in Betrieb."}
+                </Text>
+            </Stack>
 
             <Button
                 onClick={handleCalculate}
