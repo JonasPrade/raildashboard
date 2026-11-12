@@ -146,4 +146,13 @@ export const MAP_COLOR = {
     counterTextLight: "#FFF6F0",
 } as const;
 
+// Track status of a calculated route in the geometry editor's preview (hex: MapLibre).
+// Existing track keeps the preview colour; tracks OSM maps as under construction or
+// proposed get the two other chart hues so a new-build stretch stands out.
+export const TRACK_STATUS_MAP_COLOR = {
+    existing: "#00DCFA",
+    construction: "#6E50FA",
+    proposed: "#00373C",
+} as const;
+
 export const GROUP_COLOR_SWATCHES = ["#6E50FA", "#00DCFA", "#00373C", "#3A6068", "#B3A6FF", "#7FE9FB"] as const;

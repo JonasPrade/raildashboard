@@ -88,7 +88,9 @@ function sameCoords(a: unknown, b: unknown): boolean {
  * Write edited parts back into the saved features. Only parts whose coordinates differ
  * from their original (`originalParts`) are applied, so untouched geometry is kept
  * byte-for-byte (including any third coordinate or extra precision). Parts missing from
- * `editedParts` are left unchanged — deleting whole features happens elsewhere.
+ * `editedParts` are left unchanged — deleting whole features happens elsewhere. An edited
+ * line is marked `geometry_source: "manual"` (see geometryOrigin.ts); points keep their
+ * properties.
  */
 export function applyEditedParts(
     features: GeoJSON.Feature[],
@@ -126,9 +128,19 @@ export function applyEditedParts(
         }
         if (!geometry) continue;
 
-        result[srcIdx] = { ...feature, geometry };
+        // A line moved by hand is no longer what the router or an upload produced.
+        const properties = geometry.type === "LineString" || geometry.type === "MultiLineString"
+            ? markManual(feature.properties)
+            : feature.properties;
+        result[srcIdx] = { ...feature, geometry, properties };
         changed = true;
     }
 
     return { features: result, changed };
+}
+
+function markManual(properties: GeoJSON.GeoJsonProperties): GeoJSON.GeoJsonProperties {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { track_status: _status, ...rest } = (properties ?? {}) as Record<string, unknown>;
+    return { ...rest, geometry_source: "manual" };
 }

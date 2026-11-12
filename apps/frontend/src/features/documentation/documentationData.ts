@@ -299,6 +299,8 @@ export const featureHighlights: FeatureHighlight[] = [
             "wird in project.geojson_representation gespeichert.",
         details: [
             "Route zwischen Betriebsstellen via GraphHopper berechnen — gespeichert wird nur die Linie; Start, Ziel und Zwischenhalte werden nur auf ausdrücklichen Wunsch (Schalter) als Punkte übernommen",
+            "Wahlweise auch über Gleise routen, die OpenStreetMap als im Bau oder geplant erfasst (zwei getrennte Haken, Voreinstellung aus); die Vorschau färbt die Abschnitte je Gleisstatus und vergleicht die Route mit der bisherigen Geometrie",
+            "Jede Linie trägt ihre Herkunft (geroutet auf Bestands-, Bau- oder geplanten Gleisen, von Hand, Upload); der Editor zeigt die Kilometer je Herkunft",
             "Einzelne Betriebsstellen als Punkte hinzufügen",
             "Fertige GeoJSON-Datei hochladen",
             "Linien und Punkte direkt auf der Karte zeichnen (terra-draw): Klicks setzen Stützpunkte, Doppelklick beendet eine Linie; im Bearbeiten-Modus Stützpunkte verschieben, einfügen und löschen",

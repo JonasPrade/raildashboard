@@ -1,0 +1,54 @@
+diff --git a/src/main/java/de/geofabrik/railway_routing/RailImportRegistry.java b/src/main/java/de/geofabrik/railway_routing/RailImportRegistry.java
+index 20e8c4d..3a269e1 100644
+--- a/src/main/java/de/geofabrik/railway_routing/RailImportRegistry.java
++++ b/src/main/java/de/geofabrik/railway_routing/RailImportRegistry.java
+@@ -31,6 +31,7 @@ import de.geofabrik.railway_routing.ev.PreferredDirection;
+ import de.geofabrik.railway_routing.ev.RailwayClass;
+ import de.geofabrik.railway_routing.ev.RailwayMaxSpeed;
+ import de.geofabrik.railway_routing.ev.RailwayService;
++import de.geofabrik.railway_routing.ev.RailwayStatus;
+ import de.geofabrik.railway_routing.ev.Voltage;
+ import de.geofabrik.railway_routing.parsers.OSMElectrifiedParser;
+ import de.geofabrik.railway_routing.parsers.OSMFrequencyParser;
+@@ -39,6 +40,7 @@ import de.geofabrik.railway_routing.parsers.OSMPreferredDirectionParser;
+ import de.geofabrik.railway_routing.parsers.OSMRailwayClassParser;
+ import de.geofabrik.railway_routing.parsers.OSMRailwayMaxSpeedParser;
+ import de.geofabrik.railway_routing.parsers.OSMRailwayServiceParser;
++import de.geofabrik.railway_routing.parsers.OSMRailwayStatusParser;
+ import de.geofabrik.railway_routing.parsers.OSMVoltageParser;
+ import de.geofabrik.railway_routing.parsers.RailAccessParser;
+ import de.geofabrik.railway_routing.parsers.RailAverageSpeedParser;
+@@ -82,6 +84,11 @@ public class RailImportRegistry implements ImportRegistry {
+                     (lookup, props) -> new OSMRailwayClassParser(
+                             lookup.getEnumEncodedValue(RailwayClass.KEY, RailwayClass.class))
+             );
++        else if (RailwayStatus.KEY.equals(name))
++            return ImportUnit.create(name, props -> RailwayStatus.create(),
++                    (lookup, props) -> new OSMRailwayStatusParser(
++                            lookup.getEnumEncodedValue(RailwayStatus.KEY, RailwayStatus.class))
++            );
+         else if (RailwayService.KEY.equals(name))
+             return ImportUnit.create(name, props -> RailwayService.create(),
+                     (lookup, props) -> new OSMRailwayServiceParser(
+diff --git a/src/main/java/de/geofabrik/railway_routing/reader/OSMRailwayReader.java b/src/main/java/de/geofabrik/railway_routing/reader/OSMRailwayReader.java
+index 402e786..83ca74e 100644
+--- a/src/main/java/de/geofabrik/railway_routing/reader/OSMRailwayReader.java
++++ b/src/main/java/de/geofabrik/railway_routing/reader/OSMRailwayReader.java
+@@ -45,6 +45,17 @@ public class OSMRailwayReader extends OSMReader {
+         return false;
+     }
+ 
++    /**
++     * Called for every way in both passes, before any parser sees it: tracks under
++     * construction and proposed tracks get the tags of a track in operation plus a
++     * status tag (see LifecycleTags), so they are imported and can be told apart.
++     */
++    @Override
++    protected boolean acceptWay(ReaderWay way) {
++        LifecycleTags.normalize(way);
++        return super.acceptWay(way);
++    }
++
+     private ReaderWay duplicateWay(ReaderWay source, String gauge, String electrified, String voltage, String frequency) {
+         ReaderWay dup = new ReaderWay(source);
+         if (gauge != null) {

@@ -1,0 +1,11 @@
+// Profile `rail_default`: the existing network only. A track that is proposed or under
+// construction gets priority 0, so it is neither used nor snapped to.
+{
+  "distance_influence": 0,
+  "priority": [
+    { "if": "!rail_access || railway_class != RAIL || railway_status != EXISTING", "multiply_by": "0" }
+  ],
+  "speed": [
+    { "if": "true", "limit_to": "rail_average_speed" }
+  ]
+}

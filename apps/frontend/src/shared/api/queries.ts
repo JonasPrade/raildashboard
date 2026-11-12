@@ -1917,7 +1917,38 @@ export type RoutePreviewFeature = Omit<
         bbox: number[];
         details: Record<string, unknown>;
         cache_key: string;
+        /** Network switches used (services/routing_networks.py). */
+        networks?: RouteNetworks;
+        /** Contiguous stretches by track status, as coordinate index ranges. */
+        sections?: RouteSection[];
+        /** Kilometres per track status. */
+        status_km?: Partial<Record<TrackStatus, number>>;
+        /** Deviation from the compared project's lines; null when it has none. */
+        deviation?: RouteDeviation | null;
     };
+};
+
+/** Lifecycle status of a track (OSM), see services/routing_networks.py. */
+export type TrackStatus = "existing" | "construction" | "proposed";
+
+export type RouteSection = {
+    track_status: TrackStatus;
+    from_index: number;
+    to_index: number;
+    length_km: number;
+};
+
+/** Network switches of the route calculation; further networks (#363) become further keys. */
+export type RouteNetworks = { construction: boolean; proposed: boolean };
+
+export type RouteDeviation = {
+    route_length_km: number;
+    existing_length_km: number;
+    corridor_m: number;
+    route_within_corridor_share: number;
+    existing_within_corridor_share: number;
+    max_deviation_m: number;
+    mean_deviation_m: number;
 };
 
 export function useOperationalPointSearch(q: string) {
@@ -1935,6 +1966,10 @@ export function useCalculateRoute() {
         mutationFn: (payload: {
             waypoints: Array<{ lat: number; lon: number }>;
             profile?: string;
+            /** Optional networks beyond existing track; all off by default. */
+            networks?: RouteNetworks;
+            /** Project whose lines the route is compared with (properties.deviation). */
+            compare_project_id?: number;
         }) =>
             api<RoutePreviewFeature>("/api/v1/routes/calculate", {
                 method: "POST",

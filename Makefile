@@ -156,8 +156,8 @@ build-frontend:
 # The full check – the same command CI runs, with no steps of its own (ci.yml,
 # release.yml). Runs inside the Dockerfiles' test/check stages, so it needs only
 # docker and bash: same Python, Node and pinned dependencies as the images, and
-# the runtime images must build from the repo alone. GraphHopper is built only
-# in release.yml (docs/workflow.md, Ausnahmen).
+# the runtime images must build from the repo alone. GraphHopper is checked by its
+# test stage since #364 (docs/workflow.md, Ausnahmen).
 test:
 	bash deploy/test_prod.sh
 	docker build --target test --build-context skills=.claude/skills -t raildashboard-backend:pruefung $(BACKEND_DIR)
@@ -165,6 +165,7 @@ test:
 	docker build --target runtime --build-context skills=.claude/skills -t raildashboard-backend:runtime $(BACKEND_DIR)
 	docker build --target runtime -t raildashboard-frontend:runtime $(FRONTEND_DIR)
 	docker build -t raildashboard-db:pruefung docker/db
+	docker build --target test -t raildashboard-graphhopper:pruefung docker/graphhopper
 
 # Fast local loop against the project venv / node_modules (not what CI runs).
 test-local: test-backend test-frontend

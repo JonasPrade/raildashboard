@@ -72,7 +72,7 @@ describe("applyEditedParts", () => {
         expect((out[0].geometry as GeoJSON.LineString).coordinates[0]).toEqual([10, 50, 99]);
     });
 
-    it("writes a moved vertex and an inserted midpoint back, keeping properties", () => {
+    it("writes a moved vertex and an inserted midpoint back, keeping properties and marking the line manual", () => {
         const edited = [...original];
         edited[0] = move(original[0], [[10, 50], [10.5, 50.6], [11.2, 51]]);
         const { features: out, changed } = applyEditedParts(features, original, edited);
@@ -80,7 +80,7 @@ describe("applyEditedParts", () => {
         expect(out[0]).toEqual({
             type: "Feature",
             geometry: { type: "LineString", coordinates: [[10, 50], [10.5, 50.6], [11.2, 51]] },
-            properties: { a: 1 },
+            properties: { a: 1, geometry_source: "manual" },
         });
         expect(out[1]).toBe(features[1]);
     });
@@ -100,6 +100,17 @@ describe("applyEditedParts", () => {
             [[3, 3], [4.5, 4.5]],
         ]);
         expect(out[3]).toBe(features[3]);
+    });
+
+    it("turns a routed line moved by hand into a manual one", () => {
+        const routed: GeoJSON.Feature[] = [{
+            type: "Feature",
+            geometry: { type: "LineString", coordinates: [[0, 0], [1, 1]] },
+            properties: { geometry_source: "routing", track_status: "proposed" },
+        }];
+        const parts = explodeEditable(routed);
+        const { features: out } = applyEditedParts(routed, parts, [move(parts[0], [[0, 0], [1, 1.5]])]);
+        expect(out[0].properties).toEqual({ geometry_source: "manual" });
     });
 
     it("does not mutate the input features", () => {

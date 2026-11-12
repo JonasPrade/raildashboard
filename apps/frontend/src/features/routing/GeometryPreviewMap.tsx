@@ -8,10 +8,11 @@ import {
     TerraDrawSelectMode,
 } from "terra-draw";
 import { TerraDrawMapLibreGLAdapter } from "terra-draw-maplibre-gl-adapter";
-import type { OperationalPointRef, RoutePreviewFeature } from "../../shared/api/queries";
+import type { OperationalPointRef, RoutePreviewFeature, RouteSection } from "../../shared/api/queries";
 import type { EditablePart } from "./editExisting";
+import { routeLineFeatures } from "./geometryOrigin";
 import { LIGHT_TILE_URL as tileLayerUrl, swapRasterTiles, useTileUrl } from "../../shared/geo/useTileUrl";
-import { MAP_COLOR } from "../../shared/theme/semanticColors";
+import { MAP_COLOR, TRACK_STATUS_MAP_COLOR } from "../../shared/theme/semanticColors";
 
 
 /** Active hand-drawing mode (null = off, terra-draw sits in its neutral "static" mode). */
@@ -27,8 +28,10 @@ const TERRA_MODE: Record<NonNullable<DrawMode>, string> = {
 type Props = {
     /** Existing project geojson_representation (JSON string). Shown as solid violet line/circles. */
     existingGeojson: string | null;
-    /** Calculated route preview. Shown as dashed cyan line. */
+    /** Calculated route preview. Shown as dashed line, coloured by track status. */
     previewFeature: RoutePreviewFeature | null;
+    /** Stretches of the preview by track status (existing / under construction / proposed). */
+    previewSections?: RouteSection[];
     /** Whether to render the existing geometry (toggled off when user wants to delete it). */
     showExisting: boolean;
     /** Newly selected operational points to preview as cyan circles. */
@@ -170,7 +173,7 @@ function isEditablePart(f: { properties?: Record<string, unknown> | null }): f i
     return typeof f.properties?.srcIdx === "number";
 }
 
-export default function GeometryPreviewMap({ existingGeojson, previewFeature, showExisting, previewPoints = [], selectionMode = false, selectedIndices, onFeatureClick, drawMode = null, drawnFeatures = [], onDrawnFeaturesChange, editableParts = null, onEditedPartsChange, height = 500 }: Props) {
+export default function GeometryPreviewMap({ existingGeojson, previewFeature, previewSections, showExisting, previewPoints = [], selectionMode = false, selectedIndices, onFeatureClick, drawMode = null, drawnFeatures = [], onDrawnFeaturesChange, editableParts = null, onEditedPartsChange, height = 500 }: Props) {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const mapRef = useRef<maplibregl.Map | null>(null);
     const drawRef = useRef<TerraDraw | null>(null);
@@ -231,7 +234,12 @@ export default function GeometryPreviewMap({ existingGeojson, previewFeature, sh
                         source: "preview",
                         layout: { "line-cap": "round", "line-join": "round" },
                         paint: {
-                            "line-color": MAP_COLOR.alternative,
+                            "line-color": [
+                                "match", ["get", "track_status"],
+                                "construction", TRACK_STATUS_MAP_COLOR.construction,
+                                "proposed", TRACK_STATUS_MAP_COLOR.proposed,
+                                TRACK_STATUS_MAP_COLOR.existing,
+                            ],
                             "line-width": 4,
                             "line-dasharray": [6, 3],
                         },
@@ -437,7 +445,10 @@ export default function GeometryPreviewMap({ existingGeojson, previewFeature, sh
             .filter((op) => op.latitude != null && op.longitude != null)
             .map((op) => [op.longitude!, op.latitude!] as [number, number]);
 
-        (map.getSource("preview") as maplibregl.GeoJSONSource)?.setData(buildLineFeatureCollection(lineCoords) as unknown as GeoJSON.FeatureCollection);
+        const previewData = previewFeature && previewSections && previewSections.length > 0
+            ? { type: "FeatureCollection" as const, features: routeLineFeatures(previewFeature.geometry.coordinates, previewSections) }
+            : buildLineFeatureCollection(lineCoords);
+        (map.getSource("preview") as maplibregl.GeoJSONSource)?.setData(previewData as unknown as GeoJSON.FeatureCollection);
         (map.getSource("preview-points") as maplibregl.GeoJSONSource)?.setData(buildPointFeatureCollection(pointCoords) as unknown as GeoJSON.FeatureCollection);
 
         const allLineCoords = [

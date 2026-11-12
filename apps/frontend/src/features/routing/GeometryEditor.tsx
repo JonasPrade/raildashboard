@@ -18,7 +18,7 @@ import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { openConfirmModal } from "../../shared/ui/confirmModal";
 import { notifications } from "@mantine/notifications";
 
-import type { OperationalPointRef, Project, RoutePreviewFeature } from "../../shared/api/queries";
+import type { OperationalPointRef, Project, RouteDeviation, RoutePreviewFeature, TrackStatus } from "../../shared/api/queries";
 import {
     useConfirmRoute,
     useUpdateProjectGeojsonSource,
@@ -27,6 +27,7 @@ import {
 import { computeGeojsonLengthKm } from "../../shared/geo/length";
 import GeometryPreviewMap, { type DrawMode } from "./GeometryPreviewMap";
 import { applyEditedParts, explodeEditable, parseFeatureList, type EditablePart } from "./editExisting";
+import { ORIGIN_LABEL, TRACK_STATUS_LABEL, lineKmByOrigin, routeLineFeatures, withOrigin } from "./geometryOrigin";
 import RouteCalculatorForm from "./RouteCalculatorForm";
 import StationSelect from "./StationSelect";
 
@@ -101,6 +102,10 @@ export default function GeometryEditor({
     const [editedParts, setEditedParts] = useState<EditablePart[]>([]);
 
     const hasExisting = !!project.geojson_representation;
+    const existingOrigins = useMemo(
+        () => lineKmByOrigin(parseFeatureList(project.geojson_representation)),
+        [project.geojson_representation],
+    );
     const hasPoints = selectedPoints.length > 0;
     const hasDrawn = drawnFeatures.length > 0;
     const editExisting = editableParts !== null;
@@ -276,9 +281,10 @@ export default function GeometryEditor({
         }
 
         if (previewFeature) {
-            features.push({ type: "Feature", geometry: previewFeature.geometry, properties: {} });
+            // One line per stretch of the same track status, each tagged with its origin.
+            features.push(...routeLineFeatures(previewFeature.geometry.coordinates, previewFeature.properties.sections));
         } else if (uploadedGeojson) {
-            features.push(...parseFeatures(uploadedGeojson));
+            features.push(...parseFeatures(uploadedGeojson).map((f) => withOrigin(f, "upload")));
         }
 
         // Merge manually-added points and — only when explicitly requested — the route's
@@ -300,7 +306,7 @@ export default function GeometryEditor({
 
         // Hand-drawn lines/points, stripped of terra-draw's internal properties.
         drawnFeatures.forEach((f) => {
-            if (f.geometry) features.push({ type: "Feature", geometry: f.geometry, properties: {} });
+            if (f.geometry) features.push(withOrigin({ type: "Feature", geometry: f.geometry, properties: {} }, "manual"));
         });
 
         return features.length > 0
@@ -414,6 +420,16 @@ export default function GeometryEditor({
                             <Badge variant="outline" color="var(--text-strong)" tt="none">
                                 {hasExisting ? "Geometrie vorhanden" : "Keine Geometrie"}
                             </Badge>
+                            {existingOrigins.length > 0 && (
+                                <Stack gap={2} mt={6}>
+                                    <Text size="xs" c="dimmed">Herkunft der Linien</Text>
+                                    {existingOrigins.map(({ origin, km }) => (
+                                        <Text key={origin} size="xs">
+                                            {ORIGIN_LABEL[origin]}: {km.toLocaleString("de-DE")} km
+                                        </Text>
+                                    ))}
+                                </Stack>
+                            )}
                         </div>
 
                         {isSuperiorProject && (
@@ -601,6 +617,7 @@ export default function GeometryEditor({
                                 )}
 
                                 <RouteCalculatorForm
+                                    compareProjectId={hasExisting ? projectId : undefined}
                                     onResult={(feature, stations) => {
                                         setRouteError(null);
                                         setUploadedGeojson(null);
@@ -679,6 +696,10 @@ export default function GeometryEditor({
                                             <Text size="sm" c="dimmed">
                                                 Dauer: {Math.round(previewFeature.properties.duration_ms / 60_000)} min
                                             </Text>
+                                            <StatusKm statusKm={previewFeature.properties.status_km} />
+                                            {previewFeature.properties.deviation && (
+                                                <DeviationNote deviation={previewFeature.properties.deviation} />
+                                            )}
                                         </Stack>
                                     </Paper>
                                 )}
@@ -726,6 +747,7 @@ export default function GeometryEditor({
                 <GeometryPreviewMap
                     existingGeojson={project.geojson_representation ?? null}
                     previewFeature={previewFeature ?? (uploadedGeojson ? buildUploadPreview(uploadedGeojson) : null)}
+                    previewSections={previewFeature?.properties.sections}
                     // While editing in place, terra-draw renders the saved geometry itself.
                     showExisting={!deleteExisting && !editExisting}
                     previewPoints={addRouteStations && previewFeature ? [...routeStations, ...selectedPoints] : selectedPoints}
@@ -796,4 +818,46 @@ function buildUploadPreview(geojsonStr: string): RoutePreviewFeature | null {
     } catch {
         return null;
     }
+}
+
+/** Kilometres of the calculated route per track status (only when not all existing). */
+function StatusKm({ statusKm }: { statusKm?: Partial<Record<TrackStatus, number>> }) {
+    const entries = (Object.keys(TRACK_STATUS_LABEL) as TrackStatus[])
+        .filter((status) => (statusKm?.[status] ?? 0) > 0);
+    if (entries.length === 0 || (entries.length === 1 && entries[0] === "existing")) return null;
+    return (
+        <Text size="sm" c="dimmed">
+            {entries
+                .map((status) => `${TRACK_STATUS_LABEL[status]}: ${statusKm![status]!.toLocaleString("de-DE")} km`)
+                .join(" · ")}
+        </Text>
+    );
+}
+
+const percent = (share: number) => `${Math.round(share * 100)} %`;
+const distance = (m: number) => (m >= 1000 ? `${(m / 1000).toLocaleString("de-DE", { maximumFractionDigits: 1 })} km` : `${m} m`);
+
+/**
+ * How far the route departs from the project's current lines. The editor never replaces
+ * them on its own; this tells the user whether "Bestehende Geometrie löschen" would swap
+ * in another alignment.
+ */
+function DeviationNote({ deviation }: { deviation: RouteDeviation }) {
+    const differs = deviation.route_within_corridor_share < 0.9 || deviation.max_deviation_m > 1000;
+    return (
+        <Stack gap={2} mt={4}>
+            <Text size="sm" fw={600}>Vergleich mit der bisherigen Geometrie</Text>
+            <Text size="xs" c="dimmed">
+                {percent(deviation.route_within_corridor_share)} der Route liegen höchstens {deviation.corridor_m} m
+                neben den bisherigen Linien, die bisherigen Linien sind zu {percent(deviation.existing_within_corridor_share)} abgedeckt.
+                Größter Abstand {distance(deviation.max_deviation_m)}, mittlerer {distance(deviation.mean_deviation_m)}.
+            </Text>
+            {differs && (
+                <Text size="xs" fw={600}>
+                    Die Route folgt einer anderen Trasse. Beim Übernehmen kommt sie zur bisherigen Geometrie dazu;
+                    ersetzen nur bewusst mit „Bestehende Geometrie löschen".
+                </Text>
+            )}
+        </Stack>
+    );
 }

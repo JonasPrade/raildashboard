@@ -858,13 +858,16 @@ Rail routes are computed and persisted in a two-step flow. `project_id` in all r
 
 ```
 POST /api/v1/routes/calculate
-Body: { waypoints: [{lat, lon}, …], profile: "rail_default", options: {} }
+Body: { waypoints: [{lat, lon}, …], profile: "rail_default", options: {},
+        networks: {construction: false, proposed: false}, compare_project_id: null }
 ```
 
 Calls the routing microservice (GraphHopper), returns a GeoJSON `Feature` with `properties.cache_key`, `distance_m`, `duration_ms`, `bbox`, and `details`. Nothing is written to the database. Requires `editor` or `admin` role.
 
+`networks` admits tracks OSM maps as under construction or proposed, each on its own (default: existing track only — profile `rail_default`; with a switch the backend uses the flexible profile `rail_flex` with a query custom model, `services/routing_networks.py`). The result adds `networks`, `sections` (track status per stretch: `existing | construction | proposed`, coordinate index range, km) and `status_km`. With `compare_project_id`, `properties.deviation` compares the route with that project's lines (`services/geometry_deviation.py`). Saved lines carry `properties.geometry_source` (`routing | manual | upload`) and, for routed lines, `track_status`. See `docs/features/feature-routing.md` → „Geplante und im Bau befindliche Gleise aus OSM“.
+
 Errors:
-- `422` — routing service returned no paths
+- `422` — routing service returned no paths, or GraphHopper answered 400 (point not snappable / no connection on the chosen network)
 - `502` — upstream routing microservice error
 
 ### Step 2 — Confirm (DB write)
