@@ -18,13 +18,13 @@ ALEMBIC      := .venv/bin/alembic
         lint lint-frontend \
         migrate migrate-create \
         backup-db restore-db list-backups \
-        list-users create-user change-password refresh-progress-dates recompute-progress \
+        list-users create-user change-password refresh-progress-dates recompute-progress import-osm-stops \
         gen-api \
         list-parse-results dump-parse-result summarise-parse-result \
         celery-worker \
         docker-dev-up docker-dev-down \
         docker-prod-build docker-prod-up docker-prod-down \
-        docker-migrate docker-create-user docker-backup-db docker-worker-logs docker-refresh-progress-dates docker-recompute-progress \
+        docker-migrate docker-create-user docker-backup-db docker-worker-logs docker-refresh-progress-dates docker-recompute-progress docker-import-osm-stops \
         clean clean-backend clean-frontend
 
 # ---------------------------------------------------------------------------
@@ -97,6 +97,7 @@ help:
 	@echo "    docker-migrate     Run Alembic migrations inside the backend container"
 	@echo "    docker-refresh-progress-dates  Fill the cached Baubeginn/IB dates (once after 20261022004)"
 	@echo "    docker-recompute-progress  Recompute the planning state of all projects (after rule changes)"
+	@echo "    docker-import-osm-stops    Import S-Bahn/U-Bahn/tram stops from OSM (Overpass) as operational points"
 	@echo "    docker-create-user Create a user inside the backend container"
 	@echo "                       Usage: make docker-create-user USERNAME=admin ROLE=admin"
 	@echo "    docker-backup-db   pg_dump (docker exec) + tar.gz of the uploads volume"
@@ -260,6 +261,11 @@ refresh-progress-dates:
 recompute-progress:
 	cd $(BACKEND_DIR) && PYTHONPATH=. .venv/bin/python scripts/recompute_progress.py
 
+# Stops of S-Bahn/Stadtbahn, U-Bahn and tram from OSM (Overpass) as operational points,
+# for the waypoint search of the routing. Rerunnable. ARGS=--dry-run to only report.
+import-osm-stops:
+	cd $(BACKEND_DIR) && PYTHONPATH=. .venv/bin/python scripts/import_osm_stops.py $(ARGS)
+
 # ---------------------------------------------------------------------------
 # Code generation
 # ---------------------------------------------------------------------------
@@ -345,6 +351,10 @@ docker-refresh-progress-dates:
 # Same as recompute-progress, inside the running backend container.
 docker-recompute-progress:
 	docker compose exec backend python scripts/recompute_progress.py
+
+# Same as import-osm-stops, inside the running backend container.
+docker-import-osm-stops:
+	docker compose exec backend python scripts/import_osm_stops.py $(ARGS)
 
 # Usage: make docker-delete-user USERNAME=admin
 docker-delete-user:

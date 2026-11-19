@@ -1,8 +1,27 @@
 import { useState } from "react";
-import { Combobox, InputBase, Text, useCombobox } from "@mantine/core";
+import { Badge, Combobox, Group, InputBase, Text, useCombobox } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
-import type { OperationalPointRef } from "../../shared/api/queries";
+import type { OperationalPointNetwork, OperationalPointRef } from "../../shared/api/queries";
 import { useOperationalPointSearch } from "../../shared/api/queries";
+
+/** Short network tag per search hit, so equal names of different networks are told apart. */
+const NETWORK_TAG: Record<OperationalPointNetwork, string | null> = {
+    rail: null,
+    light_rail: "S",
+    subway: "U",
+    tram: "Tram",
+};
+
+const NETWORK_TITLE: Record<OperationalPointNetwork, string> = {
+    rail: "Betriebsstelle (RINF)",
+    light_rail: "S-Bahn/Stadtbahn (OSM)",
+    subway: "U-Bahn (OSM)",
+    tram: "Straßenbahn (OSM)",
+};
+
+function networkOf(op: OperationalPointRef): OperationalPointNetwork {
+    return (op.network in NETWORK_TITLE ? op.network : "rail") as OperationalPointNetwork;
+}
 
 type Props = {
     label: string;
@@ -54,9 +73,18 @@ export default function StationSelect({ label, value, onChange }: Props) {
                     )}
                     {results.map((op) => (
                         <Combobox.Option key={op.id} value={String(op.id)}>
-                            <Text size="sm" fw={500}>{op.name ?? op.op_id}</Text>
+                            <Group gap={6} wrap="nowrap">
+                                {NETWORK_TAG[networkOf(op)] && (
+                                    <Badge size="xs" variant="light" title={NETWORK_TITLE[networkOf(op)]}>
+                                        {NETWORK_TAG[networkOf(op)]}
+                                    </Badge>
+                                )}
+                                <Text size="sm" fw={500}>{op.name ?? op.op_id}</Text>
+                            </Group>
                             {op.op_id && op.name && (
-                                <Text size="xs" c="dimmed">{op.op_id}</Text>
+                                <Text size="xs" c="dimmed">
+                                    {networkOf(op) === "rail" ? op.op_id : NETWORK_TITLE[networkOf(op)]}
+                                </Text>
                             )}
                         </Combobox.Option>
                     ))}

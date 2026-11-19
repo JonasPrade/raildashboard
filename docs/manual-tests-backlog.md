@@ -11,6 +11,23 @@ Test-Checkliste des ermöglichenden Issues hochgezogen und hier entfernt.
 
 ---
 
+## Gleisarten beim Routen #363 — braucht Deploy, Graph-Neubau und Haltestellen-Import
+
+Erst prüfbar, nachdem die SHA mit #363 ausgerollt ist, GraphHopper den Graphen neu gebaut hat
+(Log „Routing configuration changed“, danach `Started`) und `make docker-import-osm-stops` lief:
+
+- [ ] `make docker-import-osm-stops ARGS=--dry-run` nennt Zahlen für `light_rail`, `subway` und `tram`; danach ohne `--dry-run` „created …“; ein zweiter Lauf meldet nur „unchanged“/„updated“.
+- [ ] Projekt öffnen → Geometrie bearbeiten → Startbahnhof „Treptower Park“ suchen: der RINF-Treffer (Code `DE00BTP`) erscheint ohne Kürzel; „Hermannplatz“ zeigt Treffer mit Kürzel **U** (Untertitel „U-Bahn (OSM)“) und ggf. **Tram**.
+- [ ] Start „Treptower Park“, Ziel „Sonnenallee“, Gleisart nur **Vollbahn** → Route wie bisher (rund 7 km über Baumschulenweg), Vorschau ohne Zeile „km je Gleisart“.
+- [ ] Gleisart **S-Bahn/Stadtbahn** anhaken → **Vollbahn** wird automatisch abgehakt; „Route berechnen“ → rund 2 km über den Ring, Vorschau nennt „S-Bahn/Stadtbahn: … km“.
+- [ ] **Vollbahn** wieder anhaken → S-Bahn/Stadtbahn wird abgehakt. Letzte Gleisart abhaken → Vollbahn ist wieder an.
+- [ ] „Planungen ohne Gleisart (OSM)“ ist ausgegraut, solange weder „Gleise im Bau“ noch „Geplante Gleise“ an ist.
+- [ ] Route mit S-Bahn übernehmen → unter „Aktuelle Geometrie“ erscheint „Gleisart der Linien: S-Bahn/Stadtbahn: … km“; alte Linien zählen als „Ohne Gleisart“.
+- [ ] Start und Ziel nur über Vollbahn verbunden, Gleisart U-Bahn → Meldung „Kein Pfad gefunden. Die gewählten Gleisarten verbinden … abschnittsweise routen“.
+- [ ] MCP: `route_project_geometry` mit `track_classes: ["rail", "subway"]` → Fehler „Ungültige Netzauswahl“; mit `["light_rail"]` zwischen DE00BTP und DE00BSO ohne `apply` → `route.class_km` nur `light_rail`, rund 2 km.
+- [ ] MCP: `search_operational_points` mit `query: "Hermannplatz", networks: ["subway"]` liefert nur OSM-Halte (`op_id` `OSM-…`, `network: "subway"`).
+- [ ] MCP: Neubaustrecke aus dem #364-Abgleich (z. B. 1507) mit `use_proposed: true, track_classes: ["rail", "unknown"]` ohne `apply` → Abschnitte mit `railway_class: "unknown"`, falls OSM die Planung ohne Typ führt.
+
 ## Zeitgesteuerte Abrufe #340 — Scheduler auf prod (braucht Deploy + Handschritt)
 
 Erst prüfbar, nachdem die SHA mit #340 ausgerollt, die neue `compose.yaml` auf dem Server

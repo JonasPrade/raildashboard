@@ -1919,10 +1919,12 @@ export type RoutePreviewFeature = Omit<
         cache_key: string;
         /** Network switches used (services/routing_networks.py). */
         networks?: RouteNetworks;
-        /** Contiguous stretches by track status, as coordinate index ranges. */
+        /** Contiguous stretches by track status and class, as coordinate index ranges. */
         sections?: RouteSection[];
         /** Kilometres per track status. */
         status_km?: Partial<Record<TrackStatus, number>>;
+        /** Kilometres per track class. */
+        class_km?: Partial<Record<TrackClass, number>>;
         /** Deviation from the compared project's lines; null when it has none. */
         deviation?: RouteDeviation | null;
     };
@@ -1931,15 +1933,30 @@ export type RoutePreviewFeature = Omit<
 /** Lifecycle status of a track (OSM), see services/routing_networks.py. */
 export type TrackStatus = "existing" | "construction" | "proposed";
 
+/**
+ * Kind of track (OSM railway=*): rail = Vollbahn, light_rail = S-Bahn/Stadtbahn, subway,
+ * tram, narrow_gauge; unknown = planned track whose type OSM does not give.
+ */
+export type TrackClass = "rail" | "light_rail" | "subway" | "tram" | "narrow_gauge" | "unknown";
+
 export type RouteSection = {
     track_status: TrackStatus;
+    /** Missing for routes calculated before track classes were recorded. */
+    railway_class?: TrackClass;
     from_index: number;
     to_index: number;
     length_km: number;
 };
 
-/** Network switches of the route calculation; further networks (#363) become further keys. */
-export type RouteNetworks = { construction: boolean; proposed: boolean };
+/**
+ * Network switches of the route calculation (services/routing_networks.py): status
+ * switches plus track classes — ["rail"] by default, rail never with light_rail, subway,
+ * tram or narrow_gauge.
+ */
+export type RouteNetworks = { construction: boolean; proposed: boolean; track_classes: TrackClass[] };
+
+/** Network of an operational point: RINF (rail) or a stop imported from OSM. */
+export type OperationalPointNetwork = "rail" | "light_rail" | "subway" | "tram";
 
 export type RouteDeviation = {
     route_length_km: number;

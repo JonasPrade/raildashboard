@@ -64,6 +64,8 @@ INSTRUCTIONS = (
     "route_project_geometry über das Schienennetz routen (Betriebsstellen mit "
     "search_operational_points finden, erst ohne apply prüfen; Neubaustrecken, die "
     "OSM als geplant oder im Bau erfasst, mit use_proposed bzw. use_construction; "
+    "S-Bahn, U-Bahn, Straßenbahn oder Schmalspur mit track_classes statt der Vollbahn, "
+    "Haltestellen dieser Netze per search_operational_points mit networks; "
     "das Ergebnis meldet die Abweichung von der bisherigen Geometrie); übrige "
     "Neubaustrecken, Punkte und Korrekturen mit edit_project_geometry; Bestand mit "
     "get_project_geometry ansehen. Datenpflege über viele Projekte: "

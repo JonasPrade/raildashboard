@@ -1,6 +1,6 @@
 from fastapi import Depends, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Literal, Optional
 
 from dashboard_backend.crud.operational_points import search_operational_points
 from dashboard_backend.database import get_db
@@ -14,7 +14,12 @@ router = AuthRouter()
 def search_ops(
     q: str = Query("", description="Search by name or op_id"),
     limit: int = Query(20, ge=1, le=100),
+    network: Optional[List[Literal["rail", "light_rail", "subway", "tram"]]] = Query(
+        None,
+        description="Only these networks (repeatable): rail = RINF operational points, "
+        "light_rail / subway / tram = stops imported from OSM.",
+    ),
     db: Session = Depends(get_db),
 ):
     """Search operational points (stations/stops) by name or ID. Public endpoint."""
-    return search_operational_points(db, q, limit)
+    return search_operational_points(db, q, limit, network)

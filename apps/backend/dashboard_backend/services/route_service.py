@@ -14,6 +14,8 @@ from dashboard_backend.models.routes import Route, route_hash
 from dashboard_backend.services.exceptions import RoutingNoPathError
 from dashboard_backend.services.routing_client import RoutingClient
 from dashboard_backend.services.routing_networks import (
+    class_totals_km,
+    is_default_networks,
     normalize_networks,
     route_sections,
     routing_request,
@@ -38,7 +40,7 @@ class RouteService:
         waypoints: Iterable[Dict[str, float]],
         profile: str,
         options: Dict[str, Any],
-        networks: Optional[Dict[str, bool]] = None,
+        networks: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Calculate a route via GraphHopper and return a GeoJSON Feature.
 
@@ -53,7 +55,8 @@ class RouteService:
         request = routing_request(switches)
         if request.custom_model is not None:
             profile = request.profile
-        cache_options = {**options, "networks": switches} if any(switches.values()) else options
+        # Default networks keep the cache key of routes stored before the switches existed.
+        cache_options = options if is_default_networks(switches) else {**options, "networks": switches}
         cache_key = route_hash(waypoints, profile, cache_options, self._graph_version)
 
         response = await self._routing_client.route(
@@ -87,6 +90,7 @@ class RouteService:
                 "networks": switches,
                 "sections": sections,
                 "status_km": status_totals_km(sections),
+                "class_km": class_totals_km(sections),
             },
         }
 

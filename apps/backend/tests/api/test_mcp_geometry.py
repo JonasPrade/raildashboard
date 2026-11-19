@@ -363,12 +363,16 @@ def test_route_preview_on_proposed_tracks(mcp_client, admin_token, db_session, r
         )
     )
     assert routing_stub.last_request["profile"] == "rail_flex"
-    assert routing_stub.last_request["custom_model"]["priority"][0] == {
+    assert {
         "if": "railway_status == CONSTRUCTION",
         "multiply_by": "0",
-    }
+    } in routing_stub.last_request["custom_model"]["priority"]
     route = result["route"]
-    assert route["networks"] == {"construction": False, "proposed": True}
+    assert route["networks"] == {
+        "construction": False,
+        "proposed": True,
+        "track_classes": ["rail"],
+    }
     assert [s["track_status"] for s in route["sections"]] == ["existing", "proposed"]
     assert set(route["status_km"]) == {"existing", "proposed"}
     # Existing line + point, then the route split into two sections.
@@ -412,17 +416,108 @@ def test_route_apply_stores_origin(mcp_client, admin_token, db_session, routing_
     db_session.refresh(project)
     stored = _features(project)
     assert [f["properties"] for f in stored] == [
-        {"geometry_source": "routing", "track_status": "existing"},
-        {"geometry_source": "routing", "track_status": "proposed"},
+        {"geometry_source": "routing", "track_status": "existing", "railway_class": "rail"},
+        {"geometry_source": "routing", "track_status": "proposed", "railway_class": "rail"},
     ]
     route = db_session.query(Route).filter_by(project_id=project.id).one()
     assert route.profile == "rail_flex"
-    assert route.details["networks"] == {"construction": False, "proposed": True}
+    assert route.details["networks"] == {
+        "construction": False,
+        "proposed": True,
+        "track_classes": ["rail"],
+    }
 
     summary = _payload(
         _call(mcp_client, admin_token, "get_project_geometry", {"project_id": project.id})
     )
     assert [f["origin"] for f in summary["features"]] == ["routing_existing", "routing_proposed"]
+    assert [f["railway_class"] for f in summary["features"]] == ["rail", "rail"]
+
+
+SBAHN_RESPONSE = {
+    "paths": [
+        {
+            "distance": 2000.0,
+            "time": 180000,
+            "points": {"coordinates": [[13.46, 52.49], [13.47, 52.485], [13.48, 52.48]]},
+            "details": {
+                "railway_status": [[0, 2, "existing"]],
+                "railway_class": [[0, 2, "light_rail"]],
+            },
+        }
+    ]
+}
+
+
+def test_route_on_light_rail(mcp_client, admin_token, db_session, routing_stub):
+    project, koeln, dortmund = _seed(db_session)
+    routing_stub.next_response = SBAHN_RESPONSE
+    result = _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "route_project_geometry",
+            {
+                "project_id": project.id,
+                "waypoints": [koeln.id, dortmund.id],
+                "track_classes": ["light_rail"],
+                "mode": "replace",
+                "apply": True,
+            },
+        )
+    )
+    priority = routing_stub.last_request["custom_model"]["priority"]
+    assert routing_stub.last_request["profile"] == "rail_flex"
+    assert {"if": "railway_class == RAIL", "multiply_by": "0"} in priority
+    assert {"if": "railway_class == LIGHT_RAIL", "multiply_by": "0"} not in priority
+    assert set(result["route"]["class_km"]) == {"light_rail"}
+    assert result["geometry"]["line_km_by_class"].keys() == {"light_rail"}
+
+
+def test_route_rejects_rail_with_light_rail(mcp_client, admin_token, db_session, routing_stub):
+    project, koeln, dortmund = _seed(db_session)
+    response = _call(
+        mcp_client,
+        admin_token,
+        "route_project_geometry",
+        {
+            "project_id": project.id,
+            "waypoints": [koeln.id, dortmund.id],
+            "track_classes": ["rail", "light_rail"],
+        },
+    )
+    assert response["isError"]
+
+
+def test_search_operational_points_by_network(mcp_client, admin_token, db_session):
+    db_session.add_all(
+        [
+            OperationalPoint(op_id="BHPL", name="Hermannplatz", type="station", latitude=52.48, longitude=13.42),
+            OperationalPoint(
+                op_id="OSM-n1",
+                name="Hermannplatz",
+                type="station",
+                network="subway",
+                source="osm",
+                latitude=52.487,
+                longitude=13.424,
+            ),
+        ]
+    )
+    db_session.commit()
+    both = _payload(
+        _call(mcp_client, admin_token, "search_operational_points", {"query": "Hermannplatz"})
+    )["operational_points"]
+    assert sorted(op["network"] for op in both) == ["rail", "subway"]
+    subway = _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "search_operational_points",
+            {"query": "Hermannplatz", "networks": ["subway"]},
+        )
+    )["operational_points"]
+    assert [op["op_id"] for op in subway] == ["OSM-n1"]
 
 
 def test_edit_geometry_marks_lines_manual(mcp_client, admin_token, db_session):

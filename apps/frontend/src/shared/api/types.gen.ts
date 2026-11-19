@@ -819,7 +819,9 @@ export interface paths {
          *
          *     Nothing is saved to the database. The frontend can evaluate the result
          *     and then call the confirm endpoint to persist it. ``networks`` admits tracks
-         *     under construction or proposed (off by default: existing track only);
+         *     under construction or proposed and chooses the track classes (default: existing
+         *     main line track only; ``rail`` cannot be combined with light_rail, subway, tram or
+         *     narrow_gauge → 422);
          *     ``compare_project_id`` adds the deviation from that project's lines.
          */
         post: operations["calculate_route_api_v1_routes_calculate_post"];
@@ -6436,6 +6438,16 @@ export interface components {
             latitude?: number | null;
             /** Longitude */
             longitude?: number | null;
+            /**
+             * Network
+             * @default rail
+             */
+            network: string;
+            /**
+             * Source
+             * @default rinf
+             */
+            source: string;
         };
         /** ParliamentPeriodSchema */
         ParliamentPeriodSchema: {
@@ -8313,8 +8325,8 @@ export interface components {
         };
         /**
          * RouteNetworks
-         * @description Optional networks a route may use in addition to existing track (all off by
-         *     default). Further networks (issue #363) become further fields.
+         * @description Which tracks a route may use (services/routing_networks.py). Default: existing
+         *     main line track only.
          */
         RouteNetworks: {
             /**
@@ -8329,6 +8341,11 @@ export interface components {
              * @default false
              */
             proposed: boolean;
+            /**
+             * Track Classes
+             * @description Track classes: rail (Vollbahn, default) or any combination of light_rail (S-Bahn/Stadtbahn), subway, tram, narrow_gauge — never rail together with those. unknown admits planned tracks without a type (needs construction or proposed) and combines with anything.
+             */
+            track_classes?: ("rail" | "light_rail" | "subway" | "tram" | "narrow_gauge" | "unknown")[];
         };
         /** RouteOut */
         RouteOut: {
@@ -9818,6 +9835,8 @@ export interface operations {
                 /** @description Search by name or op_id */
                 q?: string;
                 limit?: number;
+                /** @description Only these networks (repeatable): rail = RINF operational points, light_rail / subway / tram = stops imported from OSM. */
+                network?: ("rail" | "light_rail" | "subway" | "tram")[] | null;
             };
             header?: never;
             path?: never;

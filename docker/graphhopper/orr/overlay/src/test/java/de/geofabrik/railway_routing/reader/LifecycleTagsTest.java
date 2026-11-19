@@ -10,10 +10,12 @@ import com.graphhopper.routing.ev.ArrayEdgeIntAccess;
 import com.graphhopper.routing.ev.EdgeIntAccess;
 import com.graphhopper.routing.ev.EncodedValue;
 import com.graphhopper.routing.ev.EnumEncodedValue;
+import com.graphhopper.routing.ev.SimpleBooleanEncodedValue;
 import com.graphhopper.storage.IntsRef;
 
 import de.geofabrik.railway_routing.ev.RailwayStatus;
 import de.geofabrik.railway_routing.parsers.OSMRailwayStatusParser;
+import de.geofabrik.railway_routing.parsers.RailAccessParser;
 
 class LifecycleTagsTest {
 
@@ -80,11 +82,39 @@ class LifecycleTagsTest {
     }
 
     @Test
-    void withoutTrackTypeNotRoutable() {
+    void withoutTrackTypeIsMarkedUntyped() {
         ReaderWay plain = way("railway", "proposed");
         assertEquals("proposed", plain.getTag("railway"));
-        assertNull(plain.getTag(LifecycleTags.STATUS_TAG));
+        assertEquals("yes", plain.getTag(LifecycleTags.UNTYPED_TAG));
+        assertEquals(RailwayStatus.PROPOSED, parsedStatus(plain));
 
+        ReaderWay yes = way("railway", "construction", "construction", "yes");
+        assertEquals("construction", yes.getTag("railway"));
+        assertEquals("yes", yes.getTag(LifecycleTags.UNTYPED_TAG));
+        assertEquals(RailwayStatus.CONSTRUCTION, parsedStatus(yes));
+    }
+
+    private static boolean accessible(ReaderWay way) {
+        RailAccessParser parser = new RailAccessParser(new SimpleBooleanEncodedValue("rail_access", true));
+        return !parser.getAccess(way).canSkip();
+    }
+
+    @Test
+    void untypedPlannedWayIsAccessibleOtherPlannedWaysAreNot() {
+        assertEquals(true, accessible(way("railway", "proposed")));
+        assertEquals(true, accessible(way("railway", "proposed", "proposed", "tram")));
+        assertEquals(false, accessible(way("railway", "construction", "construction", "platform")));
+        assertEquals(false, accessible(way("railway", "abandoned")));
+    }
+
+    @Test
+    void typedWayIsNotUntyped() {
+        ReaderWay way = way("railway", "proposed", "proposed", "rail");
+        assertNull(way.getTag(LifecycleTags.UNTYPED_TAG));
+    }
+
+    @Test
+    void unknownTrackTypeNotRoutable() {
         ReaderWay platform = way("railway", "construction", "construction", "platform");
         assertEquals("construction", platform.getTag("railway"));
         assertNull(platform.getTag(LifecycleTags.STATUS_TAG));

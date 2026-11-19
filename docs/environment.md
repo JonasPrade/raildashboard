@@ -11,6 +11,7 @@ Copy `.env.example` to `.env` and fill in values. Required variables:
 | `VITE_API_BASE_URL` | Frontend | Defaults to `http://localhost:8000` |
 | `VITE_APP_VERSION` | Frontend (build) | Optional. Version shown in the footer („Fassung …“), read by `vite.config.ts` from the build environment (not from `.env`). `release.yml` passes the short commit SHA; unset → `dev` |
 | `ROUTING_BASE_URL` | Backend | GraphHopper instance URL |
+| `OVERPASS_URL` | Backend (script) | Optional. Overpass endpoint for `scripts/import_osm_stops.py` (`make import-osm-stops`); default `https://overpass-api.de/api/interpreter` |
 | `CELERY_BROKER_URL` | Backend | Dev: `redis://:devpassword@localhost:6379/0` (password set in `docker-compose.dev.yml`) |
 | `CELERY_RESULT_BACKEND` | Backend | Same as `CELERY_BROKER_URL` |
 | `RINF_API_URL` / `RINF_USERNAME` / `RINF_PASSWORD` | Backend | Optional — ERA RINF API credentials; omit if RINF imports are not used |

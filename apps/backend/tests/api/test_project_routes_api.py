@@ -187,8 +187,14 @@ def test_calculate_route_with_networks_and_deviation(client, create_user, routin
     assert response.status_code == 200
     properties = response.json()["properties"]
     assert properties["profile"] == "rail_flex"
-    assert properties["networks"] == {"construction": True, "proposed": False}
-    assert routing_stub.last_request["custom_model"]["priority"][0]["if"] == "railway_status == PROPOSED"
+    assert properties["networks"] == {
+        "construction": True,
+        "proposed": False,
+        "track_classes": ["rail"],
+    }
+    assert {"if": "railway_status == PROPOSED", "multiply_by": "0"} in routing_stub.last_request[
+        "custom_model"
+    ]["priority"]
     # The stub's route is the stored line itself.
     assert properties["deviation"]["route_within_corridor_share"] == 1.0
     assert properties["sections"][0]["track_status"] == "existing"
@@ -204,3 +210,30 @@ def test_calculate_route_ignores_unknown_network(client, create_user, routing_st
     # Unknown switches are ignored by the schema and never reach the router.
     assert response.status_code == 200
     assert routing_stub.last_request == {"profile": "rail_default", "custom_model": None}
+
+
+def test_calculate_route_with_track_classes(client, create_user, routing_stub):
+    create_user("planner", "secret123", UserRole.editor)
+    response = client.post(
+        "/api/v1/routes/calculate",
+        json={**CALCULATE_PAYLOAD, "networks": {"track_classes": ["subway", "tram"]}},
+        headers=basic_auth_header("planner", "secret123"),
+    )
+    assert response.status_code == 200
+    assert routing_stub.last_request["profile"] == "rail_flex"
+    assert response.json()["properties"]["networks"]["track_classes"] == ["subway", "tram"]
+
+
+def test_calculate_route_rejects_rail_with_other_class(client, create_user, routing_stub):
+    create_user("planner", "secret123", UserRole.editor)
+    for networks in (
+        {"track_classes": ["rail", "tram"]},
+        {"track_classes": ["unknown"]},
+        {"track_classes": []},
+    ):
+        response = client.post(
+            "/api/v1/routes/calculate",
+            json={**CALCULATE_PAYLOAD, "networks": networks},
+            headers=basic_auth_header("planner", "secret123"),
+        )
+        assert response.status_code == 422, networks

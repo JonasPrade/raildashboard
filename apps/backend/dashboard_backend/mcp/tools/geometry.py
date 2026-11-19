@@ -45,9 +45,14 @@ from dashboard_backend.services.geo_length import compute_geojson_length_km
 from dashboard_backend.services.geometry_deviation import geometry_deviation
 from dashboard_backend.services.routing_networks import (
     SOURCE_MANUAL,
+    NetworkSelectionError,
+    feature_class,
     feature_origin,
     route_line_features,
 )
+
+TrackClass = Literal["rail", "light_rail", "subway", "tram", "narrow_gauge", "unknown"]
+OpNetwork = Literal["rail", "light_rail", "subway", "tram"]
 
 ROUTING_PROFILE = "rail_default"  # existing track; switches pick rail_flex (routing_networks)
 # 5 decimals of a degree ≈ 1 m: enough for every map, a third of the characters.
@@ -88,6 +93,7 @@ def _op_dict(op: OperationalPoint) -> dict[str, Any]:
         "op_id": op.op_id,
         "name": op.name,
         "type": op.type,
+        "network": op.network,
         "lat": op.latitude,
         "lon": op.longitude,
     }
@@ -152,6 +158,7 @@ def _feature_summary(index: int, feature: dict[str, Any]) -> dict[str, Any]:
             entry[key] = properties[key]
     if kind in _LINE_TYPES:
         entry["origin"] = feature_origin(feature)
+        entry["railway_class"] = feature_class(feature)
         entry["length_km"] = compute_geojson_length_km(json.dumps(geometry))
         parts = [coords] if kind == "LineString" else coords
         if parts and parts[0] and parts[-1]:
@@ -174,6 +181,7 @@ def _geometry_summary(features: list[dict[str, Any]]) -> dict[str, Any]:
         ),
         "length_km": compute_geojson_length_km(text),
         "line_km_by_origin": _km_by_origin(features),
+        "line_km_by_class": _km_by_class(features),
         "bbox": _bbox(features),
     }
 
@@ -190,6 +198,21 @@ def _km_by_origin(features: list[dict[str, Any]]) -> dict[str, float]:
         origin = feature_origin(feature)
         totals[origin] = totals.get(origin, 0.0) + km
     return {origin: round(km, 2) for origin, km in sorted(totals.items())}
+
+
+def _km_by_class(features: list[dict[str, Any]]) -> dict[str, float]:
+    """Line length per track class (rail / light_rail / subway / tram / narrow_gauge /
+    unknown, or none for lines without a class: drawn, uploaded or routed before
+    classes were recorded)."""
+    totals: dict[str, float] = {}
+    for feature in features:
+        geometry = feature.get("geometry") or {}
+        if geometry.get("type") not in _LINE_TYPES:
+            continue
+        km = compute_geojson_length_km(json.dumps(geometry)) or 0.0
+        key = feature_class(feature)
+        totals[key] = totals.get(key, 0.0) + km
+    return {key: round(km, 2) for key, km in sorted(totals.items())}
 
 
 def _ensure_owns_geometry(db: Session, project: Project) -> None:
@@ -375,11 +398,24 @@ def _append_stations(features: list[dict[str, Any]], ops: list[OperationalPoint]
 # --- tools -------------------------------------------------------------------
 
 
-def search_operational_points(query: str, limit: int = 20, *, ctx: Context) -> dict[str, Any]:
-    """Find operational points (Betriebsstellen: stations, junctions, sidings) by a
-    case-insensitive substring of name or op_id (RL100/RINF code). Returns id,
-    op_id, name, type and coordinates — the waypoints for route_project_geometry
-    and the points for edit_project_geometry. Exact matches come first."""
+def search_operational_points(
+    query: str,
+    limit: int = 20,
+    networks: list[OpNetwork] | None = None,
+    *,
+    ctx: Context,
+) -> dict[str, Any]:
+    """Find operational points (Betriebsstellen: stations, junctions, sidings, and
+    stops of S-Bahn/Stadtbahn, U-Bahn and tram) by a case-insensitive substring of
+    name or op_id. Returns id, op_id, name, type, ``network`` and coordinates — the
+    waypoints for route_project_geometry and the points for edit_project_geometry.
+    Exact matches come first.
+
+    - networks: only these networks. ``rail`` = RINF operational points of the main
+      line network (op_id = RINF code, e.g. DE00BTP; includes S-Bahn stations);
+      ``light_rail`` / ``subway`` / ``tram`` = stops imported from OSM (op_id
+      ``OSM-n…``). The same name or code can exist in several networks — check
+      ``network`` and route with the matching track_classes."""
     get_principal(ctx)
     text = query.strip()
     if len(text) < 2:
@@ -388,12 +424,13 @@ def search_operational_points(query: str, limit: int = 20, *, ctx: Context) -> d
     lowered = text.lower()
     exact = or_(func.lower(OperationalPoint.name) == lowered, func.lower(OperationalPoint.op_id) == lowered)
     with tool_session(ctx) as db:
+        query_ = db.query(OperationalPoint).filter(
+            or_(OperationalPoint.name.ilike(f"%{text}%"), OperationalPoint.op_id.ilike(f"%{text}%"))
+        )
+        if networks:
+            query_ = query_.filter(OperationalPoint.network.in_(networks))
         matches = (
-            db.query(OperationalPoint)
-            .filter(
-                or_(OperationalPoint.name.ilike(f"%{text}%"), OperationalPoint.op_id.ilike(f"%{text}%"))
-            )
-            .order_by(exact.desc(), func.length(OperationalPoint.name), OperationalPoint.name)
+            query_.order_by(exact.desc(), func.length(OperationalPoint.name), OperationalPoint.name)
             .limit(limit)
             .all()
         )
@@ -409,7 +446,10 @@ def get_project_geometry(
     type, vertex count, line length and start/end, or the point's coordinates and
     operational point. Lines carry their ``origin`` (routing_existing,
     routing_construction, routing_proposed, manual, upload, or unknown for lines
-    saved before origins were recorded); ``line_km_by_origin`` sums them. Saved
+    saved before origins were recorded) and ``railway_class`` (rail, light_rail,
+    subway, tram, narrow_gauge, unknown = planned track without type, or none when
+    not recorded — not to be read as rail); ``line_km_by_origin`` and
+    ``line_km_by_class`` sum them. Saved
     GraphHopper routes are listed as well.
     ``include_geojson=true`` adds the full FeatureCollection (coordinates rounded to
     ~1 m) — large for long routes, so only when the coordinates are really needed."""
@@ -452,6 +492,7 @@ def route_project_geometry(
     apply: bool = False,
     use_construction: bool = False,
     use_proposed: bool = False,
+    track_classes: list[TrackClass] | None = None,
     *,
     ctx: Context,
 ) -> dict[str, Any]:
@@ -472,6 +513,18 @@ def route_project_geometry(
       own. Off by default: then the route never touches such a track. When on,
       those tracks are preferred over parallel existing lines — use it for a
       Neubaustrecke that OSM already maps; via points still steer the corridor.
+    - track_classes: which kinds of track, default ["rail"] (Vollbahn). Instead:
+      any combination of "light_rail" (S-Bahn/Stadtbahn), "subway" (U-Bahn),
+      "tram" (Straßenbahn), "narrow_gauge" (Schmalspur) — never together with
+      "rail"; a route that changes between main line and S-Bahn track is routed in
+      parts and appended. OSM tagging differs by city: the Berlin and Hamburg
+      S-Bahn are light_rail, the Munich, Stuttgart, Frankfurt and Rhine-Ruhr S-Bahn
+      rail; Stadtbahnen are partly tram, partly light_rail (choose both).
+      "unknown" admits planned tracks whose type OSM does not give
+      (plain railway=proposed/construction); it combines with anything and needs
+      use_proposed or use_construction. Waypoints snap to the nearest track of
+      the chosen classes; stops of U-Bahn/tram networks are found with
+      search_operational_points (networks).
     - apply: false (default) only calculates and reports distance, resolved
       waypoints and the resulting geometry; true writes it (changelog, revertible)
       and stores the route.
@@ -479,8 +532,9 @@ def route_project_geometry(
     ``route.status_km`` and ``deviation`` from the project's current lines
     (share within 100 m, max/mean distance) — check them before apply, and do not
     replace an existing geometry with a different alignment without asking. Saved
-    lines are split by track status and tagged with their origin
-    (``geometry_source``/``track_status``). A Neubaustrecke OSM does not map is
+    lines are split by track status and class and tagged with their origin
+    (``geometry_source``/``track_status``/``railway_class``); ``route.class_km``
+    gives the km per track class. A Neubaustrecke OSM does not map is
     drawn with edit_project_geometry. Projects whose geometry is aggregated from
     subprojects cannot be routed directly."""
     principal = get_principal(ctx)
@@ -510,16 +564,28 @@ def route_project_geometry(
                 [{"lat": w["lat"], "lon": w["lon"]} for w in resolved],
                 ROUTING_PROFILE,
                 {},
-                {"construction": use_construction, "proposed": use_proposed},
+                {
+                    "construction": use_construction,
+                    "proposed": use_proposed,
+                    "track_classes": track_classes or ["rail"],
+                },
             )
+        except NetworkSelectionError as exc:
+            raise ToolError(f"Ungültige Netzauswahl: {exc}") from exc
         except RoutingNoPathError as exc:
             hint = (
                 "Geplante bzw. im Bau befindliche Gleise verbinden die Wegpunkte nicht "
-                "durchgehend (Lücke in OSM?)."
+                "durchgehend (Lücke in OSM? Planungen ohne Gleistyp mit track_classes "
+                '"unknown").'
                 if use_construction or use_proposed
                 else "Neubaustrecken mit use_proposed/use_construction versuchen oder mit "
                 "edit_project_geometry zeichnen."
             )
+            if track_classes and track_classes != ["rail"]:
+                hint += (
+                    " Die gewählten Gleisarten verbinden die Wegpunkte nicht; wechselt die "
+                    "Strecke zwischen Vollbahn und S-/U-Bahn/Tram, abschnittsweise routen."
+                )
             raise ToolError(
                 f"Kein Pfad im Schienennetz gefunden. Liegen alle Wegpunkte an Gleisen? {hint}"
             ) from exc
@@ -544,8 +610,13 @@ def route_project_geometry(
             "waypoints": resolved,
             "networks": properties["networks"],
             "status_km": properties["status_km"],
+            "class_km": properties["class_km"],
             "sections": [
-                {"track_status": s["track_status"], "length_km": s["length_km"]}
+                {
+                    "track_status": s["track_status"],
+                    "railway_class": s["railway_class"],
+                    "length_km": s["length_km"],
+                }
                 for s in properties["sections"]
             ],
         }

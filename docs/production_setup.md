@@ -563,7 +563,16 @@ und baut den Graphen aus der vorhandenen PBF neu (Log: „Routing configuration 
 dauert für Deutschland einige Minuten; so lange ist Routing nicht verfügbar und der Container
 kann `unhealthy` melden. Backend und `/healthz` hängen nicht daran. Seit #364 enthält der Graph
 auch geplante und im Bau befindliche Gleise (Merkmal `railway_status`, zweites Profil
-`rail_flex`), siehe `docs/features/feature-routing.md`.
+`rail_flex`); seit #363 routet `rail_flex` auf Wunsch auch über S-Bahn/Stadtbahn, U-Bahn,
+Straßenbahn, Schmalspur und geplante Gleise ohne Gleistyp.
+
+**Haltestellen von U-Bahn, S-Bahn und Straßenbahn (#363):** kommen nicht aus RINF, sondern aus
+OSM (Overpass-API) und werden einmalig nach dem Deploy und danach bei Bedarf eingelesen:
+```bash
+make docker-import-osm-stops ARGS=--dry-run   # nur zählen
+make docker-import-osm-stops                  # schreiben (erneut ausführbar)
+```
+Braucht Zugang zu `overpass-api.de` (oder `OVERPASS_URL` im Container setzen).
 
 **OSM-Extrakt aktualisieren:** `GRAPH_VERSION` in `.env` hochzählen (busted Route-Cache), dann den Stack neu starten. Das Volume `ghdata` löschen, damit GraphHopper die neue PBF herunterlädt:
 ```bash

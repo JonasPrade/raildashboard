@@ -19,8 +19,10 @@ graphhopper:
   # Two profiles:
   # - rail_default: the existing network. Never uses or snaps to a track that is
   #   proposed or under construction. Prepared for speed (CH).
-  # - rail_flex: every rail track; the backend narrows it per request with a query
-  #   custom model built from the network switches (services/routing_networks.py).
+  # - rail_flex: every track of every class (rail, light_rail, subway, tram,
+  #   narrow_gauge, planned tracks without a type); the backend narrows it per request
+  #   with a query custom model built from the track classes and status switches
+  #   (services/routing_networks.py).
   #   Not prepared, routed flexibly (slower, fine for single requests).
   # test/smoke.sh checks both against a small network.
   profiles:

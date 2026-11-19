@@ -21,6 +21,7 @@ from dashboard_backend.schemas.routes import (
     RoutePreviewOut,
 )
 from dashboard_backend.services.exceptions import RoutingNoPathError, RoutingUpstreamError
+from dashboard_backend.services.routing_networks import NetworkSelectionError
 from dashboard_backend.services.geometry_deviation import geometry_deviation
 from dashboard_backend.services.route_service import RouteService
 
@@ -61,7 +62,9 @@ async def calculate_route(
 
     Nothing is saved to the database. The frontend can evaluate the result
     and then call the confirm endpoint to persist it. ``networks`` admits tracks
-    under construction or proposed (off by default: existing track only);
+    under construction or proposed and chooses the track classes (default: existing
+    main line track only; ``rail`` cannot be combined with light_rail, subway, tram or
+    narrow_gauge → 422);
     ``compare_project_id`` adds the deviation from that project's lines.
     """
     waypoints = [waypoint.model_dump() for waypoint in request.waypoints]
@@ -70,7 +73,7 @@ async def calculate_route(
         feature = await service.calculate_only(
             waypoints, request.profile, request.options, request.networks.model_dump()
         )
-    except RoutingNoPathError as error:
+    except (RoutingNoPathError, NetworkSelectionError) as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     except RoutingUpstreamError as error:
         raise HTTPException(status_code=502, detail=str(error)) from error

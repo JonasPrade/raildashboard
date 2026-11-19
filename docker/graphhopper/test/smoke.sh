@@ -12,10 +12,19 @@
 #
 # The proposed track uses railway=proposed + proposed=rail, the one under construction
 # the lifecycle prefix construction:railway=rail without a railway=* tag. Way 8 is a
-# proposed way without a track type and must stay out of the graph.
+# proposed way without a track type: in the graph as railway_class OTHER, never used
+# unless the request asks for it.
 #
-# The rule it guards: routing on the existing network never uses, and never snaps to,
-# a track that is proposed or under construction. Both are only used when asked for.
+# Track classes, a bundle of parallel straight lines from 10.0 to 10.1, not connected:
+#   50.0512 tram · 50.0506 light_rail · 50.0500 rail · 50.0494 subway · 50.0488 narrow_gauge
+# A chain at 50.06: light_rail 10.0-10.05, then tram 10.05-10.1.
+# At 50.07: rail 10.0-10.03, an untyped proposed track 10.03-10.07 (way 302), rail
+# 10.07-10.1, and an existing detour north of the proposed track.
+#
+# The rules it guards: routing on the existing network never uses, and never snaps to,
+# a track that is proposed or under construction, nor one of another track class
+# (light_rail, subway, tram, narrow_gauge, untyped). Each is only used when asked for,
+# and then only the classes asked for.
 set -eu
 
 BASE=http://localhost:8989
@@ -57,54 +66,110 @@ until curl -fsS "$BASE/health" > /dev/null 2>&1; do
 done
 
 route_default() { # from to
-    curl -sS "$BASE/route?profile=rail_default&point=$1&point=$2&points_encoded=false&instructions=false&details=railway_status"
+    curl -sS "$BASE/route?profile=rail_default&point=$1&point=$2&points_encoded=false&instructions=false&details=railway_status&details=railway_class"
 }
 
-# The same request the backend sends for the network switches
-# (dashboard_backend/services/routing_networks.py; tests/unit/test_routing_networks.py
-# pins the statements below).
-route_flex() { # construction proposed  (each true/false)
-    statements='{ "if": "railway_status == EXISTING", "multiply_by": "0.1" }'
-    [ "$1" = true ] || statements='{ "if": "railway_status == CONSTRUCTION", "multiply_by": "0" }, '"$statements"
-    [ "$2" = true ] || statements='{ "if": "railway_status == PROPOSED", "multiply_by": "0" }, '"$statements"
+# The query custom model the backend builds (dashboard_backend/services/routing_networks.py;
+# tests/unit/test_routing_networks.py pins the same statements):
+# statements <track classes, comma-separated> <construction true/false> <proposed true/false>
+statements() {
+    out=""
+    for class in rail light_rail subway tram narrow_gauge unknown; do
+        case ",$1," in
+            *",$class,"*) ;;
+            *)
+                enum=$(echo "$class" | tr 'a-z' 'A-Z')
+                [ "$class" = unknown ] && enum=OTHER
+                out="$out{ \"if\": \"railway_class == $enum\", \"multiply_by\": \"0\" }, " ;;
+        esac
+    done
+    [ "$2" = true ] || out="$out{ \"if\": \"railway_status == CONSTRUCTION\", \"multiply_by\": \"0\" }, "
+    [ "$3" = true ] || out="$out{ \"if\": \"railway_status == PROPOSED\", \"multiply_by\": \"0\" }, "
+    if [ "$2" = true ] || [ "$3" = true ]; then
+        out="$out{ \"if\": \"railway_status == EXISTING\", \"multiply_by\": \"0.1\" }, "
+    fi
+    echo "${out%, }"
+}
+
+# route_flex <from lon,lat> <to lon,lat> <classes> <construction> <proposed>
+route_flex() {
     curl -sS -X POST "$BASE/route" -H 'Content-Type: application/json' -d '{
       "profile": "rail_flex", "ch.disable": true,
-      "points": [[10.0, 50.0], [10.2, 50.0]],
-      "points_encoded": false, "instructions": false, "details": ["railway_status"],
-      "custom_model": { "priority": ['"$statements"'] }
+      "points": [['"$1"'], ['"$2"']],
+      "points_encoded": false, "instructions": false,
+      "details": ["railway_status", "railway_class"],
+      "custom_model": { "priority": ['"$(statements "$3" "$4" "$5")"'] }
     }'
 }
 
-# expect <label> <response> <status that must appear ...> -- <status that must not appear ...>
+# expect <label> <response> <value that must appear ...> -- <value that must not appear ...>
+# Values are path detail values (status or track class), matched as quoted JSON strings.
 expect() {
     label=$1; response=$2; shift 2
     echo "$response" | grep -q '"paths"' || fail "$label: no route: $response"
     must=1
-    for status in "$@"; do
-        if [ "$status" = "--" ]; then must=0; continue; fi
+    for value in "$@"; do
+        if [ "$value" = "--" ]; then must=0; continue; fi
         if [ "$must" = 1 ]; then
-            echo "$response" | grep -q "\"$status\"" || fail "$label: expected a section on $status tracks: $response"
+            echo "$response" | grep -q "\"$value\"" || fail "$label: expected a section on $value tracks: $response"
         else
-            if echo "$response" | grep -q "\"$status\""; then
-                fail "$label: must not use $status tracks: $response"
+            if echo "$response" | grep -q "\"$value\""; then
+                fail "$label: must not use $value tracks: $response"
             fi
         fi
     done
     echo "ok: $label"
 }
 
+# expect_no_path <label> <response>
+expect_no_path() {
+    echo "$2" | grep -q '"paths"' && fail "$1: expected no route: $2"
+    echo "ok: $1"
+}
+
+OTHER_CLASSES="light_rail subway tram narrow_gauge other"
+
+# --- lifecycle status (50.0) ---
+W=10.0,50.0
+E=10.2,50.0
 expect "rail_default stays on the existing network" \
-    "$(route_default "$WEST" "$EAST")" existing -- proposed construction
+    "$(route_default "$WEST" "$EAST")" existing rail -- proposed construction $OTHER_CLASSES
 expect "rail_default does not snap to a proposed track" \
     "$(route_default "$NEAR_PROPOSED" "$EAST")" existing -- proposed construction
 expect "rail_flex without switches stays on the existing network" \
-    "$(route_flex false false)" existing -- proposed construction
+    "$(route_flex $W $E rail false false)" existing -- proposed construction $OTHER_CLASSES
 expect "rail_flex with construction uses tracks under construction only" \
-    "$(route_flex true false)" existing construction -- proposed
+    "$(route_flex $W $E rail true false)" existing construction -- proposed $OTHER_CLASSES
 expect "rail_flex with proposed uses proposed tracks only" \
-    "$(route_flex false true)" existing proposed -- construction
+    "$(route_flex $W $E rail false true)" existing proposed -- construction $OTHER_CLASSES
 expect "rail_flex with both uses both" \
-    "$(route_flex true true)" existing proposed construction --
+    "$(route_flex $W $E rail true true)" existing proposed construction --
+
+# --- track classes (bundle at 50.05; points on the rail line) ---
+BW=10.0,50.05
+BE=10.1,50.05
+expect "rail_default stays on rail next to parallel tracks of other classes" \
+    "$(route_default 50.0504,10.0 50.0504,10.1)" rail -- $OTHER_CLASSES
+for class in light_rail subway tram narrow_gauge; do
+    expect "rail_flex with $class uses $class only, snapped next to a rail track" \
+        "$(route_flex $BW $BE $class false false)" "$class" -- rail other $(echo "$OTHER_CLASSES" | tr ' ' '\n' | grep -vx "$class")
+done
+expect "rail_flex with light_rail + tram combines both" \
+    "$(route_flex 10.0,50.06 10.1,50.06 light_rail,tram false false)" light_rail tram -- rail
+expect_no_path "rail_flex with light_rail alone does not switch to tram" \
+    "$(route_flex 10.0,50.06 10.1,50.06 light_rail false false)"
+
+# --- planned tracks without a type (50.07) ---
+UW=10.0,50.07
+UE=10.1,50.07
+expect "rail_default avoids the untyped proposed track" \
+    "$(route_default 50.07,10.0 50.07,10.1)" rail -- other proposed
+expect "rail_flex with proposed but without unknown avoids the untyped track" \
+    "$(route_flex $UW $UE rail false true)" rail -- other
+expect "rail_flex with proposed + unknown uses the untyped track" \
+    "$(route_flex $UW $UE rail,unknown false true)" rail other proposed --
+expect "rail_flex with light_rail + proposed stays off rail" \
+    "$(route_flex 10.0,50.06 10.1,50.06 light_rail,tram false true)" light_rail tram -- rail
 
 # The graph cache carries the fingerprint of the configuration it was built with.
 [ "$(cat /data/graph-cache.fingerprint)" = "$(cat /graphhopper/fingerprint)" ] \
