@@ -5,7 +5,7 @@ from typing import Any, Dict, Iterable, Optional
 import httpx
 
 from dashboard_backend.services.exceptions import RoutingNoPathError, RoutingUpstreamError
-from dashboard_backend.services.routing_networks import STATUS_DETAIL
+from dashboard_backend.services.routing_networks import ROUTE_DETAILS
 
 
 class RoutingClient:
@@ -24,8 +24,8 @@ class RoutingClient:
     ) -> Dict[str, Any]:
         """Route between the waypoints.
 
-        Every request asks for the ``railway_status`` path detail, so the caller knows
-        which part of the route runs on which kind of track. A ``custom_model`` (network
+        Every request asks for the ``railway_status`` and ``railway_class`` path details,
+        so the caller knows which part of the route runs on which kind of track. A ``custom_model`` (network
         switches, see services/routing_networks.py) needs GraphHopper's POST form.
         """
         waypoints = list(waypoints)
@@ -37,8 +37,8 @@ class RoutingClient:
                         ("points_encoded", "false"),
                         ("type", "json"),
                         ("locale", "en"),
-                        ("details", STATUS_DETAIL),
                     ]
+                    params.extend(("details", detail) for detail in ROUTE_DETAILS)
                     params.extend(("point", f"{point['lat']},{point['lon']}") for point in waypoints)
                     for key, value in options.items():
                         params.append((key, str(value)))
@@ -50,7 +50,7 @@ class RoutingClient:
                         "points": [[point["lon"], point["lat"]] for point in waypoints],
                         "points_encoded": False,
                         "locale": "en",
-                        "details": [STATUS_DETAIL],
+                        "details": list(ROUTE_DETAILS),
                         "custom_model": custom_model,
                         # A query custom model needs the flexible algorithm; GraphHopper
                         # refuses it in speed mode (CH), even for a profile without CH.

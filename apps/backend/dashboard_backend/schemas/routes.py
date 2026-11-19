@@ -11,14 +11,25 @@ class Waypoint(BaseModel):
     lon: float = Field(ge=-180.0, le=180.0)
 
 
+TrackClass = Literal["rail", "light_rail", "subway", "tram", "narrow_gauge", "unknown"]
+
+
 class RouteNetworks(BaseModel):
-    """Optional networks a route may use in addition to existing track (all off by
-    default). Further networks (issue #363) become further fields."""
+    """Which tracks a route may use (services/routing_networks.py). Default: existing
+    main line track only."""
 
     construction: bool = Field(
         False, description="Tracks under construction from OSM (railway=construction)."
     )
     proposed: bool = Field(False, description="Proposed tracks from OSM (railway=proposed).")
+    track_classes: List[TrackClass] = Field(
+        default_factory=lambda: ["rail"],
+        min_length=1,
+        description="Track classes: rail (Vollbahn, default) or any combination of "
+        "light_rail (S-Bahn/Stadtbahn), subway, tram, narrow_gauge — never rail together "
+        "with those. unknown admits planned tracks without a type (needs construction or "
+        "proposed) and combines with anything.",
+    )
 
 
 class RouteIn(BaseModel):

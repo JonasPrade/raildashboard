@@ -7,9 +7,9 @@ import {
     Stack,
     Text,
 } from "@mantine/core";
-import type { OperationalPointRef, RouteNetworks, RoutePreviewFeature } from "../../shared/api/queries";
+import type { OperationalPointRef, RouteNetworks, RoutePreviewFeature, TrackClass } from "../../shared/api/queries";
 import { useCalculateRoute } from "../../shared/api/queries";
-import { NO_EXTRA_NETWORKS } from "./geometryOrigin";
+import { NO_EXTRA_NETWORKS, TRACK_CLASS_LABEL, toggleTrackClass } from "./geometryOrigin";
 import StationSelect from "./StationSelect";
 
 type Props = {
@@ -26,6 +26,15 @@ export default function RouteCalculatorForm({ onResult, onError, compareProjectI
     // Off by default: the route then never touches a track that is not in operation.
     const [networks, setNetworks] = useState<RouteNetworks>(NO_EXTRA_NETWORKS);
     const usesPlanned = networks.construction || networks.proposed;
+    const classes = networks.track_classes;
+    const usesOtherClasses = !classes.includes("rail");
+    // "Gleisart unbekannt" only admits planned tracks without a type; the backend
+    // rejects it without a status switch, so it is dropped when both are off.
+    const effectiveClasses: TrackClass[] = usesPlanned ? classes : classes.filter((c) => c !== "unknown");
+
+    function setClass(cls: TrackClass, on: boolean) {
+        setNetworks((n) => ({ ...n, track_classes: toggleTrackClass(n.track_classes, cls, on) }));
+    }
 
     const { mutate: calculate, isPending } = useCalculateRoute();
 
@@ -61,7 +70,11 @@ export default function RouteCalculatorForm({ onResult, onError, compareProjectI
                 op !== null && op.latitude !== null && op.longitude !== null,
         );
         calculate(
-            { waypoints, networks, compare_project_id: compareProjectId },
+            {
+                waypoints,
+                networks: { ...networks, track_classes: effectiveClasses },
+                compare_project_id: compareProjectId,
+            },
             {
                 onSuccess: (feature) => onResult(feature, stations),
                 onError: (err) => {
@@ -69,9 +82,11 @@ export default function RouteCalculatorForm({ onResult, onError, compareProjectI
                     if (status === 502) {
                         onError("Routing-Dienst nicht erreichbar.");
                     } else if (status === 422) {
-                        onError(usesPlanned
-                            ? "Kein Pfad gefunden. Die gewählten Gleise verbinden Start und Ziel nicht durchgehend (Lücke in OSM?)."
-                            : "Kein Pfad gefunden.");
+                        onError(usesOtherClasses
+                            ? "Kein Pfad gefunden. Die gewählten Gleisarten verbinden Start und Ziel nicht durchgehend. Wechselt die Strecke zwischen Vollbahn und S-/U-Bahn/Straßenbahn, abschnittsweise routen und anhängen."
+                            : usesPlanned
+                                ? "Kein Pfad gefunden. Die gewählten Gleise verbinden Start und Ziel nicht durchgehend (Lücke in OSM?)."
+                                : "Kein Pfad gefunden.");
                     } else {
                         onError("Fehler bei der Routenberechnung.");
                     }
@@ -114,6 +129,23 @@ export default function RouteCalculatorForm({ onResult, onError, compareProjectI
             <StationSelect label="Zielbahnhof" value={end} onChange={setEnd} />
 
             <Stack gap={6}>
+                <Text size="sm" fw={500}>Gleisart</Text>
+                {(["rail", "light_rail", "subway", "tram", "narrow_gauge"] as TrackClass[]).map((cls) => (
+                    <Checkbox
+                        key={cls}
+                        label={cls === "light_rail" ? `${TRACK_CLASS_LABEL[cls]} (OSM light_rail)` : TRACK_CLASS_LABEL[cls]}
+                        checked={classes.includes(cls)}
+                        onChange={(e) => setClass(cls, e.currentTarget.checked)}
+                    />
+                ))}
+                <Text size="xs" c="dimmed">
+                    {usesOtherClasses
+                        ? "Die Route nutzt nur die gewählten Gleisarten, nie die Vollbahn. Berliner und Hamburger S-Bahn sind in OSM S-Bahn/Stadtbahn, Münchner und Stuttgarter S-Bahn Vollbahn; Stadtbahnen teils Straßenbahn, teils S-Bahn/Stadtbahn – im Zweifel beide wählen."
+                        : "Vollbahn schließt die übrigen Gleisarten aus. Strecken, die zwischen Vollbahn und S-/U-Bahn wechseln, abschnittsweise routen und anhängen."}
+                </Text>
+            </Stack>
+
+            <Stack gap={6}>
                 <Text size="sm" fw={500}>Auch nutzen</Text>
                 <Checkbox
                     label="Gleise im Bau (OSM)"
@@ -124,6 +156,13 @@ export default function RouteCalculatorForm({ onResult, onError, compareProjectI
                     label="Geplante Gleise (OSM)"
                     checked={networks.proposed}
                     onChange={(e) => setNetworks((n) => ({ ...n, proposed: e.currentTarget.checked }))}
+                />
+                <Checkbox
+                    label="Planungen ohne Gleisart (OSM)"
+                    description="Geplante bzw. im Bau befindliche Gleise, bei denen OSM keinen Gleistyp nennt. Nur zusammen mit „im Bau“ oder „geplant“."
+                    checked={classes.includes("unknown")}
+                    disabled={!usesPlanned}
+                    onChange={(e) => setClass("unknown", e.currentTarget.checked)}
                 />
                 <Text size="xs" c="dimmed">
                     {usesPlanned

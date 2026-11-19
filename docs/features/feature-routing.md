@@ -21,7 +21,7 @@ Editors und Admins können für ein Projekt eine Streckenroute über GraphHopper
 
 - Automatische Routenberechnung ohne Nutzerinteraktion
 - Routenberechnung für Straße oder Wasser
-- U-Bahn- und Straßenbahnnetze (Issue #363; die Netzwahl unten ist dafür erweiterbar gebaut)
+- Routen, die Vollbahn- und S-/U-Bahn-/Straßenbahngleise in einem Zug mischen (siehe „Gleisarten“ unten: abschnittsweise routen und anhängen)
 
 ## Voraussetzungen
 
@@ -258,3 +258,172 @@ Berührt sind die Dashboard-Aufgaben #90 (1774 Blankenheim–Kirchheim: Neubauab
 routbar statt gezeichnet), #91 (Geometrien für das TRAVE-Zielnetz: getrennte Linien für Neubau
 und Bestand) und #92 (1535: die Angleichung an die Trasse des Zielfahrplans ist mit OSM als
 Vorlage möglich, sofern OSM dieselbe Trasse hat).
+
+## Gleisarten (S-Bahn, U-Bahn, Straßenbahn, Schmalspur) (Issue #363)
+
+Anlass (Jonas, 2026-11-19): Die i2030-S-Bahn-Projekte in Berlin liegen auf den parallelen
+Fernbahn- und Gütergleisen oder fahren Umwege, weil die Berliner S-Bahn in OSM
+`railway=light_rail` ist und der Router nur `railway=rail` nutzt. Probe im Prod-Routing:
+Treptower Park (DE00BTP) → Sonnenallee (DE00BSO) ergibt 7,05 km über Baumschulenweg statt rund
+2 km über den Ring. Fortsetzung des Musters aus #364 (Abschnitt oben). Zusätzlich aus #363:
+geplante Gleise ohne Gleistyp und Haltestellen von U-Bahn und Straßenbahn für die Wegpunktsuche.
+
+### Bestand vor der Änderung (nachgeprüft am Quelltext)
+
+- OpenRailRouting v1.1 nimmt `railway=rail|light_rail|tram|subway|narrow_gauge` bereits in den
+  Graphen auf (`RailAccessParser`); das Encoded Value `railway_class` (`OTHER`, `RAIL`, `SUBWAY`,
+  `TRAM`, `NARROW_GAUGE`, `LIGHT_RAIL`, `FUNICULAR`, als Path Detail kleingeschrieben) steht in
+  `graph.encoded_values`. Ausgeschlossen werden die übrigen Gleisarten nur in den Custom Models
+  (`railway_class != RAIL` → Priorität 0).
+- Ein `railway=proposed|construction` ohne Gleistyp bleibt draußen (`LifecycleTags`). Für die
+  meisten Neubaustrecken aus dem Abgleich von #364 (1507, 1535, 1556, 1663, 1773, 1783) fand der
+  Router deshalb keine geplanten Gleise; die Dashboard-Aufgaben #94, #95, #97–#103 warten darauf.
+- Wegpunkte (Start, Ziel, Via) kommen aus der Tabelle `operational_point` (RINF): nur
+  Betriebsstellen der Eisenbahn, darunter die S-Bahnhöfe. U-Bahn- und Straßenbahnhalte fehlen;
+  im MCP-Tool gehen nur freie Koordinaten.
+
+### Verhalten
+
+- **Gleisart-Auswahl, exklusiv zur Vollbahn:** Neben den Status-Schaltern („im Bau“, „geplant“)
+  wählt man die Gleisarten. Vorgabe ist **Vollbahn** (`rail`). Wählbar sind daneben
+  **S-Bahn/Stadtbahn** (`light_rail`), **U-Bahn** (`subway`), **Straßenbahn** (`tram`) und
+  **Schmalspur** (`narrow_gauge`), untereinander beliebig kombiniert. Vollbahn und eine dieser
+  Gleisarten nie zusammen: Der Editor wählt die Vollbahn ab, sobald eine andere Gleisart
+  angehakt wird, und umgekehrt; das Backend lehnt `rail` zusammen mit einer anderen Gleisart mit
+  422 ab. Kein Bevorzugungsfaktor zwischen Gleisarten (entfällt durch die Exklusivität).
+- **Gleisart unbekannt (nur Planungen):** Geplante oder im Bau befindliche Gleise, bei denen OSM
+  keinen Gleistyp nennt (bloßes `railway=proposed|construction`), sind eine sechste Gleisart
+  `unknown`. Sie hat einen eigenen Haken, ist mit **jeder** Auswahl kombinierbar (auch mit der
+  Vollbahn — Ausnahme von der Exklusivität, weil es keine Bestandsgleise dieser Art gibt) und
+  wirkt nur zusammen mit „im Bau“ bzw. „geplant“; ohne einen der beiden lehnt das Backend sie
+  mit 422 ab. Ohne Haken bleiben Planungen ohne Typ draußen — eine Straßenbahn-Planung gilt nie
+  stillschweigend als Eisenbahn.
+- **Status-Schalter bleiben unabhängig:** Eine geplante S-Bahn ist `light_rail` + „geplant“.
+  Die Bevorzugung gewählter geplanter bzw. im Bau befindlicher Gleise (Bestand ×0,1, W3) gilt
+  innerhalb der gewählten Gleisarten weiter.
+- **Ohne Auswahl ändert sich nichts:** Nur Vollbahn, kein Status-Schalter → Profil
+  `rail_default` wie bisher; die Route nutzt und rastet nie auf S-Bahn-, U-Bahn-,
+  Straßenbahn-, Schmalspur- oder typlose Gleise ein.
+- **Gemischte Routen:** Ein S-Bahn-Projekt, das auf Fernbahngleise wechselt, ist nicht in einem
+  Zug routbar. Abschnittsweise routen (Editor: Route anhängen) und die Teile zusammensetzen.
+- **Herkunft je Linie:** Eine Route wird in Abschnitte gleichen Status **und** gleicher Gleisart
+  geteilt; jede Linie trägt zusätzlich `properties.railway_class` (`rail`, `light_rail`, `subway`,
+  `tram`, `narrow_gauge`, `unknown`). Eine Route nur auf Vollbahn-Bestand bleibt ein einziges
+  Feature. Linien von vor dieser Änderung haben keine Angabe und zählen als „ohne Gleisart“,
+  nicht als Vollbahn.
+- **Sichtbar:** Die Editor-Vorschau nennt neben den km je Status die km je Gleisart; „Aktuelle
+  Geometrie“ zeigt die km je Gleisart der gespeicherten Linien. MCP: `get_project_geometry`
+  liefert `railway_class` je Linie und `line_km_by_class`, `route_project_geometry` meldet
+  `route.class_km`.
+- **Haltestellen aus OSM für die Wegpunktsuche:** Bahnhöfe und Halte von U-Bahn, S-Bahn/Stadtbahn
+  (`station=light_rail`) und Straßenbahn kommen aus OSM als weitere Betriebsstellen in
+  `operational_point` (`source = "osm"`, `network = subway | light_rail | tram`, `op_id` =
+  `OSM-<n|w|r><id>`). RINF-Betriebsstellen tragen `source = "rinf"`, `network = "rail"`. Die Suche
+  (REST `GET /operational-points?network=…`, Editor, MCP `search_operational_points`) nennt das
+  Netz je Treffer und lässt sich danach filtern; im Editor zeigt jeder Treffer ein Kürzel
+  (S, U, Tram) — gleiche Namen oder Kürzel verschiedener Netze sind so unterscheidbar. Ein
+  OSM-S-Bahnhof, der schon als RINF-Betriebsstelle vorhanden ist (gleicher Name, höchstens
+  300 m entfernt), wird nicht doppelt angelegt. Straßenbahnhalte (`railway=tram_stop`) werden
+  je Name auf einen Punkt zusammengefasst (beide Richtungen, höchstens 300 m). Import mit
+  `make import-osm-stops` (Overpass-API, Deutschland), erneut ausführbar: vorhandene OSM-Halte
+  werden aktualisiert, nicht dupliziert; Halte, die in OSM verschwunden sind, bleiben stehen
+  (sie könnten Projekten zugeordnet sein).
+- **Einrasten:** Eine Wegpunkt-Koordinate rastet an das nächste Gleis der gewählten Gleisarten
+  ein. Ein RINF-S-Bahnhof funktioniert also mit dem S-Bahn-Haken, ein U-Bahnhof aus OSM mit dem
+  U-Bahn-Haken.
+
+### Technik
+
+- **Router-Erweiterung** (`docker/graphhopper/orr/`):
+  - `LifecycleTags.normalize`: Ein `railway=proposed|construction` ohne `<status>=TYP` und ohne
+    `<status>:railway=TYP` bekommt das Status-Tag und bleibt sonst unverändert; damit gilt es
+    für `railway_class` als `OTHER`. Nennt der Weg einen Typ, den der Router nicht kennt (z. B.
+    `proposed=platform`), bleibt er draußen.
+  - `RailAccessParser` (Patch): Ein Weg mit Status-Tag ist befahrbar, auch ohne Gleistyp.
+    `OTHER` kommt damit nur bei typlosen Planungen vor.
+- **Profile:**
+  - `rail_default` bleibt unverändert (nur `RAIL`, nur Bestand, CH).
+  - `rail_flex`: Basismodell auf das breiteste Netz erweitert — jeder befahrbare Weg
+    (`RAIL`, `LIGHT_RAIL`, `SUBWAY`, `TRAM`, `NARROW_GAUGE`, `OTHER`). Neuer Fingerabdruck →
+    der Graph wird nach dem Deploy neu gebaut.
+- **Backend** (`services/routing_networks.py`): `networks` bekommt `track_classes` (Liste,
+  Vorgabe `["rail"]`). Alles außer „nur Vollbahn ohne Status-Schalter“ läuft auf `rail_flex`
+  mit einem Query-Modell: je nicht gewählter Gleisart `railway_class == X` ×0 (`unknown` ↔
+  `OTHER`), je nicht gewähltem Status `railway_status == X` ×0, mit Status-Schalter Bestand
+  ×0,1. Validierung (422): leere Liste, unbekannte Gleisart, `rail` mit anderer Gleisart außer
+  `unknown`, `unknown` ohne Status-Schalter. `RoutingClient` fragt zusätzlich das Path Detail
+  `railway_class` ab; `route_sections` teilt nach (Status, Gleisart); `class_km` je Gleisart;
+  der Cache-Schlüssel enthält `track_classes`, sobald sie von der Vorgabe abweichen.
+  REST `POST /routes/calculate`: `networks: {construction, proposed, track_classes}`; MCP
+  `route_project_geometry`: Parameter `track_classes` (Vorgabe `["rail"]`).
+- **Haltestellen:** Migration (Expand): `operational_point.source` und `.network`, beide mit
+  Server-Default (`rinf`, `rail`). Importer `scripts/import_osm_stops.py` (Overpass-Abfrage,
+  Auswahl und Zusammenfassen in reinen Funktionen, unit-getestet), Makefile-Ziele
+  `import-osm-stops` / `docker-import-osm-stops`.
+- **Hinweise zu OSM-Tags** (Anleitung `GeometrieGuidePage`, Tool-Beschreibung): Berliner und
+  Hamburger S-Bahn sind `light_rail`, Münchner, Stuttgarter, Frankfurter und Rhein-Ruhr-S-Bahn
+  `rail`; Stadtbahnen teils `tram`, teils `light_rail` → beide wählen.
+- **Prüfung:** Testnetz `test/planned-tracks.osm` um ein paralleles `light_rail`-Gleis, eine
+  U-Bahn, eine Straßenbahn, ein Schmalspurgleis und ein typloses geplantes Gleis erweitert;
+  `smoke.sh`: ohne Auswahl nie auf diesen Gleisen und nie dorthin eingerastet; jede Gleisart
+  einzeln wählbar und nur sie wird benutzt (auch beim Einrasten neben einem parallelen
+  Vollbahngleis); `light_rail` + `tram`; Kombination mit „geplant“; `unknown` nur mit Haken.
+  Unit-Tests der Query-Statements, der Validierung, der Abschnitte und des Haltestellen-Imports.
+
+### Folgen für den Betrieb
+
+- Nach dem Deploy baut GraphHopper den Graphen neu (neues Basismodell, typlose Planungen im
+  Graphen). Bis dahin ist das Routing nicht verfügbar; `/healthz` hängt nicht davon ab.
+- Die Migration fügt zwei Spalten mit Default hinzu (rückwärtskompatibel). Die OSM-Haltestellen
+  kommen erst mit `make docker-import-osm-stops` nach dem Deploy (einmalig, später bei Bedarf).
+
+### Entscheidungen (Jonas, 2026-11-19)
+
+Stapel EKS-2026-051 im Vault; die letzten beiden aus der Rückfrage in der Umsetzungssitzung.
+
+- **Gleisarten exklusiv** (EK-2026-355, C): Vollbahn ist Vorgabe, jede andere gewählte
+  Gleisart schaltet sie ab; andere Gleisarten untereinander kombinierbar, kein
+  Bevorzugungsfaktor. Verworfen: Bevorzugung ×0,1; gleich gewichten. Die in #363 genannte
+  Kombination Eisenbahn + U-Bahn ist damit überholt.
+- **Fünf Gleisarten inkl. Schmalspur** (EK-2026-356). Verworfen: ohne Schmalspur; Vollbahn
+  immer an.
+- **Linien speichern die Gleisart** (EK-2026-357, A), km je Gleisart in Editor und MCP.
+  Verworfen: nur Status.
+- **Planungen ohne Gleistyp: eigener Haken** „Gleisart unbekannt (nur Planungen)“, mit jeder
+  Auswahl kombinierbar, wirkt nur mit einem Status-Schalter. Verworfen: automatisch mit dem
+  Status-Schalter; nur zusammen mit der Vollbahn.
+- **Haltestellen von U-Bahn, S-Bahn/Stadtbahn und Straßenbahn aus OSM importieren** und in der
+  Suche nach Netz unterscheiden. Verworfen: nur Doku und Folge-Issue; Wegpunkte per Klick auf
+  die Karte.
+- Weiter gültig: W1 (GraphHopper in `make test`), W3 (Bevorzugung geplanter Gleise).
+
+### Akzeptanzkriterien
+
+- [ ] Ohne Auswahl: Route wie bisher, nie auf S-Bahn-, U-Bahn-, Straßenbahn-, Schmalspur- oder
+      typlosen Gleisen, auch nicht beim Einrasten (Smoke-Test).
+- [ ] S-Bahn/Stadtbahn, U-Bahn, Straßenbahn, Schmalspur einzeln und untereinander kombiniert
+      wählbar; Vollbahn nie zusammen mit ihnen (Editor schaltet um, Backend lehnt ab);
+      Kombination mit „geplant“/„im Bau“ möglich.
+- [ ] Typlose Planungen nur mit Haken „Gleisart unbekannt“ und Status-Schalter.
+- [ ] Treptower Park → Sonnenallee mit S-Bahn rund 2 km über den Ring (Prod-Probe nach dem
+      Deploy).
+- [ ] Linien tragen `railway_class`; Editor und MCP zeigen km je Gleisart.
+- [ ] Nach `make docker-import-osm-stops` findet die Suche U-Bahn- und Straßenbahnhalte mit
+      Netz-Kürzel; Filter nach Netz in REST und MCP.
+- [ ] GraphHopper startet nach dem Deploy mit neu gebautem Graphen von selbst.
+
+### Abgleich nach dem Deploy
+
+1. `make docker-import-osm-stops`.
+2. Prod-Probe Treptower Park → Sonnenallee mit `track_classes: ["light_rail"]`, ohne `apply`.
+3. i2030-S-Bahn-Projekte mit S-Bahn-Gleisart neu routen, erst ohne `apply`, dann ersetzen
+   (Muster W2/EK-2026-151); dabei die von Hand gezeichneten Ring-Stücke Treptower Park –
+   Sonnenallee („Skizze, OSM-Lücke im Routing“) entfernen: 3227 Südring, 3226 Ostring,
+   3228 Nordkreuz (Wendeschleife), 3229 Ostkreuz – Erkner, 3213 Hoppegarten – Strausberg,
+   3215 Buch – Bernau, 3224 Frohnau – Oranienburg, 3190 S25 Nord, 3199 S25 Süd (Teltow Stadt –
+   Stahnsdorf mit „geplant“, falls in OSM). 3198 Südlicher Innenring bleibt auf der Vollbahn
+   (Regionalverkehr); dessen Skizzen-Stück wird über Vollbahngleise ersetzt, sofern routbar.
+4. Neubaustrecken aus dem Abgleich von #364 mit „Gleisart unbekannt“ erneut prüfen
+   (Dashboard-Aufgaben #94, #95, #97–#103).
+5. U-Bahn-Projekte (u. a. 2284, 2537) und die schematischen Stadtbahn-Trassen (EK 6-09)
+   prüfen.

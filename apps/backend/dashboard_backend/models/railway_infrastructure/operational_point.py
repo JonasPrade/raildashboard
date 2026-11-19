@@ -17,6 +17,10 @@ class OperationalPoint(Base):
     validity_date_end = Column(Date)
     railway_location = Column(String)
     railway_location_km = Column(Float)
+    # rail (RINF) | light_rail | subway | tram (stops imported from OSM, see
+    # scripts/import_osm_stops.py and docs/features/feature-routing.md → "Gleisarten").
+    network = Column(String, nullable=False, default="rail", server_default="rail", index=True)
+    source = Column(String, nullable=False, default="rinf", server_default="rinf")
 
     # relationships
     projects = relationship(

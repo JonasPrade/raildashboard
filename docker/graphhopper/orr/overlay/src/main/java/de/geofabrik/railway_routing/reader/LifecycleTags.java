@@ -17,15 +17,23 @@ import com.graphhopper.reader.ReaderWay;
  *   proposed:railway=TYPE      without a railway=* tag
  *   construction:railway=TYPE  without a railway=* tag
  *
- * A way without a track type (plain railway=proposed) is left alone and therefore not
- * routable: it could be a tram as well as a main line. A way that already has a
- * routable railway=* value is in operation; lifecycle prefixes on it describe a
- * planned change of an existing track and are ignored.
+ * A way without any track type (plain railway=proposed or railway=construction, also
+ * with proposed=yes / construction=yes) gets the status tag plus UNTYPED_TAG and keeps
+ * its railway=* value: it could be a tram as well as a main line, so its railway_class
+ * stays OTHER and a profile admits it only on explicit request (see the patched
+ * RailAccessParser, which treats every way with a status tag as accessible). A way
+ * whose type is one the router does not know (e.g. construction=platform) stays out.
+ *
+ * A way that already has a routable railway=* value is in operation; lifecycle
+ * prefixes on it describe a planned change of an existing track and are ignored.
  */
 public final class LifecycleTags {
 
     /** Artificial tag, read by OSMRailwayStatusParser. */
     public static final String STATUS_TAG = "_railway_status";
+
+    /** Artificial tag on a planned way without a track type (railway_class OTHER). */
+    public static final String UNTYPED_TAG = "_railway_untyped";
 
     private static final Set<String> TRACK_TYPES = Set.of("rail", "light_rail", "tram", "subway", "narrow_gauge");
 
@@ -43,8 +51,20 @@ public final class LifecycleTags {
             String type = way.getTag(railway);
             if (type == null || !TRACK_TYPES.contains(type))
                 type = way.getTag(railway + ":railway");
-            apply(way, railway, type);
+            if (!apply(way, railway, type) && isUntyped(way, railway)) {
+                way.setTag(STATUS_TAG, railway);
+                way.setTag(UNTYPED_TAG, "yes");
+            }
         }
+    }
+
+    /** No type given at all: neither STATUS=TYPE nor STATUS:railway=TYPE (or only "yes"). */
+    private static boolean isUntyped(ReaderWay way, String status) {
+        return isBlank(way.getTag(status)) && isBlank(way.getTag(status + ":railway"));
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isEmpty() || value.equals("yes");
     }
 
     private static boolean apply(ReaderWay way, String status, String type) {

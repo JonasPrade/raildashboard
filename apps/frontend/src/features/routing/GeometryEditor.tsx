@@ -18,7 +18,7 @@ import { useIsMobile } from "../../shared/hooks/useBreakpoint";
 import { openConfirmModal } from "../../shared/ui/confirmModal";
 import { notifications } from "@mantine/notifications";
 
-import type { OperationalPointRef, Project, RouteDeviation, RoutePreviewFeature, TrackStatus } from "../../shared/api/queries";
+import type { OperationalPointRef, Project, RouteDeviation, RoutePreviewFeature, TrackClass, TrackStatus } from "../../shared/api/queries";
 import {
     useConfirmRoute,
     useUpdateProjectGeojsonSource,
@@ -27,7 +27,7 @@ import {
 import { computeGeojsonLengthKm } from "../../shared/geo/length";
 import GeometryPreviewMap, { type DrawMode } from "./GeometryPreviewMap";
 import { applyEditedParts, explodeEditable, parseFeatureList, type EditablePart } from "./editExisting";
-import { ORIGIN_LABEL, TRACK_STATUS_LABEL, lineKmByOrigin, routeLineFeatures, withOrigin } from "./geometryOrigin";
+import { ORIGIN_LABEL, TRACK_CLASS_LABEL, TRACK_STATUS_LABEL, lineKmByClass, lineKmByOrigin, routeLineFeatures, withOrigin } from "./geometryOrigin";
 import RouteCalculatorForm from "./RouteCalculatorForm";
 import StationSelect from "./StationSelect";
 
@@ -104,6 +104,10 @@ export default function GeometryEditor({
     const hasExisting = !!project.geojson_representation;
     const existingOrigins = useMemo(
         () => lineKmByOrigin(parseFeatureList(project.geojson_representation)),
+        [project.geojson_representation],
+    );
+    const existingClasses = useMemo(
+        () => lineKmByClass(parseFeatureList(project.geojson_representation)),
         [project.geojson_representation],
     );
     const hasPoints = selectedPoints.length > 0;
@@ -430,6 +434,16 @@ export default function GeometryEditor({
                                     ))}
                                 </Stack>
                             )}
+                            {existingClasses.some(({ cls }) => cls !== "none") && (
+                                <Stack gap={2} mt={6}>
+                                    <Text size="xs" c="dimmed">Gleisart der Linien</Text>
+                                    {existingClasses.map(({ cls, km }) => (
+                                        <Text key={cls} size="xs">
+                                            {cls === "none" ? "Ohne Gleisart" : TRACK_CLASS_LABEL[cls]}: {km.toLocaleString("de-DE")} km
+                                        </Text>
+                                    ))}
+                                </Stack>
+                            )}
                         </div>
 
                         {isSuperiorProject && (
@@ -697,6 +711,7 @@ export default function GeometryEditor({
                                                 Dauer: {Math.round(previewFeature.properties.duration_ms / 60_000)} min
                                             </Text>
                                             <StatusKm statusKm={previewFeature.properties.status_km} />
+                                            <ClassKm classKm={previewFeature.properties.class_km} />
                                             {previewFeature.properties.deviation && (
                                                 <DeviationNote deviation={previewFeature.properties.deviation} />
                                             )}
@@ -829,6 +844,20 @@ function StatusKm({ statusKm }: { statusKm?: Partial<Record<TrackStatus, number>
         <Text size="sm" c="dimmed">
             {entries
                 .map((status) => `${TRACK_STATUS_LABEL[status]}: ${statusKm![status]!.toLocaleString("de-DE")} km`)
+                .join(" · ")}
+        </Text>
+    );
+}
+
+/** Kilometres of the calculated route per track class (only when not all main line). */
+function ClassKm({ classKm }: { classKm?: Partial<Record<TrackClass, number>> }) {
+    const entries = (Object.keys(TRACK_CLASS_LABEL) as TrackClass[])
+        .filter((cls) => (classKm?.[cls] ?? 0) > 0);
+    if (entries.length === 0 || (entries.length === 1 && entries[0] === "rail")) return null;
+    return (
+        <Text size="sm" c="dimmed">
+            {entries
+                .map((cls) => `${TRACK_CLASS_LABEL[cls]}: ${classKm![cls]!.toLocaleString("de-DE")} km`)
                 .join(" · ")}
         </Text>
     );

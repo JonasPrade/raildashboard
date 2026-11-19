@@ -15,6 +15,24 @@
   <node id="14" lat="50.0000" lon="10.050" version="1"/>
   <node id="15" lat="50.0000" lon="10.150" version="1"/>
   <node id="16" lat="50.0100" lon="10.000" version="1"/>
+  <node id="101" lat="50.0500" lon="10.000" version="1"/>
+  <node id="102" lat="50.0500" lon="10.100" version="1"/>
+  <node id="103" lat="50.0506" lon="10.000" version="1"/>
+  <node id="104" lat="50.0506" lon="10.100" version="1"/>
+  <node id="105" lat="50.0494" lon="10.000" version="1"/>
+  <node id="106" lat="50.0494" lon="10.100" version="1"/>
+  <node id="107" lat="50.0512" lon="10.000" version="1"/>
+  <node id="108" lat="50.0512" lon="10.100" version="1"/>
+  <node id="109" lat="50.0488" lon="10.000" version="1"/>
+  <node id="110" lat="50.0488" lon="10.100" version="1"/>
+  <node id="201" lat="50.0600" lon="10.000" version="1"/>
+  <node id="202" lat="50.0600" lon="10.050" version="1"/>
+  <node id="203" lat="50.0600" lon="10.100" version="1"/>
+  <node id="301" lat="50.0700" lon="10.000" version="1"/>
+  <node id="302" lat="50.0700" lon="10.030" version="1"/>
+  <node id="303" lat="50.0700" lon="10.070" version="1"/>
+  <node id="304" lat="50.0700" lon="10.100" version="1"/>
+  <node id="305" lat="50.0760" lon="10.050" version="1"/>
   <way id="1" version="1">
     <nd ref="1"/><nd ref="2"/>
     <tag k="railway" v="rail"/><tag k="usage" v="main"/><tag k="maxspeed" v="160"/>
@@ -46,5 +64,49 @@
   <way id="8" version="1">
     <nd ref="1"/><nd ref="16"/>
     <tag k="railway" v="proposed"/>
+  </way>
+  <way id="101" version="1">
+    <nd ref="101"/><nd ref="102"/>
+    <tag k="railway" v="rail"/><tag k="usage" v="main"/><tag k="maxspeed" v="160"/>
+  </way>
+  <way id="102" version="1">
+    <nd ref="103"/><nd ref="104"/>
+    <tag k="railway" v="light_rail"/><tag k="maxspeed" v="80"/>
+  </way>
+  <way id="103" version="1">
+    <nd ref="105"/><nd ref="106"/>
+    <tag k="railway" v="subway"/><tag k="maxspeed" v="70"/>
+  </way>
+  <way id="104" version="1">
+    <nd ref="107"/><nd ref="108"/>
+    <tag k="railway" v="tram"/><tag k="maxspeed" v="50"/>
+  </way>
+  <way id="105" version="1">
+    <nd ref="109"/><nd ref="110"/>
+    <tag k="railway" v="narrow_gauge"/><tag k="gauge" v="1000"/><tag k="maxspeed" v="40"/>
+  </way>
+  <way id="201" version="1">
+    <nd ref="201"/><nd ref="202"/>
+    <tag k="railway" v="light_rail"/><tag k="maxspeed" v="80"/>
+  </way>
+  <way id="202" version="1">
+    <nd ref="202"/><nd ref="203"/>
+    <tag k="railway" v="tram"/><tag k="maxspeed" v="50"/>
+  </way>
+  <way id="301" version="1">
+    <nd ref="301"/><nd ref="302"/>
+    <tag k="railway" v="rail"/><tag k="usage" v="main"/><tag k="maxspeed" v="160"/>
+  </way>
+  <way id="302" version="1">
+    <nd ref="302"/><nd ref="303"/>
+    <tag k="railway" v="proposed"/>
+  </way>
+  <way id="303" version="1">
+    <nd ref="303"/><nd ref="304"/>
+    <tag k="railway" v="rail"/><tag k="usage" v="main"/><tag k="maxspeed" v="160"/>
+  </way>
+  <way id="304" version="1">
+    <nd ref="302"/><nd ref="305"/><nd ref="303"/>
+    <tag k="railway" v="rail"/><tag k="usage" v="main"/><tag k="maxspeed" v="160"/>
   </way>
 </osm>

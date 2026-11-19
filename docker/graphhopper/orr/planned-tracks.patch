@@ -30,6 +30,29 @@ index 20e8c4d..3a269e1 100644
          else if (RailwayService.KEY.equals(name))
              return ImportUnit.create(name, props -> RailwayService.create(),
                      (lookup, props) -> new OSMRailwayServiceParser(
+diff --git a/src/main/java/de/geofabrik/railway_routing/parsers/RailAccessParser.java b/src/main/java/de/geofabrik/railway_routing/parsers/RailAccessParser.java
+index d96b912..a944d71 100644
+--- a/src/main/java/de/geofabrik/railway_routing/parsers/RailAccessParser.java
++++ b/src/main/java/de/geofabrik/railway_routing/parsers/RailAccessParser.java
+@@ -1,5 +1,6 @@
+ package de.geofabrik.railway_routing.parsers;
+ 
++import de.geofabrik.railway_routing.reader.LifecycleTags;
+ import com.graphhopper.reader.ReaderWay;
+ import com.graphhopper.routing.ev.EncodedValueLookup;
+ import com.graphhopper.routing.ev.VehicleAccess;
+@@ -33,6 +34,11 @@ public class RailAccessParser extends AbstractAccessParser {
+         if (railway.equals("rail") || railway.equals("light_rail") || railway.equals("tram") || railway.equals("subway") || railway.equals("narrow_gauge")) {
+             return WayAccess.WAY;
+         }
++        // A planned track without a track type (LifecycleTags marks it): accessible, but
++        // its railway_class stays OTHER, so a profile has to admit it explicitly.
++        if (way.getTag(LifecycleTags.UNTYPED_TAG) != null) {
++            return WayAccess.WAY;
++        }
+         return WayAccess.CAN_SKIP;
+     }
+ 
 diff --git a/src/main/java/de/geofabrik/railway_routing/reader/OSMRailwayReader.java b/src/main/java/de/geofabrik/railway_routing/reader/OSMRailwayReader.java
 index 402e786..83ca74e 100644
 --- a/src/main/java/de/geofabrik/railway_routing/reader/OSMRailwayReader.java

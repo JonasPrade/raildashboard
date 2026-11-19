@@ -11,6 +11,8 @@ class OperationalPointRef(BaseModel):
     type: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    network: str = "rail"
+    source: str = "rinf"
 
     class Config:
         from_attributes = True

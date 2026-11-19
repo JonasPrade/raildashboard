@@ -88,7 +88,9 @@ Je Entwurf:
   `update_project` mit `superior_project_id`, nur bei eindeutigem Fall.
 - Sonst bleibt er Entwurf. Fertigstellen (`set_project_draft(id, false)`) nur, wenn der
   Nutzer es will und das Projekt Daten hat (mindestens Beschreibung; Geometrie per
-  `route_project_geometry`/`edit_project_geometry` ist ein eigener Schritt).
+  `route_project_geometry`/`edit_project_geometry` ist ein eigener Schritt; Stadtbahn-,
+  U-Bahn- und Straßenbahnvorhaben mit `track_classes` routen, Haltestellen per
+  `search_operational_points` mit `networks`).
 - Ein Projekt, das durch **andere** Projekte ersetzt wurde (keine Dublette), wird nicht
   als Entwurf geparkt, sondern mit `archive_project(id, reason, replaced_by_project_id)` (Nachfolger, wenn genau ein Projekt das alte ersetzt) archiviert — erst
   nachdem seine GVFG-Zuordnung umgehängt ist (`assign_gvfg_entry`), sonst lehnt das Tool
