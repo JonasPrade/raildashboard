@@ -44,6 +44,7 @@ from dashboard_backend.crud.projects.projects import (
     create_project as create_project_crud,
     get_project_by_id,
     get_subprojects,
+    has_subprojects,
     update_project as update_project_crud,
     validate_superior_project,
 )
@@ -1084,7 +1085,10 @@ def compute_project_length(
         result = {
             "project_id": project.id,
             "has_geometry": bool(project.geojson_representation),
-            "geometry_from_subprojects": bool(project.geojson_from_subprojects),
+            # Same rule as get_project_geometry: the flag alone is set on leaf
+            # projects too; the geometry is aggregated only when subprojects exist.
+            "geometry_from_subprojects": bool(project.geojson_from_subprojects)
+            and has_subprojects(db, project.id),
             "computed_length_km": computed,
             "stored_length_km": project.length,
             "applied": False,
