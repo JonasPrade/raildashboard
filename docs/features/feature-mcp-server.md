@@ -502,7 +502,11 @@ Client-seitig (Claude Code, `.mcp.json`):
   (er würde sonst jeden Nicht-localhost-Host ablehnen).
 - **Tool-Katalog** wie oben (`list_text_types`/`list_text_categories` liefern
   die ids für `upsert_project_text`). Lese-Tools tragen
-  `readOnlyHint`. `update_project` sperrt `geojson_representation` und
+  `readOnlyHint`; Löschen und Zusammenführen (`delete_*`, `merge_projects`)
+  tragen `destructiveHint` und brauchen im Client je Aufruf eine Freigabe. Die
+  Geometrie-Tools (`route_project_geometry`, `edit_project_geometry`) sind
+  bewusst nur `WRITE`: jede Änderung steht im Änderungsprotokoll und ist
+  rücknehmbar, so lässt sich das Routing einmal dauerhaft freigeben. `update_project` sperrt `geojson_representation` und
   `is_draft`. Changelog-Einträge entstehen wie bei den REST-Endpunkten: für
   Projektfelder und Projekttexte; Beobachtungen tragen den Nutzernamen,
   Aufgaben `created_by`.

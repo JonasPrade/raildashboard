@@ -37,7 +37,7 @@ from dashboard_backend.mcp.context import (
     route_service,
     tool_session,
 )
-from dashboard_backend.mcp.tools.projects import DESTRUCTIVE, READ_ONLY, _project_or_error
+from dashboard_backend.mcp.tools.projects import READ_ONLY, WRITE, _project_or_error
 from dashboard_backend.models.projects.project import Project
 from dashboard_backend.models.railway_infrastructure.operational_point import OperationalPoint
 from dashboard_backend.services.exceptions import RoutingNoPathError, RoutingUpstreamError
@@ -702,6 +702,9 @@ def edit_project_geometry(
 def register(server: MCPServer) -> None:
     server.add_tool(search_operational_points, annotations=READ_ONLY)
     server.add_tool(get_project_geometry, annotations=READ_ONLY)
-    # Both can replace or delete existing geometry (revertible via the changelog).
-    server.add_tool(route_project_geometry, annotations=DESTRUCTIVE)
-    server.add_tool(edit_project_geometry, annotations=DESTRUCTIVE)
+    # WRITE, not DESTRUCTIVE: both can replace or delete existing geometry, but
+    # every write is in the changelog and revertible (revert_project_change).
+    # DESTRUCTIVE would make clients ask for approval on every single call, even
+    # for a routing dry run (apply=false).
+    server.add_tool(route_project_geometry, annotations=WRITE)
+    server.add_tool(edit_project_geometry, annotations=WRITE)
