@@ -283,6 +283,10 @@ def test_initialize_and_list_tools(mcp_client, admin_token):
     assert by_name["merge_projects"]["annotations"]["destructiveHint"] is True
     assert by_name["delete_project_text"]["annotations"]["destructiveHint"] is True
     assert by_name["delete_media_report"]["annotations"]["destructiveHint"] is True
+    # Geometry writes are revertible via the changelog: approvable once, not per call.
+    for name in ("route_project_geometry", "edit_project_geometry"):
+        assert by_name[name]["annotations"]["readOnlyHint"] is False
+        assert by_name[name]["annotations"]["destructiveHint"] is False
     assert by_name["get_project_constituencies"]["annotations"]["readOnlyHint"] is True
     # The SDK context parameter must not leak into the client-facing schema.
     assert "ctx" not in by_name["list_projects"]["inputSchema"]["properties"]

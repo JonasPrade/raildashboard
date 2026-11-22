@@ -12,6 +12,7 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Fixed
+- **MCP routing no longer asks for approval on every call.** `route_project_geometry` and `edit_project_geometry` are annotated as non-destructive writes (`destructiveHint: false`) instead of destructive: every geometry write is in the changelog and revertible with `revert_project_change`. Clients such as claude.ai can now allow them once; before, even a routing dry run (`apply=false`) needed its own approval. `delete_*` and `merge_projects` stay destructive. No manual step after deploying; a connected client may need to reconnect to pick up the new annotations.
 - **DB image builds again (#366).** The PostgreSQL apt repository now ships a `postgresql-16-pgrouting` that requires PostgreSQL 16 newer than 16.16, while the base image `imresamu/postgis:16-3.4` has 16.4, so the image (and `make test`) failed. The image now installs `postgresql-16` together with pgRouting: a minor update within 16 (same on-disk format, no dump/restore, `pg_dump` in the image still matches the server). No manual step after deploying; the `db` container restarts on the new image.
 
 ### Added
