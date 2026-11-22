@@ -12,6 +12,7 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 from dashboard_backend.crud.projects.projects import (
+    aggregates_subproject_geometry,
     has_subprojects,
     recompute_geojson_for_parent,
     update_project,
@@ -187,6 +188,39 @@ class TestSwitchingTheMode:
         db.refresh(parent)
         assert parent.geojson_from_subprojects is False
         assert parent.name == "Renamed"
+
+
+class TestFlagWithoutSubprojects:
+    """Without (non-archived) subprojects the flag has no effect at all."""
+
+    def test_predicate_needs_flag_and_subprojects(self, db):
+        solo = _add(db, "Solo")
+        assert aggregates_subproject_geometry(db, solo) is False
+        _add(db, "Child", superior_project_id=solo.id)
+        assert aggregates_subproject_geometry(db, solo) is True
+        update_project(db, solo.id, {"geojson_from_subprojects": False})
+        db.refresh(solo)
+        assert aggregates_subproject_geometry(db, solo) is False
+
+    def test_recompute_keeps_the_geometry_of_a_childless_project(self, db):
+        solo = _add(db, "Solo", geojson_from_subprojects=True, geojson_representation=_line(1))
+
+        recompute_geojson_for_parent(db, solo.id)
+
+        db.refresh(solo)
+        assert solo.geojson_representation == _line(1)
+
+    def test_losing_the_last_subproject_keeps_the_parent_geometry(self, db):
+        parent = _add(db, "Parent")
+        child = _add(db, "Child", superior_project_id=parent.id)
+        update_project(db, child.id, {"geojson_representation": _line(1)})
+        db.refresh(parent)
+        assert _feature_count(parent) == 1
+
+        update_project(db, child.id, {"superior_project_id": None})
+
+        db.refresh(parent)
+        assert _feature_count(parent) == 1
 
 
 class TestHasSubprojects:
