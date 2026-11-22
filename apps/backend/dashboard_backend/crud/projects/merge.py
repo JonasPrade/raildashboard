@@ -33,9 +33,9 @@ from dashboard_backend.crud.changelog import diff_to_entries
 from dashboard_backend.crud.projects import progress as progress_crud
 from dashboard_backend.crud.projects.projects import (
     ProjectHierarchyError,
+    aggregates_subproject_geometry,
     ancestor_ids,
     get_project_by_id,
-    has_subprojects,
     recompute_geojson_for_parent,
     refresh_derived_geometry,
     validate_superior_project,
@@ -532,7 +532,7 @@ def _apply(
     progress_crud.sync_derived_observations(db, survivor_id)
     progress_crud.recompute_progress(db, survivor_id)
     survivor = get_project_by_id(db, survivor_id)
-    if survivor.geojson_from_subprojects and has_subprojects(db, survivor_id):
+    if aggregates_subproject_geometry(db, survivor):
         recompute_geojson_for_parent(db, survivor_id)
     else:
         refresh_derived_geometry(db, [survivor_id])

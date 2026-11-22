@@ -25,8 +25,8 @@ from sqlalchemy.orm import Session
 
 from dashboard_backend.crud.changelog import create_changelog_for_patch
 from dashboard_backend.crud.projects.projects import (
+    aggregates_subproject_geometry,
     extract_features,
-    has_subprojects,
     update_project as update_project_crud,
 )
 from dashboard_backend.crud.routes import list_routes_for_project
@@ -217,7 +217,7 @@ def _km_by_class(features: list[dict[str, Any]]) -> dict[str, float]:
 
 def _ensure_owns_geometry(db: Session, project: Project) -> None:
     """Mirror of the REST check: an aggregating parent does not own its geometry."""
-    if project.geojson_from_subprojects and has_subprojects(db, project.id):
+    if aggregates_subproject_geometry(db, project):
         raise ToolError(
             "Die Geometrie dieses Projekts wird automatisch aus seinen Unterprojekten "
             "zusammengesetzt. Entweder die Unterprojekte bearbeiten oder zuerst mit "
@@ -457,7 +457,7 @@ def get_project_geometry(
     with tool_session(ctx) as db:
         project = _project_or_error(db, project_id)
         features = extract_features(project.geojson_representation)
-        aggregated = bool(project.geojson_from_subprojects) and has_subprojects(db, project.id)
+        aggregated = aggregates_subproject_geometry(db, project)
         result: dict[str, Any] = {
             "project_id": project.id,
             "name": project.name,

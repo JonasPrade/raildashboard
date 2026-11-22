@@ -21,9 +21,9 @@ from sqlalchemy.orm import Session, aliased, selectinload
 
 from dashboard_backend.crud import infraplan_import as infraplan_crud
 from dashboard_backend.crud.projects.projects import (
+    aggregates_subproject_geometry,
     ancestor_ids,
     extract_features,
-    has_subprojects,
     subtree_ids,
 )
 from dashboard_backend.mcp.context import get_principal, tool_session
@@ -311,8 +311,7 @@ def _check_project(
     return {
         "id": project.id,
         "name": project.name,
-        "aggregated_from_subprojects": bool(project.geojson_from_subprojects)
-        and has_subprojects(db, project.id),
+        "aggregated_from_subprojects": aggregates_subproject_geometry(db, project),
         "has_saved_route": bool(has_route),
         "stations_from_name": [
             {"role": s.role, "name": s.name, "op_id": s.op_id} for s in stations

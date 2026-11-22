@@ -109,8 +109,10 @@ def test_parent_with_only_archived_children_is_no_superior(db_session):
 
     assert has_subprojects(db_session, parent.id) is False
     assert progress_crud._load_subtree(db_session, parent.id) == {}
+    # No subproject left: the parent owns its geometry again, the flag has no effect
+    # (feature-parent-geometry-mode.md) — the last aggregated state stays.
     db_session.refresh(parent)
-    assert parent.geojson_representation is None
+    assert parent.geojson_representation is not None
 
 
 def test_unarchive_restores_aggregation(db_session, _progress_calls):

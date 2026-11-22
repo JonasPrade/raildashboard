@@ -12,6 +12,7 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 ## [Unreleased]
 
 ### Fixed
+- **`geojson_from_subprojects` has no effect without subprojects (`feature-parent-geometry-mode.md` → „Feldsemantik“).** One predicate, `aggregates_subproject_geometry` (flag *and* at least one non-archived subproject), now decides everywhere whether a project's geometry is built from its subprojects. A project that loses its last subproject (archived, moved away) with the flag still `true` used to have its geometry wiped by the next recompute; it now keeps the last state and owns it. MCP `compute_project_length` reports `geometry_from_subprojects` with the same rule (it said `true` for a project without subprojects). The stored flag itself is unchanged and carried along. No migration.
 - **DB image builds again (#366).** The PostgreSQL apt repository now ships a `postgresql-16-pgrouting` that requires PostgreSQL 16 newer than 16.16, while the base image `imresamu/postgis:16-3.4` has 16.4, so the image (and `make test`) failed. The image now installs `postgresql-16` together with pgRouting: a minor update within 16 (same on-disk format, no dump/restore, `pg_dump` in the image still matches the server). No manual step after deploying; the `db` container restarts on the new image.
 
 ### Added
