@@ -191,6 +191,7 @@ def test_calculate_route_with_networks_and_deviation(client, create_user, routin
         "construction": True,
         "proposed": False,
         "track_classes": ["rail"],
+        "bridge_gaps": False,
     }
     assert {"if": "railway_status == PROPOSED", "multiply_by": "0"} in routing_stub.last_request[
         "custom_model"

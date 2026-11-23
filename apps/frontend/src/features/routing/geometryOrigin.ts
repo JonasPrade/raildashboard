@@ -20,7 +20,12 @@ export type GeometryOrigin =
     | "upload"
     | "unknown";
 
-export const NO_EXTRA_NETWORKS: RouteNetworks = { construction: false, proposed: false, track_classes: ["rail"] };
+export const NO_EXTRA_NETWORKS: RouteNetworks = {
+    construction: false,
+    proposed: false,
+    track_classes: ["rail"],
+    bridge_gaps: false,
+};
 
 export const TRACK_CLASS_LABEL: Record<TrackClass, string> = {
     rail: "Vollbahn",

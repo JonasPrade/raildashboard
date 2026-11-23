@@ -8346,6 +8346,12 @@ export interface components {
              * @description Track classes: rail (Vollbahn, default) or any combination of light_rail (S-Bahn/Stadtbahn), subway, tram, narrow_gauge — never rail together with those. unknown admits planned tracks without a type (needs construction or proposed) and combines with anything.
              */
             track_classes?: ("rail" | "light_rail" | "subway" | "tram" | "narrow_gauge" | "unknown")[];
+            /**
+             * Bridge Gaps
+             * @description Combined mode (EK-2026-389): existing track of the classes not chosen is allowed at a heavy penalty (priority x0.01), so gaps in the chosen network — e.g. S-Bahn track mapped as railway=rail where it is shared with regional trains — are bridged. The result reports bridged_km and foreign_waypoints.
+             * @default false
+             */
+            bridge_gaps: boolean;
         };
         /** RouteOut */
         RouteOut: {

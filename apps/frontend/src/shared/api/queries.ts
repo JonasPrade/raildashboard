@@ -1925,6 +1925,10 @@ export type RoutePreviewFeature = Omit<
         status_km?: Partial<Record<TrackStatus, number>>;
         /** Kilometres per track class. */
         class_km?: Partial<Record<TrackClass, number>>;
+        /** Combined mode (EK-2026-389): km on track classes that were not chosen. */
+        bridged_km?: number;
+        /** Combined mode: indices of the waypoints that snapped onto a track of another class. */
+        foreign_waypoints?: number[];
         /** Deviation from the compared project's lines; null when it has none. */
         deviation?: RouteDeviation | null;
     };
@@ -1951,9 +1955,15 @@ export type RouteSection = {
 /**
  * Network switches of the route calculation (services/routing_networks.py): status
  * switches plus track classes — ["rail"] by default, rail never with light_rail, subway,
- * tram or narrow_gauge.
+ * tram or narrow_gauge — and the combined mode bridge_gaps (EK-2026-389), which lets the
+ * route cross other classes where the chosen ones have a gap.
  */
-export type RouteNetworks = { construction: boolean; proposed: boolean; track_classes: TrackClass[] };
+export type RouteNetworks = {
+    construction: boolean;
+    proposed: boolean;
+    track_classes: TrackClass[];
+    bridge_gaps?: boolean;
+};
 
 /** Network of an operational point: RINF (rail) or a stop imported from OSM. */
 export type OperationalPointNetwork = "rail" | "light_rail" | "subway" | "tram";

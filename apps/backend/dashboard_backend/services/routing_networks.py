@@ -18,7 +18,13 @@ A request chooses both (``networks``):
 - ``track_classes``: ``["rail"]`` by default, or any combination of the other classes.
   ``rail`` is exclusive to them (decision EK-2026-355): a route runs either on main
   line track or on the chosen urban/narrow-gauge networks. ``unknown`` (planned tracks
-  without a type) combines with anything but only makes sense with a status switch.
+  without a type) combines with anything but only makes sense with a status switch;
+- ``bridge_gaps`` (decision EK-2026-389): the combined mode. Existing track of the classes
+  not chosen gets priority ×0.01 instead of 0, so the route stays on the chosen classes
+  and crosses other track only where there is no other way. OSM maps track shared by
+  S-Bahn and regional trains as ``railway=rail`` (Birkenwerder, Kremmener Bahn
+  Alt-Reinickendorf – Tegel), which splits the S-Bahn network otherwise. The result
+  reports the bridged km and waypoints that snapped to a track of another class.
 
 Main line only without status switches runs on ``rail_default`` (unchanged, CH);
 everything else on ``rail_flex`` with a query custom model that excludes what was not
@@ -71,6 +77,11 @@ URBAN_CLASSES = (CLASS_LIGHT_RAIL, CLASS_SUBWAY, CLASS_TRAM, CLASS_NARROW_GAUGE)
 # Router enum value per class (railway_class); unknown is OpenRailRouting's OTHER.
 _ROUTER_CLASS = {cls: cls.upper() for cls in TRACK_CLASSES} | {CLASS_UNKNOWN: "OTHER"}
 
+# Priority factor for track of a class not chosen, in the combined mode (bridge_gaps,
+# EK-2026-389). Well below the 0.1 rejected in EK-2026-355: a parallel line of another
+# class only wins where the chosen classes have a gap.
+BRIDGE_PRIORITY = "0.01"
+
 # Priority factor for existing track when a planned network is switched on. Below 1, so
 # a switched-on track wins over a parallel existing line unless it is much longer.
 EXISTING_PRIORITY_WITH_PLANNED = "0.1"
@@ -110,10 +121,12 @@ def normalize_track_classes(classes: Optional[Sequence[str]]) -> List[str]:
 def normalize_networks(networks: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     """All switches with a value; contradictions raise NetworkSelectionError.
 
-    Result: ``{"construction": bool, "proposed": bool, "track_classes": [...]}``.
+    Result: ``{"construction": bool, "proposed": bool, "track_classes": [...],
+    "bridge_gaps": bool}``.
     """
     networks = dict(networks or {})
     classes = normalize_track_classes(networks.pop("track_classes", None))
+    bridge_gaps = bool(networks.pop("bridge_gaps", False))
     unknown_keys = sorted(set(networks) - set(OPTIONAL_NETWORKS))
     if unknown_keys:
         raise NetworkSelectionError(f"unknown network(s): {', '.join(unknown_keys)}")
@@ -129,14 +142,24 @@ def normalize_networks(networks: Optional[Dict[str, Any]]) -> Dict[str, Any]:
             "track class unknown only admits planned tracks; switch on construction or proposed"
         )
     switches["track_classes"] = classes
+    switches["bridge_gaps"] = bridge_gaps
     return switches
 
 
 def is_default_networks(switches: Dict[str, Any]) -> bool:
-    """Main line only, no status switch: the unchanged existing-network routing."""
-    return not any(switches[key] for key in OPTIONAL_NETWORKS) and switches[
-        "track_classes"
-    ] == DEFAULT_TRACK_CLASSES
+    """Main line only, no status switch, no bridging: the unchanged existing-network
+    routing."""
+    return (
+        not any(switches[key] for key in OPTIONAL_NETWORKS)
+        and switches["track_classes"] == DEFAULT_TRACK_CLASSES
+        and not switches.get("bridge_gaps", False)
+    )
+
+
+def cache_networks(switches: Dict[str, Any]) -> Dict[str, Any]:
+    """The switches as they enter a route's cache key: ``bridge_gaps`` only when on, so
+    routes stored before the combined mode keep their key."""
+    return {k: v for k, v in switches.items() if k != "bridge_gaps" or v}
 
 
 def routing_request(networks: Optional[Dict[str, Any]]) -> RoutingRequest:
@@ -145,8 +168,15 @@ def routing_request(networks: Optional[Dict[str, Any]]) -> RoutingRequest:
     if is_default_networks(switches):
         return RoutingRequest(profile=DEFAULT_PROFILE, custom_model=None)
 
+    def class_factor(cls: str) -> str:
+        # Bridging admits existing track of the other classes, never planned tracks
+        # without a type (unknown) — those only come in when chosen.
+        if switches["bridge_gaps"] and cls != CLASS_UNKNOWN:
+            return BRIDGE_PRIORITY
+        return "0"
+
     priority: List[Dict[str, str]] = [
-        {"if": f"{CLASS_DETAIL} == {_ROUTER_CLASS[cls]}", "multiply_by": "0"}
+        {"if": f"{CLASS_DETAIL} == {_ROUTER_CLASS[cls]}", "multiply_by": class_factor(cls)}
         for cls in TRACK_CLASSES
         if cls not in switches["track_classes"]
     ]
@@ -243,6 +273,44 @@ def class_totals_km(sections: Sequence[Dict[str, Any]]) -> Dict[str, float]:
     for section in sections:
         totals[section.get("railway_class", CLASS_RAIL)] += section["length_km"]
     return {cls: round(km, 2) for cls, km in totals.items() if km > 0}
+
+
+def bridged_km(sections: Sequence[Dict[str, Any]], track_classes: Sequence[str]) -> float:
+    """Km of the route on track of a class that was not chosen (combined mode)."""
+    return round(
+        sum(s["length_km"] for s in sections if s.get("railway_class", CLASS_RAIL) not in track_classes),
+        2,
+    )
+
+
+def foreign_waypoints(
+    coordinates: Sequence[Sequence[float]],
+    sections: Sequence[Dict[str, Any]],
+    snapped: Optional[Sequence[Sequence[float]]],
+    track_classes: Sequence[str],
+) -> List[int]:
+    """Indices of the waypoints that snapped onto track of a class not chosen.
+
+    In the combined mode a waypoint snaps to the nearest track the request admits,
+    which can be a parallel main line next to the S-Bahn. A waypoint counts as foreign
+    when every route segment touching it is of another class. ``snapped`` are the
+    snapped waypoints GraphHopper reports ([lon, lat]); without them nothing is flagged.
+    """
+    n = len(coordinates)
+    if n < 2 or not snapped or not sections:
+        return []
+    segment_class: List[str] = [CLASS_RAIL] * (n - 1)
+    for section in sections:
+        for i in range(section["from_index"], min(section["to_index"], n - 1)):
+            segment_class[i] = section.get("railway_class", CLASS_RAIL)
+
+    foreign: List[int] = []
+    for number, point in enumerate(snapped):
+        index = min(range(n), key=lambda i: _haversine_m(coordinates[i], point))
+        touching = [segment_class[i] for i in (index - 1, index) if 0 <= i < n - 1]
+        if touching and all(cls not in track_classes for cls in touching):
+            foreign.append(number)
+    return foreign
 
 
 def route_line_features(

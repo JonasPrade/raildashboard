@@ -33,6 +33,13 @@
   <node id="303" lat="50.0700" lon="10.070" version="1"/>
   <node id="304" lat="50.0700" lon="10.100" version="1"/>
   <node id="305" lat="50.0760" lon="10.050" version="1"/>
+  <node id="401" lat="50.0800" lon="10.000" version="1"/>
+  <node id="402" lat="50.0800" lon="10.100" version="1"/>
+  <node id="403" lat="50.0815" lon="10.050" version="1"/>
+  <node id="501" lat="50.0900" lon="10.000" version="1"/>
+  <node id="502" lat="50.0900" lon="10.040" version="1"/>
+  <node id="503" lat="50.0900" lon="10.060" version="1"/>
+  <node id="504" lat="50.0900" lon="10.100" version="1"/>
   <way id="1" version="1">
     <nd ref="1"/><nd ref="2"/>
     <tag k="railway" v="rail"/><tag k="usage" v="main"/><tag k="maxspeed" v="160"/>
@@ -108,5 +115,25 @@
   <way id="304" version="1">
     <nd ref="302"/><nd ref="305"/><nd ref="303"/>
     <tag k="railway" v="rail"/><tag k="usage" v="main"/><tag k="maxspeed" v="160"/>
+  </way>
+  <way id="401" version="1">
+    <nd ref="401"/><nd ref="402"/>
+    <tag k="railway" v="rail"/><tag k="usage" v="main"/><tag k="maxspeed" v="160"/>
+  </way>
+  <way id="402" version="1">
+    <nd ref="401"/><nd ref="403"/><nd ref="402"/>
+    <tag k="railway" v="light_rail"/><tag k="maxspeed" v="80"/>
+  </way>
+  <way id="501" version="1">
+    <nd ref="501"/><nd ref="502"/>
+    <tag k="railway" v="light_rail"/><tag k="maxspeed" v="80"/>
+  </way>
+  <way id="502" version="1">
+    <nd ref="502"/><nd ref="503"/>
+    <tag k="railway" v="rail"/><tag k="usage" v="main"/><tag k="maxspeed" v="120"/>
+  </way>
+  <way id="503" version="1">
+    <nd ref="503"/><nd ref="504"/>
+    <tag k="railway" v="light_rail"/><tag k="maxspeed" v="80"/>
   </way>
 </osm>

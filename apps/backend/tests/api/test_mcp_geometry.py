@@ -372,6 +372,7 @@ def test_route_preview_on_proposed_tracks(mcp_client, admin_token, db_session, r
         "construction": False,
         "proposed": True,
         "track_classes": ["rail"],
+        "bridge_gaps": False,
     }
     assert [s["track_status"] for s in route["sections"]] == ["existing", "proposed"]
     assert set(route["status_km"]) == {"existing", "proposed"}
@@ -425,6 +426,7 @@ def test_route_apply_stores_origin(mcp_client, admin_token, db_session, routing_
         "construction": False,
         "proposed": True,
         "track_classes": ["rail"],
+        "bridge_gaps": False,
     }
 
     summary = _payload(
@@ -518,6 +520,151 @@ def test_search_operational_points_by_network(mcp_client, admin_token, db_sessio
         )
     )["operational_points"]
     assert [op["op_id"] for op in subway] == ["OSM-n1"]
+
+
+BRIDGED_RESPONSE = {
+    "paths": [
+        {
+            "distance": 3000.0,
+            "time": 240000,
+            "points": {
+                "coordinates": [[13.28, 52.68], [13.285, 52.69], [13.28, 52.70], [13.275, 52.71]]
+            },
+            "snapped_waypoints": {"type": "LineString", "coordinates": [[13.28, 52.68], [13.275, 52.71]]},
+            "details": {
+                "railway_status": [[0, 3, "existing"]],
+                "railway_class": [[0, 1, "light_rail"], [1, 2, "rail"], [2, 3, "light_rail"]],
+            },
+        }
+    ]
+}
+
+
+def test_route_bridge_gaps_reports_bridged_km(mcp_client, admin_token, db_session, routing_stub):
+    project, koeln, dortmund = _seed(db_session)
+    routing_stub.next_response = BRIDGED_RESPONSE
+    result = _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "route_project_geometry",
+            {
+                "project_id": project.id,
+                "waypoints": [koeln.id, dortmund.id],
+                "track_classes": ["light_rail"],
+                "bridge_gaps": True,
+                "mode": "replace",
+                "apply": True,
+            },
+        )
+    )
+    priority = routing_stub.last_request["custom_model"]["priority"]
+    assert {"if": "railway_class == RAIL", "multiply_by": "0.01"} in priority
+    route = result["route"]
+    assert route["networks"]["bridge_gaps"] is True
+    assert route["bridged_km"] == route["class_km"]["rail"] > 0
+    assert route["foreign_waypoints"] == []
+    # The stored lines keep their real class.
+    db_session.refresh(project)
+    assert [f["properties"]["railway_class"] for f in _features(project)] == [
+        "light_rail",
+        "rail",
+        "light_rail",
+    ]
+
+
+def test_route_bridge_gaps_flags_foreign_snap(mcp_client, admin_token, db_session, routing_stub):
+    project, koeln, dortmund = _seed(db_session)
+    response = json.loads(json.dumps(BRIDGED_RESPONSE))
+    response["paths"][0]["details"]["railway_class"] = [[0, 1, "rail"], [1, 3, "light_rail"]]
+    routing_stub.next_response = response
+    route = _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "route_project_geometry",
+            {
+                "project_id": project.id,
+                "waypoints": [koeln.id, dortmund.id],
+                "track_classes": ["light_rail"],
+                "bridge_gaps": True,
+            },
+        )
+    )["route"]
+    assert route["foreign_waypoints"] == [0]
+
+
+def test_route_no_path_suggests_bridge_gaps(mcp_client, admin_token, db_session, routing_stub):
+    project, koeln, dortmund = _seed(db_session)
+    routing_stub.next_exception = RoutingNoPathError("no path")
+    result = _call(
+        mcp_client,
+        admin_token,
+        "route_project_geometry",
+        {"project_id": project.id, "waypoints": [koeln.id, dortmund.id], "track_classes": ["light_rail"]},
+    )
+    assert result["isError"]
+    assert "bridge_gaps" in result["content"][0]["text"]
+
+
+def test_search_operational_points_words_and_padded_names(mcp_client, admin_token, db_session):
+    db_session.add_all(
+        [
+            OperationalPoint(
+                op_id="DE0BWKR",
+                name="Berlin Westkreuz                  S-Bahn",
+                type="10",
+                latitude=52.50,
+                longitude=13.28,
+            ),
+            OperationalPoint(op_id="DE0BWK", name="Berlin Westkreuz", type="10", latitude=52.50, longitude=13.28),
+        ]
+    )
+    db_session.commit()
+    found = _payload(
+        _call(mcp_client, admin_token, "search_operational_points", {"query": "Westkreuz S-Bahn"})
+    )["operational_points"]
+    assert [op["op_id"] for op in found] == ["DE0BWKR"]
+    exact = _payload(
+        _call(mcp_client, admin_token, "search_operational_points", {"query": "berlin westkreuz s-bahn"})
+    )["operational_points"]
+    assert exact[0]["op_id"] == "DE0BWKR"
+
+    # A network filter that finds nothing names the matches in the other networks.
+    filtered = _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "search_operational_points",
+            {"query": "Westkreuz S-Bahn", "networks": ["light_rail"]},
+        )
+    )
+    assert filtered["operational_points"] == []
+    assert "rail" in filtered["hint"]
+    assert [op["op_id"] for op in filtered["other_networks"]] == ["DE0BWKR"]
+
+
+def test_route_resolves_padded_station_name(mcp_client, admin_token, db_session, routing_stub):
+    project, koeln, _ = _seed(db_session)
+    db_session.add(
+        OperationalPoint(
+            op_id="DE0BSNH",
+            name="Berlin-Schönholz                  S-Bahn",
+            type="10",
+            latitude=52.57,
+            longitude=13.38,
+        )
+    )
+    db_session.commit()
+    route = _payload(
+        _call(
+            mcp_client,
+            admin_token,
+            "route_project_geometry",
+            {"project_id": project.id, "waypoints": ["Berlin-Schönholz S-Bahn", koeln.id]},
+        )
+    )["route"]
+    assert route["waypoints"][0]["op_id"] == "DE0BSNH"
 
 
 def test_edit_geometry_marks_lines_manual(mcp_client, admin_token, db_session):

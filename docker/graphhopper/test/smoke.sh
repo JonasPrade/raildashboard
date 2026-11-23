@@ -20,6 +20,11 @@
 # A chain at 50.06: light_rail 10.0-10.05, then tram 10.05-10.1.
 # At 50.07: rail 10.0-10.03, an untyped proposed track 10.03-10.07 (way 302), rail
 # 10.07-10.1, and an existing detour north of the proposed track.
+# Combined mode (bridge_gaps, EK-2026-389):
+#   50.08: rail 10.0-10.1 straight and a slower light_rail line bowing north between
+#          the same two nodes;
+#   50.09: light_rail 10.0-10.04, rail 10.04-10.06 (track shared with main line
+#          trains, as at Birkenwerder), light_rail 10.06-10.1.
 #
 # The rules it guards: routing on the existing network never uses, and never snaps to,
 # a track that is proposed or under construction, nor one of another track class
@@ -72,6 +77,7 @@ route_default() { # from to
 # The query custom model the backend builds (dashboard_backend/services/routing_networks.py;
 # tests/unit/test_routing_networks.py pins the same statements):
 # statements <track classes, comma-separated> <construction true/false> <proposed true/false>
+#            [<bridge_gaps true/false>]
 statements() {
     out=""
     for class in rail light_rail subway tram narrow_gauge unknown; do
@@ -79,8 +85,10 @@ statements() {
             *",$class,"*) ;;
             *)
                 enum=$(echo "$class" | tr 'a-z' 'A-Z')
-                [ "$class" = unknown ] && enum=OTHER
-                out="$out{ \"if\": \"railway_class == $enum\", \"multiply_by\": \"0\" }, " ;;
+                factor=0
+                [ "${4:-false}" = true ] && factor=0.01
+                [ "$class" = unknown ] && enum=OTHER && factor=0
+                out="$out{ \"if\": \"railway_class == $enum\", \"multiply_by\": \"$factor\" }, " ;;
         esac
     done
     [ "$2" = true ] || out="$out{ \"if\": \"railway_status == CONSTRUCTION\", \"multiply_by\": \"0\" }, "
@@ -91,14 +99,14 @@ statements() {
     echo "${out%, }"
 }
 
-# route_flex <from lon,lat> <to lon,lat> <classes> <construction> <proposed>
+# route_flex <from lon,lat> <to lon,lat> <classes> <construction> <proposed> [<bridge_gaps>]
 route_flex() {
     curl -sS -X POST "$BASE/route" -H 'Content-Type: application/json' -d '{
       "profile": "rail_flex", "ch.disable": true,
       "points": [['"$1"'], ['"$2"']],
       "points_encoded": false, "instructions": false,
       "details": ["railway_status", "railway_class"],
-      "custom_model": { "priority": ['"$(statements "$3" "$4" "$5")"'] }
+      "custom_model": { "priority": ['"$(statements "$3" "$4" "$5" "${6:-false}")"'] }
     }'
 }
 
@@ -170,6 +178,16 @@ expect "rail_flex with proposed + unknown uses the untyped track" \
     "$(route_flex $UW $UE rail,unknown false true)" rail other proposed --
 expect "rail_flex with light_rail + proposed stays off rail" \
     "$(route_flex 10.0,50.06 10.1,50.06 light_rail,tram false true)" light_rail tram -- rail
+
+# --- combined mode: bridge gaps over other classes (50.08, 50.09) ---
+expect "bridge_gaps keeps to light_rail where it runs parallel to a faster rail line" \
+    "$(route_flex 10.0,50.08 10.1,50.08 light_rail false false true)" light_rail -- rail
+expect_no_path "light_rail alone stops at a stretch mapped as rail" \
+    "$(route_flex 10.0,50.09 10.1,50.09 light_rail false false)"
+expect "bridge_gaps crosses the rail stretch between two light_rail lines" \
+    "$(route_flex 10.0,50.09 10.1,50.09 light_rail false false true)" light_rail rail -- tram subway
+expect "bridge_gaps from rail crosses a light_rail stretch" \
+    "$(route_flex 10.05,50.09 10.1,50.09 rail false false true)" rail light_rail --
 
 # The graph cache carries the fingerprint of the configuration it was built with.
 [ "$(cat /data/graph-cache.fingerprint)" = "$(cat /graphhopper/fingerprint)" ] \

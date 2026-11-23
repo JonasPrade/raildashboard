@@ -82,8 +82,8 @@ export default function RouteCalculatorForm({ onResult, onError, compareProjectI
                     if (status === 502) {
                         onError("Routing-Dienst nicht erreichbar.");
                     } else if (status === 422) {
-                        onError(usesOtherClasses
-                            ? "Kein Pfad gefunden. Die gewählten Gleisarten verbinden Start und Ziel nicht durchgehend. Wechselt die Strecke zwischen Vollbahn und S-/U-Bahn/Straßenbahn, abschnittsweise routen und anhängen."
+                        onError(usesOtherClasses && !networks.bridge_gaps
+                            ? "Kein Pfad gefunden. Die gewählten Gleisarten verbinden Start und Ziel nicht durchgehend. „Lücken über andere Gleisarten überbrücken“ anhaken (etwa S-Bahn auf gemeinsam genutzten Vollbahngleisen) oder abschnittsweise routen und anhängen."
                             : usesPlanned
                                 ? "Kein Pfad gefunden. Die gewählten Gleise verbinden Start und Ziel nicht durchgehend (Lücke in OSM?)."
                                 : "Kein Pfad gefunden.");
@@ -141,8 +141,14 @@ export default function RouteCalculatorForm({ onResult, onError, compareProjectI
                 <Text size="xs" c="dimmed">
                     {usesOtherClasses
                         ? "Die Route nutzt nur die gewählten Gleisarten, nie die Vollbahn. Berliner und Hamburger S-Bahn sind in OSM S-Bahn/Stadtbahn, Münchner und Stuttgarter S-Bahn Vollbahn; Stadtbahnen teils Straßenbahn, teils S-Bahn/Stadtbahn – im Zweifel beide wählen."
-                        : "Vollbahn schließt die übrigen Gleisarten aus. Strecken, die zwischen Vollbahn und S-/U-Bahn wechseln, abschnittsweise routen und anhängen."}
+                        : "Vollbahn schließt die übrigen Gleisarten aus."}
                 </Text>
+                <Checkbox
+                    label="Lücken über andere Gleisarten überbrücken"
+                    description="Bleibt auf den gewählten Gleisarten und nimmt andere Gleise nur dort, wo es keinen anderen Weg gibt – etwa S-Bahn auf Gleisen, die OSM als Vollbahn führt, weil Regionalzüge sie mitbenutzen."
+                    checked={networks.bridge_gaps ?? false}
+                    onChange={(e) => setNetworks((n) => ({ ...n, bridge_gaps: e.currentTarget.checked }))}
+                />
             </Stack>
 
             <Stack gap={6}>
