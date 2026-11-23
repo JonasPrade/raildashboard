@@ -31,7 +31,7 @@ gepinnten Abhängigkeiten und denselben Quellen, aus denen das ausgelieferte Ima
    - Backend: pytest (ohne `tests/db_related_tests`)
    - Frontend: `tsc --noEmit`, `eslint` (Fehler blockieren, Warnungen nicht), Vitest
    - GraphHopper: Unit-Tests der OpenRailRouting-Erweiterung, Smoke-Test
-   - Laufzeit-Images `backend`, `frontend`, `db`
+   - Laufzeit-Images `backend`, `frontend`, `db`, `graphhopper`
 
 Die Ziele schreiben nur in den Build-Cache (`type=cacheonly`), es entstehen keine lokalen
 Images; gebaut und geschoben wird in `release.yml`.
@@ -42,10 +42,14 @@ Dafür haben die Prüf-Jobs zwei Schritte vor `make test` (buildx-Builder, GHCR-
 Prüfschritte, die Prüfung bleibt das eine Kommando. apt, pip, npm und Maven laufen nur
 noch, wenn sich ihre Eingaben ändern, statt bei jedem Lauf. Anlass: `archive.ubuntu.com`
 war von den GitHub-Runnern aus so langsam, dass der GraphHopper-Build zweimal am
-30-Minuten-Limit hing (#372, #373). Die GraphHopper-Stufen `builder` und `test` kommen
-deshalb ganz ohne apt aus (git und curl bringt das Maven-Image mit, node und npm kommen
-aus dem offiziellen Node-Image); wo apt bleibt, versucht es bis zu fünfmal und gibt nach
-60 s ohne Daten auf. Lokal bleibt `CACHE_REF`
+30-Minuten-Limit hing (#372, #373). Das GraphHopper-Image kommt deshalb ganz ohne apt
+aus: In `builder` und `test` bringt das Maven-Image git und curl mit, node und npm kommen
+aus dem offiziellen Node-Image; in `runtime` bringt `eclipse-temurin:17-jre` curl (Download
+der PBF) und wget (Healthcheck in `compose.yaml`) mit, und fehlt wget dort einmal, verlinkt
+die Stufe ein statisches BusyBox-`wget` aus `busybox:*-musl`. Der Healthcheck bleibt `wget`,
+weil das `compose.yaml` auf dem Server von Hand nachgezogen wird und ein Rollback ältere
+Images unter dem aktuellen `compose.yaml` startet. apt bleibt nur im Backend und im
+db-Image; dort versucht es bis zu fünfmal und gibt nach 60 s ohne Daten auf. Lokal bleibt `CACHE_REF`
 leer, es gilt der Cache des Docker-Daemons. Ein Cache-Treffer überspringt auch einen
 Testlauf: dieselben Quellen und Abhängigkeiten liefern dasselbe Ergebnis.
 

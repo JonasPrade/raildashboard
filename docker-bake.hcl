@@ -34,7 +34,7 @@ function "cache_to" {
 }
 
 group "pruefung" {
-  targets = ["backend-test", "frontend-check", "backend-runtime", "frontend-runtime", "db", "graphhopper-test"]
+  targets = ["backend-test", "frontend-check", "backend-runtime", "frontend-runtime", "db", "graphhopper-test", "graphhopper-runtime"]
 }
 
 target "_pruefung" {
@@ -91,4 +91,15 @@ target "graphhopper-test" {
   target     = "test"
   cache-from = cache_from("graphhopper", "test", false)
   cache-to   = cache_to("graphhopper", "test")
+}
+
+# The image release.yml pushes. Shares the `builder` stage with graphhopper-test, so
+# it adds only the runtime layers; checks that wget (healthcheck) and curl (OSM
+# download) are in the image before a merge, not only in release.yml.
+target "graphhopper-runtime" {
+  inherits   = ["_pruefung"]
+  context    = "docker/graphhopper"
+  target     = "runtime"
+  cache-from = cache_from("graphhopper", "runtime", true)
+  cache-to   = cache_to("graphhopper", "runtime")
 }

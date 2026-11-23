@@ -4,6 +4,8 @@
 #   orr/overlay/              new files (encoded value railway_status, its parser, tests)
 # See docs/features/feature-routing.md → "Geplante und im Bau befindliche Gleise aus OSM".
 FROM node:20-slim AS node
+# Statically linked (musl): the runtime stage copies the binary on its own.
+FROM busybox:1.37.0-musl AS busybox
 
 FROM maven:3-eclipse-temurin-17 AS builder
 
@@ -56,11 +58,18 @@ RUN chmod +x /docker-entrypoint.sh && sh /test/smoke.sh
 # Stage 3: Runtime image
 FROM eclipse-temurin:17-jre AS runtime
 
-# A hanging package mirror once held a CI run until its 30-minute timeout:
-# retry failed downloads and give up on a stalled connection after 60 s.
-RUN printf 'Acquire::Retries "5";\nAcquire::http::Timeout "60";\n' > /etc/apt/apt.conf.d/80-retries
-
-RUN apt-get update && apt-get install -y --no-install-recommends wget && rm -rf /var/lib/apt/lists/*
+# No apt here either (#372, #373). The entrypoint downloads the OSM extract with
+# curl, which the base image ships (with ca-certificates, so TLS is verified). The
+# healthcheck in compose.yaml calls `wget -qO- http://localhost:8989/health`; that
+# command must stay, because the compose.yaml on the server is updated by hand and a
+# rollback runs older images under the current one. The base image ships GNU wget
+# today; should a newer base image drop it, a static BusyBox wget takes its place.
+# It is only meant for that plain-HTTP healthcheck: BusyBox does not verify TLS
+# certificates, which is why the download does not use wget.
+COPY --from=busybox /bin/busybox /usr/local/lib/busybox/busybox
+RUN command -v wget > /dev/null || ln -s /usr/local/lib/busybox/busybox /usr/local/bin/wget \
+ && curl --version | head -1 && wget --help > /dev/null 2>&1 \
+ && ls /etc/ssl/certs/ca-certificates.crt
 
 COPY --from=builder /build/target/railway_routing-*.jar /railway_routing.jar
 COPY --from=builder /graphhopper/ /graphhopper/
