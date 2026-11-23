@@ -260,9 +260,9 @@ Nach den Backend-Änderungen `make gen-api` laufen lassen.
 | `update_progress_tracks` | Planfeststellung und parlamentarische Befassung pflegen (`changes`: `has_planfeststellung`, `pf_state_override`, `pf_text`, `pf_date`, `pf_links`, `parl_befassung_relevant`, `parl_state_override`, `parl_befassung_text`, `parl_drucksache_url`, `parl_befassung_date`, `clear_*`), mit Änderungsprotokoll | `progress.edit` |
 | `upsert_project_text` | Projekttext anlegen/ändern, inkl. Kategorie (Standard „Info“) und `is_public` | `projecttext.edit` |
 | `merge_projects` | Dublette in ein anderes Projekt überführen (Vorschau, mit `apply` ausführen; destruktiv) | `project.merge` |
-| `search_operational_points` | Betriebsstellen nach Name/op_id suchen (Wegpunkte, Stationen) | — |
+| `search_operational_points` | Betriebsstellen nach Name/op_id suchen (Wegpunkte, Stationen; jedes Wort muss vorkommen; leerer Netzfilter → Hinweis auf andere Netze) | — |
 | `get_project_geometry` | Geometrie-Übersicht je Feature (Index, Typ, Länge, Station), GeoJSON auf Wunsch | — |
-| `route_project_geometry` | Route über GraphHopper berechnen (Vorschau, wahlweise auch über geplante/im Bau befindliche OSM-Gleise, mit Abweichung), mit `apply` anhängen/ersetzen | `project.edit` |
+| `route_project_geometry` | Route über GraphHopper berechnen (Vorschau, wahlweise auch über geplante/im Bau befindliche OSM-Gleise, andere Gleisarten, Lücken überbrücken mit `bridge_gaps`, mit Abweichung), mit `apply` anhängen/ersetzen | `project.edit` |
 | `edit_project_geometry` | Linien/Punkte aus Koordinaten, Betriebsstellen als Punkte, Features löschen | `project.edit` |
 | `list_data_gaps` | Projekte mit fehlenden/veralteten Daten, Lücken je Projekt und Zählung (siehe *Datenpflege*) | — |
 | `check_geometry` | Geometrie-Plausibilität für ein Projekt oder eine Gruppe (siehe *Datenpflege*) | — |
@@ -461,7 +461,11 @@ Client-seitig (Claude Code, `.mcp.json`):
     Gleisstatus geteilt und tragen `geometry_source`/`track_status`; `get_project_geometry`
     zeigt `origin` je Linie und `line_km_by_origin`, `edit_project_geometry` markiert neue
     Linien als `manual`. Siehe `feature-routing.md` → „Geplante und im Bau befindliche
-    Gleise aus OSM“.
+    Gleise aus OSM“. Seit 2026-11-23 `bridge_gaps` (Kombimodus, EK-2026-389): andere
+    Gleisarten überbrücken Lücken der gewählten, das Ergebnis meldet `route.bridged_km`
+    und `route.foreign_waypoints`; `search_operational_points` sucht wortweise und nennt bei
+    leerem Netzfilter die Treffer anderer Netze (`hint`, `other_networks`, EK-2026-390).
+    Siehe `feature-routing.md` → „Kombimodus“.
   - `edit_project_geometry`: `replace` (allein: Geometrie leeren) oder
     `remove_feature_indices` (Indizes aus `get_project_geometry`), dann `add_features`
     (Feature, Geometrie oder FeatureCollection; Point/MultiPoint/LineString/

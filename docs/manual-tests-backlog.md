@@ -11,6 +11,15 @@ Test-Checkliste des ermöglichenden Issues hochgezogen und hier entfernt.
 
 ---
 
+## Kombimodus beim Routen #371 — braucht Deploy
+
+Erst prüfbar, nachdem die SHA mit #371 ausgerollt ist (kein Graph-Neubau nötig).
+
+- [ ] Geometrie-Editor eines Testprojekts: Start „Frohnau“, Ziel „Oranienburg“, Gleisart **S-Bahn/Stadtbahn** → „Kein Pfad gefunden …“ mit Hinweis auf „Lücken über andere Gleisarten überbrücken“.
+- [ ] Haken **„Lücken über andere Gleisarten überbrücken“** setzen, „Route berechnen“ → Route über Birkenwerder, Vorschau nennt „Überbrückt über andere Gleisarten: … km“ (unter 2 km) und keine Wegpunkt-Warnung.
+- [ ] MCP: `search_operational_points` mit „Westkreuz S-Bahn“ findet „Berlin Westkreuz S-Bahn“; mit `networks: ["light_rail"]` und „Neukölln“ → leere Liste, `hint` nennt `rail`.
+- [ ] MCP: 3190 von op 707 nach op 4949 mit `track_classes: ["light_rail"]`, `bridge_gaps: true`, ohne `apply` → Pfad ohne Umweg, `route.bridged_km` nur für die Kremmener Bahn bei Tegel.
+
 ## Gleisarten beim Routen #363 — braucht Deploy, Graph-Neubau und Haltestellen-Import
 
 Erst prüfbar, nachdem die SHA mit #363 ausgerollt ist, GraphHopper den Graphen neu gebaut hat

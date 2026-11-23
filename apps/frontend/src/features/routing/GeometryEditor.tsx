@@ -712,6 +712,10 @@ export default function GeometryEditor({
                                             </Text>
                                             <StatusKm statusKm={previewFeature.properties.status_km} />
                                             <ClassKm classKm={previewFeature.properties.class_km} />
+                                            <BridgeNote
+                                                bridgedKm={previewFeature.properties.bridged_km}
+                                                foreignWaypoints={previewFeature.properties.foreign_waypoints}
+                                            />
                                             {previewFeature.properties.deviation && (
                                                 <DeviationNote deviation={previewFeature.properties.deviation} />
                                             )}
@@ -859,6 +863,20 @@ function ClassKm({ classKm }: { classKm?: Partial<Record<TrackClass, number>> })
             {entries
                 .map((cls) => `${TRACK_CLASS_LABEL[cls]}: ${classKm![cls]!.toLocaleString("de-DE")} km`)
                 .join(" · ")}
+        </Text>
+    );
+}
+
+/** Combined mode (EK-2026-389): how much of the route runs on other track classes. */
+function BridgeNote({ bridgedKm, foreignWaypoints }: { bridgedKm?: number; foreignWaypoints?: number[] }) {
+    const foreign = foreignWaypoints ?? [];
+    if (!bridgedKm && foreign.length === 0) return null;
+    return (
+        <Text size="sm" c="dimmed">
+            {bridgedKm ? `Überbrückt über andere Gleisarten: ${bridgedKm.toLocaleString("de-DE")} km.` : ""}
+            {foreign.length > 0
+                ? ` Wegpunkt ${foreign.map((i) => i + 1).join(", ")} liegt auf einem Gleis einer anderen Gleisart – Bahnhof oder Via prüfen.`
+                : ""}
         </Text>
     );
 }

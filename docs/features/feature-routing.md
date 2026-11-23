@@ -304,8 +304,10 @@ geplante Gleise ohne Gleistyp und Haltestellen von U-Bahn und Straßenbahn für 
 - **Ohne Auswahl ändert sich nichts:** Nur Vollbahn, kein Status-Schalter → Profil
   `rail_default` wie bisher; die Route nutzt und rastet nie auf S-Bahn-, U-Bahn-,
   Straßenbahn-, Schmalspur- oder typlose Gleise ein.
-- **Gemischte Routen:** Ein S-Bahn-Projekt, das auf Fernbahngleise wechselt, ist nicht in einem
-  Zug routbar. Abschnittsweise routen (Editor: Route anhängen) und die Teile zusammensetzen.
+- **Gemischte Routen:** Ein S-Bahn-Projekt, das auf Fernbahngleise wechselt, ist ohne Kombimodus
+  nicht in einem Zug routbar. Seit 2026-11-23 überbrückt der Schalter „Lücken über andere
+  Gleisarten überbrücken“ solche Stücke (Abschnitt „Kombimodus“ unten, EK-2026-389); sonst
+  abschnittsweise routen (Editor: Route anhängen) und die Teile zusammensetzen.
 - **Herkunft je Linie:** Eine Route wird in Abschnitte gleichen Status **und** gleicher Gleisart
   geteilt; jede Linie trägt zusätzlich `properties.railway_class` (`rail`, `light_rail`, `subway`,
   `tram`, `narrow_gauge`, `unknown`). Eine Route nur auf Vollbahn-Bestand bleibt ein einziges
@@ -384,7 +386,9 @@ Stapel EKS-2026-051 im Vault; die letzten beiden aus der Rückfrage in der Umset
 - **Gleisarten exklusiv** (EK-2026-355, C): Vollbahn ist Vorgabe, jede andere gewählte
   Gleisart schaltet sie ab; andere Gleisarten untereinander kombinierbar, kein
   Bevorzugungsfaktor. Verworfen: Bevorzugung ×0,1; gleich gewichten. Die in #363 genannte
-  Kombination Eisenbahn + U-Bahn ist damit überholt.
+  Kombination Eisenbahn + U-Bahn ist damit überholt. Ergänzt 2026-11-23 durch den
+  Kombimodus (EK-2026-389): Mit eigenem Schalter dürfen andere Gleisarten Lücken
+  überbrücken; ohne Schalter gilt die Exklusivität unverändert.
 - **Fünf Gleisarten inkl. Schmalspur** (EK-2026-356). Verworfen: ohne Schmalspur; Vollbahn
   immer an.
 - **Linien speichern die Gleisart** (EK-2026-357, A), km je Gleisart in Editor und MCP.
@@ -427,3 +431,115 @@ Stapel EKS-2026-051 im Vault; die letzten beiden aus der Rückfrage in der Umset
    (Dashboard-Aufgaben #94, #95, #97–#103).
 5. U-Bahn-Projekte (u. a. 2284, 2537) und die schematischen Stadtbahn-Trassen (EK 6-09)
    prüfen.
+
+## Kombimodus: Lücken über andere Gleisarten überbrücken (2026-11-23)
+
+Anlass: Nach dem Deploy von #363 meldete `route_project_geometry` für zwei Berliner
+S-Bahn-Projekte mit `track_classes: ["light_rail"]` „Kein Pfad im Schienennetz“: 3224
+„S-Bahn Berlin: Streckenausbau Frohnau – Oranienburg“ und 3190 „S25 Nord“ (Schönholz –
+Hennigsdorf). Ostkreuz – Erkner, Buch – Bernau und Hoppegarten – Strausberg liefen.
+
+### Befund (Proben im Produktions-Routing ohne `apply`, 2026-11-23)
+
+- **Frohnau – Oranienburg:** `light_rail` geht durch von Frohnau bis Birkenwerder und ab
+  etwa 700 m nördlich davon bis Oranienburg (Borgsdorf – Lehnitz – Oranienburg geprüft).
+  Dazwischen findet der Router mit keiner Stadt-Gleisart einen Pfad, auch nicht mit „im Bau“,
+  „geplant“ und „unbekannt“. Dort teilen sich S-Bahn und Regionalbahn das Gleis, OSM führt
+  es als `railway=rail`. Mit Vollbahn allein kommt man durch das Stück, aber nicht nach
+  Frohnau (dort liegt nur S-Bahn-Gleis).
+- **S25 Nord:** `light_rail` endet westlich von Alt-Reinickendorf (13,348° O) und beginnt erst
+  etwa 350 m nördlich von Tegel wieder. Die Kremmener Bahn dazwischen (Karl-Bonhoeffer-
+  Nervenklinik, Eichborndamm, Tegel) ist `railway=rail`. Über das flexible Profil mit Vollbahn
+  findet der Router sie (6,7 km, nur `rail`). Das Standardprofil `rail_default` findet sie
+  nicht: Das Stück hängt nur über S-Bahn-Gleise am übrigen Vollbahnnetz und fällt als
+  Teilnetz unter `prepare.min_network_size` (200) heraus. Daher kam der Umweg von 31 km mit
+  der Vollbahn.
+- **Kein Einrast-Problem:** `snap_preventions_default` (Tunnel, Brücke, Fähre) verschiebt
+  höchstens den Startpunkt auf das nächste Gleis daneben, trennt aber keine Strecke.
+- **Quelle der Tags:** OpenRailRouting setzt `railway_class` allein aus `railway=*`. Overpass
+  und Geofabrik waren aus der Sandbox nicht erreichbar, die Tags sind indirekt über das
+  Routing belegt.
+
+### Verhalten
+
+- **Schalter „Lücken über andere Gleisarten überbrücken“** (Editor, REST
+  `networks.bridge_gaps`, MCP `bridge_gaps`), Vorgabe aus. Ist er an, bekommen die nicht
+  gewählten Gleisarten (`rail`, `light_rail`, `subway`, `tram`, `narrow_gauge`) Priorität
+  ×0,01 statt 0. Die Route bleibt auf den gewählten Gleisarten, solange es einen Weg gibt,
+  und nimmt fremde Gleise nur dort, wo die gewählten eine Lücke haben. Der Faktor liegt weit
+  unter den in EK-2026-355 verworfenen 0,1: Eine parallele schnellere Vollbahn gewinnt nur,
+  wenn der Weg auf den gewählten Gleisen über hundertmal teurer wäre.
+- **Planungen ohne Gleisart** (`unknown`) kommen nie über den Kombimodus herein, nur über
+  ihren eigenen Haken. Die Status-Schalter gelten unverändert (kein geplantes Gleis ohne
+  „geplant“).
+- **Auch mit Vollbahn:** Mit Vollbahn und Kombimodus läuft die Route auf `rail_flex`. Damit sind
+  Vollbahnstücke erreichbar, die nur über S-Bahn-Gleise angebunden sind (Kremmener Bahn).
+- **Ergebnis:** `bridged_km` = km auf nicht gewählten Gleisarten; `foreign_waypoints` = Indizes
+  der Wegpunkte, die auf ein Gleis einer anderen Gleisart eingerastet sind (im Kombimodus
+  rastet ein Wegpunkt am nächsten zugelassenen Gleis ein, das kann die parallele Vollbahn
+  sein). Gespeicherte Linien tragen ihre tatsächliche Gleisart; ein überbrücktes Stück ist
+  also als `rail` gespeichert. Die Editor-Vorschau nennt beides.
+- **Ohne Schalter** ändert sich nichts; bei „Kein Pfad“ mit Stadt-Gleisarten weisen Editor und
+  MCP auf den Schalter hin.
+
+### Betriebsstellensuche
+
+- **Wortsuche:** Jedes Wort der Suche muss in Name oder `op_id` vorkommen. RINF füllt Namen mit
+  Leerzeichen auf („Berlin Westkreuz␣␣␣…S-Bahn“), deshalb fand „Westkreuz S-Bahn“ vorher
+  nichts. Exakte Treffer vergleichen mit zusammengezogenen Leerzeichen; auch ein Wegpunkt per
+  exaktem Namen („Berlin-Schönholz S-Bahn“) wird so aufgelöst. Gilt für REST und MCP.
+- **Netzfilter bleibt streng** (EK-2026-390): Berliner und Hamburger S-Bahnhöfe stehen nur als
+  RINF-Betriebsstelle unter `rail` (der OSM-Import überspringt sie). Findet MCP
+  `search_operational_points` mit `networks` nichts, nennt `hint` die Netze mit Treffern und
+  `other_networks` die Treffer. Für das Routing ist das Netz des Wegpunkts egal, die
+  Koordinate rastet am nächsten Gleis der gewählten Gleisart ein.
+- **Gartenfeld** fehlt zu Recht: Die Siemensbahn ist seit 1980 stillgelegt, RINF kennt den Halt
+  nicht, OSM führt keinen aktiven.
+
+### Technik
+
+- `services/routing_networks.py`: `normalize_networks` kennt `bridge_gaps`; `routing_request`
+  setzt für nicht gewählte Gleisarten `BRIDGE_PRIORITY` (`"0.01"`) statt `"0"`, außer für
+  `unknown`; `is_default_networks` ist mit Kombimodus falsch (→ `rail_flex`). `bridged_km` und
+  `foreign_waypoints` (Wegpunkt ist fremd, wenn alle anliegenden Routensegmente einer nicht
+  gewählten Gleisart angehören; aus GraphHoppers `snapped_waypoints`). `cache_networks` nimmt
+  `bridge_gaps` nur in den Cache-Schlüssel, wenn es an ist (alte Schlüssel bleiben).
+- `crud/operational_points.py`: Wortsuche und `collapse_spaces` (verschachteltes `replace`,
+  läuft auf PostgreSQL und SQLite). MCP `search_operational_points` nutzt die CRUD-Funktion.
+- GraphHopper: keine Änderung an Konfiguration, Custom Models oder Patch, also **kein
+  Graph-Neubau**. Testnetz `test/planned-tracks.osm` um eine S-Bahn parallel zur Vollbahn
+  (50,08) und eine S-Bahn mit Vollbahn-Lücke (50,09) erweitert; `smoke.sh` prüft: Kombimodus
+  bleibt auf der parallelen S-Bahn, `light_rail` allein endet an der Lücke, Kombimodus
+  überbrückt sie, Vollbahn mit Kombimodus überbrückt ein S-Bahn-Stück.
+- Tests: `tests/unit/test_routing_networks.py` (Query-Statements, Vorgabeprofil, Cache-Schlüssel,
+  `bridged_km`, `foreign_waypoints`), `tests/api/test_mcp_geometry.py` (Kombimodus, Hinweis bei
+  „Kein Pfad“, Wortsuche, Hinweis bei leerem Netzfilter, Wegpunkt per aufgefülltem Namen).
+
+### Entscheidungen (Jonas, 2026-11-23)
+
+- **Kombimodus als eigener Schalter** (EK-2026-389, A), Faktor ×0,01, Ergebnis mit
+  `bridged_km` und Warnung bei fremd eingerasteten Wegpunkten; EK-2026-355 bleibt der
+  Grundfall. Verworfen: automatisch beim Scheitern (B); exklusiv bleiben und nur das
+  Standardprofil reparieren (C); gemeinsame Gleise im Router als `light_rail` umdeuten (D).
+- **Netzfilter der Betriebsstellensuche bleibt streng, leere Treffer bekommen einen Hinweis**
+  (EK-2026-390, B). Verworfen: RINF-Punkte in den Filter `light_rail` einschließen (A);
+  S-Bahnhöfe zusätzlich aus OSM importieren (C).
+
+### Akzeptanzkriterien
+
+- [x] Ohne Schalter: Query-Modell und Ergebnis wie bisher (Unit-Tests, Smoke-Test).
+- [x] Mit Schalter: nicht gewählte Gleisarten ×0,01, `unknown` weiter ×0; Route bleibt auf
+      paralleler S-Bahn und überbrückt eine Vollbahn-Lücke (Smoke-Test).
+- [x] Ergebnis nennt `bridged_km` und `foreign_waypoints`; Editor-Vorschau zeigt beides.
+- [x] „Westkreuz S-Bahn“ findet „Berlin Westkreuz␣␣␣S-Bahn“; leerer Netzfilter nennt Treffer
+      in anderen Netzen.
+- [ ] Nach dem Deploy: 3224 und 3190 mit `light_rail` + `bridge_gaps` routbar (Abgleich unten).
+
+### Abgleich nach dem Deploy
+
+Kein Graph-Neubau, keine Migration. Danach 3224 (op 525 Frohnau → op 644 Oranienburg S-Bahn)
+und 3190 (op 707 Schönholz → op 4949 Hennigsdorf S-Bahn) mit `track_classes: ["light_rail"]`
+und `bridge_gaps: true` ohne `apply` routen; `route.bridged_km` sollte nur die bekannten
+Stücke enthalten (Birkenwerder, Kremmener Bahn), `foreign_waypoints` leer sein. Bei mindestens
+85 % Deckung mit dem Bestand `mode: "replace"`, `apply: true`, danach
+`compute_project_length(apply=true)`.

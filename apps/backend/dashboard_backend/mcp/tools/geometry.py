@@ -29,6 +29,10 @@ from dashboard_backend.crud.projects.projects import (
     extract_features,
     update_project as update_project_crud,
 )
+from dashboard_backend.crud.operational_points import (
+    collapse_spaces,
+    search_operational_points as search_ops_crud,
+)
 from dashboard_backend.crud.routes import list_routes_for_project
 from dashboard_backend.mcp.context import (
     get_principal,
@@ -255,7 +259,8 @@ def _write_result(project: Project, features: list[dict[str, Any]], applied: boo
 
 def _lookup_operational_point(db: Session, value: int | str) -> OperationalPoint:
     """Resolve an operational point by database id (int), or by op_id / name (str):
-    exact op_id, then exact name, then a unique substring of the name."""
+    exact op_id, then exact name (runs of spaces count as one), then a unique substring
+    of the name."""
     if isinstance(value, int):
         op = db.query(OperationalPoint).filter(OperationalPoint.id == value).first()
         if op is None:
@@ -266,9 +271,12 @@ def _lookup_operational_point(db: Session, value: int | str) -> OperationalPoint
     if not text:
         raise ToolError("Leere Betriebsstellen-Angabe.")
     lowered = text.lower()
+    # RINF pads names with runs of spaces; compare them collapsed.
+    collapsed = " ".join(lowered.split())
+    collapsed_name = func.lower(collapse_spaces(OperationalPoint.name))
     candidates: list[OperationalPoint] = (
         db.query(OperationalPoint).filter(func.lower(OperationalPoint.op_id) == lowered).all()
-        or db.query(OperationalPoint).filter(func.lower(OperationalPoint.name) == lowered).all()
+        or db.query(OperationalPoint).filter(collapsed_name == collapsed).all()
         or db.query(OperationalPoint)
         .filter(
             or_(OperationalPoint.name.ilike(f"%{text}%"), OperationalPoint.op_id.ilike(f"%{text}%"))
@@ -406,35 +414,40 @@ def search_operational_points(
     ctx: Context,
 ) -> dict[str, Any]:
     """Find operational points (Betriebsstellen: stations, junctions, sidings, and
-    stops of S-Bahn/Stadtbahn, U-Bahn and tram) by a case-insensitive substring of
-    name or op_id. Returns id, op_id, name, type, ``network`` and coordinates — the
-    waypoints for route_project_geometry and the points for edit_project_geometry.
-    Exact matches come first.
+    stops of S-Bahn/Stadtbahn, U-Bahn and tram) by name or op_id, case-insensitive;
+    every word of the query must occur ("Westkreuz S-Bahn" works although RINF pads
+    its names with spaces). Returns id, op_id, name, type, ``network`` and
+    coordinates — the waypoints for route_project_geometry and the points for
+    edit_project_geometry. Exact matches come first.
 
     - networks: only these networks. ``rail`` = RINF operational points of the main
-      line network (op_id = RINF code, e.g. DE00BTP; includes S-Bahn stations);
-      ``light_rail`` / ``subway`` / ``tram`` = stops imported from OSM (op_id
-      ``OSM-n…``). The same name or code can exist in several networks — check
-      ``network`` and route with the matching track_classes."""
+      line network (op_id = RINF code, e.g. DE00BTP). RINF includes the S-Bahn
+      stations of Berlin and Hamburg, so those are found under ``rail``, not
+      ``light_rail``; ``light_rail`` / ``subway`` / ``tram`` = stops imported from
+      OSM (op_id ``OSM-n…``). When a network filter finds nothing, ``hint`` names
+      the matches in the other networks. Routing does not depend on the network of
+      a waypoint: its coordinate snaps to the nearest track of the chosen
+      track_classes."""
     get_principal(ctx)
     text = query.strip()
     if len(text) < 2:
         raise ToolError("Bitte mindestens zwei Zeichen suchen.")
     limit = max(1, min(limit, MAX_SEARCH_LIMIT))
-    lowered = text.lower()
-    exact = or_(func.lower(OperationalPoint.name) == lowered, func.lower(OperationalPoint.op_id) == lowered)
     with tool_session(ctx) as db:
-        query_ = db.query(OperationalPoint).filter(
-            or_(OperationalPoint.name.ilike(f"%{text}%"), OperationalPoint.op_id.ilike(f"%{text}%"))
-        )
-        if networks:
-            query_ = query_.filter(OperationalPoint.network.in_(networks))
-        matches = (
-            query_.order_by(exact.desc(), func.length(OperationalPoint.name), OperationalPoint.name)
-            .limit(limit)
-            .all()
-        )
-        return {"operational_points": [_op_dict(op) for op in matches]}
+        matches = search_ops_crud(db, text, limit, networks)
+        result: dict[str, Any] = {"operational_points": [_op_dict(op) for op in matches]}
+        if networks and not matches:
+            others = search_ops_crud(db, text, limit)
+            if others:
+                found_in = sorted({op.network for op in others})
+                result["hint"] = (
+                    f"Im Netz {', '.join(networks)} nichts gefunden, aber in "
+                    f"{', '.join(found_in)} (siehe other_networks). S-Bahnhöfe in Berlin "
+                    "und Hamburg stehen als RINF-Betriebsstelle unter rail; als Wegpunkt "
+                    "taugen sie auch für track_classes light_rail."
+                )
+                result["other_networks"] = [_op_dict(op) for op in others]
+        return result
 
 
 def get_project_geometry(
@@ -493,6 +506,7 @@ def route_project_geometry(
     use_construction: bool = False,
     use_proposed: bool = False,
     track_classes: list[TrackClass] | None = None,
+    bridge_gaps: bool = False,
     *,
     ctx: Context,
 ) -> dict[str, Any]:
@@ -516,8 +530,7 @@ def route_project_geometry(
     - track_classes: which kinds of track, default ["rail"] (Vollbahn). Instead:
       any combination of "light_rail" (S-Bahn/Stadtbahn), "subway" (U-Bahn),
       "tram" (Straßenbahn), "narrow_gauge" (Schmalspur) — never together with
-      "rail"; a route that changes between main line and S-Bahn track is routed in
-      parts and appended. OSM tagging differs by city: the Berlin and Hamburg
+      "rail". OSM tagging differs by city: the Berlin and Hamburg
       S-Bahn are light_rail, the Munich, Stuttgart, Frankfurt and Rhine-Ruhr S-Bahn
       rail; Stadtbahnen are partly tram, partly light_rail (choose both).
       "unknown" admits planned tracks whose type OSM does not give
@@ -525,6 +538,16 @@ def route_project_geometry(
       use_proposed or use_construction. Waypoints snap to the nearest track of
       the chosen classes; stops of U-Bahn/tram networks are found with
       search_operational_points (networks).
+    - bridge_gaps: combined mode, off by default. Existing track of the other
+      classes is allowed at a heavy penalty, so the route stays on the chosen
+      classes and crosses other track only where they have a gap. Use it when a
+      route on the chosen classes finds no path or detours: OSM maps track shared by
+      S-Bahn and regional trains as rail (e.g. Birkenwerder, Kremmener Bahn
+      Alt-Reinickendorf – Tegel), and a stretch of rail reachable only over S-Bahn
+      track is missing from plain rail routing. The result reports
+      ``route.bridged_km`` (km on other classes; the saved lines keep their real
+      class) and ``route.foreign_waypoints`` (waypoints that snapped onto a track of
+      another class — move them or use a coordinate on the chosen track).
     - apply: false (default) only calculates and reports distance, resolved
       waypoints and the resulting geometry; true writes it (changelog, revertible)
       and stores the route.
@@ -568,6 +591,7 @@ def route_project_geometry(
                     "construction": use_construction,
                     "proposed": use_proposed,
                     "track_classes": track_classes or ["rail"],
+                    "bridge_gaps": bridge_gaps,
                 },
             )
         except NetworkSelectionError as exc:
@@ -581,10 +605,11 @@ def route_project_geometry(
                 else "Neubaustrecken mit use_proposed/use_construction versuchen oder mit "
                 "edit_project_geometry zeichnen."
             )
-            if track_classes and track_classes != ["rail"]:
+            if not bridge_gaps:
                 hint += (
-                    " Die gewählten Gleisarten verbinden die Wegpunkte nicht; wechselt die "
-                    "Strecke zwischen Vollbahn und S-/U-Bahn/Tram, abschnittsweise routen."
+                    " Die gewählten Gleisarten verbinden die Wegpunkte nicht durchgehend; "
+                    "mit bridge_gaps überbrückt die Route Lücken über andere Gleisarten "
+                    "(z. B. S-Bahn auf gemeinsam genutzten Vollbahngleisen)."
                 )
             raise ToolError(
                 f"Kein Pfad im Schienennetz gefunden. Liegen alle Wegpunkte an Gleisen? {hint}"
@@ -611,6 +636,8 @@ def route_project_geometry(
             "networks": properties["networks"],
             "status_km": properties["status_km"],
             "class_km": properties["class_km"],
+            "bridged_km": properties["bridged_km"],
+            "foreign_waypoints": properties["foreign_waypoints"],
             "sections": [
                 {
                     "track_status": s["track_status"],

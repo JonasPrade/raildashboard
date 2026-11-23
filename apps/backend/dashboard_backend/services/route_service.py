@@ -14,7 +14,10 @@ from dashboard_backend.models.routes import Route, route_hash
 from dashboard_backend.services.exceptions import RoutingNoPathError
 from dashboard_backend.services.routing_client import RoutingClient
 from dashboard_backend.services.routing_networks import (
+    bridged_km,
+    cache_networks,
     class_totals_km,
+    foreign_waypoints,
     is_default_networks,
     normalize_networks,
     route_sections,
@@ -56,7 +59,9 @@ class RouteService:
         if request.custom_model is not None:
             profile = request.profile
         # Default networks keep the cache key of routes stored before the switches existed.
-        cache_options = options if is_default_networks(switches) else {**options, "networks": switches}
+        cache_options = (
+            options if is_default_networks(switches) else {**options, "networks": cache_networks(switches)}
+        )
         cache_key = route_hash(waypoints, profile, cache_options, self._graph_version)
 
         response = await self._routing_client.route(
@@ -68,6 +73,8 @@ class RouteService:
         minx, miny, maxx, maxy = bbox.bounds
         coordinates = [[float(x), float(y)] for x, y in line.coords]
         sections = route_sections(coordinates, path.get("details"))
+        chosen = switches["track_classes"]
+        snapped = (path.get("snapped_waypoints") or {}).get("coordinates")
 
         return {
             "type": "Feature",
@@ -91,6 +98,10 @@ class RouteService:
                 "sections": sections,
                 "status_km": status_totals_km(sections),
                 "class_km": class_totals_km(sections),
+                # Combined mode (EK-2026-389): km on other classes, and waypoints that
+                # snapped onto such a track. Without bridging both stay empty.
+                "bridged_km": bridged_km(sections, chosen),
+                "foreign_waypoints": foreign_waypoints(coordinates, sections, snapped, chosen),
             },
         }
 

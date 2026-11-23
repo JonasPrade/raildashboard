@@ -1098,6 +1098,19 @@ def test_compute_project_length(mcp_client, admin_token, db_session):
     assert no_geometry["isError"] is True
 
 
+def test_compute_project_length_flag_on_leaf_reports_false(mcp_client, admin_token, db_session):
+    """A leaf project with geojson_from_subprojects set does not aggregate anything."""
+    alpha, _ = _seed_projects(db_session)
+    alpha.geojson_representation = LINE_1_DEGREE
+    alpha.geojson_from_subprojects = True
+    db_session.commit()
+
+    preview = _payload(
+        _call(mcp_client, admin_token, "compute_project_length", {"project_id": alpha.id})
+    )
+    assert preview["geometry_from_subprojects"] is False
+
+
 def test_compute_length_apply_needs_capability(mcp_client, create_user, db_session):
     admin = create_user("admin", "adminpass", UserRole.admin)
     token = _key_for(db_session, admin, scopes=["mcp.access"])

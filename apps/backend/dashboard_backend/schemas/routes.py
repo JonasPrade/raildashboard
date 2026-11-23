@@ -30,6 +30,13 @@ class RouteNetworks(BaseModel):
         "with those. unknown admits planned tracks without a type (needs construction or "
         "proposed) and combines with anything.",
     )
+    bridge_gaps: bool = Field(
+        False,
+        description="Combined mode (EK-2026-389): existing track of the classes not chosen "
+        "is allowed at a heavy penalty (priority x0.01), so gaps in the chosen network — "
+        "e.g. S-Bahn track mapped as railway=rail where it is shared with regional trains "
+        "— are bridged. The result reports bridged_km and foreign_waypoints.",
+    )
 
 
 class RouteIn(BaseModel):

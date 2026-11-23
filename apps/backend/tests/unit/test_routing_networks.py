@@ -16,7 +16,11 @@ from dashboard_backend.services.exceptions import RoutingNoPathError
 from dashboard_backend.services.routing_client import RoutingClient
 from dashboard_backend.services.routing_networks import (
     NetworkSelectionError,
+    bridged_km,
+    cache_networks,
     class_totals_km,
+    foreign_waypoints,
+    is_default_networks,
     feature_class,
     feature_origin,
     normalize_networks,
@@ -106,7 +110,58 @@ def test_track_classes_are_canonical():
         "construction": False,
         "proposed": False,
         "track_classes": ["rail"],
+        "bridge_gaps": False,
     }
+
+
+def test_bridge_gaps_penalises_other_classes_instead_of_excluding():
+    """Combined mode (EK-2026-389): other classes ×0.01, planned tracks without a type
+    stay out, status rules unchanged."""
+    model = routing_request({"track_classes": ["light_rail"], "bridge_gaps": True}).custom_model
+    assert model["priority"] == [
+        {"if": "railway_class == RAIL", "multiply_by": "0.01"},
+        {"if": "railway_class == SUBWAY", "multiply_by": "0.01"},
+        {"if": "railway_class == TRAM", "multiply_by": "0.01"},
+        {"if": "railway_class == NARROW_GAUGE", "multiply_by": "0.01"},
+        {"if": "railway_class == OTHER", "multiply_by": "0"},
+        {"if": "railway_status == CONSTRUCTION", "multiply_by": "0"},
+        {"if": "railway_status == PROPOSED", "multiply_by": "0"},
+    ]
+
+
+def test_bridge_gaps_with_rail_runs_on_flex_profile():
+    # Plain rail routing (rail_default) drops a rail stretch reachable only over S-Bahn
+    # track as a small subnetwork; with bridging it runs on rail_flex.
+    switches = normalize_networks({"bridge_gaps": True})
+    assert not is_default_networks(switches)
+    request = routing_request(switches)
+    assert request.profile == "rail_flex"
+    assert {"if": "railway_class == LIGHT_RAIL", "multiply_by": "0.01"} in request.custom_model[
+        "priority"
+    ]
+
+
+def test_cache_networks_keeps_old_keys():
+    off = normalize_networks({"track_classes": ["tram"]})
+    assert "bridge_gaps" not in cache_networks(off)
+    on = normalize_networks({"track_classes": ["tram"], "bridge_gaps": True})
+    assert cache_networks(on)["bridge_gaps"] is True
+
+
+def test_bridged_km_and_foreign_waypoints():
+    coords = [[13.0, 52.0], [13.01, 52.0], [13.02, 52.0], [13.03, 52.0], [13.04, 52.0]]
+    details = {"railway_class": [[0, 1, "rail"], [1, 3, "light_rail"], [3, 4, "rail"]]}
+    sections = route_sections(coords, details)
+    assert bridged_km(sections, ["light_rail"]) == round(
+        sections[0]["length_km"] + sections[2]["length_km"], 2
+    )
+    assert bridged_km(sections, ["rail"]) == round(sections[1]["length_km"], 2)
+    # Start on rail (foreign), via inside light_rail, end on rail (foreign).
+    snapped = [[13.0, 52.0], [13.02, 52.0], [13.04, 52.0]]
+    assert foreign_waypoints(coords, sections, snapped, ["light_rail"]) == [0, 2]
+    # A waypoint at a class change touches a chosen segment: not foreign.
+    assert foreign_waypoints(coords, sections, [[13.01, 52.0]], ["light_rail"]) == []
+    assert foreign_waypoints(coords, sections, None, ["light_rail"]) == []
 
 
 @pytest.mark.parametrize(
