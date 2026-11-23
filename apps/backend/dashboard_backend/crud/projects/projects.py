@@ -108,6 +108,17 @@ def has_subprojects(db: Session, project_id: int) -> bool:
     )
 
 
+def aggregates_subproject_geometry(db: Session, project: Project) -> bool:
+    """Whether *project*'s geometry is currently built from its subprojects.
+
+    The single rule behind `geojson_from_subprojects`: the flag only has an effect on a
+    project that has (non-archived) subprojects. Without any, the project owns its
+    geometry whatever the flag says — the value is merely carried along so that a
+    subproject added later finds the intended mode (feature-parent-geometry-mode.md).
+    """
+    return bool(project.geojson_from_subprojects) and has_subprojects(db, project.id)
+
+
 def subtree_ids(db: Session, root_id: int) -> List[int]:
     """*root_id* followed by all of its descendants (any depth), one query per level.
 
@@ -141,9 +152,10 @@ def recompute_geojson_for_parent(db: Session, parent_id: Optional[int]) -> None:
     flattened into a FeatureCollection and stored on the parent, then the walk continues upwards. The
     walk stops at the root — `_seen` guards against a corrupt cyclic chain.
 
-    A parent with `geojson_from_subprojects = False` owns its geometry: it is left
-    untouched and the walk stops there, because an unchanged geometry cannot change what
-    its own ancestors aggregate.
+    A parent that does not aggregate (`aggregates_subproject_geometry` — flag off, or no
+    non-archived subproject left) owns its geometry: it is left untouched and the walk
+    stops there, because an unchanged geometry cannot change what its own ancestors
+    aggregate.
     """
     seen: set[int] = set()
     touched: List[int] = []
@@ -154,7 +166,7 @@ def recompute_geojson_for_parent(db: Session, parent_id: Optional[int]) -> None:
         parent = get_project_by_id(db, current_id)
         if parent is None:
             break
-        if not parent.geojson_from_subprojects:
+        if not aggregates_subproject_geometry(db, parent):
             break
 
         children = (

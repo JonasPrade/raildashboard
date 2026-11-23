@@ -46,6 +46,13 @@ Ausbauabschnitte abbilden).
 Projekt ohne Unterprojekte bleibt der Wert folgenlos (nichts aggregiert dorthin), er wird aber
 mitgeführt, damit ein später hinzugefügtes Unterprojekt sofort den gewünschten Modus vorfindet.
 
+**Eine Regel, ein Prädikat:** Ob die Geometrie eines Projekts aus Unterprojekten entsteht, entscheidet
+überall dasselbe — `aggregates_subproject_geometry` = Flag `true` **und** mindestens ein nicht
+archiviertes Unterprojekt. Ohne Unterprojekt gehört dem Projekt seine Geometrie, was das Flag auch
+sagt: Neuberechnung und Kaskade fassen sie nicht an (verliert ein Projekt sein letztes Unterprojekt,
+bleibt der letzte Stand stehen), Direktschreiben und Editor sind erlaubt, und die Anzeige
+(`get_project_geometry`, `check_geometry`, `compute_project_length`) meldet „nicht aggregiert“.
+
 | Wert | Verhalten |
 |---|---|
 | `true` (Default) | Geometrie wird bei jeder Änderung eines Unterprojekts neu aus dessen Features zusammengesetzt. Direktes Setzen der Geometrie ist gesperrt. |
