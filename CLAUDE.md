@@ -40,7 +40,9 @@ Vor jeder Änderung am Deploy-Ablauf beide zuerst lesen.
 
 Konsequenzen für Änderungen:
 - **Ein Kommando prüft alles: `make test`.** Es läuft in den `test`/`check`-Stufen der
-  Dockerfiles; die CI hat keine eigenen Schritte. Für die schnelle Schleife: `make test-local`.
+  Dockerfiles, parallel per `docker buildx bake` (`docker-bake.hcl`); die CI hat keine eigenen
+  Prüfschritte, nur buildx und GHCR-Login für den gemeinsamen Layer-Cache (`CACHE_REF`).
+  Neue Prüfstufen kommen in `docker-bake.hcl`. Für die schnelle Schleife: `make test-local`.
 - `compose.yaml` referenziert nur GHCR-Images (`image:`), **nie** `build:` — lokale Builds
   gehören in `compose.override.yaml`. Kein `0.0.0.0`-Port: der Host-nginx erreicht das
   Frontend über `127.0.0.1:5000`.

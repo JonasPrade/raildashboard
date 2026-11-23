@@ -11,6 +11,9 @@ entries from **[Unreleased]** into a dated version section when cutting a versio
 
 ## [Unreleased]
 
+### Changed
+- **CI: `make test` runs in parallel with a shared layer cache (`docs/workflow.md` → „Ein Kommando“).** A PR and its merge took over 20 minutes because `make test` ran six `docker build`s one after another without any cache, and `release.yml` repeated all of it on master; on #372 a hanging Ubuntu mirror held the GraphHopper apt step until the 30-minute job limit. `make test` now runs `deploy/test_prod.sh` and then one `docker buildx bake` over the new `docker-bake.hcl`: all stages in parallel, outputs to the build cache only. With `CACHE_REF` set (both CI workflows, GHCR prefix) every target reads and writes a registry cache `raildashboard-<service>:pruefcache-<target>`, shared between PR and master runs: apt, pip, npm and Maven run only when their inputs change, and a merge commit the PR run already checked passes on master from cache. The image build in `release.yml` also reads that cache. `ci.yml` and `release.yml` gain a buildx and a GHCR login step (`packages: write`), no check steps of their own. apt in every image retries five times and gives up on a stalled connection after 60 s. Locally `make test` needs docker with buildx (part of Docker Desktop and current docker packages). Nothing to do on the server.
+
 ### Fixed
 - **Operational-point search matches word by word (EK-2026-390).** RINF pads names with runs of spaces („Berlin Westkreuz      S-Bahn“), so „Westkreuz S-Bahn“ found nothing; every word of the query now has to occur in name or op_id, exact matches compare with collapsed spaces (REST and MCP; MCP waypoints by exact name too). MCP `search_operational_points` with a network filter that finds nothing returns `hint` and `other_networks` (Berlin and Hamburg S-Bahn stations are RINF points under `rail`).
 - **MCP `compute_project_length`: test for a leaf project with `geojson_from_subprojects` set** (reports `false`).

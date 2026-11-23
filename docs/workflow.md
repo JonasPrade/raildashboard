@@ -22,14 +22,29 @@ Schritte. Ein zweiter Weg wäre ein zweites System, und die Abweichung zwischen 
 dann als Konfigurationsdetail gepflegt statt als Fehler behandelt.
 
 Hier läuft das Kommando in den Prüfstufen der Dockerfiles (`test` im Backend, `check` im
-Frontend) und baut danach die Laufzeit-Images. Es braucht nur `docker` und `bash`, und es
-prüft mit demselben Interpreter, denselben gepinnten Abhängigkeiten und denselben Quellen,
-aus denen das ausgelieferte Image entsteht. Reihenfolge:
+Frontend, `test` bei GraphHopper) und baut daneben die Laufzeit-Images. Es braucht nur
+`docker` (mit buildx) und `bash`, und es prüft mit demselben Interpreter, denselben
+gepinnten Abhängigkeiten und denselben Quellen, aus denen das ausgelieferte Image entsteht:
 
 1. `deploy/test_prod.sh` — `prod.sh` gegen ein gestubbtes `docker`
-2. Backend: pytest (ohne `tests/db_related_tests`)
-3. Frontend: `tsc --noEmit`, `eslint` (Fehler blockieren, Warnungen nicht), Vitest
-4. Laufzeit-Images `backend`, `frontend`, `db`
+2. danach ein `docker buildx bake` über `docker-bake.hcl`, alle Ziele parallel:
+   - Backend: pytest (ohne `tests/db_related_tests`)
+   - Frontend: `tsc --noEmit`, `eslint` (Fehler blockieren, Warnungen nicht), Vitest
+   - GraphHopper: Unit-Tests der OpenRailRouting-Erweiterung, Smoke-Test
+   - Laufzeit-Images `backend`, `frontend`, `db`
+
+Die Ziele schreiben nur in den Build-Cache (`type=cacheonly`), es entstehen keine lokalen
+Images; gebaut und geschoben wird in `release.yml`.
+
+**Layer-Cache.** In der CI setzen beide Workflows `CACHE_REF` auf das GHCR-Präfix; `make test`
+liest und schreibt dann je Ziel einen Registry-Cache (`raildashboard-<dienst>:pruefcache-<ziel>`).
+Dafür haben die Prüf-Jobs zwei Schritte vor `make test` (buildx-Builder, GHCR-Login) — keine
+Prüfschritte, die Prüfung bleibt das eine Kommando. apt, pip, npm und Maven laufen nur
+noch, wenn sich ihre Eingaben ändern, statt bei jedem Lauf (#372: ein hängender
+Paketspiegel hielt einen Lauf bis zum 30-Minuten-Limit; zusätzlich gibt apt in allen
+Images nach 60 s ohne Daten auf und versucht es bis zu fünfmal). Lokal bleibt `CACHE_REF`
+leer, es gilt der Cache des Docker-Daemons. Ein Cache-Treffer überspringt auch einen
+Testlauf: dieselben Quellen und Abhängigkeiten liefern dasselbe Ergebnis.
 
 Für die schnelle Schleife beim Entwickeln bleibt `make test-local` (pytest + Vitest gegen
 die venv); das ist ausdrücklich nicht die Prüfung.
@@ -46,7 +61,11 @@ Drei Workflow-Dateien, ohne `if`-Verzweigungen darin:
 
 `release.yml` fährt dieselbe Suite noch einmal — der PR-Lauf hat einen Baum geprüft, der nach
 dem Merge einen anderen SHA trägt — und schiebt danach die Images nach GHCR, getaggt mit dem
-Commit-SHA. Jeder Commit auf `master` hat seine Images; ausgeliefert wird nichts.
+Commit-SHA. Jeder Commit auf `master` hat seine Images; ausgeliefert wird nichts. Die zweite
+Prüfung kostet über den gemeinsamen Layer-Cache nur, was sich seit dem PR-Lauf geändert
+hat: Die PR-CI prüft den Merge-Stand mit `master` (`refs/pull/N/merge`); ist `master`
+seitdem nicht weitergelaufen, ist der Baum gleich und jede Stufe ein Cache-Treffer. Auch der
+Image-Build liest den Cache von `make test` mit.
 
 Der Image-Name steht fest im Workflow und wird nicht aus `github.repository` abgeleitet:
 
@@ -148,8 +167,9 @@ mehr erkennt.
 - **GraphHopper wird in `make test` geprüft** (seit #364, Entscheidung 2026-11-12, EK-2026-150;
   vorher nur in `release.yml` gebaut). Das Dashboard patcht OpenRailRouting (geplante und im
   Bau befindliche Gleise); die Stufe `test` im GraphHopper-Dockerfile fährt Unit-Tests und einen
-  Smoke-Test gegen ein kleines Testnetz. Der Maven-Build verlängert `make test` um einige
-  Minuten.
+  Smoke-Test gegen ein kleines Testnetz. Der Maven-Build verlängert `make test` ohne Cache um
+  einige Minuten; mit dem Layer-Cache läuft er nur, wenn sich das GraphHopper-Dockerfile oder
+  seine Quellen ändern.
 
 - **`prod.sh` liegt unter `/srv/raildashboard/`, nicht unter `/srv/deploy/`.** Auf dem Host
   laufen mehrere Dienste; ein gemeinsamer Pfad wäre mehrdeutig. Im Repo heißt die Datei wie

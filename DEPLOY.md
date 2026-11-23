@@ -19,7 +19,8 @@ PR öffnen
    │  ci.yml: make test   (derselbe Befehl, den du lokal fährst)
    ▼
 Merge nach master
-   │  release.yml: make test noch einmal (anderer SHA nach dem Merge)
+   │  release.yml: make test noch einmal (anderer SHA nach dem Merge; über den
+   │               gemeinsamen Layer-Cache läuft nur neu, was der PR-Lauf nicht geprüft hat)
    │               -> ghcr.io/jonasprade/raildashboard-{backend,frontend,db,graphhopper}:<commit-sha> + :latest
    ▼
 Actions -> deploy -> Run workflow        ← das Tor

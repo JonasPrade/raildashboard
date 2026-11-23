@@ -85,7 +85,7 @@ GitHub in [`docs/uebergabe-deploy.md`](uebergabe-deploy.md). Kurzfassung:
 
 | Punkt | Wert |
 |-------|------|
-| Prüfung | `make test` — in `ci.yml` (`pull_request`, Job `Prüfung`) und `release.yml` (`push [master]`), ohne eigene Schritte |
+| Prüfung | `make test` — in `ci.yml` (`pull_request`, Job `Prüfung`) und `release.yml` (`push [master]`), ohne eigene Prüfschritte; beide teilen einen Layer-Cache in GHCR (`…:pruefcache-*`, `docker-bake.hcl`) |
 | Images | `ghcr.io/jonasprade/raildashboard-{backend,frontend,db,graphhopper}:<commit-sha>` (+ `:latest`), gebaut von `release.yml` nach grüner Prüfung |
 | Auslieferung | `deploy.yml`, von Hand: *Actions → deploy → Run workflow*; SHA leer = `master`, Rollback = frühere SHA; ein zweiter Lauf wartet auf den ersten (`cancel-in-progress: false`) |
 | Host | Contabo `vmd92747`, `/srv/raildashboard`, Benutzer `deploy` (Gruppe `docker`, kein sudo). Auf dem Host laufen weitere Dienste — nur `/srv/raildashboard` anfassen. |
@@ -105,7 +105,7 @@ GitHub in [`docs/uebergabe-deploy.md`](uebergabe-deploy.md). Kurzfassung:
 | `DEPLOY_USER` | `deploy` |
 | `DEPLOY_SSH_KEY` | Privater Schlüssel, dessen öffentlicher Teil mit erzwungenem Kommando in `authorized_keys` steht |
 | `DEPLOY_PORT` *(optional)* | SSH-Port, Default 22 |
-| `GITHUB_TOKEN` *(automatisch)* | Push nach GHCR in `release.yml`, `manifest inspect` in `deploy.yml` |
+| `GITHUB_TOKEN` *(automatisch)* | Push nach GHCR in `release.yml`, Layer-Cache von `make test` in `ci.yml` und `release.yml`, `manifest inspect` in `deploy.yml` |
 | `TILE_LAYER_URL` *(Repo-Variable)* | Raster-Kachel-URL, die zur Build-Zeit ins Frontend-Bundle gebacken wird (TopPlus). Die Server-`.env` beeinflusst die Kacheln nicht. |
 | `TILE_LAYER_URL_DARK` *(Repo-Variable, optional)* | Wie `TILE_LAYER_URL`, aber für die dunkle Fassung der Karte. Leer = die helle Karte bleibt auch im dunklen Schema. |
 

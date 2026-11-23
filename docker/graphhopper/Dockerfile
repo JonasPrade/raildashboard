@@ -5,6 +5,10 @@
 # See docs/features/feature-routing.md → "Geplante und im Bau befindliche Gleise aus OSM".
 FROM maven:3-eclipse-temurin-17 AS builder
 
+# A hanging package mirror once held a CI run until its 30-minute timeout:
+# retry failed downloads and give up on a stalled connection after 60 s.
+RUN printf 'Acquire::Retries "5";\nAcquire::http::Timeout "60";\n' > /etc/apt/apt.conf.d/80-retries
+
 RUN apt-get update && apt-get install -y git nodejs npm && rm -rf /var/lib/apt/lists/*
 
 RUN git clone --depth 1 --branch v1.1 --recurse-submodules \
@@ -45,6 +49,10 @@ RUN chmod +x /docker-entrypoint.sh && sh /test/smoke.sh
 
 # Stage 3: Runtime image
 FROM eclipse-temurin:17-jre AS runtime
+
+# A hanging package mirror once held a CI run until its 30-minute timeout:
+# retry failed downloads and give up on a stalled connection after 60 s.
+RUN printf 'Acquire::Retries "5";\nAcquire::http::Timeout "60";\n' > /etc/apt/apt.conf.d/80-retries
 
 RUN apt-get update && apt-get install -y --no-install-recommends wget && rm -rf /var/lib/apt/lists/*
 

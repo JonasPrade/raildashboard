@@ -17,10 +17,24 @@ jobs:
     name: Prüfung
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    env:
+      # Layer cache shared with ci.yml (docker-bake.hcl). Fixed prefix, see IMAGE_PREFIX.
+      CACHE_REF: ghcr.io/jonasprade/raildashboard
     steps:
       - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       # The same suite once more: the PR run checked a tree that carries a
-      # different SHA after the merge.
+      # different SHA after the merge. Through the shared layer cache it only
+      # reruns what differs from what the PR run checked – nothing, if master
+      # did not move in between.
       - name: make test
         run: make test
 
@@ -86,5 +100,11 @@ jobs:
             ${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:latest
           # Cache in the registry rather than the Actions cache: it survives
           # when the Actions cache is evicted.
-          cache-from: type=registry,ref=${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:buildcache
+          # Also the layers `make test` just built (docker-bake.hcl): the
+          # builder stages are the same, so apt, pip, npm and Maven do not
+          # run a second time. A missing ref is skipped.
+          cache-from: |
+            type=registry,ref=${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:buildcache
+            type=registry,ref=${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:pruefcache-runtime
+            type=registry,ref=${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:pruefcache-test
           cache-to: type=registry,ref=${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:buildcache,mode=max

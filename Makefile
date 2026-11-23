@@ -156,17 +156,16 @@ build-frontend:
 
 # The full check – the same command CI runs, with no steps of its own (ci.yml,
 # release.yml). Runs inside the Dockerfiles' test/check stages, so it needs only
-# docker and bash: same Python, Node and pinned dependencies as the images, and
-# the runtime images must build from the repo alone. GraphHopper is checked by its
-# test stage since #364 (docs/workflow.md, Ausnahmen).
+# docker (with buildx) and bash: same Python, Node and pinned dependencies as the
+# images, and the runtime images must build from the repo alone. GraphHopper is
+# checked by its test stage since #364 (docs/workflow.md, Ausnahmen).
+# The builds run in parallel through docker-bake.hcl; CI sets CACHE_REF to share
+# a registry cache between PR and master runs (empty = local docker cache).
+CACHE_REF ?=
+
 test:
 	bash deploy/test_prod.sh
-	docker build --target test --build-context skills=.claude/skills -t raildashboard-backend:pruefung $(BACKEND_DIR)
-	docker build --target check -t raildashboard-frontend:pruefung $(FRONTEND_DIR)
-	docker build --target runtime --build-context skills=.claude/skills -t raildashboard-backend:runtime $(BACKEND_DIR)
-	docker build --target runtime -t raildashboard-frontend:runtime $(FRONTEND_DIR)
-	docker build -t raildashboard-db:pruefung docker/db
-	docker build --target test -t raildashboard-graphhopper:pruefung docker/graphhopper
+	CACHE_REF=$(CACHE_REF) docker buildx bake -f docker-bake.hcl --progress=plain pruefung
 
 # Fast local loop against the project venv / node_modules (not what CI runs).
 test-local: test-backend test-frontend
