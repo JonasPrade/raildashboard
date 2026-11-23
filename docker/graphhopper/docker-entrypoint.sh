@@ -29,8 +29,12 @@ if [ ! -f "$OSM_FILE" ]; then
     exit 1
   fi
   echo "Downloading OSM extract from ${GH_OSM_URL} ..."
-  wget -q -O "${OSM_FILE}.tmp" "${GH_OSM_URL}" \
-    && mv "${OSM_FILE}.tmp" "${OSM_FILE}"
+  # curl, not wget: the runtime image guarantees wget only as a BusyBox fallback
+  # for the healthcheck, which does not verify TLS certificates. -f fails on an
+  # HTTP error, -L follows redirects (as wget did). A failed download stops here
+  # (set -e) instead of starting GraphHopper without a map.
+  curl -fsSL --retry 5 --retry-delay 10 -o "${OSM_FILE}.tmp" "${GH_OSM_URL}"
+  mv "${OSM_FILE}.tmp" "${OSM_FILE}"
   echo "Download complete."
 fi
 

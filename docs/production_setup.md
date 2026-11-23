@@ -556,6 +556,14 @@ docker compose --env-file .env logs -f graphhopper
 
 Folgestarts nutzen den Cache im Volume und starten in wenigen Sekunden.
 
+**Download und Healthcheck:** Der Entrypoint lädt die PBF mit `curl` (TLS geprüft, fünf
+Wiederholungen; scheitert der Download, startet GraphHopper nicht). Der Healthcheck in
+`compose.yaml` ruft `wget -qO- http://localhost:8989/health`. Das Image installiert nichts per
+apt: curl und wget bringt das Basis-Image `eclipse-temurin:17-jre` mit; fehlt wget in einem
+neueren Basis-Image, springt ein statisches BusyBox-`wget` ein (nur für den Healthcheck über
+HTTP, es prüft keine Zertifikate). Der Healthcheck-Befehl bleibt deshalb `wget`, mit allen
+Images vor und nach der Umstellung.
+
 **Graph-Cache und Image-Wechsel:** Das Image trägt einen Fingerabdruck seiner
 Routing-Konfiguration (`config.yml`, `custom_models/`, Patch an OpenRailRouting unter
 `docker/graphhopper/orr/`). Passt der Cache im Volume nicht dazu, verwirft der Entrypoint ihn
