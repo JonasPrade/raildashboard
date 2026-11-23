@@ -11,6 +11,10 @@
 # ---------------------------------------------------------------------------
 FROM python:3.13-slim AS builder
 
+# A hanging package mirror once held a CI run until its 30-minute timeout:
+# retry failed downloads and give up on a stalled connection after 60 s.
+RUN printf 'Acquire::Retries "5";\nAcquire::http::Timeout "60";\n' > /etc/apt/apt.conf.d/80-retries
+
 WORKDIR /build
 
 # build-essential is needed for any C-extension wheels (e.g. psycopg2 from source)
@@ -44,6 +48,10 @@ RUN python -m pytest --ignore=tests/db_related_tests -q -p no:warnings
 # Stage 2: runtime – lean image that only contains the app and the venv
 # ---------------------------------------------------------------------------
 FROM python:3.13-slim AS runtime
+
+# A hanging package mirror once held a CI run until its 30-minute timeout:
+# retry failed downloads and give up on a stalled connection after 60 s.
+RUN printf 'Acquire::Retries "5";\nAcquire::http::Timeout "60";\n' > /etc/apt/apt.conf.d/80-retries
 
 # libmagic1 is required at runtime by python-magic (MIME byte-sniffing for file uploads)
 RUN apt-get update && apt-get install -y --no-install-recommends \

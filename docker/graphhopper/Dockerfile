@@ -3,9 +3,20 @@
 #   orr/planned-tracks.patch  changes to existing OpenRailRouting files
 #   orr/overlay/              new files (encoded value railway_status, its parser, tests)
 # See docs/features/feature-routing.md → "Geplante und im Bau befindliche Gleise aus OSM".
+FROM node:20-slim AS node
+
 FROM maven:3-eclipse-temurin-17 AS builder
 
-RUN apt-get update && apt-get install -y git nodejs npm && rm -rf /var/lib/apt/lists/*
+# No apt in the stages `make test` builds: archive.ubuntu.com was slow enough from
+# GitHub's runners to hold two runs (#372, #373) at the 30-minute job limit. The
+# maven image already ships git and curl; node and npm (OpenRailRouting's pom
+# builds its web frontend with the system npm) come from the official node image,
+# the same major version as the frontend.
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
+COPY --from=node /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/npm
+RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+ && ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
+ && node --version && npm --version && git --version && curl --version | head -1
 
 RUN git clone --depth 1 --branch v1.1 --recurse-submodules \
     https://github.com/geofabrik/OpenRailRouting.git /build
@@ -28,7 +39,6 @@ RUN find /graphhopper/config.yml /graphhopper/custom_models /tmp/planned-tracks.
 # entrypoint and configuration against a small network with planned tracks.
 FROM builder AS test
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 # Through the JUnit console launcher, not `mvn test`: OpenRailRouting pins surefire 2.19 with
 # the old junit-platform-surefire-provider, which does not run JUnit 5.9 tests reliably.
 # --fail-if-no-tests: a test class that is not found must fail the build, not pass it.
@@ -45,6 +55,10 @@ RUN chmod +x /docker-entrypoint.sh && sh /test/smoke.sh
 
 # Stage 3: Runtime image
 FROM eclipse-temurin:17-jre AS runtime
+
+# A hanging package mirror once held a CI run until its 30-minute timeout:
+# retry failed downloads and give up on a stalled connection after 60 s.
+RUN printf 'Acquire::Retries "5";\nAcquire::http::Timeout "60";\n' > /etc/apt/apt.conf.d/80-retries
 
 RUN apt-get update && apt-get install -y --no-install-recommends wget && rm -rf /var/lib/apt/lists/*
 

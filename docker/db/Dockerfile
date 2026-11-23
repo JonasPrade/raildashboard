@@ -5,6 +5,10 @@
 
 FROM imresamu/postgis:16-3.4
 
+# A hanging package mirror once held a CI run until its 30-minute timeout:
+# retry failed downloads and give up on a stalled connection after 60 s.
+RUN printf 'Acquire::Retries "5";\nAcquire::http::Timeout "60";\n' > /etc/apt/apt.conf.d/80-retries
+
 # postgresql-16 is installed together with pgRouting: the current pgRouting package
 # requires a newer PostgreSQL 16 minor release than the base image ships (#366). A
 # minor update keeps the on-disk format, so existing data directories stay valid.
