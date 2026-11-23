@@ -288,7 +288,7 @@ Rückweg auf eine SHA vor #364 deshalb den Cache von Hand löschen, die PBF blei
 dann `docker compose up -d graphhopper`. Backend und `/healthz` sind davon nicht betroffen,
 nur das Routing. Der nächste Vorwärts-Deploy baut den Cache wieder von selbst.
 
-**GraphHopper ohne apt (seit #PRNR):** Das Image lädt die PBF mit `curl` statt `wget` und
+**GraphHopper ohne apt (seit #374):** Das Image lädt die PBF mit `curl` statt `wget` und
 installiert nichts mehr per apt; `wget` für den Healthcheck in `compose.yaml` bleibt im Image
 (aus dem Basis-Image, sonst BusyBox). Ältere Images haben wget aus apt. `compose.yaml` bleibt
 unverändert, Vor- und Rückweg brauchen keinen Handschritt.
