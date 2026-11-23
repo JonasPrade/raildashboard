@@ -40,9 +40,12 @@ Images; gebaut und geschoben wird in `release.yml`.
 liest und schreibt dann je Ziel einen Registry-Cache (`raildashboard-<dienst>:pruefcache-<ziel>`).
 Dafür haben die Prüf-Jobs zwei Schritte vor `make test` (buildx-Builder, GHCR-Login) — keine
 Prüfschritte, die Prüfung bleibt das eine Kommando. apt, pip, npm und Maven laufen nur
-noch, wenn sich ihre Eingaben ändern, statt bei jedem Lauf (#372: ein hängender
-Paketspiegel hielt einen Lauf bis zum 30-Minuten-Limit; zusätzlich gibt apt in allen
-Images nach 60 s ohne Daten auf und versucht es bis zu fünfmal). Lokal bleibt `CACHE_REF`
+noch, wenn sich ihre Eingaben ändern, statt bei jedem Lauf. Anlass: `archive.ubuntu.com`
+war von den GitHub-Runnern aus so langsam, dass der GraphHopper-Build zweimal am
+30-Minuten-Limit hing (#372, #373). Die GraphHopper-Stufen `builder` und `test` kommen
+deshalb ganz ohne apt aus (git und curl bringt das Maven-Image mit, node und npm kommen
+aus dem offiziellen Node-Image); wo apt bleibt, versucht es bis zu fünfmal und gibt nach
+60 s ohne Daten auf. Lokal bleibt `CACHE_REF`
 leer, es gilt der Cache des Docker-Daemons. Ein Cache-Treffer überspringt auch einen
 Testlauf: dieselben Quellen und Abhängigkeiten liefern dasselbe Ergebnis.
 
