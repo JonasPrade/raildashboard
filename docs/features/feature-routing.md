@@ -235,8 +235,8 @@ eine Projekt setzen. Ohne Haken tritt keiner dieser Fälle auf.
       Abschnitte und nennt die Kilometer je Status.
 - [ ] Gespeicherte Linien tragen ihre Herkunft; der Editor zeigt die Kilometer je Herkunft.
 - [ ] Vor dem Übernehmen: Abweichung von der bisherigen Geometrie sichtbar (Editor und MCP).
-- [ ] Nach dem Deploy startet GraphHopper mit neu gebautem Graphen von selbst.
-- [ ] Abgleich nach dem Deploy (siehe unten) gemeldet.
+- [x] Nach dem Deploy startet GraphHopper mit neu gebautem Graphen von selbst (Aufgabe #93, 2026-11-12).
+- [x] Abgleich nach dem Deploy (siehe unten) gemeldet (2026-11-12 und 2026-11-23).
 
 ### Abgleich nach dem Deploy
 
@@ -258,6 +258,30 @@ Berührt sind die Dashboard-Aufgaben #90 (1774 Blankenheim–Kirchheim: Neubauab
 routbar statt gezeichnet), #91 (Geometrien für das TRAVE-Zielnetz: getrennte Linien für Neubau
 und Bestand) und #92 (1535: die Angleichung an die Trasse des Zielfahrplans ist mit OSM als
 Vorlage möglich, sofern OSM dieselbe Trasse hat).
+
+#### Ergebnis (2026-11-12 und 2026-11-23)
+
+Am 2026-11-12 (nur Gleise mit Typ): 1845 ersetzt (OSM verbindet die Enden, 14,49 km); bei allen
+anderen fand der Router keine oder nur Splitter geplanter Gleise. Am 2026-11-23, nach #363, erneut
+mit `track_classes: ["rail", "unknown"]`, `use_proposed` und `use_construction`, ohne `apply`:
+
+| Projekt | Ergebnis | Aufgabe |
+|---|---|---|
+| 1783 | 57,3 km, davon 0,22 km im Bau, sonst Bestand; 4 % im Korridor | #94 offen |
+| 1507 | 66,3 km nur Bestand | #95 offen |
+| 1553 | kein Pfad | #97 offen |
+| 1510 | Geometrie aus Teilprojekten, nicht direkt routbar | #98 offen |
+| 1556 | 73,7 km nur Bestand | #99 offen |
+| 1535 | 98,1 km nur Bestand (über Minden), keine OSM-Trasse über Kirchhorsten | #100, #92 offen |
+| 1773 | 62,0 km, davon 0,51 km im Bau | #101 offen |
+| 1663 | 153,8 km nur Bestand, keine Variante routbar | #102 offen |
+| Gegenprobe | 1562, 1627, 1523, 1846 nur Bestand; 1486, 2018 kein Pfad | #103 erledigt |
+
+Kein Projekt hat einen Abschnitt der Gleisart `unknown`. Der Router-Code für typlose Planungen ist
+korrekt (Quelltext, Smoke-Test). Offen ist, ob OSM die Planungen gar nicht führt, mit einem Typwert,
+den der Router nicht kennt, oder als lose Wege, die als Kleinst-Teilnetz
+(`prepare.min_network_size`) aus dem Graphen fallen; Overpass ist aus der Sandbox nicht erreichbar.
+Nichts ersetzt; Entscheidung über das weitere Vorgehen: EK-2026-404.
 
 ## Gleisarten (S-Bahn, U-Bahn, Straßenbahn, Schmalspur) (Issue #363)
 
@@ -409,12 +433,12 @@ Stapel EKS-2026-051 im Vault; die letzten beiden aus der Rückfrage in der Umset
       wählbar; Vollbahn nie zusammen mit ihnen (Editor schaltet um, Backend lehnt ab);
       Kombination mit „geplant“/„im Bau“ möglich.
 - [ ] Typlose Planungen nur mit Haken „Gleisart unbekannt“ und Status-Schalter.
-- [ ] Treptower Park → Sonnenallee mit S-Bahn rund 2 km über den Ring (Prod-Probe nach dem
-      Deploy).
+- [x] Treptower Park → Sonnenallee mit S-Bahn rund 2 km über den Ring (Prod-Probe nach dem
+      Deploy: 2,41 km, nur `light_rail`; Vollbahn unverändert 7,05 km, 2026-11-23).
 - [ ] Linien tragen `railway_class`; Editor und MCP zeigen km je Gleisart.
 - [ ] Nach `make docker-import-osm-stops` findet die Suche U-Bahn- und Straßenbahnhalte mit
       Netz-Kürzel; Filter nach Netz in REST und MCP.
-- [ ] GraphHopper startet nach dem Deploy mit neu gebautem Graphen von selbst.
+- [x] GraphHopper startet nach dem Deploy mit neu gebautem Graphen von selbst.
 
 ### Abgleich nach dem Deploy
 
@@ -431,6 +455,30 @@ Stapel EKS-2026-051 im Vault; die letzten beiden aus der Rückfrage in der Umset
    (Dashboard-Aufgaben #94, #95, #97–#103).
 5. U-Bahn-Projekte (u. a. 2284, 2537) und die schematischen Stadtbahn-Trassen (EK 6-09)
    prüfen.
+
+#### Ergebnis (2026-11-23)
+
+1. Haltestellen-Import noch nicht gelaufen (`search_operational_points` „Hermannplatz“ mit
+   `networks: ["subway"]` leer) – Handschritt auf dem Server.
+2. Prod-Probe: S-Bahn 2,41 km über den Ring, Vollbahn 7,05 km über Baumschulenweg.
+3. i2030-S-Bahn (Deckung = Anteil der Route im 100-m-Korridor des Bestands):
+
+| Projekt | Ergebnis |
+|---|---|
+| 3226 Ostring | ersetzt: Gesundbrunnen – Treptower Park – Neukölln, 14,07 km `light_rail`, 96 %, max. 361 m; Skizze entfernt. Mit Wegpunkt Ostkreuz entsteht eine Schleife (Einrasten am Stadtbahn-Gleis), daher ohne |
+| 3227 Südring | ersetzt: Neukölln – Südkreuz (Ringbahn) – Westkreuz, 12,58 km `light_rail`, 100 %, max. 69 m. Endpunkt als Koordinate auf dem Ring; der Westkreuz-Wegpunkt rastet sonst auf dem Stadtbahn-Gleis ein (1 km Umweg) |
+| 3199 S25 Süd | Teltow Stadt – Stahnsdorf aus OSM-Planung angehängt (3,96 km geplant, `light_rail`), Länge 2,85 → 6,90 km |
+| 3229, 3213, 3215 | waren schon mit S-Bahn geroutet (2026-11-22) |
+| 3224, 3190 | siehe Kombimodus unten; Ersetzen offen (EK-2026-400) |
+| 3228 Nordkreuz | nicht ersetzt: am Kreuzungsbahnhof Gesundbrunnen wendet jede Route hinter dem Ziel (EK-2026-402) |
+| 3198 Innenring | Skizze Sonnenallee – Treptower Park über Vollbahn nicht routbar (7 km Umweg); mit Kombimodus 2,41 km über das S-Bahn-Gleis (EK-2026-401) |
+
+4. Neubaustrecken mit „Gleisart unbekannt“: siehe Ergebnis im Abschnitt zu #364 oben.
+5. U-Bahn: 2537 ersetzt (U5 22,09 km, 86 %; U8 18,06 km, 90 %; Länge 40,15 km). 2284 (U2/U5/U8)
+   nur 57–67 % im Korridor der groben Skizzen, U2 endet rund 1 km vor Pankow (EK-2026-400).
+   Stadtbahn-Trassen aus EK 6-09: 2937 deckt sich mit der OSM-Planung auf 3 m und ist ersetzt
+   (Linie jetzt `light_rail`, geplant); 2936 hat in OSM eine abweichende Planung (EK-2026-403);
+   2917 und 2938 ohne Planung in OSM.
 
 ## Kombimodus: Lücken über andere Gleisarten überbrücken (2026-11-23)
 
@@ -533,7 +581,8 @@ Hennigsdorf). Ostkreuz – Erkner, Buch – Bernau und Hoppegarten – Strausber
 - [x] Ergebnis nennt `bridged_km` und `foreign_waypoints`; Editor-Vorschau zeigt beides.
 - [x] „Westkreuz S-Bahn“ findet „Berlin Westkreuz␣␣␣S-Bahn“; leerer Netzfilter nennt Treffer
       in anderen Netzen.
-- [ ] Nach dem Deploy: 3224 und 3190 mit `light_rail` + `bridge_gaps` routbar (Abgleich unten).
+- [x] Nach dem Deploy: 3224 und 3190 mit `light_rail` + `bridge_gaps` routbar (Abgleich unten;
+      Ersetzen offen, EK-2026-400).
 
 ### Abgleich nach dem Deploy
 
@@ -543,3 +592,16 @@ und `bridge_gaps: true` ohne `apply` routen; `route.bridged_km` sollte nur die b
 Stücke enthalten (Birkenwerder, Kremmener Bahn), `foreign_waypoints` leer sein. Bei mindestens
 85 % Deckung mit dem Bestand `mode: "replace"`, `apply: true`, danach
 `compute_project_length(apply=true)`.
+
+#### Ergebnis (2026-11-23)
+
+- **3224:** 14,16 km, `bridged_km` 0,76 (nur Birkenwerder), `foreign_waypoints` leer; 80 % im
+  Korridor, mittlere Abweichung 64 m, max. 342 m. Unter 85 %, weil der Bestand eine Skizze
+  Frohnau – Hohen Neuendorf enthält → nicht ersetzt, EK-2026-400.
+- **3190:** Schönholz – Hennigsdorf 15,22 km, `bridged_km` 4,91 (Kremmener Bahn), `foreign_waypoints`
+  leer, 58 % im Korridor der Halte-Skizze. Das Projekt reicht bis Velten; in einem Zug entsteht eine
+  Wende in Hennigsdorf, daher Hennigsdorf – Velten getrennt mit Vollbahn (6,17 km, 99 %). Mit
+  Kombimodus rastet Hennigsdorf auf dem S-Bahn-Gleis ein (51 km, `foreign_waypoints: [0]`) – der
+  Hinweis wirkt wie vorgesehen. Nicht ersetzt, EK-2026-400.
+- Betriebsstellensuche: „Gesundbrunnen S-Bahn“ findet den aufgefüllten RINF-Namen; „Westkreuz“
+  heißt in RINF „Berlin Westkreuz (Ringbahn)“ bzw. „(Stadtbahn)“, ohne „S-Bahn“.

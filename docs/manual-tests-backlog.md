@@ -11,31 +11,15 @@ Test-Checkliste des ermöglichenden Issues hochgezogen und hier entfernt.
 
 ---
 
-## Kombimodus beim Routen #371 — braucht Deploy
+## Gleisarten beim Routen #363 — braucht den Haltestellen-Import
 
-Erst prüfbar, nachdem die SHA mit #371 ausgerollt ist (kein Graph-Neubau nötig).
-
-- [ ] Geometrie-Editor eines Testprojekts: Start „Frohnau“, Ziel „Oranienburg“, Gleisart **S-Bahn/Stadtbahn** → „Kein Pfad gefunden …“ mit Hinweis auf „Lücken über andere Gleisarten überbrücken“.
-- [ ] Haken **„Lücken über andere Gleisarten überbrücken“** setzen, „Route berechnen“ → Route über Birkenwerder, Vorschau nennt „Überbrückt über andere Gleisarten: … km“ (unter 2 km) und keine Wegpunkt-Warnung.
-- [ ] MCP: `search_operational_points` mit „Westkreuz S-Bahn“ findet „Berlin Westkreuz S-Bahn“; mit `networks: ["light_rail"]` und „Neukölln“ → leere Liste, `hint` nennt `rail`.
-- [ ] MCP: 3190 von op 707 nach op 4949 mit `track_classes: ["light_rail"]`, `bridge_gaps: true`, ohne `apply` → Pfad ohne Umweg, `route.bridged_km` nur für die Kremmener Bahn bei Tegel.
-
-## Gleisarten beim Routen #363 — braucht Deploy, Graph-Neubau und Haltestellen-Import
-
-Erst prüfbar, nachdem die SHA mit #363 ausgerollt ist, GraphHopper den Graphen neu gebaut hat
-(Log „Routing configuration changed“, danach `Started`) und `make docker-import-osm-stops` lief:
+Deploy und Graph-Neubau sind erledigt (2026-11-23), die MCP-Punkte geprüft und die UI-Punkte ohne
+Haltestellen als Test-Checkliste an #363 und #371 gezogen. Offen bleibt, was
+`make docker-import-osm-stops` auf dem Server voraussetzt (Handschritt):
 
 - [ ] `make docker-import-osm-stops ARGS=--dry-run` nennt Zahlen für `light_rail`, `subway` und `tram`; danach ohne `--dry-run` „created …“; ein zweiter Lauf meldet nur „unchanged“/„updated“.
 - [ ] Projekt öffnen → Geometrie bearbeiten → Startbahnhof „Treptower Park“ suchen: der RINF-Treffer (Code `DE00BTP`) erscheint ohne Kürzel; „Hermannplatz“ zeigt Treffer mit Kürzel **U** (Untertitel „U-Bahn (OSM)“) und ggf. **Tram**.
-- [ ] Start „Treptower Park“, Ziel „Sonnenallee“, Gleisart nur **Vollbahn** → Route wie bisher (rund 7 km über Baumschulenweg), Vorschau ohne Zeile „km je Gleisart“.
-- [ ] Gleisart **S-Bahn/Stadtbahn** anhaken → **Vollbahn** wird automatisch abgehakt; „Route berechnen“ → rund 2 km über den Ring, Vorschau nennt „S-Bahn/Stadtbahn: … km“.
-- [ ] **Vollbahn** wieder anhaken → S-Bahn/Stadtbahn wird abgehakt. Letzte Gleisart abhaken → Vollbahn ist wieder an.
-- [ ] „Planungen ohne Gleisart (OSM)“ ist ausgegraut, solange weder „Gleise im Bau“ noch „Geplante Gleise“ an ist.
-- [ ] Route mit S-Bahn übernehmen → unter „Aktuelle Geometrie“ erscheint „Gleisart der Linien: S-Bahn/Stadtbahn: … km“; alte Linien zählen als „Ohne Gleisart“.
-- [ ] Start und Ziel nur über Vollbahn verbunden, Gleisart U-Bahn → Meldung „Kein Pfad gefunden. Die gewählten Gleisarten verbinden … abschnittsweise routen“.
-- [ ] MCP: `route_project_geometry` mit `track_classes: ["rail", "subway"]` → Fehler „Ungültige Netzauswahl“; mit `["light_rail"]` zwischen DE00BTP und DE00BSO ohne `apply` → `route.class_km` nur `light_rail`, rund 2 km.
 - [ ] MCP: `search_operational_points` mit `query: "Hermannplatz", networks: ["subway"]` liefert nur OSM-Halte (`op_id` `OSM-…`, `network: "subway"`).
-- [ ] MCP: Neubaustrecke aus dem #364-Abgleich (z. B. 1507) mit `use_proposed: true, track_classes: ["rail", "unknown"]` ohne `apply` → Abschnitte mit `railway_class: "unknown"`, falls OSM die Planung ohne Typ führt.
 
 ## Zeitgesteuerte Abrufe #340 — Scheduler auf prod (braucht Deploy + Handschritt)
 
