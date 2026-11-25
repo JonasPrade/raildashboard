@@ -17,8 +17,11 @@ PR {pr} ist gerade entstanden. Das ist Jonas' dauerhafter Auftrag, ohne Rückfra
 
 1. `subscribe_pr_activity` für {owner}/{repo}#{nummer} aufrufen und auf die \
 CI-Ereignisse warten — nicht mit `sleep` pollen.
-2. Wird die CI rot: Ursache finden, lokal mit `make test` nachstellen, beheben, \
-pushen. So lange \
+2. Wird die CI rot: Ursache aus dem Job-Log finden — nur den Ausschnitt um den \
+Fehler lesen, nicht das ganze Log. Nur wenn nötig lokal nachstellen, zuerst gezielt \
+(einzelne pytest-/Vitest-Datei oder `make test-local`), das volle `make test` nur, \
+wenn der Fehler sonst nicht auftritt; Ausgabe immer in eine Datei umleiten und nur \
+das Ende lesen. Beheben, pushen. So lange \
 wiederholen, bis die CI auf dem aktuellen Head grün ist. Nie einen Test \
 überspringen oder abschalten.
 3. Ist die CI grün, gibt es keinen Merge-Konflikt und keinen offenen \

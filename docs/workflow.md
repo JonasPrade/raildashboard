@@ -119,6 +119,20 @@ ohne Interpolation und kann damit nur dieses eine Skript ausführen.
 
 ## Beim Arbeiten
 
+**Wer wann prüft.** Die volle Prüfung läuft zweimal, beide Male in der CI: auf dem PR
+(`ci.yml` — `pull_request` prüft schon den Merge-Stand `refs/pull/N/merge`, nicht nur den
+Branch) und nach dem Merge (`release.yml`, als Bedingung für die Images; dank Layer-Cache
+in etwa einer Minute). Lokal fährt der Agent nur die Tests, die seine Änderung berührt:
+einzelne Dateien (`cd apps/backend && .venv/bin/python -m pytest tests/test_x.py`,
+`npm --prefix apps/frontend run test -- src/x.test.ts`) oder `make test-local`. Das volle
+`make test` lokal nur, um einen roten CI-Lauf nachzustellen, der sich so nicht zeigt. Grund:
+dasselbe Kommando lokal und auf dem PR prüft dasselbe zweimal, und lokal landet sein Log im
+Kontext des Agenten.
+
+**Ausgaben nicht in den Kontext.** Test- und Build-Ausgaben gehen in eine Datei, gelesen
+wird das Ende (`make test > /tmp/pruefung.log 2>&1; tail -n 60 /tmp/pruefung.log`), bei
+Bedarf gezielt mit `grep`. Rote CI-Logs ebenso: nur den Ausschnitt um den Fehler.
+
 Änderungen laufen über Branch und PR. Was auf dem Server repariert wird, geht im selben
 Zug zurück in einen PR — sonst ist der nächste Deploy die Rückabwicklung der Reparatur.
 `compose.yaml` und `prod.sh` kommen nicht mehr mit der Pipeline auf den Server; ändern sie

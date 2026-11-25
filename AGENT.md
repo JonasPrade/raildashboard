@@ -70,6 +70,10 @@ Begründungen und Ausnahmen in `docs/workflow.md`, die Handschritte in
 Konventionen für den Agenten:
 - **`make test` ist die Prüfung**, lokal wie in der CI; die Workflows haben keine eigenen
   Prüfschritte. `make test-local` ist nur die schnelle Schleife.
+- **Lokal nur gezielt testen**: die betroffenen pytest-/Vitest-Dateien oder `make test-local`.
+  Das volle `make test` fährt die CI auf dem PR und nach dem Merge; lokal nur, um einen roten
+  CI-Lauf nachzustellen. Test- und Build-Ausgaben in eine Datei umleiten und nur das Ende
+  lesen, rote CI-Logs nur als Ausschnitt (`docs/workflow.md`, „Beim Arbeiten“).
 - **Build und Run trennen**: In `compose.yaml` stehen ausschließlich
   `image: ghcr.io/jonasprade/raildashboard-<svc>:${IMAGE_TAG}`-Referenzen — nie `build:`.
   Lokale Build-Blöcke gehören in `compose.override.yaml`.
