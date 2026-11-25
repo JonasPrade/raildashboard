@@ -11,7 +11,7 @@ Standard über der Linie „Ausnahmen" ist derselbe wie in `JonasPrade/dtakt_mit
 | Laufzeit | Backend Python 3.13 (`apps/backend/Dockerfile`), Abhängigkeiten exakt gepinnt in `apps/backend/requirements.txt` · Frontend Node 20, `package-lock.json` |
 | Datenhaltung | PostgreSQL 16 + PostGIS + pgRouting (`docker/db`), SQLAlchemy 2.x, Alembic · Redis als Celery-Broker · GraphHopper (OpenRailRouting) für Routen |
 | Eingehende Nahtstellen | Host-nginx (systemd) terminiert TLS für `dashboard.schienengruen.de` und leitet auf `127.0.0.1:5000` (Container-nginx im `frontend`-Image), der `/api/`, `/mcp` und `/healthz` an `backend:8000` weiterreicht · Login per Session, MCP per persönlichem API-Key · Volumes `pgdata`, `uploads`, `ghdata` · `backups/` als Bind-Mount |
-| Zielhost und Architektur | Contabo-Host `vmd92747.contaboserver.net`, **`linux/amd64`** (`uname -m` → `x86_64`). Deshalb baut `ubuntu-latest` ohne `platforms:` das passende Image. Auf dem Host laufen weitere Dienste — nur `/srv/raildashboard` anfassen. Die erreichbare Adresse steht im Secret `DEPLOY_HOST`. |
+| Zielhost und Architektur | Contabo-Host `vmd92747.contaboserver.net`, **`linux/amd64`** (`uname -m` → `x86_64`). Deshalb baut `ubuntu-latest` ohne `platforms:` das passende Image; der arm64-Runner aus `docs/ci-runner-hetzner.md` baut keine Images, er führt nur `make test` aus. Auf dem Host laufen weitere Dienste — nur `/srv/raildashboard` anfassen. Die erreichbare Adresse steht im Secret `DEPLOY_HOST`. |
 | Images | `ghcr.io/jonasprade/raildashboard-{backend,frontend,db,graphhopper}` (`redis:7-alpine` von Docker Hub) |
 | Prod-URL | `https://dashboard.schienengruen.de` |
 
@@ -151,6 +151,8 @@ Ein frischer Klon reproduziert das hier nicht. Abgearbeitet in `docs/uebergabe-d
 - `docker login ghcr.io` als `deploy` mit einem classic PAT mit `read:packages`
 - `compose.yaml` und `prod.sh` im Dienstverzeichnis
 - alte Auslöser abschalten (Tag-Deploy), sonst rollt ein Tag weiter aus
+- Self-hosted Runner `hetzner-dev` (arm64) für `ci.yml`, zweite Instanz für dieses Repo,
+  siehe `docs/ci-runner-hetzner.md`; `release.yml` und `deploy.yml` bleiben auf `ubuntu-latest`
 
 ## Ausnahmen in diesem Repo
 
