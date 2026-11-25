@@ -39,20 +39,43 @@ deploy.yml ruft danach https://dashboard.schienengruen.de/healthz von außen auf
 ```
 
 **Einmalige Nacharbeiten nach einem Deploy** stehen im `CHANGELOG.md` beim jeweiligen
-Eintrag. Aktuell: Nach der Migration `20261022004` (Datumsqualifikation) einmal
-`docker compose exec backend python scripts/refresh_progress_dates.py`
-(`make docker-refresh-progress-dates`) auf dem Server ausführen. Das füllt den Termin-Cache
-der Projektlisten; bis dahin sind dort die Bau- und IB-Termine leer. Es ist idempotent,
-und ein Rollback braucht es nicht.
+Eintrag. Die Skript-Befehle laufen auf dem Server im Dienstverzeichnis, ohne `make`
+(Regeln: „Wartungsskripte im Container“ unten). Aktuell: Nach der Migration `20261022004`
+(Datumsqualifikation) einmal
+
+```bash
+cd /srv/raildashboard
+docker compose exec backend python scripts/refresh_progress_dates.py
+```
+
+ausführen (lokal im Checkout: `make docker-refresh-progress-dates`). Das füllt den
+Termin-Cache der Projektlisten; bis dahin sind dort die Bau- und IB-Termine leer. Es ist
+idempotent, und ein Rollback braucht es nicht.
 
 Ändert ein Deploy die Ableitung des Planungsstands (z. B. eine neue Quelle), danach einmal
-unter *Einstellungen → Planungsstand-Konflikte* „Alle Projekte neu berechnen“ drücken oder
-`docker compose exec backend python scripts/recompute_progress.py`
-(`make docker-recompute-progress`) ausführen. Das schreibt Planungsstand und Termin-Cache
-aller Projekte neu (schließt `refresh_progress_dates.py` ein), ist idempotent und braucht
-keinen Rollback.
+unter *Einstellungen → Planungsstand-Konflikte* „Alle Projekte neu berechnen“ drücken (läuft
+im Worker, der Weg der Wahl; läuft sonst sonntags 03:10 von selbst) oder auf dem Server
+
+```bash
+cd /srv/raildashboard
+docker compose exec backend python scripts/recompute_progress.py
+```
+
+ausführen (lokal: `make docker-recompute-progress`). Das schreibt Planungsstand und
+Termin-Cache aller Projekte neu (schließt `refresh_progress_dates.py` ein), ist idempotent
+und braucht keinen Rollback.
 Aktuell nötig nach dem Fix für VIB-PFA-Prognosen (#262): erst danach verschwinden die
 falschen „In Betrieb“-Beobachtungen aus „vsl.“-Terminen in allen Listen.
+
+Nach dem Deploy von #363 (Routing über S-Bahn, U-Bahn, Straßenbahn) einmal die Haltestellen
+einlesen, zuerst nur zählen, dann schreiben (wiederholbar). Das Backend braucht Zugang zu
+`overpass-api.de`; ein anderer Endpunkt geht mit `--overpass-url <url>`:
+
+```bash
+cd /srv/raildashboard
+docker compose exec backend python scripts/import_osm_stops.py --dry-run
+docker compose exec backend python scripts/import_osm_stops.py
+```
 
 Kein Handschritt braucht die Migration `20261027001` (Überlappungen auf der Karte): Findet das
 Backend beim Start die Tabelle `project_map_geometry` leer, stößt es selbst einmal die
@@ -64,6 +87,37 @@ Celery-Aufgabe `recompute_all_overlaps_task` an (Worker, blockiert weder Start n
 jemand „jetzt" sagt, und band die Auslieferung an eine Versionsnummer, obwohl das
 Image am Commit hängt. Tags und `CHANGELOG.md` bleiben
 nützlich, um Stände zu benennen; ausgerollt wird über den SHA.
+
+### Wartungsskripte im Container
+
+Die Skripte unter `apps/backend/scripts/` laufen auf dem Server **im laufenden
+`backend`-Container**. Dort liegt kein Makefile und kein Checkout; `make docker-…` gibt es
+nur im lokalen Checkout.
+
+- Immer im Dienstverzeichnis: `cd /srv/raildashboard`, dann
+  `docker compose exec backend python scripts/<name>.py …`. Kein `--env-file .env`
+  nötig, Compose liest die `.env` im Projektverzeichnis selbst.
+- Arbeitsverzeichnis im Container ist `/app`, Benutzer `appuser`. Ohne Terminal (z. B.
+  per `ssh … '…'`) `exec -T` verwenden; Skripte mit Passwortabfrage (`change_password.py`)
+  brauchen das Terminal.
+- Das Image setzt `PYTHONPATH=/app`, sonst findet ein Skript `dashboard_backend` nicht
+  (`ModuleNotFoundError`). Die Stufe `scripts-check` in `make test` lädt jedes Skript im
+  Runtime-Image und hält das fest; ein neues Skript startet dort ohne Zusatz oder der Build
+  bricht ab.
+- **Images vor diesem Fix** (auch nach einem Rollback auf eine ältere SHA) haben kein
+  `PYTHONPATH`: dann `docker compose exec -e PYTHONPATH=/app backend python scripts/<name>.py …`.
+  Erste SHA mit dem Fix: nach dem ersten Deploy hier eintragen.
+
+| Zweck | Befehl (nach `cd /srv/raildashboard`) |
+|---|---|
+| Ersten Admin anlegen | `docker compose exec backend python scripts/create_initial_user.py --username <name> --role admin` |
+| Passwort ändern | `docker compose exec backend python scripts/change_password.py --username <name>` |
+| Nutzer auflisten | `docker compose exec backend python scripts/list_users.py` |
+| Nutzer löschen | `docker compose exec backend python scripts/delete_user.py --username <name>` |
+| Planungsstand und Termin-Cache neu berechnen | `docker compose exec backend python scripts/recompute_progress.py` (oder der Knopf im Admin-Bereich) |
+| Termin-Cache füllen | `docker compose exec backend python scripts/refresh_progress_dates.py` |
+| OSM-Haltestellen einlesen (#363) | `docker compose exec backend python scripts/import_osm_stops.py [--dry-run]` |
+| Infraplan-Entwürfe reparieren | `docker compose exec backend python scripts/repair_infraplan_full_stops.py [--apply]` |
 
 ## Server-Layout (`/srv/raildashboard/` auf vmd92747, Benutzer `deploy`)
 
@@ -293,6 +347,10 @@ installiert nichts mehr per apt; `wget` für den Healthcheck in `compose.yaml` b
 (aus dem Basis-Image, sonst BusyBox). Ältere Images haben wget aus apt. `compose.yaml` bleibt
 unverändert, Vor- und Rückweg brauchen keinen Handschritt.
 
+**Rückweg auf eine SHA vor dem `PYTHONPATH`-Fix:** Die Skript-Befehle brauchen dort
+`-e PYTHONPATH=/app` (Abschnitt „Wartungsskripte im Container“); Backend, Worker und
+`/healthz` sind nicht betroffen.
+
 **Achtung beim Rückweg auf v0.0.14:** Der erste Deploy fährt die Migration
 `20260928001`, die `project.centroid` löscht. v0.0.14 mappt die Spalte noch, und sein
 Entrypoint kennt `db_ahead.py` nicht. Ein Rückweg auf v0.0.14 nach dem ersten Deploy
@@ -305,6 +363,9 @@ braucht deshalb den Restore des Dumps von direkt davor (`backups/pre-migrate_…
 - [ ] Neue Konfiguration in `.env.prod.example`; neue Pflicht-Felder in `Settings`
       zusätzlich mit Default in `apps/backend/tests/conftest.py`.
 - [ ] `/healthz` deckt neue Pflicht-Abhängigkeiten mit ab.
+- [ ] Neue Skripte unter `apps/backend/scripts/` starten im Runtime-Image ohne Zusatz
+      (Stufe `scripts-check`, `apps/backend/check_scripts.py`): `if __name__ == "__main__":`-Schutz
+      und Importe über `dashboard_backend`, kein eigener `sys.path`-Eingriff nötig.
 - [ ] Migrationen: Alembic, rückwärtskompatibel (Expand/Contract). Spalten erst im
       Release **nach** dem löschen, ab dem der Code sie nicht mehr mappt.
 - [ ] Kein Zustand im Containerlayer (Uploads/DB/Backups → Volumes bzw. `backups/`).

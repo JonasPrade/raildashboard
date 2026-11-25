@@ -86,6 +86,7 @@ GitHub in [`docs/uebergabe-deploy.md`](uebergabe-deploy.md). Kurzfassung:
 | Punkt | Wert |
 |-------|------|
 | Prüfung | `make test` — in `ci.yml` (`pull_request`, Job `Prüfung`) und `release.yml` (`push [master]`), ohne eigene Prüfschritte; beide teilen einen Layer-Cache in GHCR (`…:pruefcache-*`, `docker-bake.hcl`) |
+| CI-Runner | `ci.yml` (Job `Prüfung`) läuft auf dem Self-hosted Runner `hetzner-dev` (linux/arm64, ohne Secrets, ohne GHCR), Einrichtung in [`docs/ci-runner-hetzner.md`](ci-runner-hetzner.md). `release.yml` (Image-Build, amd64) und `deploy.yml` bleiben auf `ubuntu-latest`. |
 | Images | `ghcr.io/jonasprade/raildashboard-{backend,frontend,db,graphhopper}:<commit-sha>` (+ `:latest`), gebaut von `release.yml` nach grüner Prüfung |
 | Auslieferung | `deploy.yml`, von Hand: *Actions → deploy → Run workflow*; SHA leer = `master`, Rollback = frühere SHA; ein zweiter Lauf wartet auf den ersten (`cancel-in-progress: false`) |
 | Host | Contabo `vmd92747`, `/srv/raildashboard`, Benutzer `deploy` (Gruppe `docker`, kein sudo). Auf dem Host laufen weitere Dienste — nur `/srv/raildashboard` anfassen. |
@@ -223,6 +224,9 @@ Bei einer frischen Datenbank kann der allererste Lauf am Backup scheitern, weil 
 während `initdb` kurz bereit meldet und dann neu startet; ein zweiter Lauf geht durch.
 
 Alembic-Migrationen laufen automatisch beim Start des Backend-Containers (via `docker-entrypoint.sh`).
+Wartungsskripte (Nutzer, Neuberechnungen, Haltestellen-Import) laufen im Container per
+`docker compose exec backend python scripts/<name>.py`, nicht per `make`
+([`DEPLOY.md`](../DEPLOY.md), „Wartungsskripte im Container“).
 
 ### Datenmigration (einmalig, vor dem ersten Start)
 
@@ -322,17 +326,27 @@ Auf dem Laptop denselben `COUNT(*)`-Vergleich gegen dev laufen lassen — die Za
 
 ### Nutzerverwaltung (Docker)
 
+Auf dem Server (kein Makefile; Regeln und Hinweis für Images vor dem `PYTHONPATH`-Fix:
+[`DEPLOY.md`](../DEPLOY.md), „Wartungsskripte im Container“):
+
 ```bash
-# Neuen Nutzer anlegen
-make docker-create-user USERNAME=admin ROLE=admin
-# Rollen: viewer | editor | admin
+cd /srv/raildashboard
 
-# Nutzer auflisten (lokale venv-Umgebung nötig)
-make list-users
+# Neuen Nutzer anlegen (Rollen: viewer | editor | admin)
+docker compose exec backend python scripts/create_initial_user.py --username <name> --role <rolle>
 
-# Passwort ändern (läuft im Backend-Container)
-docker compose --env-file .env exec backend python scripts/change_password.py --username <name>
+# Nutzer auflisten
+docker compose exec backend python scripts/list_users.py
+
+# Passwort ändern (fragt im Terminal nach dem neuen Passwort)
+docker compose exec backend python scripts/change_password.py --username <name>
+
+# Nutzer löschen
+docker compose exec backend python scripts/delete_user.py --username <name>
 ```
+
+Im lokalen Checkout geht dasselbe als `make docker-create-user USERNAME=<name> ROLE=<rolle>`,
+`make list-users` (lokale venv) und `make docker-delete-user USERNAME=<name>`.
 
 ### Logs und Monitoring
 
@@ -508,7 +522,7 @@ cd /srv/raildashboard && docker compose exec backend python scripts/refresh_prog
 
 Ändert ein Deploy die Ableitung des Planungsstands (z. B. die Quelle GVFG), danach einmal
 alle Projekte neu berechnen: im Admin-Bereich unter „Planungsstand-Konflikte“ der Knopf
-„Alle Projekte neu berechnen“ (läuft im Worker) oder auf dem Server
+„Alle Projekte neu berechnen“ (läuft im Worker, der Weg der Wahl) oder auf dem Server
 
 ```bash
 cd /srv/raildashboard && docker compose exec backend python scripts/recompute_progress.py
@@ -577,10 +591,13 @@ Straßenbahn, Schmalspur und geplante Gleise ohne Gleistyp.
 **Haltestellen von U-Bahn, S-Bahn und Straßenbahn (#363):** kommen nicht aus RINF, sondern aus
 OSM (Overpass-API) und werden einmalig nach dem Deploy und danach bei Bedarf eingelesen:
 ```bash
-make docker-import-osm-stops ARGS=--dry-run   # nur zählen
-make docker-import-osm-stops                  # schreiben (erneut ausführbar)
+cd /srv/raildashboard
+docker compose exec backend python scripts/import_osm_stops.py --dry-run   # nur zählen
+docker compose exec backend python scripts/import_osm_stops.py             # schreiben (erneut ausführbar)
 ```
-Braucht Zugang zu `overpass-api.de` (oder `OVERPASS_URL` im Container setzen).
+Braucht Zugang zu `overpass-api.de`; ein anderer Endpunkt geht mit `--overpass-url <url>`
+(`compose.yaml` reicht `OVERPASS_URL` nicht in den Container durch). Im lokalen Checkout:
+`make docker-import-osm-stops ARGS=--dry-run`.
 
 **OSM-Extrakt aktualisieren:** `GRAPH_VERSION` in `.env` hochzählen (busted Route-Cache), dann den Stack neu starten. Das Volume `ghdata` löschen, damit GraphHopper die neue PBF herunterlädt:
 ```bash

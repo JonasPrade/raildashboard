@@ -265,3 +265,22 @@ Deploy der SHA mit #340:
 
 Ein Rollback auf eine SHA vor #340 braucht keinen Handschritt: der `scheduler` startet
 dann mit dem älteren Image ohne Zeitplan und tut nichts (DEPLOY.md, „Rollback“).
+
+---
+
+## Wartungsskripte im Container (`PYTHONPATH`-Fix) — Abnahme nach dem Deploy
+
+Das Backend-Image setzt `PYTHONPATH=/app`; vorher scheiterten `docker compose exec backend
+python scripts/<name>.py` mit `ModuleNotFoundError: dashboard_backend` (`DEPLOY.md`,
+„Wartungsskripte im Container“). Kein Handschritt am Server nötig, nur eine Abnahme nach dem
+Deploy der SHA mit dem Fix, als `deploy`:
+
+```bash
+cd /srv/raildashboard
+docker compose exec backend printenv PYTHONPATH
+docker compose exec backend python scripts/import_osm_stops.py --help
+```
+
+Erwartet: `/app`, dann die Hilfe des Skripts (kein `ModuleNotFoundError`). Danach die erste
+SHA mit dem Fix in `DEPLOY.md` („Wartungsskripte im Container“) eintragen und den
+Haltestellen-Import aus `DEPLOY.md` („Einmalige Nacharbeiten“) fahren.

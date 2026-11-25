@@ -34,7 +34,7 @@ function "cache_to" {
 }
 
 group "pruefung" {
-  targets = ["backend-test", "frontend-check", "backend-runtime", "frontend-runtime", "db", "graphhopper-test", "graphhopper-runtime"]
+  targets = ["backend-test", "frontend-check", "backend-runtime", "backend-scripts", "frontend-runtime", "db", "graphhopper-test", "graphhopper-runtime"]
 }
 
 target "_pruefung" {
@@ -67,6 +67,16 @@ target "backend-runtime" {
   contexts   = { skills = ".claude/skills" }
   cache-from = cache_from("backend", "runtime", true)
   cache-to   = cache_to("backend", "runtime")
+}
+
+# Every scripts/*.py loads in the runtime image (stage scripts-check, check_scripts.py)
+target "backend-scripts" {
+  inherits   = ["_pruefung"]
+  context    = "apps/backend"
+  target     = "scripts-check"
+  contexts   = { skills = ".claude/skills" }
+  cache-from = cache_from("backend", "scripts", true)
+  cache-to   = cache_to("backend", "scripts")
 }
 
 target "frontend-runtime" {

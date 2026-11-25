@@ -51,6 +51,10 @@ Konsequenzen für Änderungen:
   One-shot-Dienst `backup`, der Entrypoint überspringt die Migration bei einer DB, die weiter
   ist als der Code (`apps/backend/scripts/db_ahead.py`).
 - `apps/backend/requirements.txt` bleibt exakt (`==`) gepinnt.
+- **Skripte unter `apps/backend/scripts/` starten im Runtime-Image ohne Zusatz** (`ENV PYTHONPATH=/app`):
+  auf dem Server `cd /srv/raildashboard` + `docker compose exec backend python scripts/<name>.py`,
+  nie `make`. Die Stufe `scripts-check` (`apps/backend/check_scripts.py`) lädt jedes Skript;
+  es braucht den `if __name__ == "__main__":`-Schutz. Regeln: `DEPLOY.md`, „Wartungsskripte im Container“.
 - Neue **Pflicht-Felder in `Settings`** (`core/config.py`) brauchen einen Default in
   `apps/backend/tests/conftest.py` (`os.environ.setdefault(...)`), sonst bricht `make test`
   auf einem sauberen Checkout ohne `.env`.

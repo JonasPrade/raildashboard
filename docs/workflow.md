@@ -11,7 +11,7 @@ Standard über der Linie „Ausnahmen" ist derselbe wie in `JonasPrade/dtakt_mit
 | Laufzeit | Backend Python 3.13 (`apps/backend/Dockerfile`), Abhängigkeiten exakt gepinnt in `apps/backend/requirements.txt` · Frontend Node 20, `package-lock.json` |
 | Datenhaltung | PostgreSQL 16 + PostGIS + pgRouting (`docker/db`), SQLAlchemy 2.x, Alembic · Redis als Celery-Broker · GraphHopper (OpenRailRouting) für Routen |
 | Eingehende Nahtstellen | Host-nginx (systemd) terminiert TLS für `dashboard.schienengruen.de` und leitet auf `127.0.0.1:5000` (Container-nginx im `frontend`-Image), der `/api/`, `/mcp` und `/healthz` an `backend:8000` weiterreicht · Login per Session, MCP per persönlichem API-Key · Volumes `pgdata`, `uploads`, `ghdata` · `backups/` als Bind-Mount |
-| Zielhost und Architektur | Contabo-Host `vmd92747.contaboserver.net`, **`linux/amd64`** (`uname -m` → `x86_64`). Deshalb baut `ubuntu-latest` ohne `platforms:` das passende Image. Auf dem Host laufen weitere Dienste — nur `/srv/raildashboard` anfassen. Die erreichbare Adresse steht im Secret `DEPLOY_HOST`. |
+| Zielhost und Architektur | Contabo-Host `vmd92747.contaboserver.net`, **`linux/amd64`** (`uname -m` → `x86_64`). Deshalb baut `ubuntu-latest` ohne `platforms:` das passende Image; der arm64-Runner aus `docs/ci-runner-hetzner.md` baut keine Images, er führt nur `make test` aus. Auf dem Host laufen weitere Dienste — nur `/srv/raildashboard` anfassen. Die erreichbare Adresse steht im Secret `DEPLOY_HOST`. |
 | Images | `ghcr.io/jonasprade/raildashboard-{backend,frontend,db,graphhopper}` (`redis:7-alpine` von Docker Hub) |
 | Prod-URL | `https://dashboard.schienengruen.de` |
 
@@ -119,6 +119,20 @@ ohne Interpolation und kann damit nur dieses eine Skript ausführen.
 
 ## Beim Arbeiten
 
+**Wer wann prüft.** Die volle Prüfung läuft zweimal, beide Male in der CI: auf dem PR
+(`ci.yml` — `pull_request` prüft schon den Merge-Stand `refs/pull/N/merge`, nicht nur den
+Branch) und nach dem Merge (`release.yml`, als Bedingung für die Images; dank Layer-Cache
+in etwa einer Minute). Lokal fährt der Agent nur die Tests, die seine Änderung berührt:
+einzelne Dateien (`cd apps/backend && .venv/bin/python -m pytest tests/test_x.py`,
+`npm --prefix apps/frontend run test -- src/x.test.ts`) oder `make test-local`. Das volle
+`make test` lokal nur, um einen roten CI-Lauf nachzustellen, der sich so nicht zeigt. Grund:
+dasselbe Kommando lokal und auf dem PR prüft dasselbe zweimal, und lokal landet sein Log im
+Kontext des Agenten.
+
+**Ausgaben nicht in den Kontext.** Test- und Build-Ausgaben gehen in eine Datei, gelesen
+wird das Ende (`make test > /tmp/pruefung.log 2>&1; tail -n 60 /tmp/pruefung.log`), bei
+Bedarf gezielt mit `grep`. Rote CI-Logs ebenso: nur den Ausschnitt um den Fehler.
+
 Änderungen laufen über Branch und PR. Was auf dem Server repariert wird, geht im selben
 Zug zurück in einen PR — sonst ist der nächste Deploy die Rückabwicklung der Reparatur.
 `compose.yaml` und `prod.sh` kommen nicht mehr mit der Pipeline auf den Server; ändern sie
@@ -137,6 +151,8 @@ Ein frischer Klon reproduziert das hier nicht. Abgearbeitet in `docs/uebergabe-d
 - `docker login ghcr.io` als `deploy` mit einem classic PAT mit `read:packages`
 - `compose.yaml` und `prod.sh` im Dienstverzeichnis
 - alte Auslöser abschalten (Tag-Deploy), sonst rollt ein Tag weiter aus
+- Self-hosted Runner `hetzner-dev` (arm64) für `ci.yml`, zweite Instanz für dieses Repo,
+  siehe `docs/ci-runner-hetzner.md`; `release.yml` und `deploy.yml` bleiben auf `ubuntu-latest`
 
 ## Ausnahmen in diesem Repo
 

@@ -81,7 +81,10 @@ RUN mkdir -p /app/uploads && chown appuser:appuser /app/uploads
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
-ENV PATH="/venv/bin:$PATH"
+# /app on the module path: `docker compose exec backend python scripts/<name>.py`
+# puts only scripts/ on sys.path, so the maintenance scripts could not import
+# dashboard_backend. The stage `scripts-check` below keeps this working.
+ENV PATH="/venv/bin:$PATH" PYTHONPATH=/app
 
 USER appuser
 
@@ -93,3 +96,13 @@ ENTRYPOINT ["/docker-entrypoint.sh"]
 # 2 workers: sync endpoints (imports, LLM extraction) otherwise serialize
 # behind a single worker process.
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+
+# ---------------------------------------------------------------------------
+# Stage: scripts-check – part of `make test` (not shipped; release.yml and
+# compose.override.yaml build `--target runtime` explicitly)
+# Loads every scripts/*.py inside the runtime image the way
+# `docker compose exec backend python scripts/<name>.py` does, so a script that
+# cannot import its modules fails the build instead of the next server session.
+# ---------------------------------------------------------------------------
+FROM runtime AS scripts-check
+RUN python check_scripts.py
