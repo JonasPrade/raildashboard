@@ -86,6 +86,7 @@ GitHub in [`docs/uebergabe-deploy.md`](uebergabe-deploy.md). Kurzfassung:
 | Punkt | Wert |
 |-------|------|
 | Prüfung | `make test` — in `ci.yml` (`pull_request`, Job `Prüfung`) und `release.yml` (`push [master]`), ohne eigene Prüfschritte; beide teilen einen Layer-Cache in GHCR (`…:pruefcache-*`, `docker-bake.hcl`) |
+| CI-Runner | `ubuntu-latest`; mit der Repo-Variable `CI_RUNNER` (z. B. `hetzner`) laufen `ci.yml` und `release.yml` auf einem Self-hosted Runner, Einrichtung in [`docs/ci-runner-hetzner.md`](ci-runner-hetzner.md). `deploy.yml` bleibt auf `ubuntu-latest`. |
 | Images | `ghcr.io/jonasprade/raildashboard-{backend,frontend,db,graphhopper}:<commit-sha>` (+ `:latest`), gebaut von `release.yml` nach grüner Prüfung |
 | Auslieferung | `deploy.yml`, von Hand: *Actions → deploy → Run workflow*; SHA leer = `master`, Rollback = frühere SHA; ein zweiter Lauf wartet auf den ersten (`cancel-in-progress: false`) |
 | Host | Contabo `vmd92747`, `/srv/raildashboard`, Benutzer `deploy` (Gruppe `docker`, kein sudo). Auf dem Host laufen weitere Dienste — nur `/srv/raildashboard` anfassen. |

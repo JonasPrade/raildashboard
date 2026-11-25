@@ -151,6 +151,9 @@ Ein frischer Klon reproduziert das hier nicht. Abgearbeitet in `docs/uebergabe-d
 - `docker login ghcr.io` als `deploy` mit einem classic PAT mit `read:packages`
 - `compose.yaml` und `prod.sh` im Dienstverzeichnis
 - alte Auslöser abschalten (Tag-Deploy), sonst rollt ein Tag weiter aus
+- optional: Self-hosted Runner auf Hetzner für `ci.yml` und `release.yml` (Repo-Variable
+  `CI_RUNNER`, ohne sie `ubuntu-latest`), siehe `docs/ci-runner-hetzner.md`; `deploy.yml` bleibt
+  auf `ubuntu-latest`
 
 ## Ausnahmen in diesem Repo
 

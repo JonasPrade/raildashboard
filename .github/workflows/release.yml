@@ -15,7 +15,7 @@ env:
 jobs:
   pruefung:
     name: Prüfung
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 30
     permissions:
       contents: read
@@ -40,7 +40,7 @@ jobs:
 
   build:
     name: Image ${{ matrix.service }} bauen und nach GHCR schieben
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     needs: pruefung
     timeout-minutes: 45
     permissions:
