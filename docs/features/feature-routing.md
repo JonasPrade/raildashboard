@@ -401,7 +401,7 @@ geplante Gleise ohne Gleistyp und Haltestellen von U-Bahn und Straßenbahn für 
 - Nach dem Deploy baut GraphHopper den Graphen neu (neues Basismodell, typlose Planungen im
   Graphen). Bis dahin ist das Routing nicht verfügbar; `/healthz` hängt nicht davon ab.
 - Die Migration fügt zwei Spalten mit Default hinzu (rückwärtskompatibel). Die OSM-Haltestellen
-  kommen erst mit `make docker-import-osm-stops` nach dem Deploy (einmalig, später bei Bedarf).
+  kommen erst mit `scripts/import_osm_stops.py` nach dem Deploy (einmalig, später bei Bedarf; Aufruf auf dem Server: `DEPLOY.md` → „Einmalige Nacharbeiten“).
 
 ### Entscheidungen (Jonas, 2026-11-19)
 
@@ -436,13 +436,13 @@ Stapel EKS-2026-051 im Vault; die letzten beiden aus der Rückfrage in der Umset
 - [x] Treptower Park → Sonnenallee mit S-Bahn rund 2 km über den Ring (Prod-Probe nach dem
       Deploy: 2,41 km, nur `light_rail`; Vollbahn unverändert 7,05 km, 2026-11-23).
 - [ ] Linien tragen `railway_class`; Editor und MCP zeigen km je Gleisart.
-- [ ] Nach `make docker-import-osm-stops` findet die Suche U-Bahn- und Straßenbahnhalte mit
+- [ ] Nach dem Haltestellen-Import (`scripts/import_osm_stops.py`) findet die Suche U-Bahn- und Straßenbahnhalte mit
       Netz-Kürzel; Filter nach Netz in REST und MCP.
 - [x] GraphHopper startet nach dem Deploy mit neu gebautem Graphen von selbst.
 
 ### Abgleich nach dem Deploy
 
-1. `make docker-import-osm-stops`.
+1. Haltestellen einlesen: `cd /srv/raildashboard && docker compose exec backend python scripts/import_osm_stops.py --dry-run`, dann ohne `--dry-run` (`DEPLOY.md`).
 2. Prod-Probe Treptower Park → Sonnenallee mit `track_classes: ["light_rail"]`, ohne `apply`.
 3. i2030-S-Bahn-Projekte mit S-Bahn-Gleisart neu routen, erst ohne `apply`, dann ersetzen
    (Muster W2/EK-2026-151); dabei die von Hand gezeichneten Ring-Stücke Treptower Park –

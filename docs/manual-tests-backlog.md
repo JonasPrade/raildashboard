@@ -15,9 +15,9 @@ Test-Checkliste des ermöglichenden Issues hochgezogen und hier entfernt.
 
 Deploy und Graph-Neubau sind erledigt (2026-11-23), die MCP-Punkte geprüft und die UI-Punkte ohne
 Haltestellen als Test-Checkliste an #363 und #371 gezogen. Offen bleibt, was
-`make docker-import-osm-stops` auf dem Server voraussetzt (Handschritt):
+der Haltestellen-Import auf dem Server voraussetzt (Handschritt, `DEPLOY.md` → „Einmalige Nacharbeiten“):
 
-- [ ] `make docker-import-osm-stops ARGS=--dry-run` nennt Zahlen für `light_rail`, `subway` und `tram`; danach ohne `--dry-run` „created …“; ein zweiter Lauf meldet nur „unchanged“/„updated“.
+- [ ] `cd /srv/raildashboard && docker compose exec backend python scripts/import_osm_stops.py --dry-run` nennt Zahlen für `light_rail`, `subway` und `tram`; danach ohne `--dry-run` „created …“; ein zweiter Lauf meldet nur „unchanged“/„updated“.
 - [ ] Projekt öffnen → Geometrie bearbeiten → Startbahnhof „Treptower Park“ suchen: der RINF-Treffer (Code `DE00BTP`) erscheint ohne Kürzel; „Hermannplatz“ zeigt Treffer mit Kürzel **U** (Untertitel „U-Bahn (OSM)“) und ggf. **Tram**.
 - [ ] MCP: `search_operational_points` mit `query: "Hermannplatz", networks: ["subway"]` liefert nur OSM-Halte (`op_id` `OSM-…`, `network: "subway"`).
 
