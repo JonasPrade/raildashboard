@@ -9,6 +9,9 @@
 # it only give `make test` a buildx builder and GHCR access for its layer cache
 # (CACHE_REF, docker-bake.hcl); the master run in release.yml reads the same
 # cache, so a merge commit this run already checked passes there in a minute.
+# PR runs only read that cache: `packages: read`, so the `cache-to` in
+# docker-bake.hcl fails quietly (ignore-error) and only master runs write
+# layers that release.yml builds the images from.
 name: ci
 
 on:
@@ -21,7 +24,7 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
-      packages: write
+      packages: read
     env:
       CACHE_REF: ghcr.io/jonasprade/raildashboard
     steps:
