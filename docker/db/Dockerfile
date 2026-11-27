@@ -3,7 +3,7 @@
 # The PostgreSQL apt repository is already configured in the base image, so the package
 # is available without additional source setup.
 
-FROM imresamu/postgis:16-3.4
+FROM imresamu/postgis:18-3.6
 
 # A hanging package mirror once held a CI run until its 30-minute timeout:
 # retry failed downloads and give up on a stalled connection after 60 s.
