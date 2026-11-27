@@ -29,7 +29,7 @@
     "recharts": "^3.8.0",
     "remark-gfm": "^4.0.1",
     "terra-draw": "^1.31.2",
-    "terra-draw-maplibre-gl-adapter": "^1.4.1"
+    "terra-draw-maplibre-gl-adapter": "^1.5.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
