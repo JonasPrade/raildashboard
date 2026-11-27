@@ -56,7 +56,7 @@ COPY test/ /test/
 RUN chmod +x /docker-entrypoint.sh && sh /test/smoke.sh
 
 # Stage 3: Runtime image
-FROM eclipse-temurin:17-jre AS runtime
+FROM eclipse-temurin:25-jre AS runtime
 
 # No apt here either (#372, #373). The entrypoint downloads the OSM extract with
 # curl, which the base image ships (with ca-certificates, so TLS is verified). The
