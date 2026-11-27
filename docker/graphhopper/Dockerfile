@@ -5,7 +5,7 @@
 # See docs/features/feature-routing.md → "Geplante und im Bau befindliche Gleise aus OSM".
 FROM node:20-slim AS node
 # Statically linked (musl): the runtime stage copies the binary on its own.
-FROM busybox:1.37.0-musl AS busybox
+FROM busybox:1.38.0-musl AS busybox
 
 FROM maven:3-eclipse-temurin-17 AS builder
 
