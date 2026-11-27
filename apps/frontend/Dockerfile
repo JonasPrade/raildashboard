@@ -4,7 +4,7 @@
 # ---------------------------------------------------------------------------
 # Stage 1: builder – compile the React/Vite application
 # ---------------------------------------------------------------------------
-FROM node:20-slim AS builder
+FROM node:26-slim AS builder
 
 WORKDIR /app
 
