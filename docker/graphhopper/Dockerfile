@@ -3,7 +3,7 @@
 #   orr/planned-tracks.patch  changes to existing OpenRailRouting files
 #   orr/overlay/              new files (encoded value railway_status, its parser, tests)
 # See docs/features/feature-routing.md → "Geplante und im Bau befindliche Gleise aus OSM".
-FROM node:20-slim AS node
+FROM node:26-slim AS node
 # Statically linked (musl): the runtime stage copies the binary on its own.
 FROM busybox:1.37.0-musl AS busybox
 
